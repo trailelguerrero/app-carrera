@@ -1,0 +1,110 @@
+import React from "react";
+import { DISTANCIAS, DISTANCIA_COLORS, DISTANCIA_LABELS } from "../../constants/budgetConstants";
+
+export const TabEquilibrio = ({ 
+  totalInscritos, 
+  precioMedioDistancia, 
+  costesVarPorCorredor, 
+  costesFijos, 
+  totalIngresosConMerch, 
+  puntoEquilibrio, 
+  resultado,
+  ingresosPorDistancia
+}) => {
+  const costosFijosNetos = Math.max(costesFijos.total - totalIngresosConMerch, 0);
+  const totalN = totalInscritos.total;
+  const margenTotal = totalN > 0
+    ? DISTANCIAS.reduce((s, d) => {
+        const margen = precioMedioDistancia[d] - costesVarPorCorredor[d];
+        const prop = totalInscritos[d] / totalN;
+        return s + margen * prop;
+      }, 0)
+    : 0;
+
+  const peTotal = margenTotal > 0 && costosFijosNetos > 0
+    ? Math.ceil(costosFijosNetos / margenTotal)
+    : costosFijosNetos <= 0 ? 0 : null;
+
+  const margenContribActual = totalN > 0
+    ? DISTANCIAS.reduce((s, d) => s + (precioMedioDistancia[d] - costesVarPorCorredor[d]) * totalInscritos[d], 0)
+    : 0;
+  const coberturaFijos = (costesFijos.total > 0)
+    ? Math.min((margenContribActual + totalIngresosConMerch) / costesFijos.total * 100, 200)
+    : 100;
+
+  return (
+    <>
+      <div className="kpi-grid">
+        <div className="kpi amber">
+          <div className="kpi-label">Costes Fijos a Cubrir</div>
+          <div className="kpi-value">{costosFijosNetos.toFixed(0)} €</div>
+          <div className="kpi-sub">{costosFijosNetos === 0 ? "✓ Cubiertos" : `de ${costesFijos.total.toFixed(0)}€ totales`}</div>
+        </div>
+        <div className="kpi cyan">
+          <div className="kpi-label">Margen Contribución Medio</div>
+          <div className="kpi-value">{margenTotal.toFixed(2)} €/cte</div>
+          <div className="kpi-sub">Media ponderada</div>
+        </div>
+        <div className="kpi violet">
+          <div className="kpi-label">Punto Equilibrio Total</div>
+          <div className="kpi-value">{peTotal === 0 ? "✓ 0" : (peTotal ?? "∞")}</div>
+          <div className="kpi-sub">corredores necesarios</div>
+        </div>
+        <div className={`kpi ${coberturaFijos >= 100 ? "green" : coberturaFijos >= 75 ? "amber" : "red"}`}>
+          <div className="kpi-label">Cobertura de Fijos</div>
+          <div className="kpi-value">{coberturaFijos.toFixed(0)}%</div>
+          <div className="kpi-sub">{totalInscritos.total} inscritos actuales</div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-title mb-2" style={{ color: "var(--amber)" }}>⚖️ Análisis por Distancia</div>
+        <div className="overflow-x">
+          <table className="eq-table">
+            <thead>
+              <tr>
+                <th>Distancia</th>
+                <th>Margen contrib. (€/cte)</th>
+                <th>Inscritos est.</th>
+                <th>Equilibrio est.</th>
+                <th>Diferencia</th>
+                <th>Ingresos inscr.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {DISTANCIAS.map(d => {
+                const margen = precioMedioDistancia[d] - costesVarPorCorredor[d];
+                const pe = puntoEquilibrio[d];
+                const diff = typeof pe === "number" ? totalInscritos[d] - pe : null;
+                return (
+                  <tr key={d}>
+                    <td style={{ fontWeight: 700, color: DISTANCIA_COLORS[d] }}>{DISTANCIA_LABELS[d]}</td>
+                    <td className="mono" style={{ color: margen > 0 ? "var(--green)" : "var(--red)", fontWeight: 700 }}>
+                      {margen.toFixed(2)} €
+                    </td>
+                    <td className="mono">{totalInscritos[d]}</td>
+                    <td className="mono" style={{ color: "var(--amber)" }}>{pe}</td>
+                    <td className="mono" style={{ color: diff === null ? "var(--text-muted)" : diff >= 0 ? "var(--green)" : "var(--red)", fontWeight: 600 }}>
+                      {diff === null ? "—" : (diff >= 0 ? `+${diff}` : diff)}
+                    </td>
+                    <td className="mono" style={{ color: "var(--violet)" }}>{(precioMedioDistancia[d] * totalInscritos[d]).toFixed(0)} €</td>
+                  </tr>
+                );
+              })}
+              <tr style={{ borderTop: "2px solid var(--border)", background: "var(--surface2)", fontWeight: 700 }}>
+                <td>TOTAL</td>
+                <td className="mono" style={{ color: margenTotal > 0 ? "var(--green)" : "var(--red)", fontWeight: 800 }}>{margenTotal.toFixed(2)} €</td>
+                <td className="mono">{totalInscritos.total}</td>
+                <td className="mono" style={{ color: "var(--amber)" }}>{peTotal ?? "∞"}</td>
+                <td className="mono" style={{ fontWeight: 700, color: peTotal && totalInscritos.total >= peTotal ? "var(--green)" : "var(--red)" }}>
+                  {peTotal ? (totalInscritos.total >= peTotal ? `+${totalInscritos.total - peTotal}` : `${totalInscritos.total - peTotal}`) : "—"}
+                </td>
+                <td className="mono" style={{ color: "var(--violet)" }}>{ingresosPorDistancia.total.toFixed(0)} €</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  );
+};

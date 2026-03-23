@@ -1,0 +1,31 @@
+
+> vite_react_shadcn_ts@0.0.0 build
+> vite build
+
+vite v5.4.19 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 9 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 2471 modules transformed.
+x Build failed in 3.58s
+error during build:
+src/hooks/useBudgetLogic.js (2:9): "dataService" is not exported by "src/lib/dataService.js", imported by "src/hooks/useBudgetLogic.js".
+file: /home/ivan/Proyectos/app_carrera/src/hooks/useBudgetLogic.js:2:9
+
+1: import { useState, useMemo, useEffect, useCallback } from "react";
+2: import { dataService } from "../lib/dataService";
+            ^
+3: import { 
+4:   TRAMOS_DEFAULT, 
+
+    at getRollupError (file:///home/ivan/Proyectos/app_carrera/node_modules/rollup/dist/es/shared/parseAst.js:395:41)
+    at error (file:///home/ivan/Proyectos/app_carrera/node_modules/rollup/dist/es/shared/parseAst.js:391:42)
+    at Module.error (file:///home/ivan/Proyectos/app_carrera/node_modules/rollup/dist/es/shared/node-entry.js:15535:16)
+    at Module.traceVariable (file:///home/ivan/Proyectos/app_carrera/node_modules/rollup/dist/es/shared/node-entry.js:15984:29)
+    at ModuleScope.findVariable (file:///home/ivan/Proyectos/app_carrera/node_modules/rollup/dist/es/shared/node-entry.js:13770:39)
+    at ReturnValueScope.findVariable (file:///home/ivan/Proyectos/app_carrera/node_modules/rollup/dist/es/shared/node-entry.js:5252:38)
+    at FunctionBodyScope.findVariable (file:///home/ivan/Proyectos/app_carrera/node_modules/rollup/dist/es/shared/node-entry.js:5252:38)
+    at ReturnValueScope.findVariable (file:///home/ivan/Proyectos/app_carrera/node_modules/rollup/dist/es/shared/node-entry.js:5252:38)
+    at FunctionBodyScope.findVariable (file:///home/ivan/Proyectos/app_carrera/node_modules/rollup/dist/es/shared/node-entry.js:5252:38)
+    at ReturnValueScope.findVariable (file:///home/ivan/Proyectos/app_carrera/node_modules/rollup/dist/es/shared/node-entry.js:5252:38)
