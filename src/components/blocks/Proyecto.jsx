@@ -1,6 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { useData } from "@/lib/dataService";
-import dataService from "@/lib/dataService";
+import dataService, { useData } from "@/lib/dataService";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const LS = "teg_proyecto_v1";
@@ -156,8 +155,16 @@ export default function App() {
 
   // Los datos se guardan automáticamente en Neon via useData().
   // Esta función solo sincroniza otras pestañas abiertas.
-  const save = () => {
-    dataService.notify();
+  const save = async () => {
+    try {
+      await Promise.all([
+        dataService.set(LS+"_tareas", tareas),
+        dataService.set(LS+"_hitos",  hitos),
+        dataService.set(LS+"_equipo", equipo),
+      ]);
+      dataService.notify();
+    } catch(e) { console.warn("Save error:", e); }
+    setSaved(true); setTimeout(() => setSaved(false), 2500);
   };
 
   // ── Derived stats ──────────────────────────────────────────────────────────

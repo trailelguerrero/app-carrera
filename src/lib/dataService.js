@@ -109,25 +109,32 @@ const apiAdapter = {
 
       savePromises.set(collection, resolve);
 
+      window.dispatchEvent(new CustomEvent('teg-save-status', { detail: { status: 'saving' } }));
+
       const timeoutId = setTimeout(async () => {
         saveTimeouts.delete(collection);
         savePromises.delete(collection);
         try {
+          const apiKey = import.meta.env.VITE_API_KEY;
+          if (!apiKey) throw new Error('VITE_API_KEY no configurada en Vercel');
+
           const res = await fetch(`${API_BASE_URL}/data/${collection}`, {
             method: 'PUT',
             headers: { 
               'Content-Type': 'application/json',
-              'x-api-key': import.meta.env.VITE_API_KEY
+              'x-api-key': apiKey
             },
             body: JSON.stringify(data),
           });
           if (!res.ok) throw new Error(`API error: ${res.status}`);
           
-          // Marcar éxito y timestamp para evitar que un GET posterior inmediato traiga datos viejos
+          // Marcar éxito y timestamp
           localStorage.setItem(`__last_save_${collection}`, Date.now().toString());
+          window.dispatchEvent(new CustomEvent('teg-save-status', { detail: { status: 'saved' } }));
           resolve({ success: true });
         } catch (e) {
-          // Fallback: marcar para sync cuando vuelva la conexión
+          console.error(`[dataService] Error guardando "${collection}":`, e.message);
+          window.dispatchEvent(new CustomEvent('teg-save-status', { detail: { status: 'error' } }));
           await localAdapter.set(`__pending_sync_${collection}`, Date.now());
           resolve({ success: true, offline: true });
         }
@@ -188,6 +195,8 @@ const apiAdapter = {
       }
 
       savePromises.set(collection, resolve);
+
+      window.dispatchEvent(new CustomEvent('teg-save-status', { detail: { status: 'saving' } }));
 
       const timeoutId = setTimeout(async () => {
         saveTimeouts.delete(collection);
