@@ -150,6 +150,11 @@ const Presupuesto = () => {
         .num-input:focus { outline: none; border-color: var(--cyan); }
         .text-input { background: transparent; border: 1px solid transparent; color: var(--text); padding: 0.3rem; width: 100%; border-radius: 4px; font-family: var(--font-display); font-size: 0.85rem; }
         .text-input:focus { outline: none; background: var(--surface2); border-color: var(--border); }
+        .date-input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 0.25rem 0.45rem; font-size: 0.72rem; font-family: var(--font-mono); cursor: pointer; }
+        .date-input:focus { outline: none; border-color: var(--cyan); }
+
+        /* ── Card title variants ── */
+        .card-title.tramos { color: var(--amber); }
 
         /* ── Dist dot & labels ── */
         .dist-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
