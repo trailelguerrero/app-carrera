@@ -159,17 +159,6 @@ export default function App() {
 
   // Los datos se guardan automáticamente en Neon via useData().
   // Esta función solo sincroniza otras pestañas abiertas.
-  const save = async () => {
-    try {
-      await Promise.all([
-        dataService.set(LS+"_tareas", tareas),
-        dataService.set(LS+"_hitos",  hitos),
-        dataService.set(LS+"_equipo", equipo),
-      ]);
-      dataService.notify();
-    } catch(e) { console.warn("Save error:", e); }
-    setSaved(true); setTimeout(() => setSaved(false), 2500);
-  };
 
   // ── Derived stats ──────────────────────────────────────────────────────────
   const stats = useMemo(() => {
@@ -1209,7 +1198,6 @@ const CSS = `
   /* KPIs */
   .kgrid4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .75rem; margin-bottom: 1rem; }
   @media (max-width: 480px) { .kgrid4 { grid-template-columns: 1fr 1fr; gap: 0.5rem; } }
-  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1rem;position:relative;overflow:hidden;transition:all .2s}
   .kpi:hover{transform:translateY(-2px);border-color:var(--border-light);box-shadow:0 4px 20px rgba(0,0,0,.4)}
   .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
   .kpi.c-cyan::before,.kpi.c-cyan .kv{background:linear-gradient(90deg,var(--cyan),transparent)}.kpi.c-cyan .kv{background:none;color:var(--cyan)}
@@ -1222,7 +1210,6 @@ const CSS = `
   /* CARDS */
   .twocol{display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:.85rem}
   @media(max-width:800px){.twocol{grid-template-columns:1fr}}
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1rem;margin-bottom:.85rem;transition:border-color .2s}
   .card:hover{border-color:var(--border-light)}
   .ct{font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.75rem;color:var(--text-muted)}
   .filtros-card{margin-bottom:.75rem}
@@ -1281,21 +1268,15 @@ const CSS = `
   .persona-card{background:var(--surface);border:1px solid var(--border);border-top:3px solid;border-radius:var(--r);padding:1rem;transition:all .15s}
   .persona-card:hover{border-color:var(--border-light);box-shadow:0 4px 16px rgba(0,0,0,.3)}
   /* UTILS */
-  .inp{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:var(--font-display);font-size:.78rem;padding:.4rem .6rem;outline:none;transition:border-color .15s;width:100%}
   .inp:focus{border-color:var(--violet);box-shadow:0 0 0 2px rgba(167,139,250,.1)}
-  .btn{padding:.38rem .8rem;border:none;border-radius:var(--r-sm);font-family:var(--font-display);font-size:.73rem;font-weight:600;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.3rem}
   .btn:hover{transform:translateY(-1px)}
   .btn.primary{background:rgba(167,139,250,.15);color:var(--violet);border:1px solid rgba(167,139,250,.3)} .btn.primary:hover{background:rgba(167,139,250,.25)}
   .btn.ghost{background:transparent;color:var(--text-muted);border:1px solid var(--border)} .btn.ghost:hover{color:var(--text);border-color:var(--border-light)}
   .btn.red{background:rgba(248,113,113,.12);color:#f87171;border:1px solid rgba(248,113,113,.2)}
   .btn.xs{padding:.2rem .4rem;font-size:.65rem}
   .mt1{margin-top:.5rem} .w100{width:100%;justify-content:center}
-  .badge{display:inline-block;padding:.1rem .38rem;border-radius:4px;font-size:.58rem;font-weight:700;font-family:var(--font-mono);text-transform:uppercase}
-  .mono{font-family:var(--font-mono)} .xs{font-size:.62rem} .muted{color:var(--text-muted)}
   .empty{text-align:center;padding:2rem;color:var(--text-muted);font-family:var(--font-mono);font-size:.75rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--r)}
   /* MODAL */
-  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;z-index:100;padding:1rem}
-  .modal{background:var(--surface);border:1px solid var(--border-light);border-radius:16px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;animation:su .2s ease;box-shadow:0 24px 64px rgba(0,0,0,.7)}
   @keyframes su{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
   .mhdr{padding:1.1rem 1.4rem .9rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
   .mtit{font-size:.95rem;font-weight:700}

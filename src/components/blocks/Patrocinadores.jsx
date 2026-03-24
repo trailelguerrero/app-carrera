@@ -1241,6 +1241,7 @@ function TabDocumentos({ pats, addDoc, deleteDoc }) {
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
 const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap');
   /* Layout dos columnas */
   .twocol { display: grid; grid-template-columns: 1fr 1fr; gap: .85rem; }
   @media(max-width:700px) { .twocol { grid-template-columns: 1fr; } }
@@ -1249,7 +1250,6 @@ const CSS = `
   .empty { text-align: center; padding: .85rem; color: var(--text-dim); font-family: var(--font-mono); font-size: .68rem; }
 
   /* Patrocinadores — solo estilos específicos de este bloque */
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap');
 
   /* Page layout */
   .ph{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap}
