@@ -565,7 +565,7 @@ export default function App() {
 
         {/* CONTENIDO */}
         <div key={tab}>
-          {tab==="dashboard" && <TabDashboard stats={stats} puestosConStats={puestosConStats} voluntarios={voluntarios} setTab={setTab} />}
+          {tab==="dashboard" && <TabDashboard stats={stats} puestosConStats={puestosConStats} voluntarios={voluntarios} setTab={setTab} onEditarVol={(v) => setModalVol(v)} onEditarPuesto={(p) => setModalPuesto(p)} />}
           {tab==="voluntarios" && (
             <TabVoluntarios
               voluntarios={volsFiltrados} todosVols={voluntarios} puestos={puestos}
@@ -887,7 +887,7 @@ function AppShell({ children }) {
 }
 
 // ─── TAB DASHBOARD ────────────────────────────────────────────────────────────
-function TabDashboard({ stats, puestosConStats, voluntarios, setTab }) {
+function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol, onEditarPuesto }) {
   const alertas = puestosConStats.filter(p => p.cobertura < 50);
   const cobColor = stats.coberturaGlobal >= 80 ? "c-green" : stats.coberturaGlobal >= 50 ? "c-amber" : "c-red";
 
@@ -921,7 +921,12 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab }) {
         <div style={{ background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: "var(--radius)", padding: "0.85rem 1rem", marginBottom: "0.85rem" }}>
           <div style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--red)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.5rem" }}>⚠️ Puestos con cobertura insuficiente</div>
           {alertas.map(p => (
-            <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.3rem 0", borderBottom: "1px solid rgba(248,113,113,0.1)", fontSize: "0.78rem" }}>
+            <div key={p.id}
+              onClick={() => onEditarPuesto(p)}
+              title="Click para abrir ficha del puesto"
+              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.3rem 0.3rem", borderBottom: "1px solid rgba(248,113,113,0.1)", fontSize: "0.78rem", cursor: "pointer", borderRadius: 4, transition: "background .12s" }}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(248,113,113,0.06)"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
               <span>{p.nombre}</span>
               <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.7rem", color: "var(--red)", fontWeight: 700 }}>{p.totalAsignados}/{p.necesarios} ({p.cobertura}%)</span>
             </div>
@@ -937,7 +942,9 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab }) {
               const pct = Math.min(p.cobertura, 100);
               const color = pct >= 80 ? "var(--green)" : pct >= 50 ? "var(--amber)" : "var(--red)";
               return (
-                <div key={p.id}>
+                <div key={p.id} style={{cursor:"pointer"}}
+                  onClick={() => onEditarPuesto(p)}
+                  title="Click para abrir ficha del puesto">
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.2rem" }}>
                     <span style={{ fontSize: "0.72rem", color: "var(--text)" }}>{p.nombre}</span>
                     <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.62rem", color }}>{p.totalAsignados}/{p.necesarios}</span>
@@ -960,7 +967,12 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab }) {
           <div className="card-title">👥 Últimos registros</div>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
             {[...voluntarios].sort((a, b) => b.fechaRegistro?.localeCompare(a.fechaRegistro || "") || 0).slice(0, 6).map(v => (
-              <div key={v.id} style={{ display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.35rem 0", borderBottom: "1px solid rgba(30,45,80,0.3)" }}>
+              <div key={v.id}
+                onClick={() => onEditarVol(v)}
+                title="Click para abrir ficha del voluntario"
+                style={{ display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.35rem 0.3rem", borderBottom: "1px solid rgba(30,45,80,0.3)", cursor: "pointer", borderRadius: 4, transition: "background .12s" }}
+                onMouseEnter={e => e.currentTarget.style.background = "var(--surface2)"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                 <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.65rem", fontWeight: 700, color: "var(--cyan)", flexShrink: 0 }}>
                   {(v.nombre || "V").split(" ").map(n => n[0]).slice(0, 2).join("")}
                 </div>
