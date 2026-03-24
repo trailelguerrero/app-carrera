@@ -300,8 +300,13 @@ const TLI = {logistica:"🚚",organizacion:"📋",voluntarios:"👥",carrera:"�
 function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel}) {
   const [vistaAsig,setVistaAsig]=useState(false);
   const [cat,setCat]=useState("todas");
+  const [ordenAlfa,setOrdenAlfa]=useState(false);
   const ms=useMemo(()=>material.map(m=>{const a=asigs.filter(x=>x.materialId===m.id);const asig=a.reduce((s,x)=>s+x.cantidad,0);const ent=a.filter(x=>x.estado==="entregado").reduce((s,x)=>s+x.cantidad,0);return{...m,asig,ent,def:Math.max(asig-m.stock,0)}}),[material,asigs]);
-  const mf=cat==="todas"?ms:ms.filter(m=>m.categoria===cat);
+  const mf=useMemo(()=>{
+    let list=cat==="todas"?ms:ms.filter(m=>m.categoria===cat);
+    if(ordenAlfa) list=[...list].sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es"));
+    return list;
+  },[ms,cat,ordenAlfa]);
   return(
     <>
       <div className="ph">
@@ -309,6 +314,12 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel}) {
         <div className="fr g1">
           <button className={cls("btn",!vistaAsig?"cyan":"ghost")} onClick={()=>setVistaAsig(false)}>Catálogo</button>
           <button className={cls("btn",vistaAsig?"cyan":"ghost")} onClick={()=>setVistaAsig(true)}>Asignaciones</button>
+          {!vistaAsig && (
+            <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")}
+              onClick={()=>setOrdenAlfa(v=>!v)} title={ordenAlfa?"Quitar orden A-Z":"Ordenar A-Z"}>
+              {ordenAlfa?"A-Z ✓":"A-Z"}
+            </button>
+          )}
           <button className="btn cyan" onClick={()=>setModal({tipo:vistaAsig?"asig":"mat"})}>+ Añadir</button>
         </div>
       </div>

@@ -317,8 +317,8 @@ export default function App() {
               <div className="muted mono xs">Se eliminarán también todas sus contraprestaciones.</div>
             </div>
             <div className="mfoot">
-              <button className="btn ghost" onClick={() => setDelId(null)}>Cancelar</button>
-              <button className="btn red" onClick={deletePat}>Eliminar</button>
+              <button className="btn btn-ghost" onClick={() => setDelId(null)}>Cancelar</button>
+              <button className="btn btn-red" onClick={deletePat}>Eliminar</button>
             </div>
           </div>
         </div>
@@ -381,10 +381,10 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo })
             <div style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
               <input className="inp" type="number" value={tmpObj} onChange={e => setTmpObj(parseFloat(e.target.value) || 0)} style={{ width: 100 }} />
               <button className="btn btn-gold" onClick={() => { setObjetivo(tmpObj); setEditObj(false); }}>OK</button>
-              <button className="btn ghost" onClick={() => setEditObj(false)}>✕</button>
+              <button className="btn btn-ghost" onClick={() => setEditObj(false)}>✕</button>
             </div>
           ) : (
-            <button className="btn ghost" onClick={() => { setTmpObj(objetivo); setEditObj(true); }}>✏️ Editar objetivo</button>
+            <button className="btn btn-ghost" onClick={() => { setTmpObj(objetivo); setEditObj(true); }}>✏️ Editar objetivo</button>
           )}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1rem" }}>
@@ -510,7 +510,7 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
             {ESTADOS.map(e => <option key={e} value={e}>{ESTADO_CFG[e].label}</option>)}
           </select>
           {(search || filtroNivel !== "todos" || filtroEstado !== "todos") && (
-            <button className="btn ghost" onClick={() => { setSearch(""); setFiltroNivel("todos"); setFiltroEstado("todos"); }}>✕ Limpiar</button>
+            <button className="btn btn-ghost" onClick={() => { setSearch(""); setFiltroNivel("todos"); setFiltroEstado("todos"); }}>✕ Limpiar</button>
           )}
         </div>
       </div>
@@ -551,9 +551,9 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
                   <div className="mono xs muted">{p.estado !== "cobrado" ? `Vence: ${p.fechaVencimiento}` : "✓ Cobrado"}</div>
                 )}
                 <div style={{ display: "flex", gap: ".3rem" }}>
-                  <button className="btn xs" style={{ background: cfg.dim, color: cfg.color, border: `1px solid ${cfg.border}` }} onClick={() => onDetalle(p)}>Ver detalle</button>
-                  <button className="btn xs ghost" onClick={() => onEditar(p)}>✏️</button>
-                  <button className="btn xs red" onClick={() => onDelete(p.id)}>✕</button>
+                  <button className="btn btn-sm" style={{ background: cfg.dim, color: cfg.color, border: `1px solid ${cfg.border}` }} onClick={() => onDetalle(p)}>Ver detalle</button>
+                  <button className="btn btn-sm btn-ghost" onClick={() => onEditar(p)}>✏️</button>
+                  <button className="btn btn-sm btn-red" onClick={() => onDelete(p.id)}>✕</button>
                 </div>
               </div>
             </div>
@@ -608,12 +608,12 @@ function TabPipeline({ pats, onEditar, updateEstado }) {
                       <span style={{ fontFamily: "var(--font-mono)", fontSize: ".78rem", fontWeight: 700, color: ncfg.color }}>
                         {p.especie > 0 ? fmt(p.especie) : fmt(p.importe)}
                       </span>
-                      <button className="btn xs ghost" onClick={() => onEditar(p)}>✏️</button>
+                      <button className="btn btn-sm btn-ghost" onClick={() => onEditar(p)}>✏️</button>
                     </div>
                     {/* Mover de estado */}
                     <div style={{ marginTop: ".5rem", display: "flex", gap: ".25rem", flexWrap: "wrap" }}>
                       {ESTADOS.filter(s => s !== p.estado && s !== "cancelado").slice(0, 2).map(s => (
-                        <button key={s} className="btn xs ghost" style={{ fontSize: ".55rem", padding: ".1rem .35rem" }}
+                        <button key={s} className="btn btn-sm btn-ghost" style={{ fontSize: ".55rem", padding: ".1rem .35rem" }}
                           onClick={() => updateEstado(p.id, s)}>
                           → {ESTADO_CFG[s].label}
                         </button>
@@ -661,7 +661,7 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
                 <div style={{ fontSize: ".72rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.tipo}</div>
                 <div className="mono xs muted">{c.patNombre}</div>
               </div>
-              <button className="btn xs" style={{ background: "var(--green-dim)", color: "var(--green)", border: "1px solid rgba(52,211,153,.2)", flexShrink: 0 }}
+              <button className="btn btn-sm" style={{ background: "var(--green-dim)", color: "var(--green)", border: "1px solid rgba(52,211,153,.2)", flexShrink: 0 }}
                 onClick={() => updateContraprestacion(c.patId, c.id, "estado", "entregado")}>Entregar</button>
             </div>
           ))}
@@ -697,7 +697,7 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
                   <div className="mono xs muted">{p.contraprestaciones.length} compromisos · {pend} pendientes · {entr} entregados</div>
                 </div>
               </div>
-              <button className="btn xs" style={{ background: cfg.dim, color: cfg.color, border: `1px solid ${cfg.border}` }}
+              <button className="btn btn-sm" style={{ background: cfg.dim, color: cfg.color, border: `1px solid ${cfg.border}` }}
                 onClick={() => setAddingTo(addingTo === p.id ? null : p.id)}>+ Añadir</button>
             </div>
 
@@ -715,7 +715,7 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
                   <div style={{ fontSize: ".76rem", fontWeight: 600, color: c.estado === "entregado" ? "var(--text-muted)" : "var(--text)", textDecoration: c.estado === "entregado" ? "line-through" : "none" }}>{c.tipo}</div>
                   {c.detalle && <div className="mono xs muted">{c.detalle}</div>}
                 </div>
-                <button className="btn xs red" onClick={() => deleteContraprestacion(p.id, c.id)}>✕</button>
+                <button className="btn btn-sm btn-red" onClick={() => deleteContraprestacion(p.id, c.id)}>✕</button>
               </div>
             ))}
 
@@ -726,7 +726,7 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
                 </select>
                 <input className="inp" placeholder="Detalle (opcional)..." value={newCont.detalle} onChange={e => setNewCont(x => ({ ...x, detalle: e.target.value }))} />
                 <div style={{ display: "flex", gap: ".5rem", justifyContent: "flex-end" }}>
-                  <button className="btn ghost" onClick={() => setAddingTo(null)}>Cancelar</button>
+                  <button className="btn btn-ghost" onClick={() => setAddingTo(null)}>Cancelar</button>
                   <button className="btn btn-gold" onClick={() => {
                     addContraprestacion(p.id, { ...newCont, estado: "pendiente" });
                     setNewCont({ tipo: CONTRAPRESTACIONES_TIPO[0], detalle: "", estado: "pendiente" });
@@ -764,8 +764,8 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
               </div>
             </div>
             <div style={{ display: "flex", gap: ".4rem" }}>
-              <button className="btn xs ghost" onClick={onEditar}>✏️ Editar</button>
-              <button className="btn xs ghost" onClick={onClose}>✕</button>
+              <button className="btn btn-sm btn-ghost" onClick={onEditar}>✏️ Editar</button>
+              <button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button>
             </div>
           </div>
           <div style={{ display: "flex", gap: "0", padding: "0 1.4rem" }}>
@@ -801,7 +801,7 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
                 const sc = ESTADO_CFG[s];
                 const active = pat.estado === s;
                 return (
-                  <button key={s} className="btn xs" onClick={() => updateEstado(pat.id, s)}
+                  <button key={s} className="btn btn-sm" onClick={() => updateEstado(pat.id, s)}
                     style={{ background: active ? sc.bg : "transparent", color: active ? sc.color : "var(--text-muted)", border: `1px solid ${active ? sc.color + "55" : "var(--border)"}`, fontWeight: active ? 700 : 400 }}>
                     {active && "● "}{sc.label}
                   </button>
@@ -820,7 +820,7 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
           {subTab === "cont" && <><div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ".5rem" }}>
               <div className="fl" style={{ margin: 0 }}>Contraprestaciones ({pat.contraprestaciones.length})</div>
-              <button className="btn xs" style={{ background: cfg.dim, color: cfg.color, border: `1px solid ${cfg.border}` }}
+              <button className="btn btn-sm" style={{ background: cfg.dim, color: cfg.color, border: `1px solid ${cfg.border}` }}
                 onClick={() => setAddingCont(!addingCont)}>+ Añadir</button>
             </div>
             {pat.contraprestaciones.map(c => (
@@ -833,7 +833,7 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
                   <div style={{ fontSize: ".74rem", fontWeight: 600, textDecoration: c.estado === "entregado" ? "line-through" : "none", color: c.estado === "entregado" ? "var(--text-muted)" : "var(--text)" }}>{c.tipo}</div>
                   {c.detalle && <div className="mono xs muted">{c.detalle}</div>}
                 </div>
-                <button className="btn xs red" onClick={() => deleteContraprestacion(pat.id, c.id)}>✕</button>
+                <button className="btn btn-sm btn-red" onClick={() => deleteContraprestacion(pat.id, c.id)}>✕</button>
               </div>
             ))}
             {pat.contraprestaciones.length === 0 && !addingCont && (
@@ -846,7 +846,7 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
                 </select>
                 <input className="inp" placeholder="Detalle (tamaño logo, nº posts, etc.)" value={newC.detalle} onChange={e => setNewC(x => ({ ...x, detalle: e.target.value }))} />
                 <div style={{ display: "flex", gap: ".4rem", justifyContent: "flex-end" }}>
-                  <button className="btn ghost" onClick={() => setAddingCont(false)}>Cancelar</button>
+                  <button className="btn btn-ghost" onClick={() => setAddingCont(false)}>Cancelar</button>
                   <button className="btn btn-gold" onClick={() => { addContraprestacion(pat.id, { ...newC, estado: "pendiente" }); setAddingCont(false); }}>Añadir</button>
                 </div>
               </div>
@@ -858,7 +858,7 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
           {subTab === "docs" && <DocManager pat={pat} addDoc={addDoc} deleteDoc={deleteDoc} cfg={cfg} />}
         </div>
         <div className="mfoot">
-          <button className="btn ghost" onClick={onClose}>Cerrar</button>
+          <button className="btn btn-ghost" onClick={onClose}>Cerrar</button>
         </div>
       </div>
     </div>
@@ -889,7 +889,7 @@ function ModalPat({ data, onSave, onClose }) {
       <div className="pat-modal">
         <div className="mhdr">
           <span className="mtit">{data ? "✏️ Editar patrocinador" : "🤝 Nuevo patrocinador"}</span>
-          <button className="btn xs ghost" onClick={onClose}>✕</button>
+          <button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button>
         </div>
         <div className="mbody">
           <div>
@@ -970,7 +970,7 @@ function ModalPat({ data, onSave, onClose }) {
           </div>
         </div>
         <div className="mfoot">
-          <button className="btn ghost" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
           <button className="btn btn-gold" onClick={() => { if (validar()) onSave(form); }}>
             {data ? "💾 Guardar cambios" : "🤝 Crear patrocinador"}
           </button>
@@ -1062,13 +1062,13 @@ function DocManager({ pat, addDoc, deleteDoc, cfg }) {
               </div>
               <div style={{ display: "flex", gap: ".3rem", flexShrink: 0 }}>
                 {(d.mime === "application/pdf" || d.mime?.startsWith("image/")) && (
-                  <button className="btn xs" style={{ background: cfg.dim, color: cfg.color, border: `1px solid ${cfg.border}` }}
+                  <button className="btn btn-sm" style={{ background: cfg.dim, color: cfg.color, border: `1px solid ${cfg.border}` }}
                     onClick={() => setPreview(d)}>
                     👁 Ver
                   </button>
                 )}
-                <a href={d.data} download={d.nombre} className="btn xs ghost" style={{ textDecoration: "none" }}>⬇ Bajar</a>
-                <button className="btn xs red" onClick={() => deleteDoc(pat.id, d.id)}>✕</button>
+                <a href={d.data} download={d.nombre} className="btn btn-sm btn-ghost" style={{ textDecoration: "none" }}>⬇ Bajar</a>
+                <button className="btn btn-sm btn-red" onClick={() => deleteDoc(pat.id, d.id)}>✕</button>
               </div>
             </div>
           ))}
@@ -1086,8 +1086,8 @@ function DocManager({ pat, addDoc, deleteDoc, cfg }) {
                 <div className="mono xs muted">{preview.tipo}</div>
               </div>
               <div style={{ display: "flex", gap: ".4rem" }}>
-                <a href={preview.data} download={preview.nombre} className="btn xs ghost" style={{ textDecoration: "none" }}>⬇ Descargar</a>
-                <button className="btn xs ghost" onClick={() => setPreview(null)}>✕</button>
+                <a href={preview.data} download={preview.nombre} className="btn btn-sm btn-ghost" style={{ textDecoration: "none" }}>⬇ Descargar</a>
+                <button className="btn btn-sm btn-ghost" onClick={() => setPreview(null)}>✕</button>
               </div>
             </div>
             <div style={{ flex: 1, overflow: "auto", minHeight: 0 }}>
@@ -1162,7 +1162,7 @@ function TabDocumentos({ pats, addDoc, deleteDoc }) {
           {pats.filter(p=>(p.docs||[]).length>0).map(p => <option key={p.id} value={String(p.id)}>{p.nombre}</option>)}
         </select>
         {(filtroTipo !== "todos" || filtroPat !== "todos") && (
-          <button className="btn ghost" onClick={() => { setFiltroTipo("todos"); setFiltroPat("todos"); }}>✕ Limpiar</button>
+          <button className="btn btn-ghost" onClick={() => { setFiltroTipo("todos"); setFiltroPat("todos"); }}>✕ Limpiar</button>
         )}
       </div>
 
@@ -1196,11 +1196,11 @@ function TabDocumentos({ pats, addDoc, deleteDoc }) {
                 <div className="mono xs muted">{d.fecha} · {(d.size/1024).toFixed(0)} KB</div>
                 <div style={{ display: "flex", gap: ".3rem", marginTop: ".1rem" }}>
                   {(d.mime === "application/pdf" || d.mime?.startsWith("image/")) && (
-                    <button className="btn xs" style={{ background: "rgba(34,211,238,.1)", color: "#22d3ee", border: "1px solid rgba(34,211,238,.2)" }}
+                    <button className="btn btn-sm" style={{ background: "rgba(34,211,238,.1)", color: "#22d3ee", border: "1px solid rgba(34,211,238,.2)" }}
                       onClick={() => setPreview(d)}>👁 Ver</button>
                   )}
-                  <a href={d.data} download={d.nombre} className="btn xs ghost" style={{ textDecoration: "none" }}>⬇ Bajar</a>
-                  <button className="btn xs red" onClick={() => deleteDoc(d.patId, d.id)}>✕</button>
+                  <a href={d.data} download={d.nombre} className="btn btn-sm btn-ghost" style={{ textDecoration: "none" }}>⬇ Bajar</a>
+                  <button className="btn btn-sm btn-red" onClick={() => deleteDoc(d.patId, d.id)}>✕</button>
                 </div>
               </div>
             );
@@ -1219,8 +1219,8 @@ function TabDocumentos({ pats, addDoc, deleteDoc }) {
                 <div className="mono xs muted">{preview.tipo} · {preview.patNombre}</div>
               </div>
               <div style={{ display: "flex", gap: ".4rem" }}>
-                <a href={preview.data} download={preview.nombre} className="btn xs ghost" style={{ textDecoration: "none" }}>⬇ Descargar</a>
-                <button className="btn xs ghost" onClick={() => setPreview(null)}>✕</button>
+                <a href={preview.data} download={preview.nombre} className="btn btn-sm btn-ghost" style={{ textDecoration: "none" }}>⬇ Descargar</a>
+                <button className="btn btn-sm btn-ghost" onClick={() => setPreview(null)}>✕</button>
               </div>
             </div>
             <div style={{ flex: 1, overflow: "auto", minHeight: 0 }}>

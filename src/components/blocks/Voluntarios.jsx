@@ -1047,67 +1047,56 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
         </div>
       </div>
 
-      <div className="card" style={{ padding: 0 }}>
+      {/* VISTA ESCRITORIO — tabla */}
+      <div className="card" style={{ padding: 0, display: "none" }} id="vol-table-desktop">
         <div className="overflow-x">
           <table className="tbl">
             <thead>
               <tr>
-                <th>Voluntario</th>
-                <th>Teléfono</th>
-                <th>Talla</th>
-                <th>Puesto</th>
-                <th>Rol</th>
-                <th>Estado</th>
-                <th>🚗</th>
-                <th>Registro</th>
-                <th></th>
+                <th>Voluntario</th><th>Teléfono</th><th>Talla</th>
+                <th>Puesto</th><th>Rol</th><th>Estado</th>
+                <th>🚗</th><th>Registro</th><th></th>
               </tr>
             </thead>
             <tbody>
               {volsOrdenados.length === 0 && (
-                <tr><td colSpan={9} style={{ textAlign: "center", color: "var(--text-muted)", padding: "2rem", fontFamily: "var(--font-mono)", fontSize: "0.75rem" }}>
+                <tr><td colSpan={9} style={{ textAlign:"center", color:"var(--text-muted)", padding:"2rem", fontFamily:"var(--font-mono)", fontSize:"0.75rem" }}>
                   No hay voluntarios con estos filtros
                 </td></tr>
               )}
               {volsOrdenados.map(v => {
                 const puesto = puestos.find(p => p.id === v.puestoId);
                 return (
-                  <tr key={v.id} style={{ cursor: "pointer" }}
-                    onClick={() => onEditar(v)}
-                    title="Click para abrir ficha">
+                  <tr key={v.id} style={{ cursor:"pointer" }} onClick={() => onEditar(v)} title="Click para abrir ficha">
                     <td data-label="Voluntario">
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                        <div style={{ width: 26, height: 26, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.58rem", fontWeight: 700, color: "var(--cyan)", flexShrink: 0 }}>
-                          {(v.nombre || "V").split(" ").map(n => n[0]).slice(0, 2).join("")}
+                      <div style={{ display:"flex", alignItems:"center", gap:"0.5rem" }}>
+                        <div style={{ width:26, height:26, borderRadius:"50%", background:"var(--surface2)", border:"1px solid var(--border)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"0.58rem", fontWeight:700, color:"var(--cyan)", flexShrink:0 }}>
+                          {(v.nombre||"V").split(" ").map(n=>n[0]).slice(0,2).join("")}
                         </div>
-                        <span style={{ fontWeight: 600, fontSize: "0.8rem" }}>{v.nombre || "Sin nombre"}</span>
+                        <span style={{ fontWeight:600, fontSize:"0.8rem" }}>{v.nombre||"Sin nombre"}</span>
                       </div>
                     </td>
                     <td><span className="mono text-xs">{v.telefono}</span></td>
-                    <td><span className="badge badge-cyan">{v.talla || "—"}</span></td>
-                    <td style={{ maxWidth: 160 }}>
-                      <span style={{ fontSize: "0.72rem", color: puesto ? "var(--text)" : "var(--text-dim)" }}>
-                        {puesto ? puesto.nombre : "Sin asignar"}
+                    <td><span className="badge badge-cyan">{v.talla||"—"}</span></td>
+                    <td style={{ maxWidth:160 }}>
+                      <span style={{ fontSize:"0.72rem", color:puesto?"var(--text)":"var(--text-dim)" }}>
+                        {puesto?puesto.nombre:"Sin asignar"}
                       </span>
                     </td>
-                    <td>
-                      <span className={`badge ${v.rol === "responsable" ? "badge-violet" : "badge-cyan"}`}>{v.rol || "apoyo"}</span>
-                    </td>
-                    <td onClick={e => e.stopPropagation()}>
+                    <td><span className={`badge ${v.rol==="responsable"?"badge-violet":"badge-cyan"}`}>{v.rol||"apoyo"}</span></td>
+                    <td onClick={e=>e.stopPropagation()}>
                       <select className="inp inp-sm" value={v.estado}
-                        onChange={e => onUpdate(v.id, { estado: e.target.value })}
-                        style={{ width: "auto", color: estadoColor(v.estado), background: estadoBg(v.estado) }}>
-                        {Object.entries(ESTADOS).map(([k, lbl]) => <option key={k} value={k}>{lbl}</option>)}
+                        onChange={e=>onUpdate(v.id,{estado:e.target.value})}
+                        style={{ width:"auto", color:estadoColor(v.estado), background:estadoBg(v.estado) }}>
+                        {Object.entries(ESTADOS).map(([k,lbl])=><option key={k} value={k}>{lbl}</option>)}
                       </select>
                     </td>
-                    <td style={{ textAlign: "center" }}>
-                      <span style={{ fontSize: "0.9rem" }}>{v.coche ? "✓" : "—"}</span>
-                    </td>
-                    <td><span className="mono text-xs text-muted">{v.fechaRegistro || "—"}</span></td>
-                    <td onClick={e => e.stopPropagation()}>
-                      <div style={{ display: "flex", gap: "0.25rem" }}>
-                        <button className="btn btn-ghost" style={{ padding: "0.22rem 0.4rem", fontSize: "0.68rem" }} title="Editar" onClick={() => onEditar(v)}>✏️</button>
-                        <button className="btn btn-red" style={{ padding: "0.22rem 0.4rem", fontSize: "0.68rem" }} onClick={() => onDelete(v.id)} title="Eliminar">✕</button>
+                    <td style={{ textAlign:"center" }}><span style={{ fontSize:"0.9rem" }}>{v.coche?"✓":"—"}</span></td>
+                    <td><span className="mono text-xs text-muted">{v.fechaRegistro||"—"}</span></td>
+                    <td onClick={e=>e.stopPropagation()}>
+                      <div style={{ display:"flex", gap:"0.25rem" }}>
+                        <button className="btn btn-ghost" style={{ padding:"0.22rem 0.4rem", fontSize:"0.68rem" }} onClick={()=>onEditar(v)}>✏️</button>
+                        <button className="btn btn-red"   style={{ padding:"0.22rem 0.4rem", fontSize:"0.68rem" }} onClick={()=>onDelete(v.id)}>✕</button>
                       </div>
                     </td>
                   </tr>
@@ -1116,6 +1105,62 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* ESTILOS responsive — tabla en desktop, cards en móvil */}
+      <style>{`
+        @media(min-width:641px){ #vol-table-desktop{display:block!important} #vol-cards-mobile{display:none!important} }
+        @media(max-width:640px){  #vol-table-desktop{display:none!important}  #vol-cards-mobile{display:flex!important} }
+      `}</style>
+
+      {/* VISTA MÓVIL — cards compactas */}
+      <div id="vol-cards-mobile" style={{ flexDirection:"column", gap:"0.5rem" }}>
+        {volsOrdenados.length === 0 && (
+          <div style={{ textAlign:"center", color:"var(--text-muted)", padding:"2rem", fontFamily:"var(--font-mono)", fontSize:"0.75rem", background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--radius-sm)" }}>
+            No hay voluntarios con estos filtros
+          </div>
+        )}
+        {volsOrdenados.map(v => {
+          const puesto = puestos.find(p => p.id === v.puestoId);
+          return (
+            <div key={v.id}
+              onClick={() => onEditar(v)}
+              style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--radius-sm)", padding:"0.75rem", cursor:"pointer", transition:"border-color .15s" }}
+              onMouseEnter={e=>e.currentTarget.style.borderColor="var(--border-light)"}
+              onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border)"}>
+              {/* Fila 1: avatar + nombre + estado */}
+              <div style={{ display:"flex", alignItems:"center", gap:"0.6rem", marginBottom:"0.45rem" }}>
+                <div style={{ width:32, height:32, borderRadius:"50%", background:"var(--surface2)", border:"1px solid var(--border)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"0.62rem", fontWeight:700, color:"var(--cyan)", flexShrink:0 }}>
+                  {(v.nombre||"V").split(" ").map(n=>n[0]).slice(0,2).join("")}
+                </div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontWeight:700, fontSize:"0.85rem", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{v.nombre||"Sin nombre"}</div>
+                  <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem", color:"var(--text-muted)" }}>{v.telefono||"—"}</div>
+                </div>
+                <div onClick={e=>e.stopPropagation()}>
+                  <select className="inp inp-sm" value={v.estado}
+                    onChange={e=>onUpdate(v.id,{estado:e.target.value})}
+                    style={{ width:"auto", color:estadoColor(v.estado), background:estadoBg(v.estado), fontSize:"0.68rem" }}>
+                    {Object.entries(ESTADOS).map(([k,lbl])=><option key={k} value={k}>{lbl}</option>)}
+                  </select>
+                </div>
+              </div>
+              {/* Fila 2: puesto + talla + coche + badges */}
+              <div style={{ display:"flex", gap:"0.4rem", flexWrap:"wrap", alignItems:"center" }}>
+                <span style={{ fontSize:"0.68rem", color:puesto?"var(--text)":"var(--text-dim)", background:"var(--surface2)", padding:"0.1rem 0.4rem", borderRadius:4, border:"1px solid var(--border)" }}>
+                  📍 {puesto?puesto.nombre:"Sin asignar"}
+                </span>
+                {v.talla && <span className="badge badge-cyan">{v.talla}</span>}
+                <span className={`badge ${v.rol==="responsable"?"badge-violet":"badge-cyan"}`}>{v.rol||"apoyo"}</span>
+                {v.coche && <span style={{ fontSize:"0.68rem" }}>🚗</span>}
+                <div style={{ marginLeft:"auto", display:"flex", gap:"0.25rem" }} onClick={e=>e.stopPropagation()}>
+                  <button className="btn btn-ghost" style={{ padding:"0.2rem 0.38rem", fontSize:"0.65rem" }} onClick={()=>onEditar(v)}>✏️</button>
+                  <button className="btn btn-red"   style={{ padding:"0.2rem 0.38rem", fontSize:"0.65rem" }} onClick={()=>onDelete(v.id)}>✕</button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </>
   );
