@@ -339,6 +339,13 @@ export default function Index() {
     setActiveBlock(id);
   }, []);
 
+  // Navegación desde cualquier bloque via evento custom (ej. alertas del Dashboard)
+  useEffect(() => {
+    const h = (e) => { if (e.detail?.block) handleBlockChange(e.detail.block); };
+    window.addEventListener("teg-navigate", h);
+    return () => window.removeEventListener("teg-navigate", h);
+  }, [handleBlockChange]);
+
   // Keyboard shortcuts: 1-7 cambian de bloque, Esc cierra modales
   useEffect(() => {
     if (!authed) return;

@@ -31,13 +31,15 @@ const EVENT_DATE = new Date("2026-08-29");
 const fmt = (n) => new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
 
 export default function Dashboard() {
-  const [rawData, setRawData]   = useState(null);
-  const [loading, setLoading]   = useState(true);
+  const [rawData, setRawData]     = useState(null);
+  const [loading, setLoading]     = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   const loadData = useCallback(async () => {
     try {
       const data = await dataService.getMultiple(ALL_KEYS);
       setRawData(data);
+      setLastUpdated(new Date());
     } catch (err) {
       console.error("Dashboard: error cargando datos", err);
     } finally {
@@ -78,6 +80,7 @@ export default function Dashboard() {
     const inscritos    = get("teg_presupuesto_v1_inscritos", { tramos: {} });
     const ingresosExtra  = get("teg_presupuesto_v1_ingresosExtra", []);
     const merchandising  = get("teg_presupuesto_v1_merchandising", []);
+    const maximos        = get("teg_presupuesto_v1_maximos", {});
 
     const DISTANCIAS = ["TG7", "TG13", "TG25"];
     let totalInscritos = 0;
@@ -91,6 +94,20 @@ export default function Dashboard() {
         totalIngresos += n * (t.precios?.[d] || 0);
       });
     });
+
+    // Ocupación por distancia (inscritos vs plazas máximas)
+    const maximosPorDist = {
+      TG7:  maximos?.TG7  || 0,
+      TG13: maximos?.TG13 || 0,
+      TG25: maximos?.TG25 || 0,
+    };
+    const totalMaximos = maximosPorDist.TG7 + maximosPorDist.TG13 + maximosPorDist.TG25;
+    const ocupacionPorDist = {
+      TG7:  maximosPorDist.TG7  > 0 ? Math.round(inscritosPorDist.TG7  / maximosPorDist.TG7  * 100) : null,
+      TG13: maximosPorDist.TG13 > 0 ? Math.round(inscritosPorDist.TG13 / maximosPorDist.TG13 * 100) : null,
+      TG25: maximosPorDist.TG25 > 0 ? Math.round(inscritosPorDist.TG25 / maximosPorDist.TG25 * 100) : null,
+    };
+    const ocupacionGlobal = totalMaximos > 0 ? Math.round(totalInscritos / totalMaximos * 100) : null;
 
     const totalCostesFijos = conceptos.filter(c => c.tipo === "fijo" && c.activo).reduce((s, c) => s + (c.costeTotal || 0), 0);
     const totalCostesVars = conceptos.filter(c => c.tipo === "variable" && c.activo).reduce((s, c) => {
@@ -165,6 +182,7 @@ export default function Dashboard() {
     return {
       diasHasta, totalInscritos, inscritosPorDist, totalIngresos, totalCostesFijos, totalCostesVars,
       totalIngresosExtra, merchBeneficio, merchIngresos, merchCostes, totalOtrosIngresos, resultado,
+      maximosPorDist, ocupacionPorDist, ocupacionGlobal, totalMaximos,
       voluntarios: voluntarios.length, volConfirmados, volPendientes, totalNecesarios, coberturaVol, puestosAlerta,
       pats: pats.length, patComprometido, patCobrado, patPipeline, objetivo, contPendientes,
       material: material.length, stockAlerts, tlDone, tlTotal: tl.length, ckDone, ckTotal: ck.length,
@@ -199,7 +217,14 @@ export default function Dashboard() {
         <div className="block-header">
           <div>
             <h1 className="block-title">📊 Dashboard</h1>
-            <div className="block-title-sub">Trail El Guerrero · 29 AGO 2026</div>
+            <div className="block-title-sub">
+              Trail El Guerrero · 29 AGO 2026
+              {lastUpdated && (
+                <span className="mono" style={{marginLeft:"0.75rem", fontSize:"0.55rem", color:"var(--text-dim)"}}>
+                  · act. {lastUpdated.toLocaleTimeString("es-ES", {hour:"2-digit", minute:"2-digit", second:"2-digit"})}
+                </span>
+              )}
+            </div>
           </div>
           <button
             className="btn btn-ghost btn-sm"
@@ -232,12 +257,16 @@ export default function Dashboard() {
         {/* ── ALERTAS ── */}
         {d.alertas.length > 0 && (
           <div className="card mb">
-            <div className="card-title amber">⚡ Alertas y Avisos</div>
+            <div className="card-title amber">⚡ Alertas y Avisos · click para ir al módulo</div>
             {d.alertas.map((a, i) => (
-              <div key={i} className={blockCls("dash-alerta", `dash-alerta-${a.tipo}`)}>
+              <div key={i}
+                className={blockCls("dash-alerta", `dash-alerta-${a.tipo}`, "dash-alerta-clickable")}
+                onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: a.modulo } }))}
+                title={`Ir a ${a.modulo}`}
+              >
                 <span>{a.icon}</span>
                 <span className="dash-alerta-text">{a.texto}</span>
-                <span className="badge badge-muted">{a.modulo}</span>
+                <span className="badge badge-muted" style={{flexShrink:0}}>{a.modulo} →</span>
               </div>
             ))}
           </div>
@@ -247,7 +276,10 @@ export default function Dashboard() {
         <div className="card-title" style={{ marginBottom: "0.75rem" }}>📊 Indicadores Clave</div>
         <div className="kpi-grid mb">
           <KPI icon="💰" label="Resultado"          value={fmt(d.resultado)}                          sub={`Ingresos totales: ${fmt(d.totalIngresos + d.totalOtrosIngresos)}`}                                         color={resColor} colorClass={d.resultado >= 0 ? "green" : "red"} />
-          <KPI icon="🏃" label="Inscritos"           value={d.totalInscritos}                          sub={`TG7: ${d.inscritosPorDist.TG7} · TG13: ${d.inscritosPorDist.TG13} · TG25: ${d.inscritosPorDist.TG25}`}  color="var(--cyan)"   colorClass="cyan" />
+          <KPI icon="🏃" label="Inscritos"
+            value={d.ocupacionGlobal !== null ? `${d.totalInscritos} / ${d.totalMaximos}` : d.totalInscritos}
+            sub={`TG7: ${d.inscritosPorDist.TG7}${d.ocupacionPorDist.TG7!==null?` (${d.ocupacionPorDist.TG7}%)`:""}  ·  TG13: ${d.inscritosPorDist.TG13}${d.ocupacionPorDist.TG13!==null?` (${d.ocupacionPorDist.TG13}%)`:""}  ·  TG25: ${d.inscritosPorDist.TG25}${d.ocupacionPorDist.TG25!==null?` (${d.ocupacionPorDist.TG25}%)`:""}`}
+            color="var(--cyan)" colorClass="cyan" />
           <KPI icon="👥" label="Voluntarios"         value={`${d.volConfirmados}/${d.totalNecesarios}`} sub={`${d.coberturaVol}% cobertura · ${d.volPendientes} pendientes`}                                            color={d.coberturaVol>=80?"var(--green)":d.coberturaVol>=50?"var(--amber)":"var(--red)"} colorClass={d.coberturaVol>=80?"green":d.coberturaVol>=50?"amber":"red"} />
           <KPI icon="🤝" label="Patrocinio"          value={fmt(d.patComprometido)}                    sub={`${Math.round(d.patComprometido/d.objetivo*100)}% de ${fmt(d.objetivo)}`}                                  color="var(--amber)"  colorClass="amber" />
           <KPI icon="📋" label="Tareas"              value={`${d.tareasCompletadas}/${d.tareasTotal}`} sub={`${d.progresoGlobal}% · ${d.tareasVencidas} vencidas`}                                                      color="var(--violet)" colorClass="violet" />
@@ -272,14 +304,29 @@ export default function Dashboard() {
                 <Tooltip contentStyle={{ background:"#0f1629", border:"1px solid #1e2d50", borderRadius:8, fontSize:"0.65rem", fontFamily:"'Space Mono',monospace" }} formatter={(v,n) => [`${v} corredores`,n]} />
               </PieChart>
             </ResponsiveContainer>
-            <div className="flex-center" style={{ justifyContent:"center", gap:"1.25rem", marginTop:"0.25rem" }}>
-              {[["TG7","#22d3ee",d.inscritosPorDist.TG7],["TG13","#a78bfa",d.inscritosPorDist.TG13],["TG25","#34d399",d.inscritosPorDist.TG25]].map(([n,c,v])=>(
-                <div key={n} style={{ textAlign:"center" }}>
-                  <div className="dot" style={{ background:c, margin:"0 auto 3px" }} />
-                  <div className="mono xs bold" style={{ color:c }}>{n}</div>
-                  <div className="mono xs bold" style={{ color:"var(--text)" }}>{v}</div>
-                </div>
-              ))}
+            {/* Leyenda con barras de ocupación */}
+            <div style={{display:"flex", flexDirection:"column", gap:"0.4rem", marginTop:"0.4rem"}}>
+              {[["TG7","#22d3ee"],["TG13","#a78bfa"],["TG25","#34d399"]].map(([dist,color]) => {
+                const inscritos = d.inscritosPorDist[dist];
+                const maximo = d.maximosPorDist[dist];
+                const pct = d.ocupacionPorDist[dist];
+                return (
+                  <div key={dist}>
+                    <div style={{display:"flex", justifyContent:"space-between", marginBottom:"0.15rem"}}>
+                      <span className="mono xs bold" style={{color}}>{dist}</span>
+                      <span className="mono xs" style={{color:"var(--text-muted)"}}>
+                        {inscritos}{maximo > 0 ? ` / ${maximo}` : ""}{pct !== null ? ` · ${pct}%` : ""}
+                      </span>
+                    </div>
+                    {maximo > 0 && (
+                      <div style={{height:4, background:"var(--surface3)", borderRadius:2, overflow:"hidden"}}>
+                        <div style={{height:"100%", width:`${Math.min(pct,100)}%`, background:color, borderRadius:2,
+                          transition:"width .5s", opacity: pct >= 90 ? 1 : 0.7}} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 

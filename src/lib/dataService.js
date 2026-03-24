@@ -160,7 +160,7 @@ const apiAdapter = {
   async getMultiple(keys) {
     try {
       const params = new URLSearchParams({ keys: Object.keys(keys).join(',') });
-      const res = await fetch(`${API_BASE_URL}/data?${params}`, {
+      const res = await fetch(`${API_BASE_URL}/data/batch?${params}`, {
         headers: {
           'x-api-key': import.meta.env.VITE_API_KEY
         }
