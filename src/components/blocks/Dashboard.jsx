@@ -47,10 +47,16 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadData();
-    // Re-cargar cuando otro módulo notifique un cambio
+    // Re-cargar cuando otro módulo notifique un cambio (sync local)
+    // o cuando dataService confirme guardado exitoso en Neon (save-status)
     const handler = () => loadData();
+    const saveHandler = (e) => { if (e.detail?.status === "saved") loadData(); };
     window.addEventListener("teg-sync", handler);
-    return () => window.removeEventListener("teg-sync", handler);
+    window.addEventListener("teg-save-status", saveHandler);
+    return () => {
+      window.removeEventListener("teg-sync", handler);
+      window.removeEventListener("teg-save-status", saveHandler);
+    };
   }, [loadData]);
 
   const data = useMemo(() => {
@@ -195,6 +201,13 @@ export default function Dashboard() {
             <h1 className="block-title">📊 Dashboard</h1>
             <div className="block-title-sub">Trail El Guerrero · 29 AGO 2026</div>
           </div>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => { setLoading(true); loadData(); }}
+            title="Recargar datos de todos los módulos"
+          >
+            🔄 Actualizar
+          </button>
         </div>
 
         {/* ── COUNTDOWN HERO ── */}

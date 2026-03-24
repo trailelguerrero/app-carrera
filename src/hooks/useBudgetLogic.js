@@ -45,12 +45,12 @@ export const useBudgetLogic = () => {
           savedMerch, 
           savedMaximos
         ] = await Promise.all([
-          dataService.get("tramos"),
-          dataService.get("conceptos"),
-          dataService.get("inscritos"),
-          dataService.get("ingresosExtra"),
-          dataService.get("merchandising"),
-          dataService.get("maximos")
+          dataService.get("teg_presupuesto_v1_tramos"),
+          dataService.get("teg_presupuesto_v1_conceptos"),
+          dataService.get("teg_presupuesto_v1_inscritos"),
+          dataService.get("teg_presupuesto_v1_ingresosExtra"),
+          dataService.get("teg_presupuesto_v1_merchandising"),
+          dataService.get("teg_presupuesto_v1_maximos")
         ]);
 
         if (savedTramos) setTramos(savedTramos);
@@ -76,12 +76,12 @@ export const useBudgetLogic = () => {
     emitSaveStatus("saving");
     try {
       await Promise.all([
-        dataService.set("tramos", tramos),
-        dataService.set("conceptos", conceptos),
-        dataService.set("inscritos", inscritos),
-        dataService.set("ingresosExtra", ingresosExtra),
-        dataService.set("merchandising", merchandising),
-        dataService.set("maximos", maximos)
+        dataService.set("teg_presupuesto_v1_tramos", tramos),
+        dataService.set("teg_presupuesto_v1_conceptos", conceptos),
+        dataService.set("teg_presupuesto_v1_inscritos", inscritos),
+        dataService.set("teg_presupuesto_v1_ingresosExtra", ingresosExtra),
+        dataService.set("teg_presupuesto_v1_merchandising", merchandising),
+        dataService.set("teg_presupuesto_v1_maximos", maximos)
       ]);
       setSaveStatus("saved");
       emitSaveStatus("saved");
@@ -119,12 +119,12 @@ export const useBudgetLogic = () => {
     autoSaveTimer.current = setTimeout(async () => {
       try {
         await Promise.all([
-          dataService.set("tramos", tramos),
-          dataService.set("conceptos", conceptos),
-          dataService.set("inscritos", inscritos),
-          dataService.set("ingresosExtra", ingresosExtra),
-          dataService.set("merchandising", merchandising),
-          dataService.set("maximos", maximos)
+          dataService.set("teg_presupuesto_v1_tramos", tramos),
+          dataService.set("teg_presupuesto_v1_conceptos", conceptos),
+          dataService.set("teg_presupuesto_v1_inscritos", inscritos),
+          dataService.set("teg_presupuesto_v1_ingresosExtra", ingresosExtra),
+          dataService.set("teg_presupuesto_v1_merchandising", merchandising),
+          dataService.set("teg_presupuesto_v1_maximos", maximos)
         ]);
         emitSaveStatus("saved");
       } catch {
