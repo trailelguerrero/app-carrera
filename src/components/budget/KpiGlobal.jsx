@@ -1,63 +1,91 @@
 import React from "react";
 import { DISTANCIAS, DISTANCIA_LABELS } from "../../constants/budgetConstants";
 
-export const KpiGlobal = ({ 
-  totalInscritos, 
-  ingresosPorDistancia, 
-  costesFijos, 
-  costesVariables, 
-  totalIngresosExtra, 
-  merchTotales, 
-  totalIngresosConMerch, 
-  resultado, 
-  maximos 
+const fmt = (n) => Number(n ?? 0).toLocaleString("es-ES", { maximumFractionDigits: 0 }) + " €";
+
+export const KpiGlobal = ({
+  totalInscritos,
+  ingresosPorDistancia,
+  costesFijos,
+  costesVariables,
+  totalIngresosExtra,
+  merchTotales,
+  totalIngresosConMerch,
+  resultado,
+  maximos,
 }) => {
-  const costesTotal = costesFijos.total + costesVariables.total;
-  const totalIngresosGlobal = ingresosPorDistancia.total + totalIngresosConMerch;
-  const color = resultado.total > 0 ? "green" : resultado.total < 0 ? "red" : "amber";
-  
+  const costesTotal     = (costesFijos?.total ?? 0) + (costesVariables?.total ?? 0);
+  const ingresosTotal   = (ingresosPorDistancia?.total ?? 0) + (totalIngresosConMerch ?? 0);
+  const res             = resultado?.total ?? 0;
+  const resPositivo     = res >= 0;
+  const resColor        = resPositivo ? "var(--green)" : "var(--red)";
+  const resColorClass   = resPositivo ? "green" : "red";
+
   return (
-    <div className="kpi-grid">
+    <div className="kpi-grid mb">
+
+      {/* Inscritos */}
       <div className="kpi cyan">
-        <div className="kpi-label">Inscritos totales</div>
-        <div className="kpi-value">{totalInscritos.total}</div>
+        <div className="kpi-label">🏃 Inscritos totales</div>
+        <div className="kpi-value" style={{ color: "var(--cyan)" }}>
+          {totalInscritos?.total ?? 0}
+        </div>
         <div className="kpi-sub">
           {DISTANCIAS.map(d => {
-            const pct = maximos[d] > 0 ? Math.round(totalInscritos[d] / maximos[d] * 100) : 0;
+            const ins = totalInscritos?.[d] ?? 0;
+            const max = maximos?.[d] ?? 0;
+            const pct = max > 0 ? Math.round(ins / max * 100) : 0;
             return (
-              <span key={d} style={{ marginRight: 6 }}>
-                {DISTANCIA_LABELS[d].split(" ")[0]}: {totalInscritos[d]}/{maximos[d]} ({pct}%)
+              <span key={d} style={{ marginRight: 8 }}>
+                {DISTANCIA_LABELS[d].split(" ")[0]}: {ins}{max > 0 ? `/${max} (${pct}%)` : ""}
               </span>
             );
           })}
         </div>
       </div>
+
+      {/* Ingresos inscripciones */}
       <div className="kpi violet">
-        <div className="kpi-label">Ingresos inscripciones</div>
-        <div className="kpi-value">{ingresosPorDistancia.total.toFixed(0)} €</div>
-        <div className="kpi-sub">de {totalInscritos.total} corredores</div>
+        <div className="kpi-label">💳 Ingresos inscripciones</div>
+        <div className="kpi-value" style={{ color: "var(--violet)" }}>
+          {fmt(ingresosPorDistancia?.total)}
+        </div>
+        <div className="kpi-sub">de {totalInscritos?.total ?? 0} corredores</div>
       </div>
+
+      {/* Otros ingresos */}
       <div className="kpi orange">
-        <div className="kpi-label">Otros ingresos</div>
-        <div className="kpi-value">{totalIngresosConMerch.toFixed(0)} €</div>
+        <div className="kpi-label">🎁 Otros ingresos</div>
+        <div className="kpi-value" style={{ color: "var(--orange)" }}>
+          {fmt(totalIngresosConMerch)}
+        </div>
         <div className="kpi-sub">
-          Patrocinios: {totalIngresosExtra.toFixed(0)} € · Merch: {merchTotales.beneficio.toFixed(0)} €
+          Patrocinios: {fmt(totalIngresosExtra)} · Merch: {fmt(merchTotales?.beneficio)}
         </div>
       </div>
+
+      {/* Costes totales */}
       <div className="kpi amber">
-        <div className="kpi-label">Costes totales</div>
-        <div className="kpi-value">{costesTotal.toFixed(0)} €</div>
+        <div className="kpi-label">📦 Costes totales</div>
+        <div className="kpi-value" style={{ color: "var(--amber)" }}>
+          {fmt(costesTotal)}
+        </div>
         <div className="kpi-sub">
-          Fijos {costesFijos.total.toFixed(0)} · Var {costesVariables.total.toFixed(0)}
+          Fijos {fmt(costesFijos?.total)} · Var {fmt(costesVariables?.total)}
         </div>
       </div>
-      <div className={`kpi ${color}`}>
-        <div className="kpi-label">Resultado neto</div>
-        <div className="kpi-value">{resultado.total >= 0 ? "+" : ""}{resultado.total.toFixed(0)} €</div>
+
+      {/* Resultado */}
+      <div className={`kpi ${resColorClass}`}>
+        <div className="kpi-label">⚖️ Resultado neto</div>
+        <div className="kpi-value" style={{ color: resColor }}>
+          {res >= 0 ? "+" : ""}{fmt(res)}
+        </div>
         <div className="kpi-sub">
-          {resultado.total >= 0 ? "✓ Superávit" : "✗ Déficit"} · Ingresos totales: {totalIngresosGlobal.toFixed(0)} €
+          {resPositivo ? "✓ Superávit" : "✗ Déficit"} · Total ingresos: {fmt(ingresosTotal)}
         </div>
       </div>
+
     </div>
   );
 };
