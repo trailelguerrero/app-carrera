@@ -139,6 +139,8 @@ export default function App() {
   const [delConf, setDelConf] = useState(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 850);
+  const [busquedaGlobal, setBusquedaGlobal] = useState("");
+  const [vistaTablon, setVistaTablon] = useState("lista"); // "lista" | "kanban"
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 850);
@@ -261,6 +263,19 @@ export default function App() {
             <div className="block-title-sub">Gestión & Planificación · {stats.diasEvento} días para la carrera</div>
           </div>
           <div className="block-actions">
+            {/* Búsqueda global */}
+            <div style={{display:"flex",alignItems:"center",gap:".4rem",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:"var(--r-sm)",padding:".28rem .6rem",transition:"border-color .15s"}}
+              onFocus={e=>e.currentTarget.style.borderColor="var(--violet)"}
+              onBlur={e=>e.currentTarget.style.borderColor="var(--border)"}>
+              <span style={{fontSize:".8rem",opacity:.5}}>🔍</span>
+              <input
+                value={busquedaGlobal}
+                onChange={e=>{setBusquedaGlobal(e.target.value); if(e.target.value && tab!=="tablón") setTab("tablón");}}
+                placeholder="Buscar en todo el proyecto…"
+                style={{background:"none",border:"none",color:"var(--text)",fontFamily:"var(--font-display)",fontSize:".78rem",outline:"none",width: isMobile ? 120 : 200}}
+              />
+              {busquedaGlobal && <button onClick={()=>setBusquedaGlobal("")} style={{background:"none",border:"none",color:"var(--text-muted)",cursor:"pointer",fontSize:".75rem",padding:0}}>✕</button>}
+            </div>
             {stats.vencidas.length > 0 && <span className="badge badge-red">⏰ {stats.vencidas.length} vencidas</span>}
             {stats.bloqueadas > 0 && <span className="badge badge-amber">🔒 {stats.bloqueadas} bloqueadas</span>}
             <span className={`badge ${stats.pct>=80?"badge-green":stats.pct>=50?"badge-amber":"badge-red"}`}>{stats.pct}% completado</span>
@@ -311,8 +326,9 @@ export default function App() {
             filtroResponsable={filtroResponsable} setFiltroResponsable={setFiltroResponsable}
             filtroEstado={filtroEstado} setFiltroEstado={setFiltroEstado}
             filtroPrioridad={filtroPrioridad} setFiltroPrioridad={setFiltroPrioridad}
-            busqueda={busqueda} setBusqueda={setBusqueda}
-            updEstado={updEstado} setModal={setModal} setDelConf={setDelConf} />}
+            busqueda={busquedaGlobal || busqueda} setBusqueda={(v)=>{setBusqueda(v); setBusquedaGlobal(v);}}
+            updEstado={updEstado} setModal={setModal} setDelConf={setDelConf}
+            vista={vistaTablon} setVista={setVistaTablon} />}
           {tab==="gantt"  && <TabGantt tareas={tareas} hitos={hitos} equipo={equipo} setModal={setModal} />}
           {tab==="equipo" && <TabEquipo equipo={equipo} tareas={tareas} setModal={setModal} setDelConf={setDelConf} />}
           {tab==="hitos"  && <TabHitos hitos={hitos} updHito={updHito} setModal={setModal} setDelConf={setDelConf} />}
@@ -408,8 +424,17 @@ function TabDash({ stats, equipo, setTab, setModal, tareas, hitos, updEstado, is
             const area = getArea(t.area);
             const dias = diasHasta(t.fechaLimite);
             const p = equipo.find(e => e.id===t.responsableId);
+            // Click largo → ir al tablón; click corto → abrir modal edición
+            let pressTimer = null;
             return (
-              <div key={t.id} className="urg-row">
+              <div key={t.id} className="urg-row" style={{cursor:"pointer"}}
+                onMouseDown={()=>{ pressTimer = setTimeout(()=>{ pressTimer=null; setTab("tablón"); }, 500); }}
+                onMouseUp={()=>{ if(pressTimer){ clearTimeout(pressTimer); pressTimer=null; setModal({tipo:"tarea",data:t}); } }}
+                onMouseLeave={()=>{ if(pressTimer){ clearTimeout(pressTimer); pressTimer=null; } }}
+                onTouchStart={()=>{ pressTimer = setTimeout(()=>{ pressTimer=null; setTab("tablón"); }, 500); }}
+                onTouchEnd={()=>{ if(pressTimer){ clearTimeout(pressTimer); pressTimer=null; setModal({tipo:"tarea",data:t}); } }}
+                title="Click: editar · Click largo: ver en tablón"
+              >
                 <div className="urg-dot" style={{background:area.color}}/>
                 <div style={{flex:1,minWidth:0}}>
                   <div className="urg-titulo">{t.titulo}</div>
@@ -484,16 +509,29 @@ function TabDash({ stats, equipo, setTab, setModal, tareas, hitos, updEstado, is
 }
 
 // ─── TAB TABLÓN ───────────────────────────────────────────────────────────────
-function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, filtroResponsable, setFiltroResponsable, filtroEstado, setFiltroEstado, filtroPrioridad, setFiltroPrioridad, busqueda, setBusqueda, updEstado, setModal, setDelConf }) {
+function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, filtroResponsable, setFiltroResponsable, filtroEstado, setFiltroEstado, filtroPrioridad, setFiltroPrioridad, busqueda, setBusqueda, updEstado, setModal, setDelConf, vista, setVista }) {
   const hayFiltros = filtroArea!=="todas"||filtroResponsable!=="todos"||filtroEstado!=="todos"||filtroPrioridad!=="todas"||busqueda;
   return (
     <>
       <div className="ph">
         <div>
           <div className="pt">📋 Tablón de Tareas</div>
-          <div className="pd">{tareas.length} de {todasTareas.length} tareas mostradas</div>
+          <div className="pd">{tareas.length} de {todasTareas.length} tareas mostradas · click para editar</div>
         </div>
-        <button className="btn primary" onClick={() => setModal({tipo:"tarea",data:null})}>+ Nueva tarea</button>
+        <div style={{display:"flex",gap:".5rem",alignItems:"center"}}>
+          <div style={{display:"flex",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:"var(--r-sm)",overflow:"hidden"}}>
+            {[["lista","☰ Lista"],["kanban","⬛ Kanban"]].map(([v,ic])=>(
+              <button key={v} onClick={()=>setVista(v)}
+                style={{padding:".3rem .65rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,
+                  background: vista===v ? "rgba(167,139,250,.2)" : "transparent",
+                  color: vista===v ? "var(--violet)" : "var(--text-muted)",
+                  transition:"all .15s", whiteSpace:"nowrap"}}>
+                {ic}
+              </button>
+            ))}
+          </div>
+          <button className="btn primary" onClick={() => setModal({tipo:"tarea",data:null})}>+ Nueva tarea</button>
+        </div>
       </div>
 
       {/* Filtros */}
@@ -521,64 +559,143 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
         </div>
       </div>
 
-      {/* Lista de tareas */}
+      {/* Vistas */}
       {tareas.length === 0 && <div className="empty">No hay tareas con estos filtros</div>}
-      <div style={{display:"flex",flexDirection:"column",gap:".4rem"}}>
-        {tareas.map(t => {
-          const area = getArea(t.area);
-          const resp = equipo.find(e => e.id===t.responsableId);
-          const dias = t.fechaLimite ? diasHasta(t.fechaLimite) : null;
-          const ec = EST_CFG[t.estado];
-          const pc = PRI_CFG[t.prioridad];
-          const vencida = dias !== null && dias < 0 && t.estado !== "completado";
-          const dep = t.dependeDe ? todasTareas.find(x => x.id===t.dependeDe) : null;
-          return (
-            <div key={t.id} className={cls("tarea-row", vencida&&"tarea-vencida")} style={{borderLeftColor:area.color}}>
-              {/* Estado toggle */}
-              <div className="tarea-estado-col">
-                <select className="est-sel" value={t.estado} onChange={e => updEstado(t.id, e.target.value)}
-                  style={{color:ec.color,background:ec.bg,border:`1px solid ${ec.color}44`}}>
-                  {ESTADOS.map(s => <option key={s} value={s}>{EST_CFG[s].label}</option>)}
-                </select>
-              </div>
-              {/* Contenido */}
-              <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",gap:".2rem"}}>
-                <div style={{display:"flex",alignItems:"center",gap:".5rem",flexWrap:"wrap"}}>
-                  <span style={{fontSize:".82rem",fontWeight:700,color:t.estado==="completado"?"var(--text-muted)":"var(--text)",textDecoration:t.estado==="completado"?"line-through":"none"}}>{t.titulo}</span>
-                  <span className="badge" style={{background:pc.bg,color:pc.color,fontSize:".52rem"}}>{t.prioridad}</span>
-                  {dep && dep.estado !== "completado" &&
-                    <span className="badge" style={{background:"rgba(248,113,113,.1)",color:"#f87171",fontSize:".52rem"}}>🔒 espera: {dep.titulo.slice(0,25)}…</span>}
+
+      {/* ── VISTA LISTA ── */}
+      {vista === "lista" && (
+        <div style={{display:"flex",flexDirection:"column",gap:".4rem"}}>
+          {tareas.map(t => {
+            const area = getArea(t.area);
+            const resp = equipo.find(e => e.id===t.responsableId);
+            const dias = t.fechaLimite ? diasHasta(t.fechaLimite) : null;
+            const ec = EST_CFG[t.estado];
+            const pc = PRI_CFG[t.prioridad];
+            const vencida = dias !== null && dias < 0 && t.estado !== "completado";
+            const dep = t.dependeDe ? todasTareas.find(x => x.id===t.dependeDe) : null;
+            return (
+              <div key={t.id} className={cls("tarea-row", vencida&&"tarea-vencida")}
+                style={{borderLeftColor:area.color, cursor:"pointer"}}
+                onClick={() => setModal({tipo:"tarea", data:t})}
+                title="Click para editar">
+                {/* Cambio de estado rápido — clic en el selector NO propaga al modal */}
+                <div className="tarea-estado-col" onClick={e => e.stopPropagation()}>
+                  <select className="est-sel" value={t.estado}
+                    onChange={e => updEstado(t.id, e.target.value)}
+                    style={{color:ec.color, background:ec.bg, border:`1px solid ${ec.color}44`}}>
+                    {ESTADOS.map(s => <option key={s} value={s}>{EST_CFG[s].label}</option>)}
+                  </select>
                 </div>
-                <div style={{display:"flex",gap:".75rem",flexWrap:"wrap"}}>
-                  <span className="mono xs" style={{color:area.color}}>{area.icon} {area.label}</span>
-                  {resp && (
-                    <span style={{display:"flex",alignItems:"center",gap:".3rem"}}>
-                      <div style={{width:14,height:14,borderRadius:"50%",background:resp.color+"33",border:`1px solid ${resp.color}66`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".45rem",fontWeight:700,color:resp.color}}>{iniciales(resp.nombre)}</div>
-                      <span className="mono xs muted">{resp.nombre.split(" ")[0]}</span>
-                    </span>
-                  )}
-                  {t.notas && <span className="mono xs muted" style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:300}}>{t.notas}</span>}
-                </div>
-              </div>
-              {/* Fecha */}
-              <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:".3rem",flexShrink:0}}>
-                {dias !== null && (
-                  <div style={{fontFamily:"var(--font-mono)",fontSize:".65rem",fontWeight:700,
-                    color:vencida?"#f87171":dias<=7?"#fbbf24":dias<=14?"#fb923c":"var(--text-muted)",
-                    background:vencida?"rgba(248,113,113,.1)":dias<=14?"rgba(251,191,36,.08)":"transparent",
-                    padding:".1rem .35rem",borderRadius:4}}>
-                    {vencida?`VENCIDA (${Math.abs(dias)}d)`:dias===0?"Hoy":`${dias}d · ${fmt(t.fechaLimite)}`}
+                {/* Contenido */}
+                <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",gap:".2rem"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:".5rem",flexWrap:"wrap"}}>
+                    <span style={{fontSize:".82rem",fontWeight:700,
+                      color:t.estado==="completado"?"var(--text-muted)":"var(--text)",
+                      textDecoration:t.estado==="completado"?"line-through":"none"}}>{t.titulo}</span>
+                    <span className="badge" style={{background:pc.bg,color:pc.color,fontSize:".52rem"}}>{t.prioridad}</span>
+                    {dep && dep.estado !== "completado" &&
+                      <span className="badge" style={{background:"rgba(248,113,113,.1)",color:"#f87171",fontSize:".52rem"}}>🔒 espera: {dep.titulo.slice(0,25)}…</span>}
                   </div>
-                )}
-                <div style={{display:"flex",gap:".25rem"}}>
-                  <button className="btn xs ghost" onClick={() => setModal({tipo:"tarea",data:t})}>✏️</button>
-                  <button className="btn xs red" onClick={() => setDelConf({tipo:"tarea",id:t.id})}>✕</button>
+                  <div style={{display:"flex",gap:".75rem",flexWrap:"wrap"}}>
+                    <span className="mono xs" style={{color:area.color}}>{area.icon} {area.label}</span>
+                    {resp && (
+                      <span style={{display:"flex",alignItems:"center",gap:".3rem"}}>
+                        <div style={{width:14,height:14,borderRadius:"50%",background:resp.color+"33",border:`1px solid ${resp.color}66`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".45rem",fontWeight:700,color:resp.color}}>{iniciales(resp.nombre)}</div>
+                        <span className="mono xs muted">{resp.nombre.split(" ")[0]}</span>
+                      </span>
+                    )}
+                    {t.notas && <span className="mono xs muted" style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:260}}>{t.notas}</span>}
+                  </div>
+                </div>
+                {/* Fecha + acciones */}
+                <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:".3rem",flexShrink:0}} onClick={e=>e.stopPropagation()}>
+                  {dias !== null && (
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:".65rem",fontWeight:700,
+                      color:vencida?"#f87171":dias<=7?"#fbbf24":dias<=14?"#fb923c":"var(--text-muted)",
+                      background:vencida?"rgba(248,113,113,.1)":dias<=14?"rgba(251,191,36,.08)":"transparent",
+                      padding:".1rem .35rem",borderRadius:4}}>
+                      {vencida?`VENCIDA (${Math.abs(dias)}d)`:dias===0?"Hoy":`${dias}d · ${fmt(t.fechaLimite)}`}
+                    </div>
+                  )}
+                  <div style={{display:"flex",gap:".25rem"}}>
+                    <button className="btn xs ghost" onClick={()=>setModal({tipo:"tarea",data:t})}>✏️</button>
+                    <button className="btn xs red" onClick={()=>setDelConf({tipo:"tarea",id:t.id})}>✕</button>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── VISTA KANBAN ── */}
+      {vista === "kanban" && (
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:".75rem",alignItems:"start"}}>
+          {ESTADOS.map(estado => {
+            const col = EST_CFG[estado];
+            const tareasCol = tareas.filter(t => t.estado === estado);
+            return (
+              <div key={estado} style={{background:"var(--surface)",border:"1px solid var(--border)",borderTop:`3px solid ${col.color}`,borderRadius:"var(--r)",overflow:"hidden"}}>
+                {/* Cabecera columna */}
+                <div style={{padding:".6rem .85rem",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",fontWeight:700,color:col.color,textTransform:"uppercase",letterSpacing:".08em"}}>{col.label}</span>
+                  <span style={{background:col.bg,color:col.color,border:`1px solid ${col.color}44`,borderRadius:10,fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,padding:".05rem .45rem"}}>{tareasCol.length}</span>
+                </div>
+                {/* Tareas */}
+                <div style={{padding:".5rem",display:"flex",flexDirection:"column",gap:".4rem",minHeight:80}}>
+                  {tareasCol.length === 0 && (
+                    <div style={{textAlign:"center",padding:"1rem",color:"var(--text-dim)",fontFamily:"var(--font-mono)",fontSize:".62rem"}}>Sin tareas</div>
+                  )}
+                  {tareasCol.map(t => {
+                    const area = getArea(t.area);
+                    const resp = equipo.find(e => e.id===t.responsableId);
+                    const dias = t.fechaLimite ? diasHasta(t.fechaLimite) : null;
+                    const vencida = dias !== null && dias < 0 && t.estado !== "completado";
+                    const pc = PRI_CFG[t.prioridad];
+                    return (
+                      <div key={t.id}
+                        onClick={() => setModal({tipo:"tarea",data:t})}
+                        style={{background:"var(--surface2)",border:`1px solid ${vencida?"rgba(248,113,113,.35)":"var(--border)"}`,
+                          borderLeft:`3px solid ${area.color}`,borderRadius:"var(--r-sm)",
+                          padding:".6rem .7rem",cursor:"pointer",transition:"all .15s",userSelect:"none"}}
+                        onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-1px)";e.currentTarget.style.boxShadow="0 4px 12px rgba(0,0,0,.3)";}}
+                        onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="";}}>
+                        <div style={{fontSize:".78rem",fontWeight:700,marginBottom:".3rem",
+                          textDecoration:t.estado==="completado"?"line-through":"none",
+                          color:t.estado==="completado"?"var(--text-muted)":"var(--text)"}}>{t.titulo}</div>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:".25rem"}}>
+                          <div style={{display:"flex",gap:".35rem",alignItems:"center"}}>
+                            <span style={{fontSize:".65rem"}}>{area.icon}</span>
+                            <span className="badge" style={{background:pc.bg,color:pc.color,fontSize:".48rem"}}>{t.prioridad}</span>
+                            {resp && <div style={{width:16,height:16,borderRadius:"50%",background:resp.color+"33",border:`1px solid ${resp.color}66`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".42rem",fontWeight:700,color:resp.color}}>{iniciales(resp.nombre)}</div>}
+                          </div>
+                          {dias !== null && (
+                            <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",fontWeight:700,
+                              color:vencida?"#f87171":dias<=7?"#fbbf24":"var(--text-muted)"}}>
+                              {vencida?`-${Math.abs(dias)}d`:dias===0?"Hoy":`${dias}d`}
+                            </span>
+                          )}
+                        </div>
+                        {/* Cambio estado rápido en kanban */}
+                        <div style={{marginTop:".4rem",display:"flex",gap:".25rem",flexWrap:"wrap"}} onClick={e=>e.stopPropagation()}>
+                          {ESTADOS.filter(s=>s!==estado).map(s=>(
+                            <button key={s} onClick={()=>updEstado(t.id,s)}
+                              style={{padding:".08rem .35rem",borderRadius:3,border:`1px solid ${EST_CFG[s].color}44`,
+                                background:EST_CFG[s].bg,color:EST_CFG[s].color,
+                                fontFamily:"var(--font-mono)",fontSize:".48rem",fontWeight:700,cursor:"pointer"}}>
+                              → {EST_CFG[s].label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </>
   );
 }
@@ -806,7 +923,9 @@ function TabHitos({ hitos, updHito, setModal, setDelConf }) {
           const dias = diasHasta(h.fecha);
           const vencido = dias < 0 && !h.completado;
           return (
-            <div key={h.id} className={cls("hito-card", h.completado&&"hito-done", vencido&&"hito-vencido")}>
+            <div key={h.id} className={cls("hito-card", h.completado&&"hito-done", vencido&&"hito-vencido")}
+              style={{cursor:"pointer"}} onClick={() => setModal({tipo:"hito", data:h})}
+              title="Click para editar este hito">
               <div className="hito-card-gem" style={{background:h.completado?"#34d399":h.critico?"#f87171":"#22d3ee",boxShadow:h.completado?"0 0 8px #34d39966":h.critico?"0 0 8px #f8717166":"0 0 8px #22d3ee66"}}/>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{display:"flex",alignItems:"center",gap:".5rem",marginBottom:".2rem",flexWrap:"wrap"}}>
@@ -821,13 +940,13 @@ function TabHitos({ hitos, updHito, setModal, setDelConf }) {
                   </span>}
                 </div>
               </div>
-              <div style={{display:"flex",gap:".4rem",alignItems:"center",flexShrink:0}}>
+              <div style={{display:"flex",gap:".4rem",alignItems:"center",flexShrink:0}} onClick={e=>e.stopPropagation()}>
                 <button className="btn xs" style={{background:h.completado?"rgba(148,163,184,.1)":"rgba(52,211,153,.1)",color:h.completado?"#94a3b8":"#34d399",border:`1px solid ${h.completado?"rgba(148,163,184,.2)":"rgba(52,211,153,.2)"}`}}
                   onClick={() => updHito(h.id,"completado",!h.completado)}>
                   {h.completado?"↩ Reabrir":"✓ Completar"}
                 </button>
-                <button className="btn xs ghost" onClick={() => setModal({tipo:"hito",data:h})}>✏️</button>
-                <button className="btn xs red" onClick={() => setDelConf({tipo:"hito",id:h.id})}>✕</button>
+                <button className="btn xs ghost" onClick={()=>setModal({tipo:"hito",data:h})}>✏️</button>
+                <button className="btn xs red" onClick={()=>setDelConf({tipo:"hito",id:h.id})}>✕</button>
               </div>
             </div>
           );
