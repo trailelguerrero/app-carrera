@@ -15,6 +15,8 @@ const NIVEL_CFG = {
   Especie:     { color: "#a78bfa", dim: "rgba(167,139,250,0.1)", border: "rgba(167,139,250,0.25)", icon: "📦", objetivo: 0 },
 };
 
+const getCfg  = (nivel) => NIVEL_CFG[nivel] || NIVEL_CFG.Colaborador;
+
 const ESTADOS = ["prospecto", "negociando", "confirmado", "cobrado", "cancelado"];
 const ESTADO_CFG = {
   prospecto:  { color: "#5a6a8a", bg: "rgba(90,106,138,0.12)", label: "Prospecto" },
@@ -438,7 +440,7 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo })
             const urgente = dias < 30;
             return (
               <div key={p.id} style={{ display: "flex", alignItems: "center", gap: ".75rem", padding: ".45rem 0", borderBottom: "1px solid rgba(30,45,80,.3)" }}>
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: NIVEL_CFG[p.nivel].color, flexShrink: 0 }} />
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: getCfg(p.nivel).color, flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: ".76rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nombre}</div>
                   <div className="mono xs muted">{p.fechaVencimiento} · {fmt(p.importe)}</div>
@@ -460,7 +462,7 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo })
         <div className="ct">🕐 Actividad reciente</div>
         <div className="rec-grid">
           {recientes.map(p => {
-            const cfg = NIVEL_CFG[p.nivel] || NIVEL_CFG.Especie;
+            const cfg = getCfg(p.nivel) || NIVEL_CFG.Especie;
             const ecfg = ESTADO_CFG[p.estado] || ESTADO_CFG.prospecto;
             return (
               <div key={p.id} className="rec-card" style={{ borderLeftColor: cfg.color }}>
@@ -519,7 +521,7 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
         {pats.length === 0 && <div className="empty">No hay patrocinadores con estos filtros</div>}
         {pats.map(p => {
           if (!p) return null;
-          const cfg = NIVEL_CFG[p.nivel] || NIVEL_CFG.Especie;
+          const cfg = getCfg(p.nivel) || NIVEL_CFG.Especie;
           const ecfg = ESTADO_CFG[p.estado] || ESTADO_CFG.prospecto;
           const contPend = (p.contraprestaciones || []).filter(c => c && c.estado === "pendiente").length;
           const contTotal = (p.contraprestaciones || []).length;
@@ -596,7 +598,7 @@ function TabPipeline({ pats, onEditar, updateEstado }) {
                 <div style={{ padding: "1rem", textAlign: "center", color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: ".65rem" }}>—</div>
               )}
               {col.pats.map(p => {
-                const ncfg = NIVEL_CFG[p.nivel];
+                const ncfg = getCfg(p.nivel);
                 return (
                   <div key={p.id} className="kancard" style={{ borderTopColor: ncfg.color }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: ".35rem" }}>
@@ -636,7 +638,7 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
   const [newCont, setNewCont] = useState({ tipo: CONTRAPRESTACIONES_TIPO[0], detalle: "", estado: "pendiente" });
 
   const activos = pats.filter(p => p.estado !== "cancelado");
-  const allConts = activos.flatMap(p => p.contraprestaciones.map(c => ({ ...c, patNombre: p.nombre, patId: p.id, patNivel: p.nivel })));
+  const allConts = activos.flatMap(p => (p.contraprestaciones || []).map(c => ({ ...c, patNombre: p.nombre, patId: p.id, patNivel: p.nivel })));
   const pendientes = allConts.filter(c => c.estado === "pendiente");
   const entregados = allConts.filter(c => c.estado === "entregado");
 
@@ -656,7 +658,7 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
           {pendientes.length === 0 && <div className="empty">¡Todo entregado! 🎉</div>}
           {pendientes.slice(0, 6).map(c => (
             <div key={c.patId + "-" + c.id} style={{ display: "flex", alignItems: "center", gap: ".5rem", padding: ".35rem 0", borderBottom: "1px solid rgba(30,45,80,.25)" }}>
-              <div style={{ width: 6, height: 6, borderRadius: "50%", background: NIVEL_CFG[c.patNivel].color, flexShrink: 0 }} />
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: getCfg(c.patNivel).color, flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: ".72rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.tipo}</div>
                 <div className="mono xs muted">{c.patNombre}</div>
@@ -684,7 +686,7 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
       {/* Por patrocinador */}
       <div className="ct" style={{ marginBottom: ".5rem" }}>Compromisos por patrocinador</div>
       {activos.map(p => {
-        const cfg = NIVEL_CFG[p.nivel];
+        const cfg = getCfg(p.nivel);
         const pend = (p.contraprestaciones || []).filter(c => c.estado === "pendiente").length;
         const entr = (p.contraprestaciones || []).filter(c => c.estado === "entregado").length;
         return (
@@ -744,7 +746,7 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
 
 // ─── MODAL DETALLE ────────────────────────────────────────────────────────────
 function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContraprestacion, deleteContraprestacion, updateEstado, addDoc, deleteDoc }) {
-  const cfg = NIVEL_CFG[pat.nivel];
+  const cfg = getCfg(pat.nivel);
   const ecfg = ESTADO_CFG[pat.estado];
   const [subTab, setSubTab] = useState("info");
   const [addingCont, setAddingCont] = useState(false);
@@ -1176,7 +1178,7 @@ function TabDocumentos({ pats, addDoc, deleteDoc }) {
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: ".6rem" }}>
           {filtrados.map(d => {
-            const ncfg = NIVEL_CFG[d.patNivel];
+            const ncfg = getCfg(d.patNivel);
             return (
               <div key={d.patId + "-" + d.id}
                 style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: ".85rem", display: "flex", flexDirection: "column", gap: ".4rem", transition: "all .15s" }}
@@ -1239,6 +1241,13 @@ function TabDocumentos({ pats, addDoc, deleteDoc }) {
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
 const CSS = `
+  /* Layout dos columnas */
+  .twocol { display: grid; grid-template-columns: 1fr 1fr; gap: .85rem; }
+  @media(max-width:700px) { .twocol { grid-template-columns: 1fr; } }
+
+  /* Estado vacío */
+  .empty { text-align: center; padding: .85rem; color: var(--text-dim); font-family: var(--font-mono); font-size: .68rem; }
+
   /* Patrocinadores — solo estilos específicos de este bloque */
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap');
 
