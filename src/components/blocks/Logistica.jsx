@@ -229,7 +229,7 @@ export default function App() {
               <div style={{fontWeight:700,marginBottom:"0.4rem"}}>¿Eliminar elemento?</div>
               <div className="muted mono xs">Esta acción no se puede deshacer.</div>
             </div>
-            <div className="mfoot"><button className="btn ghost" onClick={() => setDel(null)}>Cancelar</button><button className="btn red" onClick={doDelete}>Eliminar</button></div>
+            <div className="mfoot"><button className="btn btn-ghost" onClick={() => setDel(null)}>Cancelar</button><button className="btn btn-red" onClick={doDelete}>Eliminar</button></div>
           </div>
         </div>
       )}
@@ -274,7 +274,7 @@ function TabDash({ stats, tl, ck, setTab }) {
               <div className="tls" style={{color:ESTADO_COLORES[t.estado]}}>{t.estado}</div>
             </div>
           ))}
-          <button className="btn ghost mt1" onClick={()=>setTab("timeline")}>Ver timeline →</button>
+          <button className="btn btn-ghost mt1" onClick={()=>setTab("timeline")}>Ver timeline →</button>
         </div>
         <div className="card">
           <div className="ct">✅ Progreso checklist</div>
@@ -286,7 +286,7 @@ function TabDash({ stats, tl, ck, setTab }) {
               <div className="pbar"><div className="pfill" style={{width:`${f.pct}%`,background:f.pct===100?"var(--green)":f.pct>50?"var(--cyan)":"var(--amber)"}}/></div>
             </div>
           ))}
-          <button className="btn ghost mt1" onClick={()=>setTab("checklist")}>Ver checklist →</button>
+          <button className="btn btn-ghost mt1" onClick={()=>setTab("checklist")}>Ver checklist →</button>
         </div>
       </div>
     </>
@@ -312,15 +312,15 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel}) {
       <div className="ph">
         <div><div className="pt">📦 Inventario de Material</div><div className="pd">{material.length} artículos · {asigs.length} asignaciones</div></div>
         <div className="fr g1">
-          <button className={cls("btn",!vistaAsig?"cyan":"ghost")} onClick={()=>setVistaAsig(false)}>Catálogo</button>
-          <button className={cls("btn",vistaAsig?"cyan":"ghost")} onClick={()=>setVistaAsig(true)}>Asignaciones</button>
+          <button className={cls("btn",!vistaAsig?"btn-cyan":"btn-ghost")} onClick={()=>setVistaAsig(false)}>Catálogo</button>
+          <button className={cls("btn",vistaAsig?"btn-cyan":"btn-ghost")} onClick={()=>setVistaAsig(true)}>Asignaciones</button>
           {!vistaAsig && (
             <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")}
               onClick={()=>setOrdenAlfa(v=>!v)} title={ordenAlfa?"Quitar orden A-Z":"Ordenar A-Z"}>
               {ordenAlfa?"A-Z ✓":"A-Z"}
             </button>
           )}
-          <button className="btn cyan" onClick={()=>setModal({tipo:vistaAsig?"asig":"mat"})}>+ Añadir</button>
+          <button className="btn btn-cyan" onClick={()=>setModal({tipo:vistaAsig?"asig":"mat"})}>+ Añadir</button>
         </div>
       </div>
       {!vistaAsig?(
@@ -339,7 +339,7 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel}) {
                 <td className="tr mono" style={{color:m.asig>0?"var(--cyan)":"var(--text-muted)"}}>{m.asig} {m.unidad}</td>
                 <td className="tr mono" style={{color:"var(--green)"}}>{m.ent} {m.unidad}</td>
                 <td className="tr mono">{m.def>0?<span style={{color:"var(--red)",fontWeight:700}}>-{m.def}</span>:<span style={{color:"var(--text-dim)"}}>—</span>}</td>
-                <td><div className="fr g1"><button className="btn xs ghost" onClick={()=>setModal({tipo:"mat",data:m})}>✏️</button><button className="btn xs red" onClick={()=>setDel({tipo:"material",id:m.id})}>✕</button></div></td>
+                <td><div className="fr g1"><button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"mat",data:m})}>✏️</button><button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"material",id:m.id})}>✕</button></div></td>
               </tr>
             ))}</tbody>
           </table></div></div>
@@ -353,7 +353,7 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel}) {
               <td><span className="pbadge">{a.puesto}</span></td>
               <td className="tr mono">{a.cantidad} {m?.unidad}</td>
               <td><select className="isml" value={a.estado} onChange={e=>setAsigs(p=>p.map(x=>x.id===a.id?{...x,estado:e.target.value}:x))} style={{color:ESTADO_COLORES[a.estado]}}>{ESTADO_ENTREGA.map(s=><option key={s} value={s}>{s}</option>)}</select></td>
-              <td><div className="fr g1"><button className="btn xs ghost" onClick={()=>setModal({tipo:"asig",data:a})}>✏️</button><button className="btn xs red" onClick={()=>setDel({tipo:"asig",id:a.id})}>✕</button></div></td>
+              <td><div className="fr g1"><button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"asig",data:a})}>✏️</button><button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"asig",id:a.id})}>✕</button></div></td>
             </tr>
           );})}
           </tbody>
@@ -370,8 +370,8 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel}) {
       <div className="ph">
         <div><div className="pt">🚗 Vehículos y Rutas</div><div className="pd">{veh.length} vehículos · {rutas.length} rutas</div></div>
         <div className="fr g1">
-          <button className="btn cyan" onClick={()=>setModal({tipo:"veh"})}>+ Vehículo</button>
-          <button className="btn amber" onClick={()=>setModal({tipo:"ruta"})}>+ Ruta</button>
+          <button className="btn btn-cyan" onClick={()=>setModal({tipo:"veh"})}>+ Vehículo</button>
+          <button className="btn btn-amber" onClick={()=>setModal({tipo:"ruta"})}>+ Ruta</button>
         </div>
       </div>
       <div className="twocol">
@@ -381,7 +381,7 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel}) {
             <div key={v.id} className="card vcard">
               <div className="vh"><div className="vi">🚐</div>
                 <div style={{flex:1}}><div className="vn">{v.nombre}</div><div className="vm mono">{v.matricula}</div></div>
-                <div className="fr g1"><button className="btn xs ghost" onClick={()=>setModal({tipo:"veh",data:v})}>✏️</button><button className="btn xs red" onClick={()=>setDel({tipo:"veh",id:v.id})}>✕</button></div>
+                <div className="fr g1"><button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"veh",data:v})}>✏️</button><button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"veh",id:v.id})}>✕</button></div>
               </div>
               <div className="vmeta"><span>👤 {v.conductor}</span><span>📦 {v.capacidad}</span><span>📞 {v.telefono}</span></div>
               {v.notas&&<div className="vnota">{v.notas}</div>}
@@ -394,7 +394,7 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel}) {
             <div key={r.id} className="card rcard">
               <div className="rh">
                 <div><div className="rn">{r.nombre}</div><div className="rm mono">🚐 {v?.nombre||"—"} · 🕐 {r.horaInicio}</div></div>
-                <div className="fr g1"><button className="btn xs ghost" onClick={()=>setModal({tipo:"ruta",data:r})}>✏️</button><button className="btn xs red" onClick={()=>setDel({tipo:"ruta",id:r.id})}>✕</button></div>
+                <div className="fr g1"><button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"ruta",data:r})}>✏️</button><button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"ruta",id:r.id})}>✕</button></div>
               </div>
               <div className="plist">{(r.paradas || []).map((p,i)=>(
                 <div key={i} className="prow">
@@ -421,7 +421,7 @@ function TabTL({tl,setTl,setModal,setDel}) {
     <>
       <div className="ph">
         <div><div className="pt">⏱️ Timeline del Día</div><div className="pd">{tl.filter(t=>t.estado==="completado").length}/{tl.length} completadas · 29 agosto 2026</div></div>
-        <button className="btn cyan" onClick={()=>setModal({tipo:"tl"})}>+ Tarea</button>
+        <button className="btn btn-cyan" onClick={()=>setModal({tipo:"tl"})}>+ Tarea</button>
       </div>
       <div className="tlcon">{sorted.map((t,i)=>{
         const color=TLC[t.categoria]||"#5a6a8a";const ec=ESTADO_COLORES[t.estado];
@@ -441,8 +441,8 @@ function TabTL({tl,setTl,setModal,setDel}) {
                   <select className="isml" value={t.estado} onChange={e=>upd(t.id,e.target.value)} style={{color:ec,background:`${ec}18`,border:`1px solid ${ec}44`,borderRadius:5,padding:"0.18rem 0.4rem",fontSize:"0.65rem",fontFamily:"var(--font-mono)",cursor:"pointer"}}>
                     {ESTADO_TAREA.map(s=><option key={s} value={s}>{s}</option>)}
                   </select>
-                  <button className="btn xs ghost" onClick={()=>setModal({tipo:"tl",data:t})}>✏️</button>
-                  <button className="btn xs red" onClick={()=>setDel({tipo:"tl",id:t.id})}>✕</button>
+                  <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"tl",data:t})}>✏️</button>
+                  <button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"tl",id:t.id})}>✕</button>
                 </div>
               </div>
               <div className="tlcd">{t.descripcion}</div>
@@ -477,7 +477,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel}) {
         <div><div className="pt">📡 Comunicaciones</div><div className="pd">Directorio · Protocolo de emergencia · Incidencias</div></div>
         <div className="fr g1">
           {["directorio","protocolo","incidencias"].map(s=>(
-            <button key={s} className={cls("btn",sub===s?"cyan":"ghost")} onClick={()=>setSub(s)}>
+            <button key={s} className={cls("btn",sub===s?"btn-cyan":"btn-ghost")} onClick={()=>setSub(s)}>
               {s==="incidencias"?"Incidencias"+(inc.filter(i=>i.estado==="abierta").length>0?" ⚠️":""):s.charAt(0).toUpperCase()+s.slice(1)}
             </button>
           ))}
@@ -487,14 +487,14 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel}) {
       {sub==="directorio"&&(
         <>
           <div className="fb mb1"><div className="fr g1">{Object.entries(TICI).map(([t,i])=><span key={t} className="ctbadge" style={{background:`${TIC[t]}15`,color:TIC[t],border:`1px solid ${TIC[t]}33`}}>{i} {t}</span>)}</div>
-            <button className="btn cyan" onClick={()=>setModal({tipo:"cont"})}>+ Contacto</button>
+            <button className="btn btn-cyan" onClick={()=>setModal({tipo:"cont"})}>+ Contacto</button>
           </div>
           <div className="cgrid">{cont.map(c=>(
             <div key={c.id} className="ccard" style={{borderTopColor:TIC[c.tipo]}}>
               <div className="cch">
                 <div className="ccti">{TICI[c.tipo]}</div>
                 <div style={{flex:1,minWidth:0}}><div className="ccn">{c.nombre}</div><div className="ccr">{c.rol}</div></div>
-                <div className="fr g1"><button className="btn xs ghost" onClick={()=>setModal({tipo:"cont",data:c})}>✏️</button><button className="btn xs red" onClick={()=>setDel({tipo:"cont",id:c.id})}>✕</button></div>
+                <div className="fr g1"><button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"cont",data:c})}>✏️</button><button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"cont",id:c.id})}>✕</button></div>
               </div>
               <div className="ccd">
                 <a href={`tel:${c.telefono}`} className="ctel">📞 {c.telefono}</a>
@@ -541,9 +541,9 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel}) {
                     <span className="badge" style={{background:"var(--cyan-dim)",color:"var(--cyan)"}}>{ic.tipo}</span>
                   </div>
                   <div className="fr g1">
-                    <button className="btn xs" style={{background:"var(--green-dim)",color:"var(--green)",border:"1px solid rgba(52,211,153,0.2)"}} onClick={()=>setInc(p=>p.map(x=>x.id===ic.id?{...x,estado:x.estado==="resuelta"?"abierta":"resuelta"}:x))}>{ic.estado==="resuelta"?"✓ Resuelta":"Marcar resuelta"}</button>
-                    <button className="btn xs ghost" onClick={()=>setModal({tipo:"inc",data:ic})}>✏️</button>
-                    <button className="btn xs red" onClick={()=>setDel({tipo:"inc",id:ic.id})}>✕</button>
+                    <button className="btn btn-sm" style={{background:"var(--green-dim)",color:"var(--green)",border:"1px solid rgba(52,211,153,0.2)"}} onClick={()=>setInc(p=>p.map(x=>x.id===ic.id?{...x,estado:x.estado==="resuelta"?"abierta":"resuelta"}:x))}>{ic.estado==="resuelta"?"✓ Resuelta":"Marcar resuelta"}</button>
+                    <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"inc",data:ic})}>✏️</button>
+                    <button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"inc",id:ic.id})}>✕</button>
                   </div>
                 </div>
                 <div style={{fontWeight:600,fontSize:"0.78rem",margin:"0.3rem 0"}}>{ic.descripcion}</div>
@@ -570,7 +570,7 @@ function TabCK({ck,setCk,setModal,setDel}) {
     <>
       <div className="ph">
         <div><div className="pt">✅ Checklist Pre-Carrera</div><div className="pd">{ck.filter(c=>c.estado==="completado").length}/{ck.length} completados</div></div>
-        <button className="btn cyan" onClick={()=>setModal({tipo:"ck"})}>+ Tarea</button>
+        <button className="btn btn-cyan" onClick={()=>setModal({tipo:"ck"})}>+ Tarea</button>
       </div>
       <div className="ftabs">
         {pf.map(f=>(
@@ -597,8 +597,8 @@ function TabCK({ck,setCk,setModal,setDel}) {
               <select className="isml" value={item.estado} onChange={e=>upd(item.id,"estado",e.target.value)} style={{color:ESTADO_COLORES[item.estado],fontSize:"0.62rem",padding:"0.15rem 0.3rem"}}>
                 {ESTADO_TAREA.map(s=><option key={s} value={s}>{s}</option>)}
               </select>
-              <button className="btn xs ghost" onClick={()=>setModal({tipo:"ck",data:item})}>✏️</button>
-              <button className="btn xs red" onClick={()=>setDel({tipo:"ck",id:item.id})}>✕</button>
+              <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"ck",data:item})}>✏️</button>
+              <button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"ck",id:item.id})}>✕</button>
             </div>
           </div>
         ))}
@@ -659,7 +659,7 @@ function MF({title,fields,init,onSave,onClose}) {
   return(
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal">
-        <div className="mhdr"><span className="mtit">{title}</span><button className="btn xs ghost" onClick={onClose}>✕</button></div>
+        <div className="mhdr"><span className="mtit">{title}</span><button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button></div>
         <div className="mbody">
           {fields.map(f=>(
             <div key={f.k}>
@@ -675,8 +675,8 @@ function MF({title,fields,init,onSave,onClose}) {
           ))}
         </div>
         <div className="mfoot">
-          <button className="btn ghost" onClick={onClose}>Cancelar</button>
-          <button className="btn cyan" onClick={()=>{if(!req||form[req.k])onSave(form);}}>
+          <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-cyan" onClick={()=>{if(!req||form[req.k])onSave(form);}}>
             {init?.id?"💾 Guardar":"➕ Añadir"}
           </button>
         </div>
@@ -704,7 +704,7 @@ function ModalRuta({data,veh,rutas,setRutas,onClose}) {
   return(
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal" style={{maxWidth:560}}>
-        <div className="mhdr"><span className="mtit">{data?"✏️ Editar ruta":"🗺️ Nueva ruta"}</span><button className="btn xs ghost" onClick={onClose}>✕</button></div>
+        <div className="mhdr"><span className="mtit">{data?"✏️ Editar ruta":"🗺️ Nueva ruta"}</span><button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button></div>
         <div className="mbody">
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem"}}>
             <div><label className="fl">Nombre *</label><input className="inp" value={form.nombre} onChange={e=>upd("nombre",e.target.value)} placeholder="Nombre de la ruta"/></div>
@@ -718,7 +718,7 @@ function ModalRuta({data,veh,rutas,setRutas,onClose}) {
           <div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"0.4rem"}}>
               <label className="fl" style={{margin:0}}>Paradas ({form.paradas.length})</label>
-              <button className="btn cyan" style={{fontSize:"0.68rem",padding:"0.2rem 0.6rem"}} onClick={addP}>+ Parada</button>
+              <button className="btn btn-cyan" style={{fontSize:"0.68rem",padding:"0.2rem 0.6rem"}} onClick={addP}>+ Parada</button>
             </div>
             {Array.isArray(form.paradas) && form.paradas.map((p,i)=>(
               <div key={i} style={{background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:8,padding:"0.6rem",marginBottom:"0.4rem"}}>
@@ -728,7 +728,7 @@ function ModalRuta({data,veh,rutas,setRutas,onClose}) {
                   </select>
                   <div style={{display:"flex",gap:"0.3rem",alignItems:"center"}}>
                     <input className="inp isml" type="time" value={p.hora} onChange={e=>updP(i,"hora",e.target.value)} style={{width:80}}/>
-                    <button className="btn xs red" onClick={()=>delP(i)}>✕</button>
+                    <button className="btn btn-sm btn-red" onClick={()=>delP(i)}>✕</button>
                   </div>
                 </div>
                 <input className="inp isml" value={p.material} onChange={e=>updP(i,"material",e.target.value)} placeholder="Material a entregar..." style={{width:"100%",fontSize:"0.72rem"}}/>
@@ -737,7 +737,7 @@ function ModalRuta({data,veh,rutas,setRutas,onClose}) {
             {form.paradas.length===0&&<div className="empty" style={{padding:"0.75rem"}}>Sin paradas — pulsa + Parada</div>}
           </div>
         </div>
-        <div className="mfoot"><button className="btn ghost" onClick={onClose}>Cancelar</button><button className="btn cyan" onClick={save}>{data?"💾 Guardar":"➕ Crear ruta"}</button></div>
+        <div className="mfoot"><button className="btn btn-ghost" onClick={onClose}>Cancelar</button><button className="btn btn-cyan" onClick={save}>{data?"💾 Guardar":"➕ Crear ruta"}</button></div>
       </div>
     </div>
   );

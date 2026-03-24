@@ -349,8 +349,8 @@ export default function App() {
               <div className="mono xs muted">Esta acción no se puede deshacer.</div>
             </div>
             <div className="mfoot">
-              <button className="btn ghost" onClick={() => setDelConf(null)}>Cancelar</button>
-              <button className="btn red" onClick={doDelete}>Eliminar</button>
+              <button className="btn btn-ghost" onClick={() => setDelConf(null)}>Cancelar</button>
+              <button className="btn btn-red" onClick={doDelete}>Eliminar</button>
             </div>
           </div>
         </div>
@@ -368,7 +368,7 @@ function TabDash({ stats, equipo, setTab, setModal, tareas, hitos, updEstado, is
           <div className="pt">{isMobile ? "📊 Dashboard" : "📊 Dashboard del Proyecto"}</div>
           <div className="pd">Trail El Guerrero 2026 · {stats.diasEvento} días</div>
         </div>
-        <button className="btn primary" onClick={() => setModal({tipo:"tarea",data:null})}>
+        <button className="btn btn-primary" onClick={() => setModal({tipo:"tarea",data:null})}>
           {isMobile ? "+" : "+ Nueva tarea"}
         </button>
       </div>
@@ -453,7 +453,7 @@ function TabDash({ stats, equipo, setTab, setModal, tareas, hitos, updEstado, is
               </div>
             );
           })}
-          <button className="btn ghost mt1 w100" onClick={() => setTab("tablón")}>Ver todas las tareas →</button>
+          <button className="btn btn-ghost mt1 w100" onClick={() => setTab("tablón")}>Ver todas las tareas →</button>
         </div>
 
         {/* Carga por persona */}
@@ -476,7 +476,7 @@ function TabDash({ stats, equipo, setTab, setModal, tareas, hitos, updEstado, is
               </div>
             </div>
           ))}
-          <button className="btn ghost mt1 w100" onClick={() => setTab("equipo")}>Ver detalle del equipo →</button>
+          <button className="btn btn-ghost mt1 w100" onClick={() => setTab("equipo")}>Ver detalle del equipo →</button>
         </div>
       </div>
 
@@ -484,7 +484,7 @@ function TabDash({ stats, equipo, setTab, setModal, tareas, hitos, updEstado, is
       <div className="card">
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".75rem"}}>
           <div className="ct" style={{marginBottom:0}}>🏁 Próximos hitos</div>
-          <button className="btn xs ghost" onClick={() => setTab("hitos")}>Ver todos</button>
+          <button className="btn btn-sm btn-ghost" onClick={() => setTab("hitos")}>Ver todos</button>
         </div>
         <div className="hitos-timeline">
           {stats.hitosProx.map((h,i) => {
@@ -536,7 +536,7 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
               </button>
             ))}
           </div>
-          <button className="btn primary" onClick={() => setModal({tipo:"tarea",data:null})}>+ Nueva tarea</button>
+          <button className="btn btn-primary" onClick={() => setModal({tipo:"tarea",data:null})}>+ Nueva tarea</button>
         </div>
       </div>
 
@@ -561,7 +561,7 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
             <option value="todas">Toda prioridad</option>
             {PRIORIDADES.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
-          {hayFiltros && <button className="btn ghost xs" onClick={() => {setFiltroArea("todas");setFiltroResponsable("todos");setFiltroEstado("todos");setFiltroPrioridad("todas");setBusqueda("");}}>✕ Limpiar</button>}
+          {hayFiltros && <button className="btn btn-ghost btn-sm" onClick={() => {setFiltroArea("todas");setFiltroResponsable("todos");setFiltroEstado("todos");setFiltroPrioridad("todas");setBusqueda("");}}>✕ Limpiar</button>}
         </div>
       </div>
 
@@ -624,8 +624,8 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
                     </div>
                   )}
                   <div style={{display:"flex",gap:".25rem"}}>
-                    <button className="btn xs ghost" onClick={()=>setModal({tipo:"tarea",data:t})}>✏️</button>
-                    <button className="btn xs red" onClick={()=>setDelConf({tipo:"tarea",id:t.id})}>✕</button>
+                    <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"tarea",data:t})}>✏️</button>
+                    <button className="btn btn-sm btn-red" onClick={()=>setDelConf({tipo:"tarea",id:t.id})}>✕</button>
                   </div>
                 </div>
               </div>
@@ -740,8 +740,8 @@ function TabGantt({ tareas, hitos, equipo, setModal }) {
           <div className="pd">Marzo — Septiembre 2026 · Vista por área</div>
         </div>
         <div style={{display:"flex",gap:".5rem"}}>
-          <button className="btn ghost" onClick={() => setModal({tipo:"hito",data:null})}>+ Hito</button>
-          <button className="btn primary" onClick={() => setModal({tipo:"tarea",data:null})}>+ Tarea</button>
+          <button className="btn btn-ghost" onClick={() => setModal({tipo:"hito",data:null})}>+ Hito</button>
+          <button className="btn btn-primary" onClick={() => setModal({tipo:"tarea",data:null})}>+ Tarea</button>
         </div>
       </div>
 
@@ -831,7 +831,7 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf }) {
           <div className="pt">👥 Equipo Organizador</div>
           <div className="pd">{equipo.length} personas · Trail El Guerrero 2026</div>
         </div>
-        <button className="btn primary" onClick={() => setModal({tipo:"persona",data:null})}>+ Añadir persona</button>
+        <button className="btn btn-primary" onClick={() => setModal({tipo:"persona",data:null})}>+ Añadir persona</button>
       </div>
 
       <div className="equipo-grid">
@@ -860,8 +860,8 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf }) {
                   </div>
                 </div>
                 <div style={{display:"flex",gap:".25rem",flexShrink:0}}>
-                  <button className="btn xs ghost" onClick={() => setModal({tipo:"persona",data:p})}>✏️</button>
-                  <button className="btn xs red" onClick={() => setDelConf({tipo:"persona",id:p.id})}>✕</button>
+                  <button className="btn btn-sm btn-ghost" onClick={() => setModal({tipo:"persona",data:p})}>✏️</button>
+                  <button className="btn btn-sm btn-red" onClick={() => setDelConf({tipo:"persona",id:p.id})}>✕</button>
                 </div>
               </div>
 
@@ -929,7 +929,7 @@ function TabHitos({ hitos, updHito, setModal, setDelConf }) {
           <div className="pt">🏁 Hitos del Proyecto</div>
           <div className="pd">{hitos.filter(h=>!h.completado).length} pendientes · {hitos.filter(h=>h.completado).length} completados</div>
         </div>
-        <button className="btn primary" onClick={() => setModal({tipo:"hito",data:null})}>+ Nuevo hito</button>
+        <button className="btn btn-primary" onClick={() => setModal({tipo:"hito",data:null})}>+ Nuevo hito</button>
       </div>
 
       <div style={{display:"flex",flexDirection:"column",gap:".5rem"}}>
@@ -955,12 +955,12 @@ function TabHitos({ hitos, updHito, setModal, setDelConf }) {
                 </div>
               </div>
               <div style={{display:"flex",gap:".4rem",alignItems:"center",flexShrink:0}} onClick={e=>e.stopPropagation()}>
-                <button className="btn xs" style={{background:h.completado?"rgba(148,163,184,.1)":"rgba(52,211,153,.1)",color:h.completado?"#94a3b8":"#34d399",border:`1px solid ${h.completado?"rgba(148,163,184,.2)":"rgba(52,211,153,.2)"}`}}
+                <button className="btn btn-sm" style={{background:h.completado?"rgba(148,163,184,.1)":"rgba(52,211,153,.1)",color:h.completado?"#94a3b8":"#34d399",border:`1px solid ${h.completado?"rgba(148,163,184,.2)":"rgba(52,211,153,.2)"}`}}
                   onClick={() => updHito(h.id,"completado",!h.completado)}>
                   {h.completado?"↩ Reabrir":"✓ Completar"}
                 </button>
-                <button className="btn xs ghost" onClick={()=>setModal({tipo:"hito",data:h})}>✏️</button>
-                <button className="btn xs red" onClick={()=>setDelConf({tipo:"hito",id:h.id})}>✕</button>
+                <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"hito",data:h})}>✏️</button>
+                <button className="btn btn-sm btn-red" onClick={()=>setDelConf({tipo:"hito",id:h.id})}>✕</button>
               </div>
             </div>
           );
@@ -992,7 +992,7 @@ function ModalTarea({ data, equipo, tareas, onSave, onClose }) {
       <div className="modal">
         <div className="mhdr">
           <span className="mtit">{data?"✏️ Editar tarea":"➕ Nueva tarea"}</span>
-          <button className="btn xs ghost" onClick={onClose}>✕</button>
+          <button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button>
         </div>
         <div className="mbody">
           <div>
@@ -1048,8 +1048,8 @@ function ModalTarea({ data, equipo, tareas, onSave, onClose }) {
           </div>
         </div>
         <div className="mfoot">
-          <button className="btn ghost" onClick={onClose}>Cancelar</button>
-          <button className="btn primary" onClick={submit}>{data?"💾 Guardar":"➕ Crear tarea"}</button>
+          <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-primary" onClick={submit}>{data?"💾 Guardar":"➕ Crear tarea"}</button>
         </div>
       </div>
     </div>
@@ -1071,7 +1071,7 @@ function ModalHito({ data, onSave, onClose }) {
   return (
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal" style={{maxWidth:420}}>
-        <div className="mhdr"><span className="mtit">{data?"✏️ Editar hito":"🏁 Nuevo hito"}</span><button className="btn xs ghost" onClick={onClose}>✕</button></div>
+        <div className="mhdr"><span className="mtit">{data?"✏️ Editar hito":"🏁 Nuevo hito"}</span><button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button></div>
         <div className="mbody">
           <div>
             <label className="fl" style={{color:err.nombre?"#f87171":undefined}}>Nombre del hito *</label>
@@ -1095,7 +1095,7 @@ function ModalHito({ data, onSave, onClose }) {
             ))}
           </div>
         </div>
-        <div className="mfoot"><button className="btn ghost" onClick={onClose}>Cancelar</button><button className="btn primary" onClick={submit}>{data?"💾 Guardar":"➕ Crear"}</button></div>
+        <div className="mfoot"><button className="btn btn-ghost" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={submit}>{data?"💾 Guardar":"➕ Crear"}</button></div>
       </div>
     </div>
   );
@@ -1118,7 +1118,7 @@ function ModalPersona({ data, onSave, onClose }) {
   return (
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal">
-        <div className="mhdr"><span className="mtit">{data?"✏️ Editar persona":"👤 Nueva persona"}</span><button className="btn xs ghost" onClick={onClose}>✕</button></div>
+        <div className="mhdr"><span className="mtit">{data?"✏️ Editar persona":"👤 Nueva persona"}</span><button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button></div>
         <div className="mbody">
           <div style={{display:"flex",alignItems:"center",gap:"1rem",padding:".75rem",background:"var(--surface2)",borderRadius:10}}>
             <div className="avatar-lg" style={{background:form.color+"22",border:`2px solid ${form.color}66`,color:form.color,flexShrink:0}}>{iniciales(form.nombre||"??")}</div>
@@ -1160,7 +1160,7 @@ function ModalPersona({ data, onSave, onClose }) {
             </div>
           </div>
         </div>
-        <div className="mfoot"><button className="btn ghost" onClick={onClose}>Cancelar</button><button className="btn primary" onClick={submit}>{data?"💾 Guardar":"➕ Añadir"}</button></div>
+        <div className="mfoot"><button className="btn btn-ghost" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={submit}>{data?"💾 Guardar":"➕ Añadir"}</button></div>
       </div>
     </div>
   );
