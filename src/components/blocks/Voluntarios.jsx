@@ -581,6 +581,7 @@ export default function App() {
               puestosConStats={puestosConStats} voluntarios={voluntarios}
               onUpdatePuesto={updatePuesto} onDeletePuesto={(id) => setConfirmDeletePuesto(id)}
               onNuevoPuesto={() => setModalPuesto("nuevo")} onEditPuesto={(p) => setModalPuesto(p)}
+              onEditarVol={(v) => setModalVol(v)}
             />
           )}
           {tab==="tallas" && <TabTallas stats={stats} voluntarios={voluntarios} />}
@@ -979,21 +980,33 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab }) {
 
 // ─── TAB VOLUNTARIOS ──────────────────────────────────────────────────────────
 function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda, filtroEstado, setFiltroEstado, filtroPuesto, setFiltroPuesto, onUpdate, onDelete, onNuevo, onEditar }) {
+  const [orden, setOrden] = useState("nombre"); // "nombre" | "puesto"
+
+  const volsOrdenados = [...voluntarios].sort((a, b) => {
+    if (orden === "nombre") return (a.nombre || "").localeCompare(b.nombre || "", "es");
+    if (orden === "puesto") {
+      const pa = puestos.find(p => p.id === a.puestoId)?.nombre || "zzz";
+      const pb = puestos.find(p => p.id === b.puestoId)?.nombre || "zzz";
+      return pa.localeCompare(pb, "es");
+    }
+    return 0;
+  });
+
   return (
     <>
       <div className="page-header">
         <div>
           <div className="page-title">👥 Voluntarios</div>
-          <div className="page-desc">{todosVols.length} registrados · {voluntarios.length} mostrados</div>
+          <div className="page-desc">{todosVols.length} registrados · {voluntarios.length} mostrados · click para abrir ficha</div>
         </div>
         <button className="btn btn-cyan" onClick={onNuevo}>+ Nuevo voluntario</button>
       </div>
 
-      {/* Filtros */}
+      {/* Filtros + ordenación */}
       <div className="card" style={{ marginBottom: "0.85rem" }}>
         <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", alignItems: "center" }}>
           <input className="inp" placeholder="🔍 Buscar por nombre o teléfono..." value={busqueda}
-            onChange={e => setBusqueda(e.target.value)} style={{ maxWidth: 260 }} />
+            onChange={e => setBusqueda(e.target.value)} style={{ maxWidth: 240 }} />
           <select className="inp" value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)} style={{ width: "auto" }}>
             <option value="todos">Todos los estados</option>
             {Object.entries(ESTADOS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -1003,6 +1016,19 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
             <option value="sin-asignar">Sin asignar</option>
             {puestos.map(p => <option key={p.id} value={String(p.id)}>{p.nombre}</option>)}
           </select>
+          {/* Ordenación */}
+          <div style={{ display: "flex", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", overflow: "hidden", marginLeft: "auto" }}>
+            {[["nombre", "A–Z Nombre"], ["puesto", "Por puesto"]].map(([v, label]) => (
+              <button key={v} onClick={() => setOrden(v)}
+                style={{ padding: "0.28rem 0.65rem", border: "none", cursor: "pointer",
+                  fontFamily: "var(--font-mono)", fontSize: "0.62rem", fontWeight: 700,
+                  background: orden === v ? "rgba(34,211,238,0.15)" : "transparent",
+                  color: orden === v ? "var(--cyan)" : "var(--text-muted)",
+                  transition: "all .15s", whiteSpace: "nowrap" }}>
+                {label}
+              </button>
+            ))}
+          </div>
           {(busqueda || filtroEstado !== "todos" || filtroPuesto !== "todos") && (
             <button className="btn btn-ghost" onClick={() => { setBusqueda(""); setFiltroEstado("todos"); setFiltroPuesto("todos"); }}>✕ Limpiar</button>
           )}
@@ -1026,15 +1052,17 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
               </tr>
             </thead>
             <tbody>
-              {voluntarios.length === 0 && (
+              {volsOrdenados.length === 0 && (
                 <tr><td colSpan={9} style={{ textAlign: "center", color: "var(--text-muted)", padding: "2rem", fontFamily: "var(--font-mono)", fontSize: "0.75rem" }}>
                   No hay voluntarios con estos filtros
                 </td></tr>
               )}
-              {voluntarios.map(v => {
+              {volsOrdenados.map(v => {
                 const puesto = puestos.find(p => p.id === v.puestoId);
                 return (
-                  <tr key={v.id}>
+                  <tr key={v.id} style={{ cursor: "pointer" }}
+                    onClick={() => onEditar(v)}
+                    title="Click para abrir ficha">
                     <td data-label="Voluntario">
                       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                         <div style={{ width: 26, height: 26, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.58rem", fontWeight: 700, color: "var(--cyan)", flexShrink: 0 }}>
@@ -1053,7 +1081,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
                     <td>
                       <span className={`badge ${v.rol === "responsable" ? "badge-violet" : "badge-cyan"}`}>{v.rol || "apoyo"}</span>
                     </td>
-                    <td>
+                    <td onClick={e => e.stopPropagation()}>
                       <select className="inp inp-sm" value={v.estado}
                         onChange={e => onUpdate(v.id, { estado: e.target.value })}
                         style={{ width: "auto", color: estadoColor(v.estado), background: estadoBg(v.estado) }}>
@@ -1064,7 +1092,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
                       <span style={{ fontSize: "0.9rem" }}>{v.coche ? "✓" : "—"}</span>
                     </td>
                     <td><span className="mono text-xs text-muted">{v.fechaRegistro || "—"}</span></td>
-                    <td>
+                    <td onClick={e => e.stopPropagation()}>
                       <div style={{ display: "flex", gap: "0.25rem" }}>
                         <button className="btn btn-ghost" style={{ padding: "0.22rem 0.4rem", fontSize: "0.68rem" }} title="Editar" onClick={() => onEditar(v)}>✏️</button>
                         <button className="btn btn-red" style={{ padding: "0.22rem 0.4rem", fontSize: "0.68rem" }} onClick={() => onDelete(v.id)} title="Eliminar">✕</button>
@@ -1082,7 +1110,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
 }
 
 // ─── TAB PUESTOS ──────────────────────────────────────────────────────────────
-function TabPuestos({ puestosConStats, voluntarios, onUpdatePuesto, onDeletePuesto, onNuevoPuesto, onEditPuesto }) {
+function TabPuestos({ puestosConStats, voluntarios, onUpdatePuesto, onDeletePuesto, onNuevoPuesto, onEditPuesto, onEditarVol }) {
   return (
     <>
       <div className="page-header">
@@ -1098,7 +1126,9 @@ function TabPuestos({ puestosConStats, voluntarios, onUpdatePuesto, onDeletePues
           const pct = Math.min(p.cobertura, 100);
           const color = pct >= 80 ? "var(--green)" : pct >= 50 ? "var(--amber)" : "var(--red)";
           return (
-            <div key={p.id} className="card" style={{ padding: "1rem" }}>
+            <div key={p.id} className="card" style={{ padding: "1rem", cursor: "pointer" }}
+              onClick={() => onEditPuesto(p)}
+              title="Click para abrir ficha del puesto">
               <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start" }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.3rem", flexWrap: "wrap" }}>
@@ -1120,14 +1150,16 @@ function TabPuestos({ puestosConStats, voluntarios, onUpdatePuesto, onDeletePues
                   {p.voluntariosAsignados.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", marginTop: "0.5rem" }}>
                       {p.voluntariosAsignados.map(v => (
-                        <span key={v.id} style={{ fontSize: "0.65rem", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 4, padding: "0.15rem 0.45rem", color: v.estado === "confirmado" ? "var(--green)" : "var(--text-muted)" }}>
+                        <span key={v.id}
+                          onClick={e => { e.stopPropagation(); onEditPuesto && onEditarVol && onEditarVol(v); }}
+                          style={{ fontSize: "0.65rem", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 4, padding: "0.15rem 0.45rem", color: v.estado === "confirmado" ? "var(--green)" : "var(--text-muted)" }}>
                           {(v.nombre || "V").split(" ")[0]} {(v.nombre || "").split(" ")[1]?.[0] || ""}.
                         </span>
                       ))}
                     </div>
                   )}
                 </div>
-                <div style={{ display: "flex", gap: "0.3rem", flexShrink: 0 }}>
+                <div style={{ display: "flex", gap: "0.3rem", flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                   <button className="btn btn-ghost" style={{ padding: "0.28rem 0.45rem", fontSize: "0.68rem" }} onClick={() => onEditPuesto(p)}>✏️</button>
                   <button className="btn btn-red" style={{ padding: "0.28rem 0.45rem", fontSize: "0.68rem" }} onClick={() => onDeletePuesto(p.id)}>✕</button>
                 </div>
