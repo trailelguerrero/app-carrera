@@ -17,6 +17,8 @@ const AREAS = [
   { id:"voluntarios",   label:"Voluntarios",            icon:"👥", color:"#22d3ee" },
   { id:"ruta",          label:"Ruta y Señalización",    icon:"🏔️", color:"#fb923c" },
   { id:"logistica",     label:"Logística y Material",   icon:"📦", color:"#a78bfa" },
+  { id:"comercial",     label:"Comercial",              icon:"🛒", color:"#2dd4bf" },
+  { id:"sanitario",     label:"Sanitario",              icon:"🏥", color:"#f43f5e" },
   { id:"diaD",          label:"Día de Carrera",         icon:"🏁", color:"#f87171" },
 ];
 
@@ -320,7 +322,7 @@ export default function App() {
 
         {/* CONTENIDO */}
         <div key={tab}>
-          {tab==="dashboard" && <TabDash stats={stats} equipo={equipo} setTab={setTab} setModal={setModal} tareas={tareas} hitos={hitos} updEstado={updEstado} isMobile={isMobile} />}
+          {tab==="dashboard" && <TabDash stats={stats} equipo={equipo} setTab={setTab} setModal={setModal} tareas={tareas} hitos={hitos} updEstado={updEstado} isMobile={isMobile} setFiltroArea={setFiltroArea} setFiltroResponsable={setFiltroResponsable} />}
           {tab==="tablón" && <TabTablon tareas={tareasFiltradas} todasTareas={tareas} equipo={equipo}
             filtroArea={filtroArea} setFiltroArea={setFiltroArea}
             filtroResponsable={filtroResponsable} setFiltroResponsable={setFiltroResponsable}
@@ -358,7 +360,7 @@ export default function App() {
 }
 
 // ─── TAB DASHBOARD ────────────────────────────────────────────────────────────
-function TabDash({ stats, equipo, setTab, setModal, tareas, hitos, updEstado, isMobile }) {
+function TabDash({ stats, equipo, setTab, setModal, tareas, hitos, updEstado, isMobile, setFiltroArea, setFiltroResponsable }) {
   return (
     <>
       <div className="ph">
@@ -395,7 +397,9 @@ function TabDash({ stats, equipo, setTab, setModal, tareas, hitos, updEstado, is
           {stats.porArea.map(a => {
             const sc = {green:"#34d399", amber:"#fbbf24", red:"#f87171", blue:"#22d3ee"}[a.semaforo];
             return (
-              <div key={a.id} className="area-card" style={{borderTopColor:a.color}} onClick={() => setTab("tablón")}>
+              <div key={a.id} className="area-card" style={{borderTopColor:a.color}}
+                onClick={() => { setFiltroArea(a.id); setTab("tablón"); }}
+                title={`Ver tareas de ${a.label}`}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:".4rem"}}>
                   <div>
                     <div style={{fontSize:"1.1rem",marginBottom:".15rem"}}>{a.icon}</div>
@@ -456,7 +460,9 @@ function TabDash({ stats, equipo, setTab, setModal, tareas, hitos, updEstado, is
         <div className="card">
           <div className="ct">👥 Carga del equipo</div>
           {stats.porPersona.map(p => (
-            <div key={p.id} className="carga-row">
+            <div key={p.id} className="carga-row" style={{cursor:"pointer"}}
+              onClick={() => { setFiltroResponsable(String(p.id)); setTab("tablón"); }}
+              title={`Ver tareas de ${p.nombre}`}>
               <div className="avatar" style={{background:p.color+"22",border:`2px solid ${p.color}55`,color:p.color}}>
                 {iniciales(p.nombre)}
               </div>
@@ -838,7 +844,9 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf }) {
           const pct = pt.length ? Math.round(completadas/pt.length*100) : 0;
           const area = getArea(p.area);
           return (
-            <div key={p.id} className="persona-card" style={{borderTopColor:p.color}}>
+            <div key={p.id} className="persona-card" style={{borderTopColor:p.color, cursor:"pointer"}}
+              onClick={() => setModal({tipo:"persona", data:p})}
+              title={`Editar ${p.nombre}`}>
               <div style={{display:"flex",gap:".75rem",alignItems:"flex-start",marginBottom:".85rem"}}>
                 <div className="avatar-lg" style={{background:p.color+"22",border:`2px solid ${p.color}66`,color:p.color}}>
                   {iniciales(p.nombre)}
@@ -883,11 +891,17 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf }) {
               {/* Próximas tareas */}
               {pt.filter(t => t.estado!=="completado").length > 0 && (
                 <div style={{marginTop:".75rem",borderTop:"1px solid var(--border)",paddingTop:".6rem"}}>
-                  <div className="mono xs muted" style={{marginBottom:".3rem"}}>Próximas tareas</div>
+                  <div className="mono xs muted" style={{marginBottom:".3rem"}}>Próximas tareas · click para editar</div>
                   {pt.filter(t => t.estado!=="completado" && t.fechaLimite).sort((a,b) => a.fechaLimite.localeCompare(b.fechaLimite)).slice(0,3).map(t => {
                     const dias = diasHasta(t.fechaLimite);
                     return (
-                      <div key={t.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:".25rem 0",borderBottom:"1px solid rgba(30,45,80,.2)"}}>
+                      <div key={t.id}
+                        onClick={() => setModal({tipo:"tarea", data:t})}
+                        style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+                          padding:".25rem .35rem",borderBottom:"1px solid rgba(30,45,80,.2)",
+                          cursor:"pointer",borderRadius:4,transition:"background .12s"}}
+                        onMouseEnter={e=>e.currentTarget.style.background="var(--surface3)"}
+                        onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                         <span style={{fontSize:".7rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,paddingRight:".5rem"}}>{t.titulo}</span>
                         <span className="mono xs" style={{color:dias<0?"#f87171":dias<=7?"#fbbf24":"var(--text-muted)",flexShrink:0}}>
                           {dias<0?`-${Math.abs(dias)}d`:`${dias}d`}
