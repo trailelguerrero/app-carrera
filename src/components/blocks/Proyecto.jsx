@@ -950,12 +950,12 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf, setFicha }) {
               {/* Próximas tareas */}
               {pt.filter(t => t.estado!=="completado").length > 0 && (
                 <div style={{marginTop:".75rem",borderTop:"1px solid var(--border)",paddingTop:".6rem"}}>
-                  <div className="mono xs muted" style={{marginBottom:".3rem"}}>Próximas tareas · click para editar</div>
+                  <div className="mono xs muted" style={{marginBottom:".3rem"}}>Próximas tareas · click para ver ficha</div>
                   {pt.filter(t => t.estado!=="completado" && t.fechaLimite).sort((a,b) => a.fechaLimite.localeCompare(b.fechaLimite)).slice(0,3).map(t => {
                     const dias = diasHasta(t.fechaLimite);
                     return (
                       <div key={t.id}
-                        onClick={() => setFicha({tipo:"tarea", data:t})}
+                        onClick={() => abrirFicha("tarea", t)}
                         style={{display:"flex",justifyContent:"space-between",alignItems:"center",
                           padding:".25rem .35rem",borderBottom:"1px solid rgba(30,45,80,.2)",
                           cursor:"pointer",borderRadius:4,transition:"background .12s"}}
