@@ -822,6 +822,10 @@ function TabGantt({ tareas, hitos, equipo, setModal, setFicha }) {
 // ─── TAB EQUIPO ───────────────────────────────────────────────────────────────
 function TabEquipo({ equipo, tareas, setModal, setDelConf, setFicha }) {
   const [vistaEquipo, setVistaEquipo] = useState("cards"); // "cards" | "kanban"
+  const [ordenAlfa, setOrdenAlfa] = useState(false);
+  const equipoOrdenado = ordenAlfa
+    ? [...equipo].sort((a,b) => (a.nombre||"").localeCompare(b.nombre||"","es"))
+    : equipo;
   const areasConPersonas = AREAS.filter(a => equipo.some(p => p.area === a.id));
   return (
     <>
@@ -842,6 +846,7 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf, setFicha }) {
               </button>
             ))}
           </div>
+          <button className={`btn btn-sm ${ordenAlfa?"btn-primary":"btn-ghost"}`} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
           <button className="btn btn-primary" onClick={() => setModal({tipo:"persona",data:null})}>+ Añadir persona</button>
         </div>
       </div>
@@ -981,7 +986,10 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf, setFicha }) {
 
 // ─── TAB HITOS ────────────────────────────────────────────────────────────────
 function TabHitos({ hitos, updHito, setModal, setDelConf, setFicha }) {
-  const sorted = [...hitos].sort((a,b) => a.fecha.localeCompare(b.fecha));
+  const [ordenAlfa, setOrdenAlfa] = useState(false);
+  const sorted = ordenAlfa
+    ? [...hitos].sort((a,b) => (a.nombre||"").localeCompare(b.nombre||"","es"))
+    : [...hitos].sort((a,b) => a.fecha.localeCompare(b.fecha));
   return (
     <>
       <div className="ph">
@@ -989,7 +997,10 @@ function TabHitos({ hitos, updHito, setModal, setDelConf, setFicha }) {
           <div className="pt">🏁 Hitos del Proyecto</div>
           <div className="pd">{hitos.filter(h=>!h.completado).length} pendientes · {hitos.filter(h=>h.completado).length} completados</div>
         </div>
-        <button className="btn btn-primary" onClick={() => setModal({tipo:"hito",data:null})}>+ Nuevo hito</button>
+        <div style={{display:"flex",gap:".4rem",alignItems:"center"}}>
+          <button className={`btn btn-sm ${ordenAlfa?"btn-primary":"btn-ghost"}`} onClick={()=>setOrdenAlfa(v=>!v)} title={ordenAlfa?"Ordenar por fecha":"Ordenar A-Z"}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
+          <button className="btn btn-primary" onClick={() => setModal({tipo:"hito",data:null})}>+ Nuevo hito</button>
+        </div>
       </div>
 
       <div style={{display:"flex",flexDirection:"column",gap:".5rem"}}>

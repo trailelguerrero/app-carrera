@@ -1213,6 +1213,10 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
 
 // ─── TAB PUESTOS ──────────────────────────────────────────────────────────────
 function TabPuestos({ puestosConStats, voluntarios, onUpdatePuesto, onDeletePuesto, onNuevoPuesto, onEditPuesto, onEditarVol, onFichaPuesto, onFichaVol }) {
+  const [ordenAlfa, setOrdenAlfa] = useState(false);
+  const puestosOrdenados = ordenAlfa
+    ? [...puestosConStats].sort((a,b) => (a.nombre||"").localeCompare(b.nombre||"","es"))
+    : puestosConStats;
   return (
     <>
       <div className="page-header">
@@ -1220,11 +1224,14 @@ function TabPuestos({ puestosConStats, voluntarios, onUpdatePuesto, onDeletePues
           <div className="page-title">📍 Puestos</div>
           <div className="page-desc">{puestosConStats.length} puestos definidos</div>
         </div>
-        <button className="btn btn-primary" onClick={onNuevoPuesto}>+ Nuevo puesto</button>
+        <div style={{display:"flex",gap:".4rem",alignItems:"center"}}>
+          <button className={`btn btn-sm ${ordenAlfa?"btn-cyan":"btn-ghost"}`} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
+          <button className="btn btn-primary" onClick={onNuevoPuesto}>+ Nuevo puesto</button>
+        </div>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-        {puestosConStats.map(p => {
+        {puestosOrdenados.map(p => {
           const pct = Math.min(p.cobertura, 100);
           const color = pct >= 80 ? "var(--green)" : pct >= 50 ? "var(--amber)" : "var(--red)";
           return (
