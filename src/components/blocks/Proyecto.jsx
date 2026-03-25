@@ -138,6 +138,7 @@ export default function App() {
   const hitos = Array.isArray(rawHitos) ? rawHitos : [];
   const equipo = Array.isArray(rawEquipo) ? rawEquipo : [];
   const [modal, setModal]     = useState(null);
+  const [ficha, setFicha]     = useState(null); // {tipo,data} — vista previa
   const [delConf, setDelConf] = useState(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 850);
@@ -316,21 +317,24 @@ export default function App() {
 
         {/* CONTENIDO */}
         <div key={tab}>
-          {tab==="dashboard" && <TabDash stats={stats} equipo={equipo} setTab={setTab} setModal={setModal} tareas={tareas} hitos={hitos} updEstado={updEstado} isMobile={isMobile} setFiltroArea={setFiltroArea} setFiltroResponsable={setFiltroResponsable} />}
+          {tab==="dashboard" && <TabDash stats={stats} equipo={equipo} setTab={setTab} setModal={setModal} setFicha={setFicha} tareas={tareas} hitos={hitos} updEstado={updEstado} isMobile={isMobile} setFiltroArea={setFiltroArea} setFiltroResponsable={setFiltroResponsable} />}
           {tab==="tablón" && <TabTablon tareas={tareasFiltradas} todasTareas={tareas} equipo={equipo}
             filtroArea={filtroArea} setFiltroArea={setFiltroArea}
             filtroResponsable={filtroResponsable} setFiltroResponsable={setFiltroResponsable}
             filtroEstado={filtroEstado} setFiltroEstado={setFiltroEstado}
             filtroPrioridad={filtroPrioridad} setFiltroPrioridad={setFiltroPrioridad}
             busqueda={busquedaGlobal || busqueda} setBusqueda={(v)=>{setBusqueda(v); setBusquedaGlobal(v);}}
-            updEstado={updEstado} setModal={setModal} setDelConf={setDelConf}
+            updEstado={updEstado} setModal={setModal} setDelConf={setDelConf} setFicha={setFicha}
             vista={vistaTablon} setVista={setVistaTablon} />}
-          {tab==="gantt"  && <TabGantt tareas={tareas} hitos={hitos} equipo={equipo} setModal={setModal} />}
-          {tab==="equipo" && <TabEquipo equipo={equipo} tareas={tareas} setModal={setModal} setDelConf={setDelConf} />}
-          {tab==="hitos"  && <TabHitos hitos={hitos} updHito={updHito} setModal={setModal} setDelConf={setDelConf} />}
+          {tab==="gantt"  && <TabGantt tareas={tareas} hitos={hitos} equipo={equipo} setModal={setModal} setFicha={setFicha} />}
+          {tab==="equipo" && <TabEquipo equipo={equipo} tareas={tareas} setModal={setModal} setDelConf={setDelConf} setFicha={setFicha} />}
+          {tab==="hitos"  && <TabHitos hitos={hitos} updHito={updHito} setModal={setModal} setDelConf={setDelConf} setFicha={setFicha} />}
         </div>
       </div>
 
+      {ficha?.tipo==="tarea"   && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} onClose={()=>setFicha(null)} onEditar={()=>{setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
+      {ficha?.tipo==="hito"    && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} onClose={()=>setFicha(null)} onEditar={()=>{setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
+      {ficha?.tipo==="persona" && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} onClose={()=>setFicha(null)} onEditar={()=>{setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
       {modal?.tipo==="tarea"   && <ModalTarea   key={modal.data?.id||"new"} data={modal.data} equipo={equipo} tareas={tareas} onSave={saveTarea}   onClose={() => setModal(null)} />}
       {modal?.tipo==="hito"    && <ModalHito    key={modal.data?.id||"new"} data={modal.data}                                  onSave={saveHito}    onClose={() => setModal(null)} />}
       {modal?.tipo==="persona" && <ModalPersona key={modal.data?.id||"new"} data={modal.data}                                  onSave={savePersona} onClose={() => setModal(null)} />}
@@ -354,7 +358,7 @@ export default function App() {
 }
 
 // ─── TAB DASHBOARD ────────────────────────────────────────────────────────────
-function TabDash({ stats, equipo, setTab, setModal, tareas, hitos, updEstado, isMobile, setFiltroArea, setFiltroResponsable }) {
+function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, updEstado, isMobile, setFiltroArea, setFiltroResponsable }) {
   return (
     <>
       {/* Semáforo por área */}
@@ -395,16 +399,10 @@ function TabDash({ stats, equipo, setTab, setModal, tareas, hitos, updEstado, is
             const area = getArea(t.area);
             const dias = diasHasta(t.fechaLimite);
             const p = equipo.find(e => e.id===t.responsableId);
-            // Click largo → ir al tablón; click corto → abrir modal edición
-            let pressTimer = null;
             return (
               <div key={t.id} className="urg-row" style={{cursor:"pointer"}}
-                onMouseDown={()=>{ pressTimer = setTimeout(()=>{ pressTimer=null; setTab("tablón"); }, 500); }}
-                onMouseUp={()=>{ if(pressTimer){ clearTimeout(pressTimer); pressTimer=null; setModal({tipo:"tarea",data:t}); } }}
-                onMouseLeave={()=>{ if(pressTimer){ clearTimeout(pressTimer); pressTimer=null; } }}
-                onTouchStart={()=>{ pressTimer = setTimeout(()=>{ pressTimer=null; setTab("tablón"); }, 500); }}
-                onTouchEnd={()=>{ if(pressTimer){ clearTimeout(pressTimer); pressTimer=null; setModal({tipo:"tarea",data:t}); } }}
-                title="Click: editar · Click largo: ver en tablón"
+                onClick={() => setFicha({tipo:"tarea", data:t})}
+                title="Click para ver ficha de la tarea"
               >
                 <div className="urg-dot" style={{background:area.color}}/>
                 <div style={{flex:1,minWidth:0}}>
@@ -482,7 +480,7 @@ function TabDash({ stats, equipo, setTab, setModal, tareas, hitos, updEstado, is
 }
 
 // ─── TAB TABLÓN ───────────────────────────────────────────────────────────────
-function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, filtroResponsable, setFiltroResponsable, filtroEstado, setFiltroEstado, filtroPrioridad, setFiltroPrioridad, busqueda, setBusqueda, updEstado, setModal, setDelConf, vista, setVista }) {
+function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, filtroResponsable, setFiltroResponsable, filtroEstado, setFiltroEstado, filtroPrioridad, setFiltroPrioridad, busqueda, setBusqueda, updEstado, setModal, setDelConf, setFicha, vista, setVista }) {
   const hayFiltros = filtroArea!=="todas"||filtroResponsable!=="todos"||filtroEstado!=="todos"||filtroPrioridad!=="todas"||busqueda;
   return (
     <>
@@ -549,8 +547,8 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
             return (
               <div key={t.id} className={cls("tarea-row", vencida&&"tarea-vencida")}
                 style={{borderLeftColor:area.color, cursor:"pointer"}}
-                onClick={() => setModal({tipo:"tarea", data:t})}
-                title="Click para editar">
+                onClick={() => setFicha({tipo:"tarea", data:t})}
+                title="Click para ver ficha">
                 {/* Cambio de estado rápido — clic en el selector NO propaga al modal */}
                 <div className="tarea-estado-col" onClick={e => e.stopPropagation()}>
                   <select className="est-sel" value={t.estado}
@@ -632,7 +630,7 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
                     return (
                       <div key={t.id} className={cls("kanban-card", vencida&&"kanban-card-venc", bloq&&"kanban-card-bloq")}
                         style={{borderLeftColor: area.color}}
-                        onClick={() => setModal({tipo:"tarea",data:t})}>
+                        onClick={() => setFicha({tipo:"tarea",data:t})}>
                         {/* Badge bloqueado */}
                         {bloq && <div className="kanban-bloq-badge">🔒 Bloqueada</div>}
                         <div className="kanban-card-titulo" style={{
@@ -700,7 +698,7 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
 }
 
 // ─── TAB GANTT ────────────────────────────────────────────────────────────────
-function TabGantt({ tareas, hitos, equipo, setModal }) {
+function TabGantt({ tareas, hitos, equipo, setModal, setFicha }) {
   // Simplified visual calendar: months from today to event + 1
   const months = [];
   let d = new Date(TODAY);
@@ -794,7 +792,8 @@ function TabGantt({ tareas, hitos, equipo, setModal }) {
                 left:`${pct(h.fecha)}%`,
                 transform:"translateX(-50%)",
                 color:h.critico?"#f87171":"#22d3ee",
-              }} title={h.nombre}>
+                cursor:"pointer",
+              }} title={h.nombre} onClick={() => setFicha({tipo:"hito", data:h})}>
                 <div className="gantt-diamond" style={{background:h.completado?"#34d399":h.critico?"#f87171":"#22d3ee"}}/>
                 <div className="gantt-hito-label mono">{h.nombre.split(" ").slice(0,3).join(" ")}</div>
               </div>
@@ -816,7 +815,9 @@ function TabGantt({ tareas, hitos, equipo, setModal }) {
 }
 
 // ─── TAB EQUIPO ───────────────────────────────────────────────────────────────
-function TabEquipo({ equipo, tareas, setModal, setDelConf }) {
+function TabEquipo({ equipo, tareas, setModal, setDelConf, setFicha }) {
+  const [vistaEquipo, setVistaEquipo] = useState("cards"); // "cards" | "kanban"
+  const areasConPersonas = AREAS.filter(a => equipo.some(p => p.area === a.id));
   return (
     <>
       <div className="ph">
@@ -824,9 +825,69 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf }) {
           <div className="pt">👥 Equipo Organizador</div>
           <div className="pd">{equipo.length} personas · Trail El Guerrero 2026</div>
         </div>
-        <button className="btn btn-primary" onClick={() => setModal({tipo:"persona",data:null})}>+ Añadir persona</button>
+        <div style={{display:"flex",gap:".5rem",alignItems:"center"}}>
+          <div style={{display:"flex",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:"var(--r-sm)",overflow:"hidden"}}>
+            {[["cards","☰ Cards"],["kanban","⬛ Áreas"]].map(([v,ic])=>(
+              <button key={v} onClick={()=>setVistaEquipo(v)}
+                style={{padding:".3rem .65rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,
+                  background: vistaEquipo===v ? "rgba(167,139,250,.2)" : "transparent",
+                  color: vistaEquipo===v ? "var(--violet)" : "var(--text-muted)",
+                  transition:"all .15s"}}>
+                {ic}
+              </button>
+            ))}
+          </div>
+          <button className="btn btn-primary" onClick={() => setModal({tipo:"persona",data:null})}>+ Añadir persona</button>
+        </div>
       </div>
 
+      {/* ── KANBAN POR ÁREA ── */}
+      {vistaEquipo === "kanban" && (
+        <div className="kanban-grid" style={{gridTemplateColumns:`repeat(${Math.min(areasConPersonas.length,3)},1fr)`}}>
+          {areasConPersonas.map(area => {
+            const personas = equipo.filter(p => p.area === area.id);
+            return (
+              <div key={area.id} className="kanban-col">
+                <div className="kanban-col-hdr" style={{borderTopColor:area.color}}>
+                  <span style={{fontSize:".65rem",fontWeight:700,color:area.color}}>{area.icon} {area.label}</span>
+                  <span className="kanban-cnt" style={{background:area.color+"22",color:area.color,border:`1px solid ${area.color}44`}}>{personas.length}</span>
+                </div>
+                <div className="kanban-body">
+                  {personas.map(p => {
+                    const pt = tareas.filter(t => t.responsableId===p.id && t.estado!=="completado");
+                    const urgentes = pt.filter(t => t.fechaLimite && diasHasta(t.fechaLimite)<=14).length;
+                    return (
+                      <div key={p.id} className="kanban-card" style={{borderLeftColor:p.color,cursor:"pointer"}}
+                        onClick={()=>setFicha({tipo:"persona",data:p})}>
+                        <div style={{display:"flex",alignItems:"center",gap:".5rem",marginBottom:".35rem"}}>
+                          <div className="kanban-avatar" style={{background:p.color+"33",border:`1px solid ${p.color}66`,color:p.color}}>
+                            {iniciales(p.nombre)}
+                          </div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontSize:".76rem",fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
+                            <div className="mono xs muted">{p.rol}</div>
+                          </div>
+                        </div>
+                        <div style={{display:"flex",gap:".3rem",flexWrap:"wrap",marginBottom:".35rem"}}>
+                          {pt.length>0 && <span className="badge" style={{background:"rgba(148,163,184,.1)",color:"#94a3b8",fontSize:".5rem"}}>{pt.length} tarea{pt.length!==1?"s":""}</span>}
+                          {urgentes>0 && <span className="badge" style={{background:"rgba(251,191,36,.1)",color:"#fbbf24",fontSize:".5rem"}}>⚡{urgentes} urgente{urgentes!==1?"s":""}</span>}
+                        </div>
+                        <div className="kanban-acciones" onClick={e=>e.stopPropagation()}>
+                          <button className="kanban-btn-estado" style={{color:"var(--violet)",borderColor:"rgba(167,139,250,.3)",background:"rgba(167,139,250,.08)"}}
+                            onClick={()=>setModal({tipo:"persona",data:p})}>✏️ Editar</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── CARDS ── */}
+      {vistaEquipo === "cards" && (
       <div className="equipo-grid">
         {equipo.map(p => {
           const pt = tareas.filter(t => t.responsableId===p.id);
@@ -838,8 +899,8 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf }) {
           const area = getArea(p.area);
           return (
             <div key={p.id} className="persona-card" style={{borderTopColor:p.color, cursor:"pointer"}}
-              onClick={() => setModal({tipo:"persona", data:p})}
-              title={`Editar ${p.nombre}`}>
+              onClick={() => setFicha({tipo:"persona", data:p})}
+              title={`Ver ficha de ${p.nombre}`}>
               <div style={{display:"flex",gap:".75rem",alignItems:"flex-start",marginBottom:".85rem"}}>
                 <div className="avatar-lg" style={{background:p.color+"22",border:`2px solid ${p.color}66`,color:p.color}}>
                   {iniciales(p.nombre)}
@@ -889,7 +950,7 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf }) {
                     const dias = diasHasta(t.fechaLimite);
                     return (
                       <div key={t.id}
-                        onClick={() => setModal({tipo:"tarea", data:t})}
+                        onClick={() => setFicha({tipo:"tarea", data:t})}
                         style={{display:"flex",justifyContent:"space-between",alignItems:"center",
                           padding:".25rem .35rem",borderBottom:"1px solid rgba(30,45,80,.2)",
                           cursor:"pointer",borderRadius:4,transition:"background .12s"}}
@@ -908,6 +969,7 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf }) {
           );
         })}
       </div>
+      )}
     </>
   );
 }
@@ -931,8 +993,8 @@ function TabHitos({ hitos, updHito, setModal, setDelConf }) {
           const vencido = dias < 0 && !h.completado;
           return (
             <div key={h.id} className={cls("hito-card", h.completado&&"hito-done", vencido&&"hito-vencido")}
-              style={{cursor:"pointer"}} onClick={() => setModal({tipo:"hito", data:h})}
-              title="Click para editar este hito">
+              style={{cursor:"pointer"}} onClick={() => setFicha({tipo:"hito", data:h})}
+              title="Click para ver ficha del hito">
               <div className="hito-card-gem" style={{background:h.completado?"#34d399":h.critico?"#f87171":"#22d3ee",boxShadow:h.completado?"0 0 8px #34d39966":h.critico?"0 0 8px #f8717166":"0 0 8px #22d3ee66"}}/>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{display:"flex",alignItems:"center",gap:".5rem",marginBottom:".2rem",flexWrap:"wrap"}}>
@@ -1160,6 +1222,104 @@ function ModalPersona({ data, onSave, onClose }) {
           </div>
         </div>
         <div className="mfoot"><button className="btn btn-ghost" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={submit}>{data?"💾 Guardar":"➕ Añadir"}</button></div>
+      </div>
+    </div>
+  );
+}
+
+// ─── FICHA PROYECTO ───────────────────────────────────────────────────────────
+function FichaProyecto({ ficha, equipo, onClose, onEditar, onEliminar }) {
+  const { tipo, data } = ficha;
+  React.useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const main = document.querySelector("main");
+    if (main) main.scrollTo({ top: 0, behavior: "instant" });
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  const accent = tipo === "tarea" ? "var(--violet)" : tipo === "hito" ? "var(--cyan)" : "var(--green)";
+  const icon   = tipo === "tarea" ? "📋" : tipo === "hito" ? "🏁" : "👤";
+  const titulo = data.titulo || data.nombre;
+
+  const Row = ({ label, value, color }) => !value ? null : (
+    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start",
+      padding:".45rem 0", borderBottom:"1px solid rgba(30,45,80,.3)" }}>
+      <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem", color:"var(--text-muted)",
+        flexShrink:0, marginRight:"1rem" }}>{label}</span>
+      <span style={{ fontSize:".78rem", fontWeight:600, textAlign:"right",
+        color: color || "var(--text)" }}>{value}</span>
+    </div>
+  );
+
+  return (
+    <div className="overlay" onClick={e => e.target===e.currentTarget && onClose()}>
+      <div className="modal" style={{ maxWidth:460 }}>
+        <div style={{ borderTop:`3px solid ${accent}`, borderRadius:"12px 12px 0 0" }}>
+          <div className="mhdr">
+            <div style={{ display:"flex", alignItems:"center", gap:".6rem" }}>
+              <span style={{ fontSize:"1.5rem" }}>{icon}</span>
+              <div>
+                <div style={{ fontWeight:800, fontSize:".95rem", lineHeight:1.2 }}>{titulo}</div>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:".55rem", color:"var(--text-muted)",
+                  marginTop:".1rem", textTransform:"uppercase", letterSpacing:".08em" }}>
+                  {tipo === "tarea" ? `Tarea · ${AREAS.find(a=>a.id===data.area)?.label||data.area}` :
+                   tipo === "hito"  ? "Hito" : "Miembro del equipo"}
+                </div>
+              </div>
+            </div>
+            <button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button>
+          </div>
+        </div>
+        <div className="mbody">
+          {tipo === "tarea" && (<>
+            <Row label="Estado"      value={EST_CFG[data.estado]?.label}  color={EST_CFG[data.estado]?.color} />
+            <Row label="Prioridad"   value={data.prioridad}               color={PRI_CFG[data.prioridad]?.color} />
+            <Row label="Responsable" value={equipo.find(p=>p.id===data.responsableId)?.nombre} />
+            <Row label="Fecha límite" value={data.fechaLimite
+              ? new Date(data.fechaLimite).toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})
+              : null} />
+            {data.notas && (
+              <div style={{ marginTop:".5rem", background:"var(--surface2)", borderRadius:8,
+                padding:".65rem .75rem", borderLeft:`2px solid ${accent}` }}>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:".55rem", color:"var(--text-muted)",
+                  marginBottom:".3rem", textTransform:"uppercase" }}>Notas</div>
+                <div style={{ fontSize:".78rem", lineHeight:1.6 }}>{data.notas}</div>
+              </div>
+            )}
+          </>)}
+          {tipo === "hito" && (<>
+            <Row label="Fecha"   value={data.fecha
+              ? new Date(data.fecha).toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})
+              : "—"} />
+            <Row label="Estado"  value={data.completado ? "✓ Completado" : "Pendiente"}
+                 color={data.completado ? "var(--green)" : "var(--amber)"} />
+            <Row label="Crítico" value={data.critico ? "⚡ Sí, es crítico" : "No"}
+                 color={data.critico ? "var(--red)" : undefined} />
+          </>)}
+          {tipo === "persona" && (<>
+            <div style={{ display:"flex", justifyContent:"center", marginBottom:".75rem" }}>
+              <div style={{ width:52, height:52, borderRadius:"50%",
+                background:(data.color||"#a78bfa")+"22",
+                border:`2px solid ${data.color||"#a78bfa"}66`,
+                display:"flex", alignItems:"center", justifyContent:"center",
+                fontWeight:800, fontSize:"1.1rem", color:data.color||"#a78bfa" }}>
+                {iniciales(data.nombre||"?")}
+              </div>
+            </div>
+            <Row label="Rol"      value={data.rol} />
+            <Row label="Área"     value={AREAS.find(a=>a.id===data.area)?.label||data.area} />
+            <Row label="Teléfono" value={data.telefono} />
+            <Row label="Email"    value={data.email} />
+          </>)}
+        </div>
+        <div className="mfoot" style={{ justifyContent:"space-between" }}>
+          <button className="btn btn-red" onClick={onEliminar}>🗑 Eliminar</button>
+          <div style={{ display:"flex", gap:".4rem" }}>
+            <button className="btn btn-ghost" onClick={onClose}>Cerrar</button>
+            <button className="btn btn-primary" onClick={onEditar}>✏️ Editar</button>
+          </div>
+        </div>
       </div>
     </div>
   );
