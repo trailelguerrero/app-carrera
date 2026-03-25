@@ -975,7 +975,7 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf, setFicha }) {
 }
 
 // ─── TAB HITOS ────────────────────────────────────────────────────────────────
-function TabHitos({ hitos, updHito, setModal, setDelConf }) {
+function TabHitos({ hitos, updHito, setModal, setDelConf, setFicha }) {
   const sorted = [...hitos].sort((a,b) => a.fecha.localeCompare(b.fecha));
   return (
     <>
