@@ -24,6 +24,7 @@ const ALL_KEYS = {
   "teg_logistica_v1_ck":              [],
   "teg_proyecto_v1_tareas":           [],
   "teg_proyecto_v1_hitos":            [],
+  "teg_documentos_v1":                [],
 };
 
 const EVENT_DATE = new Date("2026-08-29");
@@ -202,6 +203,10 @@ export default function Dashboard() {
       alertasCriticas.push({ icon:"🔴", texto:`${puestosAlerta.length} puestos con cobertura <50%`, modulo:"voluntarios" });
     if (resultado < 0)
       alertasCriticas.push({ icon:"🔴", texto:`Resultado negativo: ${fmt(resultado)}`, modulo:"presupuesto" });
+    if (docsVencidos.length > 0)
+      alertasCriticas.push({ icon:"🔴", texto:`${docsVencidos.length} documento${docsVencidos.length>1?"s":""} vencido${docsVencidos.length>1?"s":""}: ${docsVencidos.map(d=>d.nombre).slice(0,2).join(", ")}${docsVencidos.length>2?"...":""}`, modulo:"documentos" });
+    if (docsProxVencer.length > 0)
+      alertasAvisos.push({ icon:"🟡", texto:`${docsProxVencer.length} documento${docsProxVencer.length>1?"s":""} por vencer en ≤30 días`, modulo:"documentos" });
     if (tareasBloqueadas > 0)
       alertasAvisos.push({ icon:"🟡", texto:`${tareasBloqueadas} tareas bloqueadas`, modulo:"proyecto" });
     if (coberturaVol >= 50 && coberturaVol < 80)
@@ -231,6 +236,7 @@ export default function Dashboard() {
       tareasTotal, tareasCompletadas, tareasBloqueadas, tareasVencidas, progresoGlobal, hitosProximos,
       saludModulos, saludGlobal,
       alertasCriticas, alertasAvisos,
+      docsVencidos, docsProxVencer,
     };
   }, [rawData]);
 

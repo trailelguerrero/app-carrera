@@ -70,6 +70,7 @@ export default function Documentos() {
   const [estadoNuevo, setEstadoNuevo] = useState("pendiente");
   const [vencNuevo, setVencNuevo]     = useState("");
   const [busqueda, setBusqueda] = useState("");
+  const [uploadOpen, setUploadOpen] = useState(true); // colapsable en móvil
   const [editId,  setEditId]    = useState(null);
   const [editForm, setEditForm] = useState({});
   const fileRef = useRef(null);
@@ -157,6 +158,11 @@ export default function Documentos() {
       ? { ...d, ...editForm, fechaModificacion: new Date().toISOString() }
       : d
     ));
+    // Si cambió de categoría, navegar a la nueva
+    const doc = docs.find(d => d.id === editId);
+    if (doc && editForm.categoria && editForm.categoria !== doc.categoria) {
+      setTab(editForm.categoria);
+    }
     setEditId(null);
   };
 
@@ -214,8 +220,10 @@ export default function Documentos() {
       padding:.05rem .4rem; font-family:var(--font-mono); }
 
     /* Upload zone */
-    .doc-dropzone { border:2px dashed var(--border); border-radius:14px; padding:2rem 1.5rem;
-      text-align:center; cursor:pointer; transition:all .22s; position:relative; }
+    .doc-dropzone { border:2px dashed var(--border); border-radius:14px; padding:1.5rem 1rem;
+      text-align:center; cursor:pointer; transition:all .22s; position:relative;
+      background:rgba(255,255,255,0.02); }
+    @media(max-width:640px){ .doc-dropzone { padding:1.25rem .75rem; } }
     .doc-dropzone:hover { border-color:var(--cyan); background:rgba(34,211,238,0.03); }
     .doc-dropzone.over { border-color:var(--cyan); background:rgba(34,211,238,0.07);
       animation:doc-glow .8s ease infinite; }
@@ -298,6 +306,11 @@ export default function Documentos() {
 
     /* Edit card */
     .doc-edit-card { display:flex; flex-direction:column; gap:8px; }
+    /* Upload toggle visible en móvil */
+    @media(max-width:640px){
+      .doc-upload-fields { flex-direction:column; }
+      .doc-input, .doc-select { width:100%; }
+    }
   `;
 
   return (
@@ -453,11 +466,21 @@ export default function Documentos() {
           })}
         </div>
 
-        {/* ── Upload zone ── */}
-        <div className="card mb">
-          <div className="card-title" style={{color:catInfo.color, marginBottom:".65rem"}}>
-            {catInfo.icon} Subir documentos a {catInfo.label}
-          </div>
+        {/* ── Upload zone — colapsable ── */}
+        <div className="card mb" style={{padding: uploadOpen ? undefined : ".65rem 1rem"}}>
+          <button
+            onClick={() => setUploadOpen(v => !v)}
+            style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+              width:"100%",background:"none",border:"none",cursor:"pointer",padding:0,
+              marginBottom: uploadOpen ? ".65rem" : 0}}>
+            <span className="card-title" style={{color:catInfo.color,margin:0}}>
+              {catInfo.icon} Subir a {catInfo.label}
+            </span>
+            <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-dim)"}}>
+              {uploadOpen ? "▲ ocultar" : "▼ mostrar"}
+            </span>
+          </button>
+          {uploadOpen && <div>
 
           {/* Campos de metadatos */}
           <div className="doc-upload-fields">
@@ -476,7 +499,7 @@ export default function Documentos() {
               placeholder="Nota descriptiva (opcional)" className="doc-input" />
           </div>
 
-          {/* Drop zone */}
+          {/* Drop zone — más visual con instrucción explícita */}
           <div
             className={cls("doc-dropzone", dragOver && "over")}
             onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave}
@@ -491,11 +514,14 @@ export default function Documentos() {
               {uploading
                 ? "Subiendo documentos…"
                 : dragOver
-                  ? "Suelta aquí para subir"
-                  : "Arrastra archivos aquí o haz clic para seleccionar"}
+                  ? "✓ Suelta aquí para subir"
+                  : "Arrastra archivos aquí · o haz clic para seleccionar"}
             </div>
             <div className="doc-dropzone-hint">
-              {!uploading && !dragOver && "PDF, PNG, JPG, WebP · Máximo 10 MB por archivo"}
+              {!uploading && !dragOver && (
+                <>PDF, PNG, JPG, WebP · Máx. 10 MB<br/>
+                Puedes subir varios archivos a la vez</>
+              )}
             </div>
             {!uploading && !dragOver && (
               <div className="doc-dropzone-types">
@@ -505,6 +531,7 @@ export default function Documentos() {
               </div>
             )}
           </div>
+          </div>}
         </div>
 
         {/* ── Document list ── */}
@@ -541,6 +568,12 @@ export default function Documentos() {
                       /* ── Edit mode ── */
                       <div className="doc-edit-card" style={{paddingTop:4}}>
                         <div style={{fontSize:".7rem",fontWeight:700,color:catInfo.color}}>✏️ Editando metadatos</div>
+                        {/* Mover a otra categoría */}
+                        <select value={editForm.categoria ?? doc.categoria}
+                          onChange={e => setEditForm(p=>({...p,categoria:e.target.value}))}
+                          className="doc-select" style={{width:"100%"}}>
+                          {CATEGORIAS.map(c => <option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
+                        </select>
                         {subcats.length > 0 && (
                           <select value={editForm.subcategoria} onChange={e => setEditForm(p=>({...p,subcategoria:e.target.value}))}
                             className="doc-select" style={{width:"100%"}}>
