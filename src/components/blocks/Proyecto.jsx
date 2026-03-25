@@ -139,6 +139,11 @@ export default function App() {
   const equipo = Array.isArray(rawEquipo) ? rawEquipo : [];
   const [modal, setModal]     = useState(null);
   const [ficha, setFicha]     = useState(null); // {tipo,data} — vista previa
+  const abrirFicha = (tipo, data) => {
+    const main = document.querySelector("main");
+    if (main) main.scrollTo({ top: 0, behavior: "instant" });
+    setFicha({ tipo, data });
+  };
   const [delConf, setDelConf] = useState(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 850);
@@ -317,18 +322,18 @@ export default function App() {
 
         {/* CONTENIDO */}
         <div key={tab}>
-          {tab==="dashboard" && <TabDash stats={stats} equipo={equipo} setTab={setTab} setModal={setModal} setFicha={setFicha} tareas={tareas} hitos={hitos} updEstado={updEstado} isMobile={isMobile} setFiltroArea={setFiltroArea} setFiltroResponsable={setFiltroResponsable} />}
+          {tab==="dashboard" && <TabDash stats={stats} equipo={equipo} setTab={setTab} setModal={setModal} setFicha={abrirFicha} tareas={tareas} hitos={hitos} updEstado={updEstado} isMobile={isMobile} setFiltroArea={setFiltroArea} setFiltroResponsable={setFiltroResponsable} />}
           {tab==="tablón" && <TabTablon tareas={tareasFiltradas} todasTareas={tareas} equipo={equipo}
             filtroArea={filtroArea} setFiltroArea={setFiltroArea}
             filtroResponsable={filtroResponsable} setFiltroResponsable={setFiltroResponsable}
             filtroEstado={filtroEstado} setFiltroEstado={setFiltroEstado}
             filtroPrioridad={filtroPrioridad} setFiltroPrioridad={setFiltroPrioridad}
             busqueda={busquedaGlobal || busqueda} setBusqueda={(v)=>{setBusqueda(v); setBusquedaGlobal(v);}}
-            updEstado={updEstado} setModal={setModal} setDelConf={setDelConf} setFicha={setFicha}
+            updEstado={updEstado} setModal={setModal} setDelConf={setDelConf} setFicha={abrirFicha}
             vista={vistaTablon} setVista={setVistaTablon} />}
-          {tab==="gantt"  && <TabGantt tareas={tareas} hitos={hitos} equipo={equipo} setModal={setModal} setFicha={setFicha} />}
-          {tab==="equipo" && <TabEquipo equipo={equipo} tareas={tareas} setModal={setModal} setDelConf={setDelConf} setFicha={setFicha} />}
-          {tab==="hitos"  && <TabHitos hitos={hitos} updHito={updHito} setModal={setModal} setDelConf={setDelConf} setFicha={setFicha} />}
+          {tab==="gantt"  && <TabGantt tareas={tareas} hitos={hitos} equipo={equipo} setModal={setModal} setFicha={abrirFicha} />}
+          {tab==="equipo" && <TabEquipo equipo={equipo} tareas={tareas} setModal={setModal} setDelConf={setDelConf} setFicha={abrirFicha} />}
+          {tab==="hitos"  && <TabHitos hitos={hitos} updHito={updHito} setModal={setModal} setDelConf={setDelConf} setFicha={abrirFicha} />}
         </div>
       </div>
 
