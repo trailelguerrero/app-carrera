@@ -245,32 +245,91 @@ export default function App() {
 function TabDash({ stats, tl, ck, setTab }) {
   const prox = [...tl].filter(t=>t.estado!=="completado").sort((a,b)=>a.hora.localeCompare(b.hora)).slice(0,6);
   const porFase = FASES_CHECKLIST.map(f => { const it=ck.filter(c=>c.fase===f); const d=it.filter(c=>c.estado==="completado").length; return {f,d,t:it.length,pct:it.length?Math.round(d/it.length*100):0}; });
+  const diasHasta = Math.ceil((new Date("2026-08-29") - new Date()) / 86400000);
+  const yaFue = diasHasta < 0;
+  const esSemana = diasHasta >= 0 && diasHasta <= 7;
+
+  const KPIS = [
+    { l:"⏱️ Timeline",   v:`${stats.tlDone}/${stats.tlTotal}`,
+      s:"tareas completadas",
+      color: stats.tlDone===stats.tlTotal && stats.tlTotal>0 ? "green" : "cyan",
+      tab:"timeline" },
+    { l:"✅ Checklist",  v:`${Math.round(stats.ckDone/Math.max(stats.ckTotal,1)*100)}%`,
+      s:`${stats.ckDone} de ${stats.ckTotal} ítems`,
+      color: stats.ckDone===stats.ckTotal && stats.ckTotal>0 ? "green" : "cyan",
+      tab:"checklist" },
+    { l:"📦 Stock",      v:stats.stockErr,
+      s:"materiales en déficit",
+      color: stats.stockErr>0 ? "red" : "green",
+      tab:"material" },
+    { l:"⚠️ Incidencias", v:stats.incOpen,
+      s:"abiertas sin resolver",
+      color: stats.incOpen>0 ? "red" : "green",
+      tab:"contactos" },
+  ];
+
   return (
     <>
-      <div className="ph">
-        <div><div className="pt">📊 Dashboard Operativo</div><div className="pd">Trail El Guerrero · Candeleda, Ávila · 29 agosto 2026</div></div>
-        <div className="countdown"><div className="cl">EVENTO EN</div><div className="cv">162 días</div></div>
-      </div>
-      <div className="kgrid">
-        {[
-          {l:"Timeline",v:`${stats.tlDone}/${stats.tlTotal}`,s:"tareas completadas",c:"cyan",i:"⏱️",tab:"timeline"},
-          {l:"Checklist",v:`${Math.round(stats.ckDone/Math.max(stats.ckTotal,1)*100)}%`,s:`${stats.ckDone} de ${stats.ckTotal} ítems`,c:"green",i:"✅",tab:"checklist"},
-          {l:"Alertas Stock",v:stats.stockErr,s:"materiales en déficit",c:stats.stockErr>0?"red":"green",i:"📦",tab:"material"},
-          {l:"Incidencias",v:stats.incOpen,s:"abiertas sin resolver",c:stats.incOpen>0?"red":"green",i:"⚠️",tab:"contactos"},
-        ].map(k=>(
-          <div key={k.l} className={`kpi c-${k.c}`}
-            style={{cursor:"pointer"}}
+      {/* ── KPIs — clases del sistema BLOCK_CSS ── */}
+      <div className="kpi-grid mb">
+        {KPIS.map(k => (
+          <div key={k.l}
+            className={`kpi ${k.color} log-kpi-link`}
             onClick={()=>setTab(k.tab)}
             title={`Ir a ${k.l}`}>
-            <div className="ki">{k.i}</div><div className="kl">{k.l}</div>
-            <div className="kv">{k.v}</div><div className="ks">{k.s}</div>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:"0.55rem",color:"var(--text-dim)",marginTop:"0.35rem"}}>→ ver detalle</div>
+            <div className="kpi-label">{k.l}</div>
+            <div className="kpi-value">{k.v}</div>
+            <div className="kpi-sub">{k.s}</div>
+            <div className="log-kpi-arrow">→ ver detalle</div>
           </div>
         ))}
       </div>
+
+      {/* ── Countdown hero compacto ── */}
+      <div className="card mb log-hero" style={{
+        background: esSemana
+          ? "linear-gradient(135deg,rgba(248,113,113,0.08),rgba(248,113,113,0.03))"
+          : "linear-gradient(135deg,rgba(34,211,238,0.06),rgba(167,139,250,0.04))",
+        borderColor: esSemana ? "rgba(248,113,113,0.3)" : "var(--border)",
+      }}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:"0.75rem"}}>
+          <div>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:"0.55rem",color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:"0.2rem"}}>
+              🏔️ Trail El Guerrero 2026 · Candeleda, Ávila
+            </div>
+            <div style={{display:"flex",alignItems:"baseline",gap:"0.4rem"}}>
+              {yaFue ? (
+                <span style={{fontFamily:"var(--font-mono)",fontSize:"1.4rem",fontWeight:800,color:"var(--green)"}}>¡Completado!</span>
+              ) : (
+                <>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:"1.8rem",fontWeight:800,
+                    color: esSemana ? "var(--red)" : "var(--amber)",lineHeight:1}}>
+                    {diasHasta}
+                  </span>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:"0.7rem",color:"var(--text-muted)"}}>
+                    {esSemana ? "⚡ días — SEMANA DE CARRERA" : "días para el evento"}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+          <div style={{display:"flex",gap:"0.5rem",flexWrap:"wrap"}}>
+            <button className="btn btn-ghost btn-sm" onClick={()=>setTab("checklist")}>✅ Checklist</button>
+            <button className="btn btn-sm" style={{background:"rgba(248,113,113,0.1)",color:"var(--red)",border:"1px solid rgba(248,113,113,0.25)",fontFamily:"var(--font-mono)",fontSize:"0.62rem"}}
+              onClick={()=>setTab("contactos")}>🚨 Emergencias</button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Dos columnas: Timeline + Checklist ── */}
       <div className="twocol">
         <div className="card">
           <div className="ct">⏱️ Próximas tareas pendientes</div>
+          {prox.length === 0 && (
+            <div style={{textAlign:"center",padding:"1rem",color:"var(--text-muted)",fontFamily:"var(--font-mono)",fontSize:"0.7rem"}}>
+              ✓ Sin tareas pendientes
+            </div>
+          )}
           {prox.map(t=>(
             <div key={t.id} className="tlmr">
               <div className="tlh">{t.hora}</div>
@@ -282,23 +341,22 @@ function TabDash({ stats, tl, ck, setTab }) {
               <div className="tls" style={{color:ESTADO_COLORES[t.estado]}}>{t.estado}</div>
             </div>
           ))}
-          <button className="btn btn-ghost mt1" onClick={()=>setTab("timeline")}>Ver timeline →</button>
-          <button className="btn mt1" style={{background:"rgba(248,113,113,0.08)",color:"var(--red)",border:"1px solid rgba(248,113,113,0.2)",width:"100%",marginTop:"0.3rem",fontFamily:"var(--font-mono)",fontSize:"0.62rem"}}
-            onClick={()=>setTab("contactos")}>
-            🚨 Protocolo de emergencias →
-          </button>
+          <button className="btn btn-ghost mt1" style={{width:"100%"}} onClick={()=>setTab("timeline")}>Ver timeline completo →</button>
         </div>
         <div className="card">
-          <div className="ct">✅ Progreso checklist</div>
+          <div className="ct">✅ Progreso checklist por fase</div>
           {porFase.map(f=>(
             <div key={f.f} style={{marginBottom:"0.6rem"}}>
               <div style={{display:"flex",justifyContent:"space-between",fontSize:"0.72rem",marginBottom:"0.2rem"}}>
-                <span>{f.f}</span><span className="mono" style={{color:f.pct===100?"var(--green)":"var(--text-muted)",fontSize:"0.62rem"}}>{f.d}/{f.t}</span>
+                <span style={{color: f.pct===100?"var(--text-muted)":"var(--text)"}}>{f.f}</span>
+                <span className="mono" style={{color:f.pct===100?"var(--green)":"var(--text-muted)",fontSize:"0.62rem"}}>{f.d}/{f.t}</span>
               </div>
-              <div className="pbar"><div className="pfill" style={{width:`${f.pct}%`,background:f.pct===100?"var(--green)":f.pct>50?"var(--cyan)":"var(--amber)"}}/></div>
+              <div className="pbar">
+                <div className="pfill" style={{width:`${f.pct}%`,background:f.pct===100?"var(--green)":f.pct>50?"var(--cyan)":"var(--amber)"}}/>
+              </div>
             </div>
           ))}
-          <button className="btn btn-ghost mt1" onClick={()=>setTab("checklist")}>Ver checklist →</button>
+          <button className="btn btn-ghost mt1" style={{width:"100%"}} onClick={()=>setTab("checklist")}>Ir al checklist →</button>
         </div>
       </div>
     </>
@@ -812,18 +870,6 @@ const CSS = `
   @keyframes fu{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
   .ph{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap}
   .pt{font-size:1.3rem;font-weight:800} .pd{font-family:var(--font-mono);font-size:.62rem;color:var(--text-muted);margin-top:.25rem}
-  .countdown{text-align:center;background:var(--amber-dim);border:1px solid rgba(251,191,36,.2);border-radius:var(--r-sm);padding:.5rem 1rem}
-  .cl{font-family:var(--font-mono);font-size:.52rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em}
-  .cv{font-family:var(--font-mono);font-size:1.2rem;font-weight:800;color:var(--amber)}
-  .kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:.65rem;margin-bottom:1rem}
-  .kpi:hover{transform:translateY(-2px);border-color:var(--border-light);box-shadow:0 4px 16px rgba(0,0,0,.3)}
-  .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
-  .kpi.c-cyan::before{background:linear-gradient(90deg,var(--cyan),transparent)} .kpi.c-cyan .kv{color:var(--cyan)}
-  .kpi.c-green::before{background:linear-gradient(90deg,var(--green),transparent)} .kpi.c-green .kv{color:var(--green)}
-  .kpi.c-amber::before{background:linear-gradient(90deg,var(--amber),transparent)} .kpi.c-amber .kv{color:var(--amber)}
-  .kpi.c-red::before{background:linear-gradient(90deg,var(--red),transparent)} .kpi.c-red .kv{color:var(--red)}
-  .ki{font-size:1.2rem;margin-bottom:.4rem} .kl{font-size:.58rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.35rem;font-family:var(--font-mono)}
-  .kv{font-size:1.5rem;font-weight:800;font-family:var(--font-mono);line-height:1} .ks{font-size:.6rem;color:var(--text-muted);margin-top:.25rem;font-family:var(--font-mono)}
   .twocol{display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:.85rem}
   @media(max-width:800px){.twocol{grid-template-columns:1fr}}
   .card:hover{border-color:var(--border-light)} .card.p0{padding:0}
@@ -930,6 +976,13 @@ const CSS = `
   .mfoot{padding:.9rem 1.4rem;border-top:1px solid var(--border);display:flex;gap:.5rem;justify-content:flex-end}
   .fl{font-size:.72rem;font-weight:600;margin-bottom:.3rem;display:block;color:var(--text-muted)}
   ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:var(--surface)}::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:2px}
+  /* ── Dashboard clases del sistema ─────────────────────────────── */
+  .log-kpi-link { cursor: pointer; }
+  .log-kpi-link:hover { transform: translateY(-2px); border-color: var(--border-light); box-shadow: 0 4px 16px rgba(0,0,0,.3); }
+  .log-kpi-arrow { font-family: var(--font-mono); font-size: 0.55rem; color: var(--text-dim); margin-top: 0.35rem; }
+  .log-kpi-link:hover .log-kpi-arrow { color: var(--cyan); }
+  .log-hero { padding: 1rem 1.1rem; }
+
   @media(max-width:850px){
     .layout{flex-direction:column}
     .sidebar{width:100%;height:auto;position:sticky;top:0;border-right:none;border-bottom:1px solid var(--border);flex-direction:row;align-items:center;padding:0.55rem;overflow-x:auto;backdrop-filter:blur(10px)}
@@ -939,11 +992,9 @@ const CSS = `
     .nav-item::before{bottom:0;top:auto;width:auto;height:3px;left:0.35rem;right:0.35rem}
     .main{padding:1rem 0.75rem 5rem}
     .ph{flex-direction:column;align-items:flex-start;gap:0.75rem}
-    .kgrid{grid-template-columns:1fr 1fr}
     .twocol{grid-template-columns:1fr}
   }
   @media(max-width:480px){
-    .kgrid{grid-template-columns:1fr}
     .pt{font-size:1.1rem}
   }
 `;
