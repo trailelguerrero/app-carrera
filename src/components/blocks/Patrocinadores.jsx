@@ -356,7 +356,7 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
           <div className="pt">📊 Dashboard de Patrocinios</div>
           <div className="pd">Trail El Guerrero 2026 · Candeleda, Ávila</div>
         </div>
-        <button className="btn btn-gold" onClick={openNuevo}>+ Nuevo patrocinador</button>
+        <button className="btn btn-primary" onClick={openNuevo}>+ Nuevo patrocinador</button>
       </div>
 
       {/* KPIs — clases del sistema BLOCK_CSS */}
@@ -520,7 +520,7 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
             ))}
           </div>
           <button className={`btn btn-sm ${ordenAlfa?"btn-gold":"btn-ghost"}`} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
-          <button className="btn btn-gold" onClick={onNuevo}>+ Nuevo patrocinador</button>
+          <button className="btn btn-primary" onClick={onNuevo}>+ Nuevo patrocinador</button>
         </div>
       </div>
 

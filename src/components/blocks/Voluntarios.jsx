@@ -525,7 +525,7 @@ export default function App() {
             <span className="badge badge-green">{stats.confirmados} confirmados</span>
             <span className="badge badge-amber">{stats.pendientes} pendientes</span>
             {stats.cancelados > 0 && <span className="badge badge-red">{stats.cancelados} cancelados</span>}
-            <button className="btn btn-cyan" onClick={() => setModalVol("nuevo")}>+ Voluntario</button>
+            <button className="btn btn-primary" onClick={() => setModalVol("nuevo")}>+ Voluntario</button>
             <button className="btn btn-ghost" onClick={() => setVista("formulario")}>🔗 Formulario</button>
             <button className="btn btn-ghost btn-sm" onClick={() => {
               const url = window.location.origin + "/voluntarios/registro";
@@ -1056,7 +1056,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
           <div className="page-title">👥 Voluntarios</div>
           <div className="page-desc">{todosVols.length} registrados · {voluntarios.length} mostrados · click para abrir ficha</div>
         </div>
-        <button className="btn btn-cyan" onClick={onNuevo}>+ Nuevo voluntario</button>
+        <button className="btn btn-primary" onClick={onNuevo}>+ Nuevo voluntario</button>
       </div>
 
       {/* Filtros + ordenación */}
@@ -1220,7 +1220,7 @@ function TabPuestos({ puestosConStats, voluntarios, onUpdatePuesto, onDeletePues
           <div className="page-title">📍 Puestos</div>
           <div className="page-desc">{puestosConStats.length} puestos definidos</div>
         </div>
-        <button className="btn btn-cyan" onClick={onNuevoPuesto}>+ Nuevo puesto</button>
+        <button className="btn btn-primary" onClick={onNuevoPuesto}>+ Nuevo puesto</button>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
