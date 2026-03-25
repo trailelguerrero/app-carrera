@@ -235,7 +235,7 @@ export default function App() {
         </div>
       </div>
 
-      {ficha && <FichaLogistica ficha={ficha} material={material} veh={veh} onClose={()=>setFicha(null)} onEditar={(tipo,data)=>{setFicha(null);setModal({tipo,data});}} onEliminar={(tipo,id)=>{setFicha(null);setDel({tipo,id});}} />}
+      {ficha && <FichaLogistica ficha={ficha} material={material} veh={veh} onClose={()=>setFicha(null)} onEditar={(tipo,data)=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo,data});}} onEliminar={(tipo,id)=>{setFicha(null);setDel({tipo,id});}} />}
       {modal && (
         <ModalRouter key={modal.tipo+(modal.data?.id||"n")} modal={modal} onClose={() => setModal(null)}
           material={material} setMaterial={setMaterial} asigs={asigs} setAsigs={setAsigs}
@@ -441,17 +441,13 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
                     <span style={{color:"var(--text-muted)"}}>Stock: <span style={{color:"var(--text)",fontWeight:700}}>{m.stock} {m.unidad}</span></span>
                     {m.def>0&&<span style={{color:"var(--red)",fontWeight:700}}>⚠ -{m.def}</span>}
                   </div>
-                  <div className="log-k-actions" onClick={e=>e.stopPropagation()}>
-                    <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"mat",data:m})}>✏️</button>
-                    <button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"material",id:m.id})}>✕</button>
-                  </div>
                 </div>))}
               </div>);
             })}
           </div>
         ):(
           <div className="card p0"><div className="ox"><table className="tbl">
-            <thead><tr><th style={{width:22}}></th><th>Material</th><th>Categoría</th><th className="tr">Stock</th><th className="tr">Asignado</th><th className="tr">Déficit</th><th></th></tr></thead>
+            <thead><tr><th style={{width:22}}></th><th>Material</th><th>Categoría</th><th className="tr">Stock</th><th className="tr">Asignado</th><th className="tr">Déficit</th></tr></thead>
             <tbody>{mf.map((m,i,arr)=>(
               <tr key={m.id} className={m.def>0?"ra":""} style={{cursor:"pointer"}} onClick={()=>abrirFicha("mat",m)}>
                 <td onClick={e=>e.stopPropagation()} style={{padding:"0.3rem 0.2rem"}}>
@@ -462,21 +458,19 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
                 <td className="tr mono">{m.stock} {m.unidad}</td>
                 <td className="tr mono" style={{color:m.asig>0?"var(--cyan)":"var(--text-muted)"}}>{m.asig} {m.unidad}</td>
                 <td className="tr mono">{m.def>0?<span style={{color:"var(--red)",fontWeight:700}}>-{m.def}</span>:<span style={{color:"var(--text-dim)"}}>—</span>}</td>
-                <td onClick={e=>e.stopPropagation()}><div className="fr g1"><button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"mat",data:m})}>✏️</button><button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"material",id:m.id})}>✕</button></div></td>
               </tr>
             ))}</tbody>
           </table></div></div>
         )}
       </>):(
         <div className="card p0"><div className="ox"><table className="tbl">
-          <thead><tr><th>Material</th><th>Puesto destino</th><th className="tr">Cantidad</th><th>Estado</th><th></th></tr></thead>
+          <thead><tr><th>Material</th><th>Puesto destino</th><th className="tr">Cantidad</th><th>Estado</th></tr></thead>
           <tbody>{asigs.map(a=>{const m=material.find(x=>x.id===a.materialId);return(
             <tr key={a.id} style={{cursor:"pointer"}} onClick={()=>abrirFicha("asig",{...a,materialNombre:m?.nombre,unidad:m?.unidad})}>
               <td className="f6">{m?.nombre||"—"}</td>
               <td><span className="pbadge">{a.puesto}</span></td>
               <td className="tr mono">{a.cantidad} {m?.unidad}</td>
               <td onClick={e=>e.stopPropagation()}><select className="isml" value={a.estado} onChange={e=>setAsigs(p=>p.map(x=>x.id===a.id?{...x,estado:e.target.value}:x))} style={{color:ESTADO_COLORES[a.estado]}}>{ESTADO_ENTREGA.map(s=><option key={s} value={s}>{s}</option>)}</select></td>
-              <td onClick={e=>e.stopPropagation()}><div className="fr g1"><button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"asig",data:a})}>✏️</button><button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"asig",id:a.id})}>✕</button></div></td>
             </tr>
           );})}
           </tbody>
@@ -519,10 +513,6 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
               <div className="mono xs muted">{v.matricula} · {v.conductor}</div>
               <div className="mono xs" style={{color:"var(--text-muted)",marginTop:".15rem"}}>{v.capacidad}</div>
               {v.notas&&<div style={{fontSize:".62rem",color:"var(--text-muted)",marginTop:".2rem",fontStyle:"italic"}}>{v.notas}</div>}
-              <div className="log-k-actions" onClick={e=>e.stopPropagation()}>
-                <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"veh",data:v})}>✏️</button>
-                <button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"veh",id:v.id})}>✕</button>
-              </div>
             </div>))}
           </div>
           <div className="log-k-col">
@@ -534,10 +524,6 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
               <div style={{fontWeight:700,fontSize:".76rem",marginBottom:".2rem"}}>{r.nombre}</div>
               <div className="mono xs muted">🚐 {v?.nombre||"—"} · 🕐 {r.horaInicio}</div>
               <div style={{fontSize:".62rem",color:"var(--text-muted)",marginTop:".2rem"}}>{(r.paradas||[]).length} paradas</div>
-              <div className="log-k-actions" onClick={e=>e.stopPropagation()}>
-                <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"ruta",data:r})}>✏️</button>
-                <button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"ruta",id:r.id})}>✕</button>
-              </div>
             </div>);})}
           </div>
         </div>
@@ -551,7 +537,6 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
                   {!ordenAlfa&&<div className="log-reorder" onClick={e=>e.stopPropagation()}><span onClick={()=>moverVeh(v.id,-1)} style={{opacity:i===0?.2:1}}>▲</span><span onClick={()=>moverVeh(v.id,+1)} style={{opacity:i===arr.length-1?.2:1}}>▼</span></div>}
                   <div className="vi">🚐</div>
                   <div style={{flex:1}}><div className="vn">{v.nombre}</div><div className="vm mono">{v.matricula}</div></div>
-                  <div className="fr g1" onClick={e=>e.stopPropagation()}><button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"veh",data:v})}>✏️</button><button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"veh",id:v.id})}>✕</button></div>
                 </div>
                 <div className="vmeta"><span>👤 {v.conductor}</span><span>📦 {v.capacidad}</span><span>📞 {v.telefono}</span></div>
                 {v.notas&&<div className="vnota">{v.notas}</div>}
@@ -564,7 +549,6 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
               <div key={r.id} className="card rcard" style={{cursor:"pointer"}} onClick={()=>abrirFicha("ruta",r)}>
                 <div className="rh">
                   <div><div className="rn">{r.nombre}</div><div className="rm mono">🚐 {v?.nombre||"—"} · 🕐 {r.horaInicio}</div></div>
-                  <div className="fr g1" onClick={e=>e.stopPropagation()}><button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"ruta",data:r})}>✏️</button><button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"ruta",id:r.id})}>✕</button></div>
                 </div>
                 <div className="plist">{(r.paradas||[]).map((p,i)=>(
                   <div key={i} className="prow">
@@ -632,10 +616,6 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
                 <div className="mono" style={{fontSize:".62rem",color,marginBottom:".2rem"}}>{t.hora}</div>
                 <div style={{fontWeight:700,fontSize:".76rem",marginBottom:".2rem"}}>{t.titulo}</div>
                 <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:ec,background:ec+"18",padding:".1rem .35rem",borderRadius:4,display:"inline-block"}}>{t.estado}</div>
-                <div className="log-k-actions" onClick={e=>e.stopPropagation()}>
-                  <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"tl",data:t})}>✏️</button>
-                  <button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"tl",id:t.id})}>✕</button>
-                </div>
               </div>);})}
             </div>);
           })}
@@ -659,8 +639,7 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
                   <select className="isml" value={t.estado} onChange={e=>upd(t.id,e.target.value)} style={{color:ec,background:`${ec}18`,border:`1px solid ${ec}44`,borderRadius:5,padding:"0.18rem 0.4rem",fontSize:"0.65rem",fontFamily:"var(--font-mono)",cursor:"pointer"}}>
                     {ESTADO_TAREA.map(s=><option key={s} value={s}>{s}</option>)}
                   </select>
-                  <button className="btn btn-sm btn-ghost" onClick={e=>{e.stopPropagation();setModal({tipo:"tl",data:t})}}>✏️</button>
-                  <button className="btn btn-sm btn-red" onClick={e=>{e.stopPropagation();setDel({tipo:"tl",id:t.id})}}>✕</button>
+                  
                 </div>
               </div>
               <div className="tlcd">{t.descripcion}</div>
@@ -750,10 +729,6 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
                         <div style={{fontWeight:700,fontSize:".76rem",marginBottom:".2rem"}}>{c.nombre}</div>
                         <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",marginBottom:".2rem"}}>{c.rol}</div>
                         <a href={`tel:${c.telefono}`} style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--cyan)",textDecoration:"none"}} onClick={e=>e.stopPropagation()}>📞 {c.telefono}</a>
-                        <div className="log-k-actions" onClick={e=>e.stopPropagation()}>
-                          <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"cont",data:c})}>✏️</button>
-                          <button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"cont",id:c.id})}>✕</button>
-                        </div>
                       </div>
                     ))}
                   </div>
@@ -767,10 +742,6 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
                   <div className="cch">
                     <div className="ccti">{TICI[c.tipo]}</div>
                     <div style={{flex:1,minWidth:0}}><div className="ccn">{c.nombre}</div><div className="ccr">{c.rol}</div></div>
-                    <div className="fr g1" onClick={e=>e.stopPropagation()}>
-                      <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"cont",data:c})}>✏️</button>
-                      <button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"cont",id:c.id})}>✕</button>
-                    </div>
                   </div>
                   <div className="ccd">
                     <a href={`tel:${c.telefono}`} className="ctel">📞 {c.telefono}</a>
@@ -827,8 +798,6 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
                   </div>
                   <div className="fr g1" onClick={e=>e.stopPropagation()}>
                     <button className="btn btn-sm" style={{background:"var(--green-dim)",color:"var(--green)",border:"1px solid rgba(52,211,153,0.2)"}} onClick={()=>setInc(p=>p.map(x=>x.id===ic.id?{...x,estado:x.estado==="resuelta"?"abierta":"resuelta"}:x))}>{ic.estado==="resuelta"?"✓ Resuelta":"Marcar resuelta"}</button>
-                    <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"inc",data:ic})}>✏️</button>
-                    <button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"inc",id:ic.id})}>✕</button>
                   </div>
                 </div>
                 <div style={{fontWeight:600,fontSize:"0.78rem",margin:"0.3rem 0"}}>{ic.descripcion}</div>
@@ -856,6 +825,7 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
     return "3 meses antes";
   })();
   const [fase,setFase]=useState(faseActiva);
+  const [vistaKanban,setVistaKanban]=useState(false);
   const toggle=(id)=>setCk(p=>p.map(c=>c.id===id?{...c,estado:c.estado==="completado"?"pendiente":"completado"}:c));
   const upd=(id,f,v)=>setCk(p=>p.map(c=>c.id===id?{...c,[f]:v}:c));
   const pf=FASES_CHECKLIST.map(f=>{const it=ck.filter(c=>c.fase===f);const d=it.filter(c=>c.estado==="completado").length;return{f,it,d,t:it.length,pct:it.length?Math.round(d/it.length*100):0};});
@@ -865,6 +835,16 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
       <div className="ph">
         <div><div className="pt">✅ Checklist Pre-Carrera</div><div className="pd">{ck.filter(c=>c.estado==="completado").length}/{ck.length} completados</div></div>
         <div className="fr g1">
+          <div style={{display:"flex",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:"var(--r-sm)",overflow:"hidden"}}>
+            {[["lista","☰"],["kanban","⬛"]].map(([v,ic])=>(
+              <button key={v} onClick={()=>setVistaKanban(v==="kanban")}
+                style={{padding:".3rem .55rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,
+                  background:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"rgba(34,211,238,.2)":"transparent",
+                  color:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"var(--cyan)":"var(--text-muted)"}}>
+                {ic}
+              </button>
+            ))}
+          </div>
           <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
           <button className="btn btn-primary" onClick={()=>abrirModal({tipo:"ck",fase:fase})}>+ Tarea</button>
         </div>
@@ -886,28 +866,98 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
           </button>
         ))}
       </div>
-      <div style={{display:"flex",flexDirection:"column",gap:"0.4rem"}}>
-        {fd?.it.map(item=>(
-          <div key={item.id} className={cls("cki",item.estado==="completado"&&"ckd",item.estado==="bloqueado"&&"ckb")} style={{cursor:"pointer"}} onClick={()=>abrirFicha("ck",item)}>
-            <button className="ckbox" onClick={e=>{e.stopPropagation();toggle(item.id)}} style={{borderColor:item.estado==="completado"?"var(--green)":item.estado==="bloqueado"?"var(--red)":"var(--border)",background:item.estado==="completado"?"var(--green)":"transparent"}}>
-              {item.estado==="completado"&&<span style={{color:"#000",fontSize:"0.75rem",fontWeight:800}}>✓</span>}
-              {item.estado==="bloqueado"&&<span style={{color:"var(--red)",fontSize:"0.75rem"}}>!</span>}
-            </button>
-            <div style={{flex:1,minWidth:0}}>
-              <div className={cls("cktarea",item.estado==="completado"&&"ckdone")}>{item.tarea}</div>
-              <div className="ckmeta">👤 {item.responsable}{item.notas&&` · ${item.notas}`}</div>
-            </div>
-            <div className="fr g1" onClick={e=>e.stopPropagation()}>
-              <span className="badge" style={{background:item.prioridad==="alta"?"var(--red-dim)":"var(--amber-dim)",color:item.prioridad==="alta"?"var(--red)":"var(--amber)",fontSize:"0.55rem"}}>{item.prioridad}</span>
-              <select className="isml" value={item.estado} onChange={e=>upd(item.id,"estado",e.target.value)} style={{color:ESTADO_COLORES[item.estado],fontSize:"0.62rem",padding:"0.15rem 0.3rem"}}>
-                {ESTADO_TAREA.map(s=><option key={s} value={s}>{s}</option>)}
-              </select>
-              <button className="btn btn-sm btn-ghost" onClick={e=>{e.stopPropagation();abrirFicha("ck",item)}}>✏️</button>
-              <button className="btn btn-sm btn-red" onClick={e=>{e.stopPropagation();setDel({tipo:"ck",id:item.id})}}>✕</button>
-            </div>
+
+      {/* ── KANBAN: columnas por fase ── */}
+      {vistaKanban ? (
+        <div style={{overflowX:"auto",paddingBottom:".5rem"}}>
+          <div style={{display:"flex",gap:".6rem",minWidth:"max-content"}}>
+            {pf.filter(f=>f.t>0).map(f=>{
+              const esActiva = f.f===faseActiva;
+              const color = f.pct===100?"var(--green)":esActiva?"var(--cyan)":"var(--text-muted)";
+              const items = ordenAlfa ? [...f.it].sort((a,b)=>(a.tarea||"").localeCompare(b.tarea||"","es")) : f.it;
+              return(
+                <div key={f.f} style={{width:220,flexShrink:0,background:"var(--surface)",border:`1px solid ${esActiva?"rgba(34,211,238,.3)":"var(--border)"}`,borderTop:`2px solid ${color}`,borderRadius:"var(--r)",overflow:"hidden"}}>
+                  <div style={{padding:".6rem .75rem",background:"var(--surface2)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div>
+                      <div style={{fontSize:".65rem",fontWeight:700,color}}>{f.f}</div>
+                      {esActiva && <div style={{fontFamily:"var(--font-mono)",fontSize:".5rem",color:"var(--cyan)",marginTop:".1rem"}}>● AHORA</div>}
+                    </div>
+                    <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:".15rem"}}>
+                      <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color,fontWeight:700}}>{f.d}/{f.t}</span>
+                      <div style={{width:40,height:3,background:"var(--surface3)",borderRadius:2,overflow:"hidden"}}>
+                        <div style={{height:"100%",width:`${f.pct}%`,background:color,borderRadius:2}}/>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{padding:".35rem .4rem",display:"flex",flexDirection:"column",gap:".3rem"}}>
+                    {items.map(item=>{
+                      const ec = item.estado==="completado"?"var(--green)":item.estado==="bloqueado"?"var(--red)":"var(--amber)";
+                      return(
+                        <div key={item.id} style={{background:"var(--surface2)",border:"1px solid var(--border)",borderLeft:`3px solid ${ec}`,borderRadius:7,padding:".5rem .6rem",cursor:"pointer",opacity:item.estado==="completado"?.55:1}}
+                          onClick={()=>abrirFicha("ck",item)}>
+                          <div style={{fontSize:".72rem",fontWeight:600,marginBottom:".2rem",textDecoration:item.estado==="completado"?"line-through":"none",color:item.estado==="completado"?"var(--text-muted)":"var(--text)"}}>{item.tarea}</div>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                            <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-muted)"}}>👤 {item.responsable}</span>
+                            <span style={{fontFamily:"var(--font-mono)",fontSize:".55rem",padding:".08rem .3rem",borderRadius:3,background:item.prioridad==="alta"?"var(--red-dim)":"var(--amber-dim)",color:item.prioridad==="alta"?"var(--red)":"var(--amber)"}}>{item.prioridad}</span>
+                          </div>
+                          <div style={{marginTop:".3rem"}} onClick={e=>e.stopPropagation()}>
+                            <button onClick={()=>toggle(item.id)}
+                              style={{fontFamily:"var(--font-mono)",fontSize:".58rem",padding:".1rem .35rem",borderRadius:4,border:`1px solid ${item.estado==="completado"?"rgba(248,113,113,.3)":"rgba(52,211,153,.3)"}`,background:item.estado==="completado"?"var(--red-dim)":"var(--green-dim)",color:item.estado==="completado"?"var(--red)":"var(--green)",cursor:"pointer"}}>
+                              {item.estado==="completado"?"↩ Reabrir":"✓ Completar"}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {items.length===0 && <div style={{padding:".75rem",textAlign:"center",fontFamily:"var(--font-mono)",fontSize:".62rem",color:"var(--text-dim)"}}>—</div>}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        ))}
-      </div>
+        </div>
+      ) : (
+        <>
+          {/* ── LISTA: tabs de fase + items ── */}
+          <div className="ftabs">
+            {pf.map(f=>(
+              <button key={f.f} className={cls("ftab",fase===f.f&&"fa",f.f===faseActiva&&"ftab-activa")} onClick={()=>setFase(f.f)}>
+                <div style={{display:"flex",alignItems:"center",gap:"0.3rem",marginBottom:"0.15rem"}}>
+                  <span style={{fontSize:"0.72rem",fontWeight:600}}>{f.f}</span>
+                  {f.f===faseActiva && (
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:"0.5rem",fontWeight:700,
+                      background:"rgba(34,211,238,0.15)",color:"var(--cyan)",
+                      border:"1px solid rgba(34,211,238,0.3)",borderRadius:3,
+                      padding:"0.05rem 0.3rem",lineHeight:1.2,flexShrink:0}}>AHORA</span>
+                  )}
+                </div>
+                <span className="fprog mono" style={{color:f.pct===100?"var(--green)":f.pct>50?"var(--cyan)":"var(--text-muted)"}}>{f.d}/{f.t}</span>
+                <div className="fbar"><div className="ffill" style={{width:`${f.pct}%`,background:f.pct===100?"var(--green)":f.pct>50?"var(--cyan)":"var(--amber)"}}/></div>
+              </button>
+            ))}
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:"0.4rem"}}>
+            {(ordenAlfa?[...(fd?.it||[])].sort((a,b)=>(a.tarea||"").localeCompare(b.tarea||"","es")):fd?.it||[]).map(item=>(
+              <div key={item.id} className={cls("cki",item.estado==="completado"&&"ckd",item.estado==="bloqueado"&&"ckb")} style={{cursor:"pointer"}} onClick={()=>abrirFicha("ck",item)}>
+                <button className="ckbox" onClick={e=>{e.stopPropagation();toggle(item.id)}} style={{borderColor:item.estado==="completado"?"var(--green)":item.estado==="bloqueado"?"var(--red)":"var(--border)",background:item.estado==="completado"?"var(--green)":"transparent"}}>
+                  {item.estado==="completado"&&<span style={{color:"#000",fontSize:"0.75rem",fontWeight:800}}>✓</span>}
+                  {item.estado==="bloqueado"&&<span style={{color:"var(--red)",fontSize:"0.75rem"}}>!</span>}
+                </button>
+                <div style={{flex:1,minWidth:0}}>
+                  <div className={cls("cktarea",item.estado==="completado"&&"ckdone")}>{item.tarea}</div>
+                  <div className="ckmeta">👤 {item.responsable}{item.notas&&` · ${item.notas}`}</div>
+                </div>
+                <div className="fr g1" onClick={e=>e.stopPropagation()}>
+                  <span className="badge" style={{background:item.prioridad==="alta"?"var(--red-dim)":"var(--amber-dim)",color:item.prioridad==="alta"?"var(--red)":"var(--amber)",fontSize:"0.55rem"}}>{item.prioridad}</span>
+                  <select className="isml" value={item.estado} onChange={e=>upd(item.id,"estado",e.target.value)} style={{color:ESTADO_COLORES[item.estado],fontSize:"0.62rem",padding:"0.15rem 0.3rem"}}>
+                    {ESTADO_TAREA.map(s=><option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </>
   );
 }

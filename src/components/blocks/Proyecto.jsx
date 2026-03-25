@@ -337,9 +337,9 @@ export default function App() {
         </div>
       </div>
 
-      {ficha?.tipo==="tarea"   && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} onClose={()=>setFicha(null)} onEditar={()=>{setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
-      {ficha?.tipo==="hito"    && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} onClose={()=>setFicha(null)} onEditar={()=>{setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
-      {ficha?.tipo==="persona" && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} onClose={()=>setFicha(null)} onEditar={()=>{setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
+      {ficha?.tipo==="tarea"   && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} onClose={()=>setFicha(null)} onEditar={()=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
+      {ficha?.tipo==="hito"    && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} onClose={()=>setFicha(null)} onEditar={()=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
+      {ficha?.tipo==="persona" && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} onClose={()=>setFicha(null)} onEditar={()=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
       {modal?.tipo==="tarea"   && <ModalTarea   key={modal.data?.id||"new"} data={modal.data} equipo={equipo} tareas={tareas} onSave={saveTarea}   onClose={() => setModal(null)} />}
       {modal?.tipo==="hito"    && <ModalHito    key={modal.data?.id||"new"} data={modal.data}                                  onSave={saveHito}    onClose={() => setModal(null)} />}
       {modal?.tipo==="persona" && <ModalPersona key={modal.data?.id||"new"} data={modal.data}                                  onSave={savePersona} onClose={() => setModal(null)} />}
@@ -583,8 +583,8 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
                     {t.notas && <span className="mono xs muted" style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:260}}>{t.notas}</span>}
                   </div>
                 </div>
-                {/* Fecha + acciones */}
-                <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:".3rem",flexShrink:0}} onClick={e=>e.stopPropagation()}>
+                {/* Fecha */}
+                <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:".3rem",flexShrink:0}}>
                   {dias !== null && (
                     <div style={{fontFamily:"var(--font-mono)",fontSize:".65rem",fontWeight:700,
                       color:vencida?"#f87171":dias<=7?"#fbbf24":dias<=14?"#fb923c":"var(--text-muted)",
@@ -593,10 +593,6 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
                       {vencida?`VENCIDA (${Math.abs(dias)}d)`:dias===0?"Hoy":`${dias}d · ${fmt(t.fechaLimite)}`}
                     </div>
                   )}
-                  <div style={{display:"flex",gap:".25rem"}}>
-                    <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"tarea",data:t})}>✏️</button>
-                    <button className="btn btn-sm btn-red" onClick={()=>setDelConf({tipo:"tarea",id:t.id})}>✕</button>
-                  </div>
                 </div>
               </div>
             );
@@ -924,8 +920,6 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf, setFicha }) {
                   </div>
                 </div>
                 <div style={{display:"flex",gap:".25rem",flexShrink:0}}>
-                  <button className="btn btn-sm btn-ghost" onClick={() => setModal({tipo:"persona",data:p})}>✏️</button>
-                  <button className="btn btn-sm btn-red" onClick={() => setDelConf({tipo:"persona",id:p.id})}>✕</button>
                 </div>
               </div>
 
@@ -1036,8 +1030,6 @@ function TabHitos({ hitos, updHito, setModal, setDelConf, setFicha }) {
                     : <span style={{color:"var(--text-dim)",fontSize:".75rem",lineHeight:1}}>○</span>
                   }
                 </button>
-                <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"hito",data:h})}>✏️</button>
-                <button className="btn btn-sm btn-red" onClick={()=>setDelConf({tipo:"hito",id:h.id})}>✕</button>
               </div>
             </div>
           );

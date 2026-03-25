@@ -639,7 +639,7 @@ export default function App() {
         <FichaVoluntario
           voluntario={ficha.data} puestos={puestos}
           onClose={() => setFicha(null)}
-          onEditar={() => { setFicha(null); setModalVol(ficha.data); }}
+          onEditar={() => { const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"}); setFicha(null); setModalVol(ficha.data); }}
           onEliminar={() => { setFicha(null); setConfirmDelete(ficha.data.id); }}
         />
       )}
@@ -647,7 +647,7 @@ export default function App() {
         <FichaPuesto
           puesto={ficha.data} voluntarios={voluntarios}
           onClose={() => setFicha(null)}
-          onEditar={() => { setFicha(null); setModalPuesto(ficha.data); }}
+          onEditar={() => { const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"}); setFicha(null); setModalPuesto(ficha.data); }}
           onEliminar={() => { setFicha(null); setConfirmDeletePuesto(ficha.data.id); }}
         />
       )}

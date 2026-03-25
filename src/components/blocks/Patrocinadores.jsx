@@ -567,10 +567,6 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
                         <span style={{fontFamily:"var(--font-mono)",fontSize:".76rem",fontWeight:700,color:cfg.color}}>{fmt(p.importe)}</span>
                         <span className="badge" style={{background:ecfg.bg,color:ecfg.color,fontSize:".52rem"}}>{ecfg.label}</span>
                       </div>
-                      <div style={{display:"flex",gap:".3rem",marginTop:".4rem"}} onClick={e=>e.stopPropagation()}>
-                        <button className="btn btn-sm btn-ghost" style={{fontSize:".55rem"}} onClick={()=>onEditar(p)}>✏️</button>
-                        <button className="btn btn-sm btn-red" style={{fontSize:".55rem"}} onClick={()=>onDelete(p.id)}>✕</button>
-                      </div>
                     </div>
                   );
                 })}
@@ -619,8 +615,6 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
                 )}
                 <div style={{ display: "flex", gap: ".3rem" }}>
                   <button className="btn btn-sm" style={{ background: cfg.dim, color: cfg.color, border: `1px solid ${cfg.border}` }} onClick={e=>{e.stopPropagation();onDetalle(p)}}>Ver detalle</button>
-                  <button className="btn btn-sm btn-ghost" onClick={e=>{e.stopPropagation();onEditar(p)}}>✏️</button>
-                  <button className="btn btn-sm btn-red" onClick={e=>{e.stopPropagation();onDelete(p.id)}}>✕</button>
                 </div>
               </div>
             </div>
@@ -678,7 +672,6 @@ function TabPipeline({ pats, onEditar, onDetalle, updateEstado, ordenAlfa }) {
                       <span style={{ fontFamily: "var(--font-mono)", fontSize: ".78rem", fontWeight: 700, color: ncfg.color }}>
                         {p.especie > 0 ? fmt(p.especie) : fmt(p.importe)}
                       </span>
-                      <button className="btn btn-sm btn-ghost" onClick={e=>{e.stopPropagation();onEditar(p)}}>✏️</button>
                     </div>
                     {/* Mover de estado */}
                     <div style={{ marginTop: ".5rem", display: "flex", gap: ".25rem", flexWrap: "wrap" }}>
