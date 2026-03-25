@@ -11,6 +11,7 @@ const Logistica = lazy(() => import("../components/blocks/Logistica"));
 const Patrocinadores = lazy(() => import("../components/blocks/Patrocinadores"));
 const Proyecto = lazy(() => import("../components/blocks/Proyecto"));
 const Documentos = lazy(() => import("../components/blocks/Documentos"));
+const Camisetas = lazy(() => import("../components/blocks/Camisetas"));
 
 const BLOCKS = [
   { id: "dashboard",      icon: "📊", label: "Dashboard",      shortLabel: "Dash",   component: Dashboard },
@@ -19,6 +20,7 @@ const BLOCKS = [
   { id: "voluntarios",    icon: "👥", label: "Voluntarios",    shortLabel: "Volun.", component: Voluntarios },
   { id: "logistica",      icon: "📦", label: "Logística",      shortLabel: "Log.",   component: Logistica },
   { id: "patrocinadores", icon: "🤝", label: "Patrocinadores", shortLabel: "Pat.",   component: Patrocinadores },
+  { id: "camisetas",      icon: "👕", label: "Camisetas",      shortLabel: "Cam.",   component: Camisetas },
   { id: "documentos",     icon: "📁", label: "Docs",           shortLabel: "Docs",   component: Documentos },
 ];
 
