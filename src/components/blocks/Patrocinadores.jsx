@@ -145,6 +145,8 @@ export default function App() {
   const [filtroNivel, setFiltroNivel] = useState("todos");
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [showSidebar, setShowSidebar] = useState(false);
+  const [ordenPats, setOrdenPats] = useState(false);  // A-Z patrocinadores
+  const [ordenCont, setOrdenCont] = useState(false);  // A-Z compromisos
 
   // useData handles saving automatically.
 
@@ -290,11 +292,12 @@ export default function App() {
               onEditar={openEditar} onDetalle={openDetalle}
               onDelete={(id) => setDelId(id)} onNuevo={openNuevo}
               updateEstado={updateEstado}
+              ordenAlfa={ordenPats} setOrdenAlfa={setOrdenPats}
             />
           )}
-          {tab==="pipeline" && <TabPipeline pats={pats} onEditar={openEditar} onDetalle={openDetalle} updateEstado={updateEstado} />}
+          {tab==="pipeline" && <TabPipeline pats={pats} onEditar={openEditar} onDetalle={openDetalle} updateEstado={updateEstado} ordenAlfa={ordenPats} />}
           {tab==="contraprestaciones" && (
-            <TabContraprestaciones pats={pats} updateContraprestacion={updateContraprestacion} addContraprestacion={addContraprestacion} deleteContraprestacion={deleteContraprestacion} onDetalle={openDetalle} />
+            <TabContraprestaciones pats={pats} updateContraprestacion={updateContraprestacion} addContraprestacion={addContraprestacion} deleteContraprestacion={deleteContraprestacion} onDetalle={openDetalle} ordenAlfa={ordenCont} setOrdenAlfa={setOrdenCont} />
           )}
           {tab==="documentos" && <TabDocumentos pats={pats} addDoc={addDoc} deleteDoc={deleteDoc} />}
         </div>
@@ -495,8 +498,9 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
 }
 
 // ─── TAB PATROCINADORES ───────────────────────────────────────────────────────
-function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, setFiltroNivel, filtroEstado, setFiltroEstado, onEditar, onDetalle, onDelete, onNuevo, updateEstado }) {
+function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, setFiltroNivel, filtroEstado, setFiltroEstado, onEditar, onDetalle, onDelete, onNuevo, updateEstado, ordenAlfa, setOrdenAlfa }) {
   const [vistaKanban, setVistaKanban] = useState(false);
+  const patsOrdenados = ordenAlfa ? [...pats].sort((a,b) => a.nombre.localeCompare(b.nombre,"es")) : pats;
   return (
     <>
       <div className="ph">
@@ -515,6 +519,7 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
               </button>
             ))}
           </div>
+          <button className={`btn btn-sm ${ordenAlfa?"btn-gold":"btn-ghost"}`} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
           <button className="btn btn-gold" onClick={onNuevo}>+ Nuevo patrocinador</button>
         </div>
       </div>
@@ -542,7 +547,7 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
       {vistaKanban && (
         <div className="pat-kanban-grid">
           {NIVELES.map(nivel => {
-            const items = pats.filter(p => p.nivel === nivel);
+            const items = patsOrdenados.filter(p => p.nivel === nivel);
             if (!items.length) return null;
             const cfg = getCfg(nivel);
             return (
@@ -578,8 +583,8 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
       {/* ── LISTA ── */}
       {!vistaKanban && (
       <div style={{ display: "flex", flexDirection: "column", gap: ".55rem" }}>
-        {pats.length === 0 && <div className="empty">No hay patrocinadores con estos filtros</div>}
-        {pats.map(p => {
+        {patsOrdenados.length === 0 && <div className="empty">No hay patrocinadores con estos filtros</div>}
+        {patsOrdenados.map(p => {
           if (!p) return null;
           const cfg = getCfg(p.nivel) || NIVEL_CFG.Especie;
           const ecfg = ESTADO_CFG[p.estado] || ESTADO_CFG.prospecto;
@@ -628,11 +633,12 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
 }
 
 // ─── TAB PIPELINE ─────────────────────────────────────────────────────────────
-function TabPipeline({ pats, onEditar, onDetalle, updateEstado }) {
+function TabPipeline({ pats, onEditar, onDetalle, updateEstado, ordenAlfa }) {
+  const patsOrdenados = ordenAlfa ? [...pats].sort((a,b) => a.nombre.localeCompare(b.nombre,"es")) : pats;
   const porEstado = ESTADOS.map(e => ({
     e, cfg: ESTADO_CFG[e],
-    pats: pats.filter(p => p.estado === e),
-    total: pats.filter(p => p.estado === e).reduce((s, p) => s + p.importe + (p.especie || 0), 0),
+    pats: patsOrdenados.filter(p => p.estado === e),
+    total: patsOrdenados.filter(p => p.estado === e).reduce((s, p) => s + p.importe + (p.especie || 0), 0),
   }));
 
   return (
@@ -640,8 +646,9 @@ function TabPipeline({ pats, onEditar, onDetalle, updateEstado }) {
       <div className="ph">
         <div>
           <div className="pt">🔀 Pipeline Comercial</div>
-          <div className="pd">Vista kanban del estado de cada patrocinador</div>
+          <div className="pd">Vista kanban del estado · {ordenAlfa?"orden A-Z":"orden por defecto"}</div>
         </div>
+        {ordenAlfa && <span className="badge badge-amber">A-Z ✓</span>}
       </div>
 
       <div className="kanban">
@@ -694,16 +701,18 @@ function TabPipeline({ pats, onEditar, onDetalle, updateEstado }) {
 }
 
 // ─── TAB CONTRAPRESTACIONES ───────────────────────────────────────────────────
-function TabContraprestaciones({ pats, updateContraprestacion, addContraprestacion, deleteContraprestacion, onDetalle }) {
+function TabContraprestaciones({ pats, updateContraprestacion, addContraprestacion, deleteContraprestacion, onDetalle, ordenAlfa, setOrdenAlfa }) {
   const [addingTo, setAddingTo] = useState(null);
   const [newCont, setNewCont] = useState({ tipo: CONTRAPRESTACIONES_TIPO[0], detalle: "", estado: "pendiente" });
   const [filtroPatId, setFiltroPatId] = useState("todos");
+  const [vistaKanban, setVistaKanban] = useState(false);
 
   const activos = pats.filter(p => p.estado !== "cancelado");
   const allConts = activos.flatMap(p => (p.contraprestaciones || []).map(c => ({ ...c, patNombre: p.nombre, patId: p.id, patNivel: p.nivel })));
   const pendientes = allConts.filter(c => c.estado === "pendiente");
   const entregados = allConts.filter(c => c.estado === "entregado");
-  const activosFiltrados = filtroPatId === "todos" ? activos : activos.filter(p => String(p.id) === filtroPatId);
+  const activosBase = filtroPatId === "todos" ? activos : activos.filter(p => String(p.id) === filtroPatId);
+  const activosFiltrados = ordenAlfa ? [...activosBase].sort((a,b) => a.nombre.localeCompare(b.nombre,"es")) : activosBase;
 
   return (
     <>
@@ -712,13 +721,65 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
           <div className="pt">🎁 Compromisos con patrocinadores</div>
           <div className="pd">{pendientes.length} pendientes · {entregados.length} entregados · {allConts.length} total</div>
         </div>
-        {/* Filtro por patrocinador */}
-        <select className="inp" value={filtroPatId} onChange={e=>setFiltroPatId(e.target.value)} style={{width:"auto",maxWidth:220}}>
-          <option value="todos">Todos los patrocinadores</option>
-          {activos.map(p=><option key={p.id} value={String(p.id)}>{getCfg(p.nivel).icon} {p.nombre}</option>)}
-        </select>
+        <div style={{display:"flex",gap:".4rem",flexWrap:"wrap",alignItems:"center"}}>
+          <select className="inp" value={filtroPatId} onChange={e=>setFiltroPatId(e.target.value)} style={{width:"auto",maxWidth:200}}>
+            <option value="todos">Todos los patrocinadores</option>
+            {activos.map(p=><option key={p.id} value={String(p.id)}>{getCfg(p.nivel).icon} {p.nombre}</option>)}
+          </select>
+          <div style={{display:"flex",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:"var(--r-sm)",overflow:"hidden"}}>
+            {[["lista","☰"],["kanban","⬛"]].map(([v,ic])=>(
+              <button key={v} onClick={()=>setVistaKanban(v==="kanban")}
+                style={{padding:".3rem .55rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,
+                  background:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"rgba(245,158,11,.2)":"transparent",
+                  color:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"#f59e0b":"var(--text-muted)"}}>
+                {ic}
+              </button>
+            ))}
+          </div>
+          <button className={`btn btn-sm ${ordenAlfa?"btn-gold":"btn-ghost"}`} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
+        </div>
       </div>
 
+      {/* ── KANBAN pendiente / entregado ── */}
+      {vistaKanban && (
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".65rem",marginBottom:".85rem"}}>
+          {[
+            {id:"pendiente",label:"⏳ Pendientes",color:"#f87171",bg:"rgba(248,113,113,.08)",items:pendientes},
+            {id:"entregado",label:"✅ Entregados",color:"#34d399",bg:"rgba(52,211,153,.08)",items:entregados},
+          ].map(col=>(
+            <div key={col.id} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--r)",overflow:"hidden"}}>
+              <div style={{padding:".6rem .75rem",borderTop:`2px solid ${col.color}`,background:col.bg,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <span style={{fontWeight:700,fontSize:".7rem",color:col.color}}>{col.label}</span>
+                <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",padding:".1rem .35rem",borderRadius:4,background:col.color+"22",color:col.color}}>{col.items.length}</span>
+              </div>
+              {col.items.length===0 && <div style={{padding:"1rem",textAlign:"center",fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-dim)"}}>—</div>}
+              {col.items.map(c=>{
+                const pcfg=getCfg(c.patNivel);
+                return(
+                  <div key={c.patId+"-"+c.id} style={{margin:".35rem .4rem 0",background:"var(--surface2)",border:"1px solid var(--border)",borderLeft:`3px solid ${pcfg.color}`,borderRadius:7,padding:".5rem .65rem",cursor:"pointer"}}
+                    onClick={()=>{ const p=pats.find(x=>x.id===c.patId); if(p) onDetalle(p); }}>
+                    <div style={{fontWeight:700,fontSize:".74rem",marginBottom:".15rem"}}>{c.tipo}</div>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)"}}>{pcfg.icon} {c.patNombre}</div>
+                    {c.detalle&&<div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-dim)",marginTop:".1rem"}}>{c.detalle}</div>}
+                    <div style={{marginTop:".35rem"}} onClick={e=>e.stopPropagation()}>
+                      <button style={{fontFamily:"var(--font-mono)",fontSize:".58rem",padding:".12rem .4rem",borderRadius:4,
+                        border:`1px solid ${col.id==="pendiente"?"rgba(52,211,153,.3)":"rgba(248,113,113,.3)"}`,
+                        background:col.id==="pendiente"?"var(--green-dim)":"var(--red-dim)",
+                        color:col.id==="pendiente"?"var(--green)":"var(--red)",cursor:"pointer"}}
+                        onClick={()=>updateContraprestacion(c.patId,c.id,"estado",col.id==="pendiente"?"entregado":"pendiente")}>
+                        {col.id==="pendiente"?"✓ Entregar":"↩ Reabrir"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── LISTA (resumen rápido + por patrocinador) ── */}
+      {!vistaKanban && (<>
       {/* Resumen rápido */}
       <div className="twocol" style={{ marginBottom: ".85rem" }}>
         <div className="card" style={{ background: "rgba(248,113,113,.04)", border: "1px solid rgba(248,113,113,.15)" }}>
@@ -808,6 +869,7 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
           </div>
         );
       })}
+      </>)}
     </>
   );
 }
