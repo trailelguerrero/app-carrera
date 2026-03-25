@@ -191,6 +191,18 @@ export default function Dashboard() {
     ];
     const saludGlobal = Math.round(saludModulos.reduce((s,m) => s+m.score, 0) / saludModulos.length);
 
+    // ── DOCUMENTOS — vencidos y próximos ─────────────────────────────────
+    const documentos     = Array.isArray(get("teg_documentos_v1", [])) ? get("teg_documentos_v1", []) : [];
+    const diasHastaDoc   = (iso) => iso ? Math.ceil((new Date(iso) - TODAY) / 86400000) : null;
+    const docsVencidos   = documentos.filter(d => {
+      const dias = diasHastaDoc(d.fechaVencimiento);
+      return dias !== null && dias < 0 && d.estado !== "aprobado";
+    });
+    const docsProxVencer = documentos.filter(d => {
+      const dias = diasHastaDoc(d.fechaVencimiento);
+      return dias !== null && dias >= 0 && dias <= 30 && d.estado !== "aprobado";
+    });
+
     // ── ALERTAS con prioridad ──────────────────────────────────────────────
     const alertasCriticas = [];
     const alertasAvisos   = [];
