@@ -1249,18 +1249,45 @@ function FichaRow({ label, value, color }) {
 
 function FichaProyecto({ ficha, equipo, onClose, onEditar, onEliminar }) {
   const { tipo, data } = ficha;
-
   const accent = tipo === "tarea" ? "var(--violet)" : tipo === "hito" ? "var(--cyan)" : "var(--green)";
   const icon   = tipo === "tarea" ? "📋" : tipo === "hito" ? "🏁" : "👤";
   const titulo = data.titulo || data.nombre;
 
+  // Estilos inline completos — sin depender de ninguna clase CSS externa
+  const S = {
+    overlay: {
+      position:"fixed", inset:0, background:"rgba(0,0,0,.75)",
+      backdropFilter:"blur(4px)", display:"flex", alignItems:"center",
+      justifyContent:"center", zIndex:999, padding:"1rem",
+    },
+    modal: {
+      background:"var(--surface)", border:"1px solid var(--border-light)",
+      borderRadius:16, width:"100%", maxWidth:460, maxHeight:"90vh",
+      overflowY:"auto", boxShadow:"0 24px 64px rgba(0,0,0,.6)",
+      display:"flex", flexDirection:"column",
+    },
+    header: {
+      padding:"1.1rem 1.4rem .9rem", borderBottom:"1px solid var(--border)",
+      display:"flex", alignItems:"center", justifyContent:"space-between",
+    },
+    body: {
+      padding:"1.1rem 1.4rem", display:"flex", flexDirection:"column", gap:".5rem",
+      overflowY:"auto",
+    },
+    footer: {
+      padding:".9rem 1.4rem", borderTop:"1px solid var(--border)",
+      display:"flex", justifyContent:"space-between", alignItems:"center", gap:".5rem",
+    },
+  };
+
   return (
-    <div className="overlay" onClick={e => e.target===e.currentTarget && onClose()}>
-      <div className="modal" style={{ maxWidth:460 }}>
-        <div style={{ borderTop:`3px solid ${accent}`, borderRadius:"12px 12px 0 0" }}>
-          <div className="mhdr">
+    <div style={S.overlay} onClick={e => e.target===e.currentTarget && onClose()}>
+      <div style={S.modal}>
+        {/* Header */}
+        <div style={{ borderTop:`3px solid ${accent}`, borderRadius:"16px 16px 0 0" }}>
+          <div style={S.header}>
             <div style={{ display:"flex", alignItems:"center", gap:".6rem" }}>
-              <span style={{ fontSize:"1.5rem" }}>{icon}</span>
+              <span style={{ fontSize:"1.4rem" }}>{icon}</span>
               <div>
                 <div style={{ fontWeight:800, fontSize:".95rem", lineHeight:1.2 }}>{titulo}</div>
                 <div style={{ fontFamily:"var(--font-mono)", fontSize:".55rem", color:"var(--text-muted)",
@@ -1270,26 +1297,31 @@ function FichaProyecto({ ficha, equipo, onClose, onEditar, onEliminar }) {
                 </div>
               </div>
             </div>
-            <button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button>
+            <button onClick={onClose} style={{ background:"none", border:"1px solid var(--border)",
+              color:"var(--text-muted)", borderRadius:6, padding:".2rem .5rem",
+              cursor:"pointer", fontSize:".9rem" }}>✕</button>
           </div>
         </div>
-        <div className="mbody">
+
+        {/* Body */}
+        <div style={S.body}>
           {tipo === "tarea" && (<>
-            <FichaRow label="Estado"      value={EST_CFG[data.estado]?.label}  color={EST_CFG[data.estado]?.color} />
-            <FichaRow label="Prioridad"   value={data.prioridad}               color={PRI_CFG[data.prioridad]?.color} />
-            <FichaRow label="Responsable" value={equipo.find(p=>p.id===data.responsableId)?.nombre} />
+            <FichaRow label="Estado"       value={EST_CFG[data.estado]?.label}  color={EST_CFG[data.estado]?.color} />
+            <FichaRow label="Prioridad"    value={data.prioridad}               color={PRI_CFG[data.prioridad]?.color} />
+            <FichaRow label="Responsable"  value={equipo.find(p=>p.id===data.responsableId)?.nombre} />
             <FichaRow label="Fecha límite" value={data.fechaLimite
               ? new Date(data.fechaLimite).toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})
               : null} />
             {data.notas && (
-              <div style={{ marginTop:".5rem", background:"var(--surface2)", borderRadius:8,
-                padding:".65rem .75rem", borderLeft:`2px solid ${accent}` }}>
+              <div style={{ background:"var(--surface2)", borderRadius:8,
+                padding:".65rem .75rem", borderLeft:`2px solid ${accent}`, marginTop:".25rem" }}>
                 <div style={{ fontFamily:"var(--font-mono)", fontSize:".55rem", color:"var(--text-muted)",
                   marginBottom:".3rem", textTransform:"uppercase" }}>Notas</div>
                 <div style={{ fontSize:".78rem", lineHeight:1.6 }}>{data.notas}</div>
               </div>
             )}
           </>)}
+
           {tipo === "hito" && (<>
             <FichaRow label="Fecha"   value={data.fecha
               ? new Date(data.fecha).toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})
@@ -1299,8 +1331,9 @@ function FichaProyecto({ ficha, equipo, onClose, onEditar, onEliminar }) {
             <FichaRow label="Crítico" value={data.critico ? "⚡ Sí, es crítico" : "No"}
                  color={data.critico ? "var(--red)" : undefined} />
           </>)}
+
           {tipo === "persona" && (<>
-            <div style={{ display:"flex", justifyContent:"center", marginBottom:".75rem" }}>
+            <div style={{ display:"flex", justifyContent:"center", marginBottom:".5rem" }}>
               <div style={{ width:52, height:52, borderRadius:"50%",
                 background:(data.color||"#a78bfa")+"22",
                 border:`2px solid ${data.color||"#a78bfa"}66`,
@@ -1315,11 +1348,28 @@ function FichaProyecto({ ficha, equipo, onClose, onEditar, onEliminar }) {
             <FichaRow label="Email"    value={data.email} />
           </>)}
         </div>
-        <div className="mfoot" style={{ justifyContent:"space-between" }}>
-          <button className="btn btn-red" onClick={onEliminar}>🗑 Eliminar</button>
+
+        {/* Footer */}
+        <div style={S.footer}>
+          <button onClick={onEliminar} style={{ background:"rgba(248,113,113,.12)",
+            border:"1px solid rgba(248,113,113,.3)", color:"#f87171",
+            borderRadius:8, padding:".4rem .85rem", cursor:"pointer",
+            fontFamily:"var(--font-mono)", fontSize:".72rem", fontWeight:700 }}>
+            🗑 Eliminar
+          </button>
           <div style={{ display:"flex", gap:".4rem" }}>
-            <button className="btn btn-ghost" onClick={onClose}>Cerrar</button>
-            <button className="btn btn-primary" onClick={onEditar}>✏️ Editar</button>
+            <button onClick={onClose} style={{ background:"var(--surface2)",
+              border:"1px solid var(--border)", color:"var(--text-muted)",
+              borderRadius:8, padding:".4rem .85rem", cursor:"pointer",
+              fontFamily:"var(--font-mono)", fontSize:".72rem" }}>
+              Cerrar
+            </button>
+            <button onClick={onEditar} style={{ background:"rgba(167,139,250,.15)",
+              border:"1px solid rgba(167,139,250,.35)", color:"var(--violet)",
+              borderRadius:8, padding:".4rem .85rem", cursor:"pointer",
+              fontFamily:"var(--font-mono)", fontSize:".72rem", fontWeight:700 }}>
+              ✏️ Editar
+            </button>
           </div>
         </div>
       </div>
