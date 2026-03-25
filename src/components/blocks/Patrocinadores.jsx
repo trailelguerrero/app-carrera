@@ -280,7 +280,7 @@ export default function App() {
 
         {/* CONTENIDO */}
         <div key={tab}>
-          {tab==="dashboard" && <TabDashboard stats={stats} pats={pats} objetivo={objetivo} setObjetivo={setObjetivo} setTab={setTab} openNuevo={openNuevo} />}
+          {tab==="dashboard" && <TabDashboard stats={stats} pats={pats} objetivo={objetivo} setObjetivo={setObjetivo} setTab={setTab} openNuevo={openNuevo} openDetalle={openDetalle} />}
           {tab==="patrocinadores" && (
             <TabPatrocinadores
               pats={patsFiltrados} todosLen={pats.length}
@@ -331,7 +331,7 @@ export default function App() {
 }
 
 // ─── TAB DASHBOARD ────────────────────────────────────────────────────────────
-function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo }) {
+function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, openDetalle }) {
   const [editObj, setEditObj] = useState(false);
   const [tmpObj, setTmpObj] = useState(objetivo);
 
@@ -447,7 +447,7 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo })
             const dias = Math.ceil((new Date(p.fechaVencimiento) - new Date()) / 86400000);
             const urgente = dias < 30;
             return (
-              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: ".75rem", padding: ".45rem 0", borderBottom: "1px solid rgba(30,45,80,.3)" }}>
+              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: ".75rem", padding: ".45rem 0", borderBottom: "1px solid rgba(30,45,80,.3)", cursor:"pointer" }} onClick={()=>openDetalle(p)}>
                 <div style={{ width: 8, height: 8, borderRadius: "50%", background: getCfg(p.nivel).color, flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: ".76rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nombre}</div>
@@ -473,7 +473,7 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo })
             const cfg = getCfg(p.nivel) || NIVEL_CFG.Especie;
             const ecfg = ESTADO_CFG[p.estado] || ESTADO_CFG.prospecto;
             return (
-              <div key={p.id} className="rec-card" style={{ borderLeftColor: cfg.color }}>
+              <div key={p.id} className="rec-card" style={{ borderLeftColor: cfg.color, cursor:"pointer" }} onClick={()=>openDetalle(p)}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: ".3rem" }}>
                   <span style={{ fontSize: ".8rem", fontWeight: 700 }}>{p.nombre}</span>
                   <span className="badge" style={{ background: cfg.dim, color: cfg.color, border: `1px solid ${cfg.border}` }}>{cfg.icon} {p.nivel}</span>
