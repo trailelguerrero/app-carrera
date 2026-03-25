@@ -647,7 +647,7 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa}) {
                 {i<sorted.length-1&&<div className="tledge"/>}
               </div>
             </div>
-            <div className="tlcard" style={{cursor:"pointer"}} onClick={()=>setModal({tipo:"tl",data:t})}>
+            <div className="tlcard" style={{cursor:"pointer"}} onClick={()=>abrirFicha("tl",t)}>
               <div className="tlch">
                 <span className="tlct">{t.titulo}</span>
                 <div className="fr g1" onClick={e=>e.stopPropagation()}>
@@ -685,11 +685,15 @@ const PROTO_PASOS=[
 function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa}) {
   const [sub,setSub]=useState("directorio");
   const [proto,setProto]=useState(null);
+  const [vistaKanban,setVistaKanban]=useState(false);
   return(
     <>
       <div className="ph">
         <div><div className="pt">📡 Comunicaciones</div><div className="pd">Directorio · Protocolo de emergencia · Incidencias</div></div>
         <div className="fr g1">
+          <div className="log-vista-toggle" style={{marginRight:".25rem"}}>
+            {[["lista","☰"],["kanban","⬛"]].map(([v,ic])=>(<button key={v} onClick={()=>setVistaKanban(v==="kanban")} style={{padding:".3rem .55rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,background:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"rgba(34,211,238,.2)":"transparent",color:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"var(--cyan)":"var(--text-muted)"}}>{ic}</button>))}
+          </div>
           {["directorio","protocolo","incidencias"].map(sub2=>(
             <button key={sub2} className={cls("btn",sub===sub2?"btn-cyan":"btn-ghost")} onClick={()=>setSub(sub2)}>
               {sub2==="incidencias"?"Incidencias"+(inc.filter(i=>i.estado==="abierta").length>0?" ⚠️":""):sub2.charAt(0).toUpperCase()+sub2.slice(1)}
@@ -704,6 +708,30 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
 <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
             <button className="btn btn-cyan" onClick={()=>setModal({tipo:"cont"})}>+ Contacto</button>
           </div>
+          {vistaKanban?(
+            <div className="log-kanban-grid" style={{gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))"}}>
+              {["emergencia","proveedor","staff","institucional"].map(tipo=>{
+                const items=(ordenAlfa?[...cont].sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es")):cont).filter(c=>c.tipo===tipo);
+                if(!items.length) return null;
+                const color=TIC[tipo];
+                return(<div key={tipo} className="log-k-col">
+                  <div className="log-k-hdr" style={{borderTopColor:color}}>
+                    <span style={{fontSize:".65rem",fontWeight:700,color}}>{TICI[tipo]} {tipo}</span>
+                    <span className="log-k-cnt" style={{background:color+"22",color,border:`1px solid ${color}44`}}>{items.length}</span>
+                  </div>
+                  {items.map(c=>(<div key={c.id} className="log-k-card" style={{borderLeftColor:color,cursor:"pointer"}} onClick={()=>abrirFicha("cont",c)}>
+                    <div style={{fontWeight:700,fontSize:".76rem",marginBottom:".2rem"}}>{c.nombre}</div>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",marginBottom:".2rem"}}>{c.rol}</div>
+                    <a href={`tel:${c.telefono}`} style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--cyan)",textDecoration:"none"}} onClick={e=>e.stopPropagation()}>📞 {c.telefono}</a>
+                    <div className="log-k-actions" onClick={e=>e.stopPropagation()}>
+                      <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"cont",data:c})}>✏️</button>
+                      <button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"cont",id:c.id})}>✕</button>
+                    </div>
+                  </div>))}
+                </div>);
+              })}
+            </div>
+          ):(
           <div className="cgrid">{(ordenAlfa?[...cont].sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es")):cont).map(c=>(
             <div key={c.id} className="ccard" style={{borderTopColor:TIC[c.tipo],cursor:"pointer"}} onClick={()=>abrirFicha("cont",c)}>
               <div className="cch">
@@ -718,6 +746,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
               {c.notas&&<div className="cnota">{c.notas}</div>}
             </div>
           ))}</div>
+          )}
         </>
       )}
 
@@ -776,16 +805,18 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
 
 // ─── CHECKLIST ────────────────────────────────────────────────────────────────
 function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa}) {
-  // Detectar fase activa según la fecha actual
-  const diasHasta = Math.ceil((new Date("2026-08-29") - new Date()) / 86400000);
-  const faseActiva = (() => {
-    if (diasHasta < 0)   return "Post-carrera";
-    if (diasHasta === 0) return "Mañana carrera";
-    if (diasHasta <= 1)  return "Mañana carrera";
-    if (diasHasta <= 2)  return "Día antes";
-    if (diasHasta <= 7)  return "Semana antes";
-    return "Semana antes"; // por defecto, la primera fase
-  })();
+  const hoy = new Date().toISOString().split("T")[0];
+  const [fechaRef, setFechaRef] = useState(hoy);
+  const [mostrarCalendario, setMostrarCalendario] = useState(false);
+  const calcFase = (f) => {
+    const d = Math.ceil((new Date("2026-08-29") - new Date(f)) / 86400000);
+    if (d < 0)   return "Post-carrera";
+    if (d <= 1)  return "Mañana carrera";
+    if (d <= 2)  return "Día antes";
+    if (d <= 7)  return "Semana antes";
+    return "Semana antes";
+  };
+  const faseActiva = calcFase(fechaRef);
   const [fase,setFase]=useState(faseActiva);
   const toggle=(id)=>setCk(p=>p.map(c=>c.id===id?{...c,estado:c.estado==="completado"?"pendiente":"completado"}:c));
   const upd=(id,f,v)=>setCk(p=>p.map(c=>c.id===id?{...c,[f]:v}:c));
@@ -794,9 +825,32 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa}) {
   return(
     <>
       <div className="ph">
-        <div><div className="pt">✅ Checklist Pre-Carrera</div><div className="pd">{ck.filter(c=>c.estado==="completado").length}/{ck.length} completados</div></div>
-<button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
-        <button className="btn btn-cyan" onClick={()=>setModal({tipo:"ck",fase:fase})}>+ Tarea</button>
+        <div>
+          <div className="pt">✅ Checklist Pre-Carrera</div>
+          <div className="pd" style={{display:"flex",alignItems:"center",gap:".5rem",flexWrap:"wrap"}}>
+            <span>{ck.filter(c=>c.estado==="completado").length}/{ck.length} completados</span>
+            <span style={{opacity:.5}}>·</span>
+            <button onClick={()=>setMostrarCalendario(v=>!v)} style={{background:"none",border:"1px solid var(--border)",borderRadius:4,color:"var(--text-muted)",fontFamily:"var(--font-mono)",fontSize:".6rem",padding:".1rem .4rem",cursor:"pointer"}}>
+              📅 {fechaRef===hoy?"Hoy":fechaRef}
+            </button>
+            {mostrarCalendario && (
+              <input type="date" value={fechaRef} max="2026-09-30"
+                onChange={e=>{setFechaRef(e.target.value);setFase(calcFaseActiva(e.target.value));setMostrarCalendario(false);}}
+                style={{fontFamily:"var(--font-mono)",fontSize:".65rem",background:"var(--surface2)",border:"1px solid var(--cyan)",borderRadius:4,color:"var(--text)",padding:".2rem .4rem"}}
+                autoFocus onBlur={()=>setMostrarCalendario(false)}
+              />
+            )}
+          </div>
+        </div>
+        <div className="fr g1" style={{flexWrap:"wrap"}}>
+          <div style={{display:"flex",alignItems:"center",gap:".35rem",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:"var(--r-sm)",padding:".28rem .6rem"}}>
+            <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-muted)"}}>📅</span>
+            <input type="date" value={fechaRef} onChange={e=>setFechaRef(e.target.value)}
+              style={{background:"none",border:"none",color:"var(--text)",fontFamily:"var(--font-mono)",fontSize:".68rem",outline:"none",cursor:"pointer"}} />
+          </div>
+          <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
+          <button className="btn btn-cyan" onClick={()=>setModal({tipo:"ck",fase:fase})}>+ Tarea</button>
+        </div>
       </div>
       <div className="ftabs">
         {pf.map(f=>(
@@ -997,14 +1051,7 @@ function MF({title,fields,init,onSave,onClose}) {
   const upd=(k,v)=>setForm(p=>({...p,[k]:v}));
   const req=fields.find(f=>f.l.includes("*"));
   // Bloquear scroll del fondo y desplazar al top al abrir el modal
-  React.useEffect(()=>{
-    const prev=document.body.style.overflow;
-    document.body.style.overflow="hidden";
-    // Scroll al top del contenedor principal para que el modal sea visible
-    const main=document.querySelector("main");
-    if(main) main.scrollTo({top:0,behavior:"instant"});
-    return()=>{ document.body.style.overflow=prev; };
-  },[]);
+  // sin scroll-lock — causa freeze en Android
   return(
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal">
@@ -1050,13 +1097,7 @@ function ModalRuta({data,veh,rutas,setRutas,onClose}) {
     else setRutas(p=>[...p,{...item,id:genId(rutas)}]);
     onClose();
   };
-  React.useEffect(()=>{
-    const prev=document.body.style.overflow;
-    document.body.style.overflow="hidden";
-    const main=document.querySelector("main");
-    if(main) main.scrollTo({top:0,behavior:"instant"});
-    return()=>{ document.body.style.overflow=prev; };
-  },[]);
+  // sin scroll-lock — causa freeze en Android
   return(
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal" style={{maxWidth:560}}>
