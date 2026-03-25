@@ -144,7 +144,6 @@ export default function App() {
   const ck = Array.isArray(rawCk) ? rawCk : [];
   const [saved, setSaved] = useState(false);
   const [modal, setModal] = useState(null);
-  const [ficha, setFicha] = useState(null); // {tipo,data}
   const [del, setDel] = useState(null);
 
   // useData handles saving automatically.
@@ -219,7 +218,6 @@ export default function App() {
         </div>
       </div>
 
-      {ficha && <FichaLogistica ficha={ficha} material={material} veh={veh} onClose={()=>setFicha(null)} onEditar={(tipo,data)=>{setFicha(null);setModal({tipo,data});}} onEliminar={(tipo,id)=>{setFicha(null);setDel({tipo,id});}} setCk={setCk} />}
       {modal && (
         <ModalRouter key={modal.tipo+(modal.data?.id||"n")} modal={modal} onClose={() => setModal(null)}
           material={material} setMaterial={setMaterial} asigs={asigs} setAsigs={setAsigs}
@@ -421,7 +419,7 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel}) {
                 <td className="tr mono" style={{color:m.asig>0?"var(--cyan)":"var(--text-muted)"}}>{m.asig} {m.unidad}</td>
                 <td className="tr mono" style={{color:"var(--green)"}}>{m.ent} {m.unidad}</td>
                 <td className="tr mono">{m.def>0?<span style={{color:"var(--red)",fontWeight:700}}>-{m.def}</span>:<span style={{color:"var(--text-dim)"}}>—</span>}</td>
-                <td onClick={e=>e.stopPropagation()}><div className="fr g1"><button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"mat",data:m})}>✏️</button><button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"material",id:m.id})}>✕</button></div></td>
+                <td><div className="fr g1"><button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"mat",data:m})}>✏️</button><button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"material",id:m.id})}>✕</button></div></td>
               </tr>
             ))}</tbody>
           </table></div></div>
@@ -460,10 +458,10 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel}) {
         <div>
           <div className="sl">Flota de vehículos</div>
           {veh.map(v=>(
-            <div key={v.id} className="card vcard" style={{cursor:"pointer"}} onClick={()=>setFicha({tipo:"veh",data:v})}>
+            <div key={v.id} className="card vcard">
               <div className="vh"><div className="vi">🚐</div>
                 <div style={{flex:1}}><div className="vn">{v.nombre}</div><div className="vm mono">{v.matricula}</div></div>
-                <div className="fr g1" onClick={e=>e.stopPropagation()}><button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"veh",data:v})}>✏️</button><button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"veh",id:v.id})}>✕</button></div>
+                <div className="fr g1"><button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"veh",data:v})}>✏️</button><button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"veh",id:v.id})}>✕</button></div>
               </div>
               <div className="vmeta"><span>👤 {v.conductor}</span><span>📦 {v.capacidad}</span><span>📞 {v.telefono}</span></div>
               {v.notas&&<div className="vnota">{v.notas}</div>}
@@ -516,7 +514,7 @@ function TabTL({tl,setTl,setModal,setDel}) {
                 {i<sorted.length-1&&<div className="tledge"/>}
               </div>
             </div>
-            <div className="tlcard" style={{cursor:"pointer"}} onClick={()=>setFicha({tipo:"tl",data:t})}>
+            <div className="tlcard" style={{cursor:"pointer"}} onClick={()=>setModal({tipo:"tl",data:t})}>
               <div className="tlch">
                 <span className="tlct">{t.titulo}</span>
                 <div className="fr g1" onClick={e=>e.stopPropagation()}>
@@ -683,7 +681,7 @@ function TabCK({ck,setCk,setModal,setDel}) {
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:"0.4rem"}}>
         {fd?.it.map(item=>(
-          <div key={item.id} className={cls("cki",item.estado==="completado"&&"ckd",item.estado==="bloqueado"&&"ckb")} style={{cursor:"pointer"}} onClick={()=>setFicha({tipo:"ck",data:item})}>
+          <div key={item.id} className={cls("cki",item.estado==="completado"&&"ckd",item.estado==="bloqueado"&&"ckb")} style={{cursor:"pointer"}} onClick={()=>setModal({tipo:"ck",data:item})}>
             <button className="ckbox" onClick={e=>{e.stopPropagation();toggle(item.id)}} style={{borderColor:item.estado==="completado"?"var(--green)":item.estado==="bloqueado"?"var(--red)":"var(--border)",background:item.estado==="completado"?"var(--green)":"transparent"}}>
               {item.estado==="completado"&&<span style={{color:"#000",fontSize:"0.75rem",fontWeight:800}}>✓</span>}
               {item.estado==="bloqueado"&&<span style={{color:"var(--red)",fontSize:"0.75rem"}}>!</span>}
@@ -704,90 +702,6 @@ function TabCK({ck,setCk,setModal,setDel}) {
         ))}
       </div>
     </>
-  );
-}
-
-
-// ─── FICHA LOGÍSTICA ──────────────────────────────────────────────────────────
-function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar, setCk }) {
-  const { tipo, data } = ficha;
-  React.useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const main = document.querySelector("main");
-    if (main) main.scrollTo({top:0,behavior:"instant"});
-    return () => { document.body.style.overflow = prev; };
-  }, []);
-
-  const accentColors = { tl:"#fbbf24", ck:"#34d399", mat:"#22d3ee", veh:"#a78bfa" };
-  const accent = accentColors[tipo] || "var(--cyan)";
-  const icons  = { tl:"⏱️", ck:"✅", mat:"📦", veh:"🚗" };
-  const titles = { tl: data.titulo, ck: data.tarea, mat: data.nombre, veh: data.nombre };
-
-  const Row = ({label, value, color}) => value !== undefined && value !== null && value !== "" ? (
-    <div style={{display:"flex",justifyContent:"space-between",padding:".4rem 0",borderBottom:"1px solid rgba(30,45,80,.28)"}}>
-      <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",flexShrink:0,marginRight:"1rem"}}>{label}</span>
-      <span style={{fontSize:".76rem",fontWeight:600,textAlign:"right",color:color||"var(--text)"}}>{value}</span>
-    </div>
-  ) : null;
-
-  return (
-    <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="modal" style={{maxWidth:460}}>
-        <div style={{borderTop:`3px solid ${accent}`,borderRadius:"12px 12px 0 0"}}>
-          <div className="mhdr">
-            <div style={{display:"flex",alignItems:"center",gap:".6rem"}}>
-              <span style={{fontSize:"1.5rem"}}>{icons[tipo]}</span>
-              <div>
-                <div style={{fontWeight:800,fontSize:".95rem",lineHeight:1.2}}>{titles[tipo]}</div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-muted)",marginTop:".1rem",textTransform:"uppercase"}}>
-                  {tipo==="tl"?"Tarea timeline":tipo==="ck"?"Tarea checklist":tipo==="mat"?"Material":tipo==="veh"?"Vehículo":""}
-                </div>
-              </div>
-            </div>
-            <button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button>
-          </div>
-        </div>
-
-        <div className="mbody">
-          {tipo==="tl" && (<>
-            <Row label="Hora"         value={data.hora} />
-            <Row label="Estado"       value={data.estado}       color={ESTADO_COLORES[data.estado]} />
-            <Row label="Categoría"    value={data.categoria} />
-            <Row label="Responsable"  value={data.responsable} />
-            {data.descripcion && <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",borderLeft:`2px solid ${accent}`,marginTop:".25rem"}}><div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-muted)",marginBottom:".25rem",textTransform:"uppercase"}}>Descripción</div><div style={{fontSize:".78rem",lineHeight:1.5}}>{data.descripcion}</div></div>}
-          </>)}
-          {tipo==="ck" && (<>
-            <Row label="Fase"         value={data.fase} />
-            <Row label="Estado"       value={data.estado}       color={ESTADO_COLORES[data.estado]} />
-            <Row label="Prioridad"    value={data.prioridad}    color={data.prioridad==="alta"?"var(--red)":data.prioridad==="media"?"var(--amber)":"var(--green)"} />
-            <Row label="Responsable"  value={data.responsable} />
-            {data.notas && <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",borderLeft:`2px solid ${accent}`,marginTop:".25rem"}}><div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-muted)",marginBottom:".25rem",textTransform:"uppercase"}}>Notas</div><div style={{fontSize:".78rem",lineHeight:1.5}}>{data.notas}</div></div>}
-          </>)}
-          {tipo==="mat" && (<>
-            <Row label="Categoría"    value={data.categoria} />
-            <Row label="Stock total"  value={`${data.stock} ${data.unidad}`} />
-            <Row label="Asignado"     value={`${data.asig||0} ${data.unidad}`} color={data.def>0?"var(--red)":undefined} />
-            {data.def>0 && <Row label="⚠️ Déficit" value={`${data.def} ${data.unidad}`} color="var(--red)" />}
-          </>)}
-          {tipo==="veh" && (<>
-            <Row label="Matrícula"    value={data.matricula} />
-            <Row label="Conductor"    value={data.conductor} />
-            <Row label="Capacidad"    value={data.capacidad} />
-            <Row label="Teléfono"     value={data.telefono} />
-            {data.notas && <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",borderLeft:`2px solid ${accent}`,marginTop:".25rem"}}><div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-muted)",marginBottom:".25rem",textTransform:"uppercase"}}>Notas</div><div style={{fontSize:".78rem",lineHeight:1.5}}>{data.notas}</div></div>}
-          </>)}
-        </div>
-
-        <div className="mfoot" style={{justifyContent:"space-between"}}>
-          <button className="btn red" onClick={()=>onEliminar(tipo==="tl"?"tl":tipo==="ck"?"ck":tipo==="mat"?"material":"veh", data.id)}>🗑 Eliminar</button>
-          <div style={{display:"flex",gap:".4rem"}}>
-            <button className="btn btn-ghost" onClick={onClose}>Cerrar</button>
-            <button className="btn btn-cyan" onClick={()=>onEditar(tipo,data)}>✏️ Editar</button>
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }
 

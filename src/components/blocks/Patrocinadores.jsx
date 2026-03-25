@@ -533,7 +533,7 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
           const contPend = (p.contraprestaciones || []).filter(c => c && c.estado === "pendiente").length;
           const contTotal = (p.contraprestaciones || []).length;
           return (
-            <div key={p.id} className="pat-row" style={{ borderLeftColor: cfg.color }} onClick={() => onDetalle(p)}>
+            <div key={p.id} className="pat-row" style={{ borderLeftColor: cfg.color }}>
               <div className="pat-nivel" style={{ background: cfg.dim, border: `1px solid ${cfg.border}` }}>
                 <div style={{ fontSize: "1.3rem" }}>{cfg.icon}</div>
                 <div style={{ fontFamily: "var(--font-mono)", fontSize: ".58rem", color: cfg.color, fontWeight: 700, textAlign: "center" }}>{p.nivel}</div>
@@ -559,7 +559,7 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
                 {p.fechaVencimiento && (
                   <div className="mono xs muted">{p.estado !== "cobrado" ? `Vence: ${p.fechaVencimiento}` : "✓ Cobrado"}</div>
                 )}
-                <div style={{ display: "flex", gap: ".3rem" }} onClick={e=>e.stopPropagation()}>
+                <div style={{ display: "flex", gap: ".3rem" }}>
                   <button className="btn btn-sm" style={{ background: cfg.dim, color: cfg.color, border: `1px solid ${cfg.border}` }} onClick={() => onDetalle(p)}>Ver detalle</button>
                   <button className="btn btn-sm btn-ghost" onClick={() => onEditar(p)}>✏️</button>
                   <button className="btn btn-sm btn-red" onClick={() => onDelete(p.id)}>✕</button>
