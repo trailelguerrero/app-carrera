@@ -357,33 +357,6 @@ export default function App() {
 function TabDash({ stats, equipo, setTab, setModal, tareas, hitos, updEstado, isMobile, setFiltroArea, setFiltroResponsable }) {
   return (
     <>
-      <div className="ph">
-        <div>
-          <div className="pt">{isMobile ? "📊 Dashboard" : "📊 Dashboard del Proyecto"}</div>
-          <div className="pd">Trail El Guerrero 2026 · {stats.diasEvento} días</div>
-        </div>
-        <button className="btn btn-primary" onClick={() => setModal({tipo:"tarea",data:null})}>
-          {isMobile ? "+" : "+ Nueva tarea"}
-        </button>
-      </div>
-
-      {/* KPIs */}
-      <div className="kgrid4">
-        {[
-          {l:"Completadas", v:`${stats.pct}%`, s:`${stats.completadas} de ${stats.total}`, c:"green",  i:"✅"},
-          {l:"En curso",    v:stats.enCurso,   s:"tareas activas",          c:"cyan",   i:"▶️"},
-          {l:"Vencidas",    v:stats.vencidas.length, s:"fecha límite superada", c:stats.vencidas.length>0?"red":"green", i:"⏰"},
-          {l:"Bloqueadas",  v:stats.bloqueadas, s:"requieren acción",       c:stats.bloqueadas>0?"amber":"green", i:"🔒"},
-        ].map(k => (
-          <div key={k.l} className={`kpi c-${k.c}`}>
-            <div className="ki">{k.i}</div>
-            <div className="kl">{k.l}</div>
-            <div className="kv">{k.v}</div>
-            <div className="ks">{k.s}</div>
-          </div>
-        ))}
-      </div>
-
       {/* Semáforo por área */}
       <div className="card" style={{marginBottom:".85rem"}}>
         <div className="ct">🚦 Estado por área</div>
