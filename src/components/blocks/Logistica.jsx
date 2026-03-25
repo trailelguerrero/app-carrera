@@ -185,9 +185,13 @@ export default function App() {
             <div className="block-title-sub">Módulo Operativo · Trail El Guerrero 2026</div>
           </div>
           <div className="block-actions">
-            {stats.stockErr > 0 && <span className="badge badge-red">⚠ {stats.stockErr} stock</span>}
-            {stats.incOpen > 0 && <span className="badge badge-amber">📡 {stats.incOpen} incidencias</span>}
-            <span className="badge badge-cyan">✅ {stats.ckDone}/{stats.ckTotal} checklist</span>
+            {stats.stockErr > 0 && <span className="badge badge-red" style={{cursor:"pointer"}} onClick={()=>setTab("material")}>⚠ {stats.stockErr} stock</span>}
+            {stats.incOpen > 0 && <span className="badge badge-amber" style={{cursor:"pointer"}} onClick={()=>setTab("contactos")}>📡 {stats.incOpen} incidencias</span>}
+            <span className="badge badge-cyan">✅ {stats.ckDone}/{stats.ckTotal}</span>
+            <button className="btn btn-sm" style={{background:"rgba(248,113,113,0.1)",color:"var(--red)",border:"1px solid rgba(248,113,113,0.25)",fontFamily:"var(--font-mono)",fontSize:"0.62rem"}}
+              onClick={()=>{setTab("contactos");}}>
+              🚨 Emergencias
+            </button>
           </div>
         </div>
 
@@ -249,14 +253,18 @@ function TabDash({ stats, tl, ck, setTab }) {
       </div>
       <div className="kgrid">
         {[
-          {l:"Timeline",v:`${stats.tlDone}/${stats.tlTotal}`,s:"tareas completadas",c:"cyan",i:"⏱️"},
-          {l:"Checklist",v:`${Math.round(stats.ckDone/Math.max(stats.ckTotal,1)*100)}%`,s:`${stats.ckDone} de ${stats.ckTotal} ítems`,c:"green",i:"✅"},
-          {l:"Alertas Stock",v:stats.stockErr,s:"materiales en déficit",c:stats.stockErr>0?"red":"green",i:"📦"},
-          {l:"Incidencias",v:stats.incOpen,s:"abiertas sin resolver",c:stats.incOpen>0?"red":"green",i:"⚠️"},
+          {l:"Timeline",v:`${stats.tlDone}/${stats.tlTotal}`,s:"tareas completadas",c:"cyan",i:"⏱️",tab:"timeline"},
+          {l:"Checklist",v:`${Math.round(stats.ckDone/Math.max(stats.ckTotal,1)*100)}%`,s:`${stats.ckDone} de ${stats.ckTotal} ítems`,c:"green",i:"✅",tab:"checklist"},
+          {l:"Alertas Stock",v:stats.stockErr,s:"materiales en déficit",c:stats.stockErr>0?"red":"green",i:"📦",tab:"material"},
+          {l:"Incidencias",v:stats.incOpen,s:"abiertas sin resolver",c:stats.incOpen>0?"red":"green",i:"⚠️",tab:"contactos"},
         ].map(k=>(
-          <div key={k.l} className={`kpi c-${k.c}`}>
+          <div key={k.l} className={`kpi c-${k.c}`}
+            style={{cursor:"pointer"}}
+            onClick={()=>setTab(k.tab)}
+            title={`Ir a ${k.l}`}>
             <div className="ki">{k.i}</div><div className="kl">{k.l}</div>
             <div className="kv">{k.v}</div><div className="ks">{k.s}</div>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:"0.55rem",color:"var(--text-dim)",marginTop:"0.35rem"}}>→ ver detalle</div>
           </div>
         ))}
       </div>
@@ -275,6 +283,10 @@ function TabDash({ stats, tl, ck, setTab }) {
             </div>
           ))}
           <button className="btn btn-ghost mt1" onClick={()=>setTab("timeline")}>Ver timeline →</button>
+          <button className="btn mt1" style={{background:"rgba(248,113,113,0.08)",color:"var(--red)",border:"1px solid rgba(248,113,113,0.2)",width:"100%",marginTop:"0.3rem",fontFamily:"var(--font-mono)",fontSize:"0.62rem"}}
+            onClick={()=>setTab("contactos")}>
+            🚨 Protocolo de emergencias →
+          </button>
         </div>
         <div className="card">
           <div className="ct">✅ Progreso checklist</div>
@@ -312,8 +324,18 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel}) {
       <div className="ph">
         <div><div className="pt">📦 Inventario de Material</div><div className="pd">{material.length} artículos · {asigs.length} asignaciones</div></div>
         <div className="fr g1">
-          <button className={cls("btn",!vistaAsig?"btn-cyan":"btn-ghost")} onClick={()=>setVistaAsig(false)}>Catálogo</button>
-          <button className={cls("btn",vistaAsig?"btn-cyan":"btn-ghost")} onClick={()=>setVistaAsig(true)}>Asignaciones</button>
+          <button className={cls("btn",!vistaAsig?"btn-cyan":"btn-ghost")} onClick={()=>setVistaAsig(false)}>
+            Catálogo
+            <span style={{marginLeft:"0.3rem",fontFamily:"var(--font-mono)",fontSize:"0.6rem",
+              background:!vistaAsig?"rgba(0,0,0,0.15)":"var(--surface3)",
+              padding:"0.05rem 0.35rem",borderRadius:3}}>{material.length}</span>
+          </button>
+          <button className={cls("btn",vistaAsig?"btn-cyan":"btn-ghost")} onClick={()=>setVistaAsig(true)}>
+            Asignaciones
+            <span style={{marginLeft:"0.3rem",fontFamily:"var(--font-mono)",fontSize:"0.6rem",
+              background:vistaAsig?"rgba(0,0,0,0.15)":"var(--surface3)",
+              padding:"0.05rem 0.35rem",borderRadius:3}}>{asigs.length}</span>
+          </button>
           {!vistaAsig && (
             <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")}
               onClick={()=>setOrdenAlfa(v=>!v)} title={ordenAlfa?"Quitar orden A-Z":"Ordenar A-Z"}>
@@ -561,7 +583,17 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel}) {
 
 // ─── CHECKLIST ────────────────────────────────────────────────────────────────
 function TabCK({ck,setCk,setModal,setDel}) {
-  const [fase,setFase]=useState("Semana antes");
+  // Detectar fase activa según la fecha actual
+  const diasHasta = Math.ceil((new Date("2026-08-29") - new Date()) / 86400000);
+  const faseActiva = (() => {
+    if (diasHasta < 0)   return "Post-carrera";
+    if (diasHasta === 0) return "Mañana carrera";
+    if (diasHasta <= 1)  return "Mañana carrera";
+    if (diasHasta <= 2)  return "Día antes";
+    if (diasHasta <= 7)  return "Semana antes";
+    return "Semana antes"; // por defecto, la primera fase
+  })();
+  const [fase,setFase]=useState(faseActiva);
   const toggle=(id)=>setCk(p=>p.map(c=>c.id===id?{...c,estado:c.estado==="completado"?"pendiente":"completado"}:c));
   const upd=(id,f,v)=>setCk(p=>p.map(c=>c.id===id?{...c,[f]:v}:c));
   const pf=FASES_CHECKLIST.map(f=>{const it=ck.filter(c=>c.fase===f);const d=it.filter(c=>c.estado==="completado").length;return{f,it,d,t:it.length,pct:it.length?Math.round(d/it.length*100):0};});
@@ -574,8 +606,16 @@ function TabCK({ck,setCk,setModal,setDel}) {
       </div>
       <div className="ftabs">
         {pf.map(f=>(
-          <button key={f.f} className={cls("ftab",fase===f.f&&"fa")} onClick={()=>setFase(f.f)}>
-            <span>{f.f}</span>
+          <button key={f.f} className={cls("ftab",fase===f.f&&"fa",f.f===faseActiva&&"ftab-activa")} onClick={()=>setFase(f.f)}>
+            <div style={{display:"flex",alignItems:"center",gap:"0.3rem",marginBottom:"0.15rem"}}>
+              <span style={{fontSize:"0.72rem",fontWeight:600}}>{f.f}</span>
+              {f.f===faseActiva && (
+                <span style={{fontFamily:"var(--font-mono)",fontSize:"0.5rem",fontWeight:700,
+                  background:"rgba(34,211,238,0.15)",color:"var(--cyan)",
+                  border:"1px solid rgba(34,211,238,0.3)",borderRadius:3,
+                  padding:"0.05rem 0.3rem",lineHeight:1.2,flexShrink:0}}>AHORA</span>
+              )}
+            </div>
             <span className="fprog mono" style={{color:f.pct===100?"var(--green)":f.pct>50?"var(--cyan)":"var(--text-muted)"}}>{f.d}/{f.t}</span>
             <div className="fbar"><div className="ffill" style={{width:`${f.pct}%`,background:f.pct===100?"var(--green)":f.pct>50?"var(--cyan)":"var(--amber)"}}/></div>
           </button>
@@ -866,6 +906,8 @@ const CSS = `
   .ftab{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:.5rem .75rem;cursor:pointer;text-align:left;transition:all .15s;min-width:110px}
   .ftab:hover{border-color:var(--border-light)} .ftab.fa{border-color:var(--cyan);background:var(--cyan-dim)}
   .ftab>span:first-child{display:block;font-size:.72rem;font-weight:600;margin-bottom:.15rem}
+  .ftab-activa{border-color:rgba(34,211,238,0.35) !important;background:rgba(34,211,238,0.04) !important;}
+  .kpi[style*="cursor:pointer"]:hover{transform:translateY(-2px);border-color:var(--border-light);box-shadow:0 4px 16px rgba(0,0,0,.3)}
   .fprog{display:block;font-family:var(--font-mono);font-size:.62rem;margin-bottom:.25rem}
   .fbar{height:3px;background:var(--surface3);border-radius:2px;overflow:hidden}
   .ffill{height:100%;border-radius:2px;transition:width .5s}
