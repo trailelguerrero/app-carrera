@@ -1444,6 +1444,9 @@ const CSS = `
   .mt1{margin-top:.5rem} .w100{width:100%;justify-content:center}
   .empty{text-align:center;padding:2rem;color:var(--text-muted);font-family:var(--font-mono);font-size:.75rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--r)}
   /* MODAL */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:100;padding:1rem;animation:fi .15s ease}
+  @keyframes fi{from{opacity:0}to{opacity:1}}
+  .modal{background:var(--surface);border:1px solid var(--border-light);border-radius:16px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;animation:su .2s ease;box-shadow:0 24px 64px rgba(0,0,0,.6)}
   @keyframes su{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
   .mhdr{padding:1.1rem 1.4rem .9rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
   .mtit{font-size:.95rem;font-weight:700}
