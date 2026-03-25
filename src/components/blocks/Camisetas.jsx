@@ -32,23 +32,39 @@ const ESTADO_ENTREGA_CFG = {
 const PEDIDOS_DEFAULT = [
   {
     id: 1, nombre: "Ejemplo Persona", telefono: "600000001", email: "ejemplo@email.com",
-    notas: "Familiar del organizador", estadoPago: "pendiente", estadoEntrega: "pendiente",
+    notas: "Familiar del organizador",
     lineas: [
-      { id: 1, tipo: "corredor",   talla: "M",  cantidad: 1, precioVenta: 15 },
-      { id: 2, tipo: "voluntario", talla: "L",  cantidad: 2, precioVenta: 12 },
+      { id: 1, tipo: "corredor",   talla: "M", cantidad: 1, precioVenta: 15, estadoPago: "pagado",  estadoEntrega: "pendiente" },
+      { id: 2, tipo: "voluntario", talla: "L", cantidad: 2, precioVenta: 0,  estadoPago: "regalo",  estadoEntrega: "pendiente" },
     ]
   },
 ];
 
 const COSTE_DEFAULT = { corredor: 8, voluntario: 7 };
 
-// ─── CÁLCULOS ─────────────────────────────────────────────────────────────────
+// ─── CÁLCULOS (estadoPago y estadoEntrega son por LÍNEA) ──────────────────────
+const calcLinea = (l, coste) => ({
+  subVenta: l.estadoPago === "regalo" ? 0 : l.cantidad * l.precioVenta,
+  subCoste: l.cantidad * (coste[l.tipo] || 0),
+  subBenef: l.estadoPago === "regalo"
+    ? -(l.cantidad * (coste[l.tipo] || 0))
+    : l.cantidad * (l.precioVenta - (coste[l.tipo] || 0)),
+});
 const calcPedido = (p, coste) => {
-  const totalVenta  = p.lineas.reduce((s,l) => s + l.cantidad * l.precioVenta, 0);
-  const totalCoste  = p.lineas.reduce((s,l) => s + l.cantidad * (coste[l.tipo] || 0), 0);
-  const totalUnid   = p.lineas.reduce((s,l) => s + l.cantidad, 0);
-  const beneficio   = p.estadoPago === "regalo" ? -totalCoste : totalVenta - totalCoste;
-  return { totalVenta, totalCoste, totalUnid, beneficio };
+  const rows = p.lineas.map(l => calcLinea(l, coste));
+  return {
+    totalVenta: rows.reduce((s,r) => s + r.subVenta, 0),
+    totalCoste: rows.reduce((s,r) => s + r.subCoste, 0),
+    totalBenef: rows.reduce((s,r) => s + r.subBenef, 0),
+    totalUnid:  p.lineas.reduce((s,l) => s + l.cantidad, 0),
+  };
+};
+// Badge de resumen del pedido — refleja estado mixto
+const badgePago = (p) => {
+  const pagos = [...new Set(p.lineas.map(l => l.estadoPago))];
+  if (pagos.length === 1) return ESTADO_PAGO_CFG[pagos[0]];
+  if (pagos.includes("pendiente")) return { ...ESTADO_PAGO_CFG.pendiente, label: "Mixto" };
+  return { ...ESTADO_PAGO_CFG.pagado, label: "Mixto" };
 };
 
 // ─── APP ──────────────────────────────────────────────────────────────────────
@@ -77,6 +93,10 @@ export default function App() {
     setPedidos(prev => prev.filter(x => x.id !== delId));
     setDelId(null); setFicha(null);
   };
+  const updateLinea = (pedidoId, lineaId, campo, valor) =>
+    setPedidos(prev => prev.map(p => p.id !== pedidoId ? p : {
+      ...p, lineas: p.lineas.map(l => l.id !== lineaId ? l : { ...l, [campo]: valor })
+    }));
 
   const updatePedido = (id, campo, valor) =>
     setPedidos(prev => prev.map(p => p.id === id ? { ...p, [campo]: valor } : p));
@@ -89,16 +109,18 @@ export default function App() {
   ];
 
   const stats = useMemo(() => {
-    const total    = pedidos.length;
-    const unidades = pedidos.reduce((s,p) => s + p.lineas.reduce((a,l) => a+l.cantidad, 0), 0);
-    const recaudado= pedidos.filter(p=>p.estadoPago==="pagado")
-                            .reduce((s,p) => s + calcPedido(p,coste).totalVenta, 0);
-    const pendCobro= pedidos.filter(p=>p.estadoPago==="pendiente")
-                            .reduce((s,p) => s + calcPedido(p,coste).totalVenta, 0);
-    const beneficio= pedidos.reduce((s,p) => s + calcPedido(p,coste).beneficio, 0);
-    const regalos  = pedidos.filter(p=>p.estadoPago==="regalo").length;
-    const pendEnt  = pedidos.filter(p=>p.estadoEntrega==="pendiente").length;
-    return { total, unidades, recaudado, pendCobro, beneficio, regalos, pendEnt };
+    const total   = pedidos.length;
+    const unid    = pedidos.reduce((s,p) => s + p.lineas.reduce((a,l) => a+l.cantidad, 0), 0);
+    const recaud  = pedidos.reduce((s,p) => s + p.lineas.filter(l=>l.estadoPago==="pagado")
+                      .reduce((a,l) => a + l.cantidad*l.precioVenta, 0), 0);
+    const pCobro  = pedidos.reduce((s,p) => s + p.lineas.filter(l=>l.estadoPago==="pendiente")
+                      .reduce((a,l) => a + l.cantidad*l.precioVenta, 0), 0);
+    const benef   = pedidos.reduce((s,p) => s + calcPedido(p,coste).totalBenef, 0);
+    const regalos = pedidos.reduce((s,p) => s + p.lineas.filter(l=>l.estadoPago==="regalo")
+                      .reduce((a,l) => a + l.cantidad, 0), 0);
+    const pEnt    = pedidos.reduce((s,p) => s + p.lineas.filter(l=>l.estadoEntrega==="pendiente")
+                      .reduce((a,l) => a + l.cantidad, 0), 0);
+    return { total, unid, recaud, pCobro, benef, regalos, pEnt };
   }, [pedidos, coste]);
 
   return (
@@ -111,8 +133,8 @@ export default function App() {
             <div className="block-title-sub">Pedidos externos · Trail El Guerrero 2026</div>
           </div>
           <div className="block-actions">
-            {stats.pendCobro > 0 && <span className="badge badge-amber">⏳ {fmt(stats.pendCobro)} pendiente</span>}
-            {stats.pendEnt  > 0 && <span className="badge badge-cyan">📦 {stats.pendEnt} por entregar</span>}
+            {stats.pCobro > 0 && <span className="badge badge-amber">⏳ {fmt(stats.pCobro)} pendiente</span>}
+            {stats.pEnt  > 0 && <span className="badge badge-cyan">📦 {stats.pEnt} por entregar</span>}
             <button className="btn btn-primary" onClick={() => abrirModal(null)}>+ Nuevo pedido</button>
           </div>
         </div>
@@ -129,7 +151,7 @@ export default function App() {
           {tab==="dashboard" && <TabDashboard stats={stats} pedidos={pedidos} coste={coste} setCoste={setCoste} setTab={setTab} abrirFicha={abrirFicha} />}
           {tab==="pedidos"   && <TabPedidos   pedidos={pedidos} coste={coste} abrirFicha={abrirFicha} abrirModal={abrirModal} updatePedido={updatePedido} />}
           {tab==="tallas"    && <TabTallas    pedidos={pedidos} />}
-          {tab==="checklist" && <TabChecklist pedidos={pedidos} updatePedido={updatePedido} abrirFicha={abrirFicha} />}
+          {tab==="checklist" && <TabChecklist pedidos={pedidos} coste={coste} updateLinea={updateLinea} abrirFicha={abrirFicha} />}
         </div>
       </div>
 
@@ -141,7 +163,7 @@ export default function App() {
           onClose={()=>setFicha(null)}
           onEditar={()=>abrirEditar(pedidos.find(p=>p.id===ficha.id)||ficha)}
           onEliminar={()=>{ setDelId(ficha.id); setFicha(null); }}
-          updatePedido={updatePedido}
+          updateLinea={updateLinea}
         />
       )}
 
@@ -196,10 +218,10 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha }) {
       <div className="kpi-grid mb">
         {[
           { l:"👕 Pedidos",      v: stats.total,           s:"personas",           color:"cyan",   tab:"pedidos"   },
-          { l:"📦 Unidades",     v: stats.unidades,         s:"camisetas totales",  color:"violet", tab:"tallas"    },
-          { l:"✅ Recaudado",    v: fmt(stats.recaudado),   s:"cobrado",            color:"green",  tab:"pedidos"   },
-          { l:"⏳ Por cobrar",   v: fmt(stats.pendCobro),   s:"pendiente de pago",  color:"amber",  tab:"pedidos"   },
-          { l:"💰 Beneficio",    v: fmt(stats.beneficio),   s:"venta − coste",      color: stats.beneficio>=0?"green":"red", tab:"pedidos" },
+          { l:"📦 Unidades",     v: stats.unid,         s:"camisetas totales",  color:"violet", tab:"tallas"    },
+          { l:"✅ Recaudado",    v: fmt(stats.recaud),   s:"cobrado",            color:"green",  tab:"pedidos"   },
+          { l:"⏳ Por cobrar",   v: fmt(stats.pCobro),   s:"pendiente de pago",  color:"amber",  tab:"pedidos"   },
+          { l:"💰 Beneficio",    v: fmt(stats.benef),   s:"venta − coste",      color: stats.benef>=0?"green":"red", tab:"pedidos" },
           { l:"🎁 Regalos",      v: stats.regalos,          s:"pedidos regalo",     color:"violet", tab:"pedidos"   },
         ].map(k => (
           <div key={k.l} className={`kpi ${k.color}`} style={{cursor:"pointer"}} onClick={()=>setTab(k.tab)}>
@@ -292,38 +314,40 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha }) {
 }
 
 // ─── TAB PEDIDOS ──────────────────────────────────────────────────────────────
-function TabPedidos({ pedidos, coste, abrirFicha, abrirModal, updatePedido }) {
-  const [vistaKanban, setVistaKanban] = useState(false);
-  const [ordenAlfa,   setOrdenAlfa]   = useState(false);
-  const [filtroEstado,setFiltroEstado]= useState("todos");
-  const [busqueda,    setBusqueda]    = useState("");
+function TabPedidos({ pedidos, coste, abrirFicha, abrirModal, updateLinea }) {
+  const [vistaKanban,  setVistaKanban]  = useState(false);
+  const [ordenAlfa,    setOrdenAlfa]    = useState(false);
+  const [filtroPago,   setFiltroPago]   = useState("todos");
+  const [filtroEntrega,setFiltroEntrega]= useState("todos");
+  const [busqueda,     setBusqueda]     = useState("");
 
   const filtrados = useMemo(() => {
     let list = pedidos.filter(p => {
-      const q = busqueda.toLowerCase();
-      const matchQ = !q || p.nombre.toLowerCase().includes(q) || (p.telefono||"").includes(q) || (p.email||"").toLowerCase().includes(q);
-      const matchE = filtroEstado==="todos" || p.estadoPago===filtroEstado || p.estadoEntrega===filtroEstado;
-      return matchQ && matchE;
+      const q  = busqueda.toLowerCase();
+      const mQ = !q || p.nombre.toLowerCase().includes(q) || (p.telefono||"").includes(q) || (p.email||"").toLowerCase().includes(q);
+      const mP = filtroPago    === "todos" || p.lineas.some(l => l.estadoPago    === filtroPago);
+      const mE = filtroEntrega === "todos" || p.lineas.some(l => l.estadoEntrega === filtroEntrega);
+      return mQ && mP && mE;
     });
     if (ordenAlfa) list = [...list].sort((a,b) => a.nombre.localeCompare(b.nombre,"es"));
     return list;
-  }, [pedidos, busqueda, filtroEstado, ordenAlfa]);
+  }, [pedidos, busqueda, filtroPago, filtroEntrega, ordenAlfa]);
 
   return (
     <>
       <div className="ph">
         <div>
-          <div className="pt">👕 Pedidos de camisetas</div>
-          <div className="pd">{pedidos.length} pedidos · {pedidos.reduce((s,p)=>s+p.lineas.reduce((a,l)=>a+l.cantidad,0),0)} unidades</div>
+          <div className="pt">Pedidos</div>
+          <div className="pd">{pedidos.length} pedidos {pedidos.reduce((s,p)=>s+p.lineas.reduce((a,l)=>a+l.cantidad,0),0)} unidades</div>
         </div>
         <div className="fr g1" style={{flexWrap:"wrap"}}>
           <div style={{display:"flex",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:"var(--r-sm)",overflow:"hidden"}}>
-            {[["lista","☰"],["kanban","⬛"]].map(([v,ic])=>(
+            {[["lista","lista"],["kanban","kanban"]].map(([v,ic])=>(
               <button key={v} onClick={()=>setVistaKanban(v==="kanban")}
                 style={{padding:".3rem .55rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,
                   background:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"rgba(99,102,241,.2)":"transparent",
                   color:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"#c4c6ff":"var(--text-muted)"}}>
-                {ic}
+                {v==="lista"?"☰":"⬛"}
               </button>
             ))}
           </div>
@@ -332,34 +356,34 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal, updatePedido }) {
         </div>
       </div>
 
-      {/* Filtros */}
       <div className="card" style={{marginBottom:".75rem",padding:".65rem .85rem"}}>
         <div style={{display:"flex",gap:".6rem",flexWrap:"wrap",alignItems:"center"}}>
-          <input className="inp" placeholder="🔍 Nombre, teléfono o email…" value={busqueda}
-            onChange={e=>setBusqueda(e.target.value)} style={{maxWidth:260}} />
-          <select className="inp" value={filtroEstado} onChange={e=>setFiltroEstado(e.target.value)} style={{width:"auto"}}>
-            <option value="todos">Todos</option>
-            <optgroup label="— Pago —">
-              {ESTADO_PAGO.map(e => <option key={e} value={e}>{ESTADO_PAGO_CFG[e].icon} {ESTADO_PAGO_CFG[e].label}</option>)}
-            </optgroup>
-            <optgroup label="— Entrega —">
-              {ESTADO_ENTREGA.map(e => <option key={e} value={e}>{ESTADO_ENTREGA_CFG[e].icon} {ESTADO_ENTREGA_CFG[e].label}</option>)}
-            </optgroup>
+          <input className="inp" placeholder="Buscar nombre, telefono..." value={busqueda}
+            onChange={e=>setBusqueda(e.target.value)} style={{maxWidth:220}} />
+          <select className="inp" value={filtroPago} onChange={e=>setFiltroPago(e.target.value)} style={{width:"auto"}}>
+            <option value="todos">Pago: todos</option>
+            {Object.entries(ESTADO_PAGO_CFG).map(([k,v])=><option key={k} value={k}>{v.icon} {v.label}</option>)}
           </select>
-          {(busqueda||filtroEstado!=="todos") && (
-            <button className="btn btn-ghost btn-sm" onClick={()=>{setBusqueda("");setFiltroEstado("todos");}}>✕ Limpiar</button>
+          <select className="inp" value={filtroEntrega} onChange={e=>setFiltroEntrega(e.target.value)} style={{width:"auto"}}>
+            <option value="todos">Entrega: todos</option>
+            {Object.entries(ESTADO_ENT_CFG).map(([k,v])=><option key={k} value={k}>{v.icon} {v.label}</option>)}
+          </select>
+          {(busqueda||filtroPago!=="todos"||filtroEntrega!=="todos")&&(
+            <button className="btn btn-ghost btn-sm" onClick={()=>{setBusqueda("");setFiltroPago("todos");setFiltroEntrega("todos");}}>X Limpiar</button>
           )}
         </div>
       </div>
 
-      {filtrados.length===0 && <div className="empty-state"><div className="empty-state-icon">👕</div>Sin pedidos con estos filtros</div>}
+      {filtrados.length===0&&<div className="empty-state"><div className="empty-state-icon">👕</div>Sin pedidos con estos filtros</div>}
 
-      {/* KANBAN por estado de pago */}
       {vistaKanban ? (
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:".65rem"}}>
-          {ESTADO_PAGO.map(estado => {
-            const items = filtrados.filter(p => p.estadoPago===estado);
-            const cfg = ESTADO_PAGO_CFG[estado];
+          {Object.entries(ESTADO_PAGO_CFG).map(([estado,cfg]) => {
+            const items = filtrados.filter(p => {
+              const counts = {};
+              p.lineas.forEach(l => { counts[l.estadoPago] = (counts[l.estadoPago]||0) + l.cantidad; });
+              return Object.entries(counts).sort((a,b)=>b[1]-a[1])[0]?.[0] === estado;
+            });
             return (
               <div key={estado} style={{background:"var(--surface)",border:"1px solid var(--border)",borderTop:`2px solid ${cfg.color}`,borderRadius:"var(--r)",overflow:"hidden"}}>
                 <div style={{padding:".6rem .75rem",background:"var(--surface2)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -368,61 +392,74 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal, updatePedido }) {
                 </div>
                 {items.map(p => {
                   const {totalVenta,totalUnid} = calcPedido(p,coste);
-                  const ecEnt = ESTADO_ENTREGA_CFG[p.estadoEntrega];
+                  const hayPendEnt = p.lineas.some(l=>l.estadoEntrega==="pendiente");
+                  const ecEnt = hayPendEnt ? ESTADO_ENT_CFG.pendiente : ESTADO_ENT_CFG.entregado;
                   return (
                     <div key={p.id} style={{margin:".4rem .4rem 0",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:8,padding:".6rem .7rem",cursor:"pointer",transition:"all .15s"}}
                       onClick={()=>abrirFicha(p)}
                       onMouseEnter={e=>e.currentTarget.style.borderColor="var(--border-light)"}
                       onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border)"}>
-                      <div style={{fontWeight:700,fontSize:".78rem",marginBottom:".2rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
-                      <div style={{display:"flex",gap:".35rem",flexWrap:"wrap",marginBottom:".3rem"}}>
-                        {p.lineas.map((l,i) => (
-                          <span key={i} style={{fontFamily:"var(--font-mono)",fontSize:".58rem",padding:".08rem .3rem",borderRadius:3,background:TIPO_CFG[l.tipo]?.dim,color:TIPO_CFG[l.tipo]?.color}}>
-                            {TIPO_CFG[l.tipo]?.icon}{l.talla}×{l.cantidad}
-                          </span>
-                        ))}
+                      <div style={{fontWeight:700,fontSize:".78rem",marginBottom:".25rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
+                      <div style={{display:"flex",gap:".25rem",flexWrap:"wrap",marginBottom:".3rem"}}>
+                        {p.lineas.map((l,i) => {
+                          const epCfg = ESTADO_PAGO_CFG[l.estadoPago];
+                          return (
+                            <span key={i} style={{fontFamily:"var(--font-mono)",fontSize:".55rem",padding:".06rem .3rem",borderRadius:3,
+                              background:TIPO_CFG[l.tipo]?.dim,color:TIPO_CFG[l.tipo]?.color,
+                              border:`1px solid ${TIPO_CFG[l.tipo]?.color}33`}}>
+                              {TIPO_CFG[l.tipo]?.icon}{l.talla}x{l.cantidad} {epCfg.icon}
+                            </span>
+                          );
+                        })}
                       </div>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                        <span className="mono xs muted">{totalUnid} ud · {fmt(totalVenta)}</span>
+                        <span className="mono xs muted">{totalUnid} ud {fmt(totalVenta)}</span>
                         <span className="badge" style={{background:ecEnt.bg,color:ecEnt.color,fontSize:".5rem"}}>{ecEnt.icon}</span>
                       </div>
                     </div>
                   );
                 })}
-                {items.length===0 && <div style={{padding:"1rem",textAlign:"center",fontFamily:"var(--font-mono)",fontSize:".62rem",color:"var(--text-dim)"}}>—</div>}
+                {items.length===0&&<div style={{padding:"1rem",textAlign:"center",fontFamily:"var(--font-mono)",fontSize:".62rem",color:"var(--text-dim)"}}>-</div>}
                 <div style={{height:".4rem"}}/>
               </div>
             );
           })}
         </div>
       ) : (
-        /* LISTA */
         <div style={{display:"flex",flexDirection:"column",gap:".5rem"}}>
           {filtrados.map(p => {
-            const {totalVenta,totalCoste,totalUnid,beneficio} = calcPedido(p,coste);
-            const ecPago = ESTADO_PAGO_CFG[p.estadoPago];
-            const ecEnt  = ESTADO_ENTREGA_CFG[p.estadoEntrega];
+            const {totalVenta,totalUnid} = calcPedido(p,coste);
+            const bp         = badgePago(p);
+            const hayPendEnt = p.lineas.some(l=>l.estadoEntrega==="pendiente");
             return (
               <div key={p.id} className="cam-row" onClick={()=>abrirFicha(p)}>
                 <div style={{display:"flex",alignItems:"center",gap:".6rem",flex:1,minWidth:0}}>
-                  <span style={{fontSize:"1.4rem",flexShrink:0}}>{ecPago.icon}</span>
+                  <span style={{fontSize:"1.4rem",flexShrink:0}}>{bp.icon}</span>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontWeight:700,fontSize:".88rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
-                    <div style={{display:"flex",gap:".5rem",flexWrap:"wrap",marginTop:".15rem"}}>
-                      {p.lineas.map((l,i) => (
-                        <span key={i} style={{fontFamily:"var(--font-mono)",fontSize:".6rem",padding:".08rem .35rem",borderRadius:3,background:TIPO_CFG[l.tipo]?.dim,color:TIPO_CFG[l.tipo]?.color}}>
-                          {TIPO_CFG[l.tipo]?.icon} {l.talla} × {l.cantidad}
-                        </span>
-                      ))}
+                    <div style={{display:"flex",gap:".3rem",flexWrap:"wrap",marginTop:".2rem"}}>
+                      {p.lineas.map((l,i) => {
+                        const epCfg = ESTADO_PAGO_CFG[l.estadoPago];
+                        const eeCfg = ESTADO_ENT_CFG[l.estadoEntrega];
+                        return (
+                          <span key={i} style={{fontFamily:"var(--font-mono)",fontSize:".6rem",padding:".08rem .35rem",
+                            borderRadius:3,background:TIPO_CFG[l.tipo]?.dim,color:TIPO_CFG[l.tipo]?.color,
+                            display:"flex",alignItems:"center",gap:".25rem"}}>
+                            {TIPO_CFG[l.tipo]?.icon} {l.talla}x{l.cantidad} {epCfg.icon}{eeCfg.icon}
+                          </span>
+                        );
+                      })}
                     </div>
-                    {p.notas && <div className="mono xs muted" style={{marginTop:".1rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.notas}</div>}
+                    {p.notas&&<div className="mono xs muted" style={{marginTop:".1rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.notas}</div>}
                   </div>
                 </div>
                 <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:".3rem",flexShrink:0}}>
-                  <div style={{fontFamily:"var(--font-mono)",fontSize:".88rem",fontWeight:800,color:p.estadoPago==="regalo"?"var(--violet)":"var(--text)"}}>{fmt(totalVenta)}</div>
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:".88rem",fontWeight:800}}>{fmt(totalVenta)}</div>
                   <div style={{display:"flex",gap:".3rem"}}>
-                    <span className="badge" style={{background:ecPago.bg,color:ecPago.color,fontSize:".55rem"}}>{ecPago.label}</span>
-                    <span className="badge" style={{background:ecEnt.bg,color:ecEnt.color,fontSize:".55rem"}}>{ecEnt.icon}</span>
+                    <span className="badge" style={{background:bp.bg,color:bp.color,fontSize:".52rem"}}>{bp.label}</span>
+                    <span className="badge" style={{background:hayPendEnt?ESTADO_ENT_CFG.pendiente.bg:ESTADO_ENT_CFG.entregado.bg,color:hayPendEnt?ESTADO_ENT_CFG.pendiente.color:ESTADO_ENT_CFG.entregado.color,fontSize:".52rem"}}>
+                      {hayPendEnt?ESTADO_ENT_CFG.pendiente.icon:ESTADO_ENT_CFG.entregado.icon}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -433,6 +470,7 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal, updatePedido }) {
     </>
   );
 }
+
 
 // ─── TAB TALLAS ──────────────────────────────────────────────────────────────
 function TabTallas({ pedidos }) {
@@ -542,42 +580,50 @@ function TabTallas({ pedidos }) {
 }
 
 // ─── TAB CHECKLIST PRODUCCIÓN ─────────────────────────────────────────────────
-function TabChecklist({ pedidos, updatePedido, abrirFicha }) {
-  const [filtro, setFiltro] = useState("todos"); // "todos"|"pendiente"|"pagado"|"regalo"|"entregado"|"sin-entregar"
+function TabChecklist({ pedidos, coste, updateLinea, abrirFicha }) {
+  const [filtro, setFiltro] = useState("todos");
 
-  const filtrados = useMemo(() => {
-    return pedidos.filter(p => {
-      if (filtro==="todos")       return true;
-      if (filtro==="sin-entregar")return p.estadoEntrega==="pendiente";
-      if (filtro==="entregado")   return p.estadoEntrega==="entregado";
-      return p.estadoPago===filtro;
-    });
-  }, [pedidos, filtro]);
+  const todasLineas = useMemo(() =>
+    pedidos.flatMap(p => p.lineas.map(l => ({...l, pedNombre:p.nombre, pedId:p.id, ped:p})))
+  , [pedidos]);
 
-  const pendEnt  = pedidos.filter(p=>p.estadoEntrega==="pendiente").length;
-  const pendPago = pedidos.filter(p=>p.estadoPago==="pendiente").length;
+  const filtradas = useMemo(() => todasLineas.filter(l => {
+    if (filtro==="todos")        return true;
+    if (filtro==="sin-entregar") return l.estadoEntrega==="pendiente";
+    if (filtro==="entregado")    return l.estadoEntrega==="entregado";
+    if (filtro==="sin-pagar")    return l.estadoPago==="pendiente";
+    if (filtro==="pagado")       return l.estadoPago==="pagado";
+    if (filtro==="regalo")       return l.estadoPago==="regalo";
+    return true;
+  }), [todasLineas, filtro]);
+
+  const cntPendEnt  = todasLineas.filter(l=>l.estadoEntrega==="pendiente").length;
+  const cntPendPago = todasLineas.filter(l=>l.estadoPago==="pendiente").length;
+  const cntReg      = todasLineas.filter(l=>l.estadoPago==="regalo").length;
+  const cntPagado   = todasLineas.filter(l=>l.estadoPago==="pagado").length;
+  const cntEntregado= todasLineas.filter(l=>l.estadoEntrega==="entregado").length;
+
+  const FILTROS = [
+    {id:"todos",        label:`Todos (${todasLineas.length})`,    color:"var(--text-muted)"},
+    {id:"sin-entregar", label:`Por entregar (${cntPendEnt})`,     color:"var(--amber)"},
+    {id:"entregado",    label:`Entregados (${cntEntregado})`,     color:"var(--green)"},
+    {id:"sin-pagar",    label:`Sin pagar (${cntPendPago})`,       color:"var(--amber)"},
+    {id:"pagado",       label:`Pagados (${cntPagado})`,           color:"var(--green)"},
+    {id:"regalo",       label:`Regalos (${cntReg})`,              color:"var(--violet)"},
+  ];
 
   return (
     <>
       <div className="ph">
         <div>
-          <div className="pt">✅ Producción y entrega</div>
-          <div className="pd">{pendEnt} por entregar · {pendPago} sin cobrar</div>
+          <div className="pt">Produccion y entrega</div>
+          <div className="pd">{cntPendEnt} lineas por entregar {cntPendPago} sin cobrar</div>
         </div>
       </div>
-
-      {/* Resumen rápido */}
-      <div style={{display:"flex",gap:".5rem",flexWrap:"wrap",marginBottom:".85rem"}}>
-        {[
-          {id:"todos",        label:`Todos (${pedidos.length})`,             color:"var(--text-muted)" },
-          {id:"sin-entregar", label:`Por entregar (${pendEnt})`,             color:"var(--amber)" },
-          {id:"entregado",    label:`Entregados (${pedidos.length-pendEnt})`,color:"var(--green)" },
-          {id:"pendiente",    label:`Sin pagar (${pendPago})`,               color:"var(--amber)" },
-          {id:"pagado",       label:`Pagados (${pedidos.filter(p=>p.estadoPago==="pagado").length})`, color:"var(--green)" },
-          {id:"regalo",       label:`Regalos (${pedidos.filter(p=>p.estadoPago==="regalo").length})`, color:"var(--violet)" },
-        ].map(f => (
+      <div style={{display:"flex",gap:".4rem",flexWrap:"wrap",marginBottom:".85rem"}}>
+        {FILTROS.map(f=>(
           <button key={f.id} onClick={()=>setFiltro(f.id)}
-            style={{fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,padding:".28rem .65rem",
+            style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,padding:".28rem .6rem",
               borderRadius:"var(--r-sm)",border:`1px solid ${filtro===f.id?f.color:"var(--border)"}`,
               background:filtro===f.id?`${f.color}18`:"transparent",
               color:filtro===f.id?f.color:"var(--text-muted)",cursor:"pointer",transition:"all .15s"}}>
@@ -585,49 +631,37 @@ function TabChecklist({ pedidos, updatePedido, abrirFicha }) {
           </button>
         ))}
       </div>
-
-      {filtrados.length===0 && <div className="empty-state"><div className="empty-state-icon">✅</div>Sin pedidos con estos filtros</div>}
-
-      <div style={{display:"flex",flexDirection:"column",gap:".45rem"}}>
-        {filtrados.map(p => {
-          const {totalVenta,totalUnid} = calcPedido(p, {});
-          const ecPago = ESTADO_PAGO_CFG[p.estadoPago];
-          const ecEnt  = ESTADO_ENTREGA_CFG[p.estadoEntrega];
+      {filtradas.length===0&&<div className="empty-state"><div className="empty-state-icon">✅</div>Sin lineas con estos filtros</div>}
+      <div style={{display:"flex",flexDirection:"column",gap:".4rem"}}>
+        {filtradas.map(l => {
+          const tcfg  = TIPO_CFG[l.tipo];
+          const epCfg = ESTADO_PAGO_CFG[l.estadoPago];
+          const eeCfg = ESTADO_ENT_CFG[l.estadoEntrega];
           return (
-            <div key={p.id} className="card" style={{padding:".75rem 1rem",borderLeft:`3px solid ${ecEnt.color}`}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:".75rem",flexWrap:"wrap"}}>
-                <div style={{cursor:"pointer",flex:1,minWidth:0}} onClick={()=>abrirFicha(p)}>
-                  <div style={{fontWeight:700,fontSize:".86rem",marginBottom:".2rem"}}>{p.nombre}</div>
-                  <div style={{display:"flex",gap:".35rem",flexWrap:"wrap",marginBottom:".25rem"}}>
-                    {p.lineas.map((l,i) => (
-                      <span key={i} style={{fontFamily:"var(--font-mono)",fontSize:".62rem",padding:".08rem .35rem",borderRadius:3,background:TIPO_CFG[l.tipo]?.dim,color:TIPO_CFG[l.tipo]?.color}}>
-                        {TIPO_CFG[l.tipo]?.icon} {l.talla} × {l.cantidad}
-                      </span>
-                    ))}
-                  </div>
-                  <div style={{display:"flex",gap:".5rem",alignItems:"center"}}>
-                    <span className="badge" style={{background:ecPago.bg,color:ecPago.color,fontSize:".55rem"}}>{ecPago.icon} {ecPago.label}</span>
-                    {p.telefono && <span className="mono xs muted">📞 {p.telefono}</span>}
+            <div key={`${l.pedId}-${l.id}`} className="card" style={{padding:".7rem 1rem",borderLeft:`3px solid ${eeCfg.color}`}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:".75rem",flexWrap:"wrap"}}>
+                <div style={{cursor:"pointer",flex:1,minWidth:0}} onClick={()=>abrirFicha(l.ped)}>
+                  <div style={{fontWeight:700,fontSize:".84rem",marginBottom:".15rem"}}>{l.pedNombre}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:".5rem",flexWrap:"wrap"}}>
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",padding:".1rem .4rem",borderRadius:4,background:tcfg?.dim,color:tcfg?.color}}>
+                      {tcfg?.icon} {tcfg?.label} - {l.talla} x {l.cantidad} ud
+                    </span>
+                    <span className="badge" style={{background:epCfg.bg,color:epCfg.color,fontSize:".55rem"}}>{epCfg.icon} {epCfg.label}</span>
                   </div>
                 </div>
-                {/* Controles de estado — stopPropagation */}
-                <div style={{display:"flex",flexDirection:"column",gap:".4rem",alignItems:"flex-end"}} onClick={e=>e.stopPropagation()}>
-                  {/* Toggle entrega */}
-                  <button
-                    onClick={()=>updatePedido(p.id,"estadoEntrega",p.estadoEntrega==="entregado"?"pendiente":"entregado")}
-                    style={{fontFamily:"var(--font-mono)",fontSize:".65rem",fontWeight:700,padding:".3rem .7rem",
-                      borderRadius:"var(--r-sm)",border:`1px solid ${ecEnt.color}44`,
-                      background:ecEnt.bg,color:ecEnt.color,cursor:"pointer",transition:"all .15s",whiteSpace:"nowrap"}}>
-                    {p.estadoEntrega==="entregado" ? "✔️ Entregado" : "📦 Marcar entregado"}
+                <div style={{display:"flex",gap:".35rem",flexShrink:0}} onClick={e=>e.stopPropagation()}>
+                  <button onClick={()=>updateLinea(l.pedId,l.id,"estadoEntrega",l.estadoEntrega==="entregado"?"pendiente":"entregado")}
+                    style={{fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,padding:".3rem .65rem",
+                      borderRadius:"var(--r-sm)",border:`1px solid ${eeCfg.color}44`,
+                      background:eeCfg.bg,color:eeCfg.color,cursor:"pointer",transition:"all .15s",whiteSpace:"nowrap"}}>
+                    {l.estadoEntrega==="entregado"?"Entregado":"Entregar"}
                   </button>
-                  {/* Toggle pago (no aplica a regalos) */}
-                  {p.estadoPago !== "regalo" && (
-                    <button
-                      onClick={()=>updatePedido(p.id,"estadoPago",p.estadoPago==="pagado"?"pendiente":"pagado")}
-                      style={{fontFamily:"var(--font-mono)",fontSize:".62rem",padding:".25rem .6rem",
-                        borderRadius:"var(--r-sm)",border:`1px solid ${ecPago.color}44`,
-                        background:ecPago.bg,color:ecPago.color,cursor:"pointer",transition:"all .15s",whiteSpace:"nowrap"}}>
-                      {p.estadoPago==="pagado" ? "✅ Pagado" : "⏳ Marcar pagado"}
+                  {l.estadoPago!=="regalo" && (
+                    <button onClick={()=>updateLinea(l.pedId,l.id,"estadoPago",l.estadoPago==="pagado"?"pendiente":"pagado")}
+                      style={{fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,padding:".3rem .65rem",
+                        borderRadius:"var(--r-sm)",border:`1px solid ${epCfg.color}44`,
+                        background:epCfg.bg,color:epCfg.color,cursor:"pointer",transition:"all .15s",whiteSpace:"nowrap"}}>
+                      {l.estadoPago==="pagado"?"Pagado":"Cobrar"}
                     </button>
                   )}
                 </div>
@@ -640,13 +674,12 @@ function TabChecklist({ pedidos, updatePedido, abrirFicha }) {
   );
 }
 
-// ─── FICHA PEDIDO ─────────────────────────────────────────────────────────────
-function FichaPedido({ pedido: p, coste, onClose, onEditar, onEliminar, updatePedido }) {
-  const {totalVenta, totalCoste, totalUnid, beneficio} = calcPedido(p, coste);
-  const ecPago = ESTADO_PAGO_CFG[p.estadoPago];
-  const ecEnt  = ESTADO_ENTREGA_CFG[p.estadoEntrega];
 
-  const Row = ({label, value, color}) => !value && value!==0 ? null : (
+// ─── FICHA PEDIDO ─────────────────────────────────────────────────────────────
+function FichaPedido({ pedido: p, coste, onClose, onEditar, onEliminar, updateLinea }) {
+  const {totalVenta, totalCoste, totalBenef, totalUnid} = calcPedido(p, coste);
+
+  const Row = ({label,value,color}) => (!value && value!==0) ? null : (
     <div style={{display:"flex",justifyContent:"space-between",padding:".4rem 0",borderBottom:"1px solid rgba(30,45,80,.3)"}}>
       <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",flexShrink:0,marginRight:"1rem"}}>{label}</span>
       <span style={{fontSize:".76rem",fontWeight:600,textAlign:"right",color:color||"var(--text)"}}>{value}</span>
@@ -655,7 +688,7 @@ function FichaPedido({ pedido: p, coste, onClose, onEditar, onEliminar, updatePe
 
   return (
     <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="modal" style={{maxWidth:480}}>
+      <div className="modal" style={{maxWidth:500}}>
         <div style={{borderTop:"3px solid var(--primary)",borderRadius:"16px 16px 0 0"}}>
           <div className="modal-header">
             <div style={{display:"flex",alignItems:"center",gap:".6rem"}}>
@@ -663,75 +696,84 @@ function FichaPedido({ pedido: p, coste, onClose, onEditar, onEliminar, updatePe
               <div>
                 <div style={{fontWeight:800,fontSize:".95rem"}}>{p.nombre}</div>
                 <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-muted)",marginTop:".1rem",textTransform:"uppercase"}}>
-                  {totalUnid} unidades · {p.lineas.length} línea{p.lineas.length!==1?"s":""}
+                  {totalUnid} ud {p.lineas.length} linea{p.lineas.length!==1?"s":""}
                 </div>
               </div>
             </div>
-            <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+            <button className="btn btn-ghost btn-sm" onClick={onClose}>x</button>
           </div>
         </div>
-
         <div className="modal-body" style={{gap:".4rem"}}>
-          <Row label="Teléfono"  value={p.telefono} />
-          <Row label="Email"     value={p.email} />
+          <Row label="Telefono" value={p.telefono} />
+          <Row label="Email"    value={p.email} />
 
-          {/* Líneas de pedido */}
           <div style={{background:"var(--surface2)",borderRadius:8,padding:".65rem .75rem",margin:".25rem 0"}}>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-muted)",marginBottom:".5rem",textTransform:"uppercase",letterSpacing:".08em"}}>Líneas del pedido</div>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-muted)",marginBottom:".5rem",textTransform:"uppercase",letterSpacing:".08em"}}>
+              Lineas del pedido
+            </div>
             {p.lineas.map((l,i) => {
-              const costeU = coste[l.tipo]||0;
-              const cfg = TIPO_CFG[l.tipo];
+              const costeU  = coste[l.tipo]||0;
+              const cfg     = TIPO_CFG[l.tipo];
+              const epCfg   = ESTADO_PAGO_CFG[l.estadoPago];
+              const eeCfg   = ESTADO_ENT_CFG[l.estadoEntrega];
+              const subVenta= l.estadoPago==="regalo" ? 0 : l.cantidad*l.precioVenta;
               return (
-                <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:".3rem 0",borderBottom:i<p.lineas.length-1?"1px solid rgba(30,45,80,.2)":"none"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:".5rem"}}>
-                    <span style={{fontSize:".9rem"}}>{cfg?.icon}</span>
-                    <div>
-                      <div style={{fontSize:".75rem",fontWeight:700}}>{cfg?.label} — {l.talla}</div>
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-muted)"}}>{l.cantidad} ud · coste {fmt(costeU)}/ud</div>
+                <div key={i} style={{padding:".5rem 0",borderBottom:i<p.lineas.length-1?"1px solid rgba(30,45,80,.2)":"none"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".3rem"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:".5rem"}}>
+                      <span style={{fontSize:".9rem"}}>{cfg?.icon}</span>
+                      <span style={{fontSize:".78rem",fontWeight:700}}>{cfg?.label} - {l.talla} x {l.cantidad} ud</span>
                     </div>
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:".78rem",fontWeight:700,color:cfg?.color}}>
+                      {l.estadoPago==="regalo"?"REGALO":fmt(subVenta)}
+                    </span>
                   </div>
-                  <div style={{textAlign:"right"}}>
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:".78rem",fontWeight:700,color:cfg?.color}}>{fmt(l.precioVenta * l.cantidad)}</div>
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-muted)"}}>{fmt(l.precioVenta)}/ud</div>
+                  <div style={{display:"flex",gap:".35rem",alignItems:"center"}} onClick={e=>e.stopPropagation()}>
+                    <button onClick={()=>updateLinea(p.id,l.id,"estadoPago",l.estadoPago==="pagado"?"pendiente":"pagado")}
+                      disabled={l.estadoPago==="regalo"}
+                      style={{fontFamily:"var(--font-mono)",fontSize:".58rem",fontWeight:700,padding:".2rem .5rem",
+                        borderRadius:4,border:`1px solid ${epCfg.color}44`,background:epCfg.bg,color:epCfg.color,
+                        cursor:l.estadoPago==="regalo"?"default":"pointer",transition:"all .15s"}}>
+                      {epCfg.icon} {epCfg.label}
+                    </button>
+                    <button onClick={()=>updateLinea(p.id,l.id,"estadoEntrega",l.estadoEntrega==="entregado"?"pendiente":"entregado")}
+                      style={{fontFamily:"var(--font-mono)",fontSize:".58rem",fontWeight:700,padding:".2rem .5rem",
+                        borderRadius:4,border:`1px solid ${eeCfg.color}44`,background:eeCfg.bg,color:eeCfg.color,
+                        cursor:"pointer",transition:"all .15s"}}>
+                      {eeCfg.icon} {eeCfg.label}
+                    </button>
+                    <span className="mono xs muted" style={{marginLeft:"auto"}}>coste {fmt(costeU*l.cantidad)}</span>
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {/* Resumen económico */}
-          <div style={{background:"var(--surface2)",borderRadius:8,padding:".65rem .75rem"}}>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-muted)",marginBottom:".4rem",textTransform:"uppercase",letterSpacing:".08em"}}>Resumen económico</div>
-            <Row label="Total coste"  value={fmt(totalCoste)} color="var(--red)" />
-            <Row label="Total venta"  value={p.estadoPago==="regalo"?"Regalo 🎁":fmt(totalVenta)} color={p.estadoPago==="regalo"?"var(--violet)":"var(--green)"} />
-            <Row label="Beneficio"    value={fmt(beneficio)} color={beneficio>=0?"var(--green)":"var(--red)"} />
+          <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",display:"flex",justifyContent:"space-around",gap:".75rem",flexWrap:"wrap"}}>
+            {[
+              {l:"Coste total", v:fmt(totalCoste), c:"var(--red)"},
+              {l:"Venta total", v:fmt(totalVenta), c:"var(--green)"},
+              {l:"Beneficio",   v:fmt(totalBenef), c:totalBenef>=0?"var(--green)":"var(--red)"},
+            ].map(({l,v,c})=>(
+              <div key={l} style={{textAlign:"center"}}>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:".52rem",color:"var(--text-muted)",marginBottom:".1rem",textTransform:"uppercase"}}>{l}</div>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:".85rem",fontWeight:800,color:c}}>{v}</div>
+              </div>
+            ))}
           </div>
 
-          {/* Estados */}
-          <div style={{display:"flex",gap:".5rem",marginTop:".25rem"}}>
-            <button style={{flex:1,fontFamily:"var(--font-mono)",fontSize:".65rem",fontWeight:700,padding:".4rem",borderRadius:"var(--r-sm)",border:`1px solid ${ecPago.color}44`,background:ecPago.bg,color:ecPago.color,cursor:p.estadoPago==="regalo"?"default":"pointer",transition:"all .15s"}}
-              onClick={()=>{ if(p.estadoPago!=="regalo") updatePedido(p.id,"estadoPago",p.estadoPago==="pagado"?"pendiente":"pagado"); }}>
-              {ecPago.icon} {ecPago.label}
-            </button>
-            <button style={{flex:1,fontFamily:"var(--font-mono)",fontSize:".65rem",fontWeight:700,padding:".4rem",borderRadius:"var(--r-sm)",border:`1px solid ${ecEnt.color}44`,background:ecEnt.bg,color:ecEnt.color,cursor:"pointer",transition:"all .15s"}}
-              onClick={()=>updatePedido(p.id,"estadoEntrega",p.estadoEntrega==="entregado"?"pendiente":"entregado")}>
-              {ecEnt.icon} {ecEnt.label}
-            </button>
-          </div>
-
-          {p.notas && (
+          {p.notas&&(
             <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",borderLeft:"2px solid var(--primary)"}}>
               <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-muted)",marginBottom:".25rem",textTransform:"uppercase"}}>Notas</div>
               <div style={{fontSize:".78rem",lineHeight:1.5}}>{p.notas}</div>
             </div>
           )}
         </div>
-
         <div className="modal-footer" style={{justifyContent:"space-between"}}>
-          <button className="btn btn-red" onClick={onEliminar}>🗑 Eliminar</button>
+          <button className="btn btn-red"   onClick={onEliminar}>Eliminar</button>
           <div style={{display:"flex",gap:".4rem"}}>
-            <button className="btn btn-ghost" onClick={onClose}>Cerrar</button>
-            <button className="btn btn-primary" onClick={onEditar}>✏️ Editar</button>
+            <button className="btn btn-ghost"   onClick={onClose}>Cerrar</button>
+            <button className="btn btn-primary" onClick={onEditar}>Editar</button>
           </div>
         </div>
       </div>
@@ -739,13 +781,14 @@ function FichaPedido({ pedido: p, coste, onClose, onEditar, onEliminar, updatePe
   );
 }
 
+
 // ─── MODAL CREAR/EDITAR PEDIDO ────────────────────────────────────────────────
 function ModalPedido({ data, coste, onSave, onClose }) {
   const esEdicion = !!data?.id;
   const [form, setForm] = useState(() => data ? { ...data, lineas: data.lineas.map(l=>({...l})) } : {
     nombre:"", telefono:"", email:"", notas:"",
     estadoPago:"pendiente", estadoEntrega:"pendiente",
-    lineas:[ { id:1, tipo:"corredor", talla:"M", cantidad:1, precioVenta:0 } ]
+    lineas:[ { id:1, tipo:"corredor", talla:"M", cantidad:1, precioVenta:0, estadoPago:"pendiente", estadoEntrega:"pendiente" } ]
   });
 
   const upd = (k,v) => setForm(p => ({...p,[k]:v}));
@@ -781,21 +824,7 @@ function ModalPedido({ data, coste, onSave, onClose }) {
             </div>
           </div>
 
-          {/* Estado pago y entrega */}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
-            <div>
-              <label className="fl">Estado de pago</label>
-              <select className="inp" value={form.estadoPago} onChange={e=>upd("estadoPago",e.target.value)}>
-                {ESTADO_PAGO.map(e=><option key={e} value={e}>{ESTADO_PAGO_CFG[e].icon} {ESTADO_PAGO_CFG[e].label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="fl">Estado de entrega</label>
-              <select className="inp" value={form.estadoEntrega} onChange={e=>upd("estadoEntrega",e.target.value)}>
-                {ESTADO_ENTREGA.map(e=><option key={e} value={e}>{ESTADO_ENTREGA_CFG[e].icon} {ESTADO_ENTREGA_CFG[e].label}</option>)}
-              </select>
-            </div>
-          </div>
+
 
           {/* Líneas de pedido */}
           <div>
@@ -835,11 +864,25 @@ function ModalPedido({ data, coste, onSave, onClose }) {
                       <button className="btn btn-red btn-sm" onClick={()=>delLinea(i)} disabled={form.lineas.length<=1}
                         style={{marginBottom:1}}>✕</button>
                     </div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem",marginTop:".35rem"}}>
+                      <div>
+                        <label className="fl">Estado pago</label>
+                        <select className="inp inp-sm" value={l.estadoPago||"pendiente"} onChange={e=>updLinea(i,"estadoPago",e.target.value)}>
+                          {Object.entries(ESTADO_PAGO_CFG).map(([k,v])=><option key={k} value={k}>{v.icon} {v.label}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="fl">Estado entrega</label>
+                        <select className="inp inp-sm" value={l.estadoEntrega||"pendiente"} onChange={e=>updLinea(i,"estadoEntrega",e.target.value)}>
+                          {Object.entries(ESTADO_ENT_CFG).map(([k,v])=><option key={k} value={k}>{v.icon} {v.label}</option>)}
+                        </select>
+                      </div>
+                    </div>
                     <div style={{marginTop:".3rem",fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-muted)",display:"flex",gap:".75rem"}}>
                       <span>Coste: {fmt(costeU * l.cantidad)}</span>
-                      <span>Venta: {fmt(subtotal)}</span>
+                      <span>Venta: {l.estadoPago==="regalo"?"Regalo":fmt(subtotal)}</span>
                       <span style={{color: subtotal-costeU*l.cantidad>=0?"var(--green)":"var(--red)"}}>
-                        Margen: {fmt(subtotal - costeU*l.cantidad)}
+                        Margen: {fmt(l.estadoPago==="regalo"?-(costeU*l.cantidad):subtotal - costeU*l.cantidad)}
                       </span>
                     </div>
                   </div>
