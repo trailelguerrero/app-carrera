@@ -1230,7 +1230,7 @@ function ModalPersona({ data, onSave, onClose }) {
 // ─── FICHA PROYECTO ───────────────────────────────────────────────────────────
 function FichaProyecto({ ficha, equipo, onClose, onEditar, onEliminar }) {
   const { tipo, data } = ficha;
-  React.useEffect(() => {
+  useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const main = document.querySelector("main");
