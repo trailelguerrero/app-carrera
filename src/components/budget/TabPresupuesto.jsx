@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState } from "react";
 import { DISTANCIAS, DISTANCIA_COLORS, DISTANCIA_LABELS } from "../../constants/budgetConstants";
 import { NumInput } from "./common/NumInput";
 import { Toggle } from "./common/Toggle";
@@ -11,20 +11,48 @@ const TAB_CSS = `
   .total-row td { border-top: 2px solid var(--border); padding: 0.75rem 0.6rem; }
   .card-title.fijo     { color: var(--cyan);   }
   .card-title.variable { color: var(--green);  }
-  .num-input    { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 0.3rem 0.5rem; width: 80px; text-align: right; font-family: var(--font-mono); font-size: 0.85rem; outline: none; }
+
+  .num-input    { background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 6px; padding: 0.3rem 0.5rem; width: 80px; text-align: right;
+    font-family: var(--font-mono); font-size: 0.85rem; outline: none; }
   .num-input:focus { border-color: var(--cyan); }
   .num-input-sm { font-size: 0.75rem; padding: 0.2rem 0.4rem; width: 65px; }
-  .text-input   { background: transparent; border: 1px solid transparent; color: var(--text); padding: 0.3rem; width: 100%; border-radius: 4px; font-family: var(--font-display); font-size: 0.85rem; outline: none; }
+
+  .text-input   { background: transparent; border: 1px solid transparent; color: var(--text);
+    padding: 0.3rem; width: 100%; border-radius: 4px; font-family: var(--font-display);
+    font-size: 0.85rem; outline: none; }
   .text-input:focus { background: var(--surface2); border-color: var(--border); }
-  .modo-toggle  { padding: 0.2rem 0.5rem; border-radius: 5px; font-size: 0.7rem; font-weight: 700; cursor: pointer; border: 1px solid var(--border); background: var(--surface3); color: var(--text-muted); font-family: var(--font-mono); transition: all 0.15s; white-space: nowrap; }
-  .modo-toggle.uniforme { background: var(--violet-dim); border-color: rgba(167,139,250,0.3); color: var(--violet); }
-  .dist-dot     { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
-  .drag-over td:first-child { border-left: 3px solid var(--primary); }
-  tr.dragging   { opacity: 0.35; }
+
+  .modo-toggle  { padding: 0.2rem 0.5rem; border-radius: 5px; font-size: 0.7rem; font-weight: 700;
+    cursor: pointer; border: 1px solid var(--border); background: var(--surface3);
+    color: var(--text-muted); font-family: var(--font-mono); transition: all 0.15s;
+    white-space: nowrap; }
+  .modo-toggle.uniforme { background: var(--violet-dim); border-color: rgba(167,139,250,0.3);
+    color: var(--violet); }
+
+  .dist-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    margin-right: 4px; vertical-align: middle; }
+
   .mono { font-family: var(--font-mono); }
   .text-xs    { font-size: 0.72rem; }
   .text-muted { color: var(--text-muted); }
   .mb-2 { margin-bottom: 1rem; }
+
+  /* Botones de reorden ▲▼ */
+  .reorder-btn {
+    display: flex; flex-direction: column; gap: 1px;
+    background: none; border: none; cursor: pointer; padding: 0;
+    opacity: 0.45; transition: opacity 0.15s;
+  }
+  .reorder-btn:hover { opacity: 1; }
+  .reorder-btn span {
+    display: block; width: 18px; height: 14px; line-height: 14px; text-align: center;
+    font-size: 0.6rem; background: var(--surface3); border: 1px solid var(--border);
+    border-radius: 3px; color: var(--text-muted); transition: all 0.1s;
+  }
+  .reorder-btn span:hover { background: var(--cyan-dim); border-color: var(--cyan);
+    color: var(--cyan); opacity: 1; }
+  .reorder-btn span:active { transform: scale(0.9); }
 `;
 
 export const TabPresupuesto = ({
@@ -41,86 +69,6 @@ export const TabPresupuesto = ({
 }) => {
   const [ordenAlfaFijo, setOrdenAlfaFijo] = useState(false);
   const [ordenAlfaVar,  setOrdenAlfaVar]  = useState(false);
-  const [dragId,        setDragId]        = useState(null);
-  const [dragOverId,    setDragOverId]    = useState(null);
-
-  const touchDragId  = useRef(null);
-  const touchOverId  = useRef(null);
-  const touchClone   = useRef(null);
-  const originRowRef = useRef(null);
-
-  // ── Touch drag ────────────────────────────────────────────────────────────
-  const onTouchStart = useCallback((id) => (e) => {
-    const tag = e.target.tagName;
-    if (tag === "INPUT" || tag === "SELECT" || tag === "BUTTON") return;
-
-    touchDragId.current = id;
-    const row  = e.currentTarget;
-    originRowRef.current = row;
-    const rect = row.getBoundingClientRect();
-
-    const clone = row.cloneNode(true);
-    clone.style.cssText = [
-      `position:fixed`,
-      `top:${rect.top}px`,
-      `left:${rect.left}px`,
-      `width:${rect.width}px`,
-      `height:${rect.height}px`,
-      `opacity:0.88`,
-      `background:var(--surface2)`,
-      `border:2px solid var(--cyan)`,
-      `box-shadow:0 8px 28px rgba(0,0,0,0.55)`,
-      `z-index:9999`,
-      `pointer-events:none`,
-      `border-radius:6px`,
-      `overflow:hidden`,
-    ].join(";");
-    document.body.appendChild(clone);
-    touchClone.current = clone;
-    row.style.opacity = "0.35";
-  }, []);
-
-  const onTouchMove = useCallback((e) => {
-    e.preventDefault();
-    const y = e.touches[0].clientY;
-
-    if (touchClone.current) {
-      const h = touchClone.current.offsetHeight;
-      touchClone.current.style.top = `${y - h / 2}px`;
-    }
-
-    const rows = document.querySelectorAll("tr[data-id]");
-    let best = null, bestDist = Infinity;
-    rows.forEach(r => {
-      const rect = r.getBoundingClientRect();
-      const mid  = rect.top + rect.height / 2;
-      const dist = Math.abs(y - mid);
-      if (dist < bestDist) { bestDist = dist; best = r; }
-    });
-
-    rows.forEach(r => r.style.outline = "");
-    if (best && bestDist < 100) {
-      touchOverId.current = best.dataset.id;
-      if (best.dataset.id !== String(touchDragId.current)) {
-        best.style.outline = "2px solid var(--cyan)";
-        best.style.outlineOffset = "-2px";
-      }
-    }
-  }, []);
-
-  const onTouchEnd = useCallback((tipo) => () => {
-    if (originRowRef.current) { originRowRef.current.style.opacity = ""; originRowRef.current = null; }
-    if (touchClone.current)   { touchClone.current.remove(); touchClone.current = null; }
-    document.querySelectorAll("tr[data-id]").forEach(r => { r.style.outline = ""; r.style.opacity = ""; });
-
-    const fromId = touchDragId.current;
-    const toId   = touchOverId.current;
-    if (fromId && toId && String(fromId) !== String(toId)) {
-      reorderConceptos(tipo, parseInt(fromId), parseInt(toId));
-    }
-    touchDragId.current = null;
-    touchOverId.current = null;
-  }, [reorderConceptos]);
 
   const sort = (arr, alfa) => alfa
     ? [...arr].sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es"))
@@ -129,8 +77,25 @@ export const TabPresupuesto = ({
   const conceptosFijos = sort(conceptos.filter(c => c.tipo === "fijo"),     ordenAlfaFijo);
   const conceptosVar   = sort(conceptos.filter(c => c.tipo === "variable"), ordenAlfaVar);
 
+  // Mover un ítem una posición arriba o abajo dentro del array de su tipo
+  const moverFijo = (id, dir) => {
+    const arr = conceptosFijos;
+    const idx = arr.findIndex(c => c.id === id);
+    const nuevoIdx = idx + dir;
+    if (nuevoIdx < 0 || nuevoIdx >= arr.length) return;
+    reorderConceptos("fijo", arr[idx].id, arr[nuevoIdx].id);
+  };
+
+  const moverVar = (id, dir) => {
+    const arr = conceptosVar;
+    const idx = arr.findIndex(c => c.id === id);
+    const nuevoIdx = idx + dir;
+    if (nuevoIdx < 0 || nuevoIdx >= arr.length) return;
+    reorderConceptos("variable", arr[idx].id, arr[nuevoIdx].id);
+  };
+
   // ── Fila FIJO ─────────────────────────────────────────────────────────────
-  const renderFilaFija = (c) => {
+  const renderFilaFija = (c, idx, arr) => {
     const distActivas  = DISTANCIAS.filter(d => c.activoDistancias[d] && c.activo);
     const totalActivos = distActivas.reduce((s, d) => s + totalInscritos[d], 0);
 
@@ -144,20 +109,15 @@ export const TabPresupuesto = ({
     });
 
     return (
-      <tr key={c.id}
-        data-id={c.id}
-        draggable={!ordenAlfaFijo}
-        onDragStart={!ordenAlfaFijo ? () => setDragId(c.id) : undefined}
-        onDragEnd={() => { setDragId(null); setDragOverId(null); }}
-        onDragOver={e => { e.preventDefault(); setDragOverId(c.id); }}
-        onDrop={() => { reorderConceptos("fijo", dragId, c.id); setDragOverId(null); }}
-        onTouchStart={!ordenAlfaFijo ? onTouchStart(c.id) : undefined}
-        onTouchMove={!ordenAlfaFijo ? onTouchMove : undefined}
-        onTouchEnd={!ordenAlfaFijo ? onTouchEnd("fijo") : undefined}
-        className={cls(dragOverId === c.id && "drag-over", dragId === c.id && "dragging")}
-      >
-        <td style={{ cursor: ordenAlfaFijo ? "default" : "grab", textAlign: "center", opacity: ordenAlfaFijo ? 0.2 : 1 }}>
-          ⠿
+      <tr key={c.id}>
+        {/* Botones ▲▼ */}
+        <td style={{ width: 22, padding: "0.3rem 0.2rem" }}>
+          {!ordenAlfaFijo && (
+            <button className="reorder-btn" title="Mover arriba / abajo">
+              <span onClick={() => moverFijo(c.id, -1)} style={{ opacity: idx === 0 ? 0.2 : 1 }}>▲</span>
+              <span onClick={() => moverFijo(c.id, +1)} style={{ opacity: idx === arr.length - 1 ? 0.2 : 1 }}>▼</span>
+            </button>
+          )}
         </td>
         <td><Toggle value={c.activo} onChange={v => updateConcepto(c.id, "activo", v)} /></td>
         <td>
@@ -186,24 +146,19 @@ export const TabPresupuesto = ({
   };
 
   // ── Fila VARIABLE ─────────────────────────────────────────────────────────
-  const renderFilaVariable = (c) => {
+  const renderFilaVariable = (c, idx, arr) => {
     const total = DISTANCIAS.reduce((s, d) => s + (c.costePorDistancia[d] || 0) * totalInscritos[d], 0);
 
     return (
-      <tr key={c.id}
-        data-id={c.id}
-        draggable={!ordenAlfaVar}
-        onDragStart={!ordenAlfaVar ? () => setDragId(c.id) : undefined}
-        onDragEnd={() => { setDragId(null); setDragOverId(null); }}
-        onDragOver={e => { e.preventDefault(); setDragOverId(c.id); }}
-        onDrop={() => { reorderConceptos("variable", dragId, c.id); setDragOverId(null); }}
-        onTouchStart={!ordenAlfaVar ? onTouchStart(c.id) : undefined}
-        onTouchMove={!ordenAlfaVar ? onTouchMove : undefined}
-        onTouchEnd={!ordenAlfaVar ? onTouchEnd("variable") : undefined}
-        className={cls(dragOverId === c.id && "drag-over", dragId === c.id && "dragging")}
-      >
-        <td style={{ cursor: ordenAlfaVar ? "default" : "grab", textAlign: "center", opacity: ordenAlfaVar ? 0.2 : 1 }}>
-          ⠿
+      <tr key={c.id}>
+        {/* Botones ▲▼ */}
+        <td style={{ width: 22, padding: "0.3rem 0.2rem" }}>
+          {!ordenAlfaVar && (
+            <button className="reorder-btn" title="Mover arriba / abajo">
+              <span onClick={() => moverVar(c.id, -1)} style={{ opacity: idx === 0 ? 0.2 : 1 }}>▲</span>
+              <span onClick={() => moverVar(c.id, +1)} style={{ opacity: idx === arr.length - 1 ? 0.2 : 1 }}>▼</span>
+            </button>
+          )}
         </td>
         <td><Toggle value={c.activo} onChange={v => updateConcepto(c.id, "activo", v)} /></td>
         <td>
@@ -255,7 +210,8 @@ export const TabPresupuesto = ({
           <div className="card-title fijo">📦 Costes Fijos — repartidos por corredores activos</div>
           <div style={{ display: "flex", gap: "0.4rem" }}>
             <button className={`btn btn-sm ${ordenAlfaFijo ? "btn-cyan" : "btn-ghost"}`}
-              onClick={() => setOrdenAlfaFijo(v => !v)}>
+              onClick={() => setOrdenAlfaFijo(v => !v)}
+              title={ordenAlfaFijo ? "Volver a orden manual" : "Ordenar A-Z"}>
               {ordenAlfaFijo ? "A-Z ✓" : "A-Z"}
             </button>
             <button className="btn btn-cyan" onClick={() => addConcepto("fijo")}>+ Añadir</button>
@@ -265,7 +221,7 @@ export const TabPresupuesto = ({
           <table className="tbl">
             <thead>
               <tr>
-                <th style={{ width: 18 }}></th>
+                <th style={{ width: 22 }}></th>
                 <th style={{ width: 30 }}>Act.</th>
                 <th>Concepto</th>
                 <th className="text-right">Coste Total (€)</th>
@@ -279,7 +235,7 @@ export const TabPresupuesto = ({
               </tr>
             </thead>
             <tbody>
-              {conceptosFijos.map(renderFilaFija)}
+              {conceptosFijos.map((c, i, arr) => renderFilaFija(c, i, arr))}
               <tr className="total-row">
                 <td colSpan={3}>Subtotal Fijos</td>
                 <td className="text-right mono">{costesFijos.total.toFixed(2)} €</td>
@@ -301,7 +257,8 @@ export const TabPresupuesto = ({
           <div className="card-title variable">🔄 Costes Variables — por corredor inscrito</div>
           <div style={{ display: "flex", gap: "0.4rem" }}>
             <button className={`btn btn-sm ${ordenAlfaVar ? "btn-green" : "btn-ghost"}`}
-              onClick={() => setOrdenAlfaVar(v => !v)}>
+              onClick={() => setOrdenAlfaVar(v => !v)}
+              title={ordenAlfaVar ? "Volver a orden manual" : "Ordenar A-Z"}>
               {ordenAlfaVar ? "A-Z ✓" : "A-Z"}
             </button>
             <button className="btn btn-green" onClick={() => addConcepto("variable")}>+ Añadir</button>
@@ -311,7 +268,7 @@ export const TabPresupuesto = ({
           <table className="tbl">
             <thead>
               <tr>
-                <th style={{ width: 18 }}></th>
+                <th style={{ width: 22 }}></th>
                 <th style={{ width: 30 }}>Act.</th>
                 <th>Concepto</th>
                 <th>Modo</th>
@@ -326,7 +283,7 @@ export const TabPresupuesto = ({
               </tr>
             </thead>
             <tbody>
-              {conceptosVar.map(renderFilaVariable)}
+              {conceptosVar.map((c, i, arr) => renderFilaVariable(c, i, arr))}
               <tr className="total-row">
                 <td colSpan={4}>Subtotal Variables</td>
                 {DISTANCIAS.map(d => (
