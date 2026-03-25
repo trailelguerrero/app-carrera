@@ -1228,21 +1228,10 @@ function ModalPersona({ data, onSave, onClose }) {
 }
 
 // ─── FICHA PROYECTO ───────────────────────────────────────────────────────────
-function FichaProyecto({ ficha, equipo, onClose, onEditar, onEliminar }) {
-  const { tipo, data } = ficha;
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const main = document.querySelector("main");
-    if (main) main.scrollTo({ top: 0, behavior: "instant" });
-    return () => { document.body.style.overflow = prev; };
-  }, []);
-
-  const accent = tipo === "tarea" ? "var(--violet)" : tipo === "hito" ? "var(--cyan)" : "var(--green)";
-  const icon   = tipo === "tarea" ? "📋" : tipo === "hito" ? "🏁" : "👤";
-  const titulo = data.titulo || data.nombre;
-
-  const Row = ({ label, value, color }) => !value ? null : (
+// Componente Row reutilizable — fuera de FichaProyecto para evitar remount en cada render
+function FichaRow({ label, value, color }) {
+  if (!value) return null;
+  return (
     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start",
       padding:".45rem 0", borderBottom:"1px solid rgba(30,45,80,.3)" }}>
       <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem", color:"var(--text-muted)",
@@ -1251,6 +1240,14 @@ function FichaProyecto({ ficha, equipo, onClose, onEditar, onEliminar }) {
         color: color || "var(--text)" }}>{value}</span>
     </div>
   );
+}
+
+function FichaProyecto({ ficha, equipo, onClose, onEditar, onEliminar }) {
+  const { tipo, data } = ficha;
+
+  const accent = tipo === "tarea" ? "var(--violet)" : tipo === "hito" ? "var(--cyan)" : "var(--green)";
+  const icon   = tipo === "tarea" ? "📋" : tipo === "hito" ? "🏁" : "👤";
+  const titulo = data.titulo || data.nombre;
 
   return (
     <div className="overlay" onClick={e => e.target===e.currentTarget && onClose()}>
@@ -1273,10 +1270,10 @@ function FichaProyecto({ ficha, equipo, onClose, onEditar, onEliminar }) {
         </div>
         <div className="mbody">
           {tipo === "tarea" && (<>
-            <Row label="Estado"      value={EST_CFG[data.estado]?.label}  color={EST_CFG[data.estado]?.color} />
-            <Row label="Prioridad"   value={data.prioridad}               color={PRI_CFG[data.prioridad]?.color} />
-            <Row label="Responsable" value={equipo.find(p=>p.id===data.responsableId)?.nombre} />
-            <Row label="Fecha límite" value={data.fechaLimite
+            <FichaRow label="Estado"      value={EST_CFG[data.estado]?.label}  color={EST_CFG[data.estado]?.color} />
+            <FichaRow label="Prioridad"   value={data.prioridad}               color={PRI_CFG[data.prioridad]?.color} />
+            <FichaRow label="Responsable" value={equipo.find(p=>p.id===data.responsableId)?.nombre} />
+            <FichaRow label="Fecha límite" value={data.fechaLimite
               ? new Date(data.fechaLimite).toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})
               : null} />
             {data.notas && (
@@ -1289,12 +1286,12 @@ function FichaProyecto({ ficha, equipo, onClose, onEditar, onEliminar }) {
             )}
           </>)}
           {tipo === "hito" && (<>
-            <Row label="Fecha"   value={data.fecha
+            <FichaRow label="Fecha"   value={data.fecha
               ? new Date(data.fecha).toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})
               : "—"} />
-            <Row label="Estado"  value={data.completado ? "✓ Completado" : "Pendiente"}
+            <FichaRow label="Estado"  value={data.completado ? "✓ Completado" : "Pendiente"}
                  color={data.completado ? "var(--green)" : "var(--amber)"} />
-            <Row label="Crítico" value={data.critico ? "⚡ Sí, es crítico" : "No"}
+            <FichaRow label="Crítico" value={data.critico ? "⚡ Sí, es crítico" : "No"}
                  color={data.critico ? "var(--red)" : undefined} />
           </>)}
           {tipo === "persona" && (<>
@@ -1307,10 +1304,10 @@ function FichaProyecto({ ficha, equipo, onClose, onEditar, onEliminar }) {
                 {iniciales(data.nombre||"?")}
               </div>
             </div>
-            <Row label="Rol"      value={data.rol} />
-            <Row label="Área"     value={AREAS.find(a=>a.id===data.area)?.label||data.area} />
-            <Row label="Teléfono" value={data.telefono} />
-            <Row label="Email"    value={data.email} />
+            <FichaRow label="Rol"      value={data.rol} />
+            <FichaRow label="Área"     value={AREAS.find(a=>a.id===data.area)?.label||data.area} />
+            <FichaRow label="Teléfono" value={data.telefono} />
+            <FichaRow label="Email"    value={data.email} />
           </>)}
         </div>
         <div className="mfoot" style={{ justifyContent:"space-between" }}>
