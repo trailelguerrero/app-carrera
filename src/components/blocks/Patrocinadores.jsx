@@ -586,7 +586,7 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
           const contPend = (p.contraprestaciones || []).filter(c => c && c.estado === "pendiente").length;
           const contTotal = (p.contraprestaciones || []).length;
           return (
-            <div key={p.id} className="pat-row" style={{ borderLeftColor: cfg.color }}>
+            <div key={p.id} className="pat-row" style={{ borderLeftColor: cfg.color, cursor:"pointer" }} onClick={()=>onDetalle(p)}>
               <div className="pat-nivel" style={{ background: cfg.dim, border: `1px solid ${cfg.border}` }}>
                 <div style={{ fontSize: "1.3rem" }}>{cfg.icon}</div>
                 <div style={{ fontFamily: "var(--font-mono)", fontSize: ".58rem", color: cfg.color, fontWeight: 700, textAlign: "center" }}>{p.nivel}</div>
@@ -613,9 +613,9 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
                   <div className="mono xs muted">{p.estado !== "cobrado" ? `Vence: ${p.fechaVencimiento}` : "✓ Cobrado"}</div>
                 )}
                 <div style={{ display: "flex", gap: ".3rem" }}>
-                  <button className="btn btn-sm" style={{ background: cfg.dim, color: cfg.color, border: `1px solid ${cfg.border}` }} onClick={() => onDetalle(p)}>Ver detalle</button>
-                  <button className="btn btn-sm btn-ghost" onClick={() => onEditar(p)}>✏️</button>
-                  <button className="btn btn-sm btn-red" onClick={() => onDelete(p.id)}>✕</button>
+                  <button className="btn btn-sm" style={{ background: cfg.dim, color: cfg.color, border: `1px solid ${cfg.border}` }} onClick={e=>{e.stopPropagation();onDetalle(p)}}>Ver detalle</button>
+                  <button className="btn btn-sm btn-ghost" onClick={e=>{e.stopPropagation();onEditar(p)}}>✏️</button>
+                  <button className="btn btn-sm btn-red" onClick={e=>{e.stopPropagation();onDelete(p.id)}}>✕</button>
                 </div>
               </div>
             </div>
@@ -758,9 +758,9 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
         const pend = (p.contraprestaciones || []).filter(c => c.estado === "pendiente").length;
         const entr = (p.contraprestaciones || []).filter(c => c.estado === "entregado").length;
         return (
-          <div key={p.id} className="card" style={{ marginBottom: ".6rem", borderLeftWidth: 3, borderLeftColor: cfg.color }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ".75rem", cursor:"pointer" }} onClick={()=>onDetalle(p)}>
-              <div style={{ display: "flex", alignItems: "center", gap: ".5rem" }} onClick={e=>e.stopPropagation()}>
+          <div key={p.id} className="card" style={{ marginBottom: ".6rem", borderLeftWidth: 3, borderLeftColor: cfg.color, cursor:"pointer" }} onClick={()=>onDetalle(p)}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ".75rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: ".5rem" }}>
                 <span style={{ fontSize: "1.1rem" }}>{cfg.icon}</span>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: ".86rem" }}>{p.nombre}</div>
@@ -776,7 +776,7 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
             )}
 
             {p.contraprestaciones.map(c => (
-              <div key={c.id} className={cls("cont-row", c.estado === "entregado" && "cont-done")}>
+              <div key={c.id} className={cls("cont-row", c.estado === "entregado" && "cont-done")} onClick={e=>e.stopPropagation()}>
                 <button className="ckbox" onClick={() => updateContraprestacion(p.id, c.id, "estado", c.estado === "entregado" ? "pendiente" : "entregado")}
                   style={{ borderColor: c.estado === "entregado" ? "#34d399" : "var(--border)", background: c.estado === "entregado" ? "#34d399" : "transparent" }}>
                   {c.estado === "entregado" && <span style={{ color: "#000", fontSize: ".7rem", fontWeight: 800 }}>✓</span>}
