@@ -246,12 +246,12 @@ export default function App() {
       {del && (
         <div className="overlay" style={{zIndex:200}} onClick={e => e.target===e.currentTarget && setDel(null)}>
           <div className="modal" style={{maxWidth:340,textAlign:"center"}}>
-            <div className="mbody" style={{paddingTop:"1.5rem"}}>
+            <div className="modal-body" style={{paddingTop:"1.5rem"}}>
               <div style={{fontSize:"2.5rem",marginBottom:"0.6rem"}}>⚠️</div>
               <div style={{fontWeight:700,marginBottom:"0.4rem"}}>¿Eliminar elemento?</div>
               <div className="muted mono xs">Esta acción no se puede deshacer.</div>
             </div>
-            <div className="mfoot"><button className="btn btn-ghost" onClick={() => setDel(null)}>Cancelar</button><button className="btn btn-red" onClick={doDelete}>Eliminar</button></div>
+            <div className="modal-footer"><button className="btn btn-ghost" onClick={() => setDel(null)}>Cancelar</button><button className="btn btn-red" onClick={doDelete}>Eliminar</button></div>
           </div>
         </div>
       )}
@@ -932,9 +932,9 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar })
 
   return (
     <>
-      <style>{`.log-ficha-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:200;padding:1rem;}.log-ficha-modal{background:var(--surface);border:1px solid var(--border-light);border-radius:16px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.6);display:flex;flex-direction:column;}`}</style>
-      <div className="log-ficha-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
-        <div className="log-ficha-modal">
+      <style>{``}</style>
+      <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose()}>
+        <div className="modal">
           <div style={{borderTop:`3px solid ${accent}`,borderRadius:"16px 16px 0 0"}}>
             <div style={{padding:"1.1rem 1.4rem .9rem",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
               <div style={{display:"flex",alignItems:"center",gap:".6rem"}}>
@@ -1072,8 +1072,8 @@ function MF({title,fields,init,onSave,onClose}) {
   return(
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal">
-        <div className="mhdr"><span className="mtit">{title}</span><button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button></div>
-        <div className="mbody">
+        <div className="modal-header"><span className="mtit">{title}</span><button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button></div>
+        <div className="modal-body">
           {fields.map(f=>(
             <div key={f.k}>
               <label className="fl">{f.l}</label>
@@ -1087,7 +1087,7 @@ function MF({title,fields,init,onSave,onClose}) {
             </div>
           ))}
         </div>
-        <div className="mfoot">
+        <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
           <button className="btn btn-cyan" onClick={()=>{if(!req||form[req.k])onSave(form);}}>
             {init?.id?"💾 Guardar":"➕ Añadir"}
@@ -1118,8 +1118,8 @@ function ModalRuta({data,veh,rutas,setRutas,onClose}) {
   return(
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal" style={{maxWidth:560}}>
-        <div className="mhdr"><span className="mtit">{data?"✏️ Editar ruta":"🗺️ Nueva ruta"}</span><button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button></div>
-        <div className="mbody">
+        <div className="modal-header"><span className="mtit">{data?"✏️ Editar ruta":"🗺️ Nueva ruta"}</span><button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button></div>
+        <div className="modal-body">
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem"}}>
             <div><label className="fl">Nombre *</label><input className="inp" value={form.nombre} onChange={e=>upd("nombre",e.target.value)} placeholder="Nombre de la ruta"/></div>
             <div><label className="fl">Hora de salida</label><input className="inp" type="time" value={form.horaInicio} onChange={e=>upd("horaInicio",e.target.value)}/></div>
@@ -1151,7 +1151,7 @@ function ModalRuta({data,veh,rutas,setRutas,onClose}) {
             {form.paradas.length===0&&<div className="empty" style={{padding:"0.75rem"}}>Sin paradas — pulsa + Parada</div>}
           </div>
         </div>
-        <div className="mfoot"><button className="btn btn-ghost" onClick={onClose}>Cancelar</button><button className="btn btn-cyan" onClick={save}>{data?"💾 Guardar":"➕ Crear ruta"}</button></div>
+        <div className="modal-footer"><button className="btn btn-ghost" onClick={onClose}>Cancelar</button><button className="btn btn-cyan" onClick={save}>{data?"💾 Guardar":"➕ Crear ruta"}</button></div>
       </div>
     </div>
   );
@@ -1283,14 +1283,7 @@ const CSS = `
   .tld{width:7px;height:7px;border-radius:50%;flex-shrink:0}
   .tlt{font-size:.76rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .tlr{font-family:var(--font-mono);font-size:.58rem;color:var(--text-muted)} .tls{font-family:var(--font-mono);font-size:.6rem;white-space:nowrap}
-  .empty{text-align:center;padding:1.5rem;color:var(--text-muted);font-family:var(--font-mono);font-size:.75rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--r)}
-  @keyframes fi{from{opacity:0}to{opacity:1}}
-  @keyframes su{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-  .mhdr{padding:1.1rem 1.4rem .9rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-  .mtit{font-size:.95rem;font-weight:800}
-  .mbody{padding:1.1rem 1.4rem;display:flex;flex-direction:column;gap:.8rem}
-  .mfoot{padding:.9rem 1.4rem;border-top:1px solid var(--border);display:flex;gap:.5rem;justify-content:flex-end}
-  .fl{font-size:.72rem;font-weight:600;margin-bottom:.3rem;display:block;color:var(--text-muted)}
+  .empty{text-align:center;padding:1.5rem;color:var(--text-muted);font-family:var(--font-mono);font-size:.75rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--r)}to{opacity:1}}to{opacity:1;transform:translateY(0)}}
   ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:var(--surface)}::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:2px}
   /* ── Dashboard clases del sistema ─────────────────────────────── */
   .log-kpi-link { cursor: pointer; }

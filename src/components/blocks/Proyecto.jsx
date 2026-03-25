@@ -346,12 +346,12 @@ export default function App() {
       {delConf && (
         <div className="overlay" onClick={e => e.target===e.currentTarget && setDelConf(null)}>
           <div className="modal" style={{maxWidth:340,textAlign:"center"}}>
-            <div className="mbody" style={{paddingTop:"1.5rem"}}>
+            <div className="modal-body" style={{paddingTop:"1.5rem"}}>
               <div style={{fontSize:"2.5rem",marginBottom:".6rem"}}>⚠️</div>
               <div style={{fontWeight:700,fontSize:".9rem",marginBottom:".4rem"}}>¿Eliminar este elemento?</div>
               <div className="mono xs muted">Esta acción no se puede deshacer.</div>
             </div>
-            <div className="mfoot">
+            <div className="modal-footer">
               <button className="btn btn-ghost" onClick={() => setDelConf(null)}>Cancelar</button>
               <button className="btn btn-red" onClick={doDelete}>Eliminar</button>
             </div>
@@ -1056,11 +1056,11 @@ function ModalTarea({ data, equipo, tareas, onSave, onClose }) {
   return (
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal">
-        <div className="mhdr">
+        <div className="modal-header">
           <span className="mtit">{data?"✏️ Editar tarea":"➕ Nueva tarea"}</span>
           <button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button>
         </div>
-        <div className="mbody">
+        <div className="modal-body">
           <div>
             <label className="fl" style={{color:err.titulo?"#f87171":undefined}}>Título de la tarea *</label>
             <input className="inp" value={form.titulo} onChange={e=>upd("titulo",e.target.value)} placeholder="Describe la tarea..." />
@@ -1113,7 +1113,7 @@ function ModalTarea({ data, equipo, tareas, onSave, onClose }) {
               placeholder="Contexto, detalles, links relevantes..." style={{resize:"vertical"}}/>
           </div>
         </div>
-        <div className="mfoot">
+        <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
           <button className="btn btn-primary" onClick={submit}>{data?"💾 Guardar":"➕ Crear tarea"}</button>
         </div>
@@ -1137,8 +1137,8 @@ function ModalHito({ data, onSave, onClose }) {
   return (
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal" style={{maxWidth:420}}>
-        <div className="mhdr"><span className="mtit">{data?"✏️ Editar hito":"🏁 Nuevo hito"}</span><button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button></div>
-        <div className="mbody">
+        <div className="modal-header"><span className="mtit">{data?"✏️ Editar hito":"🏁 Nuevo hito"}</span><button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button></div>
+        <div className="modal-body">
           <div>
             <label className="fl" style={{color:err.nombre?"#f87171":undefined}}>Nombre del hito *</label>
             <input className="inp" value={form.nombre} onChange={e=>upd("nombre",e.target.value)} placeholder="Ej: Apertura de inscripciones"/>
@@ -1161,7 +1161,7 @@ function ModalHito({ data, onSave, onClose }) {
             ))}
           </div>
         </div>
-        <div className="mfoot"><button className="btn btn-ghost" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={submit}>{data?"💾 Guardar":"➕ Crear"}</button></div>
+        <div className="modal-footer"><button className="btn btn-ghost" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={submit}>{data?"💾 Guardar":"➕ Crear"}</button></div>
       </div>
     </div>
   );
@@ -1184,8 +1184,8 @@ function ModalPersona({ data, onSave, onClose }) {
   return (
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal">
-        <div className="mhdr"><span className="mtit">{data?"✏️ Editar persona":"👤 Nueva persona"}</span><button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button></div>
-        <div className="mbody">
+        <div className="modal-header"><span className="mtit">{data?"✏️ Editar persona":"👤 Nueva persona"}</span><button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button></div>
+        <div className="modal-body">
           <div style={{display:"flex",alignItems:"center",gap:"1rem",padding:".75rem",background:"var(--surface2)",borderRadius:10}}>
             <div className="avatar-lg" style={{background:form.color+"22",border:`2px solid ${form.color}66`,color:form.color,flexShrink:0}}>{iniciales(form.nombre||"??")}</div>
             <div style={{flex:1}}>
@@ -1226,7 +1226,7 @@ function ModalPersona({ data, onSave, onClose }) {
             </div>
           </div>
         </div>
-        <div className="mfoot"><button className="btn btn-ghost" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={submit}>{data?"💾 Guardar":"➕ Añadir"}</button></div>
+        <div className="modal-footer"><button className="btn btn-ghost" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={submit}>{data?"💾 Guardar":"➕ Añadir"}</button></div>
       </div>
     </div>
   );
@@ -1256,16 +1256,11 @@ function FichaProyecto({ ficha, equipo, onClose, onEditar, onEliminar }) {
   return (
     <>
       <style>{`
-        .proy-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:200;padding:1rem;}
-        .proy-modal{background:var(--surface);border:1px solid var(--border-light);border-radius:16px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.6);display:flex;flex-direction:column;}
-        .proy-mhdr{padding:1.1rem 1.4rem 0.9rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-        .proy-mbody{padding:1.1rem 1.4rem;display:flex;flex-direction:column;gap:0.5rem;overflow-y:auto;}
-        .proy-mfoot{padding:0.9rem 1.4rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:0.5rem;}
       `}</style>
-      <div className="proy-overlay" onClick={e => e.target===e.currentTarget && onClose()}>
-        <div className="proy-modal">
+      <div className="modal-backdrop" onClick={e => e.target===e.currentTarget && onClose()}>
+        <div className="modal">
           <div style={{ borderTop:`3px solid ${accent}`, borderRadius:"16px 16px 0 0" }}>
-            <div className="proy-mhdr">
+            <div className="modal-header">
               <div style={{ display:"flex", alignItems:"center", gap:".6rem" }}>
                 <span style={{ fontSize:"1.4rem" }}>{icon}</span>
                 <div>
@@ -1281,7 +1276,7 @@ function FichaProyecto({ ficha, equipo, onClose, onEditar, onEliminar }) {
             </div>
           </div>
 
-          <div className="proy-mbody">
+          <div className="modal-body">
             {tipo === "tarea" && (<>
               <FichaRow label="Estado"       value={EST_CFG[data.estado]?.label}  color={EST_CFG[data.estado]?.color} />
               <FichaRow label="Prioridad"    value={data.prioridad}               color={PRI_CFG[data.prioridad]?.color} />
@@ -1326,7 +1321,7 @@ function FichaProyecto({ ficha, equipo, onClose, onEditar, onEliminar }) {
             </>)}
           </div>
 
-          <div className="proy-mfoot">
+          <div className="modal-footer">
             <button className="btn btn-red" onClick={onEliminar}>🗑 Eliminar</button>
             <div style={{ display:"flex", gap:".4rem" }}>
               <button className="btn btn-ghost" onClick={onClose}>Cerrar</button>

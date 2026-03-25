@@ -892,22 +892,6 @@ function AppShell({ children }) {
         .prog-bar { height: 5px; background: var(--surface3); border-radius: 3px; overflow: hidden; }
         .prog-fill { height: 100%; border-radius: 3px; transition: width 0.5s cubic-bezier(0.4,0,0.2,1); }
 
-        /* MODAL */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
-          display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1rem; animation: fadeIn 0.15s ease; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .modal { background: var(--surface); border: 1px solid var(--border-light); border-radius: 16px;
-          width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto;
-          animation: slideUp 0.2s ease; box-shadow: 0 24px 64px rgba(0,0,0,0.6); }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .modal-header { padding: 1.25rem 1.5rem 1rem; border-bottom: 1px solid var(--border);
-          display: flex; align-items: center; justify-content: space-between; }
-        .modal-title { font-size: 1rem; font-weight: 800; }
-        .modal-body { padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 0.9rem; }
-        .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border); display: flex; gap: 0.5rem; justify-content: flex-end; }
-        .field-label { font-size: 0.72rem; font-weight: 600; margin-bottom: 0.3rem; display: block; }
-        .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-
         /* CHECKBOX / TOGGLE */
         .toggle-pill { width: 42px; height: 22px; border-radius: 11px; border: none; cursor: pointer;
           position: relative; transition: background 0.2s; flex-shrink: 0; }
@@ -1466,7 +1450,7 @@ function FichaVoluntario({ voluntario: v, puestos, onClose, onEditar, onEliminar
   const iniciales = (n) => (n||"V").split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
 
   return (
-    <div className="modal-overlay" onClick={e => e.target===e.currentTarget && onClose()}>
+    <div className="modal-backdrop" onClick={e => e.target===e.currentTarget && onClose()}>
       <div className="modal" style={{ maxWidth: 460 }}>
         <div style={{ borderTop: "3px solid var(--cyan)", borderRadius: "16px 16px 0 0" }}>
           <div className="modal-header">
@@ -1531,7 +1515,7 @@ function FichaPuesto({ puesto: p, voluntarios, onClose, onEditar, onEliminar }) 
   const color = cobertura >= 100 ? "var(--green)" : cobertura >= 50 ? "var(--amber)" : "var(--red)";
 
   return (
-    <div className="modal-overlay" onClick={e => e.target===e.currentTarget && onClose()}>
+    <div className="modal-backdrop" onClick={e => e.target===e.currentTarget && onClose()}>
       <div className="modal" style={{ maxWidth: 460 }}>
         <div style={{ borderTop: "3px solid var(--violet)", borderRadius: "16px 16px 0 0" }}>
           <div className="modal-header">
@@ -1645,7 +1629,7 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+    <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <div className="modal-header">
           <span className="modal-title">{voluntario ? "✏️ Editar voluntario" : "➕ Nuevo voluntario"}</span>
@@ -1757,7 +1741,7 @@ function ModalPuesto({ puesto, onSave, onClose }) {
   }));
 
   return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+    <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <div className="modal-header">
           <span className="modal-title">{puesto ? "✏️ Editar puesto" : "📍 Nuevo puesto"}</span>
@@ -1809,7 +1793,7 @@ function ModalPuesto({ puesto, onSave, onClose }) {
 // ─── MODAL CONFIRMAR ──────────────────────────────────────────────────────────
 function ModalConfirm({ mensaje, onConfirm, onCancel }) {
   return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onCancel()}>
+    <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onCancel()}>
       <div className="modal" style={{ maxWidth: 380 }}>
         <div className="modal-body" style={{ paddingTop: "1.5rem", textAlign: "center" }}>
           <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>⚠️</div>

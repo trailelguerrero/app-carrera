@@ -315,14 +315,14 @@ export default function App() {
         />
       )}
       {delId && (
-        <div className="pat-overlay" onClick={e => e.target===e.currentTarget && setDelId(null)}>
-          <div className="pat-modal" style={{maxWidth:340,textAlign:"center"}}>
-            <div className="mbody" style={{paddingTop:"1.5rem"}}>
+        <div className="modal-backdrop" onClick={e => e.target===e.currentTarget && setDelId(null)}>
+          <div className="modal" style={{maxWidth:340,textAlign:"center"}}>
+            <div className="modal-body" style={{paddingTop:"1.5rem"}}>
               <div style={{fontSize:"2.5rem",marginBottom:".6rem"}}>⚠️</div>
               <div style={{fontWeight:700,marginBottom:".4rem"}}>¿Eliminar patrocinador?</div>
               <div className="muted mono xs">Se eliminarán también todas sus contraprestaciones.</div>
             </div>
-            <div className="mfoot">
+            <div className="modal-footer">
               <button className="btn btn-ghost" onClick={() => setDelId(null)}>Cancelar</button>
               <button className="btn btn-red" onClick={deletePat}>Eliminar</button>
             </div>
@@ -884,10 +884,10 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
 
 
   return (
-    <div className="pat-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="pat-modal" style={{ maxWidth: 560 }}>
+    <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal" style={{ maxWidth: 560 }}>
         <div style={{ borderBottom: `2px solid ${cfg.color}33` }}>
-          <div className="mhdr" style={{ borderBottom: "none", paddingBottom: ".5rem" }}>
+          <div className="modal-header" style={{ borderBottom: "none", paddingBottom: ".5rem" }}>
             <div style={{ display: "flex", alignItems: "center", gap: ".75rem" }}>
               <div style={{ width: 36, height: 36, borderRadius: 10, background: cfg.dim, border: `1px solid ${cfg.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.3rem" }}>{cfg.icon}</div>
               <div>
@@ -916,7 +916,7 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
             ))}
           </div>
         </div>
-        <div className="mbody">
+        <div className="modal-body">
           {subTab === "info" && <><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: ".75rem" }}>
             {[
               ["Contacto", pat.contacto], ["Teléfono", pat.telefono || "—"],
@@ -997,7 +997,7 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
           {/* ── DOCUMENTOS TAB ── */}
           {subTab === "docs" && <DocManager pat={pat} addDoc={addDoc} deleteDoc={deleteDoc} cfg={cfg} />}
         </div>
-        <div className="mfoot">
+        <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Cerrar</button>
         </div>
       </div>
@@ -1025,13 +1025,13 @@ function ModalPat({ data, onSave, onClose }) {
   };
 
   return (
-    <div className="pat-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="pat-modal">
-        <div className="mhdr">
+    <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal">
+        <div className="modal-header">
           <span className="mtit">{data ? "✏️ Editar patrocinador" : "🤝 Nuevo patrocinador"}</span>
           <button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button>
         </div>
-        <div className="mbody">
+        <div className="modal-body">
           <div>
             <label className="fl" style={{ color: err.nombre ? "#f87171" : undefined }}>Nombre / Empresa *</label>
             <input className="inp" value={form.nombre} onChange={e => upd("nombre", e.target.value)} placeholder="Decathlon Ávila" />
@@ -1113,7 +1113,7 @@ function ModalPat({ data, onSave, onClose }) {
               placeholder="Condiciones especiales, observaciones, historial de contactos..." style={{ resize: "vertical" }} />
           </div>
         </div>
-        <div className="mfoot">
+        <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
           <button className="btn btn-gold" onClick={() => { if (validar()) onSave(form); }}>
             {data ? "💾 Guardar cambios" : "🤝 Crear patrocinador"}
@@ -1547,9 +1547,7 @@ const CSS = `
   .ckbox{width:20px;height:20px;border-radius:4px;border:2px solid;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
 
   /* Modal propio */
-  .pat-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;z-index:100;padding:1rem;animation:fi .15s ease}
   @keyframes fi{from{opacity:0}to{opacity:1}}
-  .pat-modal{background:var(--surface);border:1px solid var(--border-light);border-radius:16px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;animation:su .2s ease;box-shadow:0 24px 64px rgba(0,0,0,.7)}
   @keyframes su{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
   .mhdr{padding:1.1rem 1.4rem .9rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
   .mtit{font-size:.95rem;font-weight:800}
