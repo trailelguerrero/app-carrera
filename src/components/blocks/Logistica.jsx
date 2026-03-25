@@ -151,6 +151,11 @@ export default function App() {
     if (main) main.scrollTo({ top: 0, behavior: "instant" });
     setFicha({ tipo, data });
   };
+  const abrirModal = (obj) => {
+    const main = document.querySelector("main");
+    if (main) main.scrollTo({ top: 0, behavior: "instant" });
+    setModal(obj);
+  };
   // Ordenaciones
   const [ordenMat, setOrdenMat]   = useState(false); // A-Z material
   const [ordenVeh, setOrdenVeh]   = useState(false); // A-Z vehículos
@@ -222,11 +227,11 @@ export default function App() {
         {/* CONTENIDO */}
         <div key={tab}>
           {tab==="dashboard" && <TabDash stats={stats} tl={tl} ck={ck} setTab={setTab} />}
-          {tab==="material" && <TabMat material={material} setMaterial={setMaterial} asigs={asigs} setAsigs={setAsigs} setModal={setModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenMat} setOrdenAlfa={setOrdenMat} />}
-          {tab==="vehiculos" && <TabVeh veh={veh} setVeh={setVeh} rutas={rutas} setRutas={setRutas} setModal={setModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenVeh} setOrdenAlfa={setOrdenVeh} />}
-          {tab==="timeline" && <TabTL tl={tl} setTl={setTl} setModal={setModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenTL} setOrdenAlfa={setOrdenTL} />}
-          {tab==="contactos" && <TabCont cont={cont} setCont={setCont} inc={inc} setInc={setInc} setModal={setModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCont} setOrdenAlfa={setOrdenCont} />}
-          {tab==="checklist" && <TabCK ck={ck} setCk={setCk} setModal={setModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCK} setOrdenAlfa={setOrdenCK} />}
+          {tab==="material" && <TabMat material={material} setMaterial={setMaterial} asigs={asigs} setAsigs={setAsigs} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenMat} setOrdenAlfa={setOrdenMat} />}
+          {tab==="vehiculos" && <TabVeh veh={veh} setVeh={setVeh} rutas={rutas} setRutas={setRutas} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenVeh} setOrdenAlfa={setOrdenVeh} />}
+          {tab==="timeline" && <TabTL tl={tl} setTl={setTl} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenTL} setOrdenAlfa={setOrdenTL} />}
+          {tab==="contactos" && <TabCont cont={cont} setCont={setCont} inc={inc} setInc={setInc} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCont} setOrdenAlfa={setOrdenCont} />}
+          {tab==="checklist" && <TabCK ck={ck} setCk={setCk} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCK} setOrdenAlfa={setOrdenCK} />}
         </div>
       </div>
 
@@ -380,7 +385,7 @@ const TLC = {logistica:"#fbbf24",organizacion:"#a78bfa",voluntarios:"#34d399",ca
 const TLI = {logistica:"🚚",organizacion:"📋",voluntarios:"👥",carrera:"🏃",comunicacion:"📡"};
 
 // ─── MATERIAL ─────────────────────────────────────────────────────────────────
-function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa}) {
+function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal}) {
   const [vistaAsig,setVistaAsig]=useState(false);
   const [vistaKanban,setVistaKanban]=useState(false);
   const [cat,setCat]=useState("todas");
@@ -411,7 +416,7 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
             </div>
             <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
           </>)}
-          <button className="btn btn-cyan" onClick={()=>setModal({tipo:vistaAsig?"asig":"mat"})}>+ Añadir</button>
+          <button className="btn btn-cyan" onClick={()=>abrirModal({tipo:vistaAsig?"asig":"mat"})}>+ Añadir</button>
         </div>
       </div>
       {!vistaAsig?(<>
@@ -482,7 +487,7 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
 }
 
 // ─── VEHÍCULOS ────────────────────────────────────────────────────────────────
-function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa}) {
+function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal}) {
   const [vistaKanban,setVistaKanban]=useState(false);
   const moverVeh=(id,dir)=>{
     if(ordenAlfa) return;
@@ -498,8 +503,8 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
             {[["lista","☰"],["kanban","⬛"]].map(([v,ic])=>(<button key={v} onClick={()=>setVistaKanban(v==="kanban")} style={{padding:".3rem .55rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,background:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"rgba(34,211,238,.2)":"transparent",color:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"var(--cyan)":"var(--text-muted)"}}>{ic}</button>))}
           </div>
           <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
-          <button className="btn btn-cyan" onClick={()=>setModal({tipo:"veh"})}>+ Vehículo</button>
-          <button className="btn btn-amber" onClick={()=>setModal({tipo:"ruta"})}>+ Ruta</button>
+          <button className="btn btn-cyan" onClick={()=>abrirModal({tipo:"veh"})}>+ Vehículo</button>
+          <button className="btn btn-amber" onClick={()=>abrirModal({tipo:"ruta"})}>+ Ruta</button>
         </div>
       </div>
       {vistaKanban?(
@@ -580,7 +585,7 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
 }
 
 // ─── TIMELINE ─────────────────────────────────────────────────────────────────
-function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa}) {
+function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal}) {
   const [vistaKanban,setVistaKanban]=useState(false);
   const sorted=useMemo(()=>{
     let arr=[...tl];
@@ -609,7 +614,7 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa}) {
             {[["lista","☰"],["kanban","⬛"]].map(([v,ic])=>(<button key={v} onClick={()=>setVistaKanban(v==="kanban")} style={{padding:".3rem .55rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,background:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"rgba(34,211,238,.2)":"transparent",color:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"var(--cyan)":"var(--text-muted)"}}>{ic}</button>))}
           </div>
           <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
-          <button className="btn btn-cyan" onClick={()=>setModal({tipo:"tl"})}>+ Tarea</button>
+          <button className="btn btn-cyan" onClick={()=>abrirModal({tipo:"tl"})}>+ Tarea</button>
         </div>
       </div>
       {vistaKanban?(
@@ -682,7 +687,7 @@ const PROTO_PASOS=[
   {id:4,titulo:"Problema en avituallamiento",icon:"🍎",pasos:["Identificar qué falta (agua, isotónico, otro)","Contactar con furgoneta de reparto","Si urgente: enviar voluntario con coche propio","Alternativa: reducir raciones hasta reponer","Registrar en incidencias para próxima edición"]},
 ];
 
-function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa}) {
+function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal}) {
   const [sub,setSub]=useState("directorio");
   const [proto,setProto]=useState(null);
   const [vistaKanban,setVistaKanban]=useState(false);
@@ -724,7 +729,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
             </div>
             <div className="fr g1">
               <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
-              <button className="btn btn-cyan" onClick={()=>setModal({tipo:"cont"})}>+ Contacto</button>
+              <button className="btn btn-cyan" onClick={()=>abrirModal({tipo:"cont"})}>+ Contacto</button>
             </div>
           </div>
 
@@ -809,7 +814,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
         <>
           <div className="fb mb1">
             <div className="pd">{inc.length} incidencias registradas</div>
-            <button className="btn" style={{background:"var(--red-dim)",color:"var(--red)",border:"1px solid rgba(248,113,113,0.2)"}} onClick={()=>setModal({tipo:"inc"})}>+ Registrar incidencia</button>
+            <button className="btn" style={{background:"var(--red-dim)",color:"var(--red)",border:"1px solid rgba(248,113,113,0.2)"}} onClick={()=>abrirModal({tipo:"inc"})}>+ Registrar incidencia</button>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:"0.55rem"}}>
             {inc.map(ic=>(
@@ -839,7 +844,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
   );
 }
 
-function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa}) {
+function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal}) {
   const hoy = new Date().toISOString().split("T")[0];
   const [fechaRef, setFechaRef] = useState(hoy);
   const [mostrarCalendario, setMostrarCalendario] = useState(false);
@@ -884,7 +889,7 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa}) {
               style={{background:"none",border:"none",color:"var(--text)",fontFamily:"var(--font-mono)",fontSize:".68rem",outline:"none",cursor:"pointer"}} />
           </div>
           <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
-          <button className="btn btn-cyan" onClick={()=>setModal({tipo:"ck",fase:fase})}>+ Tarea</button>
+          <button className="btn btn-cyan" onClick={()=>abrirModal({tipo:"ck",fase:fase})}>+ Tarea</button>
         </div>
       </div>
       <div className="ftabs">
