@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useData } from "@/lib/dataService";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
@@ -401,6 +401,7 @@ export default function App() {
   const [modalPuesto, setModalPuesto] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmDeletePuesto, setConfirmDeletePuesto] = useState(null);
+  const [configOpen, setConfigOpen] = useState(false); // config camisetas colapsada por defecto
 
   // ── Métricas ──────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
@@ -470,13 +471,21 @@ export default function App() {
     </AppShell>
   );
 
-  const TABS_VOL = [
+  // Días hasta el evento — para reordenar tabs en semana de carrera
+  const diasHastaEvento = Math.ceil((new Date("2026-08-29") - new Date()) / 86400000);
+  const esSemanaCarrera = diasHastaEvento >= 0 && diasHastaEvento <= 7;
+
+  const TABS_BASE = [
     { id: "dashboard",  icon: "📊", label: "Dashboard" },
     { id: "voluntarios",icon: "👥", label: "Voluntarios", badge: stats.total },
     { id: "puestos",    icon: "📍", label: "Puestos",     badge: puestos.length },
     { id: "tallas",     icon: "👕", label: "Tallas" },
-    { id: "dia-d",      icon: "🏁", label: "Día de Carrera" },
+    { id: "dia-d",      icon: "🏁", label: esSemanaCarrera ? "🚨 Día de Carrera" : "Día de Carrera" },
   ];
+  // En semana de carrera, Día de Carrera sube a primera posición
+  const TABS_VOL = esSemanaCarrera
+    ? [TABS_BASE[4], ...TABS_BASE.slice(0, 4)]
+    : TABS_BASE;
 
   return (
     <AppShell>
@@ -486,9 +495,27 @@ export default function App() {
         <div className="block-header">
           <div>
             <h1 className="block-title">👥 Voluntarios</h1>
-            <div className="block-title-sub">Módulo de gestión · Trail El Guerrero 2026</div>
+            <div className="block-title-sub">
+              Módulo de gestión · Trail El Guerrero 2026
+              {esSemanaCarrera && <span style={{marginLeft:"0.5rem",color:"var(--red)",fontWeight:700}}>⚡ SEMANA DE CARRERA</span>}
+            </div>
           </div>
           <div className="block-actions">
+            {/* Búsqueda global en el header */}
+            <div style={{display:"flex",alignItems:"center",gap:"0.35rem",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:"var(--radius-sm)",padding:"0.28rem 0.6rem",transition:"border-color .15s",minWidth:0}}
+              onFocus={e=>e.currentTarget.style.borderColor="var(--cyan)"}
+              onBlur={e=>e.currentTarget.style.borderColor="var(--border)"}>
+              <span style={{opacity:.5,fontSize:".8rem",flexShrink:0}}>🔍</span>
+              <input
+                value={busqueda}
+                onChange={e=>{setBusqueda(e.target.value); if(e.target.value && tab!=="voluntarios") setTab("voluntarios");}}
+                placeholder="Buscar voluntario…"
+                style={{background:"none",border:"none",color:"var(--text)",fontFamily:"var(--font-display)",fontSize:".78rem",outline:"none",width:150}}
+              />
+              {busqueda && (
+                <button onClick={()=>setBusqueda("")} style={{background:"none",border:"none",color:"var(--text-muted)",cursor:"pointer",fontSize:".7rem",padding:0,flexShrink:0}}>✕</button>
+              )}
+            </div>
             <span className="badge badge-green">{stats.confirmados} confirmados</span>
             <span className="badge badge-amber">{stats.pendientes} pendientes</span>
             {stats.cancelados > 0 && <span className="badge badge-red">{stats.cancelados} cancelados</span>}
@@ -526,29 +553,38 @@ export default function App() {
           </div>
         </div>
 
-        {/* OPCIONES FORMULARIO + IMÁGENES — en card plegable */}
-        <div className="card mb" style={{padding:"0.75rem 1rem"}}>
-          <div className="flex-between mb-sm">
-            <span className="xs bold muted">⚙️ Configuración formulario público</span>
-          </div>
-          <div className="flex-center gap" style={{flexWrap:"wrap"}}>
-            {[
-              { label: "Elegir puesto", val: opcionPuesto, set: setOpcionPuesto },
-              { label: "Vehículo propio", val: opcionVehiculo, set: setOpcionVehiculo },
-            ].map(opt => (
-              <div key={opt.label} className="flex-center gap-sm">
-                <button className={cls("toggle-btn", opt.val && "active")} onClick={() => opt.set(!opt.val)}>
-                  <div className="toggle-thumb" />
-                </button>
-                <span className="xs">{opt.label}</span>
+        {/* OPCIONES FORMULARIO + IMÁGENES — colapsable */}
+        <div className="card mb" style={{padding:"0.65rem 1rem"}}>
+          <button
+            onClick={() => setConfigOpen(v => !v)}
+            style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",background:"none",border:"none",cursor:"pointer",padding:0}}>
+            <span style={{fontFamily:"var(--font-mono)",fontSize:"0.62rem",fontWeight:700,color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:"0.1em"}}>
+              ⚙️ Configuración formulario público
+            </span>
+            <span style={{fontFamily:"var(--font-mono)",fontSize:"0.6rem",color:"var(--text-dim)"}}>
+              {configOpen ? "▲ ocultar" : "▼ mostrar"}
+            </span>
+          </button>
+          {configOpen && (
+            <div className="flex-center gap" style={{flexWrap:"wrap",marginTop:"0.65rem",paddingTop:"0.65rem",borderTop:"1px solid var(--border)"}}>
+              {[
+                { label: "Elegir puesto", val: opcionPuesto, set: setOpcionPuesto },
+                { label: "Vehículo propio", val: opcionVehiculo, set: setOpcionVehiculo },
+              ].map(opt => (
+                <div key={opt.label} className="flex-center gap-sm">
+                  <button className={cls("toggle-btn", opt.val && "active")} onClick={() => opt.set(!opt.val)}>
+                    <div className="toggle-thumb" />
+                  </button>
+                  <span className="xs">{opt.label}</span>
+                </div>
+              ))}
+              <div className="flex-center gap-sm" style={{marginLeft:"auto"}}>
+                <ImagenUploader label="Camiseta ▶" img={imgFront}      onImg={setImgFront}      accent="var(--cyan)" />
+                <ImagenUploader label="Camiseta ◀" img={imgBack}       onImg={setImgBack}       accent="var(--violet)" />
+                <ImagenUploader label="Tallas"     img={imgGuiaTallas} onImg={setImgGuiaTallas} accent="var(--green)" />
               </div>
-            ))}
-            <div className="flex-center gap-sm" style={{marginLeft:"auto"}}>
-              <ImagenUploader label="Camiseta ▶" img={imgFront}      onImg={setImgFront}      accent="var(--cyan)" />
-              <ImagenUploader label="Camiseta ◀" img={imgBack}       onImg={setImgBack}       accent="var(--violet)" />
-              <ImagenUploader label="Tallas"     img={imgGuiaTallas} onImg={setImgGuiaTallas} accent="var(--green)" />
             </div>
-          </div>
+          )}
         </div>
 
         {/* TABS */}
@@ -1233,12 +1269,62 @@ function TabPuestos({ puestosConStats, voluntarios, onUpdatePuesto, onDeletePues
 function TabTallas({ stats, voluntarios }) {
   const total = Object.values(stats.tallasCount).reduce((s, v) => s + v, 0);
   const maxVal = Math.max(...Object.values(stats.tallasCount), 1);
+
+  // Exportar CSV nombre + talla
+  const exportCSV = () => {
+    const activos = voluntarios.filter(v => v.estado !== "cancelado" && v.talla);
+    const rows = [
+      ["Nombre", "Talla", "Puesto", "Estado"],
+      ...activos.map(v => [
+        `"${v.nombre || ""}"`,
+        v.talla || "",
+        `"${v.puestoId || ""}"`,
+        v.estado || "",
+      ])
+    ];
+    const csv = rows.map(r => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = "tallas_voluntarios_TEG2026.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Exportar resumen de tallas
+  const exportResumenCSV = () => {
+    const rows = [
+      ["Talla", "Cantidad"],
+      ...TALLAS.filter(t => stats.tallasCount[t] > 0)
+               .map(t => [t, stats.tallasCount[t]])
+    ];
+    const csv = rows.map(r => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = "resumen_tallas_TEG2026.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <>
       <div className="page-header">
         <div>
           <div className="page-title">👕 Tallas de Camiseta</div>
           <div className="page-desc">{total} camisetas necesarias (voluntarios activos)</div>
+        </div>
+        <div style={{display:"flex",gap:"0.4rem",flexWrap:"wrap"}}>
+          <button className="btn btn-ghost btn-sm" onClick={exportResumenCSV}
+            title="Exportar resumen de tallas">
+            📥 Resumen CSV
+          </button>
+          <button className="btn btn-cyan btn-sm" onClick={exportCSV}
+            title="Exportar listado completo nombre + talla">
+            📥 Lista CSV
+          </button>
         </div>
       </div>
 
@@ -1464,9 +1550,13 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
           </div>
 
           <div>
-            <label className="field-label">Notas / Observaciones</label>
-            <textarea className="inp" rows={2} value={form.notas} onChange={e => upd("notas", e.target.value)}
-              placeholder="Experiencia previa, idiomas, titulaciones..." style={{ resize: "vertical" }} />
+            <label className="field-label" style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <span>📝 Notas / Observaciones</span>
+              {form.notas && <span style={{fontFamily:"var(--font-mono)",fontSize:"0.55rem",color:"var(--cyan)",fontWeight:400}}>{form.notas.length} car.</span>}
+            </label>
+            <textarea className="inp" rows={3} value={form.notas} onChange={e => upd("notas", e.target.value)}
+              placeholder="Experiencia previa, idiomas, titulaciones especiales, restricciones, observaciones del organizador…"
+              style={{ resize: "vertical", fontFamily: "var(--font-display)" }} />
           </div>
         </div>
         <div className="modal-footer">
