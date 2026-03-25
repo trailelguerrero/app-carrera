@@ -686,79 +686,114 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
   const [sub,setSub]=useState("directorio");
   const [proto,setProto]=useState(null);
   const [vistaKanban,setVistaKanban]=useState(false);
+  const contOrdenado = ordenAlfa ? [...cont].sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es")) : cont;
+
   return(
     <>
       <div className="ph">
-        <div><div className="pt">📡 Comunicaciones</div><div className="pd">Directorio · Protocolo de emergencia · Incidencias</div></div>
+        <div><div className="pt">📡 Comunicaciones</div><div className="pd">Directorio · Protocolo · Incidencias</div></div>
         <div className="fr g1">
-          <div className="log-vista-toggle" style={{marginRight:".25rem"}}>
-            {[["lista","☰"],["kanban","⬛"]].map(([v,ic])=>(<button key={v} onClick={()=>setVistaKanban(v==="kanban")} style={{padding:".3rem .55rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,background:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"rgba(34,211,238,.2)":"transparent",color:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"var(--cyan)":"var(--text-muted)"}}>{ic}</button>))}
-          </div>
-          {["directorio","protocolo","incidencias"].map(sub2=>(
-            <button key={sub2} className={cls("btn",sub===sub2?"btn-cyan":"btn-ghost")} onClick={()=>setSub(sub2)}>
-              {sub2==="incidencias"?"Incidencias"+(inc.filter(i=>i.estado==="abierta").length>0?" ⚠️":""):sub2.charAt(0).toUpperCase()+sub2.slice(1)}
+          {sub==="directorio" && (
+            <div className="log-vista-toggle">
+              {[["lista","☰"],["kanban","⬛"]].map(([v,ic])=>(
+                <button key={v} onClick={()=>setVistaKanban(v==="kanban")}
+                  style={{padding:".3rem .55rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,
+                    background:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"rgba(34,211,238,.2)":"transparent",
+                    color:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"var(--cyan)":"var(--text-muted)"}}>
+                  {ic}
+                </button>
+              ))}
+            </div>
+          )}
+          {[["directorio","Directorio"],["protocolo","Protocolo"],["incidencias","Incidencias"]].map(([id,label])=>(
+            <button key={id} className={cls("btn",sub===id?"btn-cyan":"btn-ghost")} onClick={()=>setSub(id)}>
+              {id==="incidencias"?label+(inc.filter(i=>i.estado==="abierta").length>0?" ⚠️":""):label}
             </button>
           ))}
         </div>
       </div>
 
-      {sub==="directorio"&&(
+      {/* ── DIRECTORIO ── */}
+      {sub==="directorio" && (
         <>
-          <div className="fb mb1"><div className="fr g1">{Object.entries(TICI).map(([t,i])=><span key={t} className="ctbadge" style={{background:`${TIC[t]}15`,color:TIC[t],border:`1px solid ${TIC[t]}33`}}>{i} {t}</span>)}</div>
-<button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
-            <button className="btn btn-cyan" onClick={()=>setModal({tipo:"cont"})}>+ Contacto</button>
+          <div className="fb mb1">
+            <div className="fr g1">
+              {Object.entries(TICI).map(([t,ic])=>(
+                <span key={t} className="ctbadge" style={{background:`${TIC[t]}15`,color:TIC[t],border:`1px solid ${TIC[t]}33`}}>{ic} {t}</span>
+              ))}
+            </div>
+            <div className="fr g1">
+              <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
+              <button className="btn btn-cyan" onClick={()=>setModal({tipo:"cont"})}>+ Contacto</button>
+            </div>
           </div>
-          {vistaKanban?(
+
+          {vistaKanban ? (
             <div className="log-kanban-grid" style={{gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))"}}>
               {["emergencia","proveedor","staff","institucional"].map(tipo=>{
-                const items=(ordenAlfa?[...cont].sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es")):cont).filter(c=>c.tipo===tipo);
+                const items=contOrdenado.filter(c=>c.tipo===tipo);
                 if(!items.length) return null;
                 const color=TIC[tipo];
-                return(<div key={tipo} className="log-k-col">
-                  <div className="log-k-hdr" style={{borderTopColor:color}}>
-                    <span style={{fontSize:".65rem",fontWeight:700,color}}>{TICI[tipo]} {tipo}</span>
-                    <span className="log-k-cnt" style={{background:color+"22",color,border:`1px solid ${color}44`}}>{items.length}</span>
+                return(
+                  <div key={tipo} className="log-k-col">
+                    <div className="log-k-hdr" style={{borderTopColor:color}}>
+                      <span style={{fontSize:".65rem",fontWeight:700,color}}>{TICI[tipo]} {tipo}</span>
+                      <span className="log-k-cnt" style={{background:color+"22",color,border:`1px solid ${color}44`}}>{items.length}</span>
+                    </div>
+                    {items.map(c=>(
+                      <div key={c.id} className="log-k-card" style={{borderLeftColor:color,cursor:"pointer"}} onClick={()=>abrirFicha("cont",c)}>
+                        <div style={{fontWeight:700,fontSize:".76rem",marginBottom:".2rem"}}>{c.nombre}</div>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",marginBottom:".2rem"}}>{c.rol}</div>
+                        <a href={`tel:${c.telefono}`} style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--cyan)",textDecoration:"none"}} onClick={e=>e.stopPropagation()}>📞 {c.telefono}</a>
+                        <div className="log-k-actions" onClick={e=>e.stopPropagation()}>
+                          <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"cont",data:c})}>✏️</button>
+                          <button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"cont",id:c.id})}>✕</button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  {items.map(c=>(<div key={c.id} className="log-k-card" style={{borderLeftColor:color,cursor:"pointer"}} onClick={()=>abrirFicha("cont",c)}>
-                    <div style={{fontWeight:700,fontSize:".76rem",marginBottom:".2rem"}}>{c.nombre}</div>
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",marginBottom:".2rem"}}>{c.rol}</div>
-                    <a href={`tel:${c.telefono}`} style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--cyan)",textDecoration:"none"}} onClick={e=>e.stopPropagation()}>📞 {c.telefono}</a>
-                    <div className="log-k-actions" onClick={e=>e.stopPropagation()}>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="cgrid">
+              {contOrdenado.map(c=>(
+                <div key={c.id} className="ccard" style={{borderTopColor:TIC[c.tipo],cursor:"pointer"}} onClick={()=>abrirFicha("cont",c)}>
+                  <div className="cch">
+                    <div className="ccti">{TICI[c.tipo]}</div>
+                    <div style={{flex:1,minWidth:0}}><div className="ccn">{c.nombre}</div><div className="ccr">{c.rol}</div></div>
+                    <div className="fr g1" onClick={e=>e.stopPropagation()}>
                       <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"cont",data:c})}>✏️</button>
                       <button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"cont",id:c.id})}>✕</button>
                     </div>
-                  </div>))}
-                </div>);
-              })}
+                  </div>
+                  <div className="ccd">
+                    <a href={`tel:${c.telefono}`} className="ctel">📞 {c.telefono}</a>
+                    {c.email&&<a href={`mailto:${c.email}`} className="ceml">✉️ {c.email}</a>}
+                  </div>
+                  {c.notas&&<div className="cnota">{c.notas}</div>}
+                </div>
+              ))}
             </div>
-          ):(
-          <div className="cgrid">{(ordenAlfa?[...cont].sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es")):cont).map(c=>(
-            <div key={c.id} className="ccard" style={{borderTopColor:TIC[c.tipo],cursor:"pointer"}} onClick={()=>abrirFicha("cont",c)}>
-              <div className="cch">
-                <div className="ccti">{TICI[c.tipo]}</div>
-                <div style={{flex:1,minWidth:0}}><div className="ccn">{c.nombre}</div><div className="ccr">{c.rol}</div></div>
-                <div className="fr g1" onClick={e=>e.stopPropagation()}><button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"cont",data:c})}>✏️</button><button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"cont",id:c.id})}>✕</button></div>
-              </div>
-              <div className="ccd">
-                <a href={`tel:${c.telefono}`} className="ctel">📞 {c.telefono}</a>
-                {c.email&&<a href={`mailto:${c.email}`} className="ceml">✉️ {c.email}</a>}
-              </div>
-              {c.notas&&<div className="cnota">{c.notas}</div>}
-            </div>
-          ))}</div>
           )}
         </>
       )}
 
-      {sub==="protocolo"&&(
+      {/* ── PROTOCOLO ── */}
+      {sub==="protocolo" && (
         <div>
-          <div className="pintro"><span style={{fontSize:"1.5rem"}}>🚨</span><div><div style={{fontWeight:700,marginBottom:"0.2rem"}}>Protocolo de emergencias</div><div className="muted xs mono">Selecciona el tipo de incidencia para ver los pasos</div></div></div>
-          <div className="pgrid">{PROTO_PASOS.map(p=>(
-            <button key={p.id} className={cls("pbtn",proto===p.id&&"pactive")} onClick={()=>setProto(proto===p.id?null:p.id)}>
-              <span style={{fontSize:"1.4rem"}}>{p.icon}</span><span>{p.titulo}</span>
-            </button>
-          ))}</div>
-          {proto&&(
+          <div className="pintro">
+            <span style={{fontSize:"1.5rem"}}>🚨</span>
+            <div><div style={{fontWeight:700,marginBottom:".2rem"}}>Protocolo de emergencias</div><div className="muted xs mono">Selecciona el tipo de incidencia para ver los pasos</div></div>
+          </div>
+          <div className="pgrid">
+            {PROTO_PASOS.map(p=>(
+              <button key={p.id} className={cls("pbtn",proto===p.id&&"pactive")} onClick={()=>setProto(proto===p.id?null:p.id)}>
+                <span style={{fontSize:"1.4rem"}}>{p.icon}</span><span>{p.titulo}</span>
+              </button>
+            ))}
+          </div>
+          {proto && (
             <div className="psteps">
               <div className="pst">{PROTO_PASOS.find(p=>p.id===proto)?.icon} {PROTO_PASOS.find(p=>p.id===proto)?.titulo}</div>
               {PROTO_PASOS.find(p=>p.id===proto)?.pasos.map((s,i)=>(
@@ -769,7 +804,8 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
         </div>
       )}
 
-      {sub==="incidencias"&&(
+      {/* ── INCIDENCIAS ── */}
+      {sub==="incidencias" && (
         <>
           <div className="fb mb1">
             <div className="pd">{inc.length} incidencias registradas</div>
@@ -803,7 +839,6 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
   );
 }
 
-// ─── CHECKLIST ────────────────────────────────────────────────────────────────
 function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa}) {
   const hoy = new Date().toISOString().split("T")[0];
   const [fechaRef, setFechaRef] = useState(hoy);
