@@ -204,7 +204,7 @@ const Presupuesto = () => {
             <span className="badge badge-cyan">
               🏃 {totalInscritos?.total ?? 0} corredores
             </span>
-            <button className="btn btn-ghost btn-sm" onClick={() => setConfirmReset(true)}>
+            <button className="btn btn-ghost btn-sm" onClick={() => { const m = document.querySelector("main"); if (m) m.scrollTo({ top:0, behavior:"instant" }); setConfirmReset(true); }}>
               Restablecer
             </button>
             <button className={saveCls} onClick={saveData} disabled={saveStatus === "saving"}>

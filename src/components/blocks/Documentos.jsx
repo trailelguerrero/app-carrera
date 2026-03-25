@@ -144,6 +144,8 @@ export default function Documentos() {
   };
 
   const startEdit = (doc) => {
+    const main = document.querySelector("main");
+    if (main) main.scrollTo({ top: 0, behavior: "instant" });
     setEditId(doc.id);
     setEditForm({
       nota: doc.nota || "",
@@ -480,7 +482,8 @@ export default function Documentos() {
               {uploadOpen ? "▲ ocultar" : "▼ mostrar"}
             </span>
           </button>
-          {uploadOpen && <div>
+          {uploadOpen && (
+            <div>
 
           {/* Campos de metadatos */}
           <div className="doc-upload-fields">
@@ -531,7 +534,8 @@ export default function Documentos() {
               </div>
             )}
           </div>
-          </div>}
+            </div>
+          )}
         </div>
 
         {/* ── Document list ── */}
