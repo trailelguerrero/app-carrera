@@ -355,21 +355,28 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo })
         <button className="btn btn-gold" onClick={openNuevo}>+ Nuevo patrocinador</button>
       </div>
 
-      {/* KPIs */}
-      <div className="kgrid">
-        {[
-          { l: "Captado", v: fmt(stats.comprometido), s: "comprometido / confirmado", c: "gold", i: "💰" },
-          { l: "Cobrado", v: fmt(stats.cobrado), s: `${stats.pctCobrado}% del objetivo`, c: "green", i: "✅" },
-          { l: "En especie", v: fmt(stats.especie), s: "valor estimado", c: "violet", i: "📦" },
-          { l: "Pipeline", v: fmt(stats.pipeline), s: "en negociación/prospecto", c: "amber", i: "🔀" },
-        ].map(k => (
-          <div key={k.l} className={`pat-kpi c-${k.c}`}>
-            <div className="ki">{k.i}</div>
-            <div className="kl">{k.l}</div>
-            <div className="kv">{k.v}</div>
-            <div className="ks">{k.s}</div>
-          </div>
-        ))}
+      {/* KPIs — clases del sistema BLOCK_CSS */}
+      <div className="kpi-grid mb">
+        <div className="kpi amber" style={{cursor:"pointer"}} onClick={()=>setTab("patrocinadores")} title="Ver patrocinadores">
+          <div className="kpi-label">💰 Captado</div>
+          <div className="kpi-value" style={{color:"#f59e0b"}}>{fmt(stats.comprometido)}</div>
+          <div className="kpi-sub">comprometido / confirmado</div>
+        </div>
+        <div className="kpi green" style={{cursor:"pointer"}} onClick={()=>setTab("patrocinadores")} title="Ver cobrados">
+          <div className="kpi-label">✅ Cobrado</div>
+          <div className="kpi-value" style={{color:"var(--green)"}}>{fmt(stats.cobrado)}</div>
+          <div className="kpi-sub">{stats.pctCobrado}% del objetivo</div>
+        </div>
+        <div className="kpi violet" style={{cursor:"pointer"}} onClick={()=>setTab("patrocinadores")} title="Ver en especie">
+          <div className="kpi-label">📦 En especie</div>
+          <div className="kpi-value" style={{color:"var(--violet)"}}>{fmt(stats.especie)}</div>
+          <div className="kpi-sub">valor estimado</div>
+        </div>
+        <div className="kpi cyan" style={{cursor:"pointer"}} onClick={()=>setTab("pipeline")} title="Ver pipeline">
+          <div className="kpi-label">🔀 Pipeline</div>
+          <div className="kpi-value" style={{color:"var(--cyan)"}}>{fmt(stats.pipeline)}</div>
+          <div className="kpi-sub">en negociación/prospecto</div>
+        </div>
       </div>
 
       {/* Barra de progreso objetivo */}
@@ -636,11 +643,13 @@ function TabPipeline({ pats, onEditar, updateEstado }) {
 function TabContraprestaciones({ pats, updateContraprestacion, addContraprestacion, deleteContraprestacion }) {
   const [addingTo, setAddingTo] = useState(null);
   const [newCont, setNewCont] = useState({ tipo: CONTRAPRESTACIONES_TIPO[0], detalle: "", estado: "pendiente" });
+  const [filtroPatId, setFiltroPatId] = useState("todos");
 
   const activos = pats.filter(p => p.estado !== "cancelado");
   const allConts = activos.flatMap(p => (p.contraprestaciones || []).map(c => ({ ...c, patNombre: p.nombre, patId: p.id, patNivel: p.nivel })));
   const pendientes = allConts.filter(c => c.estado === "pendiente");
   const entregados = allConts.filter(c => c.estado === "entregado");
+  const activosFiltrados = filtroPatId === "todos" ? activos : activos.filter(p => String(p.id) === filtroPatId);
 
   return (
     <>
@@ -649,6 +658,11 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
           <div className="pt">🎁 Compromisos con patrocinadores</div>
           <div className="pd">{pendientes.length} pendientes · {entregados.length} entregados · {allConts.length} total</div>
         </div>
+        {/* Filtro por patrocinador */}
+        <select className="inp" value={filtroPatId} onChange={e=>setFiltroPatId(e.target.value)} style={{width:"auto",maxWidth:220}}>
+          <option value="todos">Todos los patrocinadores</option>
+          {activos.map(p=><option key={p.id} value={String(p.id)}>{getCfg(p.nivel).icon} {p.nombre}</option>)}
+        </select>
       </div>
 
       {/* Resumen rápido */}
@@ -685,7 +699,7 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
 
       {/* Por patrocinador */}
       <div className="ct" style={{ marginBottom: ".5rem" }}>Compromisos por patrocinador</div>
-      {activos.map(p => {
+      {activosFiltrados.map(p => {
         const cfg = getCfg(p.nivel);
         const pend = (p.contraprestaciones || []).filter(c => c.estado === "pendiente").length;
         const entr = (p.contraprestaciones || []).filter(c => c.estado === "entregado").length;
@@ -775,7 +789,12 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
               <button key={id} onClick={() => setSubTab(id)}
                 style={{ background:"none", border:"none", borderBottom: subTab===id ? `2px solid ${cfg.color}` : "2px solid transparent", color: subTab===id ? cfg.color : "var(--text-muted)", fontFamily:"Syne,sans-serif", fontSize:".72rem", fontWeight: subTab===id?700:500, padding:".4rem .75rem .5rem", cursor:"pointer", transition:"all .15s" }}>
                 {label}
-                {id==="docs" && (pat.docs||[]).length > 0 && <span style={{ marginLeft:".3rem", background:cfg.dim, color:cfg.color, fontSize:".55rem", padding:".05rem .3rem", borderRadius:3, fontFamily:"var(--font-mono)" }}>{(pat.docs||[]).length}</span>}
+                {id==="docs" && (() => {
+                  const nDocs = (pat.docs||[]).length;
+                  return nDocs > 0 ? (
+                    <span style={{ marginLeft:".3rem", background:cfg.dim, color:cfg.color, fontSize:".55rem", padding:".05rem .3rem", borderRadius:3, fontFamily:"var(--font-mono)" }}>{nDocs}</span>
+                  ) : null;
+                })()}
                 {id==="cont" && (pat.contraprestaciones || []).filter(c=>c.estado==="pendiente").length > 0 && <span style={{ marginLeft:".3rem", background:"rgba(248,113,113,.12)", color:"#f87171", fontSize:".55rem", padding:".05rem .3rem", borderRadius:3, fontFamily:"var(--font-mono)" }}>{(pat.contraprestaciones || []).filter(c=>c.estado==="pendiente").length}</span>}
               </button>
             ))}
@@ -818,6 +837,9 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
               <div style={{ fontSize: ".74rem", color: "var(--text-muted)", fontStyle: "italic", lineHeight: 1.5 }}>{pat.notas}</div>
             </div>
           )}
+
+          {/* Log de contactos */}
+          <LogContactos patId={pat.id} cfg={cfg} />
           </>}
           {subTab === "cont" && <><div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ".5rem" }}>
@@ -941,7 +963,11 @@ function ModalPat({ data, onSave, onClose }) {
               <input className="inp" type="number" value={form.importeCobrado} onChange={e => upd("importeCobrado", parseFloat(e.target.value) || 0)} />
             </div>
             <div>
-              <label className="fl">Especie (€ valor)</label>
+              <label className="fl">
+              Especie (€ valor)
+              <span title="Patrocinio en productos o servicios en lugar de dinero. Ej: material deportivo, servicios de fisioterapia, alimentación para avituallamiento. Indica el valor económico estimado."
+                style={{marginLeft:".35rem",cursor:"help",opacity:.6,fontSize:".65rem"}}>ⓘ</span>
+            </label>
               <input className="inp" type="number" value={form.especie} onChange={e => upd("especie", parseFloat(e.target.value) || 0)} />
             </div>
           </div>
@@ -1107,6 +1133,82 @@ function DocManager({ pat, addDoc, deleteDoc, cfg }) {
   );
 }
 
+
+// ─── LOG DE CONTACTOS ─────────────────────────────────────────────────────────
+function LogContactos({ patId, cfg }) {
+  const LS_LOG = `teg_pat_log_${patId}`;
+  const [logs, setLogs] = useData(LS_LOG, []);
+  const safeLogs = Array.isArray(logs) ? logs : [];
+  const [adding, setAdding] = useState(false);
+  const [form, setForm] = useState({ fecha: new Date().toISOString().split("T")[0], tipo: "Llamada", nota: "" });
+
+  const TIPOS_LOG = ["Llamada", "Email", "Reunión", "WhatsApp", "Otro"];
+
+  const addLog = () => {
+    if (!form.nota.trim()) return;
+    const nuevo = { id: Date.now(), ...form };
+    setLogs([nuevo, ...safeLogs]);
+    setForm({ fecha: new Date().toISOString().split("T")[0], tipo: "Llamada", nota: "" });
+    setAdding(false);
+  };
+
+  const deleteLog = (id) => setLogs(safeLogs.filter(l => l.id !== id));
+
+  const TIPO_ICONS = { Llamada:"📞", Email:"✉️", Reunión:"🤝", WhatsApp:"💬", Otro:"📝" };
+
+  return (
+    <div>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:".4rem" }}>
+        <div className="fl" style={{ margin:0 }}>📋 Log de contactos ({safeLogs.length})</div>
+        <button className="btn btn-sm" style={{ background:cfg.dim, color:cfg.color, border:`1px solid ${cfg.border}` }}
+          onClick={() => setAdding(v => !v)}>
+          {adding ? "✕ Cancelar" : "+ Registrar"}
+        </button>
+      </div>
+
+      {adding && (
+        <div style={{ background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:8, padding:".65rem", marginBottom:".5rem", display:"flex", flexDirection:"column", gap:".45rem" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:".5rem" }}>
+            <input className="inp" type="date" value={form.fecha} onChange={e => setForm(p=>({...p,fecha:e.target.value}))} />
+            <select className="inp" value={form.tipo} onChange={e => setForm(p=>({...p,tipo:e.target.value}))}>
+              {TIPOS_LOG.map(t => <option key={t} value={t}>{TIPO_ICONS[t]} {t}</option>)}
+            </select>
+          </div>
+          <input className="inp" placeholder="Resultado del contacto, próximo paso..." value={form.nota}
+            onChange={e => setForm(p=>({...p,nota:e.target.value}))}
+            onKeyDown={e => e.key === "Enter" && addLog()} />
+          <div style={{ display:"flex", justifyContent:"flex-end", gap:".4rem" }}>
+            <button className="btn btn-ghost" onClick={() => setAdding(false)}>Cancelar</button>
+            <button className="btn" style={{ background:cfg.dim, color:cfg.color, border:`1px solid ${cfg.border}` }}
+              onClick={addLog}>Guardar</button>
+          </div>
+        </div>
+      )}
+
+      {safeLogs.length === 0 && !adding && (
+        <div style={{ fontFamily:"var(--font-mono)", fontSize:".65rem", color:"var(--text-dim)", padding:".4rem 0" }}>
+          Sin contactos registrados
+        </div>
+      )}
+
+      {safeLogs.slice(0, 5).map(l => (
+        <div key={l.id} style={{ display:"flex", gap:".5rem", alignItems:"flex-start", padding:".35rem 0", borderBottom:"1px solid rgba(30,45,80,.2)" }}>
+          <span style={{ fontSize:".8rem", flexShrink:0, marginTop:".05rem" }}>{TIPO_ICONS[l.tipo]||"📝"}</span>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontSize:".72rem", fontWeight:600, lineHeight:1.4 }}>{l.nota}</div>
+            <div className="mono xs muted">{l.tipo} · {l.fecha}</div>
+          </div>
+          <button className="btn btn-sm btn-red" style={{ flexShrink:0, opacity:.6 }}
+            onClick={() => deleteLog(l.id)}>✕</button>
+        </div>
+      ))}
+      {safeLogs.length > 5 && (
+        <div className="mono xs muted" style={{ marginTop:".3rem" }}>+{safeLogs.length - 5} contactos más</div>
+      )}
+    </div>
+  );
+}
+
 // ─── TAB DOCUMENTOS (vista global) ────────────────────────────────────────────
 function TabDocumentos({ pats, addDoc, deleteDoc }) {
   const [preview, setPreview] = useState(null);
@@ -1256,18 +1358,6 @@ const CSS = `
   .pt{font-size:1.3rem;font-weight:800} .pd{font-family:var(--font-mono);font-size:.62rem;color:var(--text-muted);margin-top:.25rem}
 
   /* KPIs propios (clases c-* para colores) */
-  .kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:.65rem;margin-bottom:1rem}
-  .pat-kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1rem;position:relative;overflow:hidden;transition:all .2s;cursor:default}
-  .pat-kpi:hover{transform:translateY(-2px);border-color:var(--border-light);box-shadow:0 4px 20px rgba(0,0,0,.4)}
-  .pat-kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
-  .pat-kpi.c-gold::before{background:linear-gradient(90deg,#f59e0b,transparent)} .pat-kpi.c-gold .kv{color:#f59e0b}
-  .pat-kpi.c-green::before{background:linear-gradient(90deg,var(--green),transparent)} .pat-kpi.c-green .kv{color:var(--green)}
-  .pat-kpi.c-violet::before{background:linear-gradient(90deg,var(--violet),transparent)} .pat-kpi.c-violet .kv{color:var(--violet)}
-  .pat-kpi.c-amber::before{background:linear-gradient(90deg,var(--amber),transparent)} .pat-kpi.c-amber .kv{color:var(--amber)}
-  .ki{font-size:1.2rem;margin-bottom:.4rem}
-  .kl{font-size:.58rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.35rem;font-family:var(--font-mono)}
-  .kv{font-size:1.3rem;font-weight:800;font-family:var(--font-mono);line-height:1}
-  .ks{font-size:.6rem;color:var(--text-muted);margin-top:.25rem;font-family:var(--font-mono)}
 
   /* Card objetivo */
   .obj-card{background:linear-gradient(135deg,var(--surface) 0%,rgba(245,158,11,.04) 100%);border-color:rgba(245,158,11,.2)}
@@ -1291,9 +1381,11 @@ const CSS = `
   .rec-card:hover{border-color:var(--border-light);transform:translateY(-1px)}
 
   /* Kanban */
-  .kanban{display:grid;grid-template-columns:repeat(5,1fr);gap:.6rem;overflow-x:auto}
-  @media(max-width:1100px){.kanban{grid-template-columns:repeat(3,1fr)}}
-  @media(max-width:700px){.kanban{grid-template-columns:1fr 1fr}}
+  /* Pipeline — scroll horizontal, 3 col principales visibles */
+  .kanban{display:flex;gap:.6rem;overflow-x:auto;padding-bottom:.5rem;align-items:flex-start}
+  .kanban::-webkit-scrollbar{height:4px}.kanban::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+  .kancol{min-width:220px;flex:0 0 220px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);display:flex;flex-direction:column}
+  @media(min-width:900px){.kancol{min-width:240px;flex:1 1 240px}}
   .kancol{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);display:flex;flex-direction:column;min-height:300px}
   .kancol-header{padding:.75rem;border-top:3px solid transparent;border-bottom:1px solid var(--border)}
   .kancol-body{flex:1;padding:.4rem;display:flex;flex-direction:column;gap:.4rem}
