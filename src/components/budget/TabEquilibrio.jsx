@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { DISTANCIAS, DISTANCIA_COLORS, DISTANCIA_LABELS } from "../../constants/budgetConstants";
 
 export const TabEquilibrio = ({ 
@@ -59,6 +59,77 @@ export const TabEquilibrio = ({
 
       <div className="card">
         <div className="card-title mb-2" style={{ color: "var(--amber)" }}>⚖️ Análisis por Distancia</div>
+
+        {/* Barra "Estás aquí" — posición actual vs punto de equilibrio */}
+        {peTotal !== null && peTotal > 0 && (
+          <div style={{ marginBottom: "1.25rem", padding: "0.85rem 1rem", background: "var(--surface2)", borderRadius: 10, border: "1px solid var(--border)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.55rem", flexWrap: "wrap", gap: "0.4rem" }}>
+              <span className="mono" style={{ fontSize: "0.62rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                Progreso hacia el equilibrio
+              </span>
+              <span className="mono" style={{ fontSize: "0.68rem", fontWeight: 700,
+                color: totalN >= peTotal ? "var(--green)" : totalN >= peTotal * 0.75 ? "var(--amber)" : "var(--red)" }}>
+                {totalN >= peTotal
+                  ? `✓ Superávit — ${totalN - peTotal} corredores por encima`
+                  : `${peTotal - totalN} corredores para el equilibrio`}
+              </span>
+            </div>
+            <div style={{ position: "relative", height: 24, background: "var(--surface3)", borderRadius: 12, overflow: "visible" }}>
+              {/* Barra de progreso */}
+              <div style={{
+                position: "absolute", left: 0, top: 0, height: "100%", borderRadius: 12,
+                width: `${Math.min(totalN / Math.max(peTotal, 1) * 100, 100)}%`,
+                background: totalN >= peTotal
+                  ? "linear-gradient(90deg, var(--green), #10b981)"
+                  : totalN >= peTotal * 0.75
+                    ? "linear-gradient(90deg, var(--amber), #f59e0b)"
+                    : "linear-gradient(90deg, var(--red), #ef4444)",
+                transition: "width 0.6s ease",
+                minWidth: 4,
+              }} />
+              {/* Marcador "Estás aquí" */}
+              <div style={{
+                position: "absolute", top: "50%", transform: "translateY(-50%)",
+                left: `${Math.min(totalN / Math.max(peTotal, 1) * 100, 100)}%`,
+                marginLeft: totalN >= peTotal ? -24 : 0,
+                background: "var(--surface)", border: `2px solid ${totalN >= peTotal ? "var(--green)" : "var(--amber)"}`,
+                borderRadius: 20, padding: "0.1rem 0.45rem",
+                fontFamily: "var(--font-mono)", fontSize: "0.52rem", fontWeight: 800,
+                color: totalN >= peTotal ? "var(--green)" : "var(--amber)",
+                whiteSpace: "nowrap", zIndex: 2,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+              }}>
+                {totalN >= peTotal ? "✓ aquí" : "← aquí"}
+              </div>
+              {/* Marcador de equilibrio */}
+              {totalN < peTotal && (
+                <div style={{
+                  position: "absolute", top: -4, bottom: -4,
+                  left: "100%", width: 2,
+                  background: "rgba(251,191,36,0.6)",
+                  borderRadius: 1,
+                }}>
+                  <div style={{
+                    position: "absolute", top: "50%", transform: "translateY(-50%) translateX(4px)",
+                    fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--amber)",
+                    fontWeight: 700, whiteSpace: "nowrap",
+                  }}>
+                    PE: {peTotal}
+                  </div>
+                </div>
+              )}
+            </div>
+            {/* Escala */}
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "0.3rem" }}>
+              <span className="mono" style={{ fontSize: "0.55rem", color: "var(--text-dim)" }}>0</span>
+              <span className="mono" style={{ fontSize: "0.55rem", color: "var(--amber)" }}>PE: {peTotal}</span>
+              {peTotal < totalN * 1.2 && (
+                <span className="mono" style={{ fontSize: "0.55rem", color: "var(--text-dim)" }}>{Math.ceil(peTotal * 1.3)}</span>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="overflow-x">
           <table className="eq-table">
             <thead>
