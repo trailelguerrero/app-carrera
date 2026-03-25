@@ -226,7 +226,7 @@ export default function App() {
           inc={inc} setInc={setInc} ck={ck} setCk={setCk} />
       )}
       {del && (
-        <div className="overlay" onClick={e => e.target===e.currentTarget && setDel(null)}>
+        <div className="overlay" style={{zIndex:200}} onClick={e => e.target===e.currentTarget && setDel(null)}>
           <div className="modal" style={{maxWidth:340,textAlign:"center"}}>
             <div className="mbody" style={{paddingTop:"1.5rem"}}>
               <div style={{fontSize:"2.5rem",marginBottom:"0.6rem"}}>⚠️</div>
@@ -514,15 +514,15 @@ function TabTL({tl,setTl,setModal,setDel}) {
                 {i<sorted.length-1&&<div className="tledge"/>}
               </div>
             </div>
-            <div className="tlcard">
+            <div className="tlcard" style={{cursor:"pointer"}} onClick={()=>setModal({tipo:"tl",data:t})}>
               <div className="tlch">
                 <span className="tlct">{t.titulo}</span>
-                <div className="fr g1">
+                <div className="fr g1" onClick={e=>e.stopPropagation()}>
                   <select className="isml" value={t.estado} onChange={e=>upd(t.id,e.target.value)} style={{color:ec,background:`${ec}18`,border:`1px solid ${ec}44`,borderRadius:5,padding:"0.18rem 0.4rem",fontSize:"0.65rem",fontFamily:"var(--font-mono)",cursor:"pointer"}}>
                     {ESTADO_TAREA.map(s=><option key={s} value={s}>{s}</option>)}
                   </select>
-                  <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"tl",data:t})}>✏️</button>
-                  <button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"tl",id:t.id})}>✕</button>
+                  <button className="btn btn-sm btn-ghost" onClick={e=>{e.stopPropagation();setModal({tipo:"tl",data:t})}}>✏️</button>
+                  <button className="btn btn-sm btn-red" onClick={e=>{e.stopPropagation();setDel({tipo:"tl",id:t.id})}}>✕</button>
                 </div>
               </div>
               <div className="tlcd">{t.descripcion}</div>
@@ -660,7 +660,7 @@ function TabCK({ck,setCk,setModal,setDel}) {
     <>
       <div className="ph">
         <div><div className="pt">✅ Checklist Pre-Carrera</div><div className="pd">{ck.filter(c=>c.estado==="completado").length}/{ck.length} completados</div></div>
-        <button className="btn btn-cyan" onClick={()=>setModal({tipo:"ck"})}>+ Tarea</button>
+        <button className="btn btn-cyan" onClick={()=>setModal({tipo:"ck",fase:fase})}>+ Tarea</button>
       </div>
       <div className="ftabs">
         {pf.map(f=>(
@@ -681,8 +681,8 @@ function TabCK({ck,setCk,setModal,setDel}) {
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:"0.4rem"}}>
         {fd?.it.map(item=>(
-          <div key={item.id} className={cls("cki",item.estado==="completado"&&"ckd",item.estado==="bloqueado"&&"ckb")}>
-            <button className="ckbox" onClick={()=>toggle(item.id)} style={{borderColor:item.estado==="completado"?"var(--green)":item.estado==="bloqueado"?"var(--red)":"var(--border)",background:item.estado==="completado"?"var(--green)":"transparent"}}>
+          <div key={item.id} className={cls("cki",item.estado==="completado"&&"ckd",item.estado==="bloqueado"&&"ckb")} style={{cursor:"pointer"}} onClick={()=>setModal({tipo:"ck",data:item})}>
+            <button className="ckbox" onClick={e=>{e.stopPropagation();toggle(item.id)}} style={{borderColor:item.estado==="completado"?"var(--green)":item.estado==="bloqueado"?"var(--red)":"var(--border)",background:item.estado==="completado"?"var(--green)":"transparent"}}>
               {item.estado==="completado"&&<span style={{color:"#000",fontSize:"0.75rem",fontWeight:800}}>✓</span>}
               {item.estado==="bloqueado"&&<span style={{color:"var(--red)",fontSize:"0.75rem"}}>!</span>}
             </button>
@@ -690,13 +690,13 @@ function TabCK({ck,setCk,setModal,setDel}) {
               <div className={cls("cktarea",item.estado==="completado"&&"ckdone")}>{item.tarea}</div>
               <div className="ckmeta">👤 {item.responsable}{item.notas&&` · ${item.notas}`}</div>
             </div>
-            <div className="fr g1">
+            <div className="fr g1" onClick={e=>e.stopPropagation()}>
               <span className="badge" style={{background:item.prioridad==="alta"?"var(--red-dim)":"var(--amber-dim)",color:item.prioridad==="alta"?"var(--red)":"var(--amber)",fontSize:"0.55rem"}}>{item.prioridad}</span>
               <select className="isml" value={item.estado} onChange={e=>upd(item.id,"estado",e.target.value)} style={{color:ESTADO_COLORES[item.estado],fontSize:"0.62rem",padding:"0.15rem 0.3rem"}}>
                 {ESTADO_TAREA.map(s=><option key={s} value={s}>{s}</option>)}
               </select>
-              <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"ck",data:item})}>✏️</button>
-              <button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"ck",id:item.id})}>✕</button>
+              <button className="btn btn-sm btn-ghost" onClick={e=>{e.stopPropagation();setModal({tipo:"ck",data:item})}}>✏️</button>
+              <button className="btn btn-sm btn-red" onClick={e=>{e.stopPropagation();setDel({tipo:"ck",id:item.id})}}>✕</button>
             </div>
           </div>
         ))}
@@ -744,7 +744,7 @@ function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setV
 
   if(tipo==="ck") return <MF title={data?"✏️ Editar tarea":"✅ Nueva tarea checklist"} onClose={onClose}
     fields={[{k:"tarea",l:"Tarea *",t:"text"},{k:"fase",l:"Fase",t:"sel",o:FASES_CHECKLIST},{k:"responsable",l:"Responsable",t:"text"},{k:"prioridad",l:"Prioridad",t:"sel",o:["alta","media","baja"]},{k:"estado",l:"Estado",t:"sel",o:ESTADO_TAREA},{k:"notas",l:"Notas",t:"text"}]}
-    init={data||{tarea:"",fase:"Semana antes",responsable:"",prioridad:"media",estado:"pendiente",notas:""}}
+    init={data||{tarea:"",fase:modal.fase||"Semana antes",responsable:"",prioridad:"media",estado:"pendiente",notas:""}}
     onSave={v=>sv(setCk,ck,v)} />;
 
   return null;
@@ -754,6 +754,15 @@ function MF({title,fields,init,onSave,onClose}) {
   const [form,setForm]=useState({...init});
   const upd=(k,v)=>setForm(p=>({...p,[k]:v}));
   const req=fields.find(f=>f.l.includes("*"));
+  // Bloquear scroll del fondo y desplazar al top al abrir el modal
+  React.useEffect(()=>{
+    const prev=document.body.style.overflow;
+    document.body.style.overflow="hidden";
+    // Scroll al top del contenedor principal para que el modal sea visible
+    const main=document.querySelector("main");
+    if(main) main.scrollTo({top:0,behavior:"instant"});
+    return()=>{ document.body.style.overflow=prev; };
+  },[]);
   return(
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal">
@@ -799,6 +808,13 @@ function ModalRuta({data,veh,rutas,setRutas,onClose}) {
     else setRutas(p=>[...p,{...item,id:genId(rutas)}]);
     onClose();
   };
+  React.useEffect(()=>{
+    const prev=document.body.style.overflow;
+    document.body.style.overflow="hidden";
+    const main=document.querySelector("main");
+    if(main) main.scrollTo({top:0,behavior:"instant"});
+    return()=>{ document.body.style.overflow=prev; };
+  },[]);
   return(
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal" style={{maxWidth:560}}>
