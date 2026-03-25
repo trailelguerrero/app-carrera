@@ -401,6 +401,12 @@ export default function App() {
   const [modalPuesto, setModalPuesto] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmDeletePuesto, setConfirmDeletePuesto] = useState(null);
+  const [ficha, setFicha] = useState(null); // {tipo:'vol'|'puesto', data}
+  const abrirFicha = (tipo, data) => {
+    const main = document.querySelector("main");
+    if (main) main.scrollTo({ top: 0, behavior: "instant" });
+    setFicha({ tipo, data });
+  };
   const [configOpen, setConfigOpen] = useState(false); // config camisetas colapsada por defecto
 
   // ── Métricas ──────────────────────────────────────────────────────────────
@@ -601,7 +607,7 @@ export default function App() {
 
         {/* CONTENIDO */}
         <div key={tab}>
-          {tab==="dashboard" && <TabDashboard stats={stats} puestosConStats={puestosConStats} voluntarios={voluntarios} setTab={setTab} onEditarVol={(v) => setModalVol(v)} onEditarPuesto={(p) => setModalPuesto(p)} />}
+          {tab==="dashboard" && <TabDashboard stats={stats} puestosConStats={puestosConStats} voluntarios={voluntarios} setTab={setTab} onEditarVol={(v) => abrirFicha("vol", v)} onEditarPuesto={(p) => abrirFicha("puesto", p)} />}
           {tab==="voluntarios" && (
             <TabVoluntarios
               voluntarios={volsFiltrados} todosVols={voluntarios} puestos={puestos}
@@ -610,6 +616,7 @@ export default function App() {
               filtroPuesto={filtroPuesto} setFiltroPuesto={setFiltroPuesto}
               onUpdate={updateVoluntario} onDelete={(id) => setConfirmDelete(id)}
               onNuevo={() => setModalVol("nuevo")} onEditar={(v) => setModalVol(v)}
+              onFicha={(v) => abrirFicha("vol", v)}
             />
           )}
           {tab==="puestos" && (
@@ -618,6 +625,8 @@ export default function App() {
               onUpdatePuesto={updatePuesto} onDeletePuesto={(id) => setConfirmDeletePuesto(id)}
               onNuevoPuesto={() => setModalPuesto("nuevo")} onEditPuesto={(p) => setModalPuesto(p)}
               onEditarVol={(v) => setModalVol(v)}
+              onFichaPuesto={(p) => abrirFicha("puesto", p)}
+              onFichaVol={(v) => abrirFicha("vol", v)}
             />
           )}
           {tab==="tallas" && <TabTallas stats={stats} voluntarios={voluntarios} />}
@@ -626,6 +635,22 @@ export default function App() {
       </div>
 
       {/* MODALES */}
+      {ficha?.tipo==="vol" && (
+        <FichaVoluntario
+          voluntario={ficha.data} puestos={puestos}
+          onClose={() => setFicha(null)}
+          onEditar={() => { setFicha(null); setModalVol(ficha.data); }}
+          onEliminar={() => { setFicha(null); setConfirmDelete(ficha.data.id); }}
+        />
+      )}
+      {ficha?.tipo==="puesto" && (
+        <FichaPuesto
+          puesto={ficha.data} voluntarios={voluntarios}
+          onClose={() => setFicha(null)}
+          onEditar={() => { setFicha(null); setModalPuesto(ficha.data); }}
+          onEliminar={() => { setFicha(null); setConfirmDeletePuesto(ficha.data.id); }}
+        />
+      )}
       {modalVol && (
         <ModalVoluntario
           key={modalVol==="nuevo" ? "nuevo" : modalVol.id}
@@ -1027,7 +1052,7 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
 }
 
 // ─── TAB VOLUNTARIOS ──────────────────────────────────────────────────────────
-function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda, filtroEstado, setFiltroEstado, filtroPuesto, setFiltroPuesto, onUpdate, onDelete, onNuevo, onEditar }) {
+function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda, filtroEstado, setFiltroEstado, filtroPuesto, setFiltroPuesto, onUpdate, onDelete, onNuevo, onEditar, onFicha }) {
   const [orden, setOrden] = useState("nombre"); // "nombre" | "puesto"
 
   const volsOrdenados = [...voluntarios].sort((a, b) => {
@@ -1103,7 +1128,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
               {volsOrdenados.map(v => {
                 const puesto = puestos.find(p => p.id === v.puestoId);
                 return (
-                  <tr key={v.id} style={{ cursor:"pointer" }} onClick={() => onEditar(v)} title="Click para abrir ficha">
+                  <tr key={v.id} style={{ cursor:"pointer" }} onClick={() => onFicha(v)} title="Click para ver ficha">
                     <td data-label="Voluntario">
                       <div style={{ display:"flex", alignItems:"center", gap:"0.5rem" }}>
                         <div style={{ width:26, height:26, borderRadius:"50%", background:"var(--surface2)", border:"1px solid var(--border)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"0.58rem", fontWeight:700, color:"var(--cyan)", flexShrink:0 }}>
@@ -1160,7 +1185,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
           const puesto = puestos.find(p => p.id === v.puestoId);
           return (
             <div key={v.id}
-              onClick={() => onEditar(v)}
+              onClick={() => onFicha(v)}
               style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--radius-sm)", padding:"0.75rem", cursor:"pointer", transition:"border-color .15s" }}
               onMouseEnter={e=>e.currentTarget.style.borderColor="var(--border-light)"}
               onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border)"}>
@@ -1203,7 +1228,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
 }
 
 // ─── TAB PUESTOS ──────────────────────────────────────────────────────────────
-function TabPuestos({ puestosConStats, voluntarios, onUpdatePuesto, onDeletePuesto, onNuevoPuesto, onEditPuesto, onEditarVol }) {
+function TabPuestos({ puestosConStats, voluntarios, onUpdatePuesto, onDeletePuesto, onNuevoPuesto, onEditPuesto, onEditarVol, onFichaPuesto, onFichaVol }) {
   return (
     <>
       <div className="page-header">
@@ -1220,8 +1245,8 @@ function TabPuestos({ puestosConStats, voluntarios, onUpdatePuesto, onDeletePues
           const color = pct >= 80 ? "var(--green)" : pct >= 50 ? "var(--amber)" : "var(--red)";
           return (
             <div key={p.id} className="card" style={{ padding: "1rem", cursor: "pointer" }}
-              onClick={() => onEditPuesto(p)}
-              title="Click para abrir ficha del puesto">
+              onClick={() => onFichaPuesto(p)}
+              title="Click para ver ficha del puesto">
               <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start" }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.3rem", flexWrap: "wrap" }}>
@@ -1244,7 +1269,7 @@ function TabPuestos({ puestosConStats, voluntarios, onUpdatePuesto, onDeletePues
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", marginTop: "0.5rem" }}>
                       {p.voluntariosAsignados.map(v => (
                         <span key={v.id}
-                          onClick={e => { e.stopPropagation(); onEditPuesto && onEditarVol && onEditarVol(v); }}
+                          onClick={e => { e.stopPropagation(); onFichaVol && onFichaVol(v); }}
                           style={{ fontSize: "0.65rem", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 4, padding: "0.15rem 0.45rem", color: v.estado === "confirmado" ? "var(--green)" : "var(--text-muted)" }}>
                           {(v.nombre || "V").split(" ")[0]} {(v.nombre || "").split(" ")[1]?.[0] || ""}.
                         </span>
@@ -1431,6 +1456,155 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
         })}
       </div>
     </>
+  );
+}
+
+// ─── FICHA VOLUNTARIO ─────────────────────────────────────────────────────────
+function FichaVoluntario({ voluntario: v, puestos, onClose, onEditar, onEliminar }) {
+  const puesto = puestos.find(p => p.id === v.puestoId);
+  const estadoColor = v.estado === "confirmado" ? "var(--green)" : v.estado === "cancelado" ? "var(--red)" : "var(--amber)";
+  const iniciales = (n) => (n||"V").split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target===e.currentTarget && onClose()}>
+      <div className="modal" style={{ maxWidth: 460 }}>
+        <div style={{ borderTop: "3px solid var(--cyan)", borderRadius: "16px 16px 0 0" }}>
+          <div className="modal-header">
+            <div style={{ display:"flex", alignItems:"center", gap:"0.75rem" }}>
+              <div style={{ width:44, height:44, borderRadius:"50%", background:"var(--cyan-dim)",
+                border:"2px solid rgba(34,211,238,0.3)", display:"flex", alignItems:"center",
+                justifyContent:"center", fontWeight:800, fontSize:"1rem", color:"var(--cyan)", flexShrink:0 }}>
+                {iniciales(v.nombre)}
+              </div>
+              <div>
+                <div style={{ fontWeight:800, fontSize:"1rem" }}>{v.nombre || "Sin nombre"}</div>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.6rem", color:"var(--text-muted)", marginTop:"0.1rem" }}>
+                  <span style={{ color:estadoColor, fontWeight:700 }}>{v.estado}</span>
+                  {v.rol && <> · {v.rol}</>}
+                </div>
+              </div>
+            </div>
+            <button className="btn btn-ghost" style={{ padding:"0.2rem 0.5rem", fontSize:"1rem" }} onClick={onClose}>✕</button>
+          </div>
+        </div>
+        <div className="modal-body">
+          {[
+            ["📞 Teléfono",   v.telefono],
+            ["✉️ Email",      v.email],
+            ["👕 Talla",      v.talla],
+            ["📍 Puesto",     puesto?.nombre || "Sin asignar"],
+            ["🗓 Registrado", v.fechaRegistro],
+            ["🚗 Vehículo",   v.coche ? "Sí, tiene coche" : "No"],
+          ].filter(([,val]) => val).map(([label, val]) => (
+            <div key={label} style={{ display:"flex", justifyContent:"space-between",
+              padding:"0.4rem 0", borderBottom:"1px solid rgba(30,45,80,0.3)" }}>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem", color:"var(--text-muted)" }}>{label}</span>
+              <span style={{ fontSize:"0.78rem", fontWeight:600 }}>{val}</span>
+            </div>
+          ))}
+          {v.notas && (
+            <div style={{ background:"var(--surface2)", borderRadius:8, padding:"0.6rem 0.75rem",
+              borderLeft:"2px solid var(--border)", marginTop:"0.25rem" }}>
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.55rem", color:"var(--text-muted)",
+                marginBottom:"0.25rem", textTransform:"uppercase" }}>Notas</div>
+              <div style={{ fontSize:"0.78rem", lineHeight:1.5 }}>{v.notas}</div>
+            </div>
+          )}
+        </div>
+        <div className="modal-footer" style={{ justifyContent:"space-between" }}>
+          <button className="btn btn-red" onClick={onEliminar}>🗑 Eliminar</button>
+          <div style={{ display:"flex", gap:"0.4rem" }}>
+            <button className="btn btn-ghost" onClick={onClose}>Cerrar</button>
+            <button className="btn btn-cyan" onClick={onEditar}>✏️ Editar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── FICHA PUESTO ─────────────────────────────────────────────────────────────
+function FichaPuesto({ puesto: p, voluntarios, onClose, onEditar, onEliminar }) {
+  const asignados = voluntarios.filter(v => v.puestoId === p.id && v.estado !== "cancelado");
+  const confirmados = asignados.filter(v => v.estado === "confirmado").length;
+  const cobertura = p.necesarios > 0 ? Math.round(asignados.length / p.necesarios * 100) : 0;
+  const color = cobertura >= 100 ? "var(--green)" : cobertura >= 50 ? "var(--amber)" : "var(--red)";
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target===e.currentTarget && onClose()}>
+      <div className="modal" style={{ maxWidth: 460 }}>
+        <div style={{ borderTop: "3px solid var(--violet)", borderRadius: "16px 16px 0 0" }}>
+          <div className="modal-header">
+            <div>
+              <div style={{ fontWeight:800, fontSize:"1rem" }}>{p.nombre}</div>
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.6rem", color:"var(--text-muted)", marginTop:"0.1rem" }}>
+                {p.tipo} · {p.horaInicio} – {p.horaFin}
+              </div>
+            </div>
+            <button className="btn btn-ghost" style={{ padding:"0.2rem 0.5rem", fontSize:"1rem" }} onClick={onClose}>✕</button>
+          </div>
+        </div>
+        <div className="modal-body">
+          {/* Barra cobertura */}
+          <div>
+            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"0.35rem" }}>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem", color:"var(--text-muted)" }}>Cobertura</span>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.72rem", fontWeight:700, color }}>
+                {asignados.length}/{p.necesarios} ({cobertura}%)
+              </span>
+            </div>
+            <div style={{ height:6, background:"var(--surface3)", borderRadius:3, overflow:"hidden" }}>
+              <div style={{ height:"100%", width:`${Math.min(cobertura,100)}%`, background:color, borderRadius:3, transition:"width .4s" }}/>
+            </div>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.58rem", color:"var(--text-muted)", marginTop:"0.25rem" }}>
+              {confirmados} confirmados · {asignados.length - confirmados} pendientes
+            </div>
+          </div>
+          {/* Datos */}
+          {[
+            ["📍 Tipo",       p.tipo],
+            ["🕐 Horario",    `${p.horaInicio} – ${p.horaFin}`],
+            ["👥 Necesarios", `${p.necesarios} voluntarios`],
+          ].map(([label, val]) => (
+            <div key={label} style={{ display:"flex", justifyContent:"space-between",
+              padding:"0.4rem 0", borderBottom:"1px solid rgba(30,45,80,0.3)" }}>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem", color:"var(--text-muted)" }}>{label}</span>
+              <span style={{ fontSize:"0.78rem", fontWeight:600 }}>{val}</span>
+            </div>
+          ))}
+          {/* Voluntarios asignados */}
+          {asignados.length > 0 && (
+            <div style={{ background:"var(--surface2)", borderRadius:8, padding:"0.6rem 0.75rem" }}>
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.55rem", color:"var(--text-muted)",
+                marginBottom:"0.4rem", textTransform:"uppercase" }}>Voluntarios asignados</div>
+              {asignados.map(v => (
+                <div key={v.id} style={{ display:"flex", justifyContent:"space-between",
+                  padding:"0.25rem 0", fontSize:"0.75rem" }}>
+                  <span style={{ fontWeight:600 }}>{v.nombre}</span>
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.6rem",
+                    color: v.estado==="confirmado"?"var(--green)":"var(--amber)" }}>{v.estado}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {p.notas && (
+            <div style={{ background:"var(--surface2)", borderRadius:8, padding:"0.6rem 0.75rem",
+              borderLeft:"2px solid var(--border)" }}>
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.55rem", color:"var(--text-muted)",
+                marginBottom:"0.25rem", textTransform:"uppercase" }}>Notas</div>
+              <div style={{ fontSize:"0.78rem", lineHeight:1.5 }}>{p.notas}</div>
+            </div>
+          )}
+        </div>
+        <div className="modal-footer" style={{ justifyContent:"space-between" }}>
+          <button className="btn btn-red" onClick={onEliminar}>🗑 Eliminar</button>
+          <div style={{ display:"flex", gap:"0.4rem" }}>
+            <button className="btn btn-ghost" onClick={onClose}>Cerrar</button>
+            <button className="btn btn-cyan" onClick={onEditar}>✏️ Editar</button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
