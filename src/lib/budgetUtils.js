@@ -151,7 +151,7 @@ export const calculateResultado = (totalInscritos, ingresosPorDistancia, costesF
 /**
  * Calcular puntos de equilibrio por distancia
  */
-export const calculatePuntoEquilibrio = (totalInscritos, precioMedioDistancia, costesVarPorCorredor, costesFijos, totalIngresosConMerch) => {
+export const calculatePuntoEquilibrio = (totalInscritos, precioMedioDistancia, costesVarPorCorredor, costesFijos, totalIngresosConMerch, maximos = {}) => {
   const pe = {};
   const totalN = totalInscritos.total;
   const proporcion = {};
@@ -163,7 +163,16 @@ export const calculatePuntoEquilibrio = (totalInscritos, precioMedioDistancia, c
     const margen = precioMedioDistancia[d] - costesVarPorCorredor[d];
     if (margen <= 0) { pe[d] = "∞"; return; }
     const fijosNetos = costesFijos[d] - totalIngresosConMerch * proporcion[d];
-    pe[d] = fijosNetos <= 0 ? 0 : Math.ceil(fijosNetos / margen);
+    if (fijosNetos <= 0) { pe[d] = 0; return; }
+    const peBruto = Math.ceil(fijosNetos / margen);
+    const maximo = maximos[d] || 0;
+    // Si el PE supera el máximo de plazas, el equilibrio no es alcanzable
+    // solo con esta distancia — marcamos con una bandera especial
+    if (maximo > 0 && peBruto > maximo) {
+      pe[d] = { valor: peBruto, supera: true, maximo };
+    } else {
+      pe[d] = peBruto;
+    }
   });
   return pe;
 };

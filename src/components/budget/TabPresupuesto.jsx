@@ -78,25 +78,77 @@ export const TabPresupuesto = ({
   const onTouchStart = useCallback((id) => (e) => {
     touchDragId.current = id;
     const row = e.currentTarget;
+    const rect = row.getBoundingClientRect();
     const clone = row.cloneNode(true);
-    clone.style.cssText = `position:fixed;top:${row.getBoundingClientRect().top}px;left:0;right:0;
-      opacity:0.85;background:var(--surface2);border:1px solid var(--cyan);z-index:9999;
-      pointer-events:none;border-radius:4px;`;
+    // Limpiar outline en caso de que quedase de un drag anterior
+    clone.querySelectorAll("[style]").forEach(el => el.style.outline = "");
+    clone.style.cssText = [
+      `position:fixed`,
+      `top:${rect.top}px`,
+      `left:${rect.left}px`,
+      `width:${rect.width}px`,
+      `opacity:0.9`,
+      `background:var(--surface2)`,
+      `border:2px solid var(--cyan)`,
+      `box-shadow:0 8px 24px rgba(0,0,0,0.5)`,
+      `z-index:9999`,
+      `pointer-events:none`,
+      `border-radius:6px`,
+      `transform:scale(1.02)`,
+      `transition:transform 0.1s`,
+    ].join(";");
     document.body.appendChild(clone);
     touchClone.current = clone;
+    // Feedback visual en la fila origen
+    row.style.opacity = "0.4";
+    touchDragId._originRow = row;
   }, []);
 
   const onTouchMove = useCallback((e) => {
     e.preventDefault();
     const touch = e.touches[0];
-    if (touchClone.current) touchClone.current.style.top = `${touch.clientY - 20}px`;
-    const el = document.elementFromPoint(touch.clientX, touch.clientY)?.closest("tr[data-id]");
-    if (el) touchOverId.current = el.dataset.id;
+    const y = touch.clientY;
+
+    // Mover el clon visual
+    if (touchClone.current) {
+      touchClone.current.style.top = `${y - touchClone.current.offsetHeight / 2}px`;
+    }
+
+    // Detectar fila destino por posición Y — más fiable que elementFromPoint
+    // porque ignora el clon flotante y las filas de detalle sin data-id
+    const rows = document.querySelectorAll("tr[data-id]");
+    let closest = null;
+    let closestDist = Infinity;
+    rows.forEach(row => {
+      const rect = row.getBoundingClientRect();
+      const rowMid = rect.top + rect.height / 2;
+      const dist = Math.abs(y - rowMid);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closest = row;
+      }
+    });
+    if (closest && closestDist < 80) {
+      touchOverId.current = closest.dataset.id;
+      // Feedback visual: resaltar fila destino
+      rows.forEach(r => r.style.outline = "");
+      if (closest.dataset.id !== String(touchDragId.current)) {
+        closest.style.outline = "2px solid var(--cyan)";
+        closest.style.outlineOffset = "-2px";
+      }
+    }
   }, []);
 
   const onTouchEnd = useCallback((tipo) => () => {
+    // Restaurar fila origen
+    if (touchDragId._originRow) { touchDragId._originRow.style.opacity = ""; touchDragId._originRow = null; }
+    // Limpiar clon visual
     if (touchClone.current) { touchClone.current.remove(); touchClone.current = null; }
-    if (touchDragId.current && touchOverId.current && touchDragId.current !== touchOverId.current) {
+    // Limpiar outline de fila destino
+    document.querySelectorAll("tr[data-id]").forEach(r => { r.style.outline = ""; r.style.opacity = ""; });
+    // Ejecutar reorder si hay destino válido
+    if (touchDragId.current && touchOverId.current &&
+        String(touchDragId.current) !== String(touchOverId.current)) {
       reorderConceptos(tipo, parseInt(touchDragId.current), parseInt(touchOverId.current));
     }
     touchDragId.current = null;

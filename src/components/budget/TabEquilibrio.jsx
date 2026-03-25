@@ -11,6 +11,11 @@ export const TabEquilibrio = ({
   resultado,
   ingresosPorDistancia
 }) => {
+  // Helper: extrae el valor numérico del PE (puede ser número, "∞" o {valor,supera,maximo})
+  const peVal    = (pe) => typeof pe === "object" && pe !== null ? pe.valor  : pe;
+  const peSupera = (pe) => typeof pe === "object" && pe !== null && pe.supera;
+  const peMax    = (pe) => typeof pe === "object" && pe !== null ? pe.maximo : null;
+
   const costosFijosNetos = Math.max(costesFijos.total - totalIngresosConMerch, 0);
   const totalN = totalInscritos.total;
   const margenTotal = totalN > 0
@@ -24,6 +29,10 @@ export const TabEquilibrio = ({
   const peTotal = margenTotal > 0 && costosFijosNetos > 0
     ? Math.ceil(costosFijosNetos / margenTotal)
     : costosFijosNetos <= 0 ? 0 : null;
+
+  // ¿Alguna distancia tiene PE que supera sus plazas máximas?
+  const distanciasInviables = DISTANCIAS.filter(d => peSupera(puntoEquilibrio[d]));
+  const hayInviables = distanciasInviables.length > 0;
 
   const margenContribActual = totalN > 0
     ? DISTANCIAS.reduce((s, d) => s + (precioMedioDistancia[d] - costesVarPorCorredor[d]) * totalInscritos[d], 0)
@@ -56,6 +65,35 @@ export const TabEquilibrio = ({
           <div className="kpi-sub">{totalInscritos.total} inscritos actuales</div>
         </div>
       </div>
+
+      {/* Alerta de inviabilidad cuando PE > máximo de plazas */}
+      {hayInviables && (
+        <div style={{ background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 10, padding: "0.85rem 1rem", marginBottom: "1rem" }}>
+          <div style={{ display: "flex", gap: "0.6rem", alignItems: "flex-start" }}>
+            <span style={{ fontSize: "1.1rem", flexShrink: 0 }}>⚠️</span>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: "0.82rem", color: "var(--red)", marginBottom: "0.35rem" }}>
+                Equilibrio no alcanzable con las plazas máximas definidas
+              </div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.68rem", color: "var(--text-muted)", lineHeight: 1.6 }}>
+                {distanciasInviables.map(d => {
+                  const pe = puntoEquilibrio[d];
+                  return (
+                    <div key={d}>
+                      <span style={{ color: DISTANCIA_COLORS[d], fontWeight: 700 }}>{d}</span>
+                      {" — necesita "}<span style={{ color: "var(--red)", fontWeight: 700 }}>{peVal(pe)} corredores</span>
+                      {" pero el máximo es "}<span style={{ color: "var(--amber)", fontWeight: 700 }}>{peMax(pe)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ marginTop: "0.5rem", fontFamily: "var(--font-mono)", fontSize: "0.62rem", color: "var(--text-dim)" }}>
+                Soluciones: subir precios, reducir costes fijos, o aumentar las plazas máximas en Inscritos.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="card">
         <div className="card-title mb-2" style={{ color: "var(--amber)" }}>⚖️ Análisis por Distancia</div>
@@ -154,9 +192,28 @@ export const TabEquilibrio = ({
                       {margen.toFixed(2)} €
                     </td>
                     <td className="mono">{totalInscritos[d]}</td>
-                    <td className="mono" style={{ color: "var(--amber)" }}>{pe}</td>
-                    <td className="mono" style={{ color: diff === null ? "var(--text-muted)" : diff >= 0 ? "var(--green)" : "var(--red)", fontWeight: 600 }}>
-                      {diff === null ? "—" : (diff >= 0 ? `+${diff}` : diff)}
+                    <td className="mono">
+                      {peSupera(pe) ? (
+                        <span title={`Supera el máximo de ${peMax(pe)} plazas`}>
+                          <span style={{ color: "var(--red)", fontWeight: 700 }}>{peVal(pe)}</span>
+                          {" "}<span style={{ fontSize: "0.6rem", color: "var(--red)", opacity: 0.8 }}>⚠ &gt;{peMax(pe)}</span>
+                        </span>
+                      ) : (
+                        <span style={{ color: typeof pe === "number" ? "var(--amber)" : "var(--text-muted)" }}>
+                          {pe ?? "—"}
+                        </span>
+                      )}
+                    </td>
+                    <td className="mono" style={{ fontWeight: 600 }}>
+                      {peSupera(pe) ? (
+                        <span style={{ color: "var(--red)", fontSize: "0.7rem" }}>Inviable</span>
+                      ) : diff === null ? (
+                        <span style={{ color: "var(--text-muted)" }}>—</span>
+                      ) : (
+                        <span style={{ color: diff >= 0 ? "var(--green)" : "var(--red)" }}>
+                          {diff >= 0 ? `+${diff}` : diff}
+                        </span>
+                      )}
                     </td>
                     <td className="mono" style={{ color: "var(--violet)" }}>{(precioMedioDistancia[d] * totalInscritos[d]).toFixed(0)} €</td>
                   </tr>
