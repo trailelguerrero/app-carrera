@@ -145,6 +145,18 @@ export default function App() {
   const [saved, setSaved] = useState(false);
   const [modal, setModal] = useState(null);
   const [del, setDel] = useState(null);
+  const [ficha, setFicha] = useState(null); // {tipo, data}
+  const abrirFicha = (tipo, data) => {
+    const main = document.querySelector("main");
+    if (main) main.scrollTo({ top: 0, behavior: "instant" });
+    setFicha({ tipo, data });
+  };
+  // Ordenaciones
+  const [ordenMat, setOrdenMat]   = useState(false); // A-Z material
+  const [ordenVeh, setOrdenVeh]   = useState(false); // A-Z vehículos
+  const [ordenTL,  setOrdenTL]    = useState(false); // A-Z timeline
+  const [ordenCont,setOrdenCont]  = useState(false); // A-Z contactos
+  const [ordenCK,  setOrdenCK]    = useState(false); // A-Z checklist
 
   // useData handles saving automatically.
 
@@ -210,14 +222,15 @@ export default function App() {
         {/* CONTENIDO */}
         <div key={tab}>
           {tab==="dashboard" && <TabDash stats={stats} tl={tl} ck={ck} setTab={setTab} />}
-          {tab==="material" && <TabMat material={material} setMaterial={setMaterial} asigs={asigs} setAsigs={setAsigs} setModal={setModal} setDel={setDel} />}
-          {tab==="vehiculos" && <TabVeh veh={veh} setVeh={setVeh} rutas={rutas} setRutas={setRutas} setModal={setModal} setDel={setDel} />}
-          {tab==="timeline" && <TabTL tl={tl} setTl={setTl} setModal={setModal} setDel={setDel} />}
-          {tab==="contactos" && <TabCont cont={cont} setCont={setCont} inc={inc} setInc={setInc} setModal={setModal} setDel={setDel} />}
-          {tab==="checklist" && <TabCK ck={ck} setCk={setCk} setModal={setModal} setDel={setDel} />}
+          {tab==="material" && <TabMat material={material} setMaterial={setMaterial} asigs={asigs} setAsigs={setAsigs} setModal={setModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenMat} setOrdenAlfa={setOrdenMat} />}
+          {tab==="vehiculos" && <TabVeh veh={veh} setVeh={setVeh} rutas={rutas} setRutas={setRutas} setModal={setModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenVeh} setOrdenAlfa={setOrdenVeh} />}
+          {tab==="timeline" && <TabTL tl={tl} setTl={setTl} setModal={setModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenTL} setOrdenAlfa={setOrdenTL} />}
+          {tab==="contactos" && <TabCont cont={cont} setCont={setCont} inc={inc} setInc={setInc} setModal={setModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCont} setOrdenAlfa={setOrdenCont} />}
+          {tab==="checklist" && <TabCK ck={ck} setCk={setCk} setModal={setModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCK} setOrdenAlfa={setOrdenCK} />}
         </div>
       </div>
 
+      {ficha && <FichaLogistica ficha={ficha} material={material} veh={veh} onClose={()=>setFicha(null)} onEditar={(tipo,data)=>{setFicha(null);setModal({tipo,data});}} onEliminar={(tipo,id)=>{setFicha(null);setDel({tipo,id});}} />}
       {modal && (
         <ModalRouter key={modal.tipo+(modal.data?.id||"n")} modal={modal} onClose={() => setModal(null)}
           material={material} setMaterial={setMaterial} asigs={asigs} setAsigs={setAsigs}
@@ -367,73 +380,98 @@ const TLC = {logistica:"#fbbf24",organizacion:"#a78bfa",voluntarios:"#34d399",ca
 const TLI = {logistica:"🚚",organizacion:"📋",voluntarios:"👥",carrera:"🏃",comunicacion:"📡"};
 
 // ─── MATERIAL ─────────────────────────────────────────────────────────────────
-function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel}) {
+function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa}) {
   const [vistaAsig,setVistaAsig]=useState(false);
+  const [vistaKanban,setVistaKanban]=useState(false);
   const [cat,setCat]=useState("todas");
-  const [ordenAlfa,setOrdenAlfa]=useState(false);
   const ms=useMemo(()=>material.map(m=>{const a=asigs.filter(x=>x.materialId===m.id);const asig=a.reduce((s,x)=>s+x.cantidad,0);const ent=a.filter(x=>x.estado==="entregado").reduce((s,x)=>s+x.cantidad,0);return{...m,asig,ent,def:Math.max(asig-m.stock,0)}}),[material,asigs]);
   const mf=useMemo(()=>{
     let list=cat==="todas"?ms:ms.filter(m=>m.categoria===cat);
     if(ordenAlfa) list=[...list].sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es"));
     return list;
   },[ms,cat,ordenAlfa]);
+  const mover=(id,dir)=>{
+    if(ordenAlfa) return;
+    setMaterial(prev=>{
+      const arr=[...prev]; const i=arr.findIndex(x=>x.id===id); const j=i+dir;
+      if(j<0||j>=arr.length) return arr;
+      [arr[i],arr[j]]=[arr[j],arr[i]]; return arr;
+    });
+  };
   return(
     <>
       <div className="ph">
         <div><div className="pt">📦 Inventario de Material</div><div className="pd">{material.length} artículos · {asigs.length} asignaciones</div></div>
         <div className="fr g1">
-          <button className={cls("btn",!vistaAsig?"btn-cyan":"btn-ghost")} onClick={()=>setVistaAsig(false)}>
-            Catálogo
-            <span style={{marginLeft:"0.3rem",fontFamily:"var(--font-mono)",fontSize:"0.6rem",
-              background:!vistaAsig?"rgba(0,0,0,0.15)":"var(--surface3)",
-              padding:"0.05rem 0.35rem",borderRadius:3}}>{material.length}</span>
-          </button>
-          <button className={cls("btn",vistaAsig?"btn-cyan":"btn-ghost")} onClick={()=>setVistaAsig(true)}>
-            Asignaciones
-            <span style={{marginLeft:"0.3rem",fontFamily:"var(--font-mono)",fontSize:"0.6rem",
-              background:vistaAsig?"rgba(0,0,0,0.15)":"var(--surface3)",
-              padding:"0.05rem 0.35rem",borderRadius:3}}>{asigs.length}</span>
-          </button>
-          {!vistaAsig && (
-            <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")}
-              onClick={()=>setOrdenAlfa(v=>!v)} title={ordenAlfa?"Quitar orden A-Z":"Ordenar A-Z"}>
-              {ordenAlfa?"A-Z ✓":"A-Z"}
-            </button>
-          )}
+          <button className={cls("btn",!vistaAsig?"btn-cyan":"btn-ghost")} onClick={()=>setVistaAsig(false)}>Catálogo<span style={{marginLeft:"0.3rem",fontFamily:"var(--font-mono)",fontSize:"0.6rem",background:!vistaAsig?"rgba(0,0,0,0.15)":"var(--surface3)",padding:"0.05rem 0.35rem",borderRadius:3}}>{material.length}</span></button>
+          <button className={cls("btn",vistaAsig?"btn-cyan":"btn-ghost")} onClick={()=>setVistaAsig(true)}>Asignaciones<span style={{marginLeft:"0.3rem",fontFamily:"var(--font-mono)",fontSize:"0.6rem",background:vistaAsig?"rgba(0,0,0,0.15)":"var(--surface3)",padding:"0.05rem 0.35rem",borderRadius:3}}>{asigs.length}</span></button>
+          {!vistaAsig && (<>
+            <div className="log-vista-toggle">
+              {[["lista","☰"],["kanban","⬛"]].map(([v,ic])=>(<button key={v} onClick={()=>setVistaKanban(v==="kanban")} style={{padding:".3rem .55rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,background:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"rgba(34,211,238,.2)":"transparent",color:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"var(--cyan)":"var(--text-muted)"}}>{ic}</button>))}
+            </div>
+            <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
+          </>)}
           <button className="btn btn-cyan" onClick={()=>setModal({tipo:vistaAsig?"asig":"mat"})}>+ Añadir</button>
         </div>
       </div>
-      {!vistaAsig?(
-        <>
-          <div className="chips">
-            <button className={cls("chip",cat==="todas"&&"ca")} onClick={()=>setCat("todas")}>Todas</button>
-            {CATS_MATERIAL.map(c=><button key={c} className={cls("chip",cat===c&&"ca")} onClick={()=>setCat(c)} style={cat===c?{borderColor:CAT_COLORS[c],color:CAT_COLORS[c],background:`${CAT_COLORS[c]}18`}:{}}>{CAT_ICONS[c]} {c}</button>)}
+      {!vistaAsig?(<>
+        <div className="chips">
+          <button className={cls("chip",cat==="todas"&&"ca")} onClick={()=>setCat("todas")}>Todas</button>
+          {CATS_MATERIAL.map(c=><button key={c} className={cls("chip",cat===c&&"ca")} onClick={()=>setCat(c)} style={cat===c?{borderColor:CAT_COLORS[c],color:CAT_COLORS[c],background:`${CAT_COLORS[c]}18`}:{}}>{CAT_ICONS[c]} {c}</button>)}
+        </div>
+        {vistaKanban?(
+          <div className="log-kanban-grid">
+            {CATS_MATERIAL.map(catK=>{
+              const items=mf.filter(m=>m.categoria===catK);
+              if(!items.length) return null;
+              const color=CAT_COLORS[catK];
+              return(<div key={catK} className="log-k-col">
+                <div className="log-k-hdr" style={{borderTopColor:color}}>
+                  <span style={{fontSize:".65rem",fontWeight:700,color}}>{CAT_ICONS[catK]} {catK}</span>
+                  <span className="log-k-cnt" style={{background:color+"22",color,border:`1px solid ${color}44`}}>{items.length}</span>
+                </div>
+                {items.map(m=>(<div key={m.id} className="log-k-card" style={{borderLeftColor:color,cursor:"pointer"}} onClick={()=>abrirFicha("mat",m)}>
+                  <div style={{fontWeight:700,fontSize:".76rem",marginBottom:".3rem"}}>{m.nombre}</div>
+                  <div style={{display:"flex",gap:".5rem",flexWrap:"wrap",fontSize:".62rem",fontFamily:"var(--font-mono)"}}>
+                    <span style={{color:"var(--text-muted)"}}>Stock: <span style={{color:"var(--text)",fontWeight:700}}>{m.stock} {m.unidad}</span></span>
+                    {m.def>0&&<span style={{color:"var(--red)",fontWeight:700}}>⚠ -{m.def}</span>}
+                  </div>
+                  <div className="log-k-actions" onClick={e=>e.stopPropagation()}>
+                    <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"mat",data:m})}>✏️</button>
+                    <button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"material",id:m.id})}>✕</button>
+                  </div>
+                </div>))}
+              </div>);
+            })}
           </div>
+        ):(
           <div className="card p0"><div className="ox"><table className="tbl">
-            <thead><tr><th>Material</th><th>Categoría</th><th className="tr">Stock</th><th className="tr">Asignado</th><th className="tr">Entregado</th><th className="tr">Déficit</th><th></th></tr></thead>
-            <tbody>{mf.map(m=>(
-              <tr key={m.id} className={m.def>0?"ra":""}>
+            <thead><tr><th style={{width:22}}></th><th>Material</th><th>Categoría</th><th className="tr">Stock</th><th className="tr">Asignado</th><th className="tr">Déficit</th><th></th></tr></thead>
+            <tbody>{mf.map((m,i,arr)=>(
+              <tr key={m.id} className={m.def>0?"ra":""} style={{cursor:"pointer"}} onClick={()=>abrirFicha("mat",m)}>
+                <td onClick={e=>e.stopPropagation()} style={{padding:"0.3rem 0.2rem"}}>
+                  {!ordenAlfa&&<div className="log-reorder"><span onClick={()=>mover(m.id,-1)} style={{opacity:i===0?.2:1}}>▲</span><span onClick={()=>mover(m.id,+1)} style={{opacity:i===arr.length-1?.2:1}}>▼</span></div>}
+                </td>
                 <td className="f6">{m.nombre}</td>
                 <td><span className="badge" style={{background:`${CAT_COLORS[m.categoria]}18`,color:CAT_COLORS[m.categoria],border:`1px solid ${CAT_COLORS[m.categoria]}33`}}>{CAT_ICONS[m.categoria]} {m.categoria}</span></td>
                 <td className="tr mono">{m.stock} {m.unidad}</td>
                 <td className="tr mono" style={{color:m.asig>0?"var(--cyan)":"var(--text-muted)"}}>{m.asig} {m.unidad}</td>
-                <td className="tr mono" style={{color:"var(--green)"}}>{m.ent} {m.unidad}</td>
                 <td className="tr mono">{m.def>0?<span style={{color:"var(--red)",fontWeight:700}}>-{m.def}</span>:<span style={{color:"var(--text-dim)"}}>—</span>}</td>
-                <td><div className="fr g1"><button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"mat",data:m})}>✏️</button><button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"material",id:m.id})}>✕</button></div></td>
+                <td onClick={e=>e.stopPropagation()}><div className="fr g1"><button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"mat",data:m})}>✏️</button><button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"material",id:m.id})}>✕</button></div></td>
               </tr>
             ))}</tbody>
           </table></div></div>
-        </>
-      ):(
+        )}
+      </>):(
         <div className="card p0"><div className="ox"><table className="tbl">
           <thead><tr><th>Material</th><th>Puesto destino</th><th className="tr">Cantidad</th><th>Estado</th><th></th></tr></thead>
           <tbody>{asigs.map(a=>{const m=material.find(x=>x.id===a.materialId);return(
-            <tr key={a.id}>
+            <tr key={a.id} style={{cursor:"pointer"}} onClick={()=>abrirFicha("asig",{...a,materialNombre:m?.nombre,unidad:m?.unidad})}>
               <td className="f6">{m?.nombre||"—"}</td>
               <td><span className="pbadge">{a.puesto}</span></td>
               <td className="tr mono">{a.cantidad} {m?.unidad}</td>
-              <td><select className="isml" value={a.estado} onChange={e=>setAsigs(p=>p.map(x=>x.id===a.id?{...x,estado:e.target.value}:x))} style={{color:ESTADO_COLORES[a.estado]}}>{ESTADO_ENTREGA.map(s=><option key={s} value={s}>{s}</option>)}</select></td>
-              <td><div className="fr g1"><button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"asig",data:a})}>✏️</button><button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"asig",id:a.id})}>✕</button></div></td>
+              <td onClick={e=>e.stopPropagation()}><select className="isml" value={a.estado} onChange={e=>setAsigs(p=>p.map(x=>x.id===a.id?{...x,estado:e.target.value}:x))} style={{color:ESTADO_COLORES[a.estado]}}>{ESTADO_ENTREGA.map(s=><option key={s} value={s}>{s}</option>)}</select></td>
+              <td onClick={e=>e.stopPropagation()}><div className="fr g1"><button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"asig",data:a})}>✏️</button><button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"asig",id:a.id})}>✕</button></div></td>
             </tr>
           );})}
           </tbody>
@@ -444,65 +482,160 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel}) {
 }
 
 // ─── VEHÍCULOS ────────────────────────────────────────────────────────────────
-function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel}) {
+function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa}) {
+  const [vistaKanban,setVistaKanban]=useState(false);
+  const moverVeh=(id,dir)=>{
+    if(ordenAlfa) return;
+    setVeh(prev=>{const arr=[...prev];const i=arr.findIndex(x=>x.id===id);const j=i+dir;if(j<0||j>=arr.length)return arr;[arr[i],arr[j]]=[arr[j],arr[i]];return arr;});
+  };
+  const vehOrdenado=useMemo(()=>ordenAlfa?[...veh].sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es")):veh,[veh,ordenAlfa]);
   return(
     <>
       <div className="ph">
         <div><div className="pt">🚗 Vehículos y Rutas</div><div className="pd">{veh.length} vehículos · {rutas.length} rutas</div></div>
         <div className="fr g1">
+          <div className="log-vista-toggle">
+            {[["lista","☰"],["kanban","⬛"]].map(([v,ic])=>(<button key={v} onClick={()=>setVistaKanban(v==="kanban")} style={{padding:".3rem .55rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,background:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"rgba(34,211,238,.2)":"transparent",color:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"var(--cyan)":"var(--text-muted)"}}>{ic}</button>))}
+          </div>
+          <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
           <button className="btn btn-cyan" onClick={()=>setModal({tipo:"veh"})}>+ Vehículo</button>
           <button className="btn btn-amber" onClick={()=>setModal({tipo:"ruta"})}>+ Ruta</button>
         </div>
       </div>
-      <div className="twocol">
-        <div>
-          <div className="sl">Flota de vehículos</div>
-          {veh.map(v=>(
-            <div key={v.id} className="card vcard">
-              <div className="vh"><div className="vi">🚐</div>
-                <div style={{flex:1}}><div className="vn">{v.nombre}</div><div className="vm mono">{v.matricula}</div></div>
-                <div className="fr g1"><button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"veh",data:v})}>✏️</button><button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"veh",id:v.id})}>✕</button></div>
-              </div>
-              <div className="vmeta"><span>👤 {v.conductor}</span><span>📦 {v.capacidad}</span><span>📞 {v.telefono}</span></div>
-              {v.notas&&<div className="vnota">{v.notas}</div>}
+      {vistaKanban?(
+        <div className="log-kanban-grid" style={{gridTemplateColumns:"repeat(2,1fr)"}}>
+          <div className="log-k-col">
+            <div className="log-k-hdr" style={{borderTopColor:"var(--cyan)"}}>
+              <span style={{fontSize:".65rem",fontWeight:700,color:"var(--cyan)"}}>🚐 Flota</span>
+              <span className="log-k-cnt" style={{background:"var(--cyan-dim)",color:"var(--cyan)",border:"1px solid rgba(34,211,238,.3)"}}>{veh.length}</span>
             </div>
-          ))}
-        </div>
-        <div>
-          <div className="sl">Rutas de reparto</div>
-          {rutas.map(r=>{const v=veh.find(x=>x.id===r.vehiculoId);return(
-            <div key={r.id} className="card rcard">
-              <div className="rh">
-                <div><div className="rn">{r.nombre}</div><div className="rm mono">🚐 {v?.nombre||"—"} · 🕐 {r.horaInicio}</div></div>
-                <div className="fr g1"><button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"ruta",data:r})}>✏️</button><button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"ruta",id:r.id})}>✕</button></div>
+            {vehOrdenado.map(v=>(<div key={v.id} className="log-k-card" style={{borderLeftColor:"var(--cyan)",cursor:"pointer"}} onClick={()=>abrirFicha("veh",v)}>
+              <div style={{fontWeight:700,fontSize:".76rem",marginBottom:".2rem"}}>{v.nombre}</div>
+              <div className="mono xs muted">{v.matricula} · {v.conductor}</div>
+              <div className="mono xs" style={{color:"var(--text-muted)",marginTop:".15rem"}}>{v.capacidad}</div>
+              {v.notas&&<div style={{fontSize:".62rem",color:"var(--text-muted)",marginTop:".2rem",fontStyle:"italic"}}>{v.notas}</div>}
+              <div className="log-k-actions" onClick={e=>e.stopPropagation()}>
+                <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"veh",data:v})}>✏️</button>
+                <button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"veh",id:v.id})}>✕</button>
               </div>
-              <div className="plist">{(r.paradas || []).map((p,i)=>(
-                <div key={i} className="prow">
-                  <div className="pcon"><div className="pdot"/>{i<(r.paradas || []).length-1&&<div className="pline"/>}</div>
-                  <div className="pcont">
-                    <div className="ptop"><span className="pnom">{p.puesto}</span><span className="phora mono">{p.hora}</span></div>
-                    <div className="pmat">{p.material}</div>
-                  </div>
+            </div>))}
+          </div>
+          <div className="log-k-col">
+            <div className="log-k-hdr" style={{borderTopColor:"var(--amber)"}}>
+              <span style={{fontSize:".65rem",fontWeight:700,color:"var(--amber)"}}>🗺️ Rutas</span>
+              <span className="log-k-cnt" style={{background:"var(--amber-dim)",color:"var(--amber)",border:"1px solid rgba(251,191,36,.3)"}}>{rutas.length}</span>
+            </div>
+            {rutas.map(r=>{const v=veh.find(x=>x.id===r.vehiculoId);return(<div key={r.id} className="log-k-card" style={{borderLeftColor:"var(--amber)",cursor:"pointer"}} onClick={()=>abrirFicha("ruta",r)}>
+              <div style={{fontWeight:700,fontSize:".76rem",marginBottom:".2rem"}}>{r.nombre}</div>
+              <div className="mono xs muted">🚐 {v?.nombre||"—"} · 🕐 {r.horaInicio}</div>
+              <div style={{fontSize:".62rem",color:"var(--text-muted)",marginTop:".2rem"}}>{(r.paradas||[]).length} paradas</div>
+              <div className="log-k-actions" onClick={e=>e.stopPropagation()}>
+                <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"ruta",data:r})}>✏️</button>
+                <button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"ruta",id:r.id})}>✕</button>
+              </div>
+            </div>);})}
+          </div>
+        </div>
+      ):(
+        <div className="twocol">
+          <div>
+            <div className="sl">Flota de vehículos</div>
+            {vehOrdenado.map((v,i,arr)=>(
+              <div key={v.id} className="card vcard" style={{cursor:"pointer"}} onClick={()=>abrirFicha("veh",v)}>
+                <div className="vh">
+                  {!ordenAlfa&&<div className="log-reorder" onClick={e=>e.stopPropagation()}><span onClick={()=>moverVeh(v.id,-1)} style={{opacity:i===0?.2:1}}>▲</span><span onClick={()=>moverVeh(v.id,+1)} style={{opacity:i===arr.length-1?.2:1}}>▼</span></div>}
+                  <div className="vi">🚐</div>
+                  <div style={{flex:1}}><div className="vn">{v.nombre}</div><div className="vm mono">{v.matricula}</div></div>
+                  <div className="fr g1" onClick={e=>e.stopPropagation()}><button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"veh",data:v})}>✏️</button><button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"veh",id:v.id})}>✕</button></div>
                 </div>
-              ))}</div>
-            </div>
-          );})}
+                <div className="vmeta"><span>👤 {v.conductor}</span><span>📦 {v.capacidad}</span><span>📞 {v.telefono}</span></div>
+                {v.notas&&<div className="vnota">{v.notas}</div>}
+              </div>
+            ))}
+          </div>
+          <div>
+            <div className="sl">Rutas de reparto</div>
+            {rutas.map(r=>{const v=veh.find(x=>x.id===r.vehiculoId);return(
+              <div key={r.id} className="card rcard" style={{cursor:"pointer"}} onClick={()=>abrirFicha("ruta",r)}>
+                <div className="rh">
+                  <div><div className="rn">{r.nombre}</div><div className="rm mono">🚐 {v?.nombre||"—"} · 🕐 {r.horaInicio}</div></div>
+                  <div className="fr g1" onClick={e=>e.stopPropagation()}><button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"ruta",data:r})}>✏️</button><button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"ruta",id:r.id})}>✕</button></div>
+                </div>
+                <div className="plist">{(r.paradas||[]).map((p,i)=>(
+                  <div key={i} className="prow">
+                    <div className="pcon"><div className="pdot"/>{i<(r.paradas||[]).length-1&&<div className="pline"/>}</div>
+                    <div className="pcont">
+                      <div className="ptop"><span className="pnom">{p.puesto}</span><span className="phora mono">{p.hora}</span></div>
+                      <div className="pmat">{p.material}</div>
+                    </div>
+                  </div>
+                ))}</div>
+              </div>
+            );})}
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 }
 
 // ─── TIMELINE ─────────────────────────────────────────────────────────────────
-function TabTL({tl,setTl,setModal,setDel}) {
-  const sorted=useMemo(()=>[...tl].sort((a,b)=>a.hora.localeCompare(b.hora)),[tl]);
+function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa}) {
+  const [vistaKanban,setVistaKanban]=useState(false);
+  const sorted=useMemo(()=>{
+    let arr=[...tl];
+    if(ordenAlfa) arr.sort((a,b)=>(a.titulo||"").localeCompare(b.titulo||"","es"));
+    else arr.sort((a,b)=>a.hora.localeCompare(b.hora));
+    return arr;
+  },[tl,ordenAlfa]);
+  const mover=(id,dir)=>{
+    if(ordenAlfa) return;
+    setTl(prev=>{
+      const arr=[...prev].sort((a,b)=>a.hora.localeCompare(b.hora));
+      const i=arr.findIndex(x=>x.id===id);const j=i+dir;
+      if(j<0||j>=arr.length)return prev;
+      // Intercambiar las horas para mantener el orden
+      const horaI=arr[i].hora,horaJ=arr[j].hora;
+      return prev.map(x=>x.id===arr[i].id?{...x,hora:horaJ}:x.id===arr[j].id?{...x,hora:horaI}:x);
+    });
+  };
   const upd=(id,estado)=>setTl(p=>p.map(t=>t.id===id?{...t,estado}:t));
   return(
     <>
       <div className="ph">
         <div><div className="pt">⏱️ Timeline del Día</div><div className="pd">{tl.filter(t=>t.estado==="completado").length}/{tl.length} completadas · 29 agosto 2026</div></div>
-        <button className="btn btn-cyan" onClick={()=>setModal({tipo:"tl"})}>+ Tarea</button>
+        <div className="fr g1">
+          <div className="log-vista-toggle">
+            {[["lista","☰"],["kanban","⬛"]].map(([v,ic])=>(<button key={v} onClick={()=>setVistaKanban(v==="kanban")} style={{padding:".3rem .55rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,background:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"rgba(34,211,238,.2)":"transparent",color:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"var(--cyan)":"var(--text-muted)"}}>{ic}</button>))}
+          </div>
+          <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
+          <button className="btn btn-cyan" onClick={()=>setModal({tipo:"tl"})}>+ Tarea</button>
+        </div>
       </div>
+      {vistaKanban?(
+        <div className="log-kanban-grid" style={{gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))"}}>
+          {["logistica","organizacion","voluntarios","carrera","comunicacion"].map(cat=>{
+            const items=sorted.filter(t=>t.categoria===cat);
+            if(!items.length) return null;
+            const color=TLC[cat]||"#5a6a8a";
+            return(<div key={cat} className="log-k-col">
+              <div className="log-k-hdr" style={{borderTopColor:color}}>
+                <span style={{fontSize:".65rem",fontWeight:700,color}}>{TLI[cat]} {cat}</span>
+                <span className="log-k-cnt" style={{background:color+"22",color,border:`1px solid ${color}44`}}>{items.length}</span>
+              </div>
+              {items.map(t=>{const ec=ESTADO_COLORES[t.estado];return(<div key={t.id} className="log-k-card" style={{borderLeftColor:color,cursor:"pointer",opacity:t.estado==="completado"?.55:1}} onClick={()=>abrirFicha("tl",t)}>
+                <div className="mono" style={{fontSize:".62rem",color,marginBottom:".2rem"}}>{t.hora}</div>
+                <div style={{fontWeight:700,fontSize:".76rem",marginBottom:".2rem"}}>{t.titulo}</div>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:ec,background:ec+"18",padding:".1rem .35rem",borderRadius:4,display:"inline-block"}}>{t.estado}</div>
+                <div className="log-k-actions" onClick={e=>e.stopPropagation()}>
+                  <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"tl",data:t})}>✏️</button>
+                  <button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"tl",id:t.id})}>✕</button>
+                </div>
+              </div>);})}
+            </div>);
+          })}
+        </div>
+      ):(
       <div className="tlcon">{sorted.map((t,i)=>{
         const color=TLC[t.categoria]||"#5a6a8a";const ec=ESTADO_COLORES[t.estado];
         return(
@@ -534,6 +667,7 @@ function TabTL({tl,setTl,setModal,setDel}) {
           </div>
         );
       })}</div>
+      )}
     </>
   );
 }
@@ -548,7 +682,7 @@ const PROTO_PASOS=[
   {id:4,titulo:"Problema en avituallamiento",icon:"🍎",pasos:["Identificar qué falta (agua, isotónico, otro)","Contactar con furgoneta de reparto","Si urgente: enviar voluntario con coche propio","Alternativa: reducir raciones hasta reponer","Registrar en incidencias para próxima edición"]},
 ];
 
-function TabCont({cont,setCont,inc,setInc,setModal,setDel}) {
+function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa}) {
   const [sub,setSub]=useState("directorio");
   const [proto,setProto]=useState(null);
   return(
@@ -556,9 +690,9 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel}) {
       <div className="ph">
         <div><div className="pt">📡 Comunicaciones</div><div className="pd">Directorio · Protocolo de emergencia · Incidencias</div></div>
         <div className="fr g1">
-          {["directorio","protocolo","incidencias"].map(s=>(
-            <button key={s} className={cls("btn",sub===s?"btn-cyan":"btn-ghost")} onClick={()=>setSub(s)}>
-              {s==="incidencias"?"Incidencias"+(inc.filter(i=>i.estado==="abierta").length>0?" ⚠️":""):s.charAt(0).toUpperCase()+s.slice(1)}
+          {["directorio","protocolo","incidencias"].map(sub2=>(
+            <button key={sub2} className={cls("btn",sub===sub2?"btn-cyan":"btn-ghost")} onClick={()=>setSub(sub2)}>
+              {sub2==="incidencias"?"Incidencias"+(inc.filter(i=>i.estado==="abierta").length>0?" ⚠️":""):sub2.charAt(0).toUpperCase()+sub2.slice(1)}
             </button>
           ))}
         </div>
@@ -567,14 +701,15 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel}) {
       {sub==="directorio"&&(
         <>
           <div className="fb mb1"><div className="fr g1">{Object.entries(TICI).map(([t,i])=><span key={t} className="ctbadge" style={{background:`${TIC[t]}15`,color:TIC[t],border:`1px solid ${TIC[t]}33`}}>{i} {t}</span>)}</div>
+<button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
             <button className="btn btn-cyan" onClick={()=>setModal({tipo:"cont"})}>+ Contacto</button>
           </div>
-          <div className="cgrid">{cont.map(c=>(
-            <div key={c.id} className="ccard" style={{borderTopColor:TIC[c.tipo]}}>
+          <div className="cgrid">{(ordenAlfa?[...cont].sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es")):cont).map(c=>(
+            <div key={c.id} className="ccard" style={{borderTopColor:TIC[c.tipo],cursor:"pointer"}} onClick={()=>abrirFicha("cont",c)}>
               <div className="cch">
                 <div className="ccti">{TICI[c.tipo]}</div>
                 <div style={{flex:1,minWidth:0}}><div className="ccn">{c.nombre}</div><div className="ccr">{c.rol}</div></div>
-                <div className="fr g1"><button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"cont",data:c})}>✏️</button><button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"cont",id:c.id})}>✕</button></div>
+                <div className="fr g1" onClick={e=>e.stopPropagation()}><button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"cont",data:c})}>✏️</button><button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"cont",id:c.id})}>✕</button></div>
               </div>
               <div className="ccd">
                 <a href={`tel:${c.telefono}`} className="ctel">📞 {c.telefono}</a>
@@ -613,14 +748,14 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel}) {
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:"0.55rem"}}>
             {inc.map(ic=>(
-              <div key={ic.id} className={cls("icard",ic.estado==="resuelta"&&"ires")}>
+              <div key={ic.id} className={cls("icard",ic.estado==="resuelta"&&"ires")} style={{cursor:"pointer"}} onClick={()=>abrirFicha("inc",ic)}>
                 <div className="ich">
                   <div className="fr g1">
                     <span className="mono" style={{fontSize:"0.72rem",color:"var(--amber)"}}>{ic.hora}</span>
                     <span className="badge" style={{background:ic.gravedad==="alta"?"var(--red-dim)":ic.gravedad==="media"?"var(--amber-dim)":"var(--green-dim)",color:ic.gravedad==="alta"?"var(--red)":ic.gravedad==="media"?"var(--amber)":"var(--green)"}}>{ic.gravedad}</span>
                     <span className="badge" style={{background:"var(--cyan-dim)",color:"var(--cyan)"}}>{ic.tipo}</span>
                   </div>
-                  <div className="fr g1">
+                  <div className="fr g1" onClick={e=>e.stopPropagation()}>
                     <button className="btn btn-sm" style={{background:"var(--green-dim)",color:"var(--green)",border:"1px solid rgba(52,211,153,0.2)"}} onClick={()=>setInc(p=>p.map(x=>x.id===ic.id?{...x,estado:x.estado==="resuelta"?"abierta":"resuelta"}:x))}>{ic.estado==="resuelta"?"✓ Resuelta":"Marcar resuelta"}</button>
                     <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"inc",data:ic})}>✏️</button>
                     <button className="btn btn-sm btn-red" onClick={()=>setDel({tipo:"inc",id:ic.id})}>✕</button>
@@ -640,7 +775,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel}) {
 }
 
 // ─── CHECKLIST ────────────────────────────────────────────────────────────────
-function TabCK({ck,setCk,setModal,setDel}) {
+function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa}) {
   // Detectar fase activa según la fecha actual
   const diasHasta = Math.ceil((new Date("2026-08-29") - new Date()) / 86400000);
   const faseActiva = (() => {
@@ -660,6 +795,7 @@ function TabCK({ck,setCk,setModal,setDel}) {
     <>
       <div className="ph">
         <div><div className="pt">✅ Checklist Pre-Carrera</div><div className="pd">{ck.filter(c=>c.estado==="completado").length}/{ck.length} completados</div></div>
+<button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
         <button className="btn btn-cyan" onClick={()=>setModal({tipo:"ck",fase:fase})}>+ Tarea</button>
       </div>
       <div className="ftabs">
@@ -681,7 +817,7 @@ function TabCK({ck,setCk,setModal,setDel}) {
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:"0.4rem"}}>
         {fd?.it.map(item=>(
-          <div key={item.id} className={cls("cki",item.estado==="completado"&&"ckd",item.estado==="bloqueado"&&"ckb")} style={{cursor:"pointer"}} onClick={()=>setModal({tipo:"ck",data:item})}>
+          <div key={item.id} className={cls("cki",item.estado==="completado"&&"ckd",item.estado==="bloqueado"&&"ckb")} style={{cursor:"pointer"}} onClick={()=>abrirFicha("ck",item)}>
             <button className="ckbox" onClick={e=>{e.stopPropagation();toggle(item.id)}} style={{borderColor:item.estado==="completado"?"var(--green)":item.estado==="bloqueado"?"var(--red)":"var(--border)",background:item.estado==="completado"?"var(--green)":"transparent"}}>
               {item.estado==="completado"&&<span style={{color:"#000",fontSize:"0.75rem",fontWeight:800}}>✓</span>}
               {item.estado==="bloqueado"&&<span style={{color:"var(--red)",fontSize:"0.75rem"}}>!</span>}
@@ -695,7 +831,7 @@ function TabCK({ck,setCk,setModal,setDel}) {
               <select className="isml" value={item.estado} onChange={e=>upd(item.id,"estado",e.target.value)} style={{color:ESTADO_COLORES[item.estado],fontSize:"0.62rem",padding:"0.15rem 0.3rem"}}>
                 {ESTADO_TAREA.map(s=><option key={s} value={s}>{s}</option>)}
               </select>
-              <button className="btn btn-sm btn-ghost" onClick={e=>{e.stopPropagation();setModal({tipo:"ck",data:item})}}>✏️</button>
+              <button className="btn btn-sm btn-ghost" onClick={e=>{e.stopPropagation();abrirFicha("ck",item)}}>✏️</button>
               <button className="btn btn-sm btn-red" onClick={e=>{e.stopPropagation();setDel({tipo:"ck",id:item.id})}}>✕</button>
             </div>
           </div>
@@ -705,7 +841,113 @@ function TabCK({ck,setCk,setModal,setDel}) {
   );
 }
 
-// ─── MODAL ROUTER ─────────────────────────────────────────────────────────────
+// ─── FICHA LOGÍSTICA ──────────────────────────────────────────────────────────
+function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar }) {
+  const { tipo, data } = ficha;
+  const accents = { tl:"#fbbf24", ck:"#34d399", mat:"var(--cyan)", veh:"#a78bfa", ruta:"var(--amber)", cont:"#22d3ee", asig:"var(--cyan)", inc:"#f87171" };
+  const icons   = { tl:"⏱️", ck:"✅", mat:"📦", veh:"🚐", ruta:"🗺️", cont:"📞", asig:"📍", inc:"⚠️" };
+  const accent  = accents[tipo] || "var(--cyan)";
+  const titulo  = data.titulo || data.tarea || data.nombre || data.descripcion || "—";
+
+  const Row = ({label, value, color}) => !value ? null : (
+    <div style={{display:"flex",justifyContent:"space-between",padding:".4rem 0",borderBottom:"1px solid rgba(30,45,80,.3)"}}>
+      <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",flexShrink:0,marginRight:"1rem"}}>{label}</span>
+      <span style={{fontSize:".76rem",fontWeight:600,textAlign:"right",color:color||"var(--text)"}}>{value}</span>
+    </div>
+  );
+
+  const matNombre = tipo==="asig" ? (material.find(m=>m.id===data.materialId)?.nombre || data.materialNombre) : null;
+  const vehNombre = tipo==="ruta" ? (veh.find(v=>v.id===data.vehiculoId)?.nombre || "—") : null;
+
+  return (
+    <>
+      <style>{`.log-ficha-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:200;padding:1rem;}.log-ficha-modal{background:var(--surface);border:1px solid var(--border-light);border-radius:16px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.6);display:flex;flex-direction:column;}`}</style>
+      <div className="log-ficha-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+        <div className="log-ficha-modal">
+          <div style={{borderTop:`3px solid ${accent}`,borderRadius:"16px 16px 0 0"}}>
+            <div style={{padding:"1.1rem 1.4rem .9rem",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div style={{display:"flex",alignItems:"center",gap:".6rem"}}>
+                <span style={{fontSize:"1.4rem"}}>{icons[tipo]}</span>
+                <div>
+                  <div style={{fontWeight:800,fontSize:".95rem",lineHeight:1.2}}>{titulo}</div>
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-muted)",marginTop:".1rem",textTransform:"uppercase"}}>
+                    {tipo==="tl"?"Tarea timeline":tipo==="ck"?"Tarea checklist":tipo==="mat"?"Material":tipo==="veh"?"Vehículo":tipo==="ruta"?"Ruta":tipo==="cont"?"Contacto":tipo==="asig"?"Asignación":"Incidencia"}
+                  </div>
+                </div>
+              </div>
+              <button className="btn btn-ghost" style={{padding:".2rem .5rem"}} onClick={onClose}>✕</button>
+            </div>
+          </div>
+          <div style={{padding:"1.1rem 1.4rem",display:"flex",flexDirection:"column",gap:".4rem"}}>
+            {tipo==="tl" && (<>
+              <Row label="Hora"        value={data.hora} color={accent} />
+              <Row label="Estado"      value={data.estado} color={ESTADO_COLORES[data.estado]} />
+              <Row label="Categoría"   value={`${TLI[data.categoria]} ${data.categoria}`} />
+              <Row label="Responsable" value={data.responsable} />
+              {data.descripcion && <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",borderLeft:`2px solid ${accent}`,marginTop:".25rem"}}><div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-muted)",marginBottom:".25rem",textTransform:"uppercase"}}>Descripción</div><div style={{fontSize:".78rem",lineHeight:1.5}}>{data.descripcion}</div></div>}
+            </>)}
+            {tipo==="ck" && (<>
+              <Row label="Fase"        value={data.fase} />
+              <Row label="Estado"      value={data.estado} color={ESTADO_COLORES[data.estado]} />
+              <Row label="Prioridad"   value={data.prioridad} color={data.prioridad==="alta"?"var(--red)":data.prioridad==="media"?"var(--amber)":"var(--green)"} />
+              <Row label="Responsable" value={data.responsable} />
+              {data.notas && <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",borderLeft:`2px solid ${accent}`,marginTop:".25rem"}}><div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-muted)",marginBottom:".25rem",textTransform:"uppercase"}}>Notas</div><div style={{fontSize:".78rem",lineHeight:1.5}}>{data.notas}</div></div>}
+            </>)}
+            {tipo==="mat" && (<>
+              <Row label="Categoría"   value={`${CAT_ICONS[data.categoria]} ${data.categoria}`} />
+              <Row label="Stock total" value={`${data.stock} ${data.unidad}`} />
+              <Row label="Asignado"    value={`${data.asig||0} ${data.unidad}`} />
+              {(data.def||0)>0 && <Row label="⚠️ Déficit" value={`-${data.def} ${data.unidad}`} color="var(--red)" />}
+            </>)}
+            {tipo==="asig" && (<>
+              <Row label="Material"    value={matNombre} />
+              <Row label="Puesto"      value={data.puesto} />
+              <Row label="Cantidad"    value={`${data.cantidad} ${data.unidad||""}`} />
+              <Row label="Estado"      value={data.estado} color={ESTADO_COLORES[data.estado]} />
+            </>)}
+            {tipo==="veh" && (<>
+              <Row label="Matrícula"   value={data.matricula} />
+              <Row label="Conductor"   value={data.conductor} />
+              <Row label="Capacidad"   value={data.capacidad} />
+              <Row label="Teléfono"    value={data.telefono} />
+              {data.notas && <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",borderLeft:`2px solid ${accent}`}}><div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-muted)",marginBottom:".25rem",textTransform:"uppercase"}}>Notas</div><div style={{fontSize:".78rem",lineHeight:1.5}}>{data.notas}</div></div>}
+            </>)}
+            {tipo==="ruta" && (<>
+              <Row label="Vehículo"    value={vehNombre} />
+              <Row label="Hora inicio" value={data.horaInicio} />
+              <Row label="Paradas"     value={`${(data.paradas||[]).length} paradas`} />
+              {(data.paradas||[]).length>0 && <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",marginTop:".25rem"}}>{(data.paradas||[]).map((p,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",padding:".25rem 0",borderBottom:i<data.paradas.length-1?"1px solid rgba(30,45,80,.2)":"none",fontSize:".72rem"}}><span style={{fontWeight:600}}>{p.puesto}</span><span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--cyan)"}}>{p.hora}</span></div>)}</div>}
+            </>)}
+            {tipo==="cont" && (<>
+              <Row label="Rol"         value={data.rol} />
+              <Row label="Tipo"        value={`${({"emergencia":"🚨","proveedor":"🏭","staff":"👤","institucional":"🏛️"})[data.tipo]||""} ${data.tipo}`} />
+              <Row label="Teléfono"    value={data.telefono} color="var(--cyan)" />
+              <Row label="Email"       value={data.email} />
+              {data.notas && <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",borderLeft:`2px solid ${accent}`}}><div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-muted)",marginBottom:".25rem",textTransform:"uppercase"}}>Notas</div><div style={{fontSize:".78rem",lineHeight:1.5}}>{data.notas}</div></div>}
+            </>)}
+            {tipo==="inc" && (<>
+              <Row label="Hora"        value={data.hora} />
+              <Row label="Tipo"        value={data.tipo} />
+              <Row label="Gravedad"    value={data.gravedad} color={data.gravedad==="alta"?"var(--red)":data.gravedad==="media"?"var(--amber)":"var(--green)"} />
+              <Row label="Estado"      value={data.estado} color={data.estado==="resuelta"?"var(--green)":"var(--amber)"} />
+              <Row label="Responsable" value={data.responsable} />
+              {data.resolucion && <Row label="Resolución" value={data.resolucion} color="var(--green)" />}
+            </>)}
+          </div>
+          <div style={{padding:".9rem 1.4rem",borderTop:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center",gap:".5rem"}}>
+            <button className="btn btn-red" onClick={()=>onEliminar(tipo==="mat"?"material":tipo==="asig"?"asig":tipo==="veh"?"veh":tipo==="ruta"?"ruta":tipo==="cont"?"cont":tipo==="inc"?"inc":tipo==="tl"?"tl":"ck", data.id)}>🗑 Eliminar</button>
+            <div style={{display:"flex",gap:".4rem"}}>
+              <button className="btn btn-ghost" onClick={onClose}>Cerrar</button>
+              <button className="btn btn-cyan" onClick={()=>onEditar(tipo,data)}>✏️ Editar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+
 function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setVeh,rutas,setRutas,tl,setTl,cont,setCont,inc,setInc,ck,setCk}) {
   const {tipo,data}=modal;
   const sv=(setter,arr,item)=>{ if(item.id) setter(p=>p.map(x=>x.id===item.id?item:x)); else setter(p=>[...p,{...item,id:genId(arr)}]); onClose(); };
@@ -1010,7 +1252,21 @@ const CSS = `
     .ph{flex-direction:column;align-items:flex-start;gap:0.75rem}
     .twocol{grid-template-columns:1fr}
   }
-  @media(max-width:480px){
-    .pt{font-size:1.1rem}
-  }
+  /* ── Kanban logística ──────────────────────────────────────────── */
+  .log-kanban-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.65rem;margin-bottom:.85rem}
+  .log-k-col{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+  .log-k-hdr{padding:.6rem .75rem;border-top:2px solid;display:flex;align-items:center;justify-content:space-between;background:var(--surface2)}
+  .log-k-cnt{font-family:var(--font-mono);font-size:.58rem;font-weight:700;padding:.1rem .35rem;border-radius:4px}
+  .log-k-card{margin:.4rem .4rem 0;background:var(--surface2);border:1px solid var(--border);border-left:3px solid;border-radius:8px;padding:.6rem .7rem;transition:all .15s}
+  .log-k-card:last-child{margin-bottom:.4rem}
+  .log-k-card:hover{border-color:var(--border-light);box-shadow:0 2px 8px rgba(0,0,0,.2)}
+  .log-k-actions{display:flex;gap:.3rem;margin-top:.4rem}
+  /* ── Vista toggle ────────────────────────────────────────────────── */
+  .log-vista-toggle{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden}
+  /* ── Reorder ▲▼ ──────────────────────────────────────────────────── */
+  .log-reorder{display:flex;flex-direction:column;gap:1px}
+  .log-reorder span{display:block;width:18px;height:14px;line-height:14px;text-align:center;font-size:.6rem;background:var(--surface3);border:1px solid var(--border);border-radius:3px;color:var(--text-muted);cursor:pointer;transition:all .1s}
+  .log-reorder span:hover{background:var(--cyan-dim);border-color:var(--cyan);color:var(--cyan)}
+  .log-reorder span:active{transform:scale(.9)}
+  .muted{color:var(--text-muted)}
 `;
