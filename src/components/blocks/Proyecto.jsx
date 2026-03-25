@@ -331,6 +331,7 @@ export default function App() {
         </div>
       </div>
 
+      {ficha && <FichaProyecto ficha={ficha} equipo={equipo} onClose={()=>setFicha(null)} onEditar={(tipo,data)=>{setFicha(null);setModal({tipo,data});}} onEliminar={(tipo,id)=>{setFicha(null);setDelConf({tipo,id});}} />}
       {modal?.tipo==="tarea"   && <ModalTarea   key={modal.data?.id||"new"} data={modal.data} equipo={equipo} tareas={tareas} onSave={saveTarea}   onClose={() => setModal(null)} />}
       {modal?.tipo==="hito"    && <ModalHito    key={modal.data?.id||"new"} data={modal.data}                                  onSave={saveHito}    onClose={() => setModal(null)} />}
       {modal?.tipo==="persona" && <ModalPersona key={modal.data?.id||"new"} data={modal.data}                                  onSave={savePersona} onClose={() => setModal(null)} />}
@@ -591,7 +592,7 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
                     </div>
                   )}
                   <div style={{display:"flex",gap:".25rem"}}>
-                    <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"tarea",data:t})}>✏️</button>
+                    <button className="btn btn-sm btn-ghost" onClick={e=>{e.stopPropagation();setModal({tipo:"tarea",data:t})}}>✏️</button>
                     <button className="btn btn-sm btn-red" onClick={()=>setDelConf({tipo:"tarea",id:t.id})}>✕</button>
                   </div>
                 </div>
@@ -838,7 +839,7 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf }) {
           const area = getArea(p.area);
           return (
             <div key={p.id} className="persona-card" style={{borderTopColor:p.color, cursor:"pointer"}}
-              onClick={() => setModal({tipo:"persona", data:p})}
+              onClick={() => setFicha({tipo:"persona",data:p})}
               title={`Editar ${p.nombre}`}>
               <div style={{display:"flex",gap:".75rem",alignItems:"flex-start",marginBottom:".85rem"}}>
                 <div className="avatar-lg" style={{background:p.color+"22",border:`2px solid ${p.color}66`,color:p.color}}>
@@ -853,7 +854,7 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf }) {
                   </div>
                 </div>
                 <div style={{display:"flex",gap:".25rem",flexShrink:0}}>
-                  <button className="btn btn-sm btn-ghost" onClick={() => setModal({tipo:"persona",data:p})}>✏️</button>
+                  <button className="btn btn-sm btn-ghost" onClick={e=>{e.stopPropagation();setModal({tipo:"persona",data:p})}}>✏️</button>
                   <button className="btn btn-sm btn-red" onClick={() => setDelConf({tipo:"persona",id:p.id})}>✕</button>
                 </div>
               </div>
@@ -889,7 +890,7 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf }) {
                     const dias = diasHasta(t.fechaLimite);
                     return (
                       <div key={t.id}
-                        onClick={() => setModal({tipo:"tarea", data:t})}
+                        onClick={() => setFicha({tipo:"tarea",data:t})}
                         style={{display:"flex",justifyContent:"space-between",alignItems:"center",
                           padding:".25rem .35rem",borderBottom:"1px solid rgba(30,45,80,.2)",
                           cursor:"pointer",borderRadius:4,transition:"background .12s"}}
@@ -931,7 +932,7 @@ function TabHitos({ hitos, updHito, setModal, setDelConf }) {
           const vencido = dias < 0 && !h.completado;
           return (
             <div key={h.id} className={cls("hito-card", h.completado&&"hito-done", vencido&&"hito-vencido")}
-              style={{cursor:"pointer"}} onClick={() => setModal({tipo:"hito", data:h})}
+              style={{cursor:"pointer"}} onClick={() => setFicha({tipo:"hito",data:h})}
               title="Click para editar este hito">
               <div className="hito-card-gem" style={{background:h.completado?"#34d399":h.critico?"#f87171":"#22d3ee",boxShadow:h.completado?"0 0 8px #34d39966":h.critico?"0 0 8px #f8717166":"0 0 8px #22d3ee66"}}/>
               <div style={{flex:1,minWidth:0}}>
@@ -958,7 +959,7 @@ function TabHitos({ hitos, updHito, setModal, setDelConf }) {
                     : <span style={{color:"var(--text-dim)",fontSize:".75rem",lineHeight:1}}>○</span>
                   }
                 </button>
-                <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"hito",data:h})}>✏️</button>
+                <button className="btn btn-sm btn-ghost" onClick={e=>{e.stopPropagation();setModal({tipo:"hito",data:h})}}>✏️</button>
                 <button className="btn btn-sm btn-red" onClick={()=>setDelConf({tipo:"hito",id:h.id})}>✕</button>
               </div>
             </div>
@@ -1160,6 +1161,98 @@ function ModalPersona({ data, onSave, onClose }) {
           </div>
         </div>
         <div className="mfoot"><button className="btn btn-ghost" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={submit}>{data?"💾 Guardar":"➕ Añadir"}</button></div>
+      </div>
+    </div>
+  );
+}
+
+
+// ─── FICHA PROYECTO (vista previa) ────────────────────────────────────────────
+function FichaProyecto({ ficha, equipo, onClose, onEditar, onEliminar }) {
+  const { tipo, data } = ficha;
+  const scrollLock = () => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const main = document.querySelector("main");
+    if (main) main.scrollTo({top:0,behavior:"instant"});
+    return () => { document.body.style.overflow = prev; };
+  };
+  React.useEffect(scrollLock, []);
+
+  const accentColor = tipo === "tarea" ? "var(--violet)" : tipo === "hito" ? "var(--cyan)" : "var(--green)";
+  const icons = { tarea:"📋", hito:"🏁", persona:"👤" };
+
+  const Row = ({label, value, color}) => value ? (
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:".45rem 0",borderBottom:"1px solid rgba(30,45,80,.3)"}}>
+      <span style={{fontFamily:"var(--font-mono)",fontSize:".62rem",color:"var(--text-muted)",flexShrink:0,marginRight:"1rem"}}>{label}</span>
+      <span style={{fontSize:".78rem",fontWeight:600,textAlign:"right",color:color||"var(--text)"}}>{value}</span>
+    </div>
+  ) : null;
+
+  return (
+    <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal" style={{maxWidth:480}}>
+        {/* Header con acento de color */}
+        <div style={{borderTop:`3px solid ${accentColor}`,borderRadius:"12px 12px 0 0"}}>
+          <div className="mhdr" style={{borderBottom:"1px solid var(--border)"}}>
+            <div style={{display:"flex",alignItems:"center",gap:".6rem"}}>
+              <span style={{fontSize:"1.4rem"}}>{icons[tipo]}</span>
+              <div>
+                <div style={{fontWeight:800,fontSize:"1rem",lineHeight:1.2}}>
+                  {data.titulo || data.nombre}
+                </div>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-muted)",marginTop:".15rem",textTransform:"uppercase",letterSpacing:".08em"}}>
+                  {tipo === "tarea" ? `Tarea · ${AREAS.find(a=>a.id===data.area)?.label||data.area}` : tipo === "hito" ? "Hito" : "Miembro del equipo"}
+                </div>
+              </div>
+            </div>
+            <button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button>
+          </div>
+        </div>
+
+        <div className="mbody">
+          {/* TAREA */}
+          {tipo === "tarea" && (<>
+            <Row label="Estado"    value={EST_CFG[data.estado]?.label}     color={EST_CFG[data.estado]?.color} />
+            <Row label="Prioridad" value={data.prioridad}                  color={PRI_CFG[data.prioridad]?.color} />
+            <Row label="Responsable" value={equipo.find(p=>p.id===data.responsableId)?.nombre || "—"} />
+            <Row label="Fecha límite" value={data.fechaLimite ? new Date(data.fechaLimite).toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"}) : null} />
+            {data.notas && (
+              <div style={{marginTop:".5rem",background:"var(--surface2)",borderRadius:8,padding:".65rem .75rem",borderLeft:"2px solid var(--border)"}}>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-muted)",marginBottom:".3rem",textTransform:"uppercase"}}>Notas</div>
+                <div style={{fontSize:".78rem",lineHeight:1.6,color:"var(--text)"}}>{data.notas}</div>
+              </div>
+            )}
+          </>)}
+
+          {/* HITO */}
+          {tipo === "hito" && (<>
+            <Row label="Fecha"     value={data.fecha ? new Date(data.fecha).toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"}) : "—"} />
+            <Row label="Estado"    value={data.completado ? "✓ Completado" : "Pendiente"} color={data.completado ? "var(--green)" : "var(--amber)"} />
+            <Row label="Crítico"   value={data.critico ? "⚡ Sí" : "No"}               color={data.critico ? "var(--red)" : undefined} />
+          </>)}
+
+          {/* PERSONA */}
+          {tipo === "persona" && (<>
+            <div style={{display:"flex",justifyContent:"center",marginBottom:".75rem"}}>
+              <div className="avatar-lg" style={{width:56,height:56,borderRadius:"50%",background:(data.color||"#a78bfa")+"22",border:`2px solid ${data.color||"#a78bfa"}66`,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:"1.1rem",color:data.color||"#a78bfa"}}>
+                {(data.nombre||"?").split(" ").map(n=>n[0]).slice(0,2).join("")}
+              </div>
+            </div>
+            <Row label="Rol"       value={data.rol} />
+            <Row label="Área"      value={AREAS.find(a=>a.id===data.area)?.label||data.area} />
+            <Row label="Teléfono"  value={data.telefono} />
+            <Row label="Email"     value={data.email} />
+          </>)}
+        </div>
+
+        <div className="mfoot" style={{justifyContent:"space-between"}}>
+          <button className="btn btn-red" onClick={()=>onEliminar(tipo,data.id)}>🗑 Eliminar</button>
+          <div style={{display:"flex",gap:".4rem"}}>
+            <button className="btn btn-ghost" onClick={onClose}>Cerrar</button>
+            <button className="btn btn-primary" onClick={()=>onEditar(tipo,data)}>✏️ Editar</button>
+          </div>
+        </div>
       </div>
     </div>
   );
