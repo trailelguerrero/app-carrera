@@ -406,7 +406,7 @@ function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, upd
             const p = equipo.find(e => e.id===t.responsableId);
             return (
               <div key={t.id} className="urg-row" style={{cursor:"pointer"}}
-                onClick={() => setFicha({tipo:"tarea", data:t})}
+                onClick={() => abrirFicha("tarea", t)}
                 title="Click para ver ficha de la tarea"
               >
                 <div className="urg-dot" style={{background:area.color}}/>
@@ -552,7 +552,7 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
             return (
               <div key={t.id} className={cls("tarea-row", vencida&&"tarea-vencida")}
                 style={{borderLeftColor:area.color, cursor:"pointer"}}
-                onClick={() => setFicha({tipo:"tarea", data:t})}
+                onClick={() => abrirFicha("tarea", t)}
                 title="Click para ver ficha">
                 {/* Cambio de estado rápido — clic en el selector NO propaga al modal */}
                 <div className="tarea-estado-col" onClick={e => e.stopPropagation()}>
@@ -635,7 +635,7 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
                     return (
                       <div key={t.id} className={cls("kanban-card", vencida&&"kanban-card-venc", bloq&&"kanban-card-bloq")}
                         style={{borderLeftColor: area.color}}
-                        onClick={() => setFicha({tipo:"tarea",data:t})}>
+                        onClick={() => abrirFicha("tarea", t)}>
                         {/* Badge bloqueado */}
                         {bloq && <div className="kanban-bloq-badge">🔒 Bloqueada</div>}
                         <div className="kanban-card-titulo" style={{
@@ -798,7 +798,7 @@ function TabGantt({ tareas, hitos, equipo, setModal, setFicha }) {
                 transform:"translateX(-50%)",
                 color:h.critico?"#f87171":"#22d3ee",
                 cursor:"pointer",
-              }} title={h.nombre} onClick={() => setFicha({tipo:"hito", data:h})}>
+              }} title={h.nombre} onClick={() => abrirFicha("hito", h)}>
                 <div className="gantt-diamond" style={{background:h.completado?"#34d399":h.critico?"#f87171":"#22d3ee"}}/>
                 <div className="gantt-hito-label mono">{h.nombre.split(" ").slice(0,3).join(" ")}</div>
               </div>
@@ -863,7 +863,7 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf, setFicha }) {
                     const urgentes = pt.filter(t => t.fechaLimite && diasHasta(t.fechaLimite)<=14).length;
                     return (
                       <div key={p.id} className="kanban-card" style={{borderLeftColor:p.color,cursor:"pointer"}}
-                        onClick={()=>setFicha({tipo:"persona",data:p})}>
+                        onClick={()=>abrirFicha("persona", p)}>
                         <div style={{display:"flex",alignItems:"center",gap:".5rem",marginBottom:".35rem"}}>
                           <div className="kanban-avatar" style={{background:p.color+"33",border:`1px solid ${p.color}66`,color:p.color}}>
                             {iniciales(p.nombre)}
@@ -904,7 +904,7 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf, setFicha }) {
           const area = getArea(p.area);
           return (
             <div key={p.id} className="persona-card" style={{borderTopColor:p.color, cursor:"pointer"}}
-              onClick={() => setFicha({tipo:"persona", data:p})}
+              onClick={() => abrirFicha("persona", p)}
               title={`Ver ficha de ${p.nombre}`}>
               <div style={{display:"flex",gap:".75rem",alignItems:"flex-start",marginBottom:".85rem"}}>
                 <div className="avatar-lg" style={{background:p.color+"22",border:`2px solid ${p.color}66`,color:p.color}}>
@@ -998,7 +998,7 @@ function TabHitos({ hitos, updHito, setModal, setDelConf, setFicha }) {
           const vencido = dias < 0 && !h.completado;
           return (
             <div key={h.id} className={cls("hito-card", h.completado&&"hito-done", vencido&&"hito-vencido")}
-              style={{cursor:"pointer"}} onClick={() => setFicha({tipo:"hito", data:h})}
+              style={{cursor:"pointer"}} onClick={() => abrirFicha("hito", h)}
               title="Click para ver ficha del hito">
               <div className="hito-card-gem" style={{background:h.completado?"#34d399":h.critico?"#f87171":"#22d3ee",boxShadow:h.completado?"0 0 8px #34d39966":h.critico?"0 0 8px #f8717166":"0 0 8px #22d3ee66"}}/>
               <div style={{flex:1,minWidth:0}}>
