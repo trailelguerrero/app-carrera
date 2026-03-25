@@ -267,6 +267,11 @@ export default function App() {
               />
               {busquedaGlobal && <button onClick={()=>setBusquedaGlobal("")} style={{background:"none",border:"none",color:"var(--text-muted)",cursor:"pointer",fontSize:".75rem",padding:0}}>✕</button>}
             </div>
+            {busquedaGlobal && tareasFiltradas && (
+              <span className="badge badge-violet" style={{whiteSpace:"nowrap"}}>
+                🔍 {tareasFiltradas.length} resultado{tareasFiltradas.length !== 1 ? "s" : ""}
+              </span>
+            )}
             {stats.vencidas.length > 0 && <span className="badge badge-red">⏰ {stats.vencidas.length} vencidas</span>}
             {stats.bloqueadas > 0 && <span className="badge badge-amber">🔒 {stats.bloqueadas} bloqueadas</span>}
             <span className={`badge ${stats.pct>=80?"badge-green":stats.pct>=50?"badge-amber":"badge-red"}`}>{stats.pct}% completado</span>
@@ -623,64 +628,90 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
         </div>
       )}
 
-      {/* ── VISTA KANBAN ── */}
+      {/* ── VISTA KANBAN — 3 columnas, Bloqueado como badge ── */}
       {vista === "kanban" && (
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:".75rem",alignItems:"start"}}>
-          {ESTADOS.map(estado => {
+        <div className="kanban-grid">
+          {["pendiente","en curso","completado"].map(estado => {
             const col = EST_CFG[estado];
-            const tareasCol = tareas.filter(t => t.estado === estado);
+            // Las tareas bloqueadas se muestran en "Pendiente" con badge
+            const tareasCol = estado === "pendiente"
+              ? tareas.filter(t => t.estado === "pendiente" || t.estado === "bloqueado")
+              : tareas.filter(t => t.estado === estado);
             return (
-              <div key={estado} style={{background:"var(--surface)",border:"1px solid var(--border)",borderTop:`3px solid ${col.color}`,borderRadius:"var(--r)",overflow:"hidden"}}>
-                {/* Cabecera columna */}
-                <div style={{padding:".6rem .85rem",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",fontWeight:700,color:col.color,textTransform:"uppercase",letterSpacing:".08em"}}>{col.label}</span>
-                  <span style={{background:col.bg,color:col.color,border:`1px solid ${col.color}44`,borderRadius:10,fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,padding:".05rem .45rem"}}>{tareasCol.length}</span>
+              <div key={estado} className="kanban-col">
+                {/* Cabecera */}
+                <div className="kanban-col-hdr" style={{borderTopColor: col.color}}>
+                  <span className="mono" style={{fontSize:".65rem",fontWeight:700,color:col.color,textTransform:"uppercase",letterSpacing:".08em"}}>{col.label}</span>
+                  <span className="kanban-cnt" style={{background:col.bg,color:col.color,border:`1px solid ${col.color}44`}}>{tareasCol.length}</span>
                 </div>
-                {/* Tareas */}
-                <div style={{padding:".5rem",display:"flex",flexDirection:"column",gap:".4rem",minHeight:80}}>
+                {/* Cuerpo */}
+                <div className="kanban-body">
                   {tareasCol.length === 0 && (
-                    <div style={{textAlign:"center",padding:"1rem",color:"var(--text-dim)",fontFamily:"var(--font-mono)",fontSize:".62rem"}}>Sin tareas</div>
+                    <div className="kanban-empty">Sin tareas</div>
                   )}
                   {tareasCol.map(t => {
-                    const area = getArea(t.area);
-                    const resp = equipo.find(e => e.id===t.responsableId);
-                    const dias = t.fechaLimite ? diasHasta(t.fechaLimite) : null;
+                    const area    = getArea(t.area);
+                    const resp    = equipo.find(e => e.id===t.responsableId);
+                    const dias    = t.fechaLimite ? diasHasta(t.fechaLimite) : null;
                     const vencida = dias !== null && dias < 0 && t.estado !== "completado";
-                    const pc = PRI_CFG[t.prioridad];
+                    const bloq    = t.estado === "bloqueado";
+                    const pc      = PRI_CFG[t.prioridad];
                     return (
-                      <div key={t.id}
-                        onClick={() => setModal({tipo:"tarea",data:t})}
-                        style={{background:"var(--surface2)",border:`1px solid ${vencida?"rgba(248,113,113,.35)":"var(--border)"}`,
-                          borderLeft:`3px solid ${area.color}`,borderRadius:"var(--r-sm)",
-                          padding:".6rem .7rem",cursor:"pointer",transition:"all .15s",userSelect:"none"}}
-                        onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-1px)";e.currentTarget.style.boxShadow="0 4px 12px rgba(0,0,0,.3)";}}
-                        onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="";}}>
-                        <div style={{fontSize:".78rem",fontWeight:700,marginBottom:".3rem",
+                      <div key={t.id} className={cls("kanban-card", vencida&&"kanban-card-venc", bloq&&"kanban-card-bloq")}
+                        style={{borderLeftColor: area.color}}
+                        onClick={() => setModal({tipo:"tarea",data:t})}>
+                        {/* Badge bloqueado */}
+                        {bloq && <div className="kanban-bloq-badge">🔒 Bloqueada</div>}
+                        <div className="kanban-card-titulo" style={{
                           textDecoration:t.estado==="completado"?"line-through":"none",
-                          color:t.estado==="completado"?"var(--text-muted)":"var(--text)"}}>{t.titulo}</div>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:".25rem"}}>
-                          <div style={{display:"flex",gap:".35rem",alignItems:"center"}}>
-                            <span style={{fontSize:".65rem"}}>{area.icon}</span>
+                          color:t.estado==="completado"?"var(--text-muted)":"var(--text)",
+                          opacity:bloq?0.7:1}}>
+                          {t.titulo}
+                        </div>
+                        <div className="kanban-card-meta">
+                          <div style={{display:"flex",gap:".35rem",alignItems:"center",flex:1,minWidth:0}}>
+                            <span style={{fontSize:".65rem",flexShrink:0}}>{area.icon}</span>
                             <span className="badge" style={{background:pc.bg,color:pc.color,fontSize:".48rem"}}>{t.prioridad}</span>
-                            {resp && <div style={{width:16,height:16,borderRadius:"50%",background:resp.color+"33",border:`1px solid ${resp.color}66`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".42rem",fontWeight:700,color:resp.color}}>{iniciales(resp.nombre)}</div>}
+                            {resp && (
+                              <div className="kanban-avatar" style={{background:resp.color+"33",border:`1px solid ${resp.color}66`,color:resp.color}}>
+                                {iniciales(resp.nombre)}
+                              </div>
+                            )}
                           </div>
                           {dias !== null && (
-                            <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",fontWeight:700,
+                            <span className="mono" style={{fontSize:".58rem",fontWeight:700,flexShrink:0,
                               color:vencida?"#f87171":dias<=7?"#fbbf24":"var(--text-muted)"}}>
                               {vencida?`-${Math.abs(dias)}d`:dias===0?"Hoy":`${dias}d`}
                             </span>
                           )}
                         </div>
-                        {/* Cambio estado rápido en kanban */}
-                        <div style={{marginTop:".4rem",display:"flex",gap:".25rem",flexWrap:"wrap"}} onClick={e=>e.stopPropagation()}>
-                          {ESTADOS.filter(s=>s!==estado).map(s=>(
-                            <button key={s} onClick={()=>updEstado(t.id,s)}
-                              style={{padding:".08rem .35rem",borderRadius:3,border:`1px solid ${EST_CFG[s].color}44`,
-                                background:EST_CFG[s].bg,color:EST_CFG[s].color,
-                                fontFamily:"var(--font-mono)",fontSize:".48rem",fontWeight:700,cursor:"pointer"}}>
-                              → {EST_CFG[s].label}
-                            </button>
-                          ))}
+                        {/* Botones de estado rápido — área táctil >= 36px */}
+                        <div className="kanban-acciones" onClick={e=>e.stopPropagation()}>
+                          {estado === "pendiente" && !bloq && (
+                            <button className="kanban-btn-estado"
+                              style={{color:"var(--cyan)",borderColor:"rgba(34,211,238,.3)",background:"rgba(34,211,238,.08)"}}
+                              onClick={()=>updEstado(t.id,"en curso")}>▶ En curso</button>
+                          )}
+                          {estado === "pendiente" && bloq && (
+                            <button className="kanban-btn-estado"
+                              style={{color:"#94a3b8",borderColor:"rgba(148,163,184,.3)",background:"rgba(148,163,184,.08)"}}
+                              onClick={()=>updEstado(t.id,"pendiente")}>🔓 Desbloquear</button>
+                          )}
+                          {estado === "en curso" && (
+                            <>
+                              <button className="kanban-btn-estado"
+                                style={{color:"var(--green)",borderColor:"rgba(52,211,153,.3)",background:"rgba(52,211,153,.08)"}}
+                                onClick={()=>updEstado(t.id,"completado")}>✓ Completar</button>
+                              <button className="kanban-btn-estado"
+                                style={{color:"#f87171",borderColor:"rgba(248,113,113,.3)",background:"rgba(248,113,113,.08)"}}
+                                onClick={()=>updEstado(t.id,"bloqueado")}>🔒 Bloquear</button>
+                            </>
+                          )}
+                          {estado === "completado" && (
+                            <button className="kanban-btn-estado"
+                              style={{color:"#94a3b8",borderColor:"rgba(148,163,184,.3)",background:"rgba(148,163,184,.08)"}}
+                              onClick={()=>updEstado(t.id,"pendiente")}>↩ Reabrir</button>
+                          )}
                         </div>
                       </div>
                     );
@@ -943,10 +974,16 @@ function TabHitos({ hitos, updHito, setModal, setDelConf }) {
                   </span>}
                 </div>
               </div>
-              <div style={{display:"flex",gap:".4rem",alignItems:"center",flexShrink:0}} onClick={e=>e.stopPropagation()}>
-                <button className="btn btn-sm" style={{background:h.completado?"rgba(148,163,184,.1)":"rgba(52,211,153,.1)",color:h.completado?"#94a3b8":"#34d399",border:`1px solid ${h.completado?"rgba(148,163,184,.2)":"rgba(52,211,153,.2)"}`}}
+              <div style={{display:"flex",gap:".5rem",alignItems:"center",flexShrink:0}} onClick={e=>e.stopPropagation()}>
+                {/* Quick-complete: checkbox grande, área táctil 36x36px */}
+                <button className="hito-ckbox"
+                  title={h.completado ? "Marcar como pendiente" : "Marcar como completado"}
+                  style={{borderColor:h.completado?"#34d399":"var(--border)",background:h.completado?"rgba(52,211,153,.15)":"transparent"}}
                   onClick={() => updHito(h.id,"completado",!h.completado)}>
-                  {h.completado?"↩ Reabrir":"✓ Completar"}
+                  {h.completado
+                    ? <span style={{color:"#34d399",fontSize:"1rem",lineHeight:1}}>✓</span>
+                    : <span style={{color:"var(--text-dim)",fontSize:".75rem",lineHeight:1}}>○</span>
+                  }
                 </button>
                 <button className="btn btn-sm btn-ghost" onClick={()=>setModal({tipo:"hito",data:h})}>✏️</button>
                 <button className="btn btn-sm btn-red" onClick={()=>setDelConf({tipo:"hito",id:h.id})}>✕</button>
@@ -1313,5 +1350,31 @@ const CSS = `
     .pd{display:none}
     .nitem span:not(.nicon){display:none}
     .nitem{padding:.5rem .8rem}
-  }
+  }  /* ── KANBAN ─────────────────────────────────────────────────────────────── */
+  .kanban-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;align-items:start}
+  @media(max-width:700px){.kanban-grid{grid-template-columns:1fr}}
+  @media(min-width:701px) and (max-width:960px){.kanban-grid{grid-template-columns:1fr 1fr}}
+  .kanban-col{background:var(--surface);border:1px solid var(--border);border-top:3px solid;border-radius:var(--r);overflow:hidden;transition:border-color .15s}
+  .kanban-col-hdr{padding:.6rem .85rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+  .kanban-cnt{border-radius:10px;font-family:var(--font-mono);font-size:.6rem;font-weight:700;padding:.05rem .45rem}
+  .kanban-body{padding:.5rem;display:flex;flex-direction:column;gap:.4rem;min-height:80px}
+  .kanban-empty{text-align:center;padding:1.25rem;color:var(--text-dim);font-family:var(--font-mono);font-size:.62rem}
+  .kanban-card{background:var(--surface2);border:1px solid var(--border);border-left:3px solid;border-radius:var(--r-sm);padding:.65rem .75rem;cursor:pointer;transition:all .15s;user-select:none;display:flex;flex-direction:column;gap:.35rem}
+  .kanban-card:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.35);border-color:var(--border-light)}
+  .kanban-card-venc{border-color:rgba(248,113,113,.35)!important;background:rgba(248,113,113,.03)!important}
+  .kanban-card-bloq{opacity:.75;border-style:dashed}
+  .kanban-bloq-badge{font-family:var(--font-mono);font-size:.52rem;font-weight:700;color:#f87171;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.2);border-radius:3px;padding:.1rem .35rem;align-self:flex-start}
+  .kanban-card-titulo{font-size:.78rem;font-weight:700;line-height:1.35}
+  .kanban-card-meta{display:flex;justify-content:space-between;align-items:center;gap:.25rem}
+  .kanban-avatar{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:.42rem;font-weight:700;flex-shrink:0}
+  .kanban-acciones{display:flex;gap:.3rem;flex-wrap:wrap;margin-top:.1rem}
+  /* Botones de estado — área táctil mínima 36px */
+  .kanban-btn-estado{min-height:36px;padding:.1rem .55rem;border-radius:5px;border:1px solid;font-family:var(--font-mono);font-size:.6rem;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap;display:flex;align-items:center;justify-content:center}
+  .kanban-btn-estado:hover{filter:brightness(1.2);transform:translateY(-1px)}
+
+  /* ── HITO QUICK-COMPLETE ──────────────────────────────────────────────── */
+  .hito-ckbox{width:36px;height:36px;border-radius:8px;border:2px solid;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;background:transparent}
+  .hito-ckbox:hover{transform:scale(1.1);box-shadow:0 2px 8px rgba(0,0,0,.3)}
+
+
 `;
