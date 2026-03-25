@@ -10,7 +10,7 @@ const CAT_COLORS = { Avituallamiento:"#34d399", Señalización:"#fbbf24", Seguri
 const ESTADO_ENTREGA = ["pendiente","en tránsito","entregado","recogido"];
 const ESTADO_TAREA = ["pendiente","en curso","completado","bloqueado"];
 const ESTADO_COLORES = { pendiente:"#fbbf24","en tránsito":"#22d3ee",entregado:"#34d399",recogido:"#5a6a8a","en curso":"#22d3ee",completado:"#34d399",bloqueado:"#f87171" };
-const FASES_CHECKLIST = ["Semana antes","Día antes","Mañana carrera","Durante carrera","Post-carrera"];
+const FASES_CHECKLIST = ["3 meses antes","2 meses antes","1 mes antes","Semana antes","Día antes","Mañana carrera","Durante carrera","Post-carrera"];
 const PUESTOS_REF = ["Zona Salida/Meta","Avituallamiento KM 4","Avituallamiento KM 9","Avituallamiento KM 16","Control KM 7","Control KM 13","Seguridad Cruce 1","Seguridad Cruce 2","Señalización Ruta Alta","Parking","Zona Llegada/Trofeos","Primeros Auxilios Base"];
 
 // ─── DATOS DEFAULT ────────────────────────────────────────────────────────────
@@ -845,18 +845,16 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
 }
 
 function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal}) {
-  const hoy = new Date().toISOString().split("T")[0];
-  const [fechaRef, setFechaRef] = useState(hoy);
-  const [mostrarCalendario, setMostrarCalendario] = useState(false);
-  const calcFase = (f) => {
-    const d = Math.ceil((new Date("2026-08-29") - new Date(f)) / 86400000);
-    if (d < 0)   return "Post-carrera";
-    if (d <= 1)  return "Mañana carrera";
-    if (d <= 2)  return "Día antes";
-    if (d <= 7)  return "Semana antes";
-    return "Semana antes";
-  };
-  const faseActiva = calcFase(fechaRef);
+  const diasHasta = Math.ceil((new Date("2026-08-29") - new Date()) / 86400000);
+  const faseActiva = (() => {
+    if (diasHasta < 0)    return "Post-carrera";
+    if (diasHasta <= 1)   return "Mañana carrera";
+    if (diasHasta <= 2)   return "Día antes";
+    if (diasHasta <= 7)   return "Semana antes";
+    if (diasHasta <= 30)  return "1 mes antes";
+    if (diasHasta <= 60)  return "2 meses antes";
+    return "3 meses antes";
+  })();
   const [fase,setFase]=useState(faseActiva);
   const toggle=(id)=>setCk(p=>p.map(c=>c.id===id?{...c,estado:c.estado==="completado"?"pendiente":"completado"}:c));
   const upd=(id,f,v)=>setCk(p=>p.map(c=>c.id===id?{...c,[f]:v}:c));
@@ -865,29 +863,8 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
   return(
     <>
       <div className="ph">
-        <div>
-          <div className="pt">✅ Checklist Pre-Carrera</div>
-          <div className="pd" style={{display:"flex",alignItems:"center",gap:".5rem",flexWrap:"wrap"}}>
-            <span>{ck.filter(c=>c.estado==="completado").length}/{ck.length} completados</span>
-            <span style={{opacity:.5}}>·</span>
-            <button onClick={()=>setMostrarCalendario(v=>!v)} style={{background:"none",border:"1px solid var(--border)",borderRadius:4,color:"var(--text-muted)",fontFamily:"var(--font-mono)",fontSize:".6rem",padding:".1rem .4rem",cursor:"pointer"}}>
-              📅 {fechaRef===hoy?"Hoy":fechaRef}
-            </button>
-            {mostrarCalendario && (
-              <input type="date" value={fechaRef} max="2026-09-30"
-                onChange={e=>{setFechaRef(e.target.value);setFase(calcFaseActiva(e.target.value));setMostrarCalendario(false);}}
-                style={{fontFamily:"var(--font-mono)",fontSize:".65rem",background:"var(--surface2)",border:"1px solid var(--cyan)",borderRadius:4,color:"var(--text)",padding:".2rem .4rem"}}
-                autoFocus onBlur={()=>setMostrarCalendario(false)}
-              />
-            )}
-          </div>
-        </div>
-        <div className="fr g1" style={{flexWrap:"wrap"}}>
-          <div style={{display:"flex",alignItems:"center",gap:".35rem",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:"var(--r-sm)",padding:".28rem .6rem"}}>
-            <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-muted)"}}>📅</span>
-            <input type="date" value={fechaRef} onChange={e=>setFechaRef(e.target.value)}
-              style={{background:"none",border:"none",color:"var(--text)",fontFamily:"var(--font-mono)",fontSize:".68rem",outline:"none",cursor:"pointer"}} />
-          </div>
+        <div><div className="pt">✅ Checklist Pre-Carrera</div><div className="pd">{ck.filter(c=>c.estado==="completado").length}/{ck.length} completados</div></div>
+        <div className="fr g1">
           <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
           <button className="btn btn-cyan" onClick={()=>abrirModal({tipo:"ck",fase:fase})}>+ Tarea</button>
         </div>
