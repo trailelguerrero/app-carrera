@@ -955,7 +955,7 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf, setFicha }) {
                     const dias = diasHasta(t.fechaLimite);
                     return (
                       <div key={t.id}
-                        onClick={() => setFicha("tarea", t)}
+                        onClick={e => { e.stopPropagation(); setFicha("tarea", t); }}
                         style={{display:"flex",justifyContent:"space-between",alignItems:"center",
                           padding:".25rem .35rem",borderBottom:"1px solid rgba(30,45,80,.2)",
                           cursor:"pointer",borderRadius:4,transition:"background .12s"}}
