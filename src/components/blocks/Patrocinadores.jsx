@@ -181,9 +181,10 @@ export default function App() {
     { id: "documentos", icon: "📁", label: "Documentos" },
   ];
 
-  const openNuevo = () => setModal({ tipo: "pat", data: null });
-  const openEditar = (p) => setModal({ tipo: "pat", data: p });
-  const openDetalle = (p) => setModal({ tipo: "detalle", data: p });
+  const scrollTop = () => { const m = document.querySelector("main"); if (m) m.scrollTo({ top:0, behavior:"instant" }); };
+  const openNuevo   = () => { scrollTop(); setModal({ tipo: "pat",     data: null }); };
+  const openEditar  = (p) => { scrollTop(); setModal({ tipo: "pat",    data: p    }); };
+  const openDetalle = (p) => { scrollTop(); setModal({ tipo: "detalle",data: p    }); };
 
   const savePat = (pat) => {
     if (pat.id) {
@@ -291,9 +292,9 @@ export default function App() {
               updateEstado={updateEstado}
             />
           )}
-          {tab==="pipeline" && <TabPipeline pats={pats} onEditar={openEditar} updateEstado={updateEstado} />}
+          {tab==="pipeline" && <TabPipeline pats={pats} onEditar={openEditar} onDetalle={openDetalle} updateEstado={updateEstado} />}
           {tab==="contraprestaciones" && (
-            <TabContraprestaciones pats={pats} updateContraprestacion={updateContraprestacion} addContraprestacion={addContraprestacion} deleteContraprestacion={deleteContraprestacion} />
+            <TabContraprestaciones pats={pats} updateContraprestacion={updateContraprestacion} addContraprestacion={addContraprestacion} deleteContraprestacion={deleteContraprestacion} onDetalle={openDetalle} />
           )}
           {tab==="documentos" && <TabDocumentos pats={pats} addDoc={addDoc} deleteDoc={deleteDoc} />}
         </div>
@@ -495,6 +496,7 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo })
 
 // ─── TAB PATROCINADORES ───────────────────────────────────────────────────────
 function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, setFiltroNivel, filtroEstado, setFiltroEstado, onEditar, onDetalle, onDelete, onNuevo, updateEstado }) {
+  const [vistaKanban, setVistaKanban] = useState(false);
   return (
     <>
       <div className="ph">
@@ -502,7 +504,19 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
           <div className="pt">🤝 Patrocinadores</div>
           <div className="pd">{todosLen} registrados · {pats.length} mostrados</div>
         </div>
-        <button className="btn btn-gold" onClick={onNuevo}>+ Nuevo patrocinador</button>
+        <div style={{display:"flex",gap:".5rem",alignItems:"center"}}>
+          <div style={{display:"flex",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:"var(--r-sm)",overflow:"hidden"}}>
+            {[["lista","☰ Lista"],["kanban","⬛ Kanban"]].map(([v,ic])=>(
+              <button key={v} onClick={()=>setVistaKanban(v==="kanban")}
+                style={{padding:".3rem .65rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,
+                  background:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"rgba(245,158,11,.2)":"transparent",
+                  color:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"#f59e0b":"var(--text-muted)"}}>
+                {ic}
+              </button>
+            ))}
+          </div>
+          <button className="btn btn-gold" onClick={onNuevo}>+ Nuevo patrocinador</button>
+        </div>
       </div>
 
       {/* Filtros */}
@@ -524,6 +538,45 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
         </div>
       </div>
 
+      {/* ── KANBAN por nivel ── */}
+      {vistaKanban && (
+        <div className="pat-kanban-grid">
+          {NIVELES.map(nivel => {
+            const items = pats.filter(p => p.nivel === nivel);
+            if (!items.length) return null;
+            const cfg = getCfg(nivel);
+            return (
+              <div key={nivel} className="pat-k-col">
+                <div className="pat-k-hdr" style={{borderTopColor:cfg.color}}>
+                  <span style={{fontWeight:700,fontSize:".7rem",color:cfg.color}}>{cfg.icon} {nivel}</span>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",padding:".1rem .35rem",borderRadius:4,background:cfg.dim,color:cfg.color}}>{items.length}</span>
+                </div>
+                {items.map(p => {
+                  const ecfg = ESTADO_CFG[p.estado] || ESTADO_CFG.prospecto;
+                  return (
+                    <div key={p.id} className="pat-k-card" style={{borderLeftColor:cfg.color,cursor:"pointer"}}
+                      onClick={()=>onDetalle(p)}>
+                      <div style={{fontWeight:700,fontSize:".78rem",marginBottom:".2rem"}}>{p.nombre}</div>
+                      <div className="mono xs muted" style={{marginBottom:".3rem"}}>{p.sector}</div>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:".76rem",fontWeight:700,color:cfg.color}}>{fmt(p.importe)}</span>
+                        <span className="badge" style={{background:ecfg.bg,color:ecfg.color,fontSize:".52rem"}}>{ecfg.label}</span>
+                      </div>
+                      <div style={{display:"flex",gap:".3rem",marginTop:".4rem"}} onClick={e=>e.stopPropagation()}>
+                        <button className="btn btn-sm btn-ghost" style={{fontSize:".55rem"}} onClick={()=>onEditar(p)}>✏️</button>
+                        <button className="btn btn-sm btn-red" style={{fontSize:".55rem"}} onClick={()=>onDelete(p.id)}>✕</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── LISTA ── */}
+      {!vistaKanban && (
       <div style={{ display: "flex", flexDirection: "column", gap: ".55rem" }}>
         {pats.length === 0 && <div className="empty">No hay patrocinadores con estos filtros</div>}
         {pats.map(p => {
@@ -569,12 +622,13 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
           );
         })}
       </div>
+      )}
     </>
   );
 }
 
 // ─── TAB PIPELINE ─────────────────────────────────────────────────────────────
-function TabPipeline({ pats, onEditar, updateEstado }) {
+function TabPipeline({ pats, onEditar, onDetalle, updateEstado }) {
   const porEstado = ESTADOS.map(e => ({
     e, cfg: ESTADO_CFG[e],
     pats: pats.filter(p => p.estado === e),
@@ -607,7 +661,7 @@ function TabPipeline({ pats, onEditar, updateEstado }) {
               {col.pats.map(p => {
                 const ncfg = getCfg(p.nivel);
                 return (
-                  <div key={p.id} className="kancard" style={{ borderTopColor: ncfg.color }}>
+                  <div key={p.id} className="kancard" style={{ borderTopColor: ncfg.color, cursor:"pointer" }} onClick={()=>onDetalle(p)}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: ".35rem" }}>
                       <span style={{ fontWeight: 700, fontSize: ".78rem", flex: 1, paddingRight: ".5rem" }}>{p.nombre}</span>
                       <span style={{ fontSize: ".85rem" }}>{ncfg.icon}</span>
@@ -617,13 +671,13 @@ function TabPipeline({ pats, onEditar, updateEstado }) {
                       <span style={{ fontFamily: "var(--font-mono)", fontSize: ".78rem", fontWeight: 700, color: ncfg.color }}>
                         {p.especie > 0 ? fmt(p.especie) : fmt(p.importe)}
                       </span>
-                      <button className="btn btn-sm btn-ghost" onClick={() => onEditar(p)}>✏️</button>
+                      <button className="btn btn-sm btn-ghost" onClick={e=>{e.stopPropagation();onEditar(p)}}>✏️</button>
                     </div>
                     {/* Mover de estado */}
                     <div style={{ marginTop: ".5rem", display: "flex", gap: ".25rem", flexWrap: "wrap" }}>
                       {ESTADOS.filter(s => s !== p.estado && s !== "cancelado").slice(0, 2).map(s => (
                         <button key={s} className="btn btn-sm btn-ghost" style={{ fontSize: ".55rem", padding: ".1rem .35rem" }}
-                          onClick={() => updateEstado(p.id, s)}>
+                          onClick={e=>{e.stopPropagation();updateEstado(p.id, s)}}>
                           → {ESTADO_CFG[s].label}
                         </button>
                       ))}
@@ -640,7 +694,7 @@ function TabPipeline({ pats, onEditar, updateEstado }) {
 }
 
 // ─── TAB CONTRAPRESTACIONES ───────────────────────────────────────────────────
-function TabContraprestaciones({ pats, updateContraprestacion, addContraprestacion, deleteContraprestacion }) {
+function TabContraprestaciones({ pats, updateContraprestacion, addContraprestacion, deleteContraprestacion, onDetalle }) {
   const [addingTo, setAddingTo] = useState(null);
   const [newCont, setNewCont] = useState({ tipo: CONTRAPRESTACIONES_TIPO[0], detalle: "", estado: "pendiente" });
   const [filtroPatId, setFiltroPatId] = useState("todos");
@@ -705,8 +759,8 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
         const entr = (p.contraprestaciones || []).filter(c => c.estado === "entregado").length;
         return (
           <div key={p.id} className="card" style={{ marginBottom: ".6rem", borderLeftWidth: 3, borderLeftColor: cfg.color }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ".75rem" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: ".5rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ".75rem", cursor:"pointer" }} onClick={()=>onDetalle(p)}>
+              <div style={{ display: "flex", alignItems: "center", gap: ".5rem" }} onClick={e=>e.stopPropagation()}>
                 <span style={{ fontSize: "1.1rem" }}>{cfg.icon}</span>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: ".86rem" }}>{p.nombre}</div>
@@ -714,7 +768,7 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
                 </div>
               </div>
               <button className="btn btn-sm" style={{ background: cfg.dim, color: cfg.color, border: `1px solid ${cfg.border}` }}
-                onClick={() => setAddingTo(addingTo === p.id ? null : p.id)}>+ Añadir</button>
+                onClick={e=>{e.stopPropagation();setAddingTo(addingTo === p.id ? null : p.id)}}>+ Añadir</button>
             </div>
 
             {p.contraprestaciones.length === 0 && addingTo !== p.id && (
@@ -1010,123 +1064,156 @@ function ModalPat({ data, onSave, onClose }) {
 
 // ─── DOC MANAGER (inside ModalDetalle) ───────────────────────────────────────
 function DocManager({ pat, addDoc, deleteDoc, cfg }) {
-  const [dragging, setDragging] = useState(false);
-  const [tipo, setTipo] = useState(TIPOS_DOC[0]);
-  const [preview, setPreview] = useState(null); // { nombre, data, mime }
-  const docs = pat.docs || [];
+  const API  = "/api/docs/" + pat.id;
+  const AKEY = import.meta.env.VITE_API_KEY || "";
+  const headers = { "Content-Type": "application/json", "x-api-key": AKEY };
 
-  const processFile = (file) => {
+  const [docs,   setDocs]   = useState([]);
+  const [loading,setLoading]= useState(true);
+  const [uploading,setUploading] = useState(false);
+  const [dragging,setDragging]   = useState(false);
+  const [tipo,   setTipo]   = useState(TIPOS_DOC[0]);
+  const [preview,setPreview]= useState(null);
+
+  useEffect(() => {
+    fetch(API, { headers })
+      .then(r => r.ok ? r.json() : [])
+      .then(rows => { setDocs(rows); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [pat.id]);
+
+  const processFile = async (file) => {
     if (!file) return;
-    const maxMB = 2;
+    const maxMB = 5;
     if (file.size > maxMB * 1024 * 1024) {
-      alert(`El archivo supera ${maxMB}MB. Para documentos más grandes usa un enlace externo.`);
-      return;
+      alert(`El archivo supera ${maxMB}MB.`); return;
     }
+    setUploading(true);
     const reader = new FileReader();
-    reader.onload = (e) => {
-      addDoc(pat.id, {
-        nombre: file.name,
-        tipo,
-        mime: file.type,
-        data: e.target.result,
-        size: file.size,
-        fecha: new Date().toISOString().split("T")[0],
-      });
+    reader.onload = async (e) => {
+      try {
+        const body = {
+          nombre: file.name, tipo, mime: file.type,
+          data: e.target.result, size: file.size,
+          fecha: new Date().toISOString().split("T")[0],
+        };
+        const res = await fetch(API, { method:"POST", headers, body: JSON.stringify(body) });
+        const { id } = await res.json();
+        setDocs(prev => [{ ...body, id }, ...prev]);
+        // Sync to parent state (lightweight: no data)
+        addDoc(pat.id, { id, nombre: file.name, tipo, mime: file.type, size: file.size, fecha: body.fecha });
+      } catch(e) { alert("Error subiendo el archivo"); }
+      setUploading(false);
     };
     reader.readAsDataURL(file);
   };
 
-  const totalBytes = docs.reduce((s, d) => s + (d.size || 0), 0);
-  const totalKB = (totalBytes / 1024).toFixed(0);
-  const MIME_ICONS = { "application/pdf": "📄", "image/png": "🖼️", "image/jpeg": "🖼️", "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "📝", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "📊" };
+  const handleDelete = async (docId) => {
+    await fetch(`${API}?docId=${docId}`, { method:"DELETE", headers });
+    setDocs(prev => prev.filter(d => d.id !== docId));
+    deleteDoc(pat.id, docId);
+  };
+
+  const MIME_ICONS = {
+    "application/pdf":"📄","image/png":"🖼️","image/jpeg":"🖼️",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document":"📝",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":"📊"
+  };
   const getIcon = (mime) => MIME_ICONS[mime] || "📎";
+  const totalKB = (docs.reduce((s,d) => s+(d.size||0), 0) / 1024).toFixed(0);
 
   return (
     <div>
-      {/* Upload zone */}
+      {/* Selector tipo */}
       <div style={{ marginBottom: ".75rem" }}>
         <label className="fl">Tipo de documento</label>
-        <select className="inp" value={tipo} onChange={e => setTipo(e.target.value)} style={{ marginBottom: ".5rem" }}>
+        <select className="inp" value={tipo} onChange={e => setTipo(e.target.value)}>
           {TIPOS_DOC.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
       </div>
 
+      {/* Drop zone */}
       <label
         onDragOver={e => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={e => { e.preventDefault(); setDragging(false); processFile(e.dataTransfer.files[0]); }}
         style={{
-          display: "block", border: `2px dashed ${dragging ? cfg.color : "var(--border)"}`,
-          borderRadius: 10, padding: "1.25rem", textAlign: "center", cursor: "pointer",
-          background: dragging ? cfg.dim : "var(--surface2)", transition: "all .2s", marginBottom: ".75rem",
+          display:"block", border:`2px dashed ${dragging ? cfg.color : "var(--border)"}`,
+          borderRadius:10, padding:"1.25rem", textAlign:"center", cursor:"pointer",
+          background: dragging ? cfg.dim : "var(--surface2)", transition:"all .2s", marginBottom:".75rem",
+          opacity: uploading ? .6 : 1,
         }}>
-        <input type="file" style={{ display: "none" }} accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-          onChange={e => processFile(e.target.files[0])} />
-        <div style={{ fontSize: "1.8rem", marginBottom: ".35rem" }}>{dragging ? "⬇️" : "📎"}</div>
-        <div style={{ fontWeight: 700, fontSize: ".78rem", marginBottom: ".2rem" }}>
-          {dragging ? "Suelta el archivo aquí" : "Arrastra un archivo o haz clic para seleccionar"}
+        <input type="file" style={{ display:"none" }} accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+          onChange={e => processFile(e.target.files[0])} disabled={uploading} />
+        <div style={{ fontSize:"1.8rem", marginBottom:".35rem" }}>
+          {uploading ? "⏳" : dragging ? "⬇️" : "☁️"}
         </div>
-        <div className="mono xs muted">PDF, Word, Excel, imágenes · Máx. 2MB por archivo</div>
+        <div style={{ fontWeight:700, fontSize:".78rem", marginBottom:".2rem" }}>
+          {uploading ? "Subiendo a la nube…" : dragging ? "Suelta el archivo aquí" : "Arrastra o haz clic · Sube a Neon Cloud"}
+        </div>
+        <div className="mono xs muted">PDF, Word, Excel, imágenes · Máx. 5MB</div>
       </label>
 
-      {/* Docs list */}
-      {docs.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "1rem", color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: ".68rem" }}>
-          Sin documentos adjuntos
+      {/* Lista */}
+      {loading && <div className="mono xs muted" style={{textAlign:"center",padding:"1rem"}}>Cargando documentos…</div>}
+      {!loading && docs.length === 0 && (
+        <div style={{ textAlign:"center", padding:"1rem", color:"var(--text-dim)", fontFamily:"var(--font-mono)", fontSize:".68rem" }}>
+          Sin documentos en la nube
         </div>
-      ) : (
-        <>
-          <div className="mono xs muted" style={{ marginBottom: ".4rem" }}>
-            {docs.length} documento{docs.length !== 1 ? "s" : ""} · {totalKB} KB usados
-          </div>
-          {docs.map(d => (
-            <div key={d.id} style={{ display: "flex", alignItems: "center", gap: ".6rem", padding: ".45rem .6rem", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 8, marginBottom: ".3rem", transition: "all .15s" }}
-              onMouseEnter={e => e.currentTarget.style.borderColor = "var(--border-light)"}
-              onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border)"}>
-              <div style={{ fontSize: "1.3rem", flexShrink: 0 }}>{getIcon(d.mime)}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: ".74rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.nombre}</div>
-                <div className="mono xs muted">{d.tipo} · {d.fecha} · {(d.size/1024).toFixed(0)} KB</div>
-              </div>
-              <div style={{ display: "flex", gap: ".3rem", flexShrink: 0 }}>
-                {(d.mime === "application/pdf" || d.mime?.startsWith("image/")) && (
-                  <button className="btn btn-sm" style={{ background: cfg.dim, color: cfg.color, border: `1px solid ${cfg.border}` }}
-                    onClick={() => setPreview(d)}>
-                    👁 Ver
-                  </button>
-                )}
-                <a href={d.data} download={d.nombre} className="btn btn-sm btn-ghost" style={{ textDecoration: "none" }}>⬇ Bajar</a>
-                <button className="btn btn-sm btn-red" onClick={() => deleteDoc(pat.id, d.id)}>✕</button>
-              </div>
-            </div>
-          ))}
-        </>
       )}
+      {!loading && docs.length > 0 && (<>
+        <div className="mono xs muted" style={{ marginBottom:".4rem" }}>
+          ☁️ {docs.length} documento{docs.length!==1?"s":""} · {totalKB} KB en Neon Cloud
+        </div>
+        {docs.map(d => (
+          <div key={d.id} style={{ display:"flex", alignItems:"center", gap:".6rem", padding:".45rem .6rem",
+            background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:8, marginBottom:".3rem" }}
+            onMouseEnter={e=>e.currentTarget.style.borderColor="var(--border-light)"}
+            onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border)"}>
+            <div style={{ fontSize:"1.3rem", flexShrink:0 }}>{getIcon(d.mime)}</div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:".74rem", fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{d.nombre}</div>
+              <div className="mono xs muted">{d.tipo} · {d.fecha} · {((d.size||0)/1024).toFixed(0)} KB</div>
+            </div>
+            <div style={{ display:"flex", gap:".3rem", flexShrink:0 }}>
+              {d.data && (d.mime==="application/pdf" || d.mime?.startsWith("image/")) && (
+                <button className="btn btn-sm" style={{ background:cfg.dim, color:cfg.color, border:`1px solid ${cfg.border}` }}
+                  onClick={() => setPreview(d)}>👁 Ver</button>
+              )}
+              {d.data && (
+                <a href={d.data} download={d.nombre} className="btn btn-sm btn-ghost" style={{ textDecoration:"none" }}>⬇</a>
+              )}
+              <button className="btn btn-sm btn-red" onClick={() => handleDelete(d.id)}>✕</button>
+            </div>
+          </div>
+        ))}
+      </>)}
 
-      {/* Preview modal */}
+      {/* Preview */}
       {preview && (
         <div onClick={() => setPreview(null)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.9)", zIndex: 200, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "1rem", backdropFilter: "blur(6px)", animation: "fi .15s ease" }}>
-          <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 700, maxHeight: "90vh", display: "flex", flexDirection: "column", background: "var(--surface)", border: "1px solid var(--border-light)", borderRadius: 16, overflow: "hidden" }}>
-            <div style={{ padding: ".75rem 1rem", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border)" }}>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: ".85rem" }}>{preview.nombre}</div>
-                <div className="mono xs muted">{preview.tipo}</div>
-              </div>
-              <div style={{ display: "flex", gap: ".4rem" }}>
-                <a href={preview.data} download={preview.nombre} className="btn btn-sm btn-ghost" style={{ textDecoration: "none" }}>⬇ Descargar</a>
+          style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.9)", zIndex:200, display:"flex",
+            flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"1rem",
+            backdropFilter:"blur(6px)" }}>
+          <div onClick={e=>e.stopPropagation()} style={{ width:"100%", maxWidth:700, maxHeight:"90vh",
+            display:"flex", flexDirection:"column", background:"var(--surface)", border:"1px solid var(--border-light)",
+            borderRadius:16, overflow:"hidden" }}>
+            <div style={{ padding:".75rem 1rem", display:"flex", justifyContent:"space-between", alignItems:"center", borderBottom:"1px solid var(--border)" }}>
+              <div><div style={{ fontWeight:700, fontSize:".85rem" }}>{preview.nombre}</div><div className="mono xs muted">{preview.tipo}</div></div>
+              <div style={{ display:"flex", gap:".4rem" }}>
+                {preview.data && <a href={preview.data} download={preview.nombre} className="btn btn-sm btn-ghost" style={{ textDecoration:"none" }}>⬇ Descargar</a>}
                 <button className="btn btn-sm btn-ghost" onClick={() => setPreview(null)}>✕</button>
               </div>
             </div>
-            <div style={{ flex: 1, overflow: "auto", minHeight: 0 }}>
-              {preview.mime === "application/pdf" ? (
-                <iframe src={preview.data} style={{ width: "100%", height: "70vh", border: "none" }} title={preview.nombre} />
+            <div style={{ flex:1, overflow:"auto", minHeight:0 }}>
+              {preview.mime==="application/pdf" ? (
+                <iframe src={preview.data} style={{ width:"100%", height:"70vh", border:"none" }} title={preview.nombre} />
               ) : (
-                <img src={preview.data} alt={preview.nombre} style={{ maxWidth: "100%", display: "block", margin: "0 auto" }} />
+                <img src={preview.data} alt={preview.nombre} style={{ maxWidth:"100%", display:"block", margin:"0 auto" }} />
               )}
             </div>
           </div>
-          <div className="mono xs muted" style={{ marginTop: ".5rem" }}>Toca fuera para cerrar</div>
+          <div className="mono xs muted" style={{ marginTop:".5rem" }}>Toca fuera para cerrar</div>
         </div>
       )}
     </div>
@@ -1416,4 +1503,11 @@ const CSS = `
   .mt1{margin-top:.5rem} .mb1{margin-bottom:.5rem}
   .f6{font-weight:600}
   ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:var(--surface)}::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:2px}
-`;
+
+  /* ── Kanban patrocinadores ─────────────────────────────────── */
+  .pat-kanban-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.65rem;margin-bottom:.85rem}
+  .pat-k-col{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+  .pat-k-hdr{padding:.6rem .75rem;border-top:2px solid;display:flex;align-items:center;justify-content:space-between;background:var(--surface2)}
+  .pat-k-card{margin:.4rem .4rem 0;background:var(--surface2);border:1px solid var(--border);border-left:3px solid;border-radius:8px;padding:.6rem .7rem;transition:all .15s}
+  .pat-k-card:last-child{margin-bottom:.4rem}
+  .pat-k-card:hover{border-color:var(--border-light);box-shadow:0 2px 8px rgba(0,0,0,.2)}`;
