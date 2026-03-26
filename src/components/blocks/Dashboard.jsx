@@ -28,6 +28,7 @@ const ALL_KEYS = {
   "teg_proyecto_v1_hitos":            [],
   "teg_documentos_v1":                [],
   "teg_documentos_v1_gestiones":       [],
+  [LS_KEY_CONFIG]:                      EVENT_CONFIG_DEFAULT,
 };
 
 const fmt   = (n) => new Intl.NumberFormat("es-ES", { style:"currency", currency:"EUR", maximumFractionDigits:0 }).format(n ?? 0);
