@@ -11,19 +11,19 @@ const fmtN  = (n) => new Intl.NumberFormat("es-ES", { minimumFractionDigits:2, m
 const TALLAS = ["XXS","XS","S","M","L","XL","XXL","3XL","4XL"];
 const TIPOS  = ["corredor","voluntario"];
 const TC = {
-  corredor:   { label:"Corredor",   icon:"\uD83C\uDFC3", color:"var(--cyan)",   dim:"var(--cyan-dim)"   },
-  voluntario: { label:"Voluntario", icon:"\uD83D\uDC65", color:"var(--violet)", dim:"var(--violet-dim)" },
+  corredor:   { label:"Corredor",   icon:"🏃", color:"var(--cyan)",   dim:"var(--cyan-dim)"   },
+  voluntario: { label:"Voluntario", icon:"👥", color:"var(--violet)", dim:"var(--violet-dim)" },
 };
 
 // estadoPago y estadoEntrega son POR LINEA (una persona puede tener pago+regalo en el mismo pedido)
 const EP = {
-  pendiente: { label:"Pendiente", color:"var(--amber)", bg:"var(--amber-dim)",  icon:"\u23F3" },
-  pagado:    { label:"Pagado",    color:"var(--green)", bg:"var(--green-dim)",  icon:"\u2705" },
-  regalo:    { label:"Regalo",    color:"var(--violet)",bg:"var(--violet-dim)", icon:"\uD83C\uDF81" },
+  pendiente: { label:"Pendiente", color:"var(--amber)", bg:"var(--amber-dim)",  icon:"⏳" },
+  pagado:    { label:"Pagado",    color:"var(--green)", bg:"var(--green-dim)",  icon:"✅" },
+  regalo:    { label:"Regalo",    color:"var(--violet)",bg:"var(--violet-dim)", icon:"🎁" },
 };
 const EE = {
-  pendiente: { label:"Pendiente", color:"var(--amber)", bg:"var(--amber-dim)", icon:"\uD83D\uDCE6" },
-  entregado: { label:"Entregado", color:"var(--green)", bg:"var(--green-dim)", icon:"\u2714\uFE0F" },
+  pendiente: { label:"Pendiente", color:"var(--amber)", bg:"var(--amber-dim)", icon:"📦" },
+  entregado: { label:"Entregado", color:"var(--green)", bg:"var(--green-dim)", icon:"✔️" },
 };
 const ESTADOS_PAGO    = ["pendiente","pagado","regalo"];
 const ESTADOS_ENTREGA = ["pendiente","entregado"];
@@ -97,10 +97,10 @@ export default function App() {
   }, [pedidos,coste]);
 
   const TABS = [
-    {id:"dashboard",icon:"\uD83D\uDCCA",label:"Dashboard"},
-    {id:"pedidos",  icon:"\uD83D\uDC55",label:"Pedidos"},
-    {id:"tallas",   icon:"\uD83D\uDCD0",label:"Tallas"},
-    {id:"checklist",icon:"\u2705",       label:"Producci\u00F3n"},
+    {id:"dashboard",icon:"📊",label:"Dashboard"},
+    {id:"pedidos",  icon:"👕",label:"Pedidos"},
+    {id:"tallas",   icon:"📐",label:"Tallas"},
+    {id:"checklist",icon:"✅",       label:"Producción"},
   ];
 
   return (
@@ -109,12 +109,12 @@ export default function App() {
       <div className="block-container">
         <div className="block-header">
           <div>
-            <h1 className="block-title">\uD83D\uDC55 Camisetas Extra</h1>
-            <div className="block-title-sub">Pedidos externos \u00B7 Trail El Guerrero 2026</div>
+            <h1 className="block-title">👕 Camisetas Extra</h1>
+            <div className="block-title-sub">Pedidos externos · Trail El Guerrero 2026</div>
           </div>
           <div className="block-actions">
-            {stats.pendCobro>0 && <span className="badge badge-amber">\u23F3 {fmt(stats.pendCobro)} pendiente</span>}
-            {stats.pendEnt  >0 && <span className="badge badge-cyan">\uD83D\uDCE6 {stats.pendEnt} ud por entregar</span>}
+            {stats.pendCobro>0 && <span className="badge badge-amber">⏳ {fmt(stats.pendCobro)} pendiente</span>}
+            {stats.pendEnt  >0 && <span className="badge badge-cyan">📦 {stats.pendEnt} ud por entregar</span>}
             <button className="btn btn-primary" onClick={()=>abrirModal(null)}>+ Nuevo pedido</button>
           </div>
         </div>
@@ -134,7 +134,7 @@ export default function App() {
       {delId && (
         <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setDelId(null)}>
           <div className="modal" style={{maxWidth:340,textAlign:"center"}}>
-            <div className="modal-body" style={{paddingTop:"1.5rem"}}><div style={{fontSize:"2.5rem",marginBottom:".6rem"}}>\u26A0\uFE0F</div><div style={{fontWeight:700,marginBottom:".4rem"}}>\u00BFEliminar pedido?</div><div className="mono xs muted">Esta acci\u00F3n no se puede deshacer.</div></div>
+            <div className="modal-body" style={{paddingTop:"1.5rem"}}><div style={{fontSize:"2.5rem",marginBottom:".6rem"}}>⚠️</div><div style={{fontWeight:700,marginBottom:".4rem"}}>¿Eliminar pedido?</div><div className="mono xs muted">Esta acción no se puede deshacer.</div></div>
             <div className="modal-footer"><button className="btn btn-ghost" onClick={()=>setDelId(null)}>Cancelar</button><button className="btn btn-red" onClick={deletePedido}>Eliminar</button></div>
           </div>
         </div>
@@ -160,12 +160,12 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha }) {
     <>
       <div className="kpi-grid mb">
         {[
-          {l:"\uD83D\uDC55 Pedidos",   v:stats.total,            s:"personas",          color:"cyan",                          tab:"pedidos"},
-          {l:"\uD83D\uDCE6 Unidades",  v:stats.unidades,          s:"camisetas totales", color:"violet",                        tab:"tallas"},
-          {l:"\u2705 Recaudado",       v:fmt(stats.recaudado),    s:"l\u00EDneas pagadas",color:"green",                        tab:"pedidos"},
-          {l:"\u23F3 Por cobrar",      v:fmt(stats.pendCobro),    s:"l\u00EDneas pend.", color:"amber",                         tab:"pedidos"},
-          {l:"\uD83D\uDCB0 Beneficio", v:fmt(stats.beneficio),    s:"venta \u2212 coste",color:stats.beneficio>=0?"green":"red",tab:"pedidos"},
-          {l:"\uD83C\uDF81 Regalos",   v:stats.regalos+" ud",     s:"unidades regalo",   color:"violet",                        tab:"pedidos"},
+          {l:"👕 Pedidos",   v:stats.total,            s:"personas",          color:"cyan",                          tab:"pedidos"},
+          {l:"📦 Unidades",  v:stats.unidades,          s:"camisetas totales", color:"violet",                        tab:"tallas"},
+          {l:"✅ Recaudado",       v:fmt(stats.recaudado),    s:"líneas pagadas",color:"green",                        tab:"pedidos"},
+          {l:"⏳ Por cobrar",      v:fmt(stats.pendCobro),    s:"líneas pend.", color:"amber",                         tab:"pedidos"},
+          {l:"💰 Beneficio", v:fmt(stats.beneficio),    s:"venta − coste",color:stats.beneficio>=0?"green":"red",tab:"pedidos"},
+          {l:"🎁 Regalos",   v:stats.regalos+" ud",     s:"unidades regalo",   color:"violet",                        tab:"pedidos"},
         ].map(k=>(
           <div key={k.l} className={`kpi ${k.color}`} style={{cursor:"pointer"}} onClick={()=>setTab(k.tab)}>
             <div className="kpi-label">{k.l}</div><div className="kpi-value">{k.v}</div><div className="kpi-sub">{k.s}</div>
@@ -175,7 +175,7 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha }) {
 
       <div className="card mb" style={{borderLeft:"3px solid var(--primary)"}}>
         <div className="flex-between">
-          <div><div style={{fontWeight:700,fontSize:".9rem",marginBottom:".15rem"}}>\u2699\uFE0F Precio de coste global</div><div className="mono xs muted">Coste unitario para la organizaci\u00F3n</div></div>
+          <div><div style={{fontWeight:700,fontSize:".9rem",marginBottom:".15rem"}}>⚙️ Precio de coste global</div><div className="mono xs muted">Coste unitario para la organización</div></div>
           {editCoste ? (
             <div style={{display:"flex",gap:".5rem",alignItems:"center",flexWrap:"wrap"}}>
               {TIPOS.map(tipo=>(
@@ -183,15 +183,15 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha }) {
                   <span style={{color:TC[tipo].color}}>{TC[tipo].icon} {TC[tipo].label}</span>
                   <input type="number" min="0" step="0.5" value={tmpCoste[tipo]||0} onChange={e=>setTmpCoste(p=>({...p,[tipo]:parseFloat(e.target.value)||0}))}
                     style={{width:60,background:"var(--surface2)",border:"1px solid var(--border)",color:"var(--text)",borderRadius:"var(--r-sm)",padding:".25rem .4rem",fontFamily:"var(--font-mono)",fontSize:".72rem",textAlign:"right"}} />
-                  <span className="mono xs muted">\u20AC</span>
+                  <span className="mono xs muted">€</span>
                 </label>
               ))}
               <button className="btn btn-primary btn-sm" onClick={()=>{setCoste(tmpCoste);setEditCoste(false);}}>OK</button>
-              <button className="btn btn-ghost btn-sm" onClick={()=>setEditCoste(false)}>\u2715</button>
+              <button className="btn btn-ghost btn-sm" onClick={()=>setEditCoste(false)}>✕</button>
             </div>
           ) : (
             <div style={{display:"flex",gap:"1rem",alignItems:"center"}}>
-              {TIPOS.map(tipo=><span key={tipo} style={{fontFamily:"var(--font-mono)",fontSize:".78rem",color:TC[tipo].color}}>{TC[tipo].icon} {fmtN(coste[tipo]||0)} \u20AC</span>)}
+              {TIPOS.map(tipo=><span key={tipo} style={{fontFamily:"var(--font-mono)",fontSize:".78rem",color:TC[tipo].color}}>{TC[tipo].icon} {fmtN(coste[tipo]||0)} €</span>)}
               <button className="btn btn-ghost btn-sm" onClick={()=>{setTmpCoste({...coste});setEditCoste(true);}}>✏️ Editar</button>
             </div>
           )}
