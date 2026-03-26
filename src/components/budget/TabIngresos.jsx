@@ -1,4 +1,5 @@
 import React from "react";
+import { Tooltip, TooltipIcon } from "../common/Tooltip";
 import { NumInput } from "./common/NumInput";
 import { Toggle } from "./common/Toggle";
 
@@ -10,7 +11,8 @@ export const TabIngresos = ({
   setMerchandising, 
   merchTotales, 
   totalIngresosConMerch, 
-  ingresosPorDistancia 
+  ingresosPorDistancia,
+  totalPatConfirmado = 0,
 }) => {
   const addIngresosExtra = () => {
     const id = ingresosExtra.length > 0 ? Math.max(...ingresosExtra.map(x => x.id)) + 1 : 1;
@@ -105,7 +107,21 @@ export const TabIngresos = ({
                   </td>
                   <td className="text-right">
                     {isSynced ? (
-                      <span className="mono" style={{ color: "var(--violet)", fontWeight: 700 }}>{ie.valor.toFixed(2)} €</span>
+                      <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:"0.2rem" }}>
+                        <span className="mono" style={{ color:"var(--violet)", fontWeight:700 }}>{ie.valor.toFixed(2)} €</span>
+                        {ie.id === 1 && totalPatConfirmado !== ie.valor && (
+                          <Tooltip
+                            text={`Patrocinadores tiene ${totalPatConfirmado.toFixed(2)} € confirmados/cobrados.\nEste valor se sincroniza automáticamente.`}
+                            position="top"
+                          >
+                            <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.55rem", color:"var(--amber)",
+                              background:"var(--amber-dim)", border:"1px solid rgba(251,191,36,0.25)",
+                              padding:"0.05rem 0.35rem", borderRadius:3, cursor:"help" }}>
+                              ⚡ sincronizando…
+                            </span>
+                          </Tooltip>
+                        )}
+                      </div>
                     ) : (
                       <NumInput value={ie.valor} onChange={v => setIngresosExtra(prev => prev.map(x => x.id === ie.id ? { ...x, valor: v } : x))} step={10} />
                     )}
@@ -124,6 +140,25 @@ export const TabIngresos = ({
           </tbody>
         </table>
       </div>
+
+      {/* Banner de sincronización con Patrocinadores */}
+      {totalPatConfirmado > 0 && (
+        <div style={{
+          display:"flex", alignItems:"center", gap:"0.75rem",
+          padding:"0.55rem 0.85rem", borderRadius:8, marginTop:"0.5rem",
+          background:"rgba(34,211,238,0.05)", border:"1px solid rgba(34,211,238,0.2)"
+        }}>
+          <span style={{ fontSize:"1rem", flexShrink:0 }}>🔗</span>
+          <div style={{ flex:1 }}>
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.68rem", color:"var(--cyan)", fontWeight:700 }}>
+              Sincronizado con Patrocinadores
+            </span>
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.65rem", color:"var(--text-muted)", marginLeft:"0.5rem" }}>
+              {totalPatConfirmado.toFixed(2)} € confirmados/cobrados → actualiza automáticamente la línea Patrocinio/Sponsor
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="card">
         <div className="flex-between mb-2">

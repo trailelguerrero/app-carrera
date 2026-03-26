@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import dataService from "../lib/dataService";
+import dataService, { useData } from "../lib/dataService";
 import { 
   TRAMOS_DEFAULT, 
   CONCEPTOS_DEFAULT, 
@@ -32,6 +32,25 @@ export const useBudgetLogic = () => {
   const [merchandising, setMerchandising] = useState(MERCHANDISING_DEFAULT);
   const [maximos, setMaximos] = useState(MAXIMOS_DEFAULT);
   const [saveStatus, setSaveStatus] = useState("idle");
+
+  // ─── SINCRONIZACIÓN CON PATROCINADORES (solo lectura) ────────────────────
+  // Lee el total confirmado+cobrado del bloque Patrocinadores y lo refleja
+  // automáticamente en la línea "Patrocinio / Sponsor" (id=1) de ingresosExtra.
+  const [rawPats] = useData("teg_patrocinadores_v1_pats", []);
+  const totalPatConfirmado = useMemo(() => {
+    const pats = Array.isArray(rawPats) ? rawPats : [];
+    return pats
+      .filter(p => p.estado === "confirmado" || p.estado === "cobrado")
+      .reduce((s, p) => s + (p.importe || 0), 0);
+  }, [rawPats]);
+
+  // Sincronizar automáticamente: cuando cambia el total confirmado de
+  // patrocinadores, actualiza la línea id=1 de ingresosExtra
+  useEffect(() => {
+    setIngresosExtra(prev => prev.map(ie =>
+      ie.id === 1 ? { ...ie, valor: totalPatConfirmado } : ie
+    ));
+  }, [totalPatConfirmado]);
 
   // ─── DATA PERSISTENCE ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -238,6 +257,7 @@ export const useBudgetLogic = () => {
   return {
     tab, setTab,
     tramos, setTramos,
+    totalPatConfirmado,
     conceptos, setConceptos,
     inscritos, setInscritos,
     ingresosExtra, setIngresosExtra,
