@@ -155,6 +155,7 @@ const Presupuesto = () => {
     resultado,
     puntoEquilibrio,
     totalPatConfirmado,
+    ingresosDesglosados,
   } = useBudgetLogic();
 
   const resPositivo = (resultado?.total ?? 0) >= 0;
@@ -329,6 +330,7 @@ const Presupuesto = () => {
               precioMedioDistancia={precioMedioDistancia}
               costesVarPorCorredor={costesVarPorCorredor}
               costesFijoPorCorredor={costesFijoPorCorredor}
+              ingresosDesglosados={ingresosDesglosados}
             />
           )}
           {tab === "equilibrio" && (

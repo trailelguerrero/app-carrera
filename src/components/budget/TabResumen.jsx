@@ -14,7 +14,8 @@ export const TabResumen = ({
   conceptos, 
   precioMedioDistancia, 
   costesVarPorCorredor,
-  costesFijoPorCorredor
+  costesFijoPorCorredor,
+  ingresosDesglosados,
 }) => {
   return (
     <>

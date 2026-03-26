@@ -137,6 +137,32 @@ export const calculateMerchTotales = (merchandising) => {
 };
 
 /**
+ * Desglosar ingresos por inscripción en reales (tramos cerrados) y estimados (tramos abiertos/futuros)
+ * Un tramo es "cerrado" cuando su fechaFin < hoy — sus inscritos ya han pagado.
+ */
+export const calculateIngresosDesglosados = (tramos, inscritos) => {
+  const hoy = new Date();
+  const real = { TG7: 0, TG13: 0, TG25: 0, total: 0 };
+  const est  = { TG7: 0, TG13: 0, TG25: 0, total: 0 };
+  const inscReal = { TG7: 0, TG13: 0, TG25: 0, total: 0 };
+  const inscEst  = { TG7: 0, TG13: 0, TG25: 0, total: 0 };
+
+  tramos.forEach(t => {
+    const cerrado = new Date(t.fechaFin) < hoy;
+    const bucket  = cerrado ? real : est;
+    const bucketI = cerrado ? inscReal : inscEst;
+    ["TG7","TG13","TG25"].forEach(d => {
+      const n = inscritos.tramos?.[t.id]?.[d] || 0;
+      const v = n * (t.precios[d] || 0);
+      bucket[d]  += v;  bucket.total  += v;
+      bucketI[d] += n;  bucketI.total += n;
+    });
+  });
+
+  return { ingresosReales: real, ingresosEstimados: est, inscritosReales: inscReal, inscritosEstimados: inscEst };
+};
+
+/**
  * Calcular resultado neto (P&L)
  */
 export const calculateResultado = (totalInscritos, ingresosPorDistancia, costesFijos, costesVariables, totalIngresosConMerch) => {

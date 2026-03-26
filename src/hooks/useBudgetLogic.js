@@ -18,6 +18,7 @@ import {
   calculateCostesVarPorCorredor,
   calculateCostesFijoPorCorredor,
   calculateMerchTotales,
+  calculateIngresosDesglosados,
   calculateResultado,
   calculatePuntoEquilibrio
 } from "../lib/budgetUtils";
@@ -236,6 +237,7 @@ export const useBudgetLogic = () => {
   const costesVarPorCorredor = useMemo(() => calculateCostesVarPorCorredor(conceptos), [conceptos]);
   const costesFijoPorCorredor = useMemo(() => calculateCostesFijoPorCorredor(costesFijos, totalInscritos), [costesFijos, totalInscritos]);
   const merchTotales = useMemo(() => calculateMerchTotales(merchandising), [merchandising]);
+  const ingresosDesglosados = useMemo(() => calculateIngresosDesglosados(tramos, inscritos), [tramos, inscritos]);
   
   const totalIngresosExtra = useMemo(() => 
     ingresosExtra.filter(i => i.activo).reduce((s, i) => s + i.valor, 0), 
