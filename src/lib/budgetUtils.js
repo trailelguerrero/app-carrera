@@ -70,9 +70,10 @@ export const calculateCostesFijos = (conceptos, totalInscritos) => {
     const totalActivos = distActivas.reduce((s, d) => s + totalInscritos[d], 0);
     DISTANCIAS.forEach(d => {
       if (!c.activoDistancias[d]) return;
-      const prorrata = totalActivos > 0 
-        ? c.costeTotal * (totalInscritos[d] / totalActivos) 
-        : c.costeTotal / distActivas.length;
+      // Si no hay inscritos en ninguna distancia activa, el coste va a total
+      // pero no se asigna a distancias individuales (evita cifras engañosas)
+      if (totalActivos === 0) return;
+      const prorrata = c.costeTotal * (totalInscritos[d] / totalActivos);
       costes[d] += prorrata;
     });
     costes.total += c.costeTotal;
@@ -117,7 +118,9 @@ export const calculateCostesVarPorCorredor = (conceptos) => {
 export const calculateCostesFijoPorCorredor = (costesFijos, totalInscritos) => {
   const cf = {};
   DISTANCIAS.forEach(d => {
-    cf[d] = totalInscritos[d] > 0 ? costesFijos[d] / totalInscritos[d] : 0;
+    // null cuando no hay inscritos: 0 €/corredor sería engañoso,
+    // el coste fijo existe igualmente y no está cubierto por nadie
+    cf[d] = totalInscritos[d] > 0 ? costesFijos[d] / totalInscritos[d] : null;
   });
   return cf;
 };
@@ -139,8 +142,13 @@ export const calculateMerchTotales = (merchandising) => {
 export const calculateResultado = (totalInscritos, ingresosPorDistancia, costesFijos, costesVariables, totalIngresosConMerch) => {
   const res = { total: 0, TG7: 0, TG13: 0, TG25: 0 };
   const totalN = totalInscritos.total;
+  const totalIngBase = ingresosPorDistancia.total;
   DISTANCIAS.forEach(d => {
-    const prop = totalN > 0 ? totalInscritos[d] / totalN : 1 / DISTANCIAS.length;
+    // Prorrateo de ingresos extra por ingresos de inscripción (no por cabezas):
+    // si TG25 genera más ingresos, le corresponde mayor parte de patrocinios/merch
+    const prop = totalIngBase > 0
+      ? ingresosPorDistancia[d] / totalIngBase
+      : 1 / DISTANCIAS.length;
     const ingresosExtraProp = totalIngresosConMerch * prop;
     res[d] = ingresosPorDistancia[d] + ingresosExtraProp - costesFijos[d] - costesVariables[d];
   });
@@ -155,8 +163,14 @@ export const calculatePuntoEquilibrio = (totalInscritos, precioMedioDistancia, c
   const pe = {};
   const totalN = totalInscritos.total;
   const proporcion = {};
+  const totalIngBase = DISTANCIAS.reduce((s, d) =>
+    s + (totalInscritos[d] > 0 ? precioMedioDistancia[d] * totalInscritos[d] : 0), 0);
   DISTANCIAS.forEach(d => {
-    proporcion[d] = totalN > 0 ? totalInscritos[d] / totalN : 1 / DISTANCIAS.length;
+    // Coherente con calculateResultado: prorrateo por ingresos, no por cabezas
+    const ingD = precioMedioDistancia[d] * totalInscritos[d];
+    proporcion[d] = totalIngBase > 0
+      ? ingD / totalIngBase
+      : 1 / DISTANCIAS.length;
   });
 
   DISTANCIAS.forEach(d => {

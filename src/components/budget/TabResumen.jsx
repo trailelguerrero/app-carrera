@@ -6,7 +6,9 @@ export const TabResumen = ({
   ingresosPorDistancia, 
   costesFijos, 
   costesVariables, 
-  totalIngresosConMerch, 
+  totalIngresosConMerch,
+  totalIngresosExtra,
+  merchTotales,
   resultado, 
   conceptos, 
   precioMedioDistancia, 
@@ -52,7 +54,9 @@ export const TabResumen = ({
                 <td className="mono text-xs text-muted">—</td>
                 {DISTANCIAS.map(d => (
                   <td key={d} className="mono text-xs" style={{ color: "var(--cyan)" }}>
-                    {costesFijoPorCorredor[d].toFixed(2)} €/cte
+                    {costesFijoPorCorredor[d] !== null
+                      ? `${costesFijoPorCorredor[d].toFixed(2)} €/cte`
+                      : <span style={{ color: "var(--text-dim)" }}>— sin inscritos</span>}
                   </td>
                 ))}
               </tr>
@@ -71,9 +75,18 @@ export const TabResumen = ({
                 ))}
               </tr>
               <tr>
-                <td>↑ Ingresos adicionales + merch</td>
-                <td className="mono" style={{ color: "var(--violet)" }}>{totalIngresosConMerch.toFixed(2)} €</td>
+                <td style={{ color: "var(--orange)" }}>↑ Patrocinios y extras</td>
+                <td className="mono" style={{ color: "var(--orange)" }}>{(totalIngresosExtra ?? 0).toFixed(2)} €</td>
                 {DISTANCIAS.map(d => <td key={d} className="mono text-muted">—</td>)}
+              </tr>
+              <tr>
+                <td style={{ color: "var(--green)" }}>↑ Merchandising (beneficio neto)</td>
+                <td className="mono" style={{ color: (merchTotales?.beneficio ?? 0) >= 0 ? "var(--green)" : "var(--red)" }}>
+                  {((merchTotales?.beneficio ?? 0) >= 0 ? "+" : "")}{(merchTotales?.beneficio ?? 0).toFixed(2)} €
+                </td>
+                <td colSpan={3} className="mono text-xs text-muted" style={{ paddingLeft: "0.75rem" }}>
+                  Ventas {(merchTotales?.ingresos ?? 0).toFixed(2)} € − Coste producto {(merchTotales?.costes ?? 0).toFixed(2)} €
+                </td>
               </tr>
               <tr style={{ borderTop: "2px solid var(--border)", background: "var(--surface2)" }}>
                 <td style={{ fontWeight: 800, fontSize: "0.9rem" }}>🏁 RESULTADO NETO</td>

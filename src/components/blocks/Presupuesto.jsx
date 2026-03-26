@@ -320,6 +320,8 @@ const Presupuesto = () => {
               costesFijos={costesFijos}
               costesVariables={costesVariables}
               totalIngresosConMerch={totalIngresosConMerch}
+              totalIngresosExtra={totalIngresosExtra}
+              merchTotales={merchTotales}
               resultado={resultado}
               conceptos={conceptos}
               precioMedioDistancia={precioMedioDistancia}

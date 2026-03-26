@@ -14,8 +14,10 @@ export const KpiGlobal = ({
   resultado,
   maximos,
 }) => {
-  const costesTotal     = (costesFijos?.total ?? 0) + (costesVariables?.total ?? 0);
-  const ingresosTotal   = (ingresosPorDistancia?.total ?? 0) + (totalIngresosConMerch ?? 0);
+  const costesCarrera   = (costesFijos?.total ?? 0) + (costesVariables?.total ?? 0);
+  const costesMerch     = merchTotales?.costes ?? 0;
+  const ingresosCarrera = (ingresosPorDistancia?.total ?? 0) + (totalIngresosExtra ?? 0);
+  const ingresosTotal   = ingresosCarrera + (merchTotales?.ingresos ?? 0);
   const res             = resultado?.total ?? 0;
   const resPositivo     = res >= 0;
   const resColor        = resPositivo ? "var(--green)" : "var(--red)";
@@ -53,22 +55,31 @@ export const KpiGlobal = ({
         <div className="kpi-sub">de {totalInscritos?.total ?? 0} corredores</div>
       </div>
 
-      {/* Otros ingresos */}
+      {/* Patrocinios / extra */}
       <div className="kpi orange">
-        <div className="kpi-label">🎁 Otros ingresos</div>
+        <div className="kpi-label">🤝 Patrocinios y extras</div>
         <div className="kpi-value" style={{ color: "var(--orange)" }}>
-          {fmt(totalIngresosConMerch)}
+          {fmt(totalIngresosExtra)}
+        </div>
+        <div className="kpi-sub">Subvenciones · Colaboradores · Otros</div>
+      </div>
+
+      {/* Merchandising — cuenta satélite */}
+      <div className="kpi green">
+        <div className="kpi-label">👕 Merchandising</div>
+        <div className="kpi-value" style={{ color: (merchTotales?.beneficio ?? 0) >= 0 ? "var(--green)" : "var(--red)" }}>
+          {(merchTotales?.beneficio ?? 0) >= 0 ? "+" : ""}{fmt(merchTotales?.beneficio)}
         </div>
         <div className="kpi-sub">
-          Patrocinios: {fmt(totalIngresosExtra)} · Merch: {fmt(merchTotales?.beneficio)}
+          Ventas {fmt(merchTotales?.ingresos)} · Coste {fmt(costesMerch)}
         </div>
       </div>
 
-      {/* Costes totales */}
+      {/* Costes de la carrera */}
       <div className="kpi amber">
-        <div className="kpi-label">📦 Costes totales</div>
+        <div className="kpi-label">📦 Costes carrera</div>
         <div className="kpi-value" style={{ color: "var(--amber)" }}>
-          {fmt(costesTotal)}
+          {fmt(costesCarrera)}
         </div>
         <div className="kpi-sub">
           Fijos {fmt(costesFijos?.total)} · Var {fmt(costesVariables?.total)}
@@ -82,7 +93,7 @@ export const KpiGlobal = ({
           {res >= 0 ? "+" : ""}{fmt(res)}
         </div>
         <div className="kpi-sub">
-          {resPositivo ? "✓ Superávit" : "✗ Déficit"} · Total ingresos: {fmt(ingresosTotal)}
+          {resPositivo ? "✓ Superávit" : "✗ Déficit"} · Ingresos totales: {fmt(ingresosTotal)}
         </div>
       </div>
 

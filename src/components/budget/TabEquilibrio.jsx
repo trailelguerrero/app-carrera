@@ -57,13 +57,21 @@ export const TabEquilibrio = ({
         <div className="kpi violet">
           <div className="kpi-label">Punto Equilibrio Total</div>
           <div className="kpi-value">{peTotal === 0 ? "✓ 0" : (peTotal ?? "∞")}</div>
-          <div className="kpi-sub">corredores necesarios</div>
+          <div className="kpi-sub">corredores · mix actual</div>
         </div>
         <div className={`kpi ${coberturaFijos >= 100 ? "green" : coberturaFijos >= 75 ? "amber" : "red"}`}>
           <div className="kpi-label">Cobertura de Fijos</div>
           <div className="kpi-value">{coberturaFijos.toFixed(0)}%</div>
           <div className="kpi-sub">{totalInscritos.total} inscritos actuales</div>
         </div>
+      </div>
+
+      {/* Nota metodológica sobre el PE */}
+      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.62rem", color: "var(--text-dim)",
+        padding: "0.4rem 0.75rem", background: "var(--surface2)", borderRadius: 8,
+        marginBottom: "0.85rem", borderLeft: "2px solid var(--border)" }}>
+        ℹ️ El punto de equilibrio asume que el mix de inscripciones por distancia se mantiene
+        constante al crecer. Un cambio en la proporción TG7/TG13/TG25 modificará el PE real.
       </div>
 
       {/* Alerta de inviabilidad cuando PE > máximo de plazas */}
