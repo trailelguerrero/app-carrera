@@ -1,4 +1,5 @@
 import React from "react";
+import { Tooltip, TooltipIcon } from "../common/Tooltip";
 import { DISTANCIAS, DISTANCIA_COLORS, DISTANCIA_LABELS } from "../../constants/budgetConstants";
 import { NumInput } from "./common/NumInput";
 

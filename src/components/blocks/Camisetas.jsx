@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useData } from "@/lib/dataService";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
+import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const LS    = "teg_camisetas_v1";
@@ -171,9 +172,9 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha }) {
           {l:"📦 Unidades",  v:stats.unidades,          s:"camisetas totales", color:"violet",                        tab:"tallas"},
           {l:"✅ Recaudado",       v:fmt(stats.recaudado),    s:"líneas pagadas",color:"green",                        tab:"pedidos"},
           {l:"⏳ Por cobrar",      v:fmt(stats.pendCobro),    s:"líneas pend.", color:"amber",                         tab:"pedidos"},
-          {l:"💰 Ben. realizado", v:fmt(stats.benRealizado), s:"líneas pagadas",    color:stats.benRealizado>=0?"green":"red", tab:"pedidos"},
-          {l:"📈 Ben. potencial",  v:fmt(stats.benPotencial), s:"si cobras pendientes",color:stats.benPotencial>=0?"cyan":"amber",  tab:"pedidos"},
-          {l:"🎁 Coste regalos",   v:fmt(stats.costeRegalos), s:"pérdida asumida",    color:"violet",                               tab:"pedidos"},
+          {l:<><span>💰 Ben. realizado</span><Tooltip text={"Beneficio ya generado sobre las líneas cobradas.\nFórmula: Σ (precio venta − coste) × cantidad, solo líneas pagadas.\nEs dinero real ya en caja."}><TooltipIcon /></Tooltip></>, v:fmt(stats.benRealizado), s:"líneas pagadas",    color:stats.benRealizado>=0?"green":"red", tab:"pedidos"},
+          {l:<><span>📈 Ben. potencial</span><Tooltip text={"Beneficio esperado si se cobran todas las líneas pendientes.\nNo es dinero en caja aún — puede cambiar si se cancelan pedidos o se convierten en regalo."}><TooltipIcon /></Tooltip></>, v:fmt(stats.benPotencial), s:"si cobras pendientes",color:stats.benPotencial>=0?"cyan":"amber",  tab:"pedidos"},
+          {l:<><span>🎁 Coste regalos</span><Tooltip text={"Coste total de las unidades marcadas como regalo.\nGeneran pérdida neta porque el precio de venta es 0 pero el coste de producción existe."}><TooltipIcon /></Tooltip></>, v:fmt(stats.costeRegalos), s:"pérdida asumida",    color:"violet",                               tab:"pedidos"},
         ].map(k=>(
           <div key={k.l} className={`kpi ${k.color}`} style={{cursor:"pointer"}} onClick={()=>setTab(k.tab)}>
             <div className="kpi-label">{k.l}</div><div className="kpi-value">{k.v}</div><div className="kpi-sub">{k.s}</div>
@@ -183,7 +184,7 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha }) {
 
       <div className="card mb" style={{borderLeft:"3px solid var(--primary)"}}>
         <div className="flex-between">
-          <div><div style={{fontWeight:700,fontSize:".9rem",marginBottom:".15rem"}}>⚙️ Precio de coste global</div><div className="mono xs muted">Coste unitario para la organización</div></div>
+          <div><div style={{fontWeight:700,fontSize:".9rem",marginBottom:".15rem"}}><Tooltip text={"Coste unitario que paga la organización al proveedor por cada camiseta.\nNo lo paga el comprador — es el margen que consume la organización.\nAfecta a Ben. realizado, Ben. potencial y Coste regalos."}><span>⚙️ Precio de coste global</span><TooltipIcon /></Tooltip></div><div className="mono xs muted">Coste unitario para la organización</div></div>
           {editCoste ? (
             <div style={{display:"flex",gap:".5rem",alignItems:"center",flexWrap:"wrap"}}>
               {TIPOS.map(tipo=>(

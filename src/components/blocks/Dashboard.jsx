@@ -135,10 +135,15 @@ export default function Dashboard() {
     const volPendientes    = voluntarios.filter(v => v.estado==="pendiente").length;
     const totalNecesarios  = puestos.reduce((s,p) => s+p.necesarios, 0);
     const coberturaVol     = totalNecesarios > 0 ? Math.round(volConfirmados/totalNecesarios*100) : 0;
-    const puestosAlerta    = puestos.filter(p => {
+    const puestosConCobertura = puestos.map(p => {
       const asig = voluntarios.filter(v => v.puestoId===p.id && v.estado!=="cancelado").length;
-      return asig < p.necesarios * 0.5;
+      const confirmados = voluntarios.filter(v => v.puestoId===p.id && v.estado==="confirmado").length;
+      const deficit = Math.max(0, p.necesarios - asig);
+      const pct = p.necesarios > 0 ? Math.round(asig/p.necesarios*100) : 100;
+      return { ...p, asig, confirmados, deficit, pct };
     });
+    const puestosAlerta    = puestosConCobertura.filter(p => p.pct < 50);
+    const puestosBajos     = puestosConCobertura.filter(p => p.pct >= 50 && p.pct < 100);
 
     // PATROCINADORES
     const pats            = get("teg_patrocinadores_v1_pats", []);
@@ -211,8 +216,14 @@ export default function Dashboard() {
       alertasCriticas.push({ icon:"🔴", texto:`${tareasVencidas} tareas vencidas sin completar`, modulo:"proyecto" });
     if (coberturaVol < 50)
       alertasCriticas.push({ icon:"🔴", texto:`Cobertura de voluntarios crítica: ${coberturaVol}%`, modulo:"voluntarios" });
-    if (puestosAlerta.length > 0)
-      alertasCriticas.push({ icon:"🔴", texto:`${puestosAlerta.length} puestos con cobertura <50%`, modulo:"voluntarios" });
+    if (puestosAlerta.length > 0) {
+      const resumen = puestosAlerta.map(p => `${p.nombre} (${p.asig}/${p.necesarios})`).join(", ");
+      alertasCriticas.push({ icon:"🔴", texto:`${puestosAlerta.length} puesto${puestosAlerta.length>1?"s":""} con cobertura crítica: ${resumen}`, modulo:"voluntarios" });
+    }
+    if (puestosBajos.length > 0) {
+      const resumen = puestosBajos.map(p => `${p.nombre} (${p.asig}/${p.necesarios})`).join(", ");
+      alertasAvisos.push({ icon:"🟡", texto:`${puestosBajos.length} puesto${puestosBajos.length>1?"s":""} sin cobertura completa: ${resumen}`, modulo:"voluntarios" });
+    }
     if (resultado < 0)
       alertasCriticas.push({ icon:"🔴", texto:`Resultado negativo: ${fmt(resultado)}`, modulo:"presupuesto" });
     if (docsVencidos.length > 0)

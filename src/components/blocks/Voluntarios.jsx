@@ -47,7 +47,7 @@ const PUESTOS_DEFAULT = [
   { id: 3, nombre: "Avituallamiento KM 9", tipo: "Avituallamiento", distancias: ["TG13","TG25"], horaInicio: "08:00", horaFin: "15:00", necesarios: 4, responsableId: null, notas: "Agua, isotónico, fruta, geles, sándwiches" },
   { id: 4, nombre: "Avituallamiento KM 16", tipo: "Avituallamiento", distancias: ["TG25"], horaInicio: "08:30", horaFin: "16:00", necesarios: 5, responsableId: null, notas: "Avituallamiento principal TG25 — comida caliente" },
   { id: 5, nombre: "Punto Control KM 7", tipo: "Control", distancias: ["TG13","TG25"], horaInicio: "08:00", horaFin: "13:00", necesarios: 2, responsableId: null, notas: "Registro de dorsales, corte de tiempos" },
-  { id: 6, nombre: "Punto Control KM 13", tipo: "Control", distancias: ["TG25"], horaInicio: "09:00", horaFin: "15:00", necesarios: 2, responsableId: null, notas: "Registro de dorsales, corte de tiempos" },
+  { id: 6, nombre: "Punto Control KM 13", tipo: "Control", distancias: ["TG25"], horaInicio: "09:00", horaFin: "15:00", necesarios: 2, responsableId: null, tiempoLimite: "14:00", notas: "Registro de dorsales, corte de tiempos. Corredores que lleguen después del tiempo límite deben ser retirados de la competición." },
   { id: 7, nombre: "Seguridad Vial Cruce 1", tipo: "Seguridad", distancias: ["Todas"], horaInicio: "07:00", horaFin: "14:00", necesarios: 2, responsableId: null, notas: "Control de tráfico en cruce principal" },
   { id: 8, nombre: "Seguridad Vial Cruce 2", tipo: "Seguridad", distancias: ["TG13","TG25"], horaInicio: "07:30", horaFin: "16:00", necesarios: 2, responsableId: null, notas: "Control de tráfico en cruce secundario" },
   { id: 9, nombre: "Señalización Ruta Alta", tipo: "Señalización", distancias: ["TG25"], horaInicio: "06:00", horaFin: "08:00", necesarios: 3, responsableId: null, notas: "Colocación de balizas tramo alto — madrugada" },
@@ -76,7 +76,7 @@ function estadoBg(e) {
 
 // ─── PUBLIC REGISTRATION FORM ──────────────────────────────────────────────────
 export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: imgF, imgBack: imgB, imgGuiaTallas, opcionPuesto, opcionVehiculo }) {
-  const [form, setForm] = useState({ nombre: "", apellidos: "", telefono: "", talla: "", puestoId: "", coche: false });
+  const [form, setForm] = useState({ nombre: "", apellidos: "", telefono: "", email: "", talla: "", puestoId: "", coche: false });
   const [enviado, setEnviado] = useState(false);
   const [errores, setErrores] = useState({});
   const [lightbox, setLightbox] = useState(null); // null | "front" | "back"
@@ -89,6 +89,7 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
     if (!form.nombre.trim()) e.nombre = "Requerido";
     if (!form.apellidos.trim()) e.apellidos = "Requerido";
     if (!form.telefono.trim() || !/^\d{9}$/.test(form.telefono.replace(/\s/g, ""))) e.telefono = "Teléfono de 9 dígitos";
+    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) e.email = "Email no válido";
     if (!form.talla) e.talla = "Selecciona talla";
     setErrores(e);
     return Object.keys(e).length === 0;
@@ -99,7 +100,7 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
     onRegistrar({
       nombre: `${form.nombre.trim()} ${form.apellidos.trim()}`,
       telefono: form.telefono.trim(),
-      email: "",
+      email: form.email.trim(),
       talla: form.talla,
       puestoId: form.puestoId ? parseInt(form.puestoId) : null,
       rol: "apoyo", estado: "pendiente", coche: form.coche,
@@ -120,7 +121,7 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "1rem 1.5rem", marginBottom: "1.5rem", textAlign: "left" }}>
           <div style={{ fontSize: "0.65rem", fontFamily: "var(--font-mono)", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.75rem" }}>Tu registro</div>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-            {[["Nombre", `${form.nombre} ${form.apellidos}`], ["Teléfono", form.telefono], ["Talla camiseta", form.talla]].map(([k, v]) => (
+            {[["Nombre", `${form.nombre} ${form.apellidos}`], ["Teléfono", form.telefono], ["Email", form.email || "—"], ["Talla camiseta", form.talla]].map(([k, v]) => (
               <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem" }}>
                 <span style={{ color: "var(--text-muted)" }}>{k}</span>
                 <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--text)" }}>{v}</span>
@@ -298,6 +299,10 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
 
             <FormField label="Teléfono *" error={errores.telefono} hint="Se usará para coordinación el día de carrera">
               <input className="pub-input" placeholder="612 345 678" value={form.telefono} onChange={e => update("telefono", e.target.value)} inputMode="tel" />
+            </FormField>
+
+            <FormField label="Email" error={errores.email} hint="Para comunicaciones previas a la carrera (instrucciones, cambios de horario)">
+              <input className="pub-input" type="email" placeholder="tu@email.com" value={form.email} onChange={e => update("email", e.target.value)} inputMode="email" autoCapitalize="none" />
             </FormField>
 
             {/* Talla con guía */}
@@ -1583,6 +1588,18 @@ function FichaPuesto({ puesto: p, voluntarios, onClose, onEditar, onEliminar }) 
               <span style={{ fontSize:"0.78rem", fontWeight:600 }}>{val}</span>
             </div>
           ))}
+          {p.tiempoLimite && (
+            <div style={{ display:"flex", justifyContent:"space-between", padding:"0.5rem 0.75rem",
+              margin:"0.3rem 0", borderRadius:8,
+              background:"rgba(251,191,36,0.07)", border:"1px solid rgba(251,191,36,0.25)" }}>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem", color:"var(--amber)", fontWeight:700 }}>
+                ⏱ Tiempo límite paso corredor
+              </span>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.88rem", fontWeight:800, color:"var(--amber)" }}>
+                {p.tiempoLimite}
+              </span>
+            </div>
+          )}
           {/* Voluntarios asignados */}
           {asignados.length > 0 && (
             <div style={{ background:"var(--surface2)", borderRadius:8, padding:"0.6rem 0.75rem" }}>
@@ -1760,7 +1777,7 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
 function ModalPuesto({ puesto, onSave, onClose }) {
   const [form, setForm] = useState(puesto || {
     nombre: "", tipo: "Avituallamiento", distancias: ["Todas"],
-    horaInicio: "08:00", horaFin: "15:00", necesarios: 3, responsableId: null, notas: ""
+    horaInicio: "08:00", horaFin: "15:00", necesarios: 3, responsableId: null, tiempoLimite: "", notas: ""
   });
   const upd = (k, v) => setForm(p => ({ ...p, [k]: v }));
   const toggleDist = (d) => setForm(p => ({
@@ -1789,9 +1806,19 @@ function ModalPuesto({ puesto, onSave, onClose }) {
             </div>
           </div>
           <div className="field-row">
-            <div><label className="field-label">Hora de inicio</label><input className="inp" type="time" value={form.horaInicio} onChange={e => upd("horaInicio", e.target.value)} /></div>
-            <div><label className="field-label">Hora de fin</label><input className="inp" type="time" value={form.horaFin} onChange={e => upd("horaFin", e.target.value)} /></div>
+            <div><label className="field-label">Hora de inicio (voluntario)</label><input className="inp" type="time" value={form.horaInicio} onChange={e => upd("horaInicio", e.target.value)} /></div>
+            <div><label className="field-label">Hora de fin (voluntario)</label><input className="inp" type="time" value={form.horaFin} onChange={e => upd("horaFin", e.target.value)} /></div>
           </div>
+          {form.tipo === "Control" && (
+            <div style={{ background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.2)", borderRadius: 8, padding: "0.65rem 0.85rem" }}>
+              <label className="field-label" style={{ color: "var(--amber)" }}>⏱ Tiempo límite de paso (corredor)</label>
+              <input className="inp" type="time" value={form.tiempoLimite || ""} onChange={e => upd("tiempoLimite", e.target.value)}
+                placeholder="Hora máxima de paso" />
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-muted)", marginTop: "0.3rem" }}>
+                Corredores que lleguen después de esta hora deben ser retirados de la competición.
+              </div>
+            </div>
+          )}
           <div>
             <label className="field-label">Distancias</label>
             <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>

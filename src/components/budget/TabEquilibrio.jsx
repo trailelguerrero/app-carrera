@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Tooltip, TooltipIcon } from "../common/Tooltip";
 import { DISTANCIAS, DISTANCIA_COLORS, DISTANCIA_LABELS } from "../../constants/budgetConstants";
 
 export const TabEquilibrio = ({ 
@@ -45,22 +46,38 @@ export const TabEquilibrio = ({
     <>
       <div className="kpi-grid">
         <div className="kpi amber">
-          <div className="kpi-label">Costes Fijos a Cubrir</div>
+          <div className="kpi-label">
+  <Tooltip text={"Costes fijos totales menos ingresos extra (patrocinios + beneficio merch).\nEsto es lo que deben cubrir las inscripciones."}>
+    <span>Costes Fijos a Cubrir</span><TooltipIcon />
+  </Tooltip>
+</div>
           <div className="kpi-value">{costosFijosNetos.toFixed(0)} €</div>
           <div className="kpi-sub">{costosFijosNetos === 0 ? "✓ Cubiertos" : `de ${costesFijos.total.toFixed(0)}€ totales`}</div>
         </div>
         <div className="kpi cyan">
-          <div className="kpi-label">Margen Contribución Medio</div>
+          <div className="kpi-label">
+  <Tooltip text={"Precio medio − coste variable por corredor.\nCada inscripción adicional aporta esta cantidad para cubrir los costes fijos.\nPonderado por el mix actual de distancias."}>
+    <span>Margen Contribución Medio</span><TooltipIcon />
+  </Tooltip>
+</div>
           <div className="kpi-value">{margenTotal.toFixed(2)} €/cte</div>
           <div className="kpi-sub">Media ponderada</div>
         </div>
         <div className="kpi violet">
-          <div className="kpi-label">Punto Equilibrio Total</div>
+          <div className="kpi-label">
+  <Tooltip text={"Número mínimo de corredores necesarios para que ingresos = costes totales.\nFórmula: Costes fijos netos ÷ Margen de contribución medio.\nAsume que el mix de distancias se mantiene constante."}>
+    <span>Punto Equilibrio Total</span><TooltipIcon />
+  </Tooltip>
+</div>
           <div className="kpi-value">{peTotal === 0 ? "✓ 0" : (peTotal ?? "∞")}</div>
           <div className="kpi-sub">corredores · mix actual</div>
         </div>
         <div className={`kpi ${coberturaFijos >= 100 ? "green" : coberturaFijos >= 75 ? "amber" : "red"}`}>
-          <div className="kpi-label">Cobertura de Fijos</div>
+          <div className="kpi-label">
+  <Tooltip text={"(Margen de contribución actual + ingresos extra) ÷ Costes fijos totales.\n100% = equilibrio exacto. Por encima = superávit. Por debajo = déficit."}>
+    <span>Cobertura de Fijos</span><TooltipIcon />
+  </Tooltip>
+</div>
           <div className="kpi-value">{coberturaFijos.toFixed(0)}%</div>
           <div className="kpi-sub">{totalInscritos.total} inscritos actuales</div>
         </div>
@@ -181,9 +198,17 @@ export const TabEquilibrio = ({
             <thead>
               <tr>
                 <th>Distancia</th>
-                <th>Margen contrib. (€/cte)</th>
+                <th>
+  <Tooltip position="top" text={"Precio medio de inscripción de esta distancia menos el coste variable unitario.\nSi es negativo, cada corredor adicional aumenta las pérdidas."}>
+    <span>Margen contrib. (€/cte)</span><TooltipIcon />
+  </Tooltip>
+</th>
                 <th>Inscritos est.</th>
-                <th>Equilibrio est.</th>
+                <th>
+  <Tooltip position="top" text={"Inscritos necesarios en esta distancia para cubrir su parte de costes fijos, asumiendo que el mix actual de otras distancias no cambia."}>
+    <span>Equilibrio est.</span><TooltipIcon />
+  </Tooltip>
+</th>
                 <th>Diferencia</th>
                 <th>Ingresos inscr.</th>
               </tr>

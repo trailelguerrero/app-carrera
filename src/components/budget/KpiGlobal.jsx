@@ -1,4 +1,5 @@
 import React from "react";
+import { Tooltip, TooltipIcon } from "../common/Tooltip";
 import { DISTANCIAS, DISTANCIA_LABELS } from "../../constants/budgetConstants";
 
 const fmt = (n) => Number(n ?? 0).toLocaleString("es-ES", { maximumFractionDigits: 0 }) + " €";
@@ -28,7 +29,7 @@ export const KpiGlobal = ({
 
       {/* Inscritos */}
       <div className="kpi cyan">
-        <div className="kpi-label">🏃 Inscritos totales</div>
+        <div className="kpi-label"><Tooltip text={"Total de corredores inscritos sumando todos los tramos y distancias.\nSe usa como base para calcular el prorrateo de costes fijos y el punto de equilibrio."}><span>🏃 Inscritos totales</span><TooltipIcon /></Tooltip></div>
         <div className="kpi-value" style={{ color: "var(--cyan)" }}>
           {totalInscritos?.total ?? 0}
         </div>
@@ -48,7 +49,7 @@ export const KpiGlobal = ({
 
       {/* Ingresos inscripciones */}
       <div className="kpi violet">
-        <div className="kpi-label">💳 Ingresos inscripciones</div>
+        <div className="kpi-label"><Tooltip text={"Suma de: inscritos × precio de cada tramo, para todas las distancias.\nEs el ingreso operativo principal de la carrera."}><span>💳 Ingresos inscripciones</span><TooltipIcon /></Tooltip></div>
         <div className="kpi-value" style={{ color: "var(--violet)" }}>
           {fmt(ingresosPorDistancia?.total)}
         </div>
@@ -57,7 +58,7 @@ export const KpiGlobal = ({
 
       {/* Patrocinios / extra */}
       <div className="kpi orange">
-        <div className="kpi-label">🤝 Patrocinios y extras</div>
+        <div className="kpi-label"><Tooltip text={"Ingresos adicionales que no provienen de inscripciones: patrocinadores, subvenciones, colaboraciones en especie.\nSe prorratean entre distancias en proporción a sus ingresos de inscripción."}><span>🤝 Patrocinios y extras</span><TooltipIcon /></Tooltip></div>
         <div className="kpi-value" style={{ color: "var(--orange)" }}>
           {fmt(totalIngresosExtra)}
         </div>
@@ -66,7 +67,7 @@ export const KpiGlobal = ({
 
       {/* Merchandising — cuenta satélite */}
       <div className="kpi green">
-        <div className="kpi-label">👕 Merchandising</div>
+        <div className="kpi-label"><Tooltip text={"Cuenta satélite independiente de la carrera.\nBeneficio neto = ingresos por ventas − coste del producto.\nSolo el beneficio neto se transfiere al resultado de la carrera."}><span>👕 Merchandising</span><TooltipIcon /></Tooltip></div>
         <div className="kpi-value" style={{ color: (merchTotales?.beneficio ?? 0) >= 0 ? "var(--green)" : "var(--red)" }}>
           {(merchTotales?.beneficio ?? 0) >= 0 ? "+" : ""}{fmt(merchTotales?.beneficio)}
         </div>
@@ -77,7 +78,7 @@ export const KpiGlobal = ({
 
       {/* Costes de la carrera */}
       <div className="kpi amber">
-        <div className="kpi-label">📦 Costes carrera</div>
+        <div className="kpi-label"><Tooltip text={"Costes fijos + costes variables de la carrera.\nNo incluye el coste del merchandising (gestionado como cuenta satélite)."}><span>📦 Costes carrera</span><TooltipIcon /></Tooltip></div>
         <div className="kpi-value" style={{ color: "var(--amber)" }}>
           {fmt(costesCarrera)}
         </div>
@@ -88,7 +89,7 @@ export const KpiGlobal = ({
 
       {/* Resultado */}
       <div className={`kpi ${resColorClass}`}>
-        <div className="kpi-label">⚖️ Resultado neto</div>
+        <div className="kpi-label"><Tooltip text={"Ingresos inscripciones + Patrocinios + Beneficio merch − Costes fijos − Costes variables.\nPositivo = superávit. Negativo = déficit."}><span>⚖️ Resultado neto</span><TooltipIcon /></Tooltip></div>
         <div className="kpi-value" style={{ color: resColor }}>
           {res >= 0 ? "+" : ""}{fmt(res)}
         </div>

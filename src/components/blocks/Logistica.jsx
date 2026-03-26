@@ -1053,6 +1053,25 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar })
               <Row label="Estado"      value={data.estado} color={data.estado==="resuelta"?"var(--green)":"var(--amber)"} />
               <Row label="Responsable" value={data.responsable} />
               {data.resolucion && <Row label="Resolución" value={data.resolucion} color="var(--green)" />}
+              {/* Protocolo de escalado automático según gravedad */}
+              {data.gravedad && data.estado !== "resuelta" && (
+                <div style={{marginTop:".5rem",padding:".6rem .75rem",borderRadius:8,
+                  background:data.gravedad==="alta"?"rgba(248,113,113,0.06)":data.gravedad==="media"?"rgba(251,191,36,0.06)":"rgba(52,211,153,0.06)",
+                  border:`1px solid ${data.gravedad==="alta"?"rgba(248,113,113,0.25)":data.gravedad==="media"?"rgba(251,191,36,0.25)":"rgba(52,211,153,0.25)"}`}}>
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
+                    color:data.gravedad==="alta"?"var(--red)":data.gravedad==="media"?"var(--amber)":"var(--green)",
+                    marginBottom:".35rem",textTransform:"uppercase",letterSpacing:".06em"}}>
+                    {data.gravedad==="alta"?"🔴 Protocolo ALTA — acción inmediata":
+                     data.gravedad==="media"?"🟡 Protocolo MEDIA — monitorizar":
+                     "🟢 Protocolo BAJA — registrar y gestionar"}
+                  </div>
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:".62rem",color:"var(--text-muted)",lineHeight:1.6}}>
+                    {data.gravedad==="alta" && "1. Notificar Dirección de carrera inmediatamente · 2. Contactar Cruz Roja / 112 si hay riesgo vital · 3. No mover al afectado sin personal sanitario · 4. Mantener línea abierta por walkie hasta resolución"}
+                    {data.gravedad==="media" && "1. Informar a Coordinación en próxima comunicación · 2. Evaluar si requiere apoyo de otro puesto · 3. Registrar evolución cada 15 min · 4. Escalar a ALTA si empeora"}
+                    {data.gravedad==="baja" && "1. Gestionar en el propio puesto · 2. Registrar para informe post-carrera · 3. Informar a Coordinación al finalizar la jornada"}
+                  </div>
+                </div>
+              )}
             </>)}
           </div>
           <div style={{padding:".9rem 1.4rem",borderTop:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center",gap:".5rem"}}>

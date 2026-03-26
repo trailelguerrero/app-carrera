@@ -1,4 +1,5 @@
 import React from "react";
+import { Tooltip, TooltipIcon } from "../common/Tooltip";
 import { DISTANCIAS, DISTANCIA_COLORS, DISTANCIA_LABELS } from "../../constants/budgetConstants";
 
 export const TabResumen = ({ 
@@ -35,17 +36,29 @@ export const TabResumen = ({
                 {DISTANCIAS.map(d => <td key={d} className="mono" style={{ color: DISTANCIA_COLORS[d] }}>{totalInscritos[d]}</td>)}
               </tr>
               <tr>
-                <td>Precio medio</td>
+                <td>
+  <Tooltip position="top" text={"Ingresos totales de inscripción de esta distancia ÷ número de inscritos.\nEs el precio real ponderado entre todos los tramos, no el precio de lista."}>
+    <span>Precio medio</span><TooltipIcon />
+  </Tooltip>
+</td>
                 <td className="mono">{precioMedioDistancia.total.toFixed(2)} €</td>
                 {DISTANCIAS.map(d => <td key={d} className="mono">{precioMedioDistancia[d].toFixed(2)} €</td>)}
               </tr>
               <tr style={{ borderTop: "2px solid var(--border)" }}>
-                <td style={{ fontWeight: 700, color: "var(--violet)" }}>↑ Ingresos inscripciones</td>
+                <td style={{ fontWeight: 700, color: "var(--violet)" }}>
+  <Tooltip position="top" text={"Suma de: inscritos × precio de cada tramo, para cada distancia.\nEs el único ingreso operativo de la carrera."}>
+    <span>↑ Ingresos inscripciones</span><TooltipIcon />
+  </Tooltip>
+</td>
                 <td className="mono" style={{ fontWeight: 700, color: "var(--violet)" }}>{ingresosPorDistancia.total.toFixed(2)} €</td>
                 {DISTANCIAS.map(d => <td key={d} className="mono" style={{ color: "var(--violet)" }}>{ingresosPorDistancia[d].toFixed(2)} €</td>)}
               </tr>
               <tr>
-                <td style={{ color: "var(--cyan)" }}>↓ Costes fijos</td>
+                <td style={{ color: "var(--cyan)" }}>
+  <Tooltip position="top" text={"Gastos que no varían con el número de corredores (ambulancias, cronometraje, etc.).\nSe prorratean entre distancias activas en proporción a sus inscritos."}>
+    <span>↓ Costes fijos</span><TooltipIcon />
+  </Tooltip>
+</td>
                 <td className="mono" style={{ color: "var(--cyan)" }}>{costesFijos.total.toFixed(2)} €</td>
                 {DISTANCIAS.map(d => <td key={d} className="mono" style={{ color: "var(--cyan)" }}>{costesFijos[d].toFixed(2)} €</td>)}
               </tr>
@@ -61,7 +74,11 @@ export const TabResumen = ({
                 ))}
               </tr>
               <tr>
-                <td style={{ color: "var(--green)" }}>↓ Costes variables</td>
+                <td style={{ color: "var(--green)" }}>
+  <Tooltip position="top" text={"Gastos que escalan con cada corredor (medalla, dorsal, avituallamiento...).\nCoste unitario × número de inscritos por distancia."}>
+    <span>↓ Costes variables</span><TooltipIcon />
+  </Tooltip>
+</td>
                 <td className="mono" style={{ color: "var(--green)" }}>{costesVariables.total.toFixed(2)} €</td>
                 {DISTANCIAS.map(d => <td key={d} className="mono" style={{ color: "var(--green)" }}>{costesVariables[d].toFixed(2)} €</td>)}
               </tr>
@@ -114,7 +131,11 @@ export const TabResumen = ({
                   <th>Concepto</th>
                   <th>Tipo</th>
                   <th className="text-right">Coste total (€)</th>
-                  <th className="text-right">% sobre total</th>
+                  <th className="text-right">
+  <Tooltip position="top" text={"Peso de este concepto sobre el total de costes (fijos + variables)."}>
+    <span>% sobre total</span><TooltipIcon />
+  </Tooltip>
+</th>
                 </tr>
               </thead>
               <tbody>

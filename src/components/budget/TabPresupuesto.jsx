@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Tooltip, TooltipIcon } from "../common/Tooltip";
 import { DISTANCIAS, DISTANCIA_COLORS, DISTANCIA_LABELS } from "../../constants/budgetConstants";
 import { NumInput } from "./common/NumInput";
 import { Toggle } from "./common/Toggle";
@@ -224,11 +225,18 @@ export const TabPresupuesto = ({
                 <th style={{ width: 22 }}></th>
                 <th style={{ width: 30 }}>Act.</th>
                 <th>Concepto</th>
-                <th className="text-right">Coste Total (€)</th>
+                <th className="text-right">
+  <Tooltip position="top" text={"Importe total del gasto fijo.\nSe prorratea entre distancias activas en proporción al número de inscritos de cada una."}>
+    <span>Coste Total (€)</span><TooltipIcon />
+  </Tooltip>
+</th>
                 {DISTANCIAS.map(d => (
                   <th key={d} className="text-right">
-                    <span className="dist-dot" style={{ background: DISTANCIA_COLORS[d] }} />
-                    {DISTANCIA_LABELS[d]}
+                    <Tooltip position="top" text={"Toggle: activa o desactiva este coste para esta distancia.\nEl valor €/cte muestra la parte prorrateada que le corresponde a cada corredor de esta distancia."}>
+                      <span className="dist-dot" style={{ background: DISTANCIA_COLORS[d] }} />
+                      <span>{DISTANCIA_LABELS[d]}</span>
+                      <TooltipIcon />
+                    </Tooltip>
                   </th>
                 ))}
                 <th></th>
