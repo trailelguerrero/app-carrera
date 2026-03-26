@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReadmeModal from "../components/blocks/ReadmeModal";
+import OnboardingModal from "../components/blocks/OnboardingModal";
 import { exportBlockToPdf } from "../components/blocks/PdfExport";
 
 // Lazy-style imports for blocks
@@ -325,6 +326,13 @@ export default function Index() {
   const [showChangePin, setShowChangePin] = useState(false);
   const [activeBlock, setActiveBlock]     = useState("dashboard");
   const [readmeBlock, setReadmeBlock]     = useState(null);
+  const [showOnboarding, setShowOnboarding] = useState(
+    () => !localStorage.getItem("teg_onboarding_done")
+  );
+  const cerrarOnboarding = () => {
+    localStorage.setItem("teg_onboarding_done", "1");
+    setShowOnboarding(false);
+  };
   const ActiveComponent = BLOCKS.find(b => b.id === activeBlock)?.component;
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -556,6 +564,7 @@ export default function Index() {
 
         {/* MODALS */}
         {readmeBlock && <ReadmeModal block={readmeBlock} onClose={() => setReadmeBlock(null)} />}
+        {showOnboarding && <OnboardingModal onClose={cerrarOnboarding} onNavigate={(id) => { handleBlockChange(id); cerrarOnboarding(); }} />}
         <AnimatePresence>
           {showChangePin && <ChangePinModal onClose={() => setShowChangePin(false)} />}
         </AnimatePresence>
