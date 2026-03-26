@@ -302,6 +302,7 @@ const Presupuesto = () => {
               setTramos={setTramos}
               updateTramoPrecio={updateTramoPrecio}
               addTramo={addTramo}
+              inscritos={inscritos}
             />
           )}
           {tab === "inscritos" && (
