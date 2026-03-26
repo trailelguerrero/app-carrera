@@ -149,7 +149,7 @@ export default function App() {
 
         <div key={tab}>
           {tab==="dashboard" && <TabDashboard stats={stats} pedidos={pedidos} coste={coste} setCoste={setCoste} setTab={setTab} abrirFicha={abrirFicha} />}
-          {tab==="pedidos"   && <TabPedidos   pedidos={pedidos} coste={coste} abrirFicha={abrirFicha} abrirModal={abrirModal} updatePedido={updatePedido} />}
+          {tab==="pedidos"   && <TabPedidos   pedidos={pedidos} coste={coste} abrirFicha={abrirFicha} abrirModal={abrirModal} updateLinea={updateLinea} />}
           {tab==="tallas"    && <TabTallas    pedidos={pedidos} />}
           {tab==="checklist" && <TabChecklist pedidos={pedidos} coste={coste} updateLinea={updateLinea} abrirFicha={abrirFicha} />}
         </div>
@@ -793,10 +793,10 @@ function ModalPedido({ data, coste, onSave, onClose }) {
 
   const upd = (k,v) => setForm(p => ({...p,[k]:v}));
   const updLinea = (i,k,v) => setForm(p => ({...p, lineas: p.lineas.map((l,j)=>j===i?{...l,[k]:v}:l)}));
-  const addLinea = () => setForm(p => ({...p, lineas:[...p.lineas,{id:genId(p.lineas),tipo:"corredor",talla:"M",cantidad:1,precioVenta:0}]}));
+  const addLinea = () => setForm(p => ({...p, lineas:[...p.lineas,{id:genId(p.lineas),tipo:"corredor",talla:"M",cantidad:1,precioVenta:0,estadoPago:"pendiente",estadoEntrega:"pendiente"}]}));
   const delLinea = (i) => setForm(p => ({...p, lineas:p.lineas.filter((_,j)=>j!==i)}));
 
-  const {totalVenta,totalCoste,beneficio} = calcPedido(form, coste);
+  const {totalVenta,totalCoste,totalBenef} = calcPedido(form, coste);
   const valido = form.nombre.trim() && form.lineas.length>0;
 
   return (
@@ -896,7 +896,7 @@ function ModalPedido({ data, coste, onSave, onClose }) {
             {[
               {l:"Total coste",  v:fmt(totalCoste), c:"var(--red)"   },
               {l:"Total venta",  v:form.estadoPago==="regalo"?"🎁 Regalo":fmt(totalVenta), c:"var(--green)"  },
-              {l:"Beneficio",    v:fmt(beneficio),  c:beneficio>=0?"var(--green)":"var(--red)" },
+              {l:"Beneficio",    v:fmt(totalBenef),  c:totalBenef>=0?"var(--green)":"var(--red)" },
             ].map(({l,v,c})=>(
               <div key={l} style={{textAlign:"center"}}>
                 <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-muted)",marginBottom:".15rem",textTransform:"uppercase"}}>{l}</div>
