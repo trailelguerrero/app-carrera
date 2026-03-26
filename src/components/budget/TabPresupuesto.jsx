@@ -78,9 +78,10 @@ export const TabPresupuesto = ({
   const abrirEditar = (c) => { const m=document.querySelector("main"); if(m) m.scrollTo({top:0,behavior:"instant"}); setFicha(null); setEditando(c); };
 
   const handleSaveConcepto = (updated) => {
-    // Guardar los campos base a través de updateConcepto
-    const camposBase = ["nombre","activo","costeTotal","activoDistancias","costePorDistancia","modoUniforme"];
-    Object.entries(updated).forEach(([k, v]) => updateConcepto(updated.id, k, v));
+    // Guardar todos los campos del concepto actualizado
+    Object.entries(updated).forEach(([k, v]) => {
+      if (k !== "id" && k !== "tipo") updateConcepto(updated.id, k, v);
+    });
     setEditando(null);
   };
 
@@ -135,23 +136,25 @@ export const TabPresupuesto = ({
         </td>
         <td><Toggle value={c.activo} onChange={v => updateConcepto(c.id, "activo", v)} /></td>
         <td>
-          <div style={{ display:"flex", alignItems:"center", gap:"0.35rem" }}>
-            <input className="text-input" value={c.nombre}
-              onChange={e => updateConcepto(c.id, "nombre", e.target.value)}
-              style={{ opacity: c.activo ? 1 : 0.4 }} />
-            <button
-              onClick={() => abrirFicha(c)}
-              title="Ver ficha completa"
-              style={{ flexShrink:0, background:"none", border:"1px solid var(--border)",
-                borderRadius:5, padding:"0.15rem 0.35rem", cursor:"pointer",
-                fontSize:"0.6rem", color:"var(--text-muted)", lineHeight:1,
-                transition:"all 0.15s" }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor="var(--cyan)"; e.currentTarget.style.color="var(--cyan)"; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor="var(--border)"; e.currentTarget.style.color="var(--text-muted)"; }}
-            >
-              {(c.proveedor || c.notas || c.estadoPago) ? "📋" : "···"}
-            </button>
-          </div>
+          <button
+            onClick={() => abrirEditar(c)}
+            style={{ background:"none", border:"none", cursor:"pointer", padding:"0.25rem 0.35rem",
+              textAlign:"left", width:"100%", borderRadius:6,
+              opacity: c.activo ? 1 : 0.5, transition:"background 0.15s" }}
+            onMouseEnter={e => e.currentTarget.style.background="var(--surface3)"}
+            onMouseLeave={e => e.currentTarget.style.background="none"}
+          >
+            <div style={{ display:"flex", alignItems:"center", gap:"0.4rem" }}>
+              <span style={{ fontFamily:"var(--font-display)", fontSize:"0.85rem",
+                fontWeight:600, color:"var(--text)", whiteSpace:"nowrap",
+                overflow:"hidden", textOverflow:"ellipsis" }}>
+                {c.nombre}
+              </span>
+              {(c.proveedor || c.notas || c.estadoPago) && (
+                <span style={{ fontSize:"0.6rem", flexShrink:0, opacity:0.6 }}>📋</span>
+              )}
+            </div>
+          </button>
         </td>
         <td className="text-right">
           <NumInput value={c.costeTotal} onChange={v => updateConcepto(c.id, "costeTotal", v)} step={1} />
@@ -190,23 +193,25 @@ export const TabPresupuesto = ({
         </td>
         <td><Toggle value={c.activo} onChange={v => updateConcepto(c.id, "activo", v)} /></td>
         <td>
-          <div style={{ display:"flex", alignItems:"center", gap:"0.35rem" }}>
-            <input className="text-input" value={c.nombre}
-              onChange={e => updateConcepto(c.id, "nombre", e.target.value)}
-              style={{ opacity: c.activo ? 1 : 0.4 }} />
-            <button
-              onClick={() => abrirFicha(c)}
-              title="Ver ficha completa"
-              style={{ flexShrink:0, background:"none", border:"1px solid var(--border)",
-                borderRadius:5, padding:"0.15rem 0.35rem", cursor:"pointer",
-                fontSize:"0.6rem", color:"var(--text-muted)", lineHeight:1,
-                transition:"all 0.15s" }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor="var(--cyan)"; e.currentTarget.style.color="var(--cyan)"; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor="var(--border)"; e.currentTarget.style.color="var(--text-muted)"; }}
-            >
-              {(c.proveedor || c.notas || c.estadoPago) ? "📋" : "···"}
-            </button>
-          </div>
+          <button
+            onClick={() => abrirEditar(c)}
+            style={{ background:"none", border:"none", cursor:"pointer", padding:"0.25rem 0.35rem",
+              textAlign:"left", width:"100%", borderRadius:6,
+              opacity: c.activo ? 1 : 0.5, transition:"background 0.15s" }}
+            onMouseEnter={e => e.currentTarget.style.background="var(--surface3)"}
+            onMouseLeave={e => e.currentTarget.style.background="none"}
+          >
+            <div style={{ display:"flex", alignItems:"center", gap:"0.4rem" }}>
+              <span style={{ fontFamily:"var(--font-display)", fontSize:"0.85rem",
+                fontWeight:600, color:"var(--text)", whiteSpace:"nowrap",
+                overflow:"hidden", textOverflow:"ellipsis" }}>
+                {c.nombre}
+              </span>
+              {(c.proveedor || c.notas || c.estadoPago) && (
+                <span style={{ fontSize:"0.6rem", flexShrink:0, opacity:0.6 }}>📋</span>
+              )}
+            </div>
+          </button>
         </td>
         <td>
           <button
