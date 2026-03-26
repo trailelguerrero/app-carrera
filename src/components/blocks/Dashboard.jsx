@@ -25,6 +25,7 @@ const ALL_KEYS = {
   "teg_proyecto_v1_tareas":           [],
   "teg_proyecto_v1_hitos":            [],
   "teg_documentos_v1":                [],
+  "teg_documentos_v1_gestiones":       [],
 };
 
 const EVENT_DATE = new Date("2026-08-29");
@@ -208,6 +209,18 @@ export default function Dashboard() {
       return dias !== null && dias >= 0 && dias <= 30 && d.estado !== "aprobado";
     });
 
+    // ── GESTIONES LEGALES — permisos, licencias, seguros ──────────────────
+    const gestiones          = Array.isArray(get("teg_documentos_v1_gestiones", [])) ? get("teg_documentos_v1_gestiones", []) : [];
+    const gestionesDenegadas = gestiones.filter(g => g.estado === "denegado");
+    const gestionesVencidas  = gestiones.filter(g => {
+      const dias = diasHastaDoc(g.fechaVencimiento);
+      return dias !== null && dias < 0 && g.estado !== "aprobado" && g.estado !== "denegado";
+    });
+    const gestionesUrgentes  = gestiones.filter(g => {
+      const dias = diasHastaDoc(g.fechaVencimiento);
+      return dias !== null && dias >= 0 && dias <= 30 && g.estado !== "aprobado";
+    });
+
     // ── ALERTAS con prioridad ──────────────────────────────────────────────
     const alertasCriticas = [];
     const alertasAvisos   = [];
@@ -230,6 +243,13 @@ export default function Dashboard() {
       alertasCriticas.push({ icon:"🔴", texto:`${docsVencidos.length} documento${docsVencidos.length>1?"s":""} vencido${docsVencidos.length>1?"s":""}: ${docsVencidos.map(d=>d.nombre).slice(0,2).join(", ")}${docsVencidos.length>2?"...":""}`, modulo:"documentos" });
     if (docsProxVencer.length > 0)
       alertasAvisos.push({ icon:"🟡", texto:`${docsProxVencer.length} documento${docsProxVencer.length>1?"s":""} por vencer en ≤30 días`, modulo:"documentos" });
+    // Gestiones legales — máxima prioridad
+    if (gestionesDenegadas.length > 0)
+      alertasCriticas.push({ icon:"🚫", texto:`Gestión${gestionesDenegadas.length>1?"es":""} denegada${gestionesDenegadas.length>1?"s":""}: ${gestionesDenegadas.map(g=>g.nombre).join(", ")}`, modulo:"documentos" });
+    if (gestionesVencidas.length > 0)
+      alertasCriticas.push({ icon:"🔴", texto:`Permiso${gestionesVencidas.length>1?"s":""} vencido${gestionesVencidas.length>1?"s":""} sin aprobar: ${gestionesVencidas.map(g=>g.nombre).slice(0,2).join(", ")}${gestionesVencidas.length>2?"...":""}`, modulo:"documentos" });
+    if (gestionesUrgentes.length > 0)
+      alertasAvisos.push({ icon:"🏛️", texto:`${gestionesUrgentes.length} gestión${gestionesUrgentes.length>1?"es":""} legal${gestionesUrgentes.length>1?"es":""} con plazo ≤30 días: ${gestionesUrgentes.map(g=>g.nombre).slice(0,2).join(", ")}${gestionesUrgentes.length>2?"...":""}`, modulo:"documentos" });
     if (tareasBloqueadas > 0)
       alertasAvisos.push({ icon:"🟡", texto:`${tareasBloqueadas} tareas bloqueadas`, modulo:"proyecto" });
     if (coberturaVol >= 50 && coberturaVol < 80)
