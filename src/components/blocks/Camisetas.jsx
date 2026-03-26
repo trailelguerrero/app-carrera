@@ -42,14 +42,18 @@ const PEDIDOS_DEFAULT = [
 const COSTE_DEFAULT = { corredor:8, voluntario:7 };
 
 const calcPedido = (p, coste) => {
-  const totalVenta = p.lineas.reduce((s,l) => s + (l.estadoPago==="regalo" ? 0 : l.cantidad*(l.precioVenta||0)), 0);
-  const totalCoste = p.lineas.reduce((s,l) => s + l.cantidad*(coste[l.tipo]||0), 0);
-  const totalUnid  = p.lineas.reduce((s,l) => s + l.cantidad, 0);
-  const beneficio  = p.lineas.reduce((s,l) => {
-    const c = coste[l.tipo]||0;
-    return s + (l.estadoPago==="regalo" ? -(l.cantidad*c) : l.cantidad*((l.precioVenta||0)-c));
-  }, 0);
-  return { totalVenta, totalCoste, totalUnid, beneficio };
+  const totalVenta    = p.lineas.reduce((s,l) => s + (l.estadoPago==="regalo" ? 0 : l.cantidad*(l.precioVenta||0)), 0);
+  const totalCoste    = p.lineas.reduce((s,l) => s + l.cantidad*(coste[l.tipo]||0), 0);
+  const totalUnid     = p.lineas.reduce((s,l) => s + l.cantidad, 0);
+  // Beneficio desglosado por estado de pago
+  const benRealizado  = p.lineas.filter(l=>l.estadoPago==="pagado")
+    .reduce((s,l) => s + l.cantidad*((l.precioVenta||0)-(coste[l.tipo]||0)), 0);
+  const benPotencial  = p.lineas.filter(l=>(l.estadoPago||"pendiente")==="pendiente")
+    .reduce((s,l) => s + l.cantidad*((l.precioVenta||0)-(coste[l.tipo]||0)), 0);
+  const costeRegalos  = p.lineas.filter(l=>l.estadoPago==="regalo")
+    .reduce((s,l) => s + l.cantidad*(coste[l.tipo]||0), 0);
+  const beneficio     = benRealizado + benPotencial - costeRegalos;
+  return { totalVenta, totalCoste, totalUnid, beneficio, benRealizado, benPotencial, costeRegalos };
 };
 
 const badgePago = (p) => {
@@ -90,10 +94,13 @@ export default function App() {
     const unidades = pedidos.reduce((s,p) => s+p.lineas.reduce((a,l)=>a+l.cantidad,0), 0);
     const recaudado= pedidos.reduce((s,p) => s+p.lineas.filter(l=>l.estadoPago==="pagado").reduce((a,l)=>a+l.cantidad*(l.precioVenta||0),0), 0);
     const pendCobro= pedidos.reduce((s,p) => s+p.lineas.filter(l=>(l.estadoPago||"pendiente")==="pendiente").reduce((a,l)=>a+l.cantidad*(l.precioVenta||0),0), 0);
-    const beneficio= pedidos.reduce((s,p) => s+calcPedido(p,coste).beneficio, 0);
+    const beneficio     = pedidos.reduce((s,p) => s+calcPedido(p,coste).beneficio, 0);
+    const benRealizado  = pedidos.reduce((s,p) => s+calcPedido(p,coste).benRealizado, 0);
+    const benPotencial  = pedidos.reduce((s,p) => s+calcPedido(p,coste).benPotencial, 0);
+    const costeRegalos  = pedidos.reduce((s,p) => s+calcPedido(p,coste).costeRegalos, 0);
     const regalos  = pedidos.reduce((s,p) => s+p.lineas.filter(l=>l.estadoPago==="regalo").reduce((a,l)=>a+l.cantidad,0), 0);
     const pendEnt  = pedidos.reduce((s,p) => s+p.lineas.filter(l=>(l.estadoEntrega||"pendiente")==="pendiente").reduce((a,l)=>a+l.cantidad,0), 0);
-    return { total, unidades, recaudado, pendCobro, beneficio, regalos, pendEnt };
+    return { total, unidades, recaudado, pendCobro, beneficio, benRealizado, benPotencial, costeRegalos, regalos, pendEnt };
   }, [pedidos,coste]);
 
   const TABS = [
@@ -164,8 +171,9 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha }) {
           {l:"📦 Unidades",  v:stats.unidades,          s:"camisetas totales", color:"violet",                        tab:"tallas"},
           {l:"✅ Recaudado",       v:fmt(stats.recaudado),    s:"líneas pagadas",color:"green",                        tab:"pedidos"},
           {l:"⏳ Por cobrar",      v:fmt(stats.pendCobro),    s:"líneas pend.", color:"amber",                         tab:"pedidos"},
-          {l:"💰 Beneficio", v:fmt(stats.beneficio),    s:"venta − coste",color:stats.beneficio>=0?"green":"red",tab:"pedidos"},
-          {l:"🎁 Regalos",   v:stats.regalos+" ud",     s:"unidades regalo",   color:"violet",                        tab:"pedidos"},
+          {l:"💰 Ben. realizado", v:fmt(stats.benRealizado), s:"líneas pagadas",    color:stats.benRealizado>=0?"green":"red", tab:"pedidos"},
+          {l:"📈 Ben. potencial",  v:fmt(stats.benPotencial), s:"si cobras pendientes",color:stats.benPotencial>=0?"cyan":"amber",  tab:"pedidos"},
+          {l:"🎁 Coste regalos",   v:fmt(stats.costeRegalos), s:"pérdida asumida",    color:"violet",                               tab:"pedidos"},
         ].map(k=>(
           <div key={k.l} className={`kpi ${k.color}`} style={{cursor:"pointer"}} onClick={()=>setTab(k.tab)}>
             <div className="kpi-label">{k.l}</div><div className="kpi-value">{k.v}</div><div className="kpi-sub">{k.s}</div>
@@ -470,7 +478,7 @@ function TabChecklist({ pedidos, updateLinea, abrirFicha }) {
 
 // ─── FICHA PEDIDO ─────────────────────────────────────────────────────────────
 function FichaPedido({ pedido:p, coste, onClose, onEditar, onEliminar, updateLinea }) {
-  const {totalVenta,totalCoste,totalUnid,beneficio} = calcPedido(p,coste);
+  const {totalVenta,totalCoste,totalUnid,beneficio,benRealizado,benPotencial,costeRegalos} = calcPedido(p,coste);
   const Row = ({label,value,color}) => (!value&&value!==0)?null:(
     <div style={{display:"flex",justifyContent:"space-between",padding:".4rem 0",borderBottom:"1px solid rgba(30,45,80,.3)"}}>
       <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",flexShrink:0,marginRight:"1rem"}}>{label}</span>
@@ -526,9 +534,15 @@ function FichaPedido({ pedido:p, coste, onClose, onEditar, onEliminar, updateLin
               );
             })}
           </div>
-          <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",display:"flex",justifyContent:"space-around",gap:".75rem",flexWrap:"wrap"}}>
-            {[{l:"Coste total",v:fmt(totalCoste),c:"var(--red)"},{l:"Venta total",v:fmt(totalVenta),c:"var(--green)"},{l:"Beneficio",v:fmt(beneficio),c:beneficio>=0?"var(--green)":"var(--red)"}].map(({l,v,c})=>(
-              <div key={l} style={{textAlign:"center"}}><div style={{fontFamily:"var(--font-mono)",fontSize:".52rem",color:"var(--text-muted)",marginBottom:".1rem",textTransform:"uppercase"}}>{l}</div><div style={{fontFamily:"var(--font-mono)",fontSize:".85rem",fontWeight:800,color:c}}>{v}</div></div>
+          <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",display:"flex",justifyContent:"space-around",gap:".6rem",flexWrap:"wrap"}}>
+            {[
+              {l:"Coste total",    v:fmt(totalCoste),   c:"var(--red)"},
+              {l:"Venta total",    v:fmt(totalVenta),   c:"var(--green)"},
+              {l:"Ben. realizado", v:fmt(benRealizado), c:benRealizado>=0?"var(--green)":"var(--red)"},
+              {l:"Ben. potencial", v:fmt(benPotencial), c:benPotencial>=0?"var(--cyan)":"var(--amber)"},
+              {l:"Coste regalos",  v:fmt(costeRegalos), c:"var(--violet)"},
+            ].map(({l,v,c})=>(
+              <div key={l} style={{textAlign:"center"}}><div style={{fontFamily:"var(--font-mono)",fontSize:".5rem",color:"var(--text-muted)",marginBottom:".1rem",textTransform:"uppercase"}}>{l}</div><div style={{fontFamily:"var(--font-mono)",fontSize:".8rem",fontWeight:800,color:c}}>{v}</div></div>
             ))}
           </div>
           {p.notas&&<div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",borderLeft:"2px solid var(--primary)"}}><div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-muted)",marginBottom:".25rem",textTransform:"uppercase"}}>Notas</div><div style={{fontSize:".78rem",lineHeight:1.5}}>{p.notas}</div></div>}
@@ -553,7 +567,7 @@ function ModalPedido({ data, coste, onSave, onClose }) {
   const updL     = (i,k,v) => setForm(p=>({...p,lineas:p.lineas.map((l,j)=>j===i?{...l,[k]:v}:l)}));
   const addL     = ()      => setForm(p=>({...p,lineas:[...p.lineas,{id:genId(p.lineas),tipo:"corredor",talla:"M",cantidad:1,precioVenta:0,estadoPago:"pendiente",estadoEntrega:"pendiente"}]}));
   const delL     = (i)     => setForm(p=>({...p,lineas:p.lineas.filter((_,j)=>j!==i)}));
-  const {totalVenta,totalCoste,beneficio} = calcPedido(form,coste);
+  const {totalVenta,totalCoste,beneficio,benRealizado,benPotencial,costeRegalos} = calcPedido(form,coste);
   const valido = form.nombre.trim()&&form.lineas.length>0;
   return (
     <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose()}>
@@ -589,14 +603,25 @@ function ModalPedido({ data, coste, onSave, onClose }) {
                       <span>Coste: {fmt(subC)}</span><span>Venta: {esR?"🎁 Regalo":fmt(subV)}</span>
                       <span style={{color:margen>=0?"var(--green)":"var(--red)"}}>Margen: {fmt(margen)}</span>
                     </div>
+                    {!esR && (l.precioVenta||0)===0 && (
+                      <div style={{marginTop:".3rem",fontFamily:"var(--font-mono)",fontSize:".58rem",padding:".2rem .5rem",borderRadius:4,background:"var(--violet-dim)",color:"var(--violet)",display:"inline-flex",alignItems:"center",gap:".3rem"}}>
+                        💡 Precio 0 con estado pendiente — ¿es un regalo?
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
           </div>
           <div style={{background:"var(--surface2)",borderRadius:8,padding:".65rem .85rem",display:"flex",justifyContent:"space-around",gap:".75rem",flexWrap:"wrap"}}>
-            {[{l:"Total coste",v:fmt(totalCoste),c:"var(--red)"},{l:"Total venta",v:fmt(totalVenta),c:"var(--green)"},{l:"Beneficio",v:fmt(beneficio),c:beneficio>=0?"var(--green)":"var(--red)"}].map(({l,v,c})=>(
-              <div key={l} style={{textAlign:"center"}}><div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-muted)",marginBottom:".15rem",textTransform:"uppercase"}}>{l}</div><div style={{fontFamily:"var(--font-mono)",fontSize:".9rem",fontWeight:800,color:c}}>{v}</div></div>
+            {[
+              {l:"Total coste",      v:fmt(totalCoste),      c:"var(--red)"},
+              {l:"Total venta",      v:fmt(totalVenta),      c:"var(--green)"},
+              {l:"Ben. realizado",   v:fmt(benRealizado),    c:benRealizado>=0?"var(--green)":"var(--red)"},
+              {l:"Ben. potencial",   v:fmt(benPotencial),    c:benPotencial>=0?"var(--cyan)":"var(--amber)"},
+              {l:"Coste regalos",    v:fmt(costeRegalos),    c:"var(--violet)"},
+            ].map(({l,v,c})=>(
+              <div key={l} style={{textAlign:"center"}}><div style={{fontFamily:"var(--font-mono)",fontSize:".52rem",color:"var(--text-muted)",marginBottom:".15rem",textTransform:"uppercase"}}>{l}</div><div style={{fontFamily:"var(--font-mono)",fontSize:".82rem",fontWeight:800,color:c}}>{v}</div></div>
             ))}
           </div>
           <div><label className="fl">Notas</label><input className="inp" value={form.notas} onChange={e=>upd("notas",e.target.value)} placeholder="Observaciones opcionales…" /></div>
