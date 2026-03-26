@@ -228,16 +228,35 @@ export default function Dashboard() {
 
     if (tareasVencidas > 0)
       alertasCriticas.push({ icon:"🔴", texto:`${tareasVencidas} tareas vencidas sin completar`, modulo:"proyecto" });
-    if (coberturaVol < 50)
-      alertasCriticas.push({ icon:"🔴", texto:`Cobertura de voluntarios crítica: ${coberturaVol}%`, modulo:"voluntarios" });
-    if (puestosAlerta.length > 0) {
-      const resumen = puestosAlerta.map(p => `${p.nombre} (${p.asig}/${p.necesarios})`).join(", ");
-      alertasCriticas.push({ icon:"🔴", texto:`${puestosAlerta.length} puesto${puestosAlerta.length>1?"s":""} con cobertura crítica: ${resumen}`, modulo:"voluntarios" });
+    // ── Alertas de voluntarios — sensibles al tiempo restante ───────────────
+    // La cobertura de puestos es una tarea de los últimos días antes de la carrera.
+    // Alertar en rojo a 3 meses vista genera ruido sin valor operativo.
+    //
+    //  > 30 días:  sin alertas de voluntarios (proceso en curso, normal)
+    //  8–30 días:  avisos amarillos (conviene ir confirmando)
+    //  ≤ 7 días:   críticas rojas (la carrera es inminente, hay que actuar ya)
+    if (diasHasta <= 7) {
+      // Semana de carrera — cualquier hueco es crítico
+      if (coberturaVol < 50)
+        alertasCriticas.push({ icon:"🔴", texto:`Cobertura de voluntarios crítica: ${coberturaVol}%`, modulo:"voluntarios" });
+      if (puestosAlerta.length > 0) {
+        const resumen = puestosAlerta.map(p => `${p.nombre} (${p.asig}/${p.necesarios})`).join(", ");
+        alertasCriticas.push({ icon:"🔴", texto:`${puestosAlerta.length} puesto${puestosAlerta.length>1?"s":""} con cobertura crítica: ${resumen}`, modulo:"voluntarios" });
+      }
+      if (puestosBajos.length > 0) {
+        const resumen = puestosBajos.map(p => `${p.nombre} (${p.asig}/${p.necesarios})`).join(", ");
+        alertasCriticas.push({ icon:"🟡", texto:`${puestosBajos.length} puesto${puestosBajos.length>1?"s":""} sin cobertura completa: ${resumen}`, modulo:"voluntarios" });
+      }
+    } else if (diasHasta <= 30) {
+      // Mes previo — avisos para ir gestionando
+      if (coberturaVol < 50)
+        alertasAvisos.push({ icon:"🟡", texto:`Cobertura de voluntarios al ${coberturaVol}% — conviene confirmar puestos`, modulo:"voluntarios" });
+      if (puestosAlerta.length > 0) {
+        const resumen = puestosAlerta.map(p => `${p.nombre} (${p.asig}/${p.necesarios})`).join(", ");
+        alertasAvisos.push({ icon:"🟡", texto:`${puestosAlerta.length} puesto${puestosAlerta.length>1?"s":""} pendientes de cubrir: ${resumen}`, modulo:"voluntarios" });
+      }
     }
-    if (puestosBajos.length > 0) {
-      const resumen = puestosBajos.map(p => `${p.nombre} (${p.asig}/${p.necesarios})`).join(", ");
-      alertasAvisos.push({ icon:"🟡", texto:`${puestosBajos.length} puesto${puestosBajos.length>1?"s":""} sin cobertura completa: ${resumen}`, modulo:"voluntarios" });
-    }
+    // > 30 días: sin alertas de voluntarios — es pronto para preocuparse
     if (resultado < 0)
       alertasCriticas.push({ icon:"🔴", texto:`Resultado negativo: ${fmt(resultado)}`, modulo:"presupuesto" });
     if (docsVencidos.length > 0)
@@ -253,8 +272,8 @@ export default function Dashboard() {
       alertasAvisos.push({ icon:"🏛️", texto:`${gestionesUrgentes.length} gestión${gestionesUrgentes.length>1?"es":""} legal${gestionesUrgentes.length>1?"es":""} con plazo ≤30 días: ${gestionesUrgentes.map(g=>g.nombre).slice(0,2).join(", ")}${gestionesUrgentes.length>2?"...":""}`, modulo:"documentos" });
     if (tareasBloqueadas > 0)
       alertasAvisos.push({ icon:"🟡", texto:`${tareasBloqueadas} tareas bloqueadas`, modulo:"proyecto" });
-    if (coberturaVol >= 50 && coberturaVol < 80)
-      alertasAvisos.push({ icon:"🟡", texto:`Cobertura de voluntarios insuficiente: ${coberturaVol}%`, modulo:"voluntarios" });
+    if (diasHasta <= 30 && coberturaVol >= 50 && coberturaVol < 80)
+      alertasAvisos.push({ icon:"🟡", texto:`Cobertura de voluntarios al ${coberturaVol}% — quedan ${diasHasta} días`, modulo:"voluntarios" });
     if (volPendientes > 0)
       alertasAvisos.push({ icon:"🔵", texto:`${volPendientes} voluntarios pendientes de confirmar`, modulo:"voluntarios" });
     if (patComprometido < objetivo*0.5)
