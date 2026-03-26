@@ -1,9 +1,10 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import dataService, { useData } from "@/lib/dataService";
+import { EVENT_DATE, EVENT_DATE_STR } from "@/constants/budgetConstants";
+
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const LS = "teg_proyecto_v1";
-const EVENT_DATE = new Date("2026-08-29");
 const TODAY = new Date();
 const genId = (arr) => arr.length ? Math.max(...arr.map(x => x.id)) + 1 : 1;
 const diasHasta = (fecha) => Math.ceil((new Date(fecha) - TODAY) / 86400000);
@@ -168,7 +169,7 @@ export default function App() {
 
   // ── Derived stats ──────────────────────────────────────────────────────────
   const stats = useMemo(() => {
-    const diasEvento = diasHasta("2026-08-29");
+    const diasEvento = diasHasta(EVENT_DATE_STR);
     const total = tareas.length;
     const completadas = tareas.filter(t => t.estado === "completado").length;
     const bloqueadas = tareas.filter(t => t.estado === "bloqueado").length;

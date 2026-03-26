@@ -1,5 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useData } from "@/lib/dataService";
+import { EVENT_DATE } from "@/constants/budgetConstants";
+
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const TALLAS = ["XXS","XS","S","M","L","XL","XXL","3XL","4XL"];
@@ -483,7 +485,7 @@ export default function App() {
   );
 
   // Días hasta el evento — para reordenar tabs en semana de carrera
-  const diasHastaEvento = Math.ceil((new Date("2026-08-29") - new Date()) / 86400000);
+  const diasHastaEvento = Math.ceil((EVENT_DATE - new Date()) / 86400000);
   const esSemanaCarrera = diasHastaEvento >= 0 && diasHastaEvento <= 7;
 
   const TABS_BASE = [

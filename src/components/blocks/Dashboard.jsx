@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { BLOCK_CSS, blockCls } from "@/lib/blockStyles";
+import { EVENT_DATE } from "@/constants/budgetConstants";
+
 import dataService from "@/lib/dataService";
 import {
   RadialBarChart, RadialBar, ResponsiveContainer,
@@ -28,7 +30,6 @@ const ALL_KEYS = {
   "teg_documentos_v1_gestiones":       [],
 };
 
-const EVENT_DATE = new Date("2026-08-29");
 const fmt   = (n) => new Intl.NumberFormat("es-ES", { style:"currency", currency:"EUR", maximumFractionDigits:0 }).format(n ?? 0);
 const fmtD  = (iso) => new Date(iso).toLocaleDateString("es-ES", { day:"2-digit", month:"short" });
 const navigate = (block) => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block } }));
