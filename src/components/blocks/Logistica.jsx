@@ -389,6 +389,32 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
   const [vistaAsig,setVistaAsig]=useState(false);
   const [vistaKanban,setVistaKanban]=useState(false);
   const [cat,setCat]=useState("todas");
+
+  // ── Leer inscritos del Presupuesto (solo lectura, para el indicador contextual) ──
+  const [rawTramos]    = useData("teg_presupuesto_v1_tramos",    []);
+  const [rawInscritos] = useData("teg_presupuesto_v1_inscritos", { tramos: {} });
+  const [rawMaximos]   = useData("teg_presupuesto_v1_maximos",   {});
+  const totalInscritos = useMemo(() => {
+    const tramos = Array.isArray(rawTramos) ? rawTramos : [];
+    let total = 0;
+    tramos.forEach(t => {
+      ["TG7","TG13","TG25"].forEach(d => {
+        total += rawInscritos?.tramos?.[t.id]?.[d] || 0;
+      });
+    });
+    return total;
+  }, [rawTramos, rawInscritos]);
+  const totalMaximos = useMemo(() => {
+    return (rawMaximos?.TG7||0) + (rawMaximos?.TG13||0) + (rawMaximos?.TG25||0);
+  }, [rawMaximos]);
+
+  // Artículos cuyo stock debería escalar con los inscritos
+  const ESCALA_CON_INSCRITOS = [
+    { patron: /dorsal/i,   label: "dorsales" },
+    { patron: /medalla/i,  label: "medallas" },
+    { patron: /chip/i,     label: "chips" },
+    { patron: /camiseta.*corredor|corredor.*camiseta/i, label: "camisetas corredor" },
+  ];
   const ms=useMemo(()=>material.map(m=>{const a=asigs.filter(x=>x.materialId===m.id);const asig=a.reduce((s,x)=>s+x.cantidad,0);const ent=a.filter(x=>x.estado==="entregado").reduce((s,x)=>s+x.cantidad,0);return{...m,asig,ent,def:Math.max(asig-m.stock,0)}}),[material,asigs]);
   const mf=useMemo(()=>{
     let list=cat==="todas"?ms:ms.filter(m=>m.categoria===cat);
