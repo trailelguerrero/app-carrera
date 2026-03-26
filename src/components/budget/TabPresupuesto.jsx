@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { FichaConcepto, ModalEditarConcepto } from "./FichaConcepto";
 import { Tooltip, TooltipIcon } from "../common/Tooltip";
 import { DISTANCIAS, DISTANCIA_COLORS, DISTANCIA_LABELS } from "../../constants/budgetConstants";
 import { NumInput } from "./common/NumInput";
@@ -70,6 +71,18 @@ export const TabPresupuesto = ({
 }) => {
   const [ordenAlfaFijo, setOrdenAlfaFijo] = useState(false);
   const [ordenAlfaVar,  setOrdenAlfaVar]  = useState(false);
+  const [ficha,  setFicha]  = useState(null); // concepto en ficha
+  const [editando, setEditando] = useState(null); // concepto en edición
+
+  const abrirFicha  = (c) => { const m=document.querySelector("main"); if(m) m.scrollTo({top:0,behavior:"instant"}); setFicha(c); };
+  const abrirEditar = (c) => { const m=document.querySelector("main"); if(m) m.scrollTo({top:0,behavior:"instant"}); setFicha(null); setEditando(c); };
+
+  const handleSaveConcepto = (updated) => {
+    // Guardar los campos base a través de updateConcepto
+    const camposBase = ["nombre","activo","costeTotal","activoDistancias","costePorDistancia","modoUniforme"];
+    Object.entries(updated).forEach(([k, v]) => updateConcepto(updated.id, k, v));
+    setEditando(null);
+  };
 
   const sort = (arr, alfa) => alfa
     ? [...arr].sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es"))
@@ -121,10 +134,16 @@ export const TabPresupuesto = ({
           )}
         </td>
         <td><Toggle value={c.activo} onChange={v => updateConcepto(c.id, "activo", v)} /></td>
-        <td>
-          <input className="text-input" value={c.nombre}
-            onChange={e => updateConcepto(c.id, "nombre", e.target.value)}
-            style={{ opacity: c.activo ? 1 : 0.4 }} />
+        <td style={{ cursor:"pointer" }} onClick={() => abrirFicha(c)} title="Ver ficha completa">
+          <div style={{ display:"flex", alignItems:"center", gap:"0.4rem" }}>
+            <input className="text-input" value={c.nombre}
+              onChange={e => { e.stopPropagation(); updateConcepto(c.id, "nombre", e.target.value); }}
+              onClick={e => e.stopPropagation()}
+              style={{ opacity: c.activo ? 1 : 0.4 }} />
+            {(c.proveedor || c.notas || c.estadoPago) && (
+              <span style={{ fontSize:"0.6rem", color:"var(--text-dim)", flexShrink:0 }}>📋</span>
+            )}
+          </div>
         </td>
         <td className="text-right">
           <NumInput value={c.costeTotal} onChange={v => updateConcepto(c.id, "costeTotal", v)} step={1} />
@@ -162,10 +181,16 @@ export const TabPresupuesto = ({
           )}
         </td>
         <td><Toggle value={c.activo} onChange={v => updateConcepto(c.id, "activo", v)} /></td>
-        <td>
-          <input className="text-input" value={c.nombre}
-            onChange={e => updateConcepto(c.id, "nombre", e.target.value)}
-            style={{ opacity: c.activo ? 1 : 0.4 }} />
+        <td style={{ cursor:"pointer" }} onClick={() => abrirFicha(c)} title="Ver ficha completa">
+          <div style={{ display:"flex", alignItems:"center", gap:"0.4rem" }}>
+            <input className="text-input" value={c.nombre}
+              onChange={e => { e.stopPropagation(); updateConcepto(c.id, "nombre", e.target.value); }}
+              onClick={e => e.stopPropagation()}
+              style={{ opacity: c.activo ? 1 : 0.4 }} />
+            {(c.proveedor || c.notas || c.estadoPago) && (
+              <span style={{ fontSize:"0.6rem", color:"var(--text-dim)", flexShrink:0 }}>📋</span>
+            )}
+          </div>
         </td>
         <td>
           <button
@@ -306,6 +331,26 @@ export const TabPresupuesto = ({
           </table>
         </div>
       </div>
+      {/* ── Ficha de concepto ── */}
+      {ficha && (
+        <FichaConcepto
+          concepto={ficha}
+          totalInscritos={totalInscritos}
+          onClose={() => setFicha(null)}
+          onEditar={() => abrirEditar(ficha)}
+          onEliminar={() => { removeConcepto(ficha.id); setFicha(null); }}
+        />
+      )}
+
+      {/* ── Modal editar concepto ── */}
+      {editando && (
+        <ModalEditarConcepto
+          concepto={editando}
+          totalInscritos={totalInscritos}
+          onSave={handleSaveConcepto}
+          onClose={() => setEditando(null)}
+        />
+      )}
     </>
   );
 };
