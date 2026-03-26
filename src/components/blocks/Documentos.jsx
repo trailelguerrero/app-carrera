@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import dataService from "@/lib/dataService";
-import { useEventConfig } from "@/hooks/useEventConfig";
+import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
+import dataService, { useData } from "@/lib/dataService";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
@@ -80,7 +80,8 @@ const diasHasta = (iso) => {
 
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 export default function Documentos() {
-  const { config } = useEventConfig();
+  const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
+  const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
   const [docs, setDocs]         = useState([]);
   const [gestiones, setGestiones] = useState([]);
   const [tab,  setTab]          = useState("presupuestos");

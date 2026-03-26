@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useData } from "@/lib/dataService";
-import { useEventConfig } from "@/hooks/useEventConfig";
+import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const LS = "teg_patrocinadores_v1";
@@ -135,7 +135,8 @@ const OBJETIVO_TOTAL = 8000;
 
 // ─── APP ──────────────────────────────────────────────────────────────────────
 export default function App() {
-  const { config } = useEventConfig();
+  const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
+  const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
   const [tab, setTab] = useState("dashboard");
   const [rawPats, setPats] = useData(LS + "_pats", PAT0);
   const [objetivo, setObjetivo] = useData(LS + "_obj", OBJETIVO_TOTAL);

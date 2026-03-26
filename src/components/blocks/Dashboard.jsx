@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { BLOCK_CSS, blockCls } from "@/lib/blockStyles";
+import { EVENT_DATE } from "@/constants/budgetConstants";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 
 import dataService from "@/lib/dataService";
@@ -87,18 +88,15 @@ export default function Dashboard() {
     };
 
     const TODAY    = new Date();
-    // Leer configuración del evento (con fallback a defaults)
-    const cfg = { ...EVENT_CONFIG_DEFAULT, ...(get(LS_KEY_CONFIG, null) || {}) };
-    const eventoFecha = cfg.fecha ? new Date(cfg.fecha) : new Date(EVENT_CONFIG_DEFAULT.fecha);
-    const diasHasta = Math.ceil((eventoFecha - TODAY) / 86400000);
-    const yaFue     = diasHasta < 0;
-    const esSemana  = diasHasta >= 0 && diasHasta <= cfg.volDiasCritico;
+    const cfg = { ...EVENT_CONFIG_DEFAULT, ...(get(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT) || {}) };
+    const eventoFecha    = cfg.fecha ? new Date(cfg.fecha) : EVENT_DATE;
+    const diasHasta      = Math.ceil((eventoFecha - TODAY) / 86400000);
+    const yaFue          = diasHasta < 0;
+    const esSemana       = diasHasta >= 0 && diasHasta <= cfg.volDiasCritico;
     const volDiasCritico = cfg.volDiasCritico;
     const volDiasAviso   = cfg.volDiasAviso;
     const eventoNombre   = cfg.nombre;
     const eventoEdicion  = cfg.edicion;
-    const eventoLugar    = cfg.lugar;
-    const eventoOrganizador = cfg.organizador;
 
     // PRESUPUESTO
     const conceptos    = get("teg_presupuesto_v1_conceptos", []);
@@ -283,7 +281,7 @@ export default function Dashboard() {
     if (tareasBloqueadas > 0)
       alertasAvisos.push({ icon:"🟡", texto:`${tareasBloqueadas} tareas bloqueadas`, modulo:"proyecto" });
     if (diasHasta <= volDiasAviso && coberturaVol >= 50 && coberturaVol < 80)
-      alertasAvisos.push({ icon:"🟡", texto:`Cobertura de voluntarios al ${coberturaVol}% — quedan ${diasHasta} días para la carrera`, modulo:"voluntarios" });
+      alertasAvisos.push({ icon:"🟡", texto:`Cobertura de voluntarios al ${coberturaVol}% — quedan ${diasHasta} días`, modulo:"voluntarios" });
     if (volPendientes > 0)
       alertasAvisos.push({ icon:"🔵", texto:`${volPendientes} voluntarios pendientes de confirmar`, modulo:"voluntarios" });
     if (patComprometido < objetivo*0.5)

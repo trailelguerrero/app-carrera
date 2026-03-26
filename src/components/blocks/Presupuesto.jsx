@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { useEventConfig } from "@/hooks/useEventConfig";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
+import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
+import { useData } from "@/lib/dataService";
 import { useBudgetLogic } from "../../hooks/useBudgetLogic";
 import { KpiGlobal }      from "../budget/KpiGlobal";
 import { TabPresupuesto } from "../budget/TabPresupuesto";
@@ -121,7 +122,8 @@ const TABS = [
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 const Presupuesto = () => {
-  const { config } = useEventConfig();
+  const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
+  const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
   const [confirmReset, setConfirmReset] = useState(false);
 
   const {

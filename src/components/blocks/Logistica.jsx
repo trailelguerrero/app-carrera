@@ -1,8 +1,8 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { useData } from "@/lib/dataService";
 import { EVENT_DATE } from "@/constants/budgetConstants";
 
-import { useEventConfig } from "@/hooks/useEventConfig";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";// ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const LS = "teg_logistica_v1";
 const genId = (arr) => arr.length ? Math.max(...arr.map(x => x.id)) + 1 : 1;
@@ -128,7 +128,8 @@ const CK0 = [
 
 // ─── APP ──────────────────────────────────────────────────────────────────────
 export default function App() {
-  const { config } = useEventConfig();
+  const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
+  const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
   const [tab, setTab] = useState("dashboard");
   const [rawMaterial, setMaterial] = useData(LS+"_mat", MAT0);
   const material = Array.isArray(rawMaterial) ? rawMaterial : [];

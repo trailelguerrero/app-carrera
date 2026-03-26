@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useData } from "@/lib/dataService";
-import { useEventConfig } from "@/hooks/useEventConfig";
+import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 
@@ -67,7 +67,8 @@ const badgePago = (p) => {
 const badgeEnt = (p) => p.lineas.some(l => (l.estadoEntrega||"pendiente")==="pendiente") ? EE.pendiente : EE.entregado;
 
 export default function App() {
-  const { config } = useEventConfig();
+  const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
+  const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
   const [tab,setTab] = useState("dashboard");
   const [rawP,setPedidos] = useData(LS+"_pedidos", PEDIDOS_DEFAULT);
   const pedidos = Array.isArray(rawP) ? rawP : [];

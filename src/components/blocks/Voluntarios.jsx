@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { useData } from "@/lib/dataService";
 import { EVENT_DATE } from "@/constants/budgetConstants";
 
@@ -245,7 +246,7 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
       <div style={{ maxWidth: 560, margin: "0 auto", padding: "2rem 1.25rem 4rem" }}>
         {/* Header */}
         <div style={{ textAlign: "center", marginBottom: "2rem", animation: "fadeUp 0.4s ease both" }}>
-          <div style={{ fontSize: "0.6rem", fontFamily: "var(--font-mono)", color: "var(--cyan)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "0.5rem" }}>🏔️ Candeleda · Ávila · 29 AGO 2026</div>
+          <div style={{ fontSize: "0.6rem", fontFamily: "var(--font-mono)", color: "var(--cyan)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "0.5rem" }}>🏔️ {config.lugar} · {config.provincia} · {new Date(config.fecha).toLocaleDateString("es-ES",{day:"2-digit",month:"short",year:"numeric"})}</div>
           <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.8rem, 5vw, 2.6rem)", fontWeight: 800, background: "linear-gradient(135deg, #fff 0%, var(--cyan) 60%, var(--violet) 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", lineHeight: 1, marginBottom: "0.5rem" }}>
             Trail El Guerrero
           </h1>
@@ -365,7 +366,7 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
 
         <div style={{ textAlign: "center", marginTop: "1.25rem", fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-dim)", lineHeight: 1.6 }}>
           Tus datos se usarán exclusivamente para la coordinación del evento.<br />
-          Organiza: Club Trail El Guerrero · Candeleda, Ávila
+          Organiza: {config.organizador} · {config.lugar}, {config.provincia}
         </div>
         <button onClick={onVolver} style={{ display: "block", margin: "1rem auto 0", background: "none", border: "none", color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: "0.65rem", cursor: "pointer", textDecoration: "underline" }}>
           ← Volver al panel de organización
@@ -389,6 +390,8 @@ function FormField({ label, error, hint, children }) {
 
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 export default function App() {
+  const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
+  const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
   const [vista, setVista] = useState("gestion"); // "gestion" | "formulario"
   const [tab, setTab] = useState("dashboard");
   const [rawPuestos, setPuestos] = useData(LS_KEY + "_puestos", PUESTOS_DEFAULT);
