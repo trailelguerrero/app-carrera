@@ -249,7 +249,7 @@ export default function App() {
           inc={inc} setInc={setInc} ck={ck} setCk={setCk} />
       )}
       {del && (
-        <div className="overlay" style={{zIndex:200}} onClick={e => e.target===e.currentTarget && setDel(null)}>
+        <div className="modal-backdrop" style={{zIndex:200}} onClick={e => e.target===e.currentTarget && setDel(null)}>
           <div className="modal" style={{maxWidth:340,textAlign:"center"}}>
             <div className="modal-body" style={{paddingTop:"1.5rem"}}>
               <div style={{fontSize:"2.5rem",marginBottom:"0.6rem"}}>⚠️</div>
@@ -1169,8 +1169,14 @@ function MF({title,fields,init,onSave,onClose}) {
   const req=fields.find(f=>f.l.includes("*"));
   // Bloquear scroll del fondo y desplazar al top al abrir el modal
   // sin scroll-lock — causa freeze en Android
+  // Scroll al top al abrirse — evita que aparezca al final en móvil
+  useEffect(() => {
+    const m = document.querySelector("main");
+    if (m) m.scrollTo({ top: 0, behavior: "instant" });
+  }, []);
+
   return(
-    <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+    <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal">
         <div className="modal-header"><span className="mtit">{title}</span><button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button></div>
         <div className="modal-body">
@@ -1216,7 +1222,7 @@ function ModalRuta({data,veh,rutas,setRutas,onClose}) {
   };
   // sin scroll-lock — causa freeze en Android
   return(
-    <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+    <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal" style={{maxWidth:560}}>
         <div className="modal-header"><span className="mtit">{data?"✏️ Editar ruta":"🗺️ Nueva ruta"}</span><button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button></div>
         <div className="modal-body">
