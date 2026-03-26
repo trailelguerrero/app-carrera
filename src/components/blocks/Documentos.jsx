@@ -14,6 +14,7 @@ const CATEGORIAS = [
   { id: "permisos",     icon: "📋", label: "Permisos",     color: "#a78bfa" },
   { id: "seguros",      icon: "🛡️", label: "Seguros",      color: "#fbbf24" },
   { id: "protocolos",   icon: "📑", label: "Protocolos",   color: "#fb923c" },
+  { id: "gestiones",    icon: "🏛️", label: "Gestiones",    color: "#38bdf8", esGestion: true },
 ];
 
 const SUBCATEGORIAS = {
@@ -22,14 +23,31 @@ const SUBCATEGORIAS = {
   protocolos:   ["Actuación Accidentes", "Actuación RC", "Evacuación", "Otro"],
   presupuestos: [],
   facturas:     [],
+  gestiones:    ["Ayuntamiento", "Federación", "Medio Ambiente", "Diputación", "Cruz Roja", "Seguro RC", "Otro"],
 };
+
+// Gestiones legales predefinidas (registro sin archivo)
+const GESTIONES_DEFAULT = [
+  { id:"g1", nombre:"Autorización Ayuntamiento Candeleda", subcategoria:"Ayuntamiento",
+    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Solicitud prevista reunión con alcaldía. Renovar anualmente.", url:"", fechaSubida: new Date(0).toISOString() },
+  { id:"g2", nombre:"Licencia federativa colectiva (FEMM)", subcategoria:"Federación",
+    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Federación Española Montaña y Escalada. Requiere seguro RC previo.", url:"", fechaSubida: new Date(0).toISOString() },
+  { id:"g3", nombre:"Seguro Responsabilidad Civil", subcategoria:"Seguro RC",
+    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Mínimo 600.000 € cobertura. Pedir presupuesto a Mapfre y Allianz.", url:"", fechaSubida: new Date(0).toISOString() },
+  { id:"g4", nombre:"Autorización Medio Ambiente / JCYL", subcategoria:"Medio Ambiente",
+    estado:"pendiente", fechaVencimiento:"2026-06-30", nota:"Necesaria para uso de montes de utilidad pública.", url:"", fechaSubida: new Date(0).toISOString() },
+  { id:"g5", nombre:"Protocolo Cruz Roja / Servicio médico", subcategoria:"Cruz Roja",
+    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Ambulancia + 2 sanitarios titulados. Confirmar antes del 15 mayo.", url:"", fechaSubida: new Date(0).toISOString() },
+];
 
 // Estados del documento con colores
 const ESTADOS_DOC = [
   { id: "pendiente",  label: "Pendiente",  color: "#94a3b8", bg: "rgba(148,163,184,0.12)" },
-  { id: "enviado",    label: "Enviado",    color: "#22d3ee", bg: "rgba(34,211,238,0.12)"  },
+  { id: "en_tramite", label: "En trámite", color: "#22d3ee", bg: "rgba(34,211,238,0.12)"  },
+  { id: "enviado",    label: "Enviado",    color: "#60a5fa", bg: "rgba(96,165,250,0.12)"   },
   { id: "firmado",    label: "Firmado",    color: "#a78bfa", bg: "rgba(167,139,250,0.12)" },
   { id: "aprobado",   label: "Aprobado",   color: "#34d399", bg: "rgba(52,211,153,0.12)"  },
+  { id: "denegado",   label: "Denegado",   color: "#f87171", bg: "rgba(248,113,113,0.12)" },
 ];
 
 const getEstadoCfg = (id) => ESTADOS_DOC.find(e => e.id === id) || ESTADOS_DOC[0];
@@ -62,6 +80,7 @@ const diasHasta = (iso) => {
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 export default function Documentos() {
   const [docs, setDocs]         = useState([]);
+  const [gestiones, setGestiones] = useState([]);
   const [tab,  setTab]          = useState("presupuestos");
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -73,16 +92,28 @@ export default function Documentos() {
   const [uploadOpen, setUploadOpen] = useState(true); // colapsable en móvil
   const [editId,  setEditId]    = useState(null);
   const [editForm, setEditForm] = useState({});
+  // Modal nueva gestión
+  const [gModal, setGModal] = useState(false);
+  const [gForm, setGForm]   = useState({ nombre:"", subcategoria:"Ayuntamiento", estado:"pendiente", fechaVencimiento:"", nota:"", url:"" });
+  const [gEditId, setGEditId] = useState(null);
   const fileRef = useRef(null);
 
   useEffect(() => {
     dataService.get(LS_KEY, []).then(setDocs);
-    return dataService.onChange(() => dataService.get(LS_KEY, []).then(setDocs));
+    dataService.get(LS_KEY + "_gestiones", GESTIONES_DEFAULT).then(setGestiones);
+    return dataService.onChange(() => {
+      dataService.get(LS_KEY, []).then(setDocs);
+      dataService.get(LS_KEY + "_gestiones", GESTIONES_DEFAULT).then(setGestiones);
+    });
   }, []);
 
   const save = useCallback((next) => {
     setDocs(next);
     dataService.set(LS_KEY, next).then(() => dataService.notify());
+  }, []);
+  const saveGestiones = useCallback((next) => {
+    setGestiones(next);
+    dataService.set(LS_KEY + "_gestiones", next).then(() => dataService.notify());
   }, []);
 
   // ─── FILE HANDLING ────────────────────────────────────────────────────────
@@ -174,10 +205,22 @@ export default function Documentos() {
 
   // ─── DERIVED ─────────────────────────────────────────────────────────────
   const catInfo   = CATEGORIAS.find(c => c.id === tab);
+  const isGestion = catInfo?.esGestion === true;
   const subcats   = SUBCATEGORIAS[tab] || [];
   const totalSize = docs.reduce((s, d) => s + (d.size || 0), 0);
   const storagePct = Math.min((totalSize / (100*1024*1024)) * 100, 100);
   const storageColor = storagePct > 80 ? "#f87171" : storagePct > 50 ? "#fbbf24" : "#34d399";
+
+  // Gestiones con vencimiento próximo o vencidas
+  const gestionesProxVencer = gestiones.filter(g => {
+    const dias = diasHasta(g.fechaVencimiento);
+    return dias !== null && dias >= 0 && dias <= 30 && g.estado !== "aprobado";
+  });
+  const gestionesVencidas = gestiones.filter(g => {
+    const dias = diasHasta(g.fechaVencimiento);
+    return dias !== null && dias < 0 && g.estado !== "aprobado" && g.estado !== "denegado";
+  });
+  const gestionesCriticas = gestiones.filter(g => g.estado === "denegado");
 
   // Documentos por vencer en <30 días (para alertas)
   const proxVencer = docs.filter(d => {
@@ -328,9 +371,9 @@ export default function Documentos() {
           </div>
           <div className="block-actions">
             {/* Alertas de vencimiento en el header */}
-            {vencidos.length > 0 && (
-              <span className="badge badge-red" title={`${vencidos.map(d=>d.nombre).join(", ")}`}>
-                ⚠️ {vencidos.length} vencido{vencidos.length>1?"s":""}
+            {(vencidos.length + gestionesVencidas.length + gestionesCriticas.length) > 0 && (
+              <span className="badge badge-red">
+                ⚠️ {vencidos.length + gestionesVencidas.length + gestionesCriticas.length} urgente{(vencidos.length+gestionesVencidas.length+gestionesCriticas.length)>1?"s":""}
               </span>
             )}
             {proxVencer.length > 0 && (
@@ -355,6 +398,44 @@ export default function Documentos() {
             </div>
           </div>
         </div>
+
+        {/* ── ALERTAS DE GESTIONES LEGALES ── */}
+        {(gestionesVencidas.length > 0 || gestionesCriticas.length > 0 || gestionesProxVencer.length > 0) && (
+          <div className="card mb" style={{padding:".75rem 1rem",borderLeft:"3px solid #38bdf8"}}>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,color:"#38bdf8",
+              textTransform:"uppercase",letterSpacing:".08em",marginBottom:".5rem"}}>
+              🏛️ Gestiones legales — atención requerida
+            </div>
+            {[...gestionesCriticas.map(g=>({...g,_tipo:"denegado"})),
+              ...gestionesVencidas.map(g=>({...g,_tipo:"vencida"})),
+              ...gestionesProxVencer.map(g=>({...g,_tipo:"proxima"}))
+            ].map(g => {
+              const dias = diasHasta(g.fechaVencimiento);
+              return (
+                <div key={g.id} style={{display:"flex",alignItems:"center",gap:".5rem",
+                  padding:".3rem .6rem",borderRadius:6,marginBottom:".25rem",
+                  background: g._tipo==="denegado"?"rgba(248,113,113,0.08)":g._tipo==="vencida"?"rgba(248,113,113,0.06)":"rgba(251,191,36,0.06)",
+                  border:`1px solid ${g._tipo==="proxima"?"rgba(251,191,36,0.2)":"rgba(248,113,113,0.2)"}`}}>
+                  <span style={{fontSize:".75rem"}}>{g._tipo==="denegado"?"🚫":g._tipo==="vencida"?"⚠️":"⏰"}</span>
+                  <span style={{flex:1,fontFamily:"var(--font-mono)",fontSize:".65rem",fontWeight:600,
+                    overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.nombre}</span>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+                    color:g._tipo==="proxima"?"var(--amber)":"var(--red)",fontWeight:700,flexShrink:0}}>
+                    {g._tipo==="denegado"?"Denegado":
+                     g._tipo==="vencida"?`Venció ${formatDate(g.fechaVencimiento)}`:
+                     dias===0?"Hoy":`en ${dias}d`}
+                  </span>
+                  <button style={{fontFamily:"var(--font-mono)",fontSize:".55rem",padding:".1rem .35rem",
+                    borderRadius:4,border:"1px solid rgba(56,189,248,0.3)",background:"rgba(56,189,248,0.1)",
+                    color:"#38bdf8",cursor:"pointer"}}
+                    onClick={()=>{setTab("gestiones");setGEditId(g.id);}}>
+                    Actualizar
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* ── ALERTAS DE VENCIMIENTO ── */}
         {(vencidos.length > 0 || proxVencer.length > 0) && (
@@ -423,8 +504,9 @@ export default function Documentos() {
               </div>
             );
           })}
-          <div className="kpi" style={{borderLeftColor:"var(--text-dim)",borderLeftWidth:3,borderLeftStyle:"solid"}}>
-            <div className="kpi-label">📦 Total</div>
+          <div className="kpi" style={{cursor:"pointer",borderLeftColor:"var(--text-dim)",borderLeftWidth:3,borderLeftStyle:"solid"}}
+            onClick={()=>setTab("gestiones")}>
+            <div className="kpi-label">📦 Total docs</div>
             <div className="kpi-value">{docs.length}</div>
             <div className="kpi-sub">{formatSize(totalSize)}</div>
           </div>
@@ -468,7 +550,96 @@ export default function Documentos() {
           })}
         </div>
 
-        {/* ── Upload zone — colapsable ── */}
+        {/* ── Upload zone / Formulario gestión — según categoría ── */}
+        {isGestion ? (
+          /* ── FORMULARIO GESTIONES LEGALES ── */
+          <div className="card mb">
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".75rem"}}>
+              <span className="card-title" style={{color:"#38bdf8",margin:0}}>🏛️ Gestiones legales pendientes</span>
+              <button className="btn btn-primary btn-sm" onClick={()=>{
+                setGForm({nombre:"",subcategoria:"Ayuntamiento",estado:"pendiente",fechaVencimiento:"",nota:"",url:""});
+                setGEditId(null); setGModal(true);
+              }}>+ Nueva gestión</button>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:".45rem"}}>
+              {gestiones.length === 0 && (
+                <div style={{textAlign:"center",padding:"2rem",color:"var(--text-dim)",fontFamily:"var(--font-mono)",fontSize:".72rem"}}>
+                  Sin gestiones registradas
+                </div>
+              )}
+              {gestiones.map(g => {
+                const ecfg = getEstadoCfg(g.estado);
+                const dias = diasHasta(g.fechaVencimiento);
+                const vcolor = dias===null?"var(--text-muted)":dias<0?"var(--red)":dias<=7?"var(--red)":dias<=30?"var(--amber)":"var(--text-muted)";
+                const isEditing = gEditId === g.id;
+                return (
+                  <div key={g.id} style={{background:"var(--surface2)",border:`1px solid ${ecfg.color}33`,
+                    borderLeft:`3px solid ${ecfg.color}`,borderRadius:8,padding:".65rem .85rem"}}>
+                    {isEditing ? (
+                      /* Modo edición inline */
+                      <div style={{display:"flex",flexDirection:"column",gap:".4rem"}}>
+                        <input className="inp" value={gForm.nombre} onChange={e=>setGForm(p=>({...p,nombre:e.target.value}))} placeholder="Nombre de la gestión *" />
+                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem"}}>
+                          <select className="inp inp-sm" value={gForm.subcategoria} onChange={e=>setGForm(p=>({...p,subcategoria:e.target.value}))}>
+                            {(SUBCATEGORIAS.gestiones||[]).map(sc=><option key={sc} value={sc}>{sc}</option>)}
+                          </select>
+                          <select className="inp inp-sm" value={gForm.estado} onChange={e=>setGForm(p=>({...p,estado:e.target.value}))} style={{color:getEstadoCfg(gForm.estado).color}}>
+                            {ESTADOS_DOC.map(e=><option key={e.id} value={e.id}>{e.label}</option>)}
+                          </select>
+                        </div>
+                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem"}}>
+                          <div><label style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",display:"block",marginBottom:".2rem"}}>Fecha límite</label>
+                            <input className="inp inp-sm" type="date" value={gForm.fechaVencimiento} onChange={e=>setGForm(p=>({...p,fechaVencimiento:e.target.value}))} /></div>
+                          <div><label style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",display:"block",marginBottom:".2rem"}}>URL / Referencia</label>
+                            <input className="inp inp-sm" value={gForm.url||""} onChange={e=>setGForm(p=>({...p,url:e.target.value}))} placeholder="https://…" /></div>
+                        </div>
+                        <textarea className="inp" rows={2} value={gForm.nota||""} onChange={e=>setGForm(p=>({...p,nota:e.target.value}))} placeholder="Notas / instrucciones…" style={{resize:"vertical"}} />
+                        <div style={{display:"flex",gap:".4rem"}}>
+                          <button className="btn btn-primary btn-sm" onClick={()=>{
+                            if(!gForm.nombre.trim()) return;
+                            saveGestiones(gestiones.map(x=>x.id===g.id?{...x,...gForm}:x));
+                            setGEditId(null);
+                          }}>✅ Guardar</button>
+                          <button className="btn btn-ghost btn-sm" onClick={()=>setGEditId(null)}>Cancelar</button>
+                          <button className="btn btn-red btn-sm" style={{marginLeft:"auto"}} onClick={()=>{
+                            if(!confirm("¿Eliminar esta gestión?")) return;
+                            saveGestiones(gestiones.filter(x=>x.id!==g.id));
+                            setGEditId(null);
+                          }}>🗑 Eliminar</button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Modo vista */
+                      <div style={{display:"flex",gap:".75rem",alignItems:"flex-start"}}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontWeight:700,fontSize:".82rem",marginBottom:".2rem"}}>{g.nombre}</div>
+                          <div style={{display:"flex",gap:".4rem",flexWrap:"wrap",alignItems:"center"}}>
+                            <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",padding:".08rem .35rem",
+                              borderRadius:3,background:`${ecfg.color}18`,color:ecfg.color,border:`1px solid ${ecfg.color}33`}}>
+                              {ecfg.label}
+                            </span>
+                            {g.subcategoria && <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-muted)"}}>{g.subcategoria}</span>}
+                            {g.fechaVencimiento && (
+                              <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:vcolor,fontWeight:700}}>
+                                {dias===null?"":dias<0?`⚠ Venció ${formatDate(g.fechaVencimiento)}`:dias===0?"⏰ Hoy":`⏰ ${dias}d · ${formatDate(g.fechaVencimiento)}`}
+                              </span>
+                            )}
+                            {g.url && <a href={g.url} target="_blank" rel="noreferrer" style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"#38bdf8"}} onClick={e=>e.stopPropagation()}>🔗 Ver enlace</a>}
+                          </div>
+                          {g.nota && <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",marginTop:".25rem",lineHeight:1.5}}>{g.nota}</div>}
+                        </div>
+                        <button className="btn btn-ghost btn-sm" style={{flexShrink:0}} onClick={()=>{
+                          setGForm({nombre:g.nombre,subcategoria:g.subcategoria||"Ayuntamiento",estado:g.estado,fechaVencimiento:g.fechaVencimiento||"",nota:g.nota||"",url:g.url||""});
+                          setGEditId(g.id);
+                        }}>✏️</button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
         <div className="card mb" style={{padding: uploadOpen ? undefined : ".65rem 1rem"}}>
           <button
             onClick={() => setUploadOpen(v => !v)}
@@ -537,9 +708,10 @@ export default function Documentos() {
             </div>
           )}
         </div>
+        )} {/* fin ternario isGestion */}
 
         {/* ── Document list ── */}
-        {catDocs.length === 0 ? (
+        {isGestion ? null : catDocs.length === 0 ? (
           <div className="doc-empty">
             <div className="doc-empty-icon">{busqueda ? "🔍" : catInfo.icon}</div>
             <div className="doc-empty-text">
@@ -658,6 +830,62 @@ export default function Documentos() {
           </>
         )}
       </div>
+      {/* ── Modal nueva gestión ── */}
+      {gModal && (
+        <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setGModal(false)}>
+          <div className="modal" style={{maxWidth:480}}>
+            <div className="modal-header">
+              <span className="modal-title">🏛️ Nueva gestión legal</span>
+              <button className="btn btn-ghost btn-sm" onClick={()=>setGModal(false)}>✕</button>
+            </div>
+            <div className="modal-body" style={{gap:".65rem"}}>
+              <div>
+                <label style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Nombre *</label>
+                <input className="inp" value={gForm.nombre} onChange={e=>setGForm(p=>({...p,nombre:e.target.value}))} placeholder="Ej: Autorización Ayuntamiento" />
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
+                <div>
+                  <label style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Tipo</label>
+                  <select className="inp" value={gForm.subcategoria} onChange={e=>setGForm(p=>({...p,subcategoria:e.target.value}))}>
+                    {(SUBCATEGORIAS.gestiones||[]).map(sc=><option key={sc} value={sc}>{sc}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Estado</label>
+                  <select className="inp" value={gForm.estado} onChange={e=>setGForm(p=>({...p,estado:e.target.value}))} style={{color:getEstadoCfg(gForm.estado).color}}>
+                    {ESTADOS_DOC.map(e=><option key={e.id} value={e.id}>{e.label}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
+                <div>
+                  <label style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Fecha límite</label>
+                  <input className="inp" type="date" value={gForm.fechaVencimiento} onChange={e=>setGForm(p=>({...p,fechaVencimiento:e.target.value}))} />
+                </div>
+                <div>
+                  <label style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>URL / Referencia</label>
+                  <input className="inp" value={gForm.url} onChange={e=>setGForm(p=>({...p,url:e.target.value}))} placeholder="https://…" />
+                </div>
+              </div>
+              <div>
+                <label style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Notas</label>
+                <textarea className="inp" rows={3} value={gForm.nota} onChange={e=>setGForm(p=>({...p,nota:e.target.value}))} placeholder="Instrucciones, contactos, requisitos previos…" style={{resize:"vertical"}} />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={()=>setGModal(false)}>Cancelar</button>
+              <button className="btn btn-primary" onClick={()=>{
+                if(!gForm.nombre.trim()) return;
+                const newG = {...gForm, id:"g"+Date.now(), fechaSubida:new Date().toISOString()};
+                saveGestiones([...gestiones, newG]);
+                setGModal(false);
+              }} disabled={!gForm.nombre.trim()} style={{opacity:gForm.nombre.trim()?1:.5}}>
+                Crear gestión
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
