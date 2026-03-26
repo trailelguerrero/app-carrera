@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { BLOCK_CSS, blockCls } from "@/lib/blockStyles";
-import { EVENT_DATE } from "@/constants/budgetConstants";
+import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 
 import dataService from "@/lib/dataService";
 import {
@@ -86,9 +86,18 @@ export default function Dashboard() {
     };
 
     const TODAY    = new Date();
-    const diasHasta = Math.ceil((EVENT_DATE - TODAY) / 86400000);
+    // Leer configuración del evento (con fallback a defaults)
+    const cfg = { ...EVENT_CONFIG_DEFAULT, ...(get(LS_KEY_CONFIG, null) || {}) };
+    const eventoFecha = cfg.fecha ? new Date(cfg.fecha) : new Date(EVENT_CONFIG_DEFAULT.fecha);
+    const diasHasta = Math.ceil((eventoFecha - TODAY) / 86400000);
     const yaFue     = diasHasta < 0;
-    const esSemana  = diasHasta >= 0 && diasHasta <= 7;
+    const esSemana  = diasHasta >= 0 && diasHasta <= cfg.volDiasCritico;
+    const volDiasCritico = cfg.volDiasCritico;
+    const volDiasAviso   = cfg.volDiasAviso;
+    const eventoNombre   = cfg.nombre;
+    const eventoEdicion  = cfg.edicion;
+    const eventoLugar    = cfg.lugar;
+    const eventoOrganizador = cfg.organizador;
 
     // PRESUPUESTO
     const conceptos    = get("teg_presupuesto_v1_conceptos", []);
@@ -235,7 +244,7 @@ export default function Dashboard() {
     //  > 30 días:  sin alertas de voluntarios (proceso en curso, normal)
     //  8–30 días:  avisos amarillos (conviene ir confirmando)
     //  ≤ 7 días:   críticas rojas (la carrera es inminente, hay que actuar ya)
-    if (diasHasta <= 7) {
+    if (diasHasta <= volDiasCritico) {
       // Semana de carrera — cualquier hueco es crítico
       if (coberturaVol < 50)
         alertasCriticas.push({ icon:"🔴", texto:`Cobertura de voluntarios crítica: ${coberturaVol}%`, modulo:"voluntarios" });
@@ -247,7 +256,7 @@ export default function Dashboard() {
         const resumen = puestosBajos.map(p => `${p.nombre} (${p.asig}/${p.necesarios})`).join(", ");
         alertasCriticas.push({ icon:"🟡", texto:`${puestosBajos.length} puesto${puestosBajos.length>1?"s":""} sin cobertura completa: ${resumen}`, modulo:"voluntarios" });
       }
-    } else if (diasHasta <= 30) {
+    } else if (diasHasta <= volDiasAviso) {
       // Mes previo — avisos para ir gestionando
       if (coberturaVol < 50)
         alertasAvisos.push({ icon:"🟡", texto:`Cobertura de voluntarios al ${coberturaVol}% — conviene confirmar puestos`, modulo:"voluntarios" });
@@ -272,8 +281,8 @@ export default function Dashboard() {
       alertasAvisos.push({ icon:"🏛️", texto:`${gestionesUrgentes.length} gestión${gestionesUrgentes.length>1?"es":""} legal${gestionesUrgentes.length>1?"es":""} con plazo ≤30 días: ${gestionesUrgentes.map(g=>g.nombre).slice(0,2).join(", ")}${gestionesUrgentes.length>2?"...":""}`, modulo:"documentos" });
     if (tareasBloqueadas > 0)
       alertasAvisos.push({ icon:"🟡", texto:`${tareasBloqueadas} tareas bloqueadas`, modulo:"proyecto" });
-    if (diasHasta <= 30 && coberturaVol >= 50 && coberturaVol < 80)
-      alertasAvisos.push({ icon:"🟡", texto:`Cobertura de voluntarios al ${coberturaVol}% — quedan ${diasHasta} días`, modulo:"voluntarios" });
+    if (diasHasta <= volDiasAviso && coberturaVol >= 50 && coberturaVol < 80)
+      alertasAvisos.push({ icon:"🟡", texto:`Cobertura de voluntarios al ${coberturaVol}% — quedan ${diasHasta} días para la carrera`, modulo:"voluntarios" });
     if (volPendientes > 0)
       alertasAvisos.push({ icon:"🔵", texto:`${volPendientes} voluntarios pendientes de confirmar`, modulo:"voluntarios" });
     if (patComprometido < objetivo*0.5)
@@ -332,7 +341,7 @@ export default function Dashboard() {
           <div>
             <h1 className="block-title">📊 Dashboard</h1>
             <div className="block-title-sub" style={{ display:"flex", alignItems:"center", gap:"0.5rem" }}>
-              Trail El Guerrero · 29 AGO 2026
+              {eventoNombre} · {eventoEdicion}
               {/* Dot de refresco silencioso */}
               <span className={`dash-sync-dot ${refreshing ? "dash-sync-pulsing" : ""}`}
                 title={lastUpdated ? `Actualizado a las ${lastUpdated.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}` : "Sin datos"} />
@@ -358,7 +367,7 @@ export default function Dashboard() {
               {/* Countdown */}
               <div>
                 <div className="dash-eyebrow mono xs muted">
-                  {d.yaFue ? "🏁 Trail El Guerrero 2026 · COMPLETADO" : "🏔️ Trail El Guerrero 2026 · 29 AGO"}
+                  {d.yaFue ? `🏁 ${eventoNombre} ${eventoEdicion} · COMPLETADO` : `🏔️ ${eventoNombre} ${eventoEdicion}`}
                 </div>
                 <div className="dash-countdown">
                   {d.yaFue

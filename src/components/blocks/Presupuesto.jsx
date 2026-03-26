@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useEventConfig } from "@/hooks/useEventConfig";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 import { useBudgetLogic } from "../../hooks/useBudgetLogic";
 import { KpiGlobal }      from "../budget/KpiGlobal";
@@ -120,6 +121,7 @@ const TABS = [
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 const Presupuesto = () => {
+  const { config } = useEventConfig();
   const [confirmReset, setConfirmReset] = useState(false);
 
   const {
@@ -197,7 +199,7 @@ const Presupuesto = () => {
         <div className="block-header">
           <div>
             <h1 className="block-title">💰 Presupuesto</h1>
-            <div className="block-title-sub">Trail El Guerrero 2026 · Gestión económica</div>
+            <div className="block-title-sub">{config.nombre} {config.edicion} · Gestión económica</div>
           </div>
           <div className="block-actions">
             <span className={`badge ${resPositivo ? "badge-green" : "badge-red"}`}>

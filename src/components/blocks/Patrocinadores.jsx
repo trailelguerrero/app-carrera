@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useData } from "@/lib/dataService";
+import { useEventConfig } from "@/hooks/useEventConfig";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const LS = "teg_patrocinadores_v1";
@@ -134,6 +135,7 @@ const OBJETIVO_TOTAL = 8000;
 
 // ─── APP ──────────────────────────────────────────────────────────────────────
 export default function App() {
+  const { config } = useEventConfig();
   const [tab, setTab] = useState("dashboard");
   const [rawPats, setPats] = useData(LS + "_pats", PAT0);
   const [objetivo, setObjetivo] = useData(LS + "_obj", OBJETIVO_TOTAL);
@@ -245,7 +247,7 @@ export default function App() {
         <div className="block-header">
           <div>
             <h1 className="block-title">🤝 Patrocinadores</h1>
-            <div className="block-title-sub">Gestión Comercial · Trail El Guerrero 2026</div>
+            <div className="block-title-sub">{config.nombre} {config.edicion} · Gestión Comercial</div>
           </div>
           <div className="block-actions">
             {stats.contPend > 0 && <span className="badge badge-amber">🎁 {stats.contPend} compromisos</span>}
@@ -354,7 +356,7 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
       <div className="ph">
         <div>
           <div className="pt">📊 Dashboard de Patrocinios</div>
-          <div className="pd">Trail El Guerrero 2026 · Candeleda, Ávila</div>
+          <div className="pd">{config.nombre} {config.edicion} · {config.lugar}, {config.provincia}</div>
         </div>
         <button className="btn btn-primary" onClick={openNuevo}>+ Nuevo patrocinador</button>
       </div>
@@ -388,7 +390,7 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: ".5rem" }}>
           <div>
             <div style={{ fontWeight: 800, fontSize: "1rem" }}>🎯 Objetivo de captación</div>
-            <div className="pd">Ingresos por patrocinios para Trail El Guerrero 2026</div>
+            <div className="pd">Ingresos por patrocinios para {config.nombre} {config.edicion}</div>
           </div>
           {editObj ? (
             <div style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>

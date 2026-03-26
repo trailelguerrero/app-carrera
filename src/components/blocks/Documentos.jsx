@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import dataService from "@/lib/dataService";
+import { useEventConfig } from "@/hooks/useEventConfig";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
@@ -79,6 +80,7 @@ const diasHasta = (iso) => {
 
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 export default function Documentos() {
+  const { config } = useEventConfig();
   const [docs, setDocs]         = useState([]);
   const [gestiones, setGestiones] = useState([]);
   const [tab,  setTab]          = useState("presupuestos");
@@ -367,7 +369,7 @@ export default function Documentos() {
         <div className="block-header">
           <div>
             <h1 className="block-title">📁 Documentos</h1>
-            <div className="block-title-sub">Gestión documental · Trail El Guerrero 2026</div>
+            <div className="block-title-sub">{config.nombre} {config.edicion} · Gestión documental</div>
           </div>
           <div className="block-actions">
             {/* Alertas de vencimiento en el header */}

@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useData } from "@/lib/dataService";
+import { useEventConfig } from "@/hooks/useEventConfig";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 
@@ -66,6 +67,7 @@ const badgePago = (p) => {
 const badgeEnt = (p) => p.lineas.some(l => (l.estadoEntrega||"pendiente")==="pendiente") ? EE.pendiente : EE.entregado;
 
 export default function App() {
+  const { config } = useEventConfig();
   const [tab,setTab] = useState("dashboard");
   const [rawP,setPedidos] = useData(LS+"_pedidos", PEDIDOS_DEFAULT);
   const pedidos = Array.isArray(rawP) ? rawP : [];
@@ -118,7 +120,7 @@ export default function App() {
         <div className="block-header">
           <div>
             <h1 className="block-title">👕 Camisetas Extra</h1>
-            <div className="block-title-sub">Pedidos externos · Trail El Guerrero 2026</div>
+            <div className="block-title-sub">{config.nombre} {config.edicion} · Pedidos externos</div>
           </div>
           <div className="block-actions">
             {stats.pendCobro>0 && <span className="badge badge-amber">⏳ {fmt(stats.pendCobro)} pendiente</span>}

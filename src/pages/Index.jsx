@@ -13,6 +13,7 @@ const Patrocinadores = lazy(() => import("../components/blocks/Patrocinadores"))
 const Proyecto = lazy(() => import("../components/blocks/Proyecto"));
 const Documentos = lazy(() => import("../components/blocks/Documentos"));
 const Camisetas = lazy(() => import("../components/blocks/Camisetas"));
+const Configuracion = lazy(() => import("../components/blocks/Configuracion"));
 
 const BLOCKS = [
   { id: "dashboard",      icon: "📊", label: "Dashboard",      shortLabel: "Dash",   component: Dashboard },
@@ -23,6 +24,7 @@ const BLOCKS = [
   { id: "patrocinadores", icon: "🤝", label: "Patrocinadores", shortLabel: "Pat.",   component: Patrocinadores },
   { id: "camisetas",      icon: "👕", label: "Camisetas",      shortLabel: "Cam.",   component: Camisetas },
   { id: "documentos",     icon: "📁", label: "Docs",           shortLabel: "Docs",   component: Documentos },
+  { id: "configuracion",  icon: "⚙️", label: "Configuración",  shortLabel: "Config", component: Configuracion },
 ];
 
 // ── PIN CONFIG ────────────────────────────────────────────────────────────────

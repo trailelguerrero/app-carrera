@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { useData } from "@/lib/dataService";
 import { EVENT_DATE } from "@/constants/budgetConstants";
 
+import { useEventConfig } from "@/hooks/useEventConfig";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";// ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const LS = "teg_logistica_v1";
 const genId = (arr) => arr.length ? Math.max(...arr.map(x => x.id)) + 1 : 1;
@@ -127,6 +128,7 @@ const CK0 = [
 
 // ─── APP ──────────────────────────────────────────────────────────────────────
 export default function App() {
+  const { config } = useEventConfig();
   const [tab, setTab] = useState("dashboard");
   const [rawMaterial, setMaterial] = useData(LS+"_mat", MAT0);
   const material = Array.isArray(rawMaterial) ? rawMaterial : [];
@@ -201,7 +203,7 @@ export default function App() {
         <div className="block-header">
           <div>
             <h1 className="block-title">📦 Logística</h1>
-            <div className="block-title-sub">Módulo Operativo · Trail El Guerrero 2026</div>
+            <div className="block-title-sub">{config.nombre} {config.edicion} · Módulo Operativo</div>
           </div>
           <div className="block-actions">
             {stats.stockErr > 0 && <span className="badge badge-red" style={{cursor:"pointer"}} onClick={()=>setTab("material")}>⚠ {stats.stockErr} stock</span>}
@@ -315,7 +317,7 @@ function TabDash({ stats, tl, ck, setTab }) {
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:"0.75rem"}}>
           <div>
             <div style={{fontFamily:"var(--font-mono)",fontSize:"0.55rem",color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:"0.2rem"}}>
-              🏔️ Trail El Guerrero 2026 · Candeleda, Ávila
+              🏔️ {config.nombre} {config.edicion} · {config.lugar}, {config.provincia}
             </div>
             <div style={{display:"flex",alignItems:"baseline",gap:"0.4rem"}}>
               {yaFue ? (
