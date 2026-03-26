@@ -297,6 +297,7 @@ export default function Dashboard() {
     });
 
     return {
+      eventoNombre, eventoEdicion,
       diasHasta, yaFue, esSemana,
       totalInscritos, inscritosPorDist, totalIngresos, totalCostesFijos, totalCostesVars,
       totalIngresosExtra, merchBeneficio, totalOtrosIngresos, resultado,
@@ -340,7 +341,7 @@ export default function Dashboard() {
           <div>
             <h1 className="block-title">📊 Dashboard</h1>
             <div className="block-title-sub" style={{ display:"flex", alignItems:"center", gap:"0.5rem" }}>
-              {eventoNombre} · {eventoEdicion}
+              {d.eventoNombre} · {d.eventoEdicion}
               {/* Dot de refresco silencioso */}
               <span className={`dash-sync-dot ${refreshing ? "dash-sync-pulsing" : ""}`}
                 title={lastUpdated ? `Actualizado a las ${lastUpdated.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}` : "Sin datos"} />
@@ -366,7 +367,7 @@ export default function Dashboard() {
               {/* Countdown */}
               <div>
                 <div className="dash-eyebrow mono xs muted">
-                  {d.yaFue ? `🏁 ${eventoNombre} ${eventoEdicion} · COMPLETADO` : `🏔️ ${eventoNombre} ${eventoEdicion}`}
+                  {d.yaFue ? `🏁 ${d.eventoNombre} ${d.eventoEdicion} · COMPLETADO` : `🏔️ ${d.eventoNombre} ${d.eventoEdicion}`}
                 </div>
                 <div className="dash-countdown">
                   {d.yaFue
