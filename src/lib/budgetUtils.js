@@ -220,20 +220,18 @@ export const calculatePuntoEquilibrio = (totalInscritos, precioMedioDistancia, c
 /**
  * Calcular el Punto de Equilibrio Global real
  *
- * El PE global responde a: "¿cuántos corredores en total necesitamos,
- * manteniendo el mix actual de distancias, para cubrir todos los costes?"
+ * Responde a: "¿cuántos corredores en total necesitamos para cubrir todos los costes,
+ * teniendo en cuenta los inscritos reales de cada distancia y sin superar el aforo máximo?"
  *
- * Fórmula:
- *   PE_global = Costes_fijos_netos / Margen_contribución_medio_ponderado
+ * Algoritmo:
+ *   1. Calcula los costes fijos netos (fijos - patrocinios - merch)
+ *   2. Calcula el margen de contribución real por distancia (precio_medio - coste_var)
+ *   3. Calcula cuántos corredores más necesita cada distancia para llegar al PE,
+ *      respetando el aforo máximo de cada una
+ *   4. Si con todas las plazas disponibles no se alcanza el PE → evento no viable
  *
- * El mix actual determina cómo se distribuyen esos corredores entre distancias:
- *   PE_distancia_d = PE_global × proporción_d
- *
- * Así el PE NUNCA supera el aforo máximo de forma individual — si el mix
- * es realista, la distribución resultante es alcanzable.
- *
- * Si el PE global supera el aforo total disponible, el evento no es viable
- * con la estructura de costes/precios actual — se informa claramente.
+ * El cálculo es completamente dinámico: se recalcula con cada cambio en inscritos,
+ * precios, costes o aforos.
  */
 export const calculatePEGlobal = (
   totalInscritos,
@@ -243,67 +241,106 @@ export const calculatePEGlobal = (
   totalIngresosConMerch,
   maximos = {}
 ) => {
-  const totalN    = totalInscritos.total;
-  const aforoTotal = DISTANCIAS.reduce((s, d) => s + (maximos[d] || 0), 0);
-
-  // Costes fijos que deben cubrirse con inscripciones
+  // ── Costes fijos netos que deben cubrir las inscripciones ─────────────────
   const fijosNetos = Math.max(costesFijos.total - totalIngresosConMerch, 0);
 
-  // Margen de contribución medio ponderado por el mix actual de inscritos
-  // Si no hay inscritos, usamos partes iguales como aproximación
-  const margenMedio = totalN > 0
-    ? DISTANCIAS.reduce((s, d) => {
-        const margen = precioMedioDistancia[d] - costesVarPorCorredor[d];
-        const prop   = totalInscritos[d] / totalN;
-        return s + margen * prop;
-      }, 0)
-    : DISTANCIAS.reduce((s, d) =>
-        s + (precioMedioDistancia[d] - costesVarPorCorredor[d]) / DISTANCIAS.length, 0);
+  // ── Margen de contribución por distancia ──────────────────────────────────
+  // Cuánto aporta cada corredor adicional de cada distancia
+  const margenPorDist = {};
+  DISTANCIAS.forEach(d => {
+    margenPorDist[d] = (precioMedioDistancia[d] || 0) - (costesVarPorCorredor[d] || 0);
+  });
 
-  // PE global inviable si margen ≤ 0
-  if (margenMedio <= 0) {
-    return { peGlobal: null, porDistancia: {}, viable: false,
-      motivo: "El margen de contribución medio es negativo o cero" };
+  // ── Margen ya generado con los inscritos actuales ─────────────────────────
+  const margenActual = DISTANCIAS.reduce((s, d) =>
+    s + Math.max(margenPorDist[d], 0) * (totalInscritos[d] || 0), 0
+  );
+
+  // ── Plazas disponibles aún en cada distancia ─────────────────────────────
+  const plazasLibres = {};
+  DISTANCIAS.forEach(d => {
+    const max = maximos[d] || 0;
+    plazasLibres[d] = Math.max(max - (totalInscritos[d] || 0), 0);
+  });
+  const aforoTotal  = DISTANCIAS.reduce((s, d) => s + (maximos[d] || 0), 0);
+  const plazasTotal = DISTANCIAS.reduce((s, d) => s + plazasLibres[d], 0);
+
+  // ── ¿Ya estamos en equilibrio? ────────────────────────────────────────────
+  if (fijosNetos <= 0 || margenActual >= fijosNetos) {
+    return {
+      peGlobal:       totalInscritos.total,
+      porDistancia:   { ...totalInscritos },
+      margenMedio:    totalInscritos.total > 0
+        ? margenActual / totalInscritos.total : 0,
+      fijosNetos,
+      viable:         true,
+      superaAforo:    false,
+      aforoTotal,
+      diferencia:     0,
+      coberturaPct:   100,
+      inscritosNecesarios: {},  // ya tenemos suficientes
+    };
   }
 
-  // PE global = fijos netos / margen medio
-  const peGlobal = fijosNetos <= 0 ? 0 : Math.ceil(fijosNetos / margenMedio);
+  // ── Cuánto margen falta por cubrir ────────────────────────────────────────
+  let margenFaltante = fijosNetos - margenActual;
 
-  // Proporciones del mix actual (o iguales si no hay inscritos)
-  const proporciones = {};
-  DISTANCIAS.forEach(d => {
-    proporciones[d] = totalN > 0
-      ? totalInscritos[d] / totalN
-      : 1 / DISTANCIAS.length;
-  });
+  // ── Distribuir los inscritos necesarios respetando aforos máximos ─────────
+  // Estrategia: ordenar distancias de mayor a menor margen y llenar en ese orden
+  // Esto es lo que haría un gestor: primero vender las plazas más rentables
+  const distOrdenadas = [...DISTANCIAS]
+    .filter(d => margenPorDist[d] > 0)  // solo distancias con margen positivo
+    .sort((a, b) => margenPorDist[b] - margenPorDist[a]);
 
-  // Distribución del PE global entre distancias según el mix
+  const inscritosNecesarios = {};  // adicionales necesarios por distancia
+  DISTANCIAS.forEach(d => { inscritosNecesarios[d] = 0; });
+
+  for (const d of distOrdenadas) {
+    if (margenFaltante <= 0) break;
+    const disponibles = plazasLibres[d];
+    if (disponibles <= 0) continue;
+    // ¿Cuántos corredores de esta distancia necesito?
+    const necesarios = Math.ceil(margenFaltante / margenPorDist[d]);
+    const aCubrir    = Math.min(necesarios, disponibles);
+    inscritosNecesarios[d] = aCubrir;
+    margenFaltante -= aCubrir * margenPorDist[d];
+  }
+
+  // ── Inscritos totales en el PE (actuales + necesarios adicionales) ─────────
   const porDistancia = {};
+  let peGlobal = 0;
   DISTANCIAS.forEach(d => {
-    porDistancia[d] = Math.ceil(peGlobal * proporciones[d]);
+    porDistancia[d] = (totalInscritos[d] || 0) + inscritosNecesarios[d];
+    peGlobal += porDistancia[d];
   });
 
-  // ¿El PE global es alcanzable con el aforo máximo?
-  const superaAforo = aforoTotal > 0 && peGlobal > aforoTotal;
+  // ── ¿Es viable? ¿Se puede alcanzar el PE con las plazas disponibles? ──────
+  const viable      = margenFaltante <= 0;
+  const superaAforo = !viable;
 
-  // ¿Alguna distancia individual supera su máximo con esta distribución?
-  const distanciasSuperanMaximo = DISTANCIAS.filter(d =>
-    maximos[d] > 0 && porDistancia[d] > maximos[d]
-  );
+  // ── Margen medio ponderado con el mix en el PE ────────────────────────────
+  const margenMedio = peGlobal > 0
+    ? DISTANCIAS.reduce((s, d) => s + margenPorDist[d] * porDistancia[d], 0) / peGlobal
+    : 0;
+
+  // ── Diferencia entre inscritos actuales y PE (negativo = faltan) ──────────
+  const diferencia    = totalInscritos.total - peGlobal;
+  const coberturaPct  = peGlobal > 0
+    ? Math.min((totalInscritos.total / peGlobal) * 100, 200)
+    : 100;
 
   return {
     peGlobal,
-    porDistancia,
-    proporciones,
+    porDistancia,       // inscritos totales necesarios por distancia (actuales + adicionales)
+    inscritosNecesarios, // solo los adicionales necesarios
     margenMedio,
     fijosNetos,
-    viable: !superaAforo,
+    viable,
     superaAforo,
     aforoTotal,
-    distanciasSuperanMaximo,
-    // Cuántos corredores faltan o sobran respecto al PE
-    diferencia: totalN - peGlobal,
-    // Porcentaje de cobertura actual
-    coberturaPct: peGlobal > 0 ? Math.min((totalN / peGlobal) * 100, 200) : 100,
+    plazasTotal,         // plazas aún disponibles
+    diferencia,
+    coberturaPct,
+    margenFaltante: Math.max(margenFaltante, 0),  // margen que no se puede cubrir si !viable
   };
 };
