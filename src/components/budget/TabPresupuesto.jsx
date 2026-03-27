@@ -137,9 +137,23 @@ export const TabPresupuesto = ({
         </td>
         <td><Toggle value={c.activo} onChange={v => updateConcepto(c.id, "activo", v)} /></td>
         <td>
-          <input className="text-input" value={c.nombre}
-            onChange={e => updateConcepto(c.id, "nombre", e.target.value)}
-            style={{ opacity: c.activo ? 1 : 0.4 }} />
+          <button
+            onClick={() => abrirEditar(c)}
+            style={{ background:"none", border:"none", cursor:"pointer",
+              padding:"0.3rem 0.4rem", textAlign:"left", width:"100%",
+              borderRadius:6, display:"block" }}>
+            <span style={{
+              fontFamily:"var(--font-display)", fontSize:"0.85rem",
+              fontWeight:600, color: c.activo ? "var(--text)" : "var(--text-muted)",
+              display:"block", whiteSpace:"nowrap",
+              overflow:"hidden", textOverflow:"ellipsis", maxWidth:"120px"
+            }}>
+              {c.nombre}
+            </span>
+            {(c.proveedor || c.notas || c.estadoPago || c.estadoPedido) && (
+              <span style={{ fontSize:"0.55rem", opacity:0.6 }}>📋</span>
+            )}
+          </button>
         </td>
         <td className="text-right">
           <NumInput value={c.costeTotal} onChange={v => updateConcepto(c.id, "costeTotal", v)} step={1} />
@@ -178,9 +192,23 @@ export const TabPresupuesto = ({
         </td>
         <td><Toggle value={c.activo} onChange={v => updateConcepto(c.id, "activo", v)} /></td>
         <td>
-          <input className="text-input" value={c.nombre}
-            onChange={e => updateConcepto(c.id, "nombre", e.target.value)}
-            style={{ opacity: c.activo ? 1 : 0.4 }} />
+          <button
+            onClick={() => abrirEditar(c)}
+            style={{ background:"none", border:"none", cursor:"pointer",
+              padding:"0.3rem 0.4rem", textAlign:"left", width:"100%",
+              borderRadius:6, display:"block" }}>
+            <span style={{
+              fontFamily:"var(--font-display)", fontSize:"0.85rem",
+              fontWeight:600, color: c.activo ? "var(--text)" : "var(--text-muted)",
+              display:"block", whiteSpace:"nowrap",
+              overflow:"hidden", textOverflow:"ellipsis", maxWidth:"120px"
+            }}>
+              {c.nombre}
+            </span>
+            {(c.proveedor || c.notas || c.estadoPago || c.estadoPedido) && (
+              <span style={{ fontSize:"0.55rem", opacity:0.6 }}>📋</span>
+            )}
+          </button>
         </td>
         <td>
           <button
