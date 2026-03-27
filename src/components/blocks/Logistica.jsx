@@ -231,7 +231,7 @@ export default function App() {
 
         {/* CONTENIDO */}
         <div key={tab}>
-          {tab==="dashboard" && <TabDash stats={stats} tl={tl} ck={ck} setTab={setTab} />}
+          {tab==="dashboard" && <TabDash stats={stats} tl={tl} ck={ck} setTab={setTab} config={config} />}
           {tab==="material" && <TabMat material={material} setMaterial={setMaterial} asigs={asigs} setAsigs={setAsigs} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenMat} setOrdenAlfa={setOrdenMat} />}
           {tab==="vehiculos" && <TabVeh veh={veh} setVeh={setVeh} rutas={rutas} setRutas={setRutas} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenVeh} setOrdenAlfa={setOrdenVeh} />}
           {tab==="timeline" && <TabTL tl={tl} setTl={setTl} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenTL} setOrdenAlfa={setOrdenTL} />}
@@ -249,7 +249,7 @@ export default function App() {
           inc={inc} setInc={setInc} ck={ck} setCk={setCk} />
       )}
       {del && (
-        <div className="overlay" style={{zIndex:200}} onClick={e => e.target===e.currentTarget && setDel(null)}>
+        <div className="modal-backdrop" style={{zIndex:200}} onClick={e => e.target===e.currentTarget && setDel(null)}>
           <div className="modal" style={{maxWidth:340,textAlign:"center"}}>
             <div className="modal-body" style={{paddingTop:"1.5rem"}}>
               <div style={{fontSize:"2.5rem",marginBottom:"0.6rem"}}>⚠️</div>
@@ -265,7 +265,7 @@ export default function App() {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
-function TabDash({ stats, tl, ck, setTab }) {
+function TabDash({ stats, tl, ck, setTab, config }) {
   const prox = [...tl].filter(t=>t.estado!=="completado").sort((a,b)=>a.hora.localeCompare(b.hora)).slice(0,6);
   const porFase = FASES_CHECKLIST.map(f => { const it=ck.filter(c=>c.fase===f); const d=it.filter(c=>c.estado==="completado").length; return {f,d,t:it.length,pct:it.length?Math.round(d/it.length*100):0}; });
   const diasHasta = Math.ceil((EVENT_DATE - new Date()) / 86400000);
@@ -1169,8 +1169,13 @@ function MF({title,fields,init,onSave,onClose}) {
   const req=fields.find(f=>f.l.includes("*"));
   // Bloquear scroll del fondo y desplazar al top al abrir el modal
   // sin scroll-lock — causa freeze en Android
+  useEffect(() => {
+    const m = document.querySelector("main");
+    if (m) m.scrollTo({ top: 0, behavior: "instant" });
+  }, []);
+
   return(
-    <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+    <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal">
         <div className="modal-header"><span className="mtit">{title}</span><button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button></div>
         <div className="modal-body">
@@ -1216,7 +1221,7 @@ function ModalRuta({data,veh,rutas,setRutas,onClose}) {
   };
   // sin scroll-lock — causa freeze en Android
   return(
-    <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+    <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal" style={{maxWidth:560}}>
         <div className="modal-header"><span className="mtit">{data?"✏️ Editar ruta":"🗺️ Nueva ruta"}</span><button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button></div>
         <div className="modal-body">
