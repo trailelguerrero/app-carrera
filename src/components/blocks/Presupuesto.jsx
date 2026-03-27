@@ -158,6 +158,7 @@ const Presupuesto = () => {
     totalIngresosConMerch,
     resultado,
     puntoEquilibrio,
+    peGlobal,
     totalPatConfirmado,
     ingresosDesglosados,
   } = useBudgetLogic();
@@ -348,6 +349,8 @@ const Presupuesto = () => {
               puntoEquilibrio={puntoEquilibrio}
               resultado={resultado}
               ingresosPorDistancia={ingresosPorDistancia}
+              peGlobal={peGlobal}
+              maximos={maximos}
             />
           )}
         </div>

@@ -20,7 +20,8 @@ import {
   calculateMerchTotales,
   calculateIngresosDesglosados,
   calculateResultado,
-  calculatePuntoEquilibrio
+  calculatePuntoEquilibrio,
+  calculatePEGlobal
 } from "../lib/budgetUtils";
 
 export const useBudgetLogic = () => {
@@ -256,6 +257,11 @@ export const useBudgetLogic = () => {
     [totalInscritos, precioMedioDistancia, costesVarPorCorredor, costesFijos, totalIngresosConMerch, maximos]
   );
 
+  const peGlobal = useMemo(() =>
+    calculatePEGlobal(totalInscritos, precioMedioDistancia, costesVarPorCorredor, costesFijos, totalIngresosConMerch, maximos),
+    [totalInscritos, precioMedioDistancia, costesVarPorCorredor, costesFijos, totalIngresosConMerch, maximos]
+  );
+
   return {
     tab, setTab,
     tramos, setTramos,
@@ -288,6 +294,7 @@ export const useBudgetLogic = () => {
     totalIngresosExtra,
     totalIngresosConMerch,
     resultado,
-    puntoEquilibrio
+    puntoEquilibrio,
+    peGlobal
   };
 };

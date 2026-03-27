@@ -216,3 +216,94 @@ export const calculatePuntoEquilibrio = (totalInscritos, precioMedioDistancia, c
   });
   return pe;
 };
+
+/**
+ * Calcular el Punto de Equilibrio Global real
+ *
+ * El PE global responde a: "¿cuántos corredores en total necesitamos,
+ * manteniendo el mix actual de distancias, para cubrir todos los costes?"
+ *
+ * Fórmula:
+ *   PE_global = Costes_fijos_netos / Margen_contribución_medio_ponderado
+ *
+ * El mix actual determina cómo se distribuyen esos corredores entre distancias:
+ *   PE_distancia_d = PE_global × proporción_d
+ *
+ * Así el PE NUNCA supera el aforo máximo de forma individual — si el mix
+ * es realista, la distribución resultante es alcanzable.
+ *
+ * Si el PE global supera el aforo total disponible, el evento no es viable
+ * con la estructura de costes/precios actual — se informa claramente.
+ */
+export const calculatePEGlobal = (
+  totalInscritos,
+  precioMedioDistancia,
+  costesVarPorCorredor,
+  costesFijos,
+  totalIngresosConMerch,
+  maximos = {}
+) => {
+  const totalN    = totalInscritos.total;
+  const aforoTotal = DISTANCIAS.reduce((s, d) => s + (maximos[d] || 0), 0);
+
+  // Costes fijos que deben cubrirse con inscripciones
+  const fijosNetos = Math.max(costesFijos.total - totalIngresosConMerch, 0);
+
+  // Margen de contribución medio ponderado por el mix actual de inscritos
+  // Si no hay inscritos, usamos partes iguales como aproximación
+  const margenMedio = totalN > 0
+    ? DISTANCIAS.reduce((s, d) => {
+        const margen = precioMedioDistancia[d] - costesVarPorCorredor[d];
+        const prop   = totalInscritos[d] / totalN;
+        return s + margen * prop;
+      }, 0)
+    : DISTANCIAS.reduce((s, d) =>
+        s + (precioMedioDistancia[d] - costesVarPorCorredor[d]) / DISTANCIAS.length, 0);
+
+  // PE global inviable si margen ≤ 0
+  if (margenMedio <= 0) {
+    return { peGlobal: null, porDistancia: {}, viable: false,
+      motivo: "El margen de contribución medio es negativo o cero" };
+  }
+
+  // PE global = fijos netos / margen medio
+  const peGlobal = fijosNetos <= 0 ? 0 : Math.ceil(fijosNetos / margenMedio);
+
+  // Proporciones del mix actual (o iguales si no hay inscritos)
+  const proporciones = {};
+  DISTANCIAS.forEach(d => {
+    proporciones[d] = totalN > 0
+      ? totalInscritos[d] / totalN
+      : 1 / DISTANCIAS.length;
+  });
+
+  // Distribución del PE global entre distancias según el mix
+  const porDistancia = {};
+  DISTANCIAS.forEach(d => {
+    porDistancia[d] = Math.ceil(peGlobal * proporciones[d]);
+  });
+
+  // ¿El PE global es alcanzable con el aforo máximo?
+  const superaAforo = aforoTotal > 0 && peGlobal > aforoTotal;
+
+  // ¿Alguna distancia individual supera su máximo con esta distribución?
+  const distanciasSuperanMaximo = DISTANCIAS.filter(d =>
+    maximos[d] > 0 && porDistancia[d] > maximos[d]
+  );
+
+  return {
+    peGlobal,
+    porDistancia,
+    proporciones,
+    margenMedio,
+    fijosNetos,
+    viable: !superaAforo,
+    superaAforo,
+    aforoTotal,
+    distanciasSuperanMaximo,
+    // Cuántos corredores faltan o sobran respecto al PE
+    diferencia: totalN - peGlobal,
+    // Porcentaje de cobertura actual
+    coberturaPct: peGlobal > 0 ? Math.min((totalN / peGlobal) * 100, 200) : 100,
+  };
+};
