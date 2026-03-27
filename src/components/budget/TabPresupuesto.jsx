@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { ModalEditarConcepto } from "./FichaConcepto";
 import { Tooltip, TooltipIcon } from "../common/Tooltip";
 import { DISTANCIAS, DISTANCIA_COLORS, DISTANCIA_LABELS } from "../../constants/budgetConstants";
 import { NumInput } from "./common/NumInput";
@@ -70,6 +71,20 @@ export const TabPresupuesto = ({
 }) => {
   const [ordenAlfaFijo, setOrdenAlfaFijo] = useState(false);
   const [ordenAlfaVar,  setOrdenAlfaVar]  = useState(false);
+  const [editando, setEditando] = useState(null);
+
+  const abrirEditar = (c) => {
+    const m = document.querySelector("main");
+    if (m) m.scrollTo({ top: 0, behavior: "instant" });
+    setEditando(c);
+  };
+
+  const handleSave = (updated) => {
+    Object.entries(updated).forEach(([k, v]) => {
+      if (k !== "id" && k !== "tipo") updateConcepto(updated.id, k, v);
+    });
+    setEditando(null);
+  };
 
   const sort = (arr, alfa) => alfa
     ? [...arr].sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es"))
@@ -306,6 +321,14 @@ export const TabPresupuesto = ({
           </table>
         </div>
       </div>
+      {editando && (
+        <ModalEditarConcepto
+          concepto={editando}
+          totalInscritos={totalInscritos}
+          onSave={handleSave}
+          onClose={() => setEditando(null)}
+        />
+      )}
     </>
   );
 };
