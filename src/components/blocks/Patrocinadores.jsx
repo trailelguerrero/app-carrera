@@ -285,7 +285,7 @@ export default function App() {
 
         {/* CONTENIDO */}
         <div key={tab}>
-          {tab==="dashboard" && <TabDashboard stats={stats} pats={pats} objetivo={objetivo} setObjetivo={setObjetivo} setTab={setTab} openNuevo={openNuevo} openDetalle={openDetalle} />}
+          {tab==="dashboard" && <TabDashboard stats={stats} pats={pats} objetivo={objetivo} setObjetivo={setObjetivo} setTab={setTab} openNuevo={openNuevo} openDetalle={openDetalle}  config={config} />}
           {tab==="patrocinadores" && (
             <TabPatrocinadores
               pats={patsFiltrados} todosLen={pats.length}
@@ -337,7 +337,7 @@ export default function App() {
 }
 
 // ─── TAB DASHBOARD ────────────────────────────────────────────────────────────
-function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, openDetalle }) {
+function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, openDetalle, config }) {
   const [editObj, setEditObj] = useState(false);
   const [tmpObj, setTmpObj] = useState(objetivo);
 
