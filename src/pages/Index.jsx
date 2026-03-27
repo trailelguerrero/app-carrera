@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react"
 import { motion, AnimatePresence } from "framer-motion";
 import ReadmeModal from "../components/blocks/ReadmeModal";
 import OnboardingModal from "../components/blocks/OnboardingModal";
-import { exportBlockToPdf } from "../components/blocks/PdfExport";
 
 // Lazy-style imports for blocks
 const Dashboard = lazy(() => import("../components/blocks/Dashboard"));
@@ -158,7 +157,7 @@ function PinScreen({ onUnlock }) {
 
   const tryPin = useCallback((pin) => {
     if (hashPin(pin) === storedHash) {
-      sessionStorage.setItem(AUTH_KEY, String(Date.now() + 8 * 3600 * 1000));
+      localStorage.setItem(AUTH_KEY, String(Date.now() + 8 * 3600 * 1000));
       onUnlock();
     } else {
       setShake(true);
@@ -322,7 +321,7 @@ function ChangePinModal({ onClose }) {
 // ── MAIN EXPORT ────────────────────────────────────────────────────────────────
 export default function Index() {
   const [authed, setAuthed] = useState(() => {
-    const exp = Number(sessionStorage.getItem(AUTH_KEY) || 0);
+    const exp = Number(localStorage.getItem(AUTH_KEY) || 0);
     return exp > Date.now();
   });
   const [showChangePin, setShowChangePin] = useState(false);
@@ -442,7 +441,10 @@ export default function Index() {
                   fontFamily:"'Space Mono',monospace",
                   fontSize: isMobile ? "0.5rem" : "0.58rem", fontWeight:700, cursor:"pointer",
                 }}>📖{!isMobile && " README"}</button>
-                <button onClick={() => exportBlockToPdf(activeBlock)} style={{
+                <button onClick={async () => {
+                  const { exportBlockToPdf } = await import("../components/blocks/PdfExport");
+                  exportBlockToPdf(activeBlock);
+                }} style={{
                   background:"rgba(52,211,153,0.1)", color:"#34d399",
                   border:"1px solid rgba(52,211,153,0.22)", borderRadius:6,
                   padding: isMobile ? "0.22rem 0.38rem" : "0.26rem 0.55rem",
