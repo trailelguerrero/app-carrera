@@ -78,8 +78,7 @@ function estadoBg(e) {
 }
 
 // ─── PUBLIC REGISTRATION FORM ──────────────────────────────────────────────────
-export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: imgF, imgBack: imgB, imgGuiaTallas, opcionPuesto, opcionVehiculo, config: cfgProp }) {
-  const config = cfgProp || { nombre:"Trail El Guerrero", edicion:"2026", lugar:"Candeleda", provincia:"Ávila", organizador:"Club Trail El Guerrero", fecha:"2026-08-29" };
+export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: imgF, imgBack: imgB, imgGuiaTallas, opcionPuesto, opcionVehiculo }) {
   const [form, setForm] = useState({ nombre: "", apellidos: "", telefono: "", email: "", talla: "", puestoId: "", coche: false });
   const [enviado, setEnviado] = useState(false);
   const [errores, setErrores] = useState({});
@@ -484,7 +483,7 @@ export default function App() {
         opcionPuesto={opcionPuesto}
         opcionVehiculo={opcionVehiculo}
         onRegistrar={(data) => { addVoluntario(data); setVista("gestion"); setTab("voluntarios"); }}
-       config={config} />
+      />
     </AppShell>
   );
 

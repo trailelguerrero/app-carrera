@@ -1,0 +1,173 @@
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import ReadmeModal from "../components/blocks/ReadmeModal";
+import { exportBlockToPdf } from "../components/blocks/PdfExport";
+
+// Lazy-style imports for blocks
+import Dashboard from "../components/blocks/Dashboard";
+import Presupuesto from "../components/blocks/Presupuesto";
+import Voluntarios from "../components/blocks/Voluntarios";
+import Logistica from "../components/blocks/Logistica";
+import Patrocinadores from "../components/blocks/Patrocinadores";
+import Proyecto from "../components/blocks/Proyecto";
+import Documentos from "../components/blocks/Documentos";
+
+const BLOCKS = [
+  { id: "dashboard",      icon: "📊", label: "Dashboard",      component: Dashboard },
+  { id: "proyecto",       icon: "🏔️", label: "Proyecto",       component: Proyecto },
+  { id: "presupuesto",    icon: "💰", label: "Presupuesto",    component: Presupuesto },
+  { id: "voluntarios",    icon: "👥", label: "Voluntarios",    component: Voluntarios },
+  { id: "logistica",      icon: "📦", label: "Logística",      component: Logistica },
+  { id: "patrocinadores", icon: "🤝", label: "Patrocinadores", component: Patrocinadores },
+  { id: "documentos",     icon: "📁", label: "Docs",           component: Documentos },
+];
+
+// Register service worker for PWA
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}
+
+export default function Index() {
+  const [activeBlock, setActiveBlock] = useState("dashboard");
+  const [readmeBlock, setReadmeBlock] = useState(null);
+  const ActiveComponent = BLOCKS.find(b => b.id === activeBlock)?.component;
+
+  // State for mobile view detection
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Notify dashboard when switching blocks
+  const handleBlockChange = (blockId) => {
+    // Dispatch sync so dashboard re-reads all localStorage data
+    window.dispatchEvent(new Event("teg-sync"));
+    setActiveBlock(blockId);
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#080c18" }}>
+      {/* Top bar */}
+      <header style={{
+        background: "#0f1629", borderBottom: "1px solid #1e2d50",
+        padding: "0.5rem 1rem", display: "flex", alignItems: "center", justifyContent: "space-between",
+        position: "sticky", top: 0, zIndex: 50,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <span style={{ fontSize: isMobile ? "1rem" : "1.1rem" }}>🏔️</span>
+          <div>
+            <div style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: isMobile ? "0.75rem" : "0.85rem", color: "#e8eef8", lineHeight: 1.1 }}>
+              Trail El Guerrero
+            </div>
+            {!isMobile && (
+              <div style={{ fontFamily: "'Space Mono', monospace", fontSize: "0.55rem", color: "#5a6a8a" }}>
+                Panel de gestión 2026
+              </div>
+            )}
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: "0.4rem" }}>
+          {activeBlock !== "dashboard" && (
+            <>
+              <button onClick={() => setReadmeBlock(activeBlock)} style={{
+                background: "rgba(167,139,250,0.12)", color: "#a78bfa", border: "1px solid rgba(167,139,250,0.3)",
+                borderRadius: 6, padding: isMobile ? "0.25rem 0.4rem" : "0.3rem 0.6rem", fontFamily: "'Space Mono', monospace",
+                fontSize: isMobile ? "0.55rem" : "0.62rem", fontWeight: 700, cursor: "pointer",
+              }}>
+                📖 {isMobile ? "" : "README"}
+              </button>
+              <button onClick={() => exportBlockToPdf(activeBlock)} style={{
+                background: "rgba(52,211,153,0.12)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)",
+                borderRadius: 6, padding: isMobile ? "0.25rem 0.4rem" : "0.3rem 0.6rem", fontFamily: "'Space Mono', monospace",
+                fontSize: isMobile ? "0.55rem" : "0.62rem", fontWeight: 700, cursor: "pointer",
+              }}>
+                📄 {isMobile ? "" : "PDF"}
+              </button>
+            </>
+          )}
+        </div>
+      </header>
+
+      {/* Content */}
+      <main style={{ flex: 1, overflow: "auto", paddingBottom: "70px" }}>
+        {ActiveComponent && <ActiveComponent key={activeBlock} />}
+      </main>
+
+      {/* Bottom navigation */}
+      <nav style={{
+        position: "fixed", bottom: 0, left: 0, right: 0,
+        background: "#0f1629", borderTop: "1px solid #1e2d50",
+        display: "flex", justifyContent: "space-around", alignItems: "center",
+        padding: isMobile ? "0.25rem 0.1rem" : "0.4rem 0 max(0.4rem, env(safe-area-inset-bottom))",
+        zIndex: 50,
+        overflowX: isMobile ? "auto" : "visible",
+        gap: isMobile ? "0.4rem" : "0"
+      }}>
+        {BLOCKS.map(b => (
+          <button 
+            key={b.id} 
+            onClick={() => handleBlockChange(b.id)} 
+            aria-label={b.label}
+            style={{
+              background: "none", 
+              border: "none", 
+              cursor: "pointer",
+              display: "flex", 
+              flexDirection: "column", 
+              alignItems: "center", 
+              gap: "0.25rem",
+              padding: "0.5rem 0.25rem", 
+              borderRadius: 8,
+              transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+              opacity: activeBlock === b.id ? 1 : 0.4,
+              flex: isMobile ? "0 0 auto" : 1,
+              minWidth: isMobile ? "50px" : 0,
+              position: "relative",
+              outline: "none",
+              WebkitTapHighlightColor: "transparent",
+            }}
+          >
+            <span style={{
+              fontSize: "1.25rem",
+              filter: activeBlock === b.id ? "none" : "grayscale(0.8)",
+              transform: activeBlock === b.id ? "scale(1.1)" : "scale(1)",
+              transition: "all 0.2s",
+              pointerEvents: "none", // Asegura que el click llegue al botón
+            }}>{b.icon}</span>
+            <span style={{
+              fontFamily: "'Space Mono', monospace", 
+              fontSize: isMobile ? "0.45rem" : "0.55rem", 
+              fontWeight: 700,
+              color: activeBlock === b.id ? "#22d3ee" : "#5a6a8a",
+              transition: "color 0.2s",
+              pointerEvents: "none", 
+              whiteSpace: "nowrap",
+              display: isMobile && activeBlock !== b.id ? "none" : "block"
+            }}>{b.label}</span>
+            {activeBlock === b.id && (
+              <motion.div 
+                layoutId="nav-indicator"
+                style={{
+                  width: 12, 
+                  height: 2, 
+                  borderRadius: 1,
+                  background: "#22d3ee", 
+                  marginTop: "0.15rem",
+                  boxShadow: "0 0 8px rgba(34,211,238,0.5)"
+                }} 
+              />
+            )}
+          </button>
+        ))}
+      </nav>
+
+      {/* README Modal */}
+      {readmeBlock && <ReadmeModal block={readmeBlock} onClose={() => setReadmeBlock(null)} />}
+    </div>
+  );
+}

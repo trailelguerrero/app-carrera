@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { FichaConcepto, ModalEditarConcepto } from "./FichaConcepto";
 import { Tooltip, TooltipIcon } from "../common/Tooltip";
 import { DISTANCIAS, DISTANCIA_COLORS, DISTANCIA_LABELS } from "../../constants/budgetConstants";
 import { NumInput } from "./common/NumInput";
@@ -71,19 +70,6 @@ export const TabPresupuesto = ({
 }) => {
   const [ordenAlfaFijo, setOrdenAlfaFijo] = useState(false);
   const [ordenAlfaVar,  setOrdenAlfaVar]  = useState(false);
-  const [ficha,  setFicha]  = useState(null); // concepto en ficha
-  const [editando, setEditando] = useState(null); // concepto en edición
-
-  const abrirFicha  = (c) => { const m=document.querySelector("main"); if(m) m.scrollTo({top:0,behavior:"instant"}); setFicha(c); };
-  const abrirEditar = (c) => { const m=document.querySelector("main"); if(m) m.scrollTo({top:0,behavior:"instant"}); setFicha(null); setEditando(c); };
-
-  const handleSaveConcepto = (updated) => {
-    // Guardar todos los campos del concepto actualizado
-    Object.entries(updated).forEach(([k, v]) => {
-      if (k !== "id" && k !== "tipo") updateConcepto(updated.id, k, v);
-    });
-    setEditando(null);
-  };
 
   const sort = (arr, alfa) => alfa
     ? [...arr].sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es"))
@@ -136,25 +122,9 @@ export const TabPresupuesto = ({
         </td>
         <td><Toggle value={c.activo} onChange={v => updateConcepto(c.id, "activo", v)} /></td>
         <td>
-          <button
-            onClick={() => abrirEditar(c)}
-            style={{ background:"none", border:"none", cursor:"pointer", padding:"0.25rem 0.35rem",
-              textAlign:"left", width:"100%", borderRadius:6,
-              opacity: c.activo ? 1 : 0.5, transition:"background 0.15s" }}
-            onMouseEnter={e => e.currentTarget.style.background="var(--surface3)"}
-            onMouseLeave={e => e.currentTarget.style.background="none"}
-          >
-            <div style={{ display:"flex", alignItems:"center", gap:"0.4rem" }}>
-              <span style={{ fontFamily:"var(--font-display)", fontSize:"0.85rem",
-                fontWeight:600, color:"var(--text)", whiteSpace:"nowrap",
-                overflow:"hidden", textOverflow:"ellipsis" }}>
-                {c.nombre}
-              </span>
-              {(c.proveedor || c.notas || c.estadoPago) && (
-                <span style={{ fontSize:"0.6rem", flexShrink:0, opacity:0.6 }}>📋</span>
-              )}
-            </div>
-          </button>
+          <input className="text-input" value={c.nombre}
+            onChange={e => updateConcepto(c.id, "nombre", e.target.value)}
+            style={{ opacity: c.activo ? 1 : 0.4 }} />
         </td>
         <td className="text-right">
           <NumInput value={c.costeTotal} onChange={v => updateConcepto(c.id, "costeTotal", v)} step={1} />
@@ -193,25 +163,9 @@ export const TabPresupuesto = ({
         </td>
         <td><Toggle value={c.activo} onChange={v => updateConcepto(c.id, "activo", v)} /></td>
         <td>
-          <button
-            onClick={() => abrirEditar(c)}
-            style={{ background:"none", border:"none", cursor:"pointer", padding:"0.25rem 0.35rem",
-              textAlign:"left", width:"100%", borderRadius:6,
-              opacity: c.activo ? 1 : 0.5, transition:"background 0.15s" }}
-            onMouseEnter={e => e.currentTarget.style.background="var(--surface3)"}
-            onMouseLeave={e => e.currentTarget.style.background="none"}
-          >
-            <div style={{ display:"flex", alignItems:"center", gap:"0.4rem" }}>
-              <span style={{ fontFamily:"var(--font-display)", fontSize:"0.85rem",
-                fontWeight:600, color:"var(--text)", whiteSpace:"nowrap",
-                overflow:"hidden", textOverflow:"ellipsis" }}>
-                {c.nombre}
-              </span>
-              {(c.proveedor || c.notas || c.estadoPago) && (
-                <span style={{ fontSize:"0.6rem", flexShrink:0, opacity:0.6 }}>📋</span>
-              )}
-            </div>
-          </button>
+          <input className="text-input" value={c.nombre}
+            onChange={e => updateConcepto(c.id, "nombre", e.target.value)}
+            style={{ opacity: c.activo ? 1 : 0.4 }} />
         </td>
         <td>
           <button
@@ -352,26 +306,6 @@ export const TabPresupuesto = ({
           </table>
         </div>
       </div>
-      {/* ── Ficha de concepto ── */}
-      {ficha && (
-        <FichaConcepto
-          concepto={ficha}
-          totalInscritos={totalInscritos}
-          onClose={() => setFicha(null)}
-          onEditar={() => abrirEditar(ficha)}
-          onEliminar={() => { removeConcepto(ficha.id); setFicha(null); }}
-        />
-      )}
-
-      {/* ── Modal editar concepto ── */}
-      {editando && (
-        <ModalEditarConcepto
-          concepto={editando}
-          totalInscritos={totalInscritos}
-          onSave={handleSaveConcepto}
-          onClose={() => setEditando(null)}
-        />
-      )}
     </>
   );
 };

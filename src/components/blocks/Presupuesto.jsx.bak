@@ -1,0 +1,209 @@
+import React from "react";
+import { useBudgetLogic } from "../../hooks/useBudgetLogic";
+import { KpiGlobal } from "../budget/KpiGlobal";
+import { TabPresupuesto } from "../budget/TabPresupuesto";
+import { TabIngresos } from "../budget/TabIngresos";
+import { TabTramos } from "../budget/TabTramos";
+import { TabInscritos } from "../budget/TabInscritos";
+import { TabResumen } from "../budget/TabResumen";
+import { TabEquilibrio } from "../budget/TabEquilibrio";
+import { cls } from "../../lib/budgetUtils";
+
+const Presupuesto = () => {
+  const {
+    tab, setTab,
+    tramos, setTramos,
+    conceptos,
+    inscritos, setInscritos,
+    ingresosExtra, setIngresosExtra,
+    merchandising, setMerchandising,
+    maximos, setMaximos,
+    saveStatus,
+    saveData,
+    resetAllData,
+    updateConcepto,
+    updateCostePorDistancia,
+    updateActivoDistancia,
+    addConcepto,
+    removeConcepto,
+    reorderConceptos,
+    updateTramoPrecio,
+    addTramo,
+    updateInscritos,
+    totalInscritos,
+    ingresosPorDistancia,
+    precioMedioDistancia,
+    costesFijos,
+    costesVariables,
+    costesVarPorCorredor,
+    costesFijoPorCorredor,
+    merchTotales,
+    totalIngresosExtra,
+    totalIngresosConMerch,
+    resultado,
+    puntoEquilibrio
+  } = useBudgetLogic();
+
+  return (
+    <div className="budget-container">
+      <style>{`
+        /* Minimal inline styles to ensure the component remains visual as before */
+        /* Most styles are assumed to be in a global CSS or separate file, 
+           but we keep the essential logic-related ones here if needed. */
+        .budget-container { padding: 1rem; max-width: 1400px; margin: 0 auto; color: var(--text); }
+        .flex-between { display: flex; justify-content: space-between; alignItems: center; gap: 1rem; }
+        .mb-2 { margin-bottom: 1rem; }
+        .mb-4 { margin-bottom: 2rem; }
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .card-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem; display: flex; alignItems: center; gap: 0.5rem; }
+        .btn { padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; font-size: 0.85rem; }
+        .btn-amber { background: var(--amber); color: white; }
+        .btn-red { background: rgba(239,68,68,0.1); color: var(--red); }
+        .btn-red:hover { background: var(--red); color: white; }
+        .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; overflow-x: auto; padding-bottom: 0.5rem; }
+        .tab-btn { padding: 0.6rem 1.25rem; border-radius: 10px; background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); cursor: pointer; white-space: nowrap; font-weight: 600; transition: all 0.2s; }
+        .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 12px rgba(99,102,241,0.3); }
+        
+        /* Table styles */
+        .tbl { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        .tbl th { text-align: left; padding: 0.75rem; border-bottom: 2px solid var(--border); color: var(--text-muted); font-weight: 600; }
+        .tbl td { padding: 0.75rem; border-bottom: 1px solid var(--border); }
+        .text-right { text-align: right; }
+        .mono { font-family: var(--font-mono); }
+        
+        /* KPI Styles */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .kpi { padding: 1.25rem; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); }
+        .kpi-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+        .kpi-value { font-size: 1.75rem; font-weight: 800; margin: 0.25rem 0; font-family: var(--font-mono); }
+        .kpi-sub { font-size: 0.7rem; color: var(--text-muted); }
+        .kpi.green { border-left: 4px solid var(--green); }
+        .kpi.red { border-left: 4px solid var(--red); }
+        .kpi.amber { border-left: 4px solid var(--amber); }
+        .kpi.cyan { border-left: 4px solid var(--cyan); }
+        .kpi.violet { border-left: 4px solid var(--violet); }
+        .kpi.orange { border-left: 4px solid var(--orange); }
+
+        /* Draggable handle */
+        .drag-handle { color: var(--text-muted); opacity: 0.3; transition: opacity 0.2s; }
+        tr:hover .drag-handle { opacity: 1; }
+        .dragging { opacity: 0.5; background: var(--surface2); }
+        .drag-over { border-top: 2px solid var(--primary); }
+
+        /* Inputs */
+        .num-input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 0.3rem 0.5rem; width: 80px; text-align: right; font-family: var(--font-mono); }
+        .num-input-sm { font-size: 0.75rem; padding: 0.2rem 0.4rem; width: 65px; }
+        .text-input { background: transparent; border: 1px solid transparent; color: var(--text); padding: 0.3rem; width: 100%; border-radius: 4px; }
+        .text-input:focus { background: var(--surface2); border-color: var(--border); }
+      `}</style>
+
+      <div className="flex-between mb-4">
+        <h1 style={{ margin: 0, fontSize: "1.5rem" }}>📊 Presupuesto TEG 2026</h1>
+        <div className="flex" style={{ gap: "0.5rem" }}>
+          <button className="btn" style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} onClick={resetAllData}>Restablecer</button>
+          <button className={cls("btn", saveStatus === "saving" ? "btn-amber" : "btn-green")} onClick={saveData} disabled={saveStatus === "saving"}>
+            {saveStatus === "saving" ? "Guardando..." : saveStatus === "saved" ? "✓ Guardado" : "Guardar Cambios"}
+          </button>
+        </div>
+      </div>
+
+      <KpiGlobal 
+        totalInscritos={totalInscritos}
+        ingresosPorDistancia={ingresosPorDistancia}
+        costesFijos={costesFijos}
+        costesVariables={costesVariables}
+        totalIngresosExtra={totalIngresosExtra}
+        merchTotales={merchTotales}
+        totalIngresosConMerch={totalIngresosConMerch}
+        resultado={resultado}
+        maximos={maximos}
+      />
+
+      <div className="tabs">
+        <button className={cls("tab-btn", tab === "presupuesto" && "active")} onClick={() => setTab("presupuesto")}>💰 Presupuesto</button>
+        <button className={cls("tab-btn", tab === "ingresos" && "active")} onClick={() => setTab("ingresos")}>🟣 Otros Ingresos</button>
+        <button className={cls("tab-btn", tab === "tramos" && "active")} onClick={() => setTab("tramos")}>📅 Tramos y Precios</button>
+        <button className={cls("tab-btn", tab === "inscritos" && "active")} onClick={() => setTab("inscritos")}>🏃 Inscritos</button>
+        <button className={cls("tab-btn", tab === "resumen" && "active")} onClick={() => setTab("resumen")}>📉 P&L Resumen</button>
+        <button className={cls("tab-btn", tab === "equilibrio" && "active")} onClick={() => setTab("equilibrio")}>⚖️ Equilibrio</button>
+      </div>
+
+      <div className="tab-content">
+        {tab === "presupuesto" && (
+          <TabPresupuesto 
+            conceptos={conceptos}
+            totalInscritos={totalInscritos}
+            costesFijos={costesFijos}
+            costesVariables={costesVariables}
+            totalIngresosExtra={totalIngresosExtra}
+            updateConcepto={updateConcepto}
+            updateCostePorDistancia={updateCostePorDistancia}
+            updateActivoDistancia={updateActivoDistancia}
+            addConcepto={addConcepto}
+            removeConcepto={removeConcepto}
+            reorderConceptos={reorderConceptos}
+          />
+        )}
+        {tab === "ingresos" && (
+          <TabIngresos 
+            ingresosExtra={ingresosExtra}
+            setIngresosExtra={setIngresosExtra}
+            totalIngresosExtra={totalIngresosExtra}
+            merchandising={merchandising}
+            setMerchandising={setMerchandising}
+            merchTotales={merchTotales}
+            totalIngresosConMerch={totalIngresosConMerch}
+            ingresosPorDistancia={ingresosPorDistancia}
+          />
+        )}
+        {tab === "tramos" && (
+          <TabTramos 
+            tramos={tramos}
+            setTramos={setTramos}
+            updateTramoPrecio={updateTramoPrecio}
+            addTramo={addTramo}
+          />
+        )}
+        {tab === "inscritos" && (
+          <TabInscritos 
+            tramos={tramos}
+            inscritos={inscritos}
+            updateInscritos={updateInscritos}
+            totalInscritos={totalInscritos}
+            ingresosPorDistancia={ingresosPorDistancia}
+            precioMedioDistancia={precioMedioDistancia}
+            maximos={maximos}
+            setMaximos={setMaximos}
+          />
+        )}
+        {tab === "resumen" && (
+          <TabResumen 
+            totalInscritos={totalInscritos}
+            ingresosPorDistancia={ingresosPorDistancia}
+            costesFijos={costesFijos}
+            costesVariables={costesVariables}
+            totalIngresosConMerch={totalIngresosConMerch}
+            resultado={resultado}
+            conceptos={conceptos}
+            precioMedioDistancia={precioMedioDistancia}
+            costesVarPorCorredor={costesVarPorCorredor}
+            costesFijoPorCorredor={costesFijoPorCorredor}
+          />
+        )}
+        {tab === "equilibrio" && (
+          <TabEquilibrio 
+            totalInscritos={totalInscritos}
+            precioMedioDistancia={precioMedioDistancia}
+            costesVarPorCorredor={costesVarPorCorredor}
+            costesFijos={costesFijos}
+            totalIngresosConMerch={totalIngresosConMerch}
+            puntoEquilibrio={puntoEquilibrio}
+            resultado={resultado}
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Presupuesto;
