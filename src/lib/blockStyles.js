@@ -29,40 +29,6 @@ export const BLOCK_CSS = `
     --r-sm:         8px;
   }
 
-
-  /* ── Modo claro ─────────────────────────────────────────────────────────── */
-  :root.light {
-    --bg:           #f0f4f8;
-    --surface:      #ffffff;
-    --surface2:     #e8eef6;
-    --surface3:     #dde5f0;
-    --border:       #c8d6e8;
-    --border-light: #a8bdd4;
-    --text:         #0f1e36;
-    --text-muted:   #4a6080;
-    --text-dim:     #7a90a8;
-    --cyan:         #0891b2;  --cyan-dim:   rgba(8,145,178,0.12);
-    --violet:       #7c3aed;  --violet-dim: rgba(124,58,237,0.10);
-    --green:        #059669;  --green-dim:  rgba(5,150,105,0.10);
-    --amber:        #d97706;  --amber-dim:  rgba(217,119,6,0.10);
-    --red:          #dc2626;  --red-dim:    rgba(220,38,38,0.10);
-    --orange:       #ea580c;  --orange-dim: rgba(234,88,12,0.10);
-    --primary:      #4f46e5;  --primary-dim:rgba(79,70,229,0.12);
-  }
-
-  /* Ajustes específicos modo claro */
-  :root.light .block-container { background: var(--bg); }
-  :root.light .card { box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-  :root.light .modal { box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
-  :root.light .modal-backdrop { background: rgba(0,0,0,0.45); }
-  :root.light .btn-ghost { background: var(--surface2); }
-  :root.light .tab-btn { background: var(--surface2); }
-  :root.light .tab-btn.active { background: var(--surface); }
-  :root.light input, :root.light select, :root.light textarea {
-    background: var(--surface) !important;
-    color: var(--text) !important;
-  }
-
   /* ── Block shell ────────────────────────────────────────────────────────── */
   .block-container {
     padding: 1rem;

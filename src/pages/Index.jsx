@@ -4,24 +4,6 @@ import ReadmeModal from "../components/blocks/ReadmeModal";
 import OnboardingModal from "../components/blocks/OnboardingModal";
 import { exportBlockToPdf } from "../components/blocks/PdfExport";
 
-// ── THEME ──────────────────────────────────────────────────────────────────────
-function useTheme() {
-  const [theme, setTheme] = React.useState(() => {
-    return localStorage.getItem("teg_theme") || "dark";
-  });
-  React.useEffect(() => {
-    if (theme === "light") {
-      document.documentElement.classList.add("light");
-    } else {
-      document.documentElement.classList.remove("light");
-    }
-    localStorage.setItem("teg_theme", theme);
-  }, [theme]);
-  const toggle = () => setTheme(t => t === "dark" ? "light" : "dark");
-  return { theme, toggle };
-}
-
-
 // Lazy-style imports for blocks
 const Dashboard = lazy(() => import("../components/blocks/Dashboard"));
 const Presupuesto = lazy(() => import("../components/blocks/Presupuesto"));
@@ -133,7 +115,7 @@ function Numpad({ onDigit, onBackspace }) {
           disabled={k === ""}
           style={{
             padding: "0.9rem 0", borderRadius: 10,
-            border: `1px solid ${k === "" ? "transparent" : "var(--border)"}`,
+            border: `1px solid ${k === "" ? "transparent" : "#1e2d50"}`,
             fontFamily: "'Space Mono', monospace",
             fontSize: k === "⌫" ? "1rem" : "1.2rem",
             fontWeight: 700, cursor: k === "" ? "default" : "pointer",
@@ -143,7 +125,7 @@ function Numpad({ onDigit, onBackspace }) {
             WebkitTapHighlightColor: "transparent",
           }}
           onMouseEnter={e => { if (k && k !== "") { e.currentTarget.style.background = "rgba(34,211,238,0.08)"; e.currentTarget.style.borderColor = "rgba(34,211,238,0.3)"; }}}
-          onMouseLeave={e => { if (k && k !== "") { e.currentTarget.style.background = "rgba(255,255,255,0.025)"; e.currentTarget.style.borderColor = "var(--border)"; }}}
+          onMouseLeave={e => { if (k && k !== "") { e.currentTarget.style.background = "rgba(255,255,255,0.025)"; e.currentTarget.style.borderColor = "#1e2d50"; }}}
         >{k}</button>
       ))}
     </div>
@@ -157,7 +139,7 @@ function PinDots({ count, filled }) {
         <div key={i} style={{
           width: 13, height: 13, borderRadius: "50%",
           background: i < filled ? "#22d3ee" : "transparent",
-          border: `2px solid ${i < filled ? "#22d3ee" : "var(--border-light)"}`,
+          border: `2px solid ${i < filled ? "#22d3ee" : "#2a3f6a"}`,
           transition: "all 0.15s",
           boxShadow: i < filled ? "0 0 8px rgba(34,211,238,0.5)" : "none",
         }} />
@@ -206,7 +188,7 @@ function PinScreen({ onUnlock }) {
 
   return (
     <div style={{
-      minHeight: "100dvh", background: "var(--bg)",
+      minHeight: "100dvh", background: "#080c18",
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       padding: "2rem", fontFamily: "'Syne', sans-serif",
       backgroundImage: "radial-gradient(ellipse 60% 40% at 50% 0%, rgba(34,211,238,0.07) 0%, transparent 60%)",
@@ -217,11 +199,11 @@ function PinScreen({ onUnlock }) {
         style={{ width: "100%", maxWidth: 300, textAlign: "center" }}
       >
         <div style={{ fontSize: "2.2rem", marginBottom: "0.4rem" }}>🏔️</div>
-        <div style={{ fontWeight: 800, fontSize: "1.25rem", color: "var(--text)", marginBottom: "0.2rem" }}>
+        <div style={{ fontWeight: 800, fontSize: "1.25rem", color: "#e8eef8", marginBottom: "0.2rem" }}>
           Trail El Guerrero
         </div>
         <div style={{ fontFamily: "'Space Mono', monospace", fontSize: "0.58rem",
-          color: "var(--text-muted)", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "2.5rem" }}>
+          color: "#5a6a8a", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "2.5rem" }}>
           Panel de gestión · 2026
         </div>
 
@@ -239,8 +221,8 @@ function PinScreen({ onUnlock }) {
         <Numpad onDigit={handleDigit} onBackspace={handleBackspace} />
 
         <div style={{ marginTop: "2rem", fontFamily: "'Space Mono', monospace",
-          fontSize: "0.54rem", color: "var(--text-dim)", lineHeight: 1.7 }}>
-          PIN por defecto: <span style={{ color: "var(--text-muted)" }}>2026</span><br />
+          fontSize: "0.54rem", color: "#3a4a6a", lineHeight: 1.7 }}>
+          PIN por defecto: <span style={{ color: "#5a6a8a" }}>2026</span><br />
           Cámbialo desde el icono 🔐 en el panel
         </div>
       </motion.div>
@@ -305,7 +287,7 @@ function ChangePinModal({ onClose }) {
         onClick={e => e.stopPropagation()}
         initial={{ scale: 0.88, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.88, y: 20 }}
         transition={{ type: "spring", stiffness: 360, damping: 28 }}
-        style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18,
+        style={{ background: "#0f1629", border: "1px solid #1e2d50", borderRadius: 18,
           padding: "2rem 1.75rem", width: "100%", maxWidth: 290, textAlign: "center" }}
       >
         {ok ? (
@@ -315,10 +297,10 @@ function ChangePinModal({ onClose }) {
           </motion.div>
         ) : (
           <>
-            <div style={{ fontWeight: 800, fontSize: "0.95rem", color: "var(--text)", marginBottom: "0.3rem" }}>
+            <div style={{ fontWeight: 800, fontSize: "0.95rem", color: "#e8eef8", marginBottom: "0.3rem" }}>
               🔐 Cambiar PIN
             </div>
-            <div style={{ fontFamily: "'Space Mono', monospace", fontSize: "0.6rem", color: "var(--text-muted)", marginBottom: "1.5rem" }}>
+            <div style={{ fontFamily: "'Space Mono', monospace", fontSize: "0.6rem", color: "#5a6a8a", marginBottom: "1.5rem" }}>
               {STEP_LABEL[step]}
             </div>
             <div style={{ marginBottom: "0.5rem" }}>
@@ -328,7 +310,7 @@ function ChangePinModal({ onClose }) {
               fontSize: "0.6rem", color: "#f87171", marginBottom: "1rem" }}>{error}</div>
             <Numpad onDigit={handleDigit} onBackspace={handleBackspace} />
             <button onClick={onClose} style={{ marginTop: "1.25rem", background: "none",
-              border: "none", color: "var(--text-dim)", cursor: "pointer", fontFamily: "'Space Mono', monospace",
+              border: "none", color: "#3a4a6a", cursor: "pointer", fontFamily: "'Space Mono', monospace",
               fontSize: "0.6rem" }}>Cancelar</button>
           </>
         )}
@@ -339,7 +321,6 @@ function ChangePinModal({ onClose }) {
 
 // ── MAIN EXPORT ────────────────────────────────────────────────────────────────
 export default function Index() {
-  const { theme, toggle: toggleTheme } = useTheme();
   const [authed, setAuthed] = useState(() => {
     const exp = Number(sessionStorage.getItem(AUTH_KEY) || 0);
     return exp > Date.now();
@@ -406,16 +387,16 @@ export default function Index() {
         }
         ::-webkit-scrollbar { width:4px; height:4px; }
         ::-webkit-scrollbar-track { background:transparent; }
-        ::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
-        ::-webkit-scrollbar-thumb:hover { background:var(--border-light); }
+        ::-webkit-scrollbar-thumb { background:#1e2d50; border-radius:2px; }
+        ::-webkit-scrollbar-thumb:hover { background:#2a3f6a; }
       `}</style>
 
-      <div style={{ minHeight:"100vh", display:"flex", flexDirection:"column", background:"var(--bg)" }}>
+      <div style={{ minHeight:"100vh", display:"flex", flexDirection:"column", background:"#080c18" }}>
 
         {/* TOP BAR */}
         <header style={{
           background:"rgba(15,22,41,0.98)", backdropFilter:"blur(12px)",
-          WebkitBackdropFilter:"blur(12px)", borderBottom:"1px solid var(--border)",
+          WebkitBackdropFilter:"blur(12px)", borderBottom:"1px solid #1e2d50",
           padding:"0.4rem 0.9rem", display:"flex", alignItems:"center",
           justifyContent:"space-between", position:"sticky", top:0, zIndex:50, minHeight:44,
         }}>
@@ -424,11 +405,11 @@ export default function Index() {
             <span style={{ fontSize:"1rem" }}>🏔️</span>
             <div>
               <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800,
-                fontSize: isMobile ? "0.76rem" : "0.86rem", color:"var(--text)", lineHeight:1.1 }}>
+                fontSize: isMobile ? "0.76rem" : "0.86rem", color:"#e8eef8", lineHeight:1.1 }}>
                 Trail El Guerrero
               </div>
               {!isMobile && (
-                <div style={{ fontFamily:"'Space Mono',monospace", fontSize:"0.5rem", color:"var(--text-muted)" }}>
+                <div style={{ fontFamily:"'Space Mono',monospace", fontSize:"0.5rem", color:"#5a6a8a" }}>
                   Panel de gestión · 2026
                 </div>
               )}
@@ -443,20 +424,9 @@ export default function Index() {
           {/* Actions */}
           <div style={{ display:"flex", gap:"0.35rem", alignItems:"center" }}>
             <button
-              title={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
-              onClick={toggleTheme}
-              style={{ background:"transparent", border:"none",
-                color:"var(--text-muted)", cursor:"pointer",
-                fontSize: isMobile ? "1rem" : "1.1rem",
-                padding:"0.3rem", borderRadius:6,
-                WebkitTapHighlightColor:"transparent",
-              }}>
-              {theme === "dark" ? "☀️" : "🌙"}
-            </button>
-            <button
               onClick={() => setShowChangePin(true)}
               title="Cambiar PIN de acceso"
-              style={{ background:"transparent", border:"none", color:"var(--text-dim)",
+              style={{ background:"transparent", border:"none", color:"#3a4a6a",
                 cursor:"pointer", fontSize:"0.8rem", padding:"0.3rem",
                 borderRadius:6, lineHeight:1, transition:"color 0.2s" }}
               onMouseEnter={e => e.currentTarget.style.color="#5a6a8a"}
@@ -493,13 +463,13 @@ export default function Index() {
             }}>
               <div style={{
                 width:36, height:36, borderRadius:"50%",
-                border:"3px solid var(--border)",
+                border:"3px solid #1e2d50",
                 borderTopColor:"#22d3ee",
                 animation:"teg-spin 0.7s linear infinite",
               }} />
               <div style={{
                 fontFamily:"'Space Mono',monospace", fontSize:"0.6rem",
-                color:"var(--text-dim)", letterSpacing:"0.1em",
+                color:"#3a4a6a", letterSpacing:"0.1em",
               }}>Cargando módulo…</div>
               <style>{`@keyframes teg-spin { to { transform: rotate(360deg); } }`}</style>
             </div>
@@ -512,7 +482,7 @@ export default function Index() {
         <nav style={{
           position:"fixed", bottom:0, left:0, right:0,
           background:"rgba(15,22,41,0.97)", backdropFilter:"blur(14px)",
-          WebkitBackdropFilter:"blur(14px)", borderTop:"1px solid var(--border)",
+          WebkitBackdropFilter:"blur(14px)", borderTop:"1px solid #1e2d50",
           display:"flex", justifyContent:"space-around", alignItems:"center",
           height: NAV_H,
           paddingBottom:"env(safe-area-inset-bottom,0px)",
