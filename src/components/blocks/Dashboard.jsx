@@ -319,7 +319,7 @@ export default function Dashboard() {
         <style>{BLOCK_CSS}</style>
         <div className="block-container" style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:"60vh", gap:"1rem" }}>
           <div style={{ width:36, height:36, borderRadius:"50%", border:"3px solid #1e2d50", borderTopColor:"#22d3ee", animation:"teg-spin 0.7s linear infinite" }} />
-          <div style={{ fontFamily:"'Space Mono',monospace", fontSize:"0.6rem", color:"#3a4a6a", letterSpacing:"0.1em" }}>Cargando datos…</div>
+          <div style={{ fontFamily:"'Space Mono',monospace", fontSize:"0.6rem", color:"var(--text-dim)", letterSpacing:"0.1em" }}>Cargando datos…</div>
           <style>{`@keyframes teg-spin { to { transform:rotate(360deg); } }`}</style>
         </div>
       </>
@@ -563,9 +563,9 @@ export default function Dashboard() {
                       { name:"C. Fijos",      val:-d.totalCostesFijos,   color:"#f87171" },
                       { name:"C. Variables",  val:-d.totalCostesVars,    color:"#fb923c" },
                     ]} margin={{ top:4, right:4, left:-24, bottom:22 }}>
-                    <XAxis dataKey="name" tick={{ fontSize:9, fontFamily:"'Space Mono',monospace", fill:"#5a6a8a" }} angle={-35} textAnchor="end" interval={0} />
-                    <YAxis tick={{ fontSize:8, fontFamily:"'Space Mono',monospace", fill:"#5a6a8a" }} tickFormatter={v=>`${(v/1000).toFixed(0)}k`} />
-                    <Tooltip contentStyle={TOOLTIP_STYLE} formatter={v=>[fmt(Math.abs(v)),""]} labelStyle={{ color:"#e8eef8" }} />
+                    <XAxis dataKey="name" tick={{ fontSize:9, fontFamily:"'Space Mono',monospace", fill:"var(--text-muted)" }} angle={-35} textAnchor="end" interval={0} />
+                    <YAxis tick={{ fontSize:8, fontFamily:"'Space Mono',monospace", fill:"var(--text-muted)" }} tickFormatter={v=>`${(v/1000).toFixed(0)}k`} />
+                    <Tooltip contentStyle={TOOLTIP_STYLE} formatter={v=>[fmt(Math.abs(v)),""]} labelStyle={{ color:"var(--text)" }} />
                     <Bar dataKey="val" radius={[4,4,0,0]}>
                       {["#22d3ee","#34d399","#a78bfa","#f87171","#fb923c"].map((c,i) => <Cell key={i} fill={c} opacity={0.85}/>)}
                     </Bar>
@@ -694,7 +694,7 @@ function EmptyChart({ mensaje, sub }) {
 
 // ─── Estilos ──────────────────────────────────────────────────────────────────
 const TOOLTIP_STYLE = {
-  background:"#0f1629", border:"1px solid #1e2d50",
+  background:"var(--surface)", border:"1px solid #1e2d50",
   borderRadius:8, fontSize:"0.65rem", fontFamily:"'Space Mono',monospace",
 };
 

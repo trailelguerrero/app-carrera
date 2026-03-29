@@ -53,7 +53,7 @@ export default function OnboardingModal({ onClose, onNavigate }) {
       `}</style>
 
       <div style={{
-        background: "#0f1629", border: "1px solid #243460",
+        background: "var(--surface)", border: "1px solid #243460",
         borderRadius: 18, width: "100%", maxWidth: 500,
         maxHeight: "90vh", overflow: "hidden",
         display: "flex", flexDirection: "column",
@@ -69,13 +69,13 @@ export default function OnboardingModal({ onClose, onNavigate }) {
           <div style={{ fontSize: "2rem", marginBottom: ".5rem" }}>👋</div>
           <div style={{
             fontFamily: "'Syne', sans-serif", fontWeight: 800,
-            fontSize: "1.15rem", color: "#e8eef8", marginBottom: ".4rem",
+            fontSize: "1.15rem", color: "var(--text)", marginBottom: ".4rem",
           }}>
             Bienvenido a la app de Trail El Guerrero
           </div>
           <div style={{
             fontFamily: "'Space Mono', monospace", fontSize: ".7rem",
-            color: "#5a6a8a", lineHeight: 1.6,
+            color: "var(--text-muted)", lineHeight: 1.6,
           }}>
             Los datos que ves ahora son ejemplos de configuración.
             Edítalos directamente o bórralos desde cada bloque.
@@ -87,7 +87,7 @@ export default function OnboardingModal({ onClose, onNavigate }) {
         <div style={{ padding: "1rem 1.2rem", overflowY: "auto", flex: 1 }}>
           <div style={{
             fontFamily: "'Space Mono', monospace", fontSize: ".62rem",
-            color: "#3a4a6a", textTransform: "uppercase", letterSpacing: ".1em",
+            color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: ".1em",
             marginBottom: ".65rem",
           }}>
             Orden de configuración recomendado
@@ -120,19 +120,19 @@ export default function OnboardingModal({ onClose, onNavigate }) {
                   </span>
                   <span style={{
                     fontFamily: "'Syne', sans-serif", fontWeight: 700,
-                    fontSize: ".82rem", color: "#e8eef8",
+                    fontSize: ".82rem", color: "var(--text)",
                   }}>
                     {p.titulo}
                   </span>
                 </div>
                 <div style={{
                   fontFamily: "'Space Mono', monospace", fontSize: ".65rem",
-                  color: "#5a6a8a", lineHeight: 1.55,
+                  color: "var(--text-muted)", lineHeight: 1.55,
                 }}>
                   {p.desc}
                 </div>
               </div>
-              <span style={{ color: "#3a4a6a", fontSize: ".8rem", flexShrink: 0, alignSelf: "center" }}>›</span>
+              <span style={{ color: "var(--text-dim)", fontSize: ".8rem", flexShrink: 0, alignSelf: "center" }}>›</span>
             </div>
           ))}
 
@@ -141,7 +141,7 @@ export default function OnboardingModal({ onClose, onNavigate }) {
             background: "rgba(34,211,238,0.04)", border: "1px solid rgba(34,211,238,0.15)",
             borderRadius: 8,
             fontFamily: "'Space Mono', monospace", fontSize: ".63rem",
-            color: "#5a6a8a", lineHeight: 1.6,
+            color: "var(--text-muted)", lineHeight: 1.6,
           }}>
             💡 En cada bloque tienes el botón <span style={{
               color: "#a78bfa", background: "rgba(167,139,250,0.12)",
@@ -159,7 +159,7 @@ export default function OnboardingModal({ onClose, onNavigate }) {
         }}>
           <span style={{
             fontFamily: "'Space Mono', monospace", fontSize: ".6rem",
-            color: "#3a4a6a",
+            color: "var(--text-dim)",
           }}>
             Haz clic en un paso para ir directamente
           </span>
