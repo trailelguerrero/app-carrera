@@ -107,6 +107,9 @@ export default function Dashboard() {
     const syncConfig     = get("teg_presupuesto_v1_syncConfig", { patrocinios: true, camisetas: true });
     const merchStats     = get("teg_camisetas_v1_stats", {});
     const pats           = get("teg_patrocinadores_v1_pats", []);
+    const ingresosExtra  = get("teg_presupuesto_v1_ingresosExtra", []);
+    const merchandising  = get("teg_presupuesto_v1_merchandising", []);
+    const maximos        = get("teg_presupuesto_v1_maximos", {});
 
     const DISTANCIAS = ["TG7", "TG13", "TG25"];
     let totalInscritos = 0;
