@@ -66,6 +66,9 @@ const badgePago = (p) => {
 };
 const badgeEnt = (p) => p.lineas.some(l => (l.estadoEntrega||"pendiente")==="pendiente") ? EE.pendiente : EE.entregado;
 
+// Default corredor externos: un objeto { XXS:0, XS:0, S:0, M:0, L:0, XL:0, XXL:0, 3XL:0, 4XL:0 }
+const CORREDORES_DEFAULT = Object.fromEntries(TALLAS.map(t => [t, 0]));
+
 export default function App() {
   const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
@@ -76,6 +79,19 @@ export default function App() {
   const [modal,setModal] = useState(null);
   const [ficha,setFicha] = useState(null);
   const [delId,setDelId] = useState(null);
+
+  // ─── Fuentes externas para Tab Tallas ───────────────────────────────────────
+  // Tallas de corredores: entrada manual desde plataforma externa (total por talla)
+  const [rawCorredores, setCorredores] = useData(LS+"_corredores", CORREDORES_DEFAULT);
+  const corredoresExt = (rawCorredores && typeof rawCorredores === 'object' && !Array.isArray(rawCorredores))
+    ? { ...CORREDORES_DEFAULT, ...rawCorredores }
+    : CORREDORES_DEFAULT;
+
+  // Tallas de voluntarios: lectura automática (solo confirmados/pendientes, excluye cancelados)
+  const [rawVols] = useData("teg_voluntarios_v1_voluntarios", []);
+  const voluntariosActivos = Array.isArray(rawVols)
+    ? rawVols.filter(v => v?.estado !== "cancelado" && v?.talla)
+    : [];
 
   const scrollTop   = () => { const m=document.querySelector("main"); if(m) m.scrollTo({top:0,behavior:"instant"}); };
   const abrirFicha  = (p) => { scrollTop(); setFicha(p); };
@@ -135,7 +151,7 @@ export default function App() {
         <div key={tab}>
           {tab==="dashboard" && <TabDashboard stats={stats} pedidos={pedidos} coste={coste} setCoste={setCoste} setTab={setTab} abrirFicha={abrirFicha} />}
           {tab==="pedidos"   && <TabPedidos   pedidos={pedidos} coste={coste} abrirFicha={abrirFicha} abrirModal={abrirModal} />}
-          {tab==="tallas"    && <TabTallas    pedidos={pedidos} />}
+          {tab==="tallas"    && <TabTallas    pedidos={pedidos} corredoresExt={corredoresExt} setCorredores={setCorredores} voluntariosActivos={voluntariosActivos} />}
           {tab==="checklist" && <TabChecklist pedidos={pedidos} updateLinea={updateLinea} abrirFicha={abrirFicha} />}
         </div>
       </div>
@@ -377,44 +393,200 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal }) {
 }
 
 // ─── TAB TALLAS ───────────────────────────────────────────────────────────────
-function TabTallas({ pedidos }) {
-  const tabla = useMemo(()=>{
-    const map={}; TALLAS.forEach(t=>{map[t]={}; TIPOS.forEach(tp=>{map[t][tp]=0;});});
-    pedidos.forEach(p=>p.lineas.forEach(l=>{if(map[l.talla]) map[l.talla][l.tipo]=(map[l.talla][l.tipo]||0)+l.cantidad;}));
+function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos }) {
+  const [editCorredores, setEditCorredores] = useState(false);
+  const [tmpCor, setTmpCor] = useState({ ...corredoresExt });
+
+  // Al abrir edición, sincronizar el estado temporal
+  const abrirEdicion = () => { setTmpCor({ ...corredoresExt }); setEditCorredores(true); };
+  const guardarCorredores = () => { setCorredores({ ...tmpCor }); setEditCorredores(false); };
+
+  // Tallas de EXTRAS (pedidos manuales) agrupadas por tipo/modelo de camiseta
+  const tallasExtras = useMemo(() => {
+    const map = {};
+    TALLAS.forEach(t => { map[t] = {}; TIPOS.forEach(tp => { map[t][tp] = 0; }); });
+    pedidos.forEach(p => p.lineas.forEach(l => {
+      if (map[l.talla]) map[l.talla][l.tipo] = (map[l.talla][l.tipo] || 0) + l.cantidad;
+    }));
     return map;
-  },[pedidos]);
-  const totTipo=TIPOS.map(tp=>({tp,total:TALLAS.reduce((s,t)=>s+(tabla[t]?.[tp]||0),0)}));
-  const totGen=totTipo.reduce((s,x)=>s+x.total,0);
+  }, [pedidos]);
+
+  // Tallas de VOLUNTARIOS agrupadas (modelo voluntario)
+  const tallasVol = useMemo(() => {
+    const map = {};
+    TALLAS.forEach(t => { map[t] = 0; });
+    voluntariosActivos.forEach(v => { if (map[v.talla] !== undefined) map[v.talla]++; });
+    return map;
+  }, [voluntariosActivos]);
+
+  // TOTALES AL PROVEEDOR por modelo y talla
+  const totalCorredor = useMemo(() => {
+    const tot = {};
+    TALLAS.forEach(t => {
+      tot[t] = (corredoresExt[t] || 0) + (tallasExtras[t]?.corredor || 0);
+    });
+    return tot;
+  }, [corredoresExt, tallasExtras]);
+
+  const totalVoluntario = useMemo(() => {
+    const tot = {};
+    TALLAS.forEach(t => {
+      tot[t] = (tallasVol[t] || 0) + (tallasExtras[t]?.voluntario || 0);
+    });
+    return tot;
+  }, [tallasVol, tallasExtras]);
+
+  const grandTotalCor = TALLAS.reduce((s, t) => s + (totalCorredor[t] || 0), 0);
+  const grandTotalVol = TALLAS.reduce((s, t) => s + (totalVoluntario[t] || 0), 0);
+  const grandTotal = grandTotalCor + grandTotalVol;
+
+  const SectionTitle = ({ icon, title, subtitle, color, action }) => (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '.6rem', gap: '.5rem', flexWrap: 'wrap' }}>
+      <div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '.62rem', fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '.08em' }}>{icon} {title}</div>
+        {subtitle && <div style={{ fontFamily: 'var(--font-mono)', fontSize: '.58rem', color: 'var(--text-muted)', marginTop: '.1rem' }}>{subtitle}</div>}
+      </div>
+      {action}
+    </div>
+  );
+
+  const TallaBar = ({ talla, valor, total, color }) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', marginBottom: '.38rem' }}>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '.7rem', fontWeight: 700, width: 34, flexShrink: 0 }}>{talla}</span>
+      <div style={{ flex: 1, height: 7, background: 'var(--surface3)', borderRadius: 4, overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${total > 0 ? (valor / total) * 100 : 0}%`, background: color, borderRadius: 4, transition: 'width .4s ease' }} />
+      </div>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '.7rem', fontWeight: 700, color, width: 22, textAlign: 'right' }}>{valor}</span>
+    </div>
+  );
+
   return (
     <>
-      <div className="ph"><div><div className="pt">📐 Tabla de tallas para producción</div><div className="pd">{totGen} unidades totales a producir</div></div></div>
-      <div className="card p0"><div className="overflow-x"><table className="tbl">
-        <thead><tr><th>Talla</th>{TIPOS.map(tp=><th key={tp} className="text-right" style={{color:TC[tp].color}}>{TC[tp].icon} {TC[tp].label}</th>)}<th className="text-right">Total</th></tr></thead>
-        <tbody>{TALLAS.map(t=>{
-          const tf=TIPOS.reduce((s,tp)=>s+(tabla[t]?.[tp]||0),0);
-          if(!tf) return null;
-          return (<tr key={t}><td style={{fontWeight:700,fontFamily:"var(--font-mono)"}}>{t}</td>
-            {TIPOS.map(tp=>(<td key={tp} className="text-right">{tabla[t]?.[tp]>0?<span style={{fontFamily:"var(--font-mono)",fontWeight:700,color:TC[tp].color,background:TC[tp].dim,padding:".1rem .4rem",borderRadius:4}}>{tabla[t][tp]}</span>:<span style={{color:"var(--text-dim)"}}>—</span>}</td>))}
-            <td className="text-right"><span style={{fontFamily:"var(--font-mono)",fontWeight:800}}>{tf}</span></td></tr>);
-        })}</tbody>
-        <tfoot><tr className="total-row"><td style={{fontWeight:700,fontFamily:"var(--font-mono)"}}>TOTAL</td>
-          {totTipo.map(({tp,total})=><td key={tp} className="text-right" style={{fontFamily:"var(--font-mono)",fontWeight:800,color:TC[tp].color}}>{total}</td>)}
-          <td className="text-right" style={{fontFamily:"var(--font-mono)",fontWeight:800}}>{totGen}</td></tr></tfoot>
-      </table></div></div>
-      <div className="grid-2" style={{marginTop:".85rem"}}>
-        {TIPOS.map(tp=>{
-          const tt=TALLAS.map(t=>({t,n:tabla[t]?.[tp]||0})).filter(x=>x.n>0);
-          const total=tt.reduce((s,x)=>s+x.n,0); const cfg=TC[tp];
-          if(!total) return null;
-          return (<div key={tp} className="card" style={{borderLeft:`3px solid ${cfg.color}`}}>
-            <div className="card-title" style={{color:cfg.color}}>{cfg.icon} Camiseta {cfg.label} — {total} ud</div>
-            {tt.map(({t,n})=>(<div key={t} style={{display:"flex",alignItems:"center",gap:".75rem",marginBottom:".5rem"}}>
-              <span style={{fontFamily:"var(--font-mono)",fontSize:".72rem",fontWeight:700,width:36,flexShrink:0}}>{t}</span>
-              <div style={{flex:1,height:8,background:"var(--surface3)",borderRadius:4,overflow:"hidden"}}><div style={{height:"100%",width:`${(n/total)*100}%`,background:cfg.color,borderRadius:4,transition:"width .4s ease"}}/></div>
-              <span style={{fontFamily:"var(--font-mono)",fontSize:".72rem",fontWeight:700,color:cfg.color,width:20,textAlign:"right"}}>{n}</span>
-            </div>))}
-          </div>);
-        })}
+      <div className="ph">
+        <div>
+          <div className="pt">📐 Tallas para producción</div>
+          <div className="pd">{grandTotal} unidades totales · {grandTotalCor} modelo corredor · {grandTotalVol} modelo voluntario</div>
+        </div>
+      </div>
+
+      {/* ── TABLA CONSOLIDADA: PEDIDO TOTAL AL PROVEEDOR ── */}
+      <div className="card" style={{ marginBottom: '.85rem', borderLeft: '3px solid var(--primary)' }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '.65rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '.75rem' }}>📦 Pedido Total al Proveedor</div>
+        <div className="overflow-x">
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th>Talla</th>
+                <th className="text-right" style={{ color: TC.corredor.color }}>{TC.corredor.icon} Modelo Corredor</th>
+                <th className="text-right" style={{ color: TC.voluntario.color }}>{TC.voluntario.icon} Modelo Voluntario</th>
+                <th className="text-right">Total Talla</th>
+              </tr>
+            </thead>
+            <tbody>
+              {TALLAS.map(t => {
+                const vc = totalCorredor[t] || 0;
+                const vv = totalVoluntario[t] || 0;
+                const tot = vc + vv;
+                if (!tot) return null;
+                return (
+                  <tr key={t}>
+                    <td style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{t}</td>
+                    <td className="text-right">
+                      {vc > 0 ? <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: TC.corredor.color, background: TC.corredor.dim, padding: '.1rem .4rem', borderRadius: 4 }}>{vc}</span> : <span style={{ color: 'var(--text-dim)' }}>—</span>}
+                    </td>
+                    <td className="text-right">
+                      {vv > 0 ? <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: TC.voluntario.color, background: TC.voluntario.dim, padding: '.1rem .4rem', borderRadius: 4 }}>{vv}</span> : <span style={{ color: 'var(--text-dim)' }}>—</span>}
+                    </td>
+                    <td className="text-right"><span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800 }}>{tot}</span></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr className="total-row">
+                <td style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>TOTAL</td>
+                <td className="text-right" style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: TC.corredor.color }}>{grandTotalCor}</td>
+                <td className="text-right" style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: TC.voluntario.color }}>{grandTotalVol}</td>
+                <td className="text-right" style={{ fontFamily: 'var(--font-mono)', fontWeight: 800 }}>{grandTotal}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      {/* ── DESGLOSE POR FUENTE ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '.85rem' }}>
+
+        {/* ── FUENTE 1: Corredores (plataforma externa) ── */}
+        <div className="card">
+          <SectionTitle
+            icon="🏃" title="Corredor — plataforma externa"
+            subtitle="Introduce manualmente los totales de la plataforma de inscripción"
+            color={TC.corredor.color}
+            action={
+              !editCorredores
+                ? <button className="btn btn-ghost btn-sm" onClick={abrirEdicion}>✏️ Editar</button>
+                : <div style={{ display: 'flex', gap: '.35rem' }}>
+                    <button className="btn btn-primary btn-sm" onClick={guardarCorredores}>✓ Guardar</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => setEditCorredores(false)}>✕</button>
+                  </div>
+            }
+          />
+          {editCorredores ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '.4rem' }}>
+              {TALLAS.map(t => (
+                <label key={t} style={{ display: 'flex', flexDirection: 'column', gap: '.2rem' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '.65rem', fontWeight: 700, color: TC.corredor.color }}>{t}</span>
+                  <input
+                    type="number" min="0" value={tmpCor[t] || 0}
+                    onChange={e => setTmpCor(p => ({ ...p, [t]: Math.max(0, parseInt(e.target.value) || 0) }))}
+                    style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 'var(--r-sm)', padding: '.3rem .4rem', fontFamily: 'var(--font-mono)', fontSize: '.78rem', textAlign: 'right', outline: 'none', width: '100%' }}
+                  />
+                </label>
+              ))}
+            </div>
+          ) : (
+            <>
+              {TALLAS.filter(t => (corredoresExt[t] || 0) > 0).length === 0
+                ? <div style={{ fontFamily: 'var(--font-mono)', fontSize: '.62rem', color: 'var(--text-dim)', textAlign: 'center', padding: '1rem 0' }}>Sin datos — haz clic en ✏️ Editar para introducir tallas</div>
+                : TALLAS.filter(t => (corredoresExt[t] || 0) > 0).map(t => (
+                  <TallaBar key={t} talla={t} valor={corredoresExt[t]} total={TALLAS.reduce((s, tt) => s + (corredoresExt[tt] || 0), 0)} color={TC.corredor.color} />
+                ))
+              }
+              {(tallasExtras && TALLAS.some(t => (tallasExtras[t]?.corredor || 0) > 0)) && (
+                <div style={{ marginTop: '.75rem', paddingTop: '.6rem', borderTop: '1px dashed var(--border)' }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '.58rem', color: 'var(--text-muted)', marginBottom: '.4rem' }}>+ Extras modelo corredor (pedidos manuales):</div>
+                  {TALLAS.filter(t => (tallasExtras[t]?.corredor || 0) > 0).map(t => (
+                    <TallaBar key={t} talla={t} valor={tallasExtras[t].corredor} total={TALLAS.reduce((s, tt) => s + (tallasExtras[tt]?.corredor || 0), 0)} color={TC.corredor.color} />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* ── FUENTE 2: Voluntarios (automático) ── */}
+        <div className="card">
+          <SectionTitle
+            icon="👥" title="Voluntario — automático"
+            subtitle={`${voluntariosActivos.length} voluntario(s) activos sincronizados en tiempo real`}
+            color={TC.voluntario.color}
+          />
+          {TALLAS.filter(t => (tallasVol[t] || 0) > 0).length === 0
+            ? <div style={{ fontFamily: 'var(--font-mono)', fontSize: '.62rem', color: 'var(--text-dim)', textAlign: 'center', padding: '1rem 0' }}>Sin voluntarios con talla asignada aún</div>
+            : TALLAS.filter(t => (tallasVol[t] || 0) > 0).map(t => (
+              <TallaBar key={t} talla={t} valor={tallasVol[t]} total={voluntariosActivos.length} color={TC.voluntario.color} />
+            ))
+          }
+          {TALLAS.some(t => (tallasExtras[t]?.voluntario || 0) > 0) && (
+            <div style={{ marginTop: '.75rem', paddingTop: '.6rem', borderTop: '1px dashed var(--border)' }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '.58rem', color: 'var(--text-muted)', marginBottom: '.4rem' }}>+ Extras modelo voluntario (pedidos manuales):</div>
+              {TALLAS.filter(t => (tallasExtras[t]?.voluntario || 0) > 0).map(t => (
+                <TallaBar key={t} talla={t} valor={tallasExtras[t].voluntario} total={TALLAS.reduce((s, tt) => s + (tallasExtras[tt]?.voluntario || 0), 0)} color={TC.voluntario.color} />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </>
   );
