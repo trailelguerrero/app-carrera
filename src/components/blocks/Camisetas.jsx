@@ -162,9 +162,14 @@ export default function App() {
 
     const totalGastos = gCorExt + gVolAuto + gExtrasCor + gExtrasVol;
 
-    // 4. Beneficios
     const beneficioNetoReal = totalIngresosReal - totalGastos;
     const beneficioNetoProyectado = totalIngresosProyectado - totalGastos;
+
+    // 5. Coste de regalos (específico para transparencia)
+    const gRegalos = extrasLineas.filter(l => l.estadoPago === "regalo" && (
+      (l.tipo === "corredor" && fuentesActivas.extrasCorredor) || 
+      (l.tipo === "voluntario" && fuentesActivas.extrasVoluntario)
+    )).reduce((s,l) => s + l.cantidad * (coste[l.tipo] || 0), 0);
 
     // Métricas auxiliares para KPIs antiguos
     const cPendCobro = extrasLineas.filter(l => l.estadoPago === "pendiente" && (
@@ -181,6 +186,7 @@ export default function App() {
       beneficioNetoProyectado,
       uCorExt, uVolAuto, uExtrasCor, uExtrasVol,
       iCorExt, iExtrasReal, iExtrasProyectado,
+      gRegalos,
       cPendCobro,
       totalPedidosExtras: pedidos.length,
       pendEnt: extrasLineas.filter(l => l.estadoEntrega === "pendiente").reduce((s,l) => s + l.cantidad, 0)
@@ -272,6 +278,7 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
             <div>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: ".55rem", color: "var(--text-dim)", textTransform: "uppercase" }}>Gastos Fabricación</div>
               <div style={{ fontSize: ".9rem", fontWeight: 700, color: "var(--amber)" }}>{fmt(stats.totalGastos)}</div>
+              {stats.gRegalos > 0 && <div style={{ fontSize: ".55rem", color: "var(--violet)", fontWeight: 600 }}>inc. {fmt(stats.gRegalos)} en regalos</div>}
             </div>
             <div style={{ marginLeft: "auto", textAlign: "right" }}>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: ".55rem", color: "var(--text-dim)", textTransform: "uppercase" }}>ROI</div>
