@@ -160,6 +160,8 @@ const Presupuesto = () => {
     puntoEquilibrio,
     peGlobal,
     totalPatConfirmado,
+    totalMerchBeneficio,
+    syncConfig, setSyncConfig,
     ingresosDesglosados,
   } = useBudgetLogic();
 
@@ -310,6 +312,9 @@ const Presupuesto = () => {
               totalIngresosConMerch={totalIngresosConMerch}
               ingresosPorDistancia={ingresosPorDistancia}
               totalPatConfirmado={totalPatConfirmado}
+              totalMerchBeneficio={totalMerchBeneficio}
+              syncConfig={syncConfig}
+              setSyncConfig={setSyncConfig}
             />
           )}
           {tab === "tramos" && (

@@ -64,11 +64,17 @@ export const INSCRITOS_DEFAULT = {
 };
 
 export const INGRESOS_EXTRA_DEFAULT = [
-  { id: 1, nombre: "Patrocinio / Sponsor", valor: 0, activo: true },
-  { id: 2, nombre: "Subvención entidad pública", valor: 0, activo: true },
-  { id: 3, nombre: "Colaboradores en especie", valor: 0, activo: true },
-  { id: 4, nombre: "Otros ingresos", valor: 0, activo: true },
+  { id: 1, nombre: "Patrocinios (Sincronizado)", valor: 0, activo: true, synced: true },
+  { id: 2, nombre: "Merchandising (Sincronizado)", valor: 0, activo: true, synced: true },
+  { id: 10, nombre: "Subvención entidad pública", valor: 0, activo: true },
+  { id: 11, nombre: "Colaboradores en especie", valor: 0, activo: true },
+  { id: 12, nombre: "Otros ingresos manuales", valor: 0, activo: true },
 ];
+
+export const SYNC_CONFIG_DEFAULT = {
+  patrocinios: true,
+  camisetas: true
+};
 
 export const MERCHANDISING_DEFAULT = [
   { id: 1, nombre: "Camiseta técnica", unidades: 50, costeUnitario: 8, precioVenta: 18, activo: true },

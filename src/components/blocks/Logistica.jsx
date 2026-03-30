@@ -175,6 +175,13 @@ export default function App() {
     const p = Array.isArray(rawPats) ? rawPats : [];
     return p.filter(pat => pat && (pat.especieItems||[]).length > 0);
   }, [rawPats]);
+
+  // Voluntarios (solo lectura para el pool de vehículos)
+  const [rawVols] = useData("teg_voluntarios_v1_voluntarios", []);
+  const voluntariosConCoche = useMemo(() => {
+    const v = Array.isArray(rawVols) ? rawVols : [];
+    return v.filter(vol => vol && vol.coche && vol.estado === "confirmado");
+  }, [rawVols]);
   const [saved, setSaved] = useState(false);
   const [modal, setModal] = useState(null);
   const [del, setDel] = useState(null);
@@ -260,9 +267,8 @@ export default function App() {
 
         {/* CONTENIDO */}
         <div key={tab}>
-          {tab==="dashboard" && <TabDash stats={stats} tl={tl} ck={ck} setTab={setTab} config={config} patsConEspecie={patsConEspecie} />}
           {tab==="material" && <TabMat material={material} setMaterial={setMaterial} asigs={asigs} setAsigs={setAsigs} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenMat} setOrdenAlfa={setOrdenMat} locs={locs} patsConEspecie={patsConEspecie} />}
-          {tab==="vehiculos" && <TabVeh veh={veh} setVeh={setVeh} rutas={rutas} setRutas={setRutas} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenVeh} setOrdenAlfa={setOrdenVeh} />}
+          {tab==="vehiculos" && <TabVeh veh={veh} setVeh={setVeh} rutas={rutas} setRutas={setRutas} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenVeh} setOrdenAlfa={setOrdenVeh} voluntariosConCoche={voluntariosConCoche} />}
           {tab==="timeline" && <TabTL tl={tl} setTl={setTl} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenTL} setOrdenAlfa={setOrdenTL} />}
           {tab==="contactos" && <TabCont cont={cont} setCont={setCont} inc={inc} setInc={setInc} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCont} setOrdenAlfa={setOrdenCont} />}
           {tab==="checklist" && <TabCK ck={ck} setCk={setCk} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCK} setOrdenAlfa={setOrdenCK} />}
@@ -574,7 +580,7 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
 }
 
 // ─── VEHÍCULOS ────────────────────────────────────────────────────────────────
-function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal}) {
+function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,voluntariosConCoche=[]}) {
   const [vistaKanban,setVistaKanban]=useState(false);
   const moverVeh=(id,dir)=>{
     if(ordenAlfa) return;
@@ -607,6 +613,23 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
               <div className="mono xs" style={{color:"var(--text-muted)",marginTop:".15rem"}}>{v.capacidad}</div>
               {v.notas&&<div style={{fontSize:".62rem",color:"var(--text-muted)",marginTop:".2rem",fontStyle:"italic"}}>{v.notas}</div>}
             </div>))}
+
+            {/* SECCIÓN VEHÍCULOS VOLUNTARIOS (POOL) */}
+            {voluntariosConCoche.length > 0 && (
+              <div style={{marginTop:"1.2rem"}}>
+                <div className="log-k-hdr" style={{borderTopColor:"var(--violet)",background:"transparent",padding:"0.6rem 0.2rem"}}>
+                  <span style={{fontSize:".65rem",fontWeight:700,color:"var(--violet)"}}>🙋‍♂️ Pool Voluntarios</span>
+                  <span className="log-k-cnt" style={{background:"var(--violet-dim)",color:"var(--violet)",border:"1px solid rgba(167,139,250,.3)"}}>{voluntariosConCoche.length}</span>
+                </div>
+                {voluntariosConCoche.map(vol => (
+                  <div key={vol.id} className="log-k-card" style={{borderLeftColor:"var(--violet)",background:"rgba(167,139,250,0.03)"}}>
+                    <div style={{fontWeight:700,fontSize:".76rem",marginBottom:".2rem"}}>{vol.nombre}</div>
+                    <div className="mono xs muted">🚙 Vehículo propio</div>
+                    <a href={`tel:${vol.telefono}`} style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--violet)",textDecoration:"none"}}>📞 {vol.telefono}</a>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div className="log-k-col">
             <div className="log-k-hdr" style={{borderTopColor:"var(--amber)"}}>
@@ -635,6 +658,22 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
                 {v.notas&&<div className="vnota">{v.notas}</div>}
               </div>
             ))}
+
+            {/* SECCIÓN VEHÍCULOS VOLUNTARIOS (POOL) — LISTA */}
+            {voluntariosConCoche.length > 0 && (
+              <div style={{marginTop:"1.5rem"}}>
+                <div className="sl" style={{color:"var(--violet)",borderBottom:"1px solid rgba(167,139,250,0.3)"}}>🙋‍♂️ Pool de Vehículos Voluntarios</div>
+                {voluntariosConCoche.map(vol => (
+                  <div key={vol.id} className="card vcard" style={{borderLeft:"2px solid var(--violet)",background:"rgba(167,139,250,0.03)"}}>
+                    <div className="vh" style={{marginBottom:"0.5rem"}}>
+                      <div className="vi" style={{color:"var(--violet)"}}>🚙</div>
+                      <div style={{flex:1}}><div className="vn">{vol.nombre}</div><div className="vm mono" style={{color:"var(--violet)"}}>Vehículo propio</div></div>
+                      <a href={`tel:${vol.telefono}`} className="btn btn-sm" style={{background:"var(--violet-dim)",color:"var(--violet)"}}>📞 Llamar</a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div>
             <div className="sl">Rutas de reparto</div>

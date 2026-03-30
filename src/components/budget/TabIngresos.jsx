@@ -13,16 +13,19 @@ export const TabIngresos = ({
   totalIngresosConMerch, 
   ingresosPorDistancia,
   totalPatConfirmado = 0,
+  totalMerchBeneficio = 0,
+  syncConfig = { patrocinios: true, camisetas: true },
+  setSyncConfig,
 }) => {
   const addIngresosExtra = () => {
     const id = ingresosExtra.length > 0 ? Math.max(...ingresosExtra.map(x => x.id)) + 1 : 1;
-    setIngresosExtra(prev => [...prev, { id, nombre: "Nuevo ingreso", valor: 0, activo: true }]);
+    setIngresosExtra(prev => [...prev, { id: id, nombre: "Nuevo ingreso", valor: 0, activo: true }]);
   };
   const removeIngresosExtra = (id) => setIngresosExtra(prev => prev.filter(x => x.id !== id));
 
   const addMerch = () => {
     const id = merchandising.length > 0 ? Math.max(...merchandising.map(m => m.id)) + 1 : 1;
-    setMerchandising(prev => [...prev, { id, nombre: "Nuevo producto", unidades: 0, costeUnitario: 0, precioVenta: 0, activo: true }]);
+    setMerchandising(prev => [...prev, { id: id, nombre: "Nuevo producto", unidades: 0, costeUnitario: 0, precioVenta: 0, activo: true }]);
   };
   const removeMerch = (id) => setMerchandising(prev => prev.filter(m => m.id !== id));
   const updateMerch = (id, field, value) => setMerchandising(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
@@ -73,6 +76,34 @@ export const TabIngresos = ({
         </div>
       </div>
 
+      {/* ── PANEL DE CONFIGURACIÓN DE SINCRONIZACIÓN ── */}
+      <div className="card" style={{ border: "1px dashed var(--border)", background: "rgba(34,211,238,0.02)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontSize: "0.75rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.4rem" }}>
+              🔗 Configuración de Sincronización Automática
+            </div>
+            <div style={{ fontSize: "0.62rem", color: "var(--text-muted)" }}>Simula el impacto de otras fuentes en el balance final</div>
+          </div>
+          <div style={{ display: "flex", gap: "1rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <span style={{ fontSize: "0.65rem", fontWeight: 600 }}>Patrocinios</span>
+              <Toggle 
+                value={syncConfig.patrocinios} 
+                onChange={v => setSyncConfig({ ...syncConfig, patrocinios: v })} 
+              />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <span style={{ fontSize: "0.65rem", fontWeight: 600 }}>Merchandising</span>
+              <Toggle 
+                value={syncConfig.camisetas} 
+                onChange={v => setSyncConfig({ ...syncConfig, camisetas: v })} 
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="card">
         <div className="flex-between mb-2">
           <div className="card-title ingresos">🤝 Patrocinios, Subvenciones y Otros Ingresos</div>
@@ -90,18 +121,22 @@ export const TabIngresos = ({
           </thead>
           <tbody>
             {ingresosExtra.map(ie => {
-              const isSynced = ie.id === 1 || ie.id === 3;
+              const isSynced = ie.synced;
               const pct = totalIngresosExtra > 0 ? (ie.valor / totalIngresosExtra * 100) : 0;
               return (
                 <tr key={ie.id} style={{ opacity: ie.activo ? 1 : 0.4 }}>
                   <td><Toggle value={ie.activo} onChange={v => setIngresosExtra(prev => prev.map(x => x.id === ie.id ? { ...x, activo: v } : x))} /></td>
                   <td>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                      <input
-                        className="text-input"
-                        value={ie.nombre}
-                        onChange={e => setIngresosExtra(prev => prev.map(x => x.id === ie.id ? { ...x, nombre: e.target.value } : x))}
-                      />
+                      {isSynced ? (
+                        <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--text)" }}>{ie.nombre}</div>
+                      ) : (
+                        <input
+                          className="text-input"
+                          value={ie.nombre}
+                          onChange={e => setIngresosExtra(prev => prev.map(x => x.id === ie.id ? { ...x, nombre: e.target.value } : x))}
+                        />
+                      )}
                       {isSynced && <span style={{ fontSize: "0.55rem", color: "var(--cyan)", fontFamily: "var(--font-mono)", background: "var(--cyan-dim)", padding: "0.1rem 0.35rem", borderRadius: 3, whiteSpace: "nowrap" }}>🔗 auto</span>}
                     </div>
                   </td>
@@ -109,18 +144,16 @@ export const TabIngresos = ({
                     {isSynced ? (
                       <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:"0.2rem" }}>
                         <span className="mono" style={{ color:"var(--violet)", fontWeight:700 }}>{ie.valor.toFixed(2)} €</span>
-                        {ie.id === 1 && totalPatConfirmado !== ie.valor && (
-                          <Tooltip
-                            text={`Patrocinadores tiene ${totalPatConfirmado.toFixed(2)} € confirmados/cobrados.\nEste valor se sincroniza automáticamente.`}
-                            position="top"
-                          >
-                            <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.55rem", color:"var(--amber)",
-                              background:"var(--amber-dim)", border:"1px solid rgba(251,191,36,0.25)",
-                              padding:"0.05rem 0.35rem", borderRadius:3, cursor:"help" }}>
-                              ⚡ sincronizando…
-                            </span>
-                          </Tooltip>
-                        )}
+                        <Tooltip
+                          text={`Valor sincronizado desde ${ie.id === 1 ? 'Patrocinadores' : 'Camisetas'}.\nPuedes desactivarlo en el panel de arriba.`}
+                          position="top"
+                        >
+                          <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.55rem", color:"var(--cyan)",
+                            background:"var(--cyan-dim)", border:"1px solid rgba(34,211,238,0.25)",
+                            padding:"0.05rem 0.35rem", borderRadius:3, cursor:"help" }}>
+                            ⚡ activo
+                          </span>
+                        </Tooltip>
                       </div>
                     ) : (
                       <NumInput value={ie.valor} onChange={v => setIngresosExtra(prev => prev.map(x => x.id === ie.id ? { ...x, valor: v } : x))} step={10} />
@@ -140,25 +173,6 @@ export const TabIngresos = ({
           </tbody>
         </table>
       </div>
-
-      {/* Banner de sincronización con Patrocinadores */}
-      {totalPatConfirmado > 0 && (
-        <div style={{
-          display:"flex", alignItems:"center", gap:"0.75rem",
-          padding:"0.55rem 0.85rem", borderRadius:8, marginTop:"0.5rem",
-          background:"rgba(34,211,238,0.05)", border:"1px solid rgba(34,211,238,0.2)"
-        }}>
-          <span style={{ fontSize:"1rem", flexShrink:0 }}>🔗</span>
-          <div style={{ flex:1 }}>
-            <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.68rem", color:"var(--cyan)", fontWeight:700 }}>
-              Sincronizado con Patrocinadores
-            </span>
-            <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.65rem", color:"var(--text-muted)", marginLeft:"0.5rem" }}>
-              {totalPatConfirmado.toFixed(2)} € confirmados/cobrados → actualiza automáticamente la línea Patrocinio/Sponsor
-            </span>
-          </div>
-        </div>
-      )}
 
       <div className="card">
         <div className="flex-between mb-2">

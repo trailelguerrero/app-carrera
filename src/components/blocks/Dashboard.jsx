@@ -16,6 +16,8 @@ const ALL_KEYS = {
   "teg_presupuesto_v1_inscritos":     { tramos: {} },
   "teg_presupuesto_v1_ingresosExtra": [],
   "teg_presupuesto_v1_merchandising": [],
+  "teg_presupuesto_v1_syncConfig":    {},
+  "teg_camisetas_v1_stats":          {},
   "teg_presupuesto_v1_maximos":       {},
   "teg_voluntarios_v1_voluntarios":   [],
   "teg_voluntarios_v1_puestos":       [],
@@ -102,9 +104,9 @@ export default function Dashboard() {
     const conceptos    = get("teg_presupuesto_v1_conceptos", []);
     const tramos       = get("teg_presupuesto_v1_tramos", []);
     const inscritos    = get("teg_presupuesto_v1_inscritos", { tramos: {} });
-    const ingresosExtra  = get("teg_presupuesto_v1_ingresosExtra", []);
-    const merchandising  = get("teg_presupuesto_v1_merchandising", []);
-    const maximos        = get("teg_presupuesto_v1_maximos", {});
+    const syncConfig     = get("teg_presupuesto_v1_syncConfig", { patrocinios: true, camisetas: true });
+    const merchStats     = get("teg_camisetas_v1_stats", {});
+    const pats           = get("teg_patrocinadores_v1_pats", []);
 
     const DISTANCIAS = ["TG7", "TG13", "TG25"];
     let totalInscritos = 0;
@@ -131,12 +133,26 @@ export default function Dashboard() {
     const totalCostesFijos = conceptos.filter(c => c.tipo==="fijo" && c.activo).reduce((s,c) => s+(c.costeTotal||0), 0);
     const totalCostesVars  = conceptos.filter(c => c.tipo==="variable" && c.activo).reduce((s,c) =>
       s + DISTANCIAS.reduce((ss,dist) => ss + (c.costePorDistancia?.[dist]||0)*inscritosPorDist[dist], 0), 0);
-    const totalIngresosExtra = ingresosExtra.filter(i => i.activo).reduce((s,i) => s+(i.valor||0), 0);
-    const merchIngresos    = merchandising.filter(m => m.activo).reduce((s,m) => s+m.unidades*m.precioVenta, 0);
-    const merchCostes      = merchandising.filter(m => m.activo).reduce((s,m) => s+m.unidades*m.costeUnitario, 0);
-    const merchBeneficio   = merchIngresos - merchCostes;
+    
+    // PATROCINIOS: Sync vs Manual
+    const totalIngresosExtra = syncConfig.patrocinios 
+      ? pats.filter(p => p.estado==="cobrado" || p.estado === "confirmado").reduce((s,p) => s+(p.importe||0), 0)
+      : ingresosExtra.filter(i => i.activo).reduce((s,i) => s+(i.valor||0), 0);
+    
+    // MERCHANDISING: Sync vs Manual
+    const merchIngresos = syncConfig.camisetas 
+      ? (merchStats.totalIngresos || 0) 
+      : merchandising.filter(m => m.activo).reduce((s,m) => s+m.unidades*m.precioVenta, 0);
+    const merchCostes = syncConfig.camisetas 
+      ? (merchStats.totalCostes || 0) 
+      : merchandising.filter(m => m.activo).reduce((s,m) => s+m.unidades*m.costeUnitario, 0);
+    const merchBeneficio = merchIngresos - merchCostes;
+
     const totalOtrosIngresos = totalIngresosExtra + merchBeneficio;
-    const resultado        = totalIngresos + totalOtrosIngresos - totalCostesFijos - totalCostesVars;
+    const resultado = totalIngresos + totalOtrosIngresos - totalCostesFijos - totalCostesVars;
+    const roiGlobal = (totalCostesFijos + totalCostesVars) > 0 
+      ? Math.round(((totalIngresos + totalOtrosIngresos - (totalCostesFijos + totalCostesVars)) / (totalCostesFijos + totalCostesVars)) * 100)
+      : 0;
 
     // VOLUNTARIOS
     const voluntarios      = get("teg_voluntarios_v1_voluntarios", []);
@@ -156,7 +172,6 @@ export default function Dashboard() {
     const puestosBajos     = puestosConCobertura.filter(p => p.pct >= 50 && p.pct < 100);
 
     // PATROCINADORES
-    const pats            = get("teg_patrocinadores_v1_pats", []);
     const objetivo        = get("teg_patrocinadores_v1_obj", 8000);
     const patComprometido = pats.filter(p => p.estado==="confirmado"||p.estado==="cobrado").reduce((s,p) => s+(p.importe||0), 0);
     const patCobrado      = pats.filter(p => p.estado==="cobrado").reduce((s,p) => s+(p.importe||0), 0);
@@ -300,7 +315,7 @@ export default function Dashboard() {
       eventoNombre, eventoEdicion,
       diasHasta, yaFue, esSemana,
       totalInscritos, inscritosPorDist, totalIngresos, totalCostesFijos, totalCostesVars,
-      totalIngresosExtra, merchBeneficio, totalOtrosIngresos, resultado,
+      totalIngresosExtra, merchBeneficio, totalOtrosIngresos, resultado, roiGlobal,
       maximosPorDist, ocupacionPorDist, ocupacionGlobal, totalMaximos,
       voluntarios: voluntarios.length, volConfirmados, volPendientes, totalNecesarios, coberturaVol, puestosAlerta,
       pats: pats.length, patComprometido, patCobrado, patPipeline, objetivo, contPendientes,
@@ -309,7 +324,7 @@ export default function Dashboard() {
       saludModulos, saludGlobal,
       alertasCriticas, alertasAvisos,
       docsVencidos, docsProxVencer,
-      tramos, rawInscritos: inscritos,
+      tramos, rawInscritos: inscritos, syncConfig,
     };
   }, [rawData]);
 
@@ -657,19 +672,23 @@ export default function Dashboard() {
             <button className="btn btn-ghost btn-sm" onClick={() => navigate("presupuesto")}>Ver detalle →</button>
           </div>
           {[
-            ["Ingresos inscripciones",    fmt(d.totalIngresos),           "var(--cyan)"],
-            ["Patrocinios y subvenciones",fmt(d.totalIngresosExtra),      "var(--green)"],
-            ["Merchandising (neto)",      fmt(d.merchBeneficio),          "var(--violet)"],
-            ["Costes fijos",              `-${fmt(d.totalCostesFijos)}`,  "var(--red)"],
-            ["Costes variables",          `-${fmt(d.totalCostesVars)}`,   "var(--orange)"],
-          ].map(([label,val,color]) => (
+            ["Ingresos inscripciones",    fmt(d.totalIngresos),           "var(--cyan)",  false],
+            ["Patrocinios y subvenciones",fmt(d.totalIngresosExtra),      "var(--green)",   d.syncConfig.patrocinios],
+            ["Merchandising (neto)",      fmt(d.merchBeneficio),          "var(--violet)", d.syncConfig.camisetas],
+            ["Costes fijos",              `-${fmt(d.totalCostesFijos)}`,  "var(--red)",    false],
+            ["Costes variables",          `-${fmt(d.totalCostesVars)}`,   "var(--orange)",  false],
+          ].map(([label,val,color,sync]) => (
             <div key={label} className="flex-between" style={{ padding:"0.35rem 0", borderBottom:"1px solid rgba(30,45,80,0.35)" }}>
-              <span className="mono xs muted">{label}</span>
+              <span className="mono xs muted" style={{ display:"flex", alignItems:"center", gap:"0.4rem" }}>
+                {label} {sync && <span className="badge badge-cyan" style={{fontSize:"0.5rem", padding:"0 0.2rem"}}>🔗 auto</span>}
+              </span>
               <span className="mono xs bold" style={{ color }}>{val}</span>
             </div>
           ))}
           <div className="flex-between" style={{ padding:"0.65rem 0 0", borderTop:"2px solid var(--border)", marginTop:"0.2rem" }}>
-            <span className="mono xs bold">RESULTADO</span>
+            <span className="mono xs bold" style={{ display:"flex", alignItems:"center", gap:"0.6rem" }}>
+              RESULTADO <span className={`badge ${d.roiGlobal >= 0 ? "badge-green" : "badge-red"}`} style={{fontSize:"0.55rem"}}>ROI {d.roiGlobal > 0 ? "+" : ""}{d.roiGlobal}%</span>
+            </span>
             <span className="mono sm bold" style={{ color:resColor }}>{fmt(d.resultado)}</span>
           </div>
         </div>

@@ -7,8 +7,12 @@ import {
   INGRESOS_EXTRA_DEFAULT, 
   MERCHANDISING_DEFAULT,
   MAXIMOS_DEFAULT,
-  DISTANCIAS
+  DISTANCIAS,
+  SYNC_CONFIG_DEFAULT
 } from "../constants/budgetConstants";
+const LS_PATS = "teg_patrocinadores_v1_pats";
+const LS_CAM_PEDIDOS = "teg_camisetas_v1_pedidos";
+const LS_CAM_COSTE = "teg_camisetas_v1_coste";
 import {
   calculateTotalInscritos,
   calculateIngresosPorDistancia,
@@ -33,26 +37,50 @@ export const useBudgetLogic = () => {
   const [ingresosExtra, setIngresosExtra] = useState(INGRESOS_EXTRA_DEFAULT);
   const [merchandising, setMerchandising] = useState(MERCHANDISING_DEFAULT);
   const [maximos, setMaximos] = useState(MAXIMOS_DEFAULT);
+  const [syncConfig, setSyncConfig] = useData("teg_presupuesto_v1_syncConfig", SYNC_CONFIG_DEFAULT);
   const [saveStatus, setSaveStatus] = useState("idle");
 
-  // ─── SINCRONIZACIÓN CON PATROCINADORES (solo lectura) ────────────────────
-  // Lee el total confirmado+cobrado del bloque Patrocinadores y lo refleja
-  // automáticamente en la línea "Patrocinio / Sponsor" (id=1) de ingresosExtra.
-  const [rawPats] = useData("teg_patrocinadores_v1_pats", []);
+  // ─── SINCRONIZACIÓN AUTOMÁTICA (Lectura de otros módulos) ──────────────────
+  const [rawPats] = useData(LS_PATS, []);
+  const [rawCamPedidos] = useData(LS_CAM_PEDIDOS, []);
+  const [rawCamCoste] = useData(LS_CAM_COSTE, { corredor: 7.5, voluntario: 7.5 });
+
+  // 1. Total Patrocinios (Cash confirmado/cobrado)
   const totalPatConfirmado = useMemo(() => {
+    if (!syncConfig.patrocinios) return 0;
     const pats = Array.isArray(rawPats) ? rawPats : [];
     return pats
-      .filter(p => p.estado === "confirmado" || p.estado === "cobrado")
+      .filter(p => !p.especie && (p.estado === "confirmado" || p.estado === "cobrado"))
       .reduce((s, p) => s + (p.importe || 0), 0);
-  }, [rawPats]);
+  }, [rawPats, syncConfig.patrocinios]);
 
-  // Sincronizar automáticamente: cuando cambia el total confirmado de
-  // patrocinadores, actualiza la línea id=1 de ingresosExtra
+  // 2. Beneficio Neto Camisetas (Ventas - Coste Fab de fuentes activas)
+  const totalMerchBeneficio = useMemo(() => {
+    if (!syncConfig.camisetas) return 0;
+    const pedidos = Array.isArray(rawCamPedidos) ? rawCamPedidos : [];
+    const coste = rawCamCoste || { corredor: 7.5, voluntario: 7.5 };
+
+    // Solo contamos beneficio de lo "pagado" para ser conservadores en el presupuesto real
+    const lineas = pedidos.flatMap(p => p.lineas);
+    const ingresos = lineas.filter(l => l.estadoPago === "pagado")
+                           .reduce((s, l) => s + (l.cantidad * (l.precioVenta || 0)), 0);
+    // Pero el coste es de todas las unidades que hay que fabricar (pagadas o pendientes de pago)
+    // Nota: Excluimos voluntarios automáticos aquí porque suelen ser "Gasto Logístico" no Merch comercial
+    const costeFab = lineas.filter(l => l.estadoPago === "pagado" || l.estadoPago === "pendiente")
+                           .reduce((s, l) => s + (l.cantidad * (coste[l.tipo] || 7.5)), 0);
+
+    return ingresos - costeFab;
+  }, [rawCamPedidos, rawCamCoste, syncConfig.camisetas]);
+
+  // Sincronizar automáticamente con las líneas de ingresosExtra
+  // ID 1: Patrocinios, ID 2: Merchandising
   useEffect(() => {
-    setIngresosExtra(prev => prev.map(ie =>
-      ie.id === 1 ? { ...ie, valor: totalPatConfirmado } : ie
-    ));
-  }, [totalPatConfirmado]);
+    setIngresosExtra(prev => prev.map(ie => {
+      if (ie.id === 1 && syncConfig.patrocinios) return { ...ie, valor: totalPatConfirmado, synced: true };
+      if (ie.id === 2 && syncConfig.camisetas)   return { ...ie, valor: totalMerchBeneficio, synced: true };
+      return ie;
+    }));
+  }, [totalPatConfirmado, totalMerchBeneficio, syncConfig]);
 
   // ─── DATA PERSISTENCE ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -266,6 +294,8 @@ export const useBudgetLogic = () => {
     tab, setTab,
     tramos, setTramos,
     totalPatConfirmado,
+    totalMerchBeneficio,
+    syncConfig, setSyncConfig,
     conceptos, setConceptos,
     inscritos, setInscritos,
     ingresosExtra, setIngresosExtra,
