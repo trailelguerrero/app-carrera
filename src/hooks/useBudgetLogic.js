@@ -242,7 +242,7 @@ export const useBudgetLogic = () => {
     setTramos(prev => [...prev, {
       id,
       nombre: `Nuevo Tramo ${id}`,
-      fecha: new Date().toISOString().split("T")[0],
+      fechaFin: new Date().toISOString().split("T")[0],
       precios: { TG7: 30, TG13: 45, TG25: 65 }
     }]);
   };

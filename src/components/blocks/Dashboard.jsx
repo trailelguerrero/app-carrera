@@ -135,7 +135,10 @@ export default function Dashboard() {
 
     const totalCostesFijos = conceptos.filter(c => c.tipo==="fijo" && c.activo).reduce((s,c) => s+(c.costeTotal||0), 0);
     const totalCostesVars  = conceptos.filter(c => c.tipo==="variable" && c.activo).reduce((s,c) =>
-      s + DISTANCIAS.reduce((ss,dist) => ss + (c.costePorDistancia?.[dist]||0)*inscritosPorDist[dist], 0), 0);
+      s + DISTANCIAS.reduce((ss,dist) => {
+        if (c.activoDistancias && !c.activoDistancias[dist]) return ss;
+        return ss + (c.costePorDistancia?.[dist]||0)*inscritosPorDist[dist];
+      }, 0), 0);
     
     // PATROCINIOS: Sync vs Manual
     const totalIngresosExtra = syncConfig.patrocinios 
