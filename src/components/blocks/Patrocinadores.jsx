@@ -727,6 +727,8 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
   const [newCont, setNewCont] = useState({ tipo: CONTRAPRESTACIONES_TIPO[0], detalle: "", estado: "pendiente" });
   const [filtroPatId, setFiltroPatId] = useState("todos");
   const [vistaKanban, setVistaKanban] = useState(false);
+  const [editingCont, setEditingCont] = useState(null);
+  const [editC, setEditC] = useState({ tipo: CONTRAPRESTACIONES_TIPO[0], detalle: "" });
 
   const activos = pats.filter(p => p.estado !== "cancelado");
   const allConts = activos.flatMap(p => (p.contraprestaciones || []).map(c => ({ ...c, patNombre: p.nombre, patId: p.id, patNivel: p.nivel })));
@@ -776,13 +778,26 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
               {col.items.length===0 && <div style={{padding:"1rem",textAlign:"center",fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-dim)"}}>—</div>}
               {col.items.map(c=>{
                 const pcfg=getCfg(c.patNivel);
+                const isEditing = editingCont === `${c.patId}-${c.id}`;
                 return(
+                  isEditing ? (
+                    <div key={c.patId+"-"+c.id} style={{margin:".35rem .4rem 0",background:"var(--surface2)",border:"1px solid var(--border)",borderLeft:`3px solid ${pcfg.color}`,borderRadius:7,padding:".5rem .65rem",display:"flex",flexDirection:"column",gap:".45rem"}} onClick={e=>e.stopPropagation()}>
+                      <select className="inp" value={editC.tipo} onChange={e => setEditC(x => ({ ...x, tipo: e.target.value }))}>
+                        {CONTRAPRESTACIONES_TIPO.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                      <input className="inp" placeholder="Detalle (opcional)..." value={editC.detalle} onChange={e => setEditC(x => ({ ...x, detalle: e.target.value }))} />
+                      <div style={{ display: "flex", gap: ".4rem", justifyContent: "flex-end" }}>
+                        <button className="btn btn-sm btn-ghost" onClick={() => setEditingCont(null)}>Cancelar</button>
+                        <button className="btn btn-sm btn-gold" onClick={() => { updateContraprestacion(c.patId, c.id, editC); setEditingCont(null); }}>Guardar</button>
+                      </div>
+                    </div>
+                  ) : (
                   <div key={c.patId+"-"+c.id} style={{margin:".35rem .4rem 0",background:"var(--surface2)",border:"1px solid var(--border)",borderLeft:`3px solid ${pcfg.color}`,borderRadius:7,padding:".5rem .65rem",cursor:"pointer"}}
                     onClick={()=>{ const p=pats.find(x=>x.id===c.patId); if(p) onDetalle(p); }}>
                     <div style={{fontWeight:700,fontSize:".74rem",marginBottom:".15rem"}}>{c.tipo}</div>
                     <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)"}}>{pcfg.icon} {c.patNombre}</div>
                     {c.detalle&&<div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-dim)",marginTop:".1rem"}}>{c.detalle}</div>}
-                    <div style={{marginTop:".35rem"}} onClick={e=>e.stopPropagation()}>
+                    <div style={{marginTop:".35rem", display:"flex", justifyContent:"space-between", alignItems:"center"}} onClick={e=>e.stopPropagation()}>
                       <button style={{fontFamily:"var(--font-mono)",fontSize:".58rem",padding:".12rem .4rem",borderRadius:4,
                         border:`1px solid ${col.id==="pendiente"?"rgba(52,211,153,.3)":"rgba(248,113,113,.3)"}`,
                         background:col.id==="pendiente"?"var(--green-dim)":"var(--red-dim)",
@@ -790,8 +805,13 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
                         onClick={()=>updateContraprestacion(c.patId,c.id,"estado",col.id==="pendiente"?"entregado":"pendiente")}>
                         {col.id==="pendiente"?"✓ Entregar":"↩ Reabrir"}
                       </button>
+                      <div style={{display:"flex", gap:".3rem"}}>
+                        <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(`${c.patId}-${c.id}`); setEditC({ tipo: c.tipo, detalle: c.detalle||"" }); }}>✏️</button>
+                        <button className="btn btn-sm btn-red" onClick={() => deleteContraprestacion(c.patId, c.id)}>✕</button>
+                      </div>
                     </div>
                   </div>
+                  )
                 );
               })}
             </div>
@@ -806,27 +826,61 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
         <div className="card" style={{ background: "rgba(248,113,113,.04)", border: "1px solid rgba(248,113,113,.15)" }}>
           <div className="ct" style={{ color: "#f87171" }}>⏳ Pendientes de entregar ({pendientes.length})</div>
           {pendientes.length === 0 && <div className="empty">¡Todo entregado! 🎉</div>}
-          {pendientes.slice(0, 6).map(c => (
+          {pendientes.slice(0, 6).map(c => 
+            editingCont === `${c.patId}-${c.id}` ? (
+              <div key={"edit"+c.patId+"-"+c.id} style={{ display: "flex", flexDirection: "column", gap: ".45rem", padding: ".5rem", borderBottom: "1px solid rgba(30,45,80,.25)" }} onClick={e=>e.stopPropagation()}>
+                <select className="inp" value={editC.tipo} onChange={e => setEditC(x => ({ ...x, tipo: e.target.value }))}>
+                  {CONTRAPRESTACIONES_TIPO.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <input className="inp" placeholder="Detalle..." value={editC.detalle} onChange={e => setEditC(x => ({ ...x, detalle: e.target.value }))} />
+                <div style={{ display: "flex", gap: ".4rem", justifyContent: "flex-end" }}>
+                  <button className="btn btn-sm btn-ghost" onClick={() => setEditingCont(null)}>Cancelar</button>
+                  <button className="btn btn-sm btn-gold" onClick={() => { updateContraprestacion(c.patId, c.id, editC); setEditingCont(null); }}>Guardar</button>
+                </div>
+              </div>
+            ) : (
             <div key={c.patId + "-" + c.id} style={{ display: "flex", alignItems: "center", gap: ".5rem", padding: ".35rem 0", borderBottom: "1px solid rgba(30,45,80,.25)" }}>
               <div style={{ width: 6, height: 6, borderRadius: "50%", background: getCfg(c.patNivel).color, flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: ".72rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.tipo}</div>
                 <div className="mono xs muted">{c.patNombre}</div>
               </div>
-              <button className="btn btn-sm" style={{ background: "var(--green-dim)", color: "var(--green)", border: "1px solid rgba(52,211,153,.2)", flexShrink: 0 }}
-                onClick={() => updateContraprestacion(c.patId, c.id, "estado", "entregado")}>Entregar</button>
+              <div style={{display:"flex", gap:".25rem", flexShrink:0}}>
+                <button className="btn btn-sm" style={{ background: "var(--green-dim)", color: "var(--green)", border: "1px solid rgba(52,211,153,.2)" }}
+                  onClick={() => updateContraprestacion(c.patId, c.id, "estado", "entregado")}>Entregar</button>
+                <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(`${c.patId}-${c.id}`); setEditC({ tipo: c.tipo, detalle: c.detalle||"" }); }}>✏️</button>
+                <button className="btn btn-sm btn-red" onClick={() => deleteContraprestacion(c.patId, c.id)}>✕</button>
+              </div>
             </div>
           ))}
         </div>
         <div className="card" style={{ background: "rgba(52,211,153,.04)", border: "1px solid rgba(52,211,153,.15)" }}>
           <div className="ct" style={{ color: "#34d399" }}>✅ Entregados ({entregados.length})</div>
           {entregados.length === 0 && <div className="empty">Ninguno entregado aún</div>}
-          {entregados.slice(0, 6).map(c => (
+          {entregados.slice(0, 6).map(c => 
+            editingCont === `${c.patId}-${c.id}` ? (
+              <div key={"edit"+c.patId+"-"+c.id} style={{ display: "flex", flexDirection: "column", gap: ".45rem", padding: ".5rem", borderBottom: "1px solid rgba(30,45,80,.25)" }} onClick={e=>e.stopPropagation()}>
+                <select className="inp" value={editC.tipo} onChange={e => setEditC(x => ({ ...x, tipo: e.target.value }))}>
+                  {CONTRAPRESTACIONES_TIPO.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <input className="inp" placeholder="Detalle..." value={editC.detalle} onChange={e => setEditC(x => ({ ...x, detalle: e.target.value }))} />
+                <div style={{ display: "flex", gap: ".4rem", justifyContent: "flex-end" }}>
+                  <button className="btn btn-sm btn-ghost" onClick={() => setEditingCont(null)}>Cancelar</button>
+                  <button className="btn btn-sm btn-gold" onClick={() => { updateContraprestacion(c.patId, c.id, editC); setEditingCont(null); }}>Guardar</button>
+                </div>
+              </div>
+            ) : (
             <div key={c.patId + "-" + c.id} style={{ display: "flex", alignItems: "center", gap: ".5rem", padding: ".35rem 0", borderBottom: "1px solid rgba(30,45,80,.25)" }}>
               <div style={{ color: "#34d399", fontSize: ".8rem", flexShrink: 0 }}>✓</div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: ".72rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.tipo}</div>
+                <div style={{ fontSize: ".72rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "line-through", color: "var(--text-muted)" }}>{c.tipo}</div>
                 <div className="mono xs muted">{c.patNombre}</div>
+              </div>
+              <div style={{display:"flex", gap:".25rem", flexShrink:0}}>
+                <button className="btn btn-sm" style={{ background: "var(--surface2)", color: "var(--text)", border: "1px solid var(--border)" }}
+                  onClick={() => updateContraprestacion(c.patId, c.id, "estado", "pendiente")}>↩ Reabrir</button>
+                <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(`${c.patId}-${c.id}`); setEditC({ tipo: c.tipo, detalle: c.detalle||"" }); }}>✏️</button>
+                <button className="btn btn-sm btn-red" onClick={() => deleteContraprestacion(c.patId, c.id)}>✕</button>
               </div>
             </div>
           ))}
@@ -857,7 +911,19 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
               <div style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", color: "var(--text-dim)", padding: ".5rem 0" }}>Sin compromisos registrados</div>
             )}
 
-            {p.contraprestaciones.map(c => (
+            {p.contraprestaciones.map(c => 
+              editingCont === `${p.id}-${c.id}` ? (
+                <div key={"edit"+c.id} style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 8, padding: ".65rem", marginTop: ".4rem", display: "flex", flexDirection: "column", gap: ".45rem" }} onClick={e=>e.stopPropagation()}>
+                  <select className="inp" value={editC.tipo} onChange={e => setEditC(x => ({ ...x, tipo: e.target.value }))}>
+                    {CONTRAPRESTACIONES_TIPO.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <input className="inp" placeholder="Detalle (tamaño logo, nº posts, etc.)" value={editC.detalle} onChange={e => setEditC(x => ({ ...x, detalle: e.target.value }))} />
+                  <div style={{ display: "flex", gap: ".4rem", justifyContent: "flex-end" }}>
+                    <button className="btn btn-sm btn-ghost" onClick={() => setEditingCont(null)}>Cancelar</button>
+                    <button className="btn btn-sm btn-gold" onClick={() => { updateContraprestacion(p.id, c.id, editC); setEditingCont(null); }}>Guardar</button>
+                  </div>
+                </div>
+              ) : (
               <div key={c.id} className={cls("cont-row", c.estado === "entregado" && "cont-done")} onClick={e=>e.stopPropagation()}>
                 <button className="ckbox" onClick={() => updateContraprestacion(p.id, c.id, "estado", c.estado === "entregado" ? "pendiente" : "entregado")}
                   style={{ borderColor: c.estado === "entregado" ? "#34d399" : "var(--border)", background: c.estado === "entregado" ? "#34d399" : "transparent" }}>
@@ -867,7 +933,10 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
                   <div style={{ fontSize: ".76rem", fontWeight: 600, color: c.estado === "entregado" ? "var(--text-muted)" : "var(--text)", textDecoration: c.estado === "entregado" ? "line-through" : "none" }}>{c.tipo}</div>
                   {c.detalle && <div className="mono xs muted">{c.detalle}</div>}
                 </div>
-                <button className="btn btn-sm btn-red" onClick={() => deleteContraprestacion(p.id, c.id)}>✕</button>
+                <div style={{display:"flex",gap:".3rem",flexShrink:0}}>
+                  <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(`${p.id}-${c.id}`); setEditC({ tipo: c.tipo, detalle: c.detalle||"" }); }}>✏️</button>
+                  <button className="btn btn-sm btn-red" onClick={() => deleteContraprestacion(p.id, c.id)}>✕</button>
+                </div>
               </div>
             ))}
 
