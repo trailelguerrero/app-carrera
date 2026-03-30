@@ -25,3 +25,6 @@ dist-ssr
 .vercel
 *.bak
 *.bak2
+
+# Antigravity agent skills (local only, do not commit)
+.agents/skills/

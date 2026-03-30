@@ -2,18 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
-<<<<<<< HEAD
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-=======
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here.
->>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
 All colors MUST be HSL.
 */
 
 @layer base {
-<<<<<<< HEAD
-  :root {
-=======
   /* ── LIGHT MODE (default) ────────────────────────────────────────────── */
   :root {
     --background: 210 20% 98%;
@@ -73,7 +66,6 @@ All colors MUST be HSL.
 
   /* ── DARK MODE ────────────────────────────────────────────────────────── */
   .dark {
->>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
     --background: 220 50% 5%;
     --foreground: 220 30% 92%;
 
@@ -102,11 +94,6 @@ All colors MUST be HSL.
     --input: 220 40% 18%;
     --ring: 187 80% 53%;
 
-<<<<<<< HEAD
-    --radius: 0.75rem;
-
-=======
->>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
     --sidebar-background: 220 40% 8%;
     --sidebar-foreground: 220 30% 92%;
     --sidebar-primary: 187 80% 53%;
@@ -115,10 +102,6 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 220 30% 92%;
     --sidebar-border: 220 40% 18%;
     --sidebar-ring: 187 80% 53%;
-<<<<<<< HEAD
-  }
-
-=======
 
     /* Raw colors for inline-styled components */
     --teg-bg: #080c18;
@@ -135,38 +118,18 @@ All colors MUST be HSL.
     --teg-scrollbar: #1e2d50;
     --teg-scrollbar-hover: #2a3f6a;
   }
->>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
 }
 
 @layer base {
   * {
     @apply border-border;
-<<<<<<< HEAD
-=======
     transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
->>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
   }
 
   body {
     @apply bg-background text-foreground;
   }
 }
-<<<<<<< HEAD
-  /* Mobile Utils */
-  @media (max-width: 768px) {
-    .hide-mobile { display: none !important; }
-    .show-mobile { display: block !important; }
-    .p-mobile-1 { padding: 1rem !important; }
-    .m-mobile-0 { margin: 0 !important; }
-  }
-
-  /* Global Container Fix */
-  #root {
-    width: 100%;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-=======
 
 /* Mobile Utils */
 @media (max-width: 768px) {
@@ -188,4 +151,3 @@ All colors MUST be HSL.
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--teg-scrollbar); border-radius: 2px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--teg-scrollbar-hover); }
->>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)

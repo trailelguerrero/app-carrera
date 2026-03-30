@@ -1,18 +1,11 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
-<<<<<<< HEAD
-
-export default function Landing() {
-  return (
-    <div className="min-h-[100dvh] bg-[#080c18] text-white font-sans flex flex-col relative overflow-hidden">
-=======
 import { ThemeToggle } from "../components/ui/ThemeToggle";
 
 export default function Landing() {
   return (
     <div className="min-h-[100dvh] bg-background text-foreground font-sans flex flex-col relative overflow-hidden">
->>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
       
       {/* Background Effects */}
       <div className="fixed inset-0 pointer-events-none z-0">
@@ -20,20 +13,12 @@ export default function Landing() {
         <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-accent/10 blur-[120px] rounded-full" />
       </div>
 
-<<<<<<< HEAD
-      {/* Top Left Corner */}
-      <header className="absolute top-0 left-0 w-full z-50 p-6 md:p-8 flex items-start">
-        <h1 className="text-lg md:text-xl font-bold tracking-tight text-white/90 drop-shadow-md">
-          Trail El Guerrero, Candeleda 2026
-        </h1>
-=======
       {/* Top Header */}
       <header className="absolute top-0 left-0 w-full z-50 p-6 md:p-8 flex items-center justify-between">
         <h1 className="text-lg md:text-xl font-bold tracking-tight text-foreground/90 drop-shadow-md">
           Trail El Guerrero, Candeleda 2026
         </h1>
         <ThemeToggle size={34} />
->>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
       </header>
 
       {/* Main Content */}
