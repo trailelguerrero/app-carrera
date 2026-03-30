@@ -69,6 +69,13 @@ const badgeEnt = (p) => p.lineas.some(l => (l.estadoEntrega||"pendiente")==="pen
 // Default corredor externos: un objeto { XXS:0, XS:0, S:0, M:0, L:0, XL:0, XXL:0, 3XL:0, 4XL:0 }
 const CORREDORES_DEFAULT = Object.fromEntries(TALLAS.map(t => [t, 0]));
 
+const FUENTES_DEFAULT = {
+  corredoresPlat: true,
+  extrasCorredor: true,
+  voluntariosAuto: true,
+  extrasVoluntario: true
+};
+
 export default function App() {
   const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
@@ -97,6 +104,8 @@ export default function App() {
     ? rawVols.filter(v => v?.estado !== "cancelado" && v?.talla)
     : [];
 
+  const [fuentesActivas, setFuentesActivas] = useData(LS + "_fuentes", FUENTES_DEFAULT);
+
   const scrollTop   = () => { const m=document.querySelector("main"); if(m) m.scrollTo({top:0,behavior:"instant"}); };
   const abrirFicha  = (p) => { scrollTop(); setFicha(p); };
   const abrirModal  = (d) => { scrollTop(); setModal({data:d||null}); };
@@ -114,34 +123,69 @@ export default function App() {
     }));
 
   const stats = useMemo(() => {
-    // Pedidos extras (manuales)
-    const total    = pedidos.length;
-    const extrasUnid = pedidos.reduce((s,p) => s+p.lineas.reduce((a,l)=>a+l.cantidad,0), 0);
-    // Corredores plataforma externa
-    const corExt = TALLAS.reduce((s,t) => s + (corredoresExt[t]||0), 0);
-    // Voluntarios activos con talla
-    const volUnid = voluntariosActivos.length;
-    // Total general real
-    const unidades = extrasUnid + corExt + volUnid;
-    const recaudado= pedidos.reduce((s,p) => s+p.lineas.filter(l=>l.estadoPago==="pagado").reduce((a,l)=>a+l.cantidad*(l.precioVenta||0),0), 0);
-    const pendCobro= pedidos.reduce((s,p) => s+p.lineas.filter(l=>(l.estadoPago||"pendiente")==="pendiente").reduce((a,l)=>a+l.cantidad*(l.precioVenta||0),0), 0);
-    const beneficio     = pedidos.reduce((s,p) => s+calcPedido(p,coste).beneficio, 0);
-    const benRealizado  = pedidos.reduce((s,p) => s+calcPedido(p,coste).benRealizado, 0);
-    const benPotencial  = pedidos.reduce((s,p) => s+calcPedido(p,coste).benPotencial, 0);
-    const costeRegalos  = pedidos.reduce((s,p) => s+calcPedido(p,coste).costeRegalos, 0);
-    const regalos  = pedidos.reduce((s,p) => s+p.lineas.filter(l=>l.estadoPago==="regalo").reduce((a,l)=>a+l.cantidad,0), 0);
-    const pendEnt  = pedidos.reduce((s,p) => s+p.lineas.filter(l=>(l.estadoEntrega||"pendiente")==="pendiente").reduce((a,l)=>a+l.cantidad,0), 0);
-    // Ingresos estimados plataforma (corredores externos)
-    const ingresosEstimados = corExt * precioCorrExt;
-    // Coste estimado total fabricación (todas las fuentes)
-    const totalCorrParaFab = TALLAS.reduce((s,t) => s + (corredoresExt[t]||0), 0)
-      + pedidos.reduce((s,p) => s+p.lineas.filter(l=>l.tipo==="corredor").reduce((a,l)=>a+l.cantidad,0), 0);
-    const totalVolParaFab = voluntariosActivos.length
-      + pedidos.reduce((s,p) => s+p.lineas.filter(l=>l.tipo==="voluntario").reduce((a,l)=>a+l.cantidad,0), 0);
-    const costeFabricacion = totalCorrParaFab*(coste.corredor||0) + totalVolParaFab*(coste.voluntario||0);
-    return { total, unidades, recaudado, pendCobro, beneficio, benRealizado, benPotencial, costeRegalos, regalos, pendEnt,
-      corExt, volUnid, extrasUnid, ingresosEstimados, costeFabricacion, totalCorrParaFab, totalVolParaFab };
-  }, [pedidos, coste, corredoresExt, voluntariosActivos, precioCorrExt]);
+    // 1. Unidades por fuente
+    const uCorExt = fuentesActivas.corredoresPlat ? TALLAS.reduce((s,t) => s + (corredoresExt[t]||0), 0) : 0;
+    const uVolAuto = fuentesActivas.voluntariosAuto ? voluntariosActivos.length : 0;
+    
+    const extrasLineas = pedidos.flatMap(p => p.lineas);
+    const uExtrasCor = fuentesActivas.extrasCorredor 
+      ? extrasLineas.filter(l => l.tipo === "corredor").reduce((s,l) => s + l.cantidad, 0) : 0;
+    const uExtrasVol = fuentesActivas.extrasVoluntario 
+      ? extrasLineas.filter(l => l.tipo === "voluntario").reduce((s,l) => s + l.cantidad, 0) : 0;
+
+    const totalUnidades = uCorExt + uVolAuto + uExtrasCor + uExtrasVol;
+
+    // 2. Ingresos por fuente
+    const iCorExt = uCorExt * precioCorrExt; // Ingreso proyectado plataforma
+    
+    // Ingresos de extras (solo pagados para "Ingreso Real", todos para "Proyectado")
+    const extrasPagados = extrasLineas.filter(l => l.estadoPago === "pagado" && (
+      (l.tipo === "corredor" && fuentesActivas.extrasCorredor) || 
+      (l.tipo === "voluntario" && fuentesActivas.extrasVoluntario)
+    ));
+    const iExtrasReal = extrasPagados.reduce((s,l) => s + l.cantidad * (l.precioVenta || 0), 0);
+    
+    const extrasProyectados = extrasLineas.filter(l => (l.estadoPago === "pagado" || l.estadoPago === "pendiente") && (
+      (l.tipo === "corredor" && fuentesActivas.extrasCorredor) || 
+      (l.tipo === "voluntario" && fuentesActivas.extrasVoluntario)
+    ));
+    const iExtrasProyectado = extrasProyectados.reduce((s,l) => s + l.cantidad * (l.precioVenta || 0), 0);
+
+    const totalIngresosReal = (fuentesActivas.corredoresPlat ? iCorExt : 0) + iExtrasReal;
+    const totalIngresosProyectado = (fuentesActivas.corredoresPlat ? iCorExt : 0) + iExtrasProyectado;
+
+    // 3. Gastos por fuente
+    const gCorExt = uCorExt * (coste.corredor || 0);
+    const gVolAuto = uVolAuto * (coste.voluntario || 0);
+    const gExtrasCor = uExtrasCor * (coste.corredor || 0);
+    const gExtrasVol = uExtrasVol * (coste.voluntario || 0);
+
+    const totalGastos = gCorExt + gVolAuto + gExtrasCor + gExtrasVol;
+
+    // 4. Beneficios
+    const beneficioNetoReal = totalIngresosReal - totalGastos;
+    const beneficioNetoProyectado = totalIngresosProyectado - totalGastos;
+
+    // Métricas auxiliares para KPIs antiguos
+    const cPendCobro = extrasLineas.filter(l => l.estadoPago === "pendiente" && (
+      (l.tipo === "corredor" && fuentesActivas.extrasCorredor) || 
+      (l.tipo === "voluntario" && fuentesActivas.extrasVoluntario)
+    )).reduce((s,l) => s + l.cantidad * (l.precioVenta || 0), 0);
+
+    return {
+      totalUnidades,
+      totalIngresosReal,
+      totalIngresosProyectado,
+      totalGastos,
+      beneficioNetoReal,
+      beneficioNetoProyectado,
+      uCorExt, uVolAuto, uExtrasCor, uExtrasVol,
+      iCorExt, iExtrasReal, iExtrasProyectado,
+      cPendCobro,
+      totalPedidosExtras: pedidos.length,
+      pendEnt: extrasLineas.filter(l => l.estadoEntrega === "pendiente").reduce((s,l) => s + l.cantidad, 0)
+    };
+  }, [pedidos, coste, corredoresExt, voluntariosActivos, precioCorrExt, fuentesActivas]);
 
   const TABS = [
     {id:"dashboard",icon:"📊",label:"Dashboard"},
@@ -160,7 +204,7 @@ export default function App() {
             <div className="block-title-sub">{config.nombre} {config.edicion} · Pedidos externos</div>
           </div>
           <div className="block-actions">
-            {stats.pendCobro>0 && <span className="badge badge-amber">⏳ {fmt(stats.pendCobro)} pendiente</span>}
+            {stats.cPendCobro>0 && <span className="badge badge-amber">⏳ {fmt(stats.cPendCobro)} pendiente</span>}
             {stats.pendEnt  >0 && <span className="badge badge-cyan">📦 {stats.pendEnt} ud por entregar</span>}
             <button className="btn btn-primary" onClick={()=>abrirModal(null)}>+ Nuevo pedido</button>
           </div>
@@ -171,9 +215,10 @@ export default function App() {
         <div key={tab}>
           {tab==="dashboard" && <TabDashboard stats={stats} pedidos={pedidos} coste={coste} setCoste={setCoste} setTab={setTab} abrirFicha={abrirFicha}
             precioCorrExt={precioCorrExt} setPrecioCorrExt={(v) => setPrecioPlatExt({ precio: v })}
+            fuentesActivas={fuentesActivas} setFuentesActivas={setFuentesActivas}
             corredoresExt={corredoresExt} voluntariosActivos={voluntariosActivos} />}
           {tab==="pedidos"   && <TabPedidos   pedidos={pedidos} coste={coste} abrirFicha={abrirFicha} abrirModal={abrirModal} />}
-          {tab==="tallas"    && <TabTallas    pedidos={pedidos} corredoresExt={corredoresExt} setCorredores={setCorredores} voluntariosActivos={voluntariosActivos} />}
+          {tab==="tallas"    && <TabTallas    pedidos={pedidos} corredoresExt={corredoresExt} setCorredores={setCorredores} voluntariosActivos={voluntariosActivos} fuentesActivas={fuentesActivas} />}
           {tab==="checklist" && <TabChecklist pedidos={pedidos} updateLinea={updateLinea} abrirFicha={abrirFicha} />}
         </div>
       </div>
@@ -193,116 +238,157 @@ export default function App() {
 }
 
 // ─── TAB DASHBOARD ────────────────────────────────────────────────────────────
-function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, precioCorrExt, setPrecioCorrExt }) {
+function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, precioCorrExt, setPrecioCorrExt, fuentesActivas, setFuentesActivas }) {
   const [editCoste,setEditCoste] = useState(false);
   const [tmpCoste, setTmpCoste]  = useState({...coste});
   const [editPrecioPlat, setEditPrecioPlat] = useState(false);
   const [tmpPrecioPlat, setTmpPrecioPlat] = useState(precioCorrExt ?? 15);
-  const porTipo = TIPOS.map(tipo => {
-    const lineas   = pedidos.flatMap(p=>p.lineas.filter(l=>l.tipo===tipo));
-    const unidades = lineas.reduce((s,l)=>s+l.cantidad,0);
-    const costeT   = lineas.reduce((s,l)=>s+l.cantidad*(coste[tipo]||0),0);
-    const ventaT   = lineas.filter(l=>l.estadoPago!=="regalo").reduce((s,l)=>s+l.cantidad*(l.precioVenta||0),0);
-    const regaloU  = lineas.filter(l=>l.estadoPago==="regalo").reduce((s,l)=>s+l.cantidad,0);
-    return {tipo,unidades,costeT,ventaT,regaloU,cfg:TC[tipo]};
-  });
-  const extrasCorr = pedidos.reduce((s,p)=>s+p.lineas.filter(l=>l.tipo==="corredor").reduce((a,l)=>a+l.cantidad,0),0);
-  const extrasVol  = pedidos.reduce((s,p)=>s+p.lineas.filter(l=>l.tipo==="voluntario").reduce((a,l)=>a+l.cantidad,0),0);
-  const recientes = [...pedidos].sort((a,b)=>b.id-a.id).slice(0,5);
+
+  const toggleFuente = (f) => setFuentesActivas(p => ({ ...p, [f]: !p[f] }));
+
   return (
     <>
-      {/* ── BLOQUE PRODUCCIÓN: todas las fuentes ── */}
-      <div className="card mb" style={{borderLeft:"3px solid var(--primary)",padding:".85rem 1rem"}}>
-        <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,color:"var(--primary)",textTransform:"uppercase",letterSpacing:".1em",marginBottom:".65rem"}}>
-          📦 Producción total — desglose por fuente
+      {/* ── BALANCE ECONÓMICO CONSOLIDADO (Expert view) ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1rem", marginBottom: "1.25rem" }}>
+        
+        {/* Card Principal de Beneficio */}
+        <div className="card" style={{ background: "linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%)", borderLeft: "4px solid var(--green)", padding: "1.25rem", position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", top: -10, right: -10, fontSize: "4rem", opacity: 0.05 }}>💰</div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
+            <div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: ".1em" }}>Beneficio Neto Proyectado</div>
+              <div style={{ fontSize: "2.2rem", fontWeight: 800, color: "var(--green)", marginTop: ".25rem" }}>{fmt(stats.beneficioNetoProyectado)}</div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Realizado</div>
+              <div style={{ fontSize: "1.1rem", fontWeight: 700, color: stats.beneficioNetoReal >= 0 ? "var(--text)" : "var(--red)" }}>{fmt(stats.beneficioNetoReal)}</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: "1.5rem", borderTop: "1px solid var(--border)", paddingTop: "1rem" }}>
+            <div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: ".55rem", color: "var(--text-dim)", textTransform: "uppercase" }}>Ingresos Totales</div>
+              <div style={{ fontSize: ".9rem", fontWeight: 700, color: "var(--cyan)" }}>{fmt(stats.totalIngresosProyectado)}</div>
+            </div>
+            <div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: ".55rem", color: "var(--text-dim)", textTransform: "uppercase" }}>Gastos Fabricación</div>
+              <div style={{ fontSize: ".9rem", fontWeight: 700, color: "var(--amber)" }}>{fmt(stats.totalGastos)}</div>
+            </div>
+            <div style={{ marginLeft: "auto", textAlign: "right" }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: ".55rem", color: "var(--text-dim)", textTransform: "uppercase" }}>ROI</div>
+              <div style={{ fontSize: ".9rem", fontWeight: 700, color: "var(--violet)" }}>{stats.totalGastos > 0 ? Math.round((stats.beneficioNetoProyectado / stats.totalGastos) * 100) : 0}%</div>
+            </div>
+          </div>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:".6rem"}}>
+
+        {/* Panel de Control de Fuentes */}
+        <div className="card" style={{ padding: "1rem" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: ".75rem", display: "flex", alignItems: "center", gap: ".5rem" }}>
+            ⚙️ Control de Fuentes de Datos
+            <Tooltip text="Activa o desactiva fuentes para ver cómo impactan en el balance económico."><TooltipIcon /></Tooltip>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: ".5rem" }}>
+            {[
+              { id: "corredoresPlat",  label: "Inscritos Plataforma", icon: "🏃", sub: `${stats.uCorExt} ud`, color: "var(--cyan)" },
+              { id: "extrasCorredor",  label: "Extras Corredor",     icon: "👕", sub: `${stats.uExtrasCor} ud`, color: "var(--cyan)" },
+              { id: "voluntariosAuto", label: "Voluntarios (Gasto)", icon: "👥", sub: `${stats.uVolAuto} ud`, color: "var(--violet)" },
+              { id: "extrasVoluntario", label: "Extras Voluntario",   icon: "🛍️", sub: `${stats.uExtrasVol} ud`, color: "var(--violet)" },
+            ].map(f => (
+              <div key={f.id} className="flex-between" style={{ padding: ".4rem .65rem", background: "var(--surface2)", borderRadius: 8, border: `1px solid ${fuentesActivas[f.id] ? f.color + "44" : "transparent"}`, transition: "all .15s" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: ".6rem" }}>
+                  <span style={{ fontSize: "1.1rem", opacity: fuentesActivas[f.id] ? 1 : 0.3 }}>{f.icon}</span>
+                  <div>
+                    <div style={{ fontSize: ".72rem", fontWeight: 700, color: fuentesActivas[f.id] ? "var(--text)" : "var(--text-dim)" }}>{f.label}</div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: ".55rem", color: "var(--text-muted)" }}>{f.sub}</div>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => toggleFuente(f.id)}
+                  style={{ width: 34, height: 18, borderRadius: 20, background: fuentesActivas[f.id] ? f.color : "var(--border)", border: "none", cursor: "pointer", position: "relative", transition: "all .2s" }}>
+                  <div style={{ position: "absolute", top: 2, left: fuentesActivas[f.id] ? 18 : 2, width: 14, height: 14, borderRadius: "50%", background: "white", transition: "all .2s" }} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── KPIs DE PRODUCCIÓN ── */}
+      <div className="card mb" style={{ borderLeft: "3px solid var(--primary)", padding: ".85rem 1rem" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: ".6rem", fontWeight: 700, color: "var(--primary)", textTransform: "uppercase", letterSpacing: ".1em", marginBottom: ".65rem" }}>
+          📦 Producción consolidada (Fuentes Activas)
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))", gap: ".6rem" }}>
           {[
-            {l:"🏃 Corredor ext.",   v:stats.corExt,               s:"plataforma externa", c:"var(--cyan)"},
-            {l:"👕 Extras corredor", v:extrasCorr,                  s:"pedidos manuales",   c:"var(--cyan)"},
-            {l:"👥 Voluntarios",     v:stats.volUnid,              s:"tallas confirmadas",  c:"var(--violet)"},
-            {l:"👥 Extras vol.",     v:extrasVol,                   s:"pedidos manuales",   c:"var(--violet)"},
-            {l:"🔢 TOTAL",           v:stats.unidades,              s:"camisetas a fabricar",c:"var(--text)"},
-            {l:"⚗️ Coste fabr.",     v:fmt(stats.costeFabricacion), s:`${stats.totalCorrParaFab}🏃 + ${stats.totalVolParaFab}👥`, c:"var(--red)"},
-          ].map(k=>(
-            <div key={k.l} style={{background:"var(--surface2)",borderRadius:"var(--r-sm)",padding:".5rem .65rem",cursor:k.l==="🔢 TOTAL"?"pointer":undefined}} onClick={k.l==="🔢 TOTAL"?()=>setTab("tallas"):undefined}>
-              <div style={{fontFamily:"var(--font-mono)",fontSize:".56rem",color:"var(--text-muted)",marginBottom:".2rem"}}>{k.l}</div>
-              <div style={{fontFamily:"var(--font-mono)",fontSize:".95rem",fontWeight:800,color:k.c}}>{k.v}</div>
-              <div style={{fontFamily:"var(--font-mono)",fontSize:".5rem",color:"var(--text-dim)",marginTop:".1rem"}}>{k.s}</div>
+            { l: "🔢 TOTAL UD", v: stats.totalUnidades, s: "fabricación activa", c: "var(--text)" },
+            { l: "🏃 Corredor", v: stats.uCorExt + stats.uExtrasCor, s: "total modelo", c: "var(--cyan)" },
+            { l: "👥 Voluntario", v: stats.uVolAuto + stats.uExtrasVol, s: "total modelo", c: "var(--violet)" },
+            { l: "⚗️ Coste Estim.", v: fmt(stats.totalGastos), s: "fabricación activa", c: "var(--amber)" },
+            { l: "📈 Ing. Estim.", v: fmt(stats.totalIngresosProyectado), s: "proyección activa", c: "var(--cyan)" },
+            { l: "💰 Margen Bru.", v: fmt(stats.beneficioNetoProyectado), s: "estimado final", c: "var(--green)" },
+          ].map(k => (
+            <div key={k.l} style={{ background: "var(--surface2)", borderRadius: "var(--r-sm)", padding: ".5rem .65rem" }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: ".56rem", color: "var(--text-muted)", marginBottom: ".2rem" }}>{k.l}</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: ".95rem", fontWeight: 800, color: k.c }}>{k.v}</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: ".5rem", color: "var(--text-dim)", marginTop: ".1rem" }}>{k.s}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* ── KPIs FINANCIEROS EXTRAS (pedidos manuales) ── */}
+      {/* ── KPIs SECUNDARIOS ── */}
       <div className="kpi-grid mb">
         {[
-          {l:"👕 Pedidos extras", v:stats.total,          s:"personas",          color:"cyan",   tab:"pedidos"},
-          {l:"✅ Recaudado",      v:fmt(stats.recaudado), s:"líneas pagadas",     color:"green",  tab:"pedidos"},
-          {l:"⏳ Por cobrar",     v:fmt(stats.pendCobro), s:"líneas pendientes",  color:"amber",  tab:"pedidos"},
-          {l:<><span>📈 Ing. estimado plataforma</span><Tooltip text={"Ingreso estimado de camisetas corredor de la plataforma externa.\nFórmula: Nº corredores externos × precio manual.\nNo es dinero real en caja aún."}><TooltipIcon /></Tooltip></>, v:fmt(stats.ingresosEstimados), s:`${stats.corExt} ud × ${fmtN(precioCorrExt??15)} €`, color:"cyan", tab:"tallas"},
-          {l:<><span>💰 Ben. realizado</span><Tooltip text={"Beneficio ya generado sobre las líneas cobradas de pedidos extras.\nEs dinero real ya en caja."}><TooltipIcon /></Tooltip></>, v:fmt(stats.benRealizado), s:"extras pagados", color:stats.benRealizado>=0?"green":"red", tab:"pedidos"},
-          {l:<><span>🎁 Coste regalos</span><Tooltip text={"Coste total de extras marcados como regalo."}><TooltipIcon /></Tooltip></>, v:fmt(stats.costeRegalos), s:"pérdida asumida", color:"violet", tab:"pedidos"},
-        ].map((k,i)=>(
-          <div key={i} className={`kpi ${k.color}`} style={{cursor:"pointer"}} onClick={()=>setTab(k.tab)}>
+          { l: "👕 Pedidos extras", v: stats.totalPedidosExtras, s: "manuales", color: "cyan", tab: "pedidos" },
+          { l: "✅ Recaudado Real", v: fmt(stats.iExtrasReal), s: "pedidos manuales", color: "green", tab: "pedidos" },
+          { l: "⏳ Pendiente Cobro", v: fmt(stats.cPendCobro), s: "proyectado extra", color: "amber", tab: "pedidos" },
+          { l: "🗳️ Ing. Externo", v: fmt(stats.iCorExt), s: "plataforma", color: "cyan", tab: "tallas" },
+        ].map((k, i) => (
+          <div key={i} className={`kpi ${k.color}`} style={{ cursor: "pointer" }} onClick={() => setTab(k.tab)}>
             <div className="kpi-label">{k.l}</div><div className="kpi-value">{k.v}</div><div className="kpi-sub">{k.s}</div>
           </div>
         ))}
       </div>
 
-      {/* ── Configuración: coste fabricación + precio plataforma ── */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".75rem",marginBottom:".85rem"}}>
-        <div className="card" style={{borderLeft:"3px solid var(--primary)"}}>
+      {/* ── Configuración ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: ".75rem", marginBottom: ".85rem" }}>
+        <div className="card" style={{ borderLeft: "3px solid var(--primary)" }}>
           <div className="flex-between">
             <div>
-              <div style={{fontWeight:700,fontSize:".85rem",marginBottom:".15rem"}}>
-                <Tooltip text={"Coste unitario que paga la organización al proveedor por cada camiseta.\nAfecta al coste total de fabricación."}><span>⚙️ Coste de producción</span><TooltipIcon /></Tooltip>
+              <div style={{ fontWeight: 700, fontSize: ".85rem", marginBottom: ".15rem" }}>
+                <Tooltip text="Coste unitario de fabricación."><span style={{ color: "var(--primary)" }}>⚙️ Coste producción</span><TooltipIcon /></Tooltip>
               </div>
-              <div className="mono xs muted">Por modelo de camiseta</div>
             </div>
             {editCoste ? (
-              <div style={{display:"flex",gap:".5rem",alignItems:"center",flexWrap:"wrap"}}>
-                {TIPOS.map(tipo=>(
-                  <label key={tipo} style={{display:"flex",alignItems:"center",gap:".35rem",fontFamily:"var(--font-mono)",fontSize:".72rem"}}>
-                    <span style={{color:TC[tipo].color}}>{TC[tipo].icon}</span>
-                    <input type="number" min="0" step="0.5" value={tmpCoste[tipo]||0}
-                      onChange={e=>setTmpCoste(p=>({...p,[tipo]:parseFloat(e.target.value)||0}))}
-                      style={{width:52,background:"var(--surface2)",border:"1px solid var(--border)",color:"var(--text)",borderRadius:"var(--r-sm)",padding:".25rem .4rem",fontFamily:"var(--font-mono)",fontSize:".72rem",textAlign:"right"}} />
-                    <span className="mono xs muted">€</span>
-                  </label>
+              <div style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
+                {TIPOS.map(tipo => (
+                  <input key={tipo} type="number" min="0" step="0.5" value={tmpCoste[tipo]} onChange={e => setTmpCoste(p => ({ ...p, [tipo]: parseFloat(e.target.value) || 0 }))} style={{ width: 50, background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text)", borderRadius: 4, padding: ".2rem", fontSize: ".7rem" }} />
                 ))}
-                <button className="btn btn-primary btn-sm" onClick={()=>{setCoste(tmpCoste);setEditCoste(false);}}>OK</button>
-                <button className="btn btn-ghost btn-sm" onClick={()=>setEditCoste(false)}>✕</button>
+                <button className="btn btn-primary btn-sm" onClick={() => { setCoste(tmpCoste); setEditCoste(false); }}>OK</button>
               </div>
             ) : (
-              <div style={{display:"flex",gap:"1rem",alignItems:"center"}}>
-                {TIPOS.map(tipo=><span key={tipo} style={{fontFamily:"var(--font-mono)",fontSize:".78rem",color:TC[tipo].color}}>{TC[tipo].icon} {fmtN(coste[tipo]||0)} €</span>)}
-                <button className="btn btn-ghost btn-sm" onClick={()=>{setTmpCoste({...coste});setEditCoste(true);}}>✏️ Editar</button>
+              <div style={{ display: "flex", gap: ".6rem" }}>
+                {TIPOS.map(tipo => <span key={tipo} className="mono xs">{TC[tipo].icon} {fmtN(coste[tipo])}€</span>)}
+                <button className="btn btn-ghost btn-sm" onClick={() => setEditCoste(true)}>✏️</button>
               </div>
             )}
           </div>
         </div>
-        <div className="card" style={{borderLeft:"3px solid var(--cyan)"}}>
+        <div className="card" style={{ borderLeft: "3px solid var(--cyan)" }}>
           <div className="flex-between">
             <div>
-              <div style={{fontWeight:700,fontSize:".85rem",marginBottom:".15rem"}}>
-                <Tooltip text={"Precio de la camiseta corredor en la plataforma externa de inscripciones.\nSe usa para calcular los ingresos estimados de plataforma."}><span>🏃 Precio en plataforma</span><TooltipIcon /></Tooltip>
+              <div style={{ fontWeight: 700, fontSize: ".85rem", marginBottom: ".15rem" }}>
+                <Tooltip text="Precio de venta en plataforma externa."><span style={{ color: "var(--cyan)" }}>🏃 Precio plataforma</span><TooltipIcon /></Tooltip>
               </div>
-              <div className="mono xs muted">Camiseta corredor</div>
             </div>
             {editPrecioPlat ? (
-              <div style={{display:"flex",gap:".5rem",alignItems:"center"}}>
-                <input type="number" min="0" step="0.5" value={tmpPrecioPlat}
-                  onChange={e=>setTmpPrecioPlat(parseFloat(e.target.value)||0)}
-                  style={{width:64,background:"var(--surface2)",border:"1px solid var(--border)",color:"var(--cyan)",borderRadius:"var(--r-sm)",padding:".25rem .4rem",fontFamily:"var(--font-mono)",fontSize:".82rem",textAlign:"right"}} />
-                <span className="mono xs muted">€</span>
-                <button className="btn btn-primary btn-sm" onClick={()=>{setPrecioCorrExt(tmpPrecioPlat);setEditPrecioPlat(false);}}>OK</button>
-                <button className="btn btn-ghost btn-sm" onClick={()=>setEditPrecioPlat(false)}>✕</button>
+              <div style={{ display: "flex", gap: ".5rem" }}>
+                <input type="number" min="0" step="0.5" value={tmpPrecioPlat} onChange={e => setTmpPrecioPlat(parseFloat(e.target.value))} style={{ width: 60, background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--cyan)", borderRadius: 4, padding: ".2rem", fontSize: ".7rem" }} />
+                <button className="btn btn-primary btn-sm" onClick={() => { setPrecioCorrExt(tmpPrecioPlat); setEditPrecioPlat(false); }}>OK</button>
               </div>
             ) : (
-              <div style={{display:"flex",gap:".75rem",alignItems:"center"}}>
-                <span style={{fontFamily:"var(--font-mono)",fontSize:".92rem",fontWeight:800,color:"var(--cyan)"}}>{fmtN(precioCorrExt??15)} €</span>
-                <button className="btn btn-ghost btn-sm" onClick={()=>{setTmpPrecioPlat(precioCorrExt??15);setEditPrecioPlat(true);}}>✏️ Editar</button>
+              <div style={{ display: "flex", gap: ".6rem", alignItems: "center" }}>
+                <span className="mono">{fmtN(precioCorrExt)}€</span>
+                <button className="btn btn-ghost btn-sm" onClick={() => setEditPrecioPlat(true)}>✏️</button>
               </div>
             )}
           </div>
@@ -311,40 +397,27 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
 
       <div className="grid-2">
         <div className="card">
-          <div className="card-title">🏷️ Resumen por tipo (extras manuales)</div>
-          {porTipo.map(({tipo,unidades,costeT,ventaT,regaloU,cfg})=>(
-            <div key={tipo} style={{display:"flex",gap:".75rem",alignItems:"center",marginBottom:".75rem"}}>
-              <div style={{width:36,height:36,borderRadius:8,background:cfg.dim,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.1rem",flexShrink:0}}>{cfg.icon}</div>
-              <div style={{flex:1}}>
-                <div style={{display:"flex",justifyContent:"space-between",marginBottom:".15rem"}}>
-                  <span style={{fontSize:".78rem",fontWeight:700,color:cfg.color}}>{cfg.label}</span>
-                  <span className="mono xs muted">{unidades} ud{regaloU>0?` (${regaloU} regalo)`:""}</span>
-                </div>
-                <div style={{display:"flex",justifyContent:"space-between"}}>
-                  <span className="mono xs muted">Coste: {fmt(costeT)}</span>
-                  <span className="mono xs" style={{color:cfg.color}}>Venta: {fmt(ventaT)}</span>
-                </div>
-              </div>
+          <div className="card-title">🏷️ Consumo por modelo activo</div>
+          <div style={{ display: "grid", gap: ".75rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div className="flex-center gsm"><span style={{ color: "var(--cyan)" }}>🏃 Modelo Corredor</span></div>
+              <div className="mono">{stats.uCorExt + stats.uExtrasCor} ud</div>
             </div>
-          ))}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div className="flex-center gsm"><span style={{ color: "var(--violet)" }}>👥 Modelo Voluntario</span></div>
+              <div className="mono">{stats.uVolAuto + stats.uExtrasVol} ud</div>
+            </div>
+          </div>
         </div>
         <div className="card">
-          <div className="card-title">🕐 Últimos pedidos</div>
-          {recientes.length===0&&<div className="empty-state"><div className="empty-state-icon">👕</div>Sin pedidos aún</div>}
-          {recientes.map(p=>{
-            const {totalUnid}=calcPedido(p,coste); const bp=badgePago(p);
-            return (
-              <div key={p.id} style={{display:"flex",alignItems:"center",gap:".6rem",padding:".4rem 0",borderBottom:"1px solid rgba(30,45,80,.3)",cursor:"pointer"}} onClick={()=>abrirFicha(p)}>
-                <span style={{fontSize:"1rem"}}>{bp.icon}</span>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:".78rem",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
-                  <div className="mono xs muted">{totalUnid} ud · {p.lineas.map(l=>`${l.cantidad}×${TC[l.tipo]?.icon}${l.talla} ${EP[l.estadoPago||"pendiente"]?.icon}`).join(" ")}</div>
-                </div>
-                <span className="badge" style={{background:bp.bg,color:bp.color,fontSize:".52rem"}}>{bp.label}</span>
-              </div>
-            );
-          })}
-          <button className="btn btn-ghost mt1" style={{width:"100%"}} onClick={()=>setTab("pedidos")}>Ver todos →</button>
+          <div className="card-title">🕐 Recientes</div>
+          {pedidos.slice(0, 3).map(p => (
+            <div key={p.id} className="flex-between" style={{ padding: ".3rem 0", borderBottom: "1px solid var(--border)" }} onClick={() => abrirFicha(p)}>
+              <span style={{ fontSize: ".75rem", fontWeight: 600 }}>{p.nombre}</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem" }}>{fmt(calcPedido(p, coste).totalVenta)}</span>
+            </div>
+          ))}
+          <button className="btn btn-ghost mt1" style={{ width: "100%" }} onClick={() => setTab("pedidos")}>Ver todos →</button>
         </div>
       </div>
     </>
@@ -476,7 +549,7 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal }) {
 }
 
 // ─── TAB TALLAS ───────────────────────────────────────────────────────────────
-function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos }) {
+function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, fuentesActivas }) {
   const [editCorredores, setEditCorredores] = useState(false);
   const [tmpCor, setTmpCor] = useState({ ...corredoresExt });
 
@@ -560,10 +633,10 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos }
             <thead>
               <tr>
                 <th>Talla</th>
-                <th className="text-right" style={{ color: TC.corredor.color, fontSize: '.58rem' }}>🏃 Corredor<br/><span style={{opacity:.65}}>Plat. ext.</span></th>
-                <th className="text-right" style={{ color: TC.corredor.color, fontSize: '.58rem' }}>👕 Extras<br/><span style={{opacity:.65}}>Corredor</span></th>
-                <th className="text-right" style={{ color: TC.voluntario.color, fontSize: '.58rem' }}>👥 Voluntarios<br/><span style={{opacity:.65}}>Automático</span></th>
-                <th className="text-right" style={{ color: TC.voluntario.color, fontSize: '.58rem' }}>👥 Extras<br/><span style={{opacity:.65}}>Voluntario</span></th>
+                <th className="text-right" style={{ color: TC.corredor.color, fontSize: '.58rem', opacity: fuentesActivas.corredoresPlat ? 1 : 0.4 }}>🏃 Corredor<br/><span style={{opacity:.65}}>Plat. ext.</span> {!fuentesActivas.corredoresPlat && "🚫"}</th>
+                <th className="text-right" style={{ color: TC.corredor.color, fontSize: '.58rem', opacity: fuentesActivas.extrasCorredor ? 1 : 0.4 }}>👕 Extras<br/><span style={{opacity:.65}}>Corredor</span> {!fuentesActivas.extrasCorredor && "🚫"}</th>
+                <th className="text-right" style={{ color: TC.voluntario.color, fontSize: '.58rem', opacity: fuentesActivas.voluntariosAuto ? 1 : 0.4 }}>👥 Voluntarios<br/><span style={{opacity:.65}}>Automático</span> {!fuentesActivas.voluntariosAuto && "🚫"}</th>
+                <th className="text-right" style={{ color: TC.voluntario.color, fontSize: '.58rem', opacity: fuentesActivas.extrasVoluntario ? 1 : 0.4 }}>👥 Extras<br/><span style={{opacity:.65}}>Voluntario</span> {!fuentesActivas.extrasVoluntario && "🚫"}</th>
                 <th className="text-right" style={{ fontWeight: 800 }}>TOTAL</th>
               </tr>
             </thead>
