@@ -39,8 +39,7 @@ const CONTRAPRESTACIONES_TIPO = [
   "Logo en diptico/programa",
   "Mención en megafonía",
   "Logo en medallas",
-  "Producto en bolsa del corredor",
-  "Otra contraprestación",
+  "Producto en bolsa del corredor"
 ];
 
 const TIPOS_DOC = ["Contrato","Presupuesto","Factura","Justificante de pago","Póliza de seguro","Cobertura seguro","Acuerdo patrocinio","Otro"];
@@ -329,6 +328,11 @@ export default function App() {
           {tab==="documentos" && <TabDocumentos pats={pats} addDoc={addDoc} deleteDoc={deleteDoc} />}
         </div>
       </div>
+
+      {/* DATALIST GLOBAL */}
+      <datalist id="cont-options">
+        {CONTRAPRESTACIONES_TIPO.map(t => <option key={t} value={t} />)}
+      </datalist>
 
       {/* MODALES */}
       {modal?.tipo==="pat" && <ModalPat key={modal.data?.id||"nuevo"} data={modal.data} onSave={savePat} onClose={() => setModal(null)} />}
@@ -782,9 +786,7 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
                 return(
                   isEditing ? (
                     <div key={c.patId+"-"+c.id} style={{margin:".35rem .4rem 0",background:"var(--surface2)",border:"1px solid var(--border)",borderLeft:`3px solid ${pcfg.color}`,borderRadius:7,padding:".5rem .65rem",display:"flex",flexDirection:"column",gap:".45rem"}} onClick={e=>e.stopPropagation()}>
-                      <select className="inp" value={editC.tipo} onChange={e => setEditC(x => ({ ...x, tipo: e.target.value }))}>
-                        {CONTRAPRESTACIONES_TIPO.map(t => <option key={t} value={t}>{t}</option>)}
-                      </select>
+                      <input list="cont-options" className="inp" placeholder="Escribe un tipo o elige..." value={editC.tipo} onChange={e => setEditC(x => ({ ...x, tipo: e.target.value }))} />
                       <input className="inp" placeholder="Detalle (opcional)..." value={editC.detalle} onChange={e => setEditC(x => ({ ...x, detalle: e.target.value }))} />
                       <div style={{ display: "flex", gap: ".4rem", justifyContent: "flex-end" }}>
                         <button className="btn btn-sm btn-ghost" onClick={() => setEditingCont(null)}>Cancelar</button>
@@ -829,9 +831,7 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
           {pendientes.slice(0, 6).map(c => 
             editingCont === `${c.patId}-${c.id}` ? (
               <div key={"edit"+c.patId+"-"+c.id} style={{ display: "flex", flexDirection: "column", gap: ".45rem", padding: ".5rem", borderBottom: "1px solid rgba(30,45,80,.25)" }} onClick={e=>e.stopPropagation()}>
-                <select className="inp" value={editC.tipo} onChange={e => setEditC(x => ({ ...x, tipo: e.target.value }))}>
-                  {CONTRAPRESTACIONES_TIPO.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
+                <input list="cont-options" className="inp" placeholder="Escribe un tipo o elige..." value={editC.tipo} onChange={e => setEditC(x => ({ ...x, tipo: e.target.value }))} />
                 <input className="inp" placeholder="Detalle..." value={editC.detalle} onChange={e => setEditC(x => ({ ...x, detalle: e.target.value }))} />
                 <div style={{ display: "flex", gap: ".4rem", justifyContent: "flex-end" }}>
                   <button className="btn btn-sm btn-ghost" onClick={() => setEditingCont(null)}>Cancelar</button>
@@ -860,9 +860,7 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
           {entregados.slice(0, 6).map(c => 
             editingCont === `${c.patId}-${c.id}` ? (
               <div key={"edit"+c.patId+"-"+c.id} style={{ display: "flex", flexDirection: "column", gap: ".45rem", padding: ".5rem", borderBottom: "1px solid rgba(30,45,80,.25)" }} onClick={e=>e.stopPropagation()}>
-                <select className="inp" value={editC.tipo} onChange={e => setEditC(x => ({ ...x, tipo: e.target.value }))}>
-                  {CONTRAPRESTACIONES_TIPO.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
+                <input list="cont-options" className="inp" placeholder="Escribe un tipo o elige..." value={editC.tipo} onChange={e => setEditC(x => ({ ...x, tipo: e.target.value }))} />
                 <input className="inp" placeholder="Detalle..." value={editC.detalle} onChange={e => setEditC(x => ({ ...x, detalle: e.target.value }))} />
                 <div style={{ display: "flex", gap: ".4rem", justifyContent: "flex-end" }}>
                   <button className="btn btn-sm btn-ghost" onClick={() => setEditingCont(null)}>Cancelar</button>
@@ -914,9 +912,7 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
             {p.contraprestaciones.map(c => 
               editingCont === `${p.id}-${c.id}` ? (
                 <div key={"edit"+c.id} style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 8, padding: ".65rem", marginTop: ".4rem", display: "flex", flexDirection: "column", gap: ".45rem" }} onClick={e=>e.stopPropagation()}>
-                  <select className="inp" value={editC.tipo} onChange={e => setEditC(x => ({ ...x, tipo: e.target.value }))}>
-                    {CONTRAPRESTACIONES_TIPO.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
+                  <input list="cont-options" className="inp" placeholder="Escribe un tipo o elige..." value={editC.tipo} onChange={e => setEditC(x => ({ ...x, tipo: e.target.value }))} />
                   <input className="inp" placeholder="Detalle (tamaño logo, nº posts, etc.)" value={editC.detalle} onChange={e => setEditC(x => ({ ...x, detalle: e.target.value }))} />
                   <div style={{ display: "flex", gap: ".4rem", justifyContent: "flex-end" }}>
                     <button className="btn btn-sm btn-ghost" onClick={() => setEditingCont(null)}>Cancelar</button>
@@ -942,9 +938,7 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
 
             {addingTo === p.id && (
               <div style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 8, padding: ".75rem", marginTop: ".5rem", display: "flex", flexDirection: "column", gap: ".5rem" }}>
-                <select className="inp" value={newCont.tipo} onChange={e => setNewCont(x => ({ ...x, tipo: e.target.value }))}>
-                  {CONTRAPRESTACIONES_TIPO.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
+                <input list="cont-options" className="inp" placeholder="Escribe un tipo o elige..." value={newCont.tipo} onChange={e => setNewCont(x => ({ ...x, tipo: e.target.value }))} />
                 <input className="inp" placeholder="Detalle (opcional)..." value={newCont.detalle} onChange={e => setNewCont(x => ({ ...x, detalle: e.target.value }))} />
                 <div style={{ display: "flex", gap: ".5rem", justifyContent: "flex-end" }}>
                   <button className="btn btn-ghost" onClick={() => setAddingTo(null)}>Cancelar</button>
@@ -1064,9 +1058,7 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
             {pat.contraprestaciones.map(c => 
               editingCont === c.id ? (
                 <div key={"edit"+c.id} style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 8, padding: ".65rem", marginTop: ".4rem", display: "flex", flexDirection: "column", gap: ".45rem" }}>
-                  <select className="inp" value={editC.tipo} onChange={e => setEditC(x => ({ ...x, tipo: e.target.value }))}>
-                    {CONTRAPRESTACIONES_TIPO.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
+                  <input list="cont-options" className="inp" placeholder="Escribe un tipo o elige..." value={editC.tipo} onChange={e => setEditC(x => ({ ...x, tipo: e.target.value }))} />
                   <input className="inp" placeholder="Detalle (tamaño logo, nº posts, etc.)" value={editC.detalle} onChange={e => setEditC(x => ({ ...x, detalle: e.target.value }))} />
                   <div style={{ display: "flex", gap: ".4rem", justifyContent: "flex-end" }}>
                     <button className="btn btn-sm btn-ghost" onClick={() => setEditingCont(null)}>Cancelar</button>
@@ -1094,9 +1086,7 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
             )}
             {addingCont && (
               <div style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 8, padding: ".65rem", marginTop: ".4rem", display: "flex", flexDirection: "column", gap: ".45rem" }}>
-                <select className="inp" value={newC.tipo} onChange={e => setNewC(x => ({ ...x, tipo: e.target.value }))}>
-                  {CONTRAPRESTACIONES_TIPO.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
+                <input list="cont-options" className="inp" placeholder="Escribe un tipo o elige..." value={newC.tipo} onChange={e => setNewC(x => ({ ...x, tipo: e.target.value }))} />
                 <input className="inp" placeholder="Detalle (tamaño logo, nº posts, etc.)" value={newC.detalle} onChange={e => setNewC(x => ({ ...x, detalle: e.target.value }))} />
                 <div style={{ display: "flex", gap: ".4rem", justifyContent: "flex-end" }}>
                   <button className="btn btn-ghost" onClick={() => setAddingCont(false)}>Cancelar</button>
