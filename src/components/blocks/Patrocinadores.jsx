@@ -225,7 +225,7 @@ export default function App() {
   const updateContraprestacion = (patId, cId, campo, valor) => {
     setPats(prev => prev.map(p => p.id === patId ? {
       ...p,
-      contraprestaciones: (p.contraprestaciones || []).map(c => c.id === cId ? { ...c, [campo]: valor } : c)
+      contraprestaciones: (p.contraprestaciones || []).map(c => c.id === cId ? { ...c, ...(typeof campo === "object" ? campo : { [campo]: valor }) } : c)
     } : p));
   };
 
@@ -253,7 +253,7 @@ export default function App() {
   const updateEspecieItem = (patId, itemId, campo, valor) => {
     setPats(prev => prev.map(p => p.id === patId ? {
       ...p,
-      especieItems: (p.especieItems || []).map(i => i.id === itemId ? { ...i, [campo]: valor } : i)
+      especieItems: (p.especieItems || []).map(i => i.id === itemId ? { ...i, ...(typeof campo === "object" ? campo : { [campo]: valor }) } : i)
     } : p));
   };
   const deleteEspecieItem = (patId, itemId) => {
@@ -904,6 +904,10 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
   const [newC, setNewC] = useState({ tipo: CONTRAPRESTACIONES_TIPO[0], detalle: "" });
   const [addingEspecie, setAddingEspecie] = useState(false);
   const [newEsp, setNewEsp] = useState({ nombre: "", cantidad: 0, unidad: "unidades" });
+  const [editingCont, setEditingCont] = useState(null);
+  const [editC, setEditC] = useState({ tipo: CONTRAPRESTACIONES_TIPO[0], detalle: "" });
+  const [editingEspecie, setEditingEspecie] = useState(null);
+  const [editEsp, setEditEsp] = useState({ nombre: "", cantidad: 0, unidad: "unidades" });
   const especieItems = pat.especieItems || [];
   const esPatEspecie = pat.nivel === "Especie" || pat.especie > 0;
 
@@ -920,7 +924,7 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
               </div>
             </div>
             <div style={{ display: "flex", gap: ".4rem" }}>
-              <button className="btn btn-sm btn-ghost" onClick={onEditar}>✏️ Editar</button>
+              {subTab === "info" && <button className="btn btn-sm btn-ghost" onClick={onEditar}>✏️ Editar patrocinador</button>}
               <button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button>
             </div>
           </div>
@@ -988,7 +992,19 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
               <button className="btn btn-sm" style={{ background: cfg.dim, color: cfg.color, border: `1px solid ${cfg.border}` }}
                 onClick={() => setAddingCont(!addingCont)}>+ Añadir</button>
             </div>
-            {pat.contraprestaciones.map(c => (
+            {pat.contraprestaciones.map(c => 
+              editingCont === c.id ? (
+                <div key={"edit"+c.id} style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 8, padding: ".65rem", marginTop: ".4rem", display: "flex", flexDirection: "column", gap: ".45rem" }}>
+                  <select className="inp" value={editC.tipo} onChange={e => setEditC(x => ({ ...x, tipo: e.target.value }))}>
+                    {CONTRAPRESTACIONES_TIPO.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <input className="inp" placeholder="Detalle (tamaño logo, nº posts, etc.)" value={editC.detalle} onChange={e => setEditC(x => ({ ...x, detalle: e.target.value }))} />
+                  <div style={{ display: "flex", gap: ".4rem", justifyContent: "flex-end" }}>
+                    <button className="btn btn-sm btn-ghost" onClick={() => setEditingCont(null)}>Cancelar</button>
+                    <button className="btn btn-sm btn-gold" onClick={() => { updateContraprestacion(pat.id, c.id, editC); setEditingCont(null); }}>Guardar</button>
+                  </div>
+                </div>
+              ) : (
               <div key={c.id} className={cls("cont-row", c.estado === "entregado" && "cont-done")}>
                 <button className="ckbox" onClick={() => updateContraprestacion(pat.id, c.id, "estado", c.estado === "entregado" ? "pendiente" : "entregado")}
                   style={{ borderColor: c.estado === "entregado" ? "#34d399" : "var(--border)", background: c.estado === "entregado" ? "#34d399" : "transparent" }}>
@@ -998,7 +1014,10 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
                   <div style={{ fontSize: ".74rem", fontWeight: 600, textDecoration: c.estado === "entregado" ? "line-through" : "none", color: c.estado === "entregado" ? "var(--text-muted)" : "var(--text)" }}>{c.tipo}</div>
                   {c.detalle && <div className="mono xs muted">{c.detalle}</div>}
                 </div>
-                <button className="btn btn-sm btn-red" onClick={() => deleteContraprestacion(pat.id, c.id)}>✕</button>
+                <div style={{display:"flex",gap:".3rem",flexShrink:0}}>
+                  <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(c.id); setEditC({ tipo: c.tipo, detalle: c.detalle||"" }); }}>✏️</button>
+                  <button className="btn btn-sm btn-red" onClick={() => deleteContraprestacion(pat.id, c.id)}>✕</button>
+                </div>
               </div>
             ))}
             {pat.contraprestaciones.length === 0 && !addingCont && (
@@ -1034,7 +1053,20 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
                 Sin ítems en especie registrados. Usa el botón + Añadir ítem.
               </div>
             )}
-            {especieItems.map(item => (
+            {especieItems.map(item => 
+              editingEspecie === item.id ? (
+                <div key={"edit"+item.id} style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 8, padding: ".65rem", marginTop: ".4rem", display: "flex", flexDirection: "column", gap: ".45rem" }}>
+                  <input className="inp" placeholder="Nombre del producto/servicio" value={editEsp.nombre} onChange={e => setEditEsp(x => ({ ...x, nombre: e.target.value }))} />
+                  <div style={{ display: "flex", gap: ".4rem" }}>
+                    <input type="number" min="0" className="inp" placeholder="Cantidad" value={editEsp.cantidad} onChange={e => setEditEsp(x => ({ ...x, cantidad: parseInt(e.target.value) || 0 }))} style={{ flex: 1 }} />
+                    <input className="inp" placeholder="Unidad (uds, kg, litros…)" value={editEsp.unidad} onChange={e => setEditEsp(x => ({ ...x, unidad: e.target.value }))} style={{ flex: 1 }} />
+                  </div>
+                  <div style={{ display: "flex", gap: ".4rem", justifyContent: "flex-end" }}>
+                    <button className="btn btn-sm btn-ghost" onClick={() => setEditingEspecie(null)}>Cancelar</button>
+                    <button className="btn btn-sm btn-gold" onClick={() => { if(editEsp.nombre.trim()){ updateEspecieItem(pat.id, item.id, editEsp); setEditingEspecie(null); } }}>Guardar</button>
+                  </div>
+                </div>
+              ) : (
               <div key={item.id} style={{ display: "flex", alignItems: "center", gap: ".6rem", padding: ".45rem 0", borderBottom: "1px solid rgba(30,45,80,.25)" }}>
                 <button onClick={() => updateEspecieItem(pat.id, item.id, "recibido", !item.recibido)}
                   style={{ width: 20, height: 20, borderRadius: 4, border: `2px solid ${item.recibido ? "#34d399" : "var(--border)"}`, background: item.recibido ? "#34d399" : "transparent", cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1049,7 +1081,10 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
                   color: item.recibido ? "#34d399" : "#fbbf24" }}>
                   {item.recibido ? "✓ Recibido" : "⏳ Pendiente"}
                 </span>
-                <button className="btn btn-sm btn-red" onClick={() => deleteEspecieItem(pat.id, item.id)}>✕</button>
+                <div style={{display:"flex",gap:".3rem",flexShrink:0}}>
+                  <button className="btn btn-sm btn-ghost" onClick={() => { setEditingEspecie(item.id); setEditEsp({ nombre: item.nombre, cantidad: item.cantidad, unidad: item.unidad }); }}>✏️</button>
+                  <button className="btn btn-sm btn-red" onClick={() => deleteEspecieItem(pat.id, item.id)}>✕</button>
+                </div>
               </div>
             ))}
             {addingEspecie && (
