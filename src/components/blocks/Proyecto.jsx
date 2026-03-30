@@ -134,10 +134,13 @@ export default function App() {
   const [rawTareas, setTareas]   = useData(LS+"_tareas", TAREAS0);
   const [rawHitos, setHitos]     = useData(LS+"_hitos", HITOS0);
   const [rawEquipo, setEquipo]   = useData(LS+"_equipo", EQUIPO0);
+  const [rawDocs]                = useData("teg_documentos_v1", []);
+  const [rawGest]                = useData("teg_documentos_v1_gestiones", []);
 
   const tareas = Array.isArray(rawTareas) ? rawTareas : [];
   const hitos = Array.isArray(rawHitos) ? rawHitos : [];
   const equipo = Array.isArray(rawEquipo) ? rawEquipo : [];
+  const documentos = [...(Array.isArray(rawDocs)?rawDocs:[]), ...(Array.isArray(rawGest)?rawGest:[])];
   const [modal, setModal]     = useState(null);
   const [ficha, setFicha]     = useState(null); // {tipo,data} — vista previa
   const abrirFicha = (tipo, data) => {
@@ -338,10 +341,10 @@ export default function App() {
         </div>
       </div>
 
-      {ficha?.tipo==="tarea"   && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} onClose={()=>setFicha(null)} onEditar={()=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
-      {ficha?.tipo==="hito"    && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} onClose={()=>setFicha(null)} onEditar={()=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
-      {ficha?.tipo==="persona" && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} onClose={()=>setFicha(null)} onEditar={()=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
-      {modal?.tipo==="tarea"   && <ModalTarea   key={modal.data?.id||"new"} data={modal.data} equipo={equipo} tareas={tareas} onSave={saveTarea}   onClose={() => setModal(null)} />}
+      {ficha?.tipo==="tarea"   && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} documentos={documentos} onClose={()=>setFicha(null)} onEditar={()=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
+      {ficha?.tipo==="hito"    && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} documentos={documentos} onClose={()=>setFicha(null)} onEditar={()=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
+      {ficha?.tipo==="persona" && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} documentos={documentos} onClose={()=>setFicha(null)} onEditar={()=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
+      {modal?.tipo==="tarea"   && <ModalTarea   key={modal.data?.id||"new"} data={modal.data} equipo={equipo} tareas={tareas} documentos={documentos} onSave={saveTarea}   onClose={() => setModal(null)} />}
       {modal?.tipo==="hito"    && <ModalHito    key={modal.data?.id||"new"} data={modal.data}                                  onSave={saveHito}    onClose={() => setModal(null)} />}
       {modal?.tipo==="persona" && <ModalPersona key={modal.data?.id||"new"} data={modal.data}                                  onSave={savePersona} onClose={() => setModal(null)} />}
       {delConf && (
@@ -570,6 +573,7 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
                       color:t.estado==="completado"?"var(--text-muted)":"var(--text)",
                       textDecoration:t.estado==="completado"?"line-through":"none"}}>{t.titulo}</span>
                     <span className="badge" style={{background:pc.bg,color:pc.color,fontSize:".52rem"}}>{t.prioridad}</span>
+                    {t.documentoId && <span title="Documento vinculado" style={{fontSize:".7rem",cursor:"help"}}>📎</span>}
                     {dep && dep.estado !== "completado" &&
                       <span className="badge" style={{background:"rgba(248,113,113,.1)",color:"#f87171",fontSize:".52rem"}}>🔒 espera: {dep.titulo.slice(0,25)}…</span>}
                   </div>
@@ -645,6 +649,7 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
                           <div style={{display:"flex",gap:".35rem",alignItems:"center",flex:1,minWidth:0}}>
                             <span style={{fontSize:".65rem",flexShrink:0}}>{area.icon}</span>
                             <span className="badge" style={{background:pc.bg,color:pc.color,fontSize:".48rem"}}>{t.prioridad}</span>
+                            {t.documentoId && <span title="Documento vinculado" style={{fontSize:".65rem",marginLeft:"-2px"}}>📎</span>}
                             {resp && (
                               <div className="kanban-avatar" style={{background:resp.color+"33",border:`1px solid ${resp.color}66`,color:resp.color}}>
                                 {iniciales(resp.nombre)}
@@ -1041,10 +1046,10 @@ function TabHitos({ hitos, updHito, setModal, setDelConf, setFicha }) {
 }
 
 // ─── MODAL TAREA ──────────────────────────────────────────────────────────────
-function ModalTarea({ data, equipo, tareas, onSave, onClose }) {
+function ModalTarea({ data, equipo, tareas, documentos, onSave, onClose }) {
   const [form, setForm] = useState(data || {
     area:"permisos", titulo:"", responsableId:equipo[0]?.id||1,
-    fechaLimite:"", estado:"pendiente", prioridad:"media", notas:"", dependeDe:null,
+    fechaLimite:"", estado:"pendiente", prioridad:"media", notas:"", dependeDe:null, documentoId:null,
   });
   const [err, setErr] = useState({});
   const upd = (k,v) => setForm(p => ({...p,[k]:v}));
@@ -1054,7 +1059,7 @@ function ModalTarea({ data, equipo, tareas, onSave, onClose }) {
     const e = {};
     if (!form.titulo.trim()) e.titulo = "Requerido";
     setErr(e);
-    if (!Object.keys(e).length) onSave({...form, responsableId:parseInt(form.responsableId), dependeDe:form.dependeDe?parseInt(form.dependeDe):null});
+    if (!Object.keys(e).length) onSave({...form, responsableId:parseInt(form.responsableId), dependeDe:form.dependeDe?parseInt(form.dependeDe):null, documentoId:form.documentoId||null});
   };
 
   return (
@@ -1111,6 +1116,13 @@ function ModalTarea({ data, equipo, tareas, onSave, onClose }) {
               </select>
             </div>
           )}
+          <div>
+            <label className="fl">Enlace a Documento (opcional)</label>
+            <select className="inp" value={form.documentoId||""} onChange={e=>upd("documentoId",e.target.value||null)}>
+              <option value="">Ninguno</option>
+              {documentos.map(d=><option key={d.id} value={d.id}>{d.nombre}</option>)}
+            </select>
+          </div>
           <div>
             <label className="fl">Notas / Descripción</label>
             <textarea className="inp" rows={3} value={form.notas||""} onChange={e=>upd("notas",e.target.value)}
@@ -1251,11 +1263,12 @@ function FichaRow({ label, value, color }) {
   );
 }
 
-function FichaProyecto({ ficha, equipo, onClose, onEditar, onEliminar }) {
+function FichaProyecto({ ficha, equipo, documentos, onClose, onEditar, onEliminar }) {
   const { tipo, data } = ficha;
   const accent = tipo === "tarea" ? "var(--violet)" : tipo === "hito" ? "var(--cyan)" : "var(--green)";
   const icon   = tipo === "tarea" ? "📋" : tipo === "hito" ? "🏁" : "👤";
   const titulo = data.titulo || data.nombre;
+  const docVinculado = documentos?.find(d => String(d.id) === String(data.documentoId));
 
   return (
     <>
@@ -1288,9 +1301,18 @@ function FichaProyecto({ ficha, equipo, onClose, onEditar, onEliminar }) {
               <FichaRow label="Fecha límite" value={data.fechaLimite
                 ? new Date(data.fechaLimite).toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})
                 : null} />
+              {docVinculado && (
+                <div style={{ marginTop: ".8rem", padding: ".6rem 0", borderTop: "1px dashed var(--border)", display: "flex", alignItems: "center", gap: "1rem" }}>
+                  <div style={{ fontFamily:"var(--font-mono)", fontSize:".6rem", color:"var(--text-muted)", textTransform:"uppercase", fontWeight:700 }}>Doc vinculado</div>
+                  <a href="#" className="badge" style={{background:"rgba(34,211,238,.12)",color:"var(--cyan)",textDecoration:"none",fontSize:".7rem",padding:".3rem .6rem",border:"1px solid rgba(34,211,238,.2)"}} 
+                     onClick={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "documentos" } })); }}>
+                    📎 {docVinculado.nombre} →
+                  </a>
+                </div>
+              )}
               {data.notas && (
                 <div style={{ background:"var(--surface2)", borderRadius:8,
-                  padding:".65rem .75rem", borderLeft:`2px solid ${accent}`, marginTop:".25rem" }}>
+                  padding:".65rem .75rem", borderLeft:`2px solid ${accent}`, marginTop:".5rem" }}>
                   <div style={{ fontFamily:"var(--font-mono)", fontSize:".55rem", color:"var(--text-muted)",
                     marginBottom:".3rem", textTransform:"uppercase" }}>Notas</div>
                   <div style={{ fontSize:".78rem", lineHeight:1.6 }}>{data.notas}</div>

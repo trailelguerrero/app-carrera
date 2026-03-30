@@ -101,7 +101,11 @@ const PAT0 = [
       { id:2, tipo:"Logo en camiseta voluntarios", detalle:"Logo pequeño manga derecha", estado:"pendiente" },
     ]
   ,
-    docs: []
+    docs: [],
+    especieItems: [
+      { id:1, nombre:"Geles energéticos", cantidad:250, unidad:"unidades", recibido:false },
+      { id:2, nombre:"Barritas energéticas", cantidad:100, unidad:"unidades", recibido:false },
+    ]
   },
   {
     id: 5, nombre: "Hotel Gredos Sierra", sector: "Hostelería / Turismo", nivel: "Colaborador",
@@ -193,13 +197,13 @@ export default function App() {
 
   const savePat = (pat) => {
     if (pat.id) {
-      // Preserve docs and contraprestaciones — the edit modal only touches metadata
+      // Preserve docs, contraprestaciones y especieItems — el modal solo toca metadata
       setPats(prev => prev.map(p => p.id === pat.id
-        ? { ...pat, docs: p.docs || [], contraprestaciones: p.contraprestaciones || [] }
+        ? { ...pat, docs: p.docs || [], contraprestaciones: p.contraprestaciones || [], especieItems: p.especieItems || [] }
         : p
       ));
     } else {
-      setPats(prev => [...prev, { ...pat, id: genId(pats), contraprestaciones: [], docs: [] }]);
+      setPats(prev => [...prev, { ...pat, id: genId(pats), contraprestaciones: [], docs: [], especieItems: [] }]);
     }
     setModal(null);
   };
@@ -236,6 +240,26 @@ export default function App() {
     setPats(prev => prev.map(p => p.id === patId ? {
       ...p,
       contraprestaciones: (p.contraprestaciones || []).filter(c => c.id !== cId)
+    } : p));
+  };
+
+  // ── Gestión ítems en especie ─────────────────────────────────────────────────
+  const addEspecieItem = (patId, item) => {
+    setPats(prev => prev.map(p => p.id === patId ? {
+      ...p,
+      especieItems: [...(p.especieItems || []), { ...item, id: genId(p.especieItems || []) }]
+    } : p));
+  };
+  const updateEspecieItem = (patId, itemId, campo, valor) => {
+    setPats(prev => prev.map(p => p.id === patId ? {
+      ...p,
+      especieItems: (p.especieItems || []).map(i => i.id === itemId ? { ...i, [campo]: valor } : i)
+    } : p));
+  };
+  const deleteEspecieItem = (patId, itemId) => {
+    setPats(prev => prev.map(p => p.id === patId ? {
+      ...p,
+      especieItems: (p.especieItems || []).filter(i => i.id !== itemId)
     } : p));
   };
 
@@ -315,6 +339,7 @@ export default function App() {
           updateContraprestacion={updateContraprestacion} addContraprestacion={addContraprestacion}
           deleteContraprestacion={deleteContraprestacion} updateEstado={updateEstado}
           addDoc={addDoc} deleteDoc={deleteDoc}
+          addEspecieItem={addEspecieItem} updateEspecieItem={updateEspecieItem} deleteEspecieItem={deleteEspecieItem}
         />
       )}
       {delId && (
@@ -871,13 +896,16 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
 }
 
 // ─── MODAL DETALLE ────────────────────────────────────────────────────────────
-function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContraprestacion, deleteContraprestacion, updateEstado, addDoc, deleteDoc }) {
+function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContraprestacion, deleteContraprestacion, updateEstado, addDoc, deleteDoc, addEspecieItem, updateEspecieItem, deleteEspecieItem }) {
   const cfg = getCfg(pat.nivel);
   const ecfg = ESTADO_CFG[pat.estado];
   const [subTab, setSubTab] = useState("info");
   const [addingCont, setAddingCont] = useState(false);
   const [newC, setNewC] = useState({ tipo: CONTRAPRESTACIONES_TIPO[0], detalle: "" });
-
+  const [addingEspecie, setAddingEspecie] = useState(false);
+  const [newEsp, setNewEsp] = useState({ nombre: "", cantidad: 0, unidad: "unidades" });
+  const especieItems = pat.especieItems || [];
+  const esPatEspecie = pat.nivel === "Especie" || pat.especie > 0;
 
   return (
     <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -897,7 +925,7 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
             </div>
           </div>
           <div style={{ display: "flex", gap: "0", padding: "0 1.4rem" }}>
-            {[["info","ℹ️ Info"],["cont","🎁 Compromisos"],["docs","📁 Documentos"]].map(([id,label]) => (
+            {[["info","ℹ️ Info"],["cont","🎁 Compromisos"],["especie","📦 En especie"],["docs","📁 Documentos"]].map(([id,label]) => (
               <button key={id} onClick={() => setSubTab(id)}
                 style={{ background:"none", border:"none", borderBottom: subTab===id ? `2px solid ${cfg.color}` : "2px solid transparent", color: subTab===id ? cfg.color : "var(--text-muted)", fontFamily:"Syne,sans-serif", fontSize:".72rem", fontWeight: subTab===id?700:500, padding:".4rem .75rem .5rem", cursor:"pointer", transition:"all .15s" }}>
                 {label}
@@ -908,6 +936,7 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
                   ) : null;
                 })()}
                 {id==="cont" && (pat.contraprestaciones || []).filter(c=>c.estado==="pendiente").length > 0 && <span style={{ marginLeft:".3rem", background:"rgba(248,113,113,.12)", color:"#f87171", fontSize:".55rem", padding:".05rem .3rem", borderRadius:3, fontFamily:"var(--font-mono)" }}>{(pat.contraprestaciones || []).filter(c=>c.estado==="pendiente").length}</span>}
+                {id==="especie" && especieItems.length > 0 && <span style={{ marginLeft:".3rem", background:cfg.dim, color:cfg.color, fontSize:".55rem", padding:".05rem .3rem", borderRadius:3, fontFamily:"var(--font-mono)" }}>{especieItems.length}</span>}
               </button>
             ))}
           </div>
@@ -988,6 +1017,56 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
               </div>
             )}
           </div>
+          </>}
+
+          {/* ── EN ESPECIE TAB ── */}
+          {subTab === "especie" && <>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ".6rem" }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: ".85rem" }}>📦 Productos / servicios en especie</div>
+                <div className="mono xs muted">{especieItems.filter(i=>i.recibido).length} recibidos · {especieItems.filter(i=>!i.recibido).length} pendientes</div>
+              </div>
+              <button className="btn btn-sm" style={{ background: cfg.dim, color: cfg.color, border: `1px solid ${cfg.border}` }}
+                onClick={() => setAddingEspecie(!addingEspecie)}>+ Añadir ítem</button>
+            </div>
+            {especieItems.length === 0 && !addingEspecie && (
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", color: "var(--text-dim)", textAlign: "center", padding: "1rem 0" }}>
+                Sin ítems en especie registrados. Usa el botón + Añadir ítem.
+              </div>
+            )}
+            {especieItems.map(item => (
+              <div key={item.id} style={{ display: "flex", alignItems: "center", gap: ".6rem", padding: ".45rem 0", borderBottom: "1px solid rgba(30,45,80,.25)" }}>
+                <button onClick={() => updateEspecieItem(pat.id, item.id, "recibido", !item.recibido)}
+                  style={{ width: 20, height: 20, borderRadius: 4, border: `2px solid ${item.recibido ? "#34d399" : "var(--border)"}`, background: item.recibido ? "#34d399" : "transparent", cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {item.recibido && <span style={{ color: "#000", fontSize: ".7rem", fontWeight: 800 }}>✓</span>}
+                </button>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: ".78rem", fontWeight: 600, textDecoration: item.recibido ? "line-through" : "none", color: item.recibido ? "var(--text-muted)" : "var(--text)" }}>{item.nombre}</div>
+                  <div className="mono xs muted">{item.cantidad} {item.unidad}</div>
+                </div>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: ".6rem", padding: ".1rem .4rem", borderRadius: 4,
+                  background: item.recibido ? "rgba(52,211,153,.12)" : "rgba(251,191,36,.1)",
+                  color: item.recibido ? "#34d399" : "#fbbf24" }}>
+                  {item.recibido ? "✓ Recibido" : "⏳ Pendiente"}
+                </span>
+                <button className="btn btn-sm btn-red" onClick={() => deleteEspecieItem(pat.id, item.id)}>✕</button>
+              </div>
+            ))}
+            {addingEspecie && (
+              <div style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 8, padding: ".65rem", marginTop: ".4rem", display: "flex", flexDirection: "column", gap: ".45rem" }}>
+                <input className="inp" placeholder="Nombre del producto/servicio" value={newEsp.nombre} onChange={e => setNewEsp(x => ({ ...x, nombre: e.target.value }))} />
+                <div style={{ display: "flex", gap: ".4rem" }}>
+                  <input type="number" min="0" className="inp" placeholder="Cantidad" value={newEsp.cantidad} onChange={e => setNewEsp(x => ({ ...x, cantidad: parseInt(e.target.value) || 0 }))} style={{ flex: 1 }} />
+                  <input className="inp" placeholder="Unidad (uds, kg, litros…)" value={newEsp.unidad} onChange={e => setNewEsp(x => ({ ...x, unidad: e.target.value }))} style={{ flex: 1 }} />
+                </div>
+                <div style={{ display: "flex", gap: ".4rem", justifyContent: "flex-end" }}>
+                  <button className="btn btn-ghost" onClick={() => setAddingEspecie(false)}>Cancelar</button>
+                  <button className="btn btn-gold" onClick={() => {
+                    if (newEsp.nombre.trim()) { addEspecieItem(pat.id, { ...newEsp, recibido: false }); setNewEsp({ nombre: "", cantidad: 0, unidad: "unidades" }); setAddingEspecie(false); }
+                  }}>Añadir</button>
+                </div>
+              </div>
+            )}
           </>}
 
           {/* ── DOCUMENTOS TAB ── */}
@@ -1076,13 +1155,60 @@ function ModalPat({ data, onSave, onClose }) {
             </div>
             <div>
               <label className="fl">
-              Especie (€ valor)
-              <span title="Patrocinio en productos o servicios en lugar de dinero. Ej: material deportivo, servicios de fisioterapia, alimentación para avituallamiento. Indica el valor económico estimado."
-                style={{marginLeft:".35rem",cursor:"help",opacity:.6,fontSize:".65rem"}}>ⓘ</span>
-            </label>
+                Especie (€ valor)
+                <span title="Patrocinio en productos o servicios en lugar de dinero. Ej: material deportivo, servicios de fisioterapia, alimentación para avituallamiento. Indica el valor económico estimado."
+                  style={{ marginLeft: ".35rem", cursor: "help", opacity: .6, fontSize: ".65rem" }}>ⓘ</span>
+              </label>
               <input className="inp" type="number" value={form.especie} onChange={e => upd("especie", parseFloat(e.target.value) || 0)} />
             </div>
           </div>
+
+          {/* Sección de productos en especie dentro del modal de creación/edición */}
+          {(form.nivel === "Especie" || form.especie > 0) && (
+            <div style={{ background: "var(--surface2)", borderRadius: 8, padding: ".85rem", marginTop: ".25rem", border: "1px solid var(--border)" }}>
+              <div style={{ fontWeight: 700, fontSize: ".76rem", marginBottom: ".5rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span>📦 Detalle de productos/servicios</span>
+                <button className="btn btn-sm btn-ghost" style={{ fontSize: ".6rem", padding: ".2rem .4rem" }}
+                  onClick={() => {
+                    const newItem = { id: Date.now(), nombre: "", cantidad: 1, unidad: "ud", recibido: false };
+                    setForm(p => ({ ...p, especieItems: [...(p.especieItems || []), newItem] }));
+                  }}>+ Añadir ítem</button>
+              </div>
+              {(form.especieItems || []).length === 0 && (
+                <div style={{ textAlign: "center", padding: ".5rem", fontSize: ".65rem", color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>
+                  Sin ítems detallados aún.
+                </div>
+              )}
+              <div style={{ display: "flex", flexDirection: "column", gap: ".4rem" }}>
+                {(form.especieItems || []).map((item, idx) => (
+                  <div key={item.id} style={{ display: "flex", gap: ".4rem", alignItems: "center" }}>
+                    <input className="inp" style={{ flex: 2, fontSize: ".72rem" }} placeholder="Nombre producto" value={item.nombre}
+                      onChange={e => {
+                        const newItems = [...form.especieItems];
+                        newItems[idx].nombre = e.target.value;
+                        setForm(p => ({ ...p, especieItems: newItems }));
+                      }} />
+                    <input className="inp" style={{ flex: 0.8, fontSize: ".72rem" }} type="number" placeholder="Cant." value={item.cantidad}
+                      onChange={e => {
+                        const newItems = [...form.especieItems];
+                        newItems[idx].cantidad = Number(e.target.value);
+                        setForm(p => ({ ...p, especieItems: newItems }));
+                      }} />
+                    <input className="inp" style={{ flex: 1, fontSize: ".72rem" }} placeholder="ud" value={item.unidad}
+                      onChange={e => {
+                        const newItems = [...form.especieItems];
+                        newItems[idx].unidad = e.target.value;
+                        setForm(p => ({ ...p, especieItems: newItems }));
+                      }} />
+                    <button className="btn btn-sm btn-red" style={{ padding: ".2rem .4rem" }}
+                      onClick={() => {
+                        setForm(p => ({ ...p, especieItems: p.especieItems.filter((_, i) => i !== idx) }));
+                      }}>✕</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: ".75rem" }}>
             <div>

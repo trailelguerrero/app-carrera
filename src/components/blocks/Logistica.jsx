@@ -16,6 +16,25 @@ const ESTADO_COLORES = { pendiente:"#fbbf24","en tránsito":"#22d3ee",entregado:
 const FASES_CHECKLIST = ["3 meses antes","2 meses antes","1 mes antes","Semana antes","Día antes","Mañana carrera","Durante carrera","Post-carrera"];
 const PUESTOS_REF = ["Zona Salida/Meta","Avituallamiento KM 4","Avituallamiento KM 9","Avituallamiento KM 16","Control KM 7","Control KM 13","Seguridad Cruce 1","Seguridad Cruce 2","Señalización Ruta Alta","Parking","Zona Llegada/Trofeos","Primeros Auxilios Base"];
 
+const TIPOS_LOC = ["meta", "avituallamiento", "control", "seguridad", "señalización", "parking", "sanidad", "otro"];
+const LOC_ICONS = { meta:"🎏", avituallamiento:"🍎", control:"📍", seguridad:"🦸", señalización:"🚩", parking:"🅿️", sanidad:"🏥", otro:"📌" };
+const LOC_COLORS = { meta:"var(--green)", avituallamiento:"var(--cyan)", control:"var(--amber)", seguridad:"var(--red)", señalización:"#fbbf24", parking:"#60a5fa", sanidad:"#f87171", otro:"#5a6a8a" };
+
+const LOCS_DEFAULT = [
+  {id:1,nombre:"Zona Salida/Meta",tipo:"meta",descripcion:"Punto de salida y llegada de todas las distancias"},
+  {id:2,nombre:"Avituallamiento KM 4",tipo:"avituallamiento",descripcion:"Primer avituallamiento líquido TG7/TG13/TG25"},
+  {id:3,nombre:"Avituallamiento KM 9",tipo:"avituallamiento",descripcion:"Segundo avituallamiento sólido+líquido TG13/TG25"},
+  {id:4,nombre:"Avituallamiento KM 16",tipo:"avituallamiento",descripcion:"Avituallamiento completo TG25 únicamente"},
+  {id:5,nombre:"Control KM 7",tipo:"control",descripcion:"Control de paso TG13/TG25"},
+  {id:6,nombre:"Control KM 13",tipo:"control",descripcion:"Control de paso TG25"},
+  {id:7,nombre:"Seguridad Cruce 1",tipo:"seguridad",descripcion:"Cruce de carretera peligroso"},
+  {id:8,nombre:"Seguridad Cruce 2",tipo:"seguridad",descripcion:"Segundo cruce de carretera"},
+  {id:9,nombre:"Señalización Ruta Alta",tipo:"señalización",descripcion:"Zona de cambio de dirección ruta TG25"},
+  {id:10,nombre:"Parking",tipo:"parking",descripcion:"Área de aparcamiento para corredores y equipo"},
+  {id:11,nombre:"Zona Llegada/Trofeos",tipo:"meta",descripcion:"Zona de llegada y entrega de trofeos"},
+  {id:12,nombre:"Primeros Auxilios Base",tipo:"sanidad",descripcion:"Puesto médico fijo en zona meta"},
+];
+
 // ─── DATOS DEFAULT ────────────────────────────────────────────────────────────
 const MAT0 = [
   {id:1,nombre:"Agua (bidones 8L)",categoria:"Avituallamiento",cantidad:60,unidad:"ud",stock:60},
@@ -147,6 +166,15 @@ export default function App() {
   const inc = Array.isArray(rawInc) ? rawInc : [];
   const [rawCk, setCk] = useData(LS+"_ck", CK0);
   const ck = Array.isArray(rawCk) ? rawCk : [];
+  // Localizaciones maestras compartidas
+  const [rawLocs, setLocs] = useData("teg_localizaciones_v1", LOCS_DEFAULT);
+  const locs = Array.isArray(rawLocs) ? rawLocs : [];
+  // Patrocinadores (solo lectura) para sección especie en material
+  const [rawPats] = useData("teg_patrocinadores_v1_pats", []);
+  const patsConEspecie = useMemo(() => {
+    const p = Array.isArray(rawPats) ? rawPats : [];
+    return p.filter(pat => pat && (pat.especieItems||[]).length > 0);
+  }, [rawPats]);
   const [saved, setSaved] = useState(false);
   const [modal, setModal] = useState(null);
   const [del, setDel] = useState(null);
@@ -185,6 +213,7 @@ export default function App() {
     {id:"timeline",icon:"⏱️",label:"Timeline"},
     {id:"contactos",icon:"📡",label:"Comunicaciones"},
     {id:"checklist",icon:"✅",label:"Checklist"},
+    {id:"localizaciones",icon:"📍",label:"Localizaciones"},
   ];
 
   const doDelete = () => {
@@ -231,12 +260,13 @@ export default function App() {
 
         {/* CONTENIDO */}
         <div key={tab}>
-          {tab==="dashboard" && <TabDash stats={stats} tl={tl} ck={ck} setTab={setTab} config={config} />}
-          {tab==="material" && <TabMat material={material} setMaterial={setMaterial} asigs={asigs} setAsigs={setAsigs} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenMat} setOrdenAlfa={setOrdenMat} />}
+          {tab==="dashboard" && <TabDash stats={stats} tl={tl} ck={ck} setTab={setTab} config={config} patsConEspecie={patsConEspecie} />}
+          {tab==="material" && <TabMat material={material} setMaterial={setMaterial} asigs={asigs} setAsigs={setAsigs} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenMat} setOrdenAlfa={setOrdenMat} locs={locs} patsConEspecie={patsConEspecie} />}
           {tab==="vehiculos" && <TabVeh veh={veh} setVeh={setVeh} rutas={rutas} setRutas={setRutas} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenVeh} setOrdenAlfa={setOrdenVeh} />}
           {tab==="timeline" && <TabTL tl={tl} setTl={setTl} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenTL} setOrdenAlfa={setOrdenTL} />}
           {tab==="contactos" && <TabCont cont={cont} setCont={setCont} inc={inc} setInc={setInc} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCont} setOrdenAlfa={setOrdenCont} />}
           {tab==="checklist" && <TabCK ck={ck} setCk={setCk} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCK} setOrdenAlfa={setOrdenCK} />}
+          {tab==="localizaciones" && <TabLocalizaciones locs={locs} setLocs={setLocs} />}
         </div>
       </div>
 
@@ -246,7 +276,8 @@ export default function App() {
           material={material} setMaterial={setMaterial} asigs={asigs} setAsigs={setAsigs}
           veh={veh} setVeh={setVeh} rutas={rutas} setRutas={setRutas}
           tl={tl} setTl={setTl} cont={cont} setCont={setCont}
-          inc={inc} setInc={setInc} ck={ck} setCk={setCk} />
+          inc={inc} setInc={setInc} ck={ck} setCk={setCk}
+          locs={locs} />
       )}
       {del && (
         <div className="modal-backdrop" style={{zIndex:200}} onClick={e => e.target===e.currentTarget && setDel(null)}>
@@ -265,7 +296,7 @@ export default function App() {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
-function TabDash({ stats, tl, ck, setTab, config }) {
+function TabDash({ stats, tl, ck, setTab, config, patsConEspecie }) {
   const prox = [...tl].filter(t=>t.estado!=="completado").sort((a,b)=>a.hora.localeCompare(b.hora)).slice(0,6);
   const porFase = FASES_CHECKLIST.map(f => { const it=ck.filter(c=>c.fase===f); const d=it.filter(c=>c.estado==="completado").length; return {f,d,t:it.length,pct:it.length?Math.round(d/it.length*100):0}; });
   const diasHasta = Math.ceil((EVENT_DATE - new Date()) / 86400000);
@@ -344,6 +375,37 @@ function TabDash({ stats, tl, ck, setTab, config }) {
         </div>
       </div>
 
+      {/* ── Especie de patrocinadores ── */}
+      {patsConEspecie && patsConEspecie.length > 0 && (
+        <div className="card mb">
+          <div className="ct">📦 Material en especie (patrocinadores)</div>
+          {patsConEspecie.map(pat => {
+            const items = pat.especieItems || [];
+            const recibidos = items.filter(i => i.recibido).length;
+            return (
+              <div key={pat.id} style={{ display: "flex", alignItems: "flex-start", gap: ".6rem", padding: ".45rem 0", borderBottom: "1px solid rgba(30,45,80,.25)" }}>
+                <span style={{ fontSize: "1rem" }}>📦</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: ".78rem", fontWeight: 700 }}>{pat.nombre}</div>
+                  <div style={{ display: "flex", gap: ".4rem", flexWrap: "wrap", marginTop: ".2rem" }}>
+                    {items.map(i => (
+                      <span key={i.id} style={{ fontFamily: "var(--font-mono)", fontSize: ".58rem", padding: ".1rem .35rem", borderRadius: 4,
+                        background: i.recibido ? "rgba(52,211,153,.12)" : "rgba(251,191,36,.08)",
+                        color: i.recibido ? "#34d399" : "#fbbf24" }}>
+                        {i.recibido ? "✓" : "⏳"} {i.nombre} ({i.cantidad} {i.unidad})
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: ".62rem", color: recibidos === items.length ? "#34d399" : "#fbbf24" }}>
+                  {recibidos}/{items.length}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* ── Dos columnas: Timeline + Checklist ── */}
       <div className="twocol">
         <div className="card">
@@ -390,7 +452,7 @@ const TLC = {logistica:"#fbbf24",organizacion:"#a78bfa",voluntarios:"#34d399",ca
 const TLI = {logistica:"🚚",organizacion:"📋",voluntarios:"👥",carrera:"🏃",comunicacion:"📡"};
 
 // ─── MATERIAL ─────────────────────────────────────────────────────────────────
-function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal}) {
+function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,locs,patsConEspecie}) {
   const [vistaAsig,setVistaAsig]=useState(false);
   const [vistaKanban,setVistaKanban]=useState(false);
   const [cat,setCat]=useState("todas");
@@ -993,6 +1055,141 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
   );
 }
 
+// ─── LOCALIZACIONES MAESTRAS ─────────────────────────────────────────────────
+function TabLocalizaciones({ locs, setLocs }) {
+  const genId = (arr) => arr.length ? Math.max(...arr.map(x => x.id)) + 1 : 1;
+  const [modal, setModal] = useState(null); // null | {data: loc|null}
+  const [del, setDel] = useState(null);
+  const [filtroTipo, setFiltroTipo] = useState("todos");
+  const [form, setForm] = useState({ nombre: "", tipo: "otro", descripcion: "" });
+
+  const locsF = filtroTipo === "todos" ? locs : locs.filter(l => l.tipo === filtroTipo);
+
+  const openNueva = () => { setForm({ nombre: "", tipo: "otro", descripcion: "" }); setModal({ data: null }); };
+  const openEditar = (l) => { setForm({ nombre: l.nombre, tipo: l.tipo, descripcion: l.descripcion || "" }); setModal({ data: l }); };
+  const save = () => {
+    if (!form.nombre.trim()) return;
+    if (modal.data) {
+      setLocs(prev => prev.map(l => l.id === modal.data.id ? { ...l, ...form } : l));
+    } else {
+      setLocs(prev => [...prev, { id: genId(prev), ...form }]);
+    }
+    setModal(null);
+  };
+
+  return (
+    <>
+      <div className="ph">
+        <div><div className="pt">📍 Localizaciones Maestras</div><div className="pd">{locs.length} ubicaciones · Compartidas con Voluntarios</div></div>
+        <div style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
+          <select style={{ fontFamily: "var(--font-mono)", fontSize: ".72rem", background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text)", borderRadius: "var(--r-sm)", padding: ".3rem .5rem" }}
+            value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
+            <option value="todos">Todos los tipos</option>
+            {TIPOS_LOC.map(t => <option key={t} value={t}>{LOC_ICONS[t]} {t}</option>)}
+          </select>
+          <button className="btn btn-primary" onClick={openNueva}>+ Nueva</button>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: ".65rem" }}>
+        {locsF.map(l => {
+          const color = LOC_COLORS[l.tipo] || "#5a6a8a";
+          const icon  = LOC_ICONS[l.tipo]  || "📌";
+          return (
+            <div key={l.id} className="card" style={{ borderLeft: `3px solid ${color}`, cursor: "pointer" }} onClick={() => openEditar(l)}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: ".4rem" }}>
+                <div style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
+                  <span style={{ fontSize: "1.2rem" }}>{icon}</span>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: ".82rem" }}>{l.nombre}</div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: ".58rem", color, textTransform: "uppercase", letterSpacing: ".06em" }}>{l.tipo}</div>
+                  </div>
+                </div>
+                <button className="btn btn-sm btn-red" onClick={e => { e.stopPropagation(); setDel(l.id); }}
+                  style={{ flexShrink: 0, padding: ".15rem .4rem", fontSize: ".65rem" }}>✕</button>
+              </div>
+              {l.descripcion && <div style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", color: "var(--text-muted)", fontStyle: "italic", marginTop: ".2rem" }}>{l.descripcion}</div>}
+            </div>
+          );
+        })}
+        {locsF.length === 0 && (
+          <div className="card" style={{ textAlign: "center", color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: ".7rem", padding: "2rem" }}>
+            Sin localizaciones con ese filtro
+          </div>
+        )}
+      </div>
+
+      {/* Resumen por tipo */}
+      <div className="card" style={{ marginTop: ".85rem" }}>
+        <div className="ct" style={{ marginBottom: ".5rem" }}>📊 Resumen por tipo</div>
+        <div style={{ display: "flex", gap: ".5rem", flexWrap: "wrap" }}>
+          {TIPOS_LOC.map(t => {
+            const n = locs.filter(l => l.tipo === t).length;
+            if (!n) return null;
+            const color = LOC_COLORS[t] || "#5a6a8a";
+            return (
+              <span key={t} style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", padding: ".2rem .6rem", borderRadius: 20,
+                background: `${color}15`, color, border: `1px solid ${color}33`, cursor: "pointer" }}
+                onClick={() => setFiltroTipo(filtroTipo === t ? "todos" : t)}>
+                {LOC_ICONS[t]} {t} ({n})
+              </span>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Modal edición */}
+      {modal && (
+        <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && setModal(null)}>
+          <div className="modal" style={{ maxWidth: 420 }}>
+            <div className="modal-header">
+              <div style={{ fontWeight: 700 }}>{modal.data ? "✏️ Editar localización" : "📍 Nueva localización"}</div>
+              <button className="btn btn-ghost btn-sm" onClick={() => setModal(null)}>✕</button>
+            </div>
+            <div className="modal-body" style={{ display: "flex", flexDirection: "column", gap: ".6rem" }}>
+              <label style={{ display: "flex", flexDirection: "column", gap: ".2rem" }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", color: "var(--text-muted)" }}>Nombre *</span>
+                <input className="inp" placeholder="ej. Avituallamiento KM 4" value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} />
+              </label>
+              <label style={{ display: "flex", flexDirection: "column", gap: ".2rem" }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", color: "var(--text-muted)" }}>Tipo</span>
+                <select className="inp" value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}>
+                  {TIPOS_LOC.map(t => <option key={t} value={t}>{LOC_ICONS[t]} {t}</option>)}
+                </select>
+              </label>
+              <label style={{ display: "flex", flexDirection: "column", gap: ".2rem" }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", color: "var(--text-muted)" }}>Descripción</span>
+                <textarea className="inp" rows={2} placeholder="Descripción opcional" value={form.descripcion} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} />
+              </label>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setModal(null)}>Cancelar</button>
+              <button className="btn btn-primary" onClick={save}>{modal.data ? "Guardar" : "Crear"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm delete */}
+      {del && (
+        <div className="modal-backdrop" style={{ zIndex: 200 }} onClick={e => e.target === e.currentTarget && setDel(null)}>
+          <div className="modal" style={{ maxWidth: 320, textAlign: "center" }}>
+            <div className="modal-body" style={{ paddingTop: "1.5rem" }}>
+              <div style={{ fontSize: "2rem", marginBottom: ".5rem" }}>⚠️</div>
+              <div style={{ fontWeight: 700 }}>¿Eliminar localización?</div>
+              <div className="mono xs muted">Los puestos de voluntarios que la referenciaban quedarán sin localización maestra.</div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setDel(null)}>Cancelar</button>
+              <button className="btn btn-red" onClick={() => { setLocs(prev => prev.filter(l => l.id !== del)); setDel(null); }}>Eliminar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 // ─── FICHA LOGÍSTICA ──────────────────────────────────────────────────────────
 function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar }) {
   const { tipo, data } = ficha;
@@ -1119,8 +1316,9 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar })
 }
 
 
-function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setVeh,rutas,setRutas,tl,setTl,cont,setCont,inc,setInc,ck,setCk}) {
+function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setVeh,rutas,setRutas,tl,setTl,cont,setCont,inc,setInc,ck,setCk,locs}) {
   const {tipo,data}=modal;
+  const locNames = locs && locs.length > 0 ? locs.map(l => l.nombre) : PUESTOS_REF;
   const sv=(setter,arr,item)=>{ if(item.id) setter(p=>p.map(x=>x.id===item.id?item:x)); else setter(p=>[...p,{...item,id:genId(arr)}]); onClose(); };
 
   if(tipo==="mat") return <MF title={data?"✏️ Editar material":"📦 Nuevo material"} onClose={onClose}
@@ -1129,8 +1327,8 @@ function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setV
     onSave={v=>sv(setMaterial,material,v)} />;
 
   if(tipo==="asig") return <MF title={data?"✏️ Editar asignación":"📍 Nueva asignación"} onClose={onClose}
-    fields={[{k:"materialId",l:"Material",t:"sel",o:material.map(m=>m.id),lb:material.map(m=>m.nombre),num:true},{k:"puesto",l:"Puesto destino",t:"sel",o:PUESTOS_REF},{k:"cantidad",l:"Cantidad",t:"num"},{k:"estado",l:"Estado entrega",t:"sel",o:ESTADO_ENTREGA}]}
-    init={data||{materialId:material[0]?.id||1,puesto:PUESTOS_REF[0],cantidad:1,estado:"pendiente"}}
+    fields={[{k:"materialId",l:"Material",t:"sel",o:material.map(m=>m.id),lb:material.map(m=>m.nombre),num:true},{k:"puesto",l:"Puesto destino",t:"sel",o:locNames},{k:"cantidad",l:"Cantidad",t:"num"},{k:"estado",l:"Estado entrega",t:"sel",o:ESTADO_ENTREGA}]}
+    init={data||{materialId:material[0]?.id||1,puesto:locNames[0],cantidad:1,estado:"pendiente"}}
     onSave={v=>sv(setAsigs,asigs,{...v,materialId:parseInt(v.materialId)})} />;
 
   if(tipo==="veh") return <MF title={data?"✏️ Editar vehículo":"🚗 Nuevo vehículo"} onClose={onClose}
@@ -1138,7 +1336,7 @@ function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setV
     init={data||{nombre:"",matricula:"",conductor:"",capacidad:"",telefono:"",notas:""}}
     onSave={v=>sv(setVeh,veh,v)} />;
 
-  if(tipo==="ruta") return <ModalRuta data={data} veh={veh} rutas={rutas} setRutas={setRutas} onClose={onClose} />;
+  if(tipo==="ruta") return <ModalRuta data={data} veh={veh} rutas={rutas} setRutas={setRutas} onClose={onClose} locs={locs} />;
 
   if(tipo==="tl") return <MF title={data?"✏️ Editar tarea":"⏱️ Nueva tarea"} onClose={onClose}
     fields={[{k:"hora",l:"Hora",t:"time"},{k:"titulo",l:"Título *",t:"text"},{k:"descripcion",l:"Descripción",t:"text"},{k:"responsable",l:"Responsable",t:"text"},{k:"categoria",l:"Categoría",t:"sel",o:["logistica","organizacion","voluntarios","carrera","comunicacion"]},{k:"estado",l:"Estado",t:"sel",o:ESTADO_TAREA}]}
@@ -1203,13 +1401,14 @@ function MF({title,fields,init,onSave,onClose}) {
   );
 }
 
-function ModalRuta({data,veh,rutas,setRutas,onClose}) {
+function ModalRuta({data,veh,rutas,setRutas,onClose,locs}) {
+  const locNames = locs && locs.length > 0 ? locs.map(l => l.nombre) : PUESTOS_REF;
   const [form,setForm]=useState(() => {
     const base = data || {nombre:"",vehiculoId:veh[0]?.id||1,horaInicio:"05:00",paradas:[]};
     return { ...base, paradas: Array.isArray(base.paradas) ? base.paradas : [] };
   });
   const upd=(k,v)=>setForm(p=>({...p,[k]:v}));
-  const addP=()=>setForm(p=>({...p,paradas:[...p.paradas,{puesto:PUESTOS_REF[0],hora:"06:00",material:""}]}));
+  const addP=()=>setForm(p=>({...p,paradas:[...p.paradas,{puesto:locNames[0],hora:"06:00",material:""}]}));
   const updP=(i,k,v)=>setForm(p=>({...p,paradas:p.paradas.map((x,j)=>j===i?{...x,[k]:v}:x)}));
   const delP=(i)=>setForm(p=>({...p,paradas:p.paradas.filter((_,j)=>j!==i)}));
   const save=()=>{

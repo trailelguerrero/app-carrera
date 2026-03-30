@@ -398,6 +398,7 @@ export default function App() {
   const puestos = Array.isArray(rawPuestos) ? rawPuestos : [];
   const [rawVoluntarios, setVoluntarios] = useData(LS_KEY + "_voluntarios", VOLUNTARIOS_DEFAULT);
   const voluntarios = Array.isArray(rawVoluntarios) ? rawVoluntarios : [];
+  const [locs] = useData("teg_localizaciones_v1", []);
   const [saveStatus, setSaveStatus] = useState("idle");
   const [imgFront, setImgFront] = useData(LS_KEY + "_imgFront", SHIRT_PLACEHOLDER_FRONT);
   const [imgBack, setImgBack] = useData(LS_KEY + "_imgBack", SHIRT_PLACEHOLDER_BACK);
@@ -632,6 +633,7 @@ export default function App() {
           {tab==="puestos" && (
             <TabPuestos
               puestosConStats={puestosConStats} voluntarios={voluntarios}
+              locs={locs}
               onUpdatePuesto={updatePuesto} onDeletePuesto={(id) => setConfirmDeletePuesto(id)}
               onNuevoPuesto={() => setModalPuesto("nuevo")} onEditPuesto={(p) => setModalPuesto(p)}
               onEditarVol={(v) => setModalVol(v)}
@@ -674,6 +676,7 @@ export default function App() {
         <ModalPuesto
           key={modalPuesto==="nuevo" ? "nuevo" : modalPuesto.id}
           puesto={modalPuesto==="nuevo" ? null : modalPuesto}
+          locs={locs}
           onSave={(data) => { if (modalPuesto==="nuevo") addPuesto(data); else updatePuesto(modalPuesto.id, data); setModalPuesto(null); }}
           onClose={() => setModalPuesto(null)}
         />
@@ -1242,7 +1245,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
 }
 
 // ─── TAB PUESTOS ──────────────────────────────────────────────────────────────
-function TabPuestos({ puestosConStats, voluntarios, onUpdatePuesto, onDeletePuesto, onNuevoPuesto, onEditPuesto, onEditarVol, onFichaPuesto, onFichaVol }) {
+function TabPuestos({ puestosConStats, voluntarios, locs, onUpdatePuesto, onDeletePuesto, onNuevoPuesto, onEditPuesto, onEditarVol, onFichaPuesto, onFichaVol }) {
   const [ordenAlfa, setOrdenAlfa] = useState(false);
   const puestosOrdenados = ordenAlfa
     ? [...puestosConStats].sort((a,b) => (a.nombre||"").localeCompare(b.nombre||"","es"))
@@ -1273,6 +1276,7 @@ function TabPuestos({ puestosConStats, voluntarios, onUpdatePuesto, onDeletePues
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.3rem", flexWrap: "wrap" }}>
                     <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>{p.nombre}</span>
                     <span className="badge badge-cyan">{p.tipo}</span>
+                    {p.localizacionId && <span className="badge badge-gold" title="Vinculado a localización maestra">📍 Sincronizado</span>}
                     {p.distancias.map(d => (
                       <span key={d} style={{ fontFamily: "var(--font-mono)", fontSize: "0.58rem", padding: "0.1rem 0.35rem", borderRadius: 3, background: "rgba(34,211,238,0.08)", color: DIST_COLORS[d] || "var(--text-muted)", border: `1px solid ${DIST_COLORS[d] || "var(--border)"}33` }}>{d}</span>
                     ))}
@@ -1779,7 +1783,7 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
 
 
 // ─── MODAL PUESTO ─────────────────────────────────────────────────────────────
-function ModalPuesto({ puesto, onSave, onClose }) {
+function ModalPuesto({ puesto, locs, onSave, onClose }) {
   const [form, setForm] = useState(puesto || {
     nombre: "", tipo: "Avituallamiento", distancias: ["Todas"],
     horaInicio: "08:00", horaFin: "15:00", necesarios: 3, responsableId: null, tiempoLimite: "", notas: ""
@@ -1797,6 +1801,24 @@ function ModalPuesto({ puesto, onSave, onClose }) {
           <button className="btn btn-ghost" style={{ padding: "0.2rem 0.5rem" }} onClick={onClose}>✕</button>
         </div>
         <div className="modal-body">
+          <div style={{ marginBottom: "0.5rem" }}>
+            <label className="field-label">📍 Localización Maestra (opcional)</label>
+            <select className="inp" value={form.localizacionId || ""} 
+              onChange={e => {
+                const locId = e.target.value ? parseInt(e.target.value) : null;
+                const loc = locs.find(l => l.id === locId);
+                const newData = { localizacionId: locId };
+                if (loc && !form.nombre) newData.nombre = loc.nombre;
+                if (loc) newData.tipo = loc.tipo;
+                setForm(p => ({ ...p, ...newData }));
+              }}>
+              <option value="">-- Sin vincular --</option>
+              {locs.map(l => <option key={l.id} value={l.id}>{l.nombre} ({l.tipo})</option>)}
+            </select>
+            <div style={{ fontSize: "0.6rem", color: "var(--text-muted)", marginTop: "0.25rem", fontFamily: "var(--font-mono)" }}>
+              Vincular a una localización maestra sincroniza el tipo y facilita la logística.
+            </div>
+          </div>
           <div><label className="field-label">Nombre del puesto *</label><input className="inp" value={form.nombre} onChange={e => upd("nombre", e.target.value)} placeholder="Ej: Avituallamiento KM 7" /></div>
           <div className="field-row">
             <div>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { useData } from "@/lib/dataService";
@@ -192,6 +192,17 @@ const Presupuesto = () => {
     resetAllData();
     setConfirmReset(false);
   };
+
+  // Escuchar navegación con subtab desde Dashboard
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.detail?.subtab && TABS.some(t => t.id === e.detail.subtab)) {
+        setTab(e.detail.subtab);
+      }
+    };
+    window.addEventListener("teg-navigate", handler);
+    return () => window.removeEventListener("teg-navigate", handler);
+  }, [setTab]);
 
   return (
     <>

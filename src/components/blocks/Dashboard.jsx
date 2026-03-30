@@ -34,7 +34,7 @@ const ALL_KEYS = {
 
 const fmt   = (n) => new Intl.NumberFormat("es-ES", { style:"currency", currency:"EUR", maximumFractionDigits:0 }).format(n ?? 0);
 const fmtD  = (iso) => new Date(iso).toLocaleDateString("es-ES", { day:"2-digit", month:"short" });
-const navigate = (block) => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block } }));
+const navigate = (block, subtab) => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block, subtab } }));
 
 // ─── Componente ──────────────────────────────────────────────────────────────
 export default function Dashboard() {
@@ -489,9 +489,9 @@ export default function Dashboard() {
             onClick={() => navigate("presupuesto")} />
           <KPI icon="🏃" label="Inscritos"
             value={d.ocupacionGlobal !== null ? `${d.totalInscritos}/${d.totalMaximos}` : String(d.totalInscritos)}
-            sub={`TG7 ${d.inscritosPorDist.TG7}${d.ocupacionPorDist.TG7!==null?` (${d.ocupacionPorDist.TG7}%)`:""}  ·  TG13 ${d.inscritosPorDist.TG13}${d.ocupacionPorDist.TG13!==null?` (${d.ocupacionPorDist.TG13}%)`:""}  ·  TG25 ${d.inscritosPorDist.TG25}${d.ocupacionPorDist.TG25!==null?` (${d.ocupacionPorDist.TG25}%)`:""}`}
+            sub={`TG7 ${d.inscritosPorDist.TG7}${d.ocupacionPorDist.TG7!==null?` (${d.ocupacionPorDist.TG7}%)`:""}  ·  TG13 ${d.inscritosPorDist.TG13}${d.ocupacionPorDist.TG13!==null?` (${d.ocupacionPorDist.TG13}%)`:""}  ·  TG25 ${d.inscritosPorDist.TG25}${d.ocupacionPorDist.TG25!==null?` (${d.ocupacionPorDist.TG25}%)`:""}`}
             color="var(--cyan)" colorClass="cyan"
-            onClick={() => navigate("presupuesto")} />
+            onClick={() => navigate("presupuesto", "inscritos")} />
           <KPI icon="👥" label="Voluntarios"
             value={`${d.volConfirmados}/${d.totalNecesarios}`}
             sub={`${d.coberturaVol}% cobertura · ${d.volPendientes} pendientes`}
