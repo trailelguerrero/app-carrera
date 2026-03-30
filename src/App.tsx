@@ -1,5 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+<<<<<<< HEAD
+=======
+import { ThemeProvider } from "next-themes";
+>>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,6 +15,7 @@ import PublicVolunteerForm from "./components/PublicVolunteerForm.jsx";
 const queryClient = new QueryClient();
 
 const App = () => (
+<<<<<<< HEAD
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -26,6 +31,25 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
+=======
+  <ThemeProvider attribute="class" defaultTheme="dark" storageKey="teg-theme" disableTransitionOnChange={false}>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/panel" element={<Index />} />
+            <Route path="/voluntarios/registro" element={<PublicVolunteerForm />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ThemeProvider>
+>>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
 );
 
 export default App;

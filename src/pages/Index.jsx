@@ -3,6 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import ReadmeModal from "../components/blocks/ReadmeModal";
 import OnboardingModal from "../components/blocks/OnboardingModal";
 import { exportBlockToPdf } from "../components/blocks/PdfExport";
+<<<<<<< HEAD
+=======
+import { ThemeToggle } from "../components/ui/ThemeToggle";
+>>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
 
 // Lazy-style imports for blocks
 const Dashboard = lazy(() => import("../components/blocks/Dashboard"));
@@ -71,9 +75,15 @@ function useGlobalSaveStatus() {
 // ── AUTOSAVE INDICATOR ─────────────────────────────────────────────────────────
 function AutosaveIndicator({ status }) {
   const cfg = {
+<<<<<<< HEAD
     saving: { color: "#fbbf24", border: "rgba(251,191,36,0.25)", bg: "rgba(251,191,36,0.07)", text: "Guardando…",  pulse: true },
     saved:  { color: "#34d399", border: "rgba(52,211,153,0.25)",  bg: "rgba(52,211,153,0.07)",  text: "✓ Guardado", pulse: false },
     error:  { color: "#f87171", border: "rgba(248,113,113,0.25)", bg: "rgba(248,113,113,0.07)", text: "Error al guardar", pulse: false },
+=======
+    saving: { color: "#d97706", border: "rgba(217,119,6,0.25)",  bg: "rgba(217,119,6,0.07)",   text: "Guardando…",      pulse: true },
+    saved:  { color: "#059669", border: "rgba(5,150,105,0.25)",  bg: "rgba(5,150,105,0.07)",   text: "✓ Guardado",      pulse: false },
+    error:  { color: "#dc2626", border: "rgba(220,38,38,0.25)",  bg: "rgba(220,38,38,0.07)",   text: "Error al guardar", pulse: false },
+>>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
   };
   const c = cfg[status];
   if (!c) return null;
@@ -115,6 +125,7 @@ function Numpad({ onDigit, onBackspace }) {
           disabled={k === ""}
           style={{
             padding: "0.9rem 0", borderRadius: 10,
+<<<<<<< HEAD
             border: `1px solid ${k === "" ? "transparent" : "#1e2d50"}`,
             fontFamily: "'Space Mono', monospace",
             fontSize: k === "⌫" ? "1rem" : "1.2rem",
@@ -126,6 +137,19 @@ function Numpad({ onDigit, onBackspace }) {
           }}
           onMouseEnter={e => { if (k && k !== "") { e.currentTarget.style.background = "rgba(34,211,238,0.08)"; e.currentTarget.style.borderColor = "rgba(34,211,238,0.3)"; }}}
           onMouseLeave={e => { if (k && k !== "") { e.currentTarget.style.background = "rgba(255,255,255,0.025)"; e.currentTarget.style.borderColor = "#1e2d50"; }}}
+=======
+            border: `1px solid ${k === "" ? "transparent" : "var(--teg-border)"}`,
+            fontFamily: "'Space Mono', monospace",
+            fontSize: k === "⌫" ? "1rem" : "1.2rem",
+            fontWeight: 700, cursor: k === "" ? "default" : "pointer",
+            background: k === "" ? "transparent" : "var(--teg-surface)",
+            color: k === "" ? "transparent" : "var(--teg-text-primary)",
+            transition: "all 0.15s",
+            WebkitTapHighlightColor: "transparent",
+          }}
+          onMouseEnter={e => { if (k && k !== "") { e.currentTarget.style.background = "var(--teg-cyan-subtle)"; e.currentTarget.style.borderColor = "var(--teg-cyan-border)"; }}}
+          onMouseLeave={e => { if (k && k !== "") { e.currentTarget.style.background = "var(--teg-surface)"; e.currentTarget.style.borderColor = "var(--teg-border)"; }}}
+>>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
         >{k}</button>
       ))}
     </div>
@@ -138,10 +162,17 @@ function PinDots({ count, filled }) {
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} style={{
           width: 13, height: 13, borderRadius: "50%",
+<<<<<<< HEAD
           background: i < filled ? "#22d3ee" : "transparent",
           border: `2px solid ${i < filled ? "#22d3ee" : "#2a3f6a"}`,
           transition: "all 0.15s",
           boxShadow: i < filled ? "0 0 8px rgba(34,211,238,0.5)" : "none",
+=======
+          background: i < filled ? "var(--teg-cyan)" : "transparent",
+          border: `2px solid ${i < filled ? "var(--teg-cyan)" : "var(--teg-border)"}`,
+          transition: "all 0.15s",
+          boxShadow: i < filled ? "0 0 8px var(--teg-cyan-subtle)" : "none",
+>>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
         }} />
       ))}
     </div>
@@ -188,10 +219,17 @@ function PinScreen({ onUnlock }) {
 
   return (
     <div style={{
+<<<<<<< HEAD
       minHeight: "100dvh", background: "#080c18",
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       padding: "2rem", fontFamily: "'Syne', sans-serif",
       backgroundImage: "radial-gradient(ellipse 60% 40% at 50% 0%, rgba(34,211,238,0.07) 0%, transparent 60%)",
+=======
+      minHeight: "100dvh", background: "var(--teg-bg)",
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      padding: "2rem", fontFamily: "'Syne', sans-serif",
+      backgroundImage: "radial-gradient(ellipse 60% 40% at 50% 0%, var(--teg-cyan-subtle) 0%, transparent 60%)",
+>>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
     }}>
       <motion.div
         initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
@@ -199,11 +237,19 @@ function PinScreen({ onUnlock }) {
         style={{ width: "100%", maxWidth: 300, textAlign: "center" }}
       >
         <div style={{ fontSize: "2.2rem", marginBottom: "0.4rem" }}>🏔️</div>
+<<<<<<< HEAD
         <div style={{ fontWeight: 800, fontSize: "1.25rem", color: "#e8eef8", marginBottom: "0.2rem" }}>
           Trail El Guerrero
         </div>
         <div style={{ fontFamily: "'Space Mono', monospace", fontSize: "0.58rem",
           color: "#5a6a8a", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "2.5rem" }}>
+=======
+        <div style={{ fontWeight: 800, fontSize: "1.25rem", color: "var(--teg-text-primary)", marginBottom: "0.2rem" }}>
+          Trail El Guerrero
+        </div>
+        <div style={{ fontFamily: "'Space Mono', monospace", fontSize: "0.58rem",
+          color: "var(--teg-text-muted)", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "2.5rem" }}>
+>>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
           Panel de gestión · 2026
         </div>
 
@@ -216,13 +262,22 @@ function PinScreen({ onUnlock }) {
         </motion.div>
 
         <div style={{ height: "1.2rem", fontFamily: "'Space Mono', monospace",
+<<<<<<< HEAD
           fontSize: "0.62rem", color: "#f87171", marginBottom: "1.5rem" }}>{hint}</div>
+=======
+          fontSize: "0.62rem", color: "#dc2626", marginBottom: "1.5rem" }}>{hint}</div>
+>>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
 
         <Numpad onDigit={handleDigit} onBackspace={handleBackspace} />
 
         <div style={{ marginTop: "2rem", fontFamily: "'Space Mono', monospace",
+<<<<<<< HEAD
           fontSize: "0.54rem", color: "#3a4a6a", lineHeight: 1.7 }}>
           PIN por defecto: <span style={{ color: "#5a6a8a" }}>2026</span><br />
+=======
+          fontSize: "0.54rem", color: "var(--teg-text-muted)", lineHeight: 1.7 }}>
+          PIN por defecto: <span style={{ color: "var(--teg-text-secondary)" }}>2026</span><br />
+>>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
           Cámbialo desde el icono 🔐 en el panel
         </div>
       </motion.div>
@@ -279,7 +334,11 @@ function ChangePinModal({ onClose }) {
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       onClick={onClose}
+<<<<<<< HEAD
       style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)",
+=======
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)",
+>>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
         zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center",
         backdropFilter: "blur(10px)", padding: "1rem" }}
     >
@@ -287,12 +346,17 @@ function ChangePinModal({ onClose }) {
         onClick={e => e.stopPropagation()}
         initial={{ scale: 0.88, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.88, y: 20 }}
         transition={{ type: "spring", stiffness: 360, damping: 28 }}
+<<<<<<< HEAD
         style={{ background: "#0f1629", border: "1px solid #1e2d50", borderRadius: 18,
+=======
+        style={{ background: "var(--teg-surface)", border: "1px solid var(--teg-border)", borderRadius: 18,
+>>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
           padding: "2rem 1.75rem", width: "100%", maxWidth: 290, textAlign: "center" }}
       >
         {ok ? (
           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 400 }}>
             <div style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>✅</div>
+<<<<<<< HEAD
             <div style={{ color: "#34d399", fontWeight: 800, fontSize: "1rem" }}>PIN actualizado</div>
           </motion.div>
         ) : (
@@ -301,16 +365,33 @@ function ChangePinModal({ onClose }) {
               🔐 Cambiar PIN
             </div>
             <div style={{ fontFamily: "'Space Mono', monospace", fontSize: "0.6rem", color: "#5a6a8a", marginBottom: "1.5rem" }}>
+=======
+            <div style={{ color: "#059669", fontWeight: 800, fontSize: "1rem" }}>PIN actualizado</div>
+          </motion.div>
+        ) : (
+          <>
+            <div style={{ fontWeight: 800, fontSize: "0.95rem", color: "var(--teg-text-primary)", marginBottom: "0.3rem" }}>
+              🔐 Cambiar PIN
+            </div>
+            <div style={{ fontFamily: "'Space Mono', monospace", fontSize: "0.6rem", color: "var(--teg-text-muted)", marginBottom: "1.5rem" }}>
+>>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
               {STEP_LABEL[step]}
             </div>
             <div style={{ marginBottom: "0.5rem" }}>
               <PinDots count={4} filled={input.length} />
             </div>
             <div style={{ height: "1rem", fontFamily: "'Space Mono', monospace",
+<<<<<<< HEAD
               fontSize: "0.6rem", color: "#f87171", marginBottom: "1rem" }}>{error}</div>
             <Numpad onDigit={handleDigit} onBackspace={handleBackspace} />
             <button onClick={onClose} style={{ marginTop: "1.25rem", background: "none",
               border: "none", color: "#3a4a6a", cursor: "pointer", fontFamily: "'Space Mono', monospace",
+=======
+              fontSize: "0.6rem", color: "#dc2626", marginBottom: "1rem" }}>{error}</div>
+            <Numpad onDigit={handleDigit} onBackspace={handleBackspace} />
+            <button onClick={onClose} style={{ marginTop: "1.25rem", background: "none",
+              border: "none", color: "var(--teg-text-muted)", cursor: "pointer", fontFamily: "'Space Mono', monospace",
+>>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
               fontSize: "0.6rem" }}>Cancelar</button>
           </>
         )}
@@ -385,6 +466,7 @@ export default function Index() {
           0%,100% { opacity:1; transform:scale(1); }
           50%      { opacity:0.35; transform:scale(0.6); }
         }
+<<<<<<< HEAD
         ::-webkit-scrollbar { width:4px; height:4px; }
         ::-webkit-scrollbar-track { background:transparent; }
         ::-webkit-scrollbar-thumb { background:#1e2d50; border-radius:2px; }
@@ -397,6 +479,16 @@ export default function Index() {
         <header style={{
           background:"rgba(15,22,41,0.98)", backdropFilter:"blur(12px)",
           WebkitBackdropFilter:"blur(12px)", borderBottom:"1px solid #1e2d50",
+=======
+      `}</style>
+
+      <div style={{ minHeight:"100vh", display:"flex", flexDirection:"column", background:"var(--teg-bg)" }}>
+
+        {/* TOP BAR */}
+        <header style={{
+          background:"var(--teg-surface)", backdropFilter:"blur(12px)",
+          WebkitBackdropFilter:"blur(12px)", borderBottom:"1px solid var(--teg-border)",
+>>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
           padding:"0.4rem 0.9rem", display:"flex", alignItems:"center",
           justifyContent:"space-between", position:"sticky", top:0, zIndex:50, minHeight:44,
         }}>
@@ -405,11 +497,19 @@ export default function Index() {
             <span style={{ fontSize:"1rem" }}>🏔️</span>
             <div>
               <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800,
+<<<<<<< HEAD
                 fontSize: isMobile ? "0.76rem" : "0.86rem", color:"#e8eef8", lineHeight:1.1 }}>
                 Trail El Guerrero
               </div>
               {!isMobile && (
                 <div style={{ fontFamily:"'Space Mono',monospace", fontSize:"0.5rem", color:"#5a6a8a" }}>
+=======
+                fontSize: isMobile ? "0.76rem" : "0.86rem", color:"var(--teg-text-primary)", lineHeight:1.1 }}>
+                Trail El Guerrero
+              </div>
+              {!isMobile && (
+                <div style={{ fontFamily:"'Space Mono',monospace", fontSize:"0.5rem", color:"var(--teg-text-muted)" }}>
+>>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
                   Panel de gestión · 2026
                 </div>
               )}
@@ -423,6 +523,7 @@ export default function Index() {
 
           {/* Actions */}
           <div style={{ display:"flex", gap:"0.35rem", alignItems:"center" }}>
+<<<<<<< HEAD
             <button
               onClick={() => setShowChangePin(true)}
               title="Cambiar PIN de acceso"
@@ -431,19 +532,39 @@ export default function Index() {
                 borderRadius:6, lineHeight:1, transition:"color 0.2s" }}
               onMouseEnter={e => e.currentTarget.style.color="#5a6a8a"}
               onMouseLeave={e => e.currentTarget.style.color="#3a4a6a"}
+=======
+            <ThemeToggle size={30} />
+
+            <button
+              onClick={() => setShowChangePin(true)}
+              title="Cambiar PIN de acceso"
+              style={{ background:"transparent", border:"none", color:"var(--teg-text-muted)",
+                cursor:"pointer", fontSize:"0.8rem", padding:"0.3rem",
+                borderRadius:6, lineHeight:1, transition:"color 0.2s" }}
+              onMouseEnter={e => e.currentTarget.style.color="var(--teg-text-secondary)"}
+              onMouseLeave={e => e.currentTarget.style.color="var(--teg-text-muted)"}
+>>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
             >🔐</button>
 
             {activeBlock !== "dashboard" && (
               <>
                 <button onClick={() => setReadmeBlock(activeBlock)} style={{
+<<<<<<< HEAD
                   background:"rgba(167,139,250,0.1)", color:"#a78bfa",
+=======
+                  background:"rgba(167,139,250,0.1)", color:"var(--teg-accent)",
+>>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
                   border:"1px solid rgba(167,139,250,0.22)", borderRadius:6,
                   padding: isMobile ? "0.22rem 0.38rem" : "0.26rem 0.55rem",
                   fontFamily:"'Space Mono',monospace",
                   fontSize: isMobile ? "0.5rem" : "0.58rem", fontWeight:700, cursor:"pointer",
                 }}>📖{!isMobile && " README"}</button>
                 <button onClick={() => exportBlockToPdf(activeBlock)} style={{
+<<<<<<< HEAD
                   background:"rgba(52,211,153,0.1)", color:"#34d399",
+=======
+                  background:"rgba(52,211,153,0.1)", color:"#059669",
+>>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
                   border:"1px solid rgba(52,211,153,0.22)", borderRadius:6,
                   padding: isMobile ? "0.22rem 0.38rem" : "0.26rem 0.55rem",
                   fontFamily:"'Space Mono',monospace",
@@ -463,13 +584,22 @@ export default function Index() {
             }}>
               <div style={{
                 width:36, height:36, borderRadius:"50%",
+<<<<<<< HEAD
                 border:"3px solid #1e2d50",
                 borderTopColor:"#22d3ee",
+=======
+                border:"3px solid var(--teg-border)",
+                borderTopColor:"var(--teg-cyan)",
+>>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
                 animation:"teg-spin 0.7s linear infinite",
               }} />
               <div style={{
                 fontFamily:"'Space Mono',monospace", fontSize:"0.6rem",
+<<<<<<< HEAD
                 color:"#3a4a6a", letterSpacing:"0.1em",
+=======
+                color:"var(--teg-text-muted)", letterSpacing:"0.1em",
+>>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
               }}>Cargando módulo…</div>
               <style>{`@keyframes teg-spin { to { transform: rotate(360deg); } }`}</style>
             </div>
@@ -481,8 +611,13 @@ export default function Index() {
         {/* BOTTOM NAV */}
         <nav style={{
           position:"fixed", bottom:0, left:0, right:0,
+<<<<<<< HEAD
           background:"rgba(15,22,41,0.97)", backdropFilter:"blur(14px)",
           WebkitBackdropFilter:"blur(14px)", borderTop:"1px solid #1e2d50",
+=======
+          background:"var(--teg-surface)", backdropFilter:"blur(14px)",
+          WebkitBackdropFilter:"blur(14px)", borderTop:"1px solid var(--teg-border)",
+>>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
           display:"flex", justifyContent:"space-around", alignItems:"center",
           height: NAV_H,
           paddingBottom:"env(safe-area-inset-bottom,0px)",
@@ -538,7 +673,11 @@ export default function Index() {
                   fontFamily:"'Space Mono',monospace",
                   fontSize: isMobile ? "0.41rem" : "0.49rem",
                   fontWeight:700, letterSpacing:"0.01em",
+<<<<<<< HEAD
                   color: isActive ? "#22d3ee" : "#475a75",
+=======
+                  color: isActive ? "var(--teg-cyan)" : "var(--teg-text-muted)",
+>>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
                   transition:"color 0.2s",
                   pointerEvents:"none", whiteSpace:"nowrap",
                   position:"relative", zIndex:1,
@@ -552,8 +691,13 @@ export default function Index() {
                     layoutId="nav-dot"
                     style={{
                       width:3, height:3, borderRadius:"50%",
+<<<<<<< HEAD
                       background:"#22d3ee",
                       boxShadow:"0 0 5px rgba(34,211,238,0.9)",
+=======
+                      background:"var(--teg-cyan)",
+                      boxShadow:"0 0 5px var(--teg-cyan-subtle)",
+>>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
                       position:"relative", zIndex:1,
                     }}
                     transition={{ type:"spring", stiffness:400, damping:34 }}

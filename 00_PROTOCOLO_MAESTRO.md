@@ -11,11 +11,19 @@ Cuando te describa un nuevo proyecto, **NO asumas un stack tecnológico por defe
 3. Proponme el **Stack Tecnológico Ideal** justificando tu elección.
 4. Espera mi aprobación antes de generar cualquier archivo.
 
+<<<<<<< HEAD
 ## REGLA DE AUTO-EXTENSIÓN (MCP & SKILLS JUST-IN-TIME)
 Antes de escribir código para una nueva fase o característica, haz una comprobación de herramientas:
 1. Revisa la documentación de `antigravity-awesome-skills` (archivos BUNDLES.md y WORKFLOWS.md).
 2. Identifica si existe un skill (ej. `@test-driven-development`) o servidor MCP que optimice el trabajo.
 3. Instala y configura esos servidores en `mcp_servers.json` automáticamente.
+=======
+## REGLA DE AUTO-EXTENSIÓN Y ASIMILACIÓN DE SKILLS (MCP & SKILLS)
+Antes de escribir código para una nueva fase o característica, haz una comprobación de herramientas y asimila skills locales:
+1. Revisa la documentación de `antigravity-awesome-skills` o los skills instalados en `.agents/skills`.
+2. **OBLIGATORIO**: Si estás trabajando en características visuales, diseño (UI/UX) o componentes de React/Tailwind, **SIEMPRE DEBES UTILIZAR (ASIMILAR)** primero los skills locales apropiados (ej. `ui-ux-pro-max`, `react-ui-patterns`, `react-best-practices`, `shadcn`, `tailwind-design-system`) **DESPUÉS DE CADA ORDEN O TAREA** antes de escribir código.
+3. Identifica si existe algún otro skill o servidor MCP que optimice el trabajo e instálalo si es necesario.
+>>>>>>> 9f3575a (Initial commit of Trail El Guerrero web app with complete features)
 
 ## FASE 2: PLANIFICACIÓN (Paso a Paso Auditado)
 Una vez aprobado el stack y las herramientas:
