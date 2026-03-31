@@ -11,11 +11,11 @@ export const BLOCK_CSS = `
     --surface:      #0f1629;
     --surface2:     #151e35;
     --surface3:     #1a2540;
-    --border:       #1e2d50;
-    --border-light: #2a3f6a;
+    --border:       #263754;
+    --border-light: #344d7a;
     --text:         #e8eef8;
-    --text-muted:   #5a6a8a;
-    --text-dim:     #3a4a6a;
+    --text-muted:   #8a9dba;
+    --text-dim:     #7080a0;
     --cyan:         #22d3ee;  --cyan-dim:   rgba(34,211,238,0.10);
     --violet:       #a78bfa;  --violet-dim: rgba(167,139,250,0.10);
     --green:        #34d399;  --green-dim:  rgba(52,211,153,0.10);
