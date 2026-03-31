@@ -89,7 +89,7 @@ function AutosaveIndicator({ status }) {
         transition={{ duration: 0.18 }}
         style={{
           display: "inline-flex", alignItems: "center", gap: "0.3rem",
-          fontFamily: "'Space Mono', monospace", fontSize: "0.55rem",
+          fontFamily: "var(--font-mono)", fontSize: "0.55rem",
           color: c.color, background: c.bg,
           border: `1px solid ${c.border}`,
           borderRadius: 6, padding: "0.2rem 0.5rem", whiteSpace: "nowrap",
@@ -117,7 +117,7 @@ function Numpad({ onDigit, onBackspace }) {
           style={{
             padding: "0.9rem 0", borderRadius: 10,
             border: `1px solid ${k === "" ? "transparent" : "var(--teg-border)"}`,
-            fontFamily: "'Space Mono', monospace",
+            fontFamily: "var(--font-mono)",
             fontSize: k === "⌫" ? "1rem" : "1.2rem",
             fontWeight: 700, cursor: k === "" ? "default" : "pointer",
             background: k === "" ? "transparent" : "var(--teg-surface)",
@@ -203,7 +203,7 @@ function PinScreen({ onUnlock }) {
         <div style={{ fontWeight: 800, fontSize: "1.25rem", color: "var(--teg-text-primary)", marginBottom: "0.2rem" }}>
           Trail El Guerrero
         </div>
-        <div style={{ fontFamily: "'Space Mono', monospace", fontSize: "0.58rem",
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.58rem",
           color: "var(--teg-text-muted)", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "2.5rem" }}>
           Panel de gestión · 2026
         </div>
@@ -216,12 +216,12 @@ function PinScreen({ onUnlock }) {
           <PinDots count={4} filled={digits.length} />
         </motion.div>
 
-        <div style={{ height: "1.2rem", fontFamily: "'Space Mono', monospace",
+        <div style={{ height: "1.2rem", fontFamily: "var(--font-mono)",
           fontSize: "0.62rem", color: "#dc2626", marginBottom: "1.5rem" }}>{hint}</div>
 
         <Numpad onDigit={handleDigit} onBackspace={handleBackspace} />
 
-        <div style={{ marginTop: "2rem", fontFamily: "'Space Mono', monospace",
+        <div style={{ marginTop: "2rem", fontFamily: "var(--font-mono)",
           fontSize: "0.54rem", color: "var(--teg-text-muted)", lineHeight: 1.7 }}>
           PIN por defecto: <span style={{ color: "var(--teg-text-secondary)" }}>2026</span><br />
           Cámbialo desde el icono 🔐 en el panel
@@ -301,17 +301,17 @@ function ChangePinModal({ onClose }) {
             <div style={{ fontWeight: 800, fontSize: "0.95rem", color: "var(--teg-text-primary)", marginBottom: "0.3rem" }}>
               🔐 Cambiar PIN
             </div>
-            <div style={{ fontFamily: "'Space Mono', monospace", fontSize: "0.6rem", color: "var(--teg-text-muted)", marginBottom: "1.5rem" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--teg-text-muted)", marginBottom: "1.5rem" }}>
               {STEP_LABEL[step]}
             </div>
             <div style={{ marginBottom: "0.5rem" }}>
               <PinDots count={4} filled={input.length} />
             </div>
-            <div style={{ height: "1rem", fontFamily: "'Space Mono', monospace",
+            <div style={{ height: "1rem", fontFamily: "var(--font-mono)",
               fontSize: "0.6rem", color: "#dc2626", marginBottom: "1rem" }}>{error}</div>
             <Numpad onDigit={handleDigit} onBackspace={handleBackspace} />
             <button onClick={onClose} style={{ marginTop: "1.25rem", background: "none",
-              border: "none", color: "var(--teg-text-muted)", cursor: "pointer", fontFamily: "'Space Mono', monospace",
+              border: "none", color: "var(--teg-text-muted)", cursor: "pointer", fontFamily: "var(--font-mono)",
               fontSize: "0.6rem" }}>Cancelar</button>
           </>
         )}
@@ -406,7 +406,7 @@ export default function Index() {
                 Trail El Guerrero
               </div>
               {!isMobile && (
-                <div style={{ fontFamily:"'Space Mono',monospace", fontSize:"0.5rem", color:"var(--teg-text-muted)" }}>
+                <div style={{ fontFamily:"'DM Mono', 'Space Mono', monospace,monospace", fontSize:"0.5rem", color:"var(--teg-text-muted)" }}>
                   Panel de gestión · 2026
                 </div>
               )}
@@ -438,14 +438,14 @@ export default function Index() {
                   background:"rgba(167,139,250,0.1)", color:"var(--teg-accent)",
                   border:"1px solid rgba(167,139,250,0.22)", borderRadius:6,
                   padding: isMobile ? "0.22rem 0.38rem" : "0.26rem 0.55rem",
-                  fontFamily:"'Space Mono',monospace",
+                  fontFamily:"'DM Mono', 'Space Mono', monospace,monospace",
                   fontSize: isMobile ? "0.5rem" : "0.58rem", fontWeight:700, cursor:"pointer",
                 }}>📖{!isMobile && " README"}</button>
                 <button onClick={() => exportBlockToPdf(activeBlock)} style={{
                   background:"rgba(52,211,153,0.1)", color:"#059669",
                   border:"1px solid rgba(52,211,153,0.22)", borderRadius:6,
                   padding: isMobile ? "0.22rem 0.38rem" : "0.26rem 0.55rem",
-                  fontFamily:"'Space Mono',monospace",
+                  fontFamily:"'DM Mono', 'Space Mono', monospace,monospace",
                   fontSize: isMobile ? "0.5rem" : "0.58rem", fontWeight:700, cursor:"pointer",
                 }}>📄{!isMobile && " PDF"}</button>
               </>
@@ -467,7 +467,7 @@ export default function Index() {
                 animation:"teg-spin 0.7s linear infinite",
               }} />
               <div style={{
-                fontFamily:"'Space Mono',monospace", fontSize:"0.6rem",
+                fontFamily:"'DM Mono', 'Space Mono', monospace,monospace", fontSize:"0.6rem",
                 color:"var(--teg-text-muted)", letterSpacing:"0.1em",
               }}>Cargando módulo…</div>
               <style>{`@keyframes teg-spin { to { transform: rotate(360deg); } }`}</style>
@@ -534,7 +534,7 @@ export default function Index() {
 
                 {/* Label — SIEMPRE VISIBLE */}
                 <span style={{
-                  fontFamily:"'Space Mono',monospace",
+                  fontFamily:"'DM Mono', 'Space Mono', monospace,monospace",
                   fontSize: isMobile ? "0.41rem" : "0.49rem",
                   fontWeight:700, letterSpacing:"0.01em",
                   color: isActive ? "var(--teg-cyan)" : "var(--teg-text-muted)",

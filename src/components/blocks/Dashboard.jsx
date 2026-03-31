@@ -341,7 +341,7 @@ export default function Dashboard() {
         <style>{BLOCK_CSS}</style>
         <div className="block-container" style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:"60vh", gap:"1rem" }}>
           <div style={{ width:36, height:36, borderRadius:"50%", border:"3px solid #1e2d50", borderTopColor:"#22d3ee", animation:"teg-spin 0.7s linear infinite" }} />
-          <div style={{ fontFamily:"'Space Mono',monospace", fontSize:"0.6rem", color:"#3a4a6a", letterSpacing:"0.1em" }}>Cargando datos…</div>
+          <div style={{ fontFamily:"'DM Mono', 'Space Mono', monospace,monospace", fontSize:"0.6rem", color:"#3a4a6a", letterSpacing:"0.1em" }}>Cargando datos…</div>
           <style>{`@keyframes teg-spin { to { transform:rotate(360deg); } }`}</style>
         </div>
       </>
@@ -594,8 +594,8 @@ export default function Dashboard() {
                       { name:"C. Fijos",      val:-d.totalCostesFijos,   color:"#f87171" },
                       { name:"C. Variables",  val:-d.totalCostesVars,    color:"#fb923c" },
                     ]} margin={{ top:4, right:4, left:-24, bottom:22 }}>
-                    <XAxis dataKey="name" tick={{ fontSize:9, fontFamily:"'Space Mono',monospace", fill:"#5a6a8a" }} angle={-35} textAnchor="end" interval={0} />
-                    <YAxis tick={{ fontSize:8, fontFamily:"'Space Mono',monospace", fill:"#5a6a8a" }} tickFormatter={v=>`${(v/1000).toFixed(0)}k`} />
+                    <XAxis dataKey="name" tick={{ fontSize:9, fontFamily:"'DM Mono', 'Space Mono', monospace,monospace", fill:"#5a6a8a" }} angle={-35} textAnchor="end" interval={0} />
+                    <YAxis tick={{ fontSize:8, fontFamily:"'DM Mono', 'Space Mono', monospace,monospace", fill:"#5a6a8a" }} tickFormatter={v=>`${(v/1000).toFixed(0)}k`} />
                     <Tooltip contentStyle={TOOLTIP_STYLE} formatter={v=>[fmt(Math.abs(v)),""]} labelStyle={{ color:"#e8eef8" }} />
                     <Bar dataKey="val" radius={[4,4,0,0]}>
                       {["#22d3ee","#34d399","#a78bfa","#f87171","#fb923c"].map((c,i) => <Cell key={i} fill={c} opacity={0.85}/>)}
@@ -730,7 +730,7 @@ function EmptyChart({ mensaje, sub }) {
 // ─── Estilos ──────────────────────────────────────────────────────────────────
 const TOOLTIP_STYLE = {
   background:"#0f1629", border:"1px solid #1e2d50",
-  borderRadius:8, fontSize:"0.65rem", fontFamily:"'Space Mono',monospace",
+  borderRadius:8, fontSize:"0.65rem", fontFamily:"'DM Mono', 'Space Mono', monospace,monospace",
 };
 
 const DASH_EXTRA_CSS = `
@@ -759,7 +759,7 @@ const DASH_EXTRA_CSS = `
     background:linear-gradient(135deg,#fff 0%,#22d3ee 55%,#a78bfa 100%);
     -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
   }
-  .dash-countdown-label { font-family:'Space Mono',monospace; font-size:0.72rem; color:var(--text-muted); }
+  .dash-countdown-label { font-family:'DM Mono', 'Space Mono', monospace,monospace; font-size:0.72rem; color:var(--text-muted); }
   @media(max-width:480px){ .dash-countdown-num{ font-size:2rem; } }
 
   /* Salud del evento */
@@ -788,7 +788,7 @@ const DASH_EXTRA_CSS = `
   }
   .dash-alertas-header {
     padding:0.55rem 1rem; background:rgba(248,113,113,0.1);
-    font-family:'Space Mono',monospace; font-size:0.68rem;
+    font-family:'DM Mono', 'Space Mono', monospace,monospace; font-size:0.68rem;
     font-weight:700; color:#f87171; letter-spacing:0.05em;
     border-bottom:1px solid rgba(248,113,113,0.2);
   }
@@ -805,7 +805,7 @@ const DASH_EXTRA_CSS = `
   /* Alertas base */
   .dash-alerta {
     display:flex; align-items:center; gap:0.6rem; padding:0.55rem 0.85rem;
-    font-family:'Space Mono',monospace; font-size:0.68rem;
+    font-family:'DM Mono', 'Space Mono', monospace,monospace; font-size:0.68rem;
   }
   .dash-alerta-text { flex:1; line-height:1.4; }
   .dash-alerta-danger  { background:rgba(248,113,113,0.06); color:#f87171; }
@@ -818,7 +818,7 @@ const DASH_EXTRA_CSS = `
   .dash-kpi-clickable { cursor:pointer; }
   .dash-kpi-clickable:hover { transform:translateY(-2px); border-color:var(--border-light) !important; }
   .dash-kpi-arrow {
-    font-family:'Space Mono',monospace; font-size:0.6rem;
+    font-family:'DM Mono', 'Space Mono', monospace,monospace; font-size:0.6rem;
     color:var(--text-dim); margin-top:0.35rem; transition:color .15s;
   }
   .dash-kpi-clickable:hover .dash-kpi-arrow { color:var(--cyan); }

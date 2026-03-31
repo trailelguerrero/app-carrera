@@ -776,7 +776,7 @@ function AppShell({ children }) {
           --red-dim: rgba(248,113,113,0.1);
           --orange: #fb923c;
           --font-display: 'Syne', sans-serif;
-          --font-mono: 'Space Mono', monospace;
+          --font-mono: var(--font-mono);
           --radius: 12px;
           --radius-sm: 8px;
         }

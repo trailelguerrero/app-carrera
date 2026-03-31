@@ -98,7 +98,7 @@ export default function ReadmeModal({ block, onClose }) {
                 color: "#22d3ee", marginBottom: "0.4rem",
               }}>{s.title}</div>
               <div style={{
-                fontFamily: "'Space Mono', monospace", fontSize: "0.72rem", color: "#e8eef8",
+                fontFamily: "var(--font-mono)", fontSize: "0.72rem", color: "#e8eef8",
                 lineHeight: 1.7, whiteSpace: "pre-line", opacity: 0.85,
               }}>{s.text}</div>
             </div>

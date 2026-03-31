@@ -74,7 +74,7 @@ export default function OnboardingModal({ onClose, onNavigate }) {
             Bienvenido a la app de Trail El Guerrero
           </div>
           <div style={{
-            fontFamily: "'Space Mono', monospace", fontSize: ".7rem",
+            fontFamily: "var(--font-mono)", fontSize: ".7rem",
             color: "#5a6a8a", lineHeight: 1.6,
           }}>
             Los datos que ves ahora son ejemplos de configuración.
@@ -86,7 +86,7 @@ export default function OnboardingModal({ onClose, onNavigate }) {
         {/* Pasos */}
         <div style={{ padding: "1rem 1.2rem", overflowY: "auto", flex: 1 }}>
           <div style={{
-            fontFamily: "'Space Mono', monospace", fontSize: ".62rem",
+            fontFamily: "var(--font-mono)", fontSize: ".62rem",
             color: "#3a4a6a", textTransform: "uppercase", letterSpacing: ".1em",
             marginBottom: ".65rem",
           }}>
@@ -111,7 +111,7 @@ export default function OnboardingModal({ onClose, onNavigate }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: ".5rem", marginBottom: ".2rem" }}>
                   <span style={{
-                    fontFamily: "'Space Mono', monospace", fontSize: ".55rem",
+                    fontFamily: "var(--font-mono)", fontSize: ".55rem",
                     fontWeight: 700, color: p.color,
                     background: `${p.color}15`, border: `1px solid ${p.color}30`,
                     padding: ".05rem .35rem", borderRadius: 3,
@@ -126,7 +126,7 @@ export default function OnboardingModal({ onClose, onNavigate }) {
                   </span>
                 </div>
                 <div style={{
-                  fontFamily: "'Space Mono', monospace", fontSize: ".65rem",
+                  fontFamily: "var(--font-mono)", fontSize: ".65rem",
                   color: "#5a6a8a", lineHeight: 1.55,
                 }}>
                   {p.desc}
@@ -140,7 +140,7 @@ export default function OnboardingModal({ onClose, onNavigate }) {
             marginTop: ".85rem", padding: ".6rem .85rem",
             background: "rgba(34,211,238,0.04)", border: "1px solid rgba(34,211,238,0.15)",
             borderRadius: 8,
-            fontFamily: "'Space Mono', monospace", fontSize: ".63rem",
+            fontFamily: "var(--font-mono)", fontSize: ".63rem",
             color: "#5a6a8a", lineHeight: 1.6,
           }}>
             💡 En cada bloque tienes el botón <span style={{
@@ -158,7 +158,7 @@ export default function OnboardingModal({ onClose, onNavigate }) {
           gap: ".75rem",
         }}>
           <span style={{
-            fontFamily: "'Space Mono', monospace", fontSize: ".6rem",
+            fontFamily: "var(--font-mono)", fontSize: ".6rem",
             color: "#3a4a6a",
           }}>
             Haz clic en un paso para ir directamente

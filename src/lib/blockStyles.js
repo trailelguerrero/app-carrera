@@ -24,7 +24,7 @@ export const BLOCK_CSS = `
     --orange:       #fb923c;  --orange-dim: rgba(251,146,60,0.10);
     --primary:      #6366f1;  --primary-dim:rgba(99,102,241,0.15);
     --font-display: 'Syne', sans-serif;
-    --font-mono:    'Space Mono', monospace;
+    --font-mono:    'DM Mono', 'Space Mono', monospace;
     --r:            12px;
     --r-sm:         8px;
   }

@@ -48,7 +48,7 @@ const CSS = `
     --amber:#fbbf24;  --amber-dim:rgba(251,191,36,0.1);
     --red:#f87171;    --red-dim:rgba(248,113,113,0.1);
     --font-display:'Syne',sans-serif;
-    --font-mono:'Space Mono',monospace;
+    --font-mono:'DM Mono', 'Space Mono', monospace,monospace;
     --r:12px; --r-sm:8px;
   }
   *, *::before, *::after { box-sizing:border-box; }
