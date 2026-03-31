@@ -27,15 +27,15 @@ const ESTADOS = ["pendiente","en curso","completado","bloqueado"];
 const PRIORIDADES = ["alta","media","baja"];
 
 const EST_CFG = {
-  pendiente:  { color:"#94a3b8", bg:"rgba(148,163,184,.12)", label:"Pendiente" },
-  "en curso": { color:"#22d3ee", bg:"rgba(34,211,238,.12)",  label:"En curso" },
-  completado: { color:"#34d399", bg:"rgba(52,211,153,.12)",  label:"Completado" },
-  bloqueado:  { color:"#f87171", bg:"rgba(248,113,113,.12)", label:"Bloqueado" },
+  pendiente:  { color:"#94a3b8", bg:"var(--surface3)", label:"Pendiente" },
+  "en curso": { color:"#22d3ee", bg:"var(--cyan-dim)",  label:"En curso" },
+  completado: { color:"#34d399", bg:"var(--green-dim)",  label:"Completado" },
+  bloqueado:  { color:"#f87171", bg:"var(--red-dim)", label:"Bloqueado" },
 };
 const PRI_CFG = {
-  alta:  { color:"#f87171", bg:"rgba(248,113,113,.12)" },
-  media: { color:"#fbbf24", bg:"rgba(251,191,36,.12)" },
-  baja:  { color:"#94a3b8", bg:"rgba(148,163,184,.12)" },
+  alta:  { color:"#f87171", bg:"var(--red-dim)" },
+  media: { color:"#fbbf24", bg:"var(--amber-dim)" },
+  baja:  { color:"#94a3b8", bg:"var(--surface3)" },
 };
 
 // ─── EQUIPO DEFAULT ───────────────────────────────────────────────────────────
@@ -445,7 +445,7 @@ function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, upd
                 <div className="mono xs muted">{p.pendientes} pendiente{p.pendientes!==1?"s":""}{p.urgentes>0?` · ${p.urgentes} urgente${p.urgentes!==1?"s":""}`:""}</div>
               </div>
               <div style={{display:"flex",gap:".25rem",flexShrink:0}}>
-                {p.urgentes > 0 && <span className="badge" style={{background:"rgba(248,113,113,.12)",color:"#f87171"}}>{p.urgentes}⚡</span>}
+                {p.urgentes > 0 && <span className="badge" style={{background:"var(--red-dim)",color:"#f87171"}}>{p.urgentes}⚡</span>}
                 <span className="badge" style={{background:"rgba(148,163,184,.1)",color:"#94a3b8"}}>{p.pendientes}</span>
               </div>
             </div>
@@ -593,7 +593,7 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
                   {dias !== null && (
                     <div style={{fontFamily:"var(--font-mono)",fontSize:".65rem",fontWeight:700,
                       color:vencida?"#f87171":dias<=7?"#fbbf24":dias<=14?"#fb923c":"var(--text-muted)",
-                      background:vencida?"rgba(248,113,113,.1)":dias<=14?"rgba(251,191,36,.08)":"transparent",
+                      background:vencida?"rgba(248,113,113,.1)":dias<=14?"var(--amber-dim)":"transparent",
                       padding:".1rem .35rem",borderRadius:4}}>
                       {vencida?`VENCIDA (${Math.abs(dias)}d)`:dias===0?"Hoy":`${dias}d · ${fmt(t.fechaLimite)}`}
                     </div>
@@ -667,27 +667,27 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
                         <div className="kanban-acciones" onClick={e=>e.stopPropagation()}>
                           {estado === "pendiente" && !bloq && (
                             <button className="kanban-btn-estado"
-                              style={{color:"var(--cyan)",borderColor:"rgba(34,211,238,.3)",background:"rgba(34,211,238,.08)"}}
+                              style={{color:"var(--cyan)",borderColor:"rgba(34,211,238,.3)",background:"var(--cyan-dim)"}}
                               onClick={()=>updEstado(t.id,"en curso")}>▶ En curso</button>
                           )}
                           {estado === "pendiente" && bloq && (
                             <button className="kanban-btn-estado"
-                              style={{color:"#94a3b8",borderColor:"rgba(148,163,184,.3)",background:"rgba(148,163,184,.08)"}}
+                              style={{color:"#94a3b8",borderColor:"rgba(148,163,184,.3)",background:"var(--surface3)"}}
                               onClick={()=>updEstado(t.id,"pendiente")}>🔓 Desbloquear</button>
                           )}
                           {estado === "en curso" && (
                             <>
                               <button className="kanban-btn-estado"
-                                style={{color:"var(--green)",borderColor:"rgba(52,211,153,.3)",background:"rgba(52,211,153,.08)"}}
+                                style={{color:"var(--green)",borderColor:"rgba(52,211,153,.3)",background:"var(--green-dim)"}}
                                 onClick={()=>updEstado(t.id,"completado")}>✓ Completar</button>
                               <button className="kanban-btn-estado"
-                                style={{color:"#f87171",borderColor:"rgba(248,113,113,.3)",background:"rgba(248,113,113,.08)"}}
+                                style={{color:"#f87171",borderColor:"rgba(248,113,113,.3)",background:"var(--red-dim)"}}
                                 onClick={()=>updEstado(t.id,"bloqueado")}>🔒 Bloquear</button>
                             </>
                           )}
                           {estado === "completado" && (
                             <button className="kanban-btn-estado"
-                              style={{color:"#94a3b8",borderColor:"rgba(148,163,184,.3)",background:"rgba(148,163,184,.08)"}}
+                              style={{color:"#94a3b8",borderColor:"rgba(148,163,184,.3)",background:"var(--surface3)"}}
                               onClick={()=>updEstado(t.id,"pendiente")}>↩ Reabrir</button>
                           )}
                         </div>
@@ -885,7 +885,7 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf, setFicha }) {
                           {urgentes>0 && <span className="badge" style={{background:"rgba(251,191,36,.1)",color:"#fbbf24",fontSize:".5rem"}}>⚡{urgentes} urgente{urgentes!==1?"s":""}</span>}
                         </div>
                         <div className="kanban-acciones" onClick={e=>e.stopPropagation()}>
-                          <button className="kanban-btn-estado" style={{color:"var(--violet)",borderColor:"rgba(167,139,250,.3)",background:"rgba(167,139,250,.08)"}}
+                          <button className="kanban-btn-estado" style={{color:"var(--violet)",borderColor:"rgba(167,139,250,.3)",background:"var(--violet-dim)"}}
                             onClick={()=>setModal({tipo:"persona",data:p})}>✏️ Editar</button>
                         </div>
                       </div>
@@ -947,7 +947,7 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf, setFicha }) {
                 <div style={{display:"flex",gap:".5rem",flexWrap:"wrap"}}>
                   <span className="badge" style={{background:"rgba(52,211,153,.1)",color:"#34d399"}}>{completadas} hechas</span>
                   <span className="badge" style={{background:"rgba(148,163,184,.1)",color:"#94a3b8"}}>{pendientes} pendientes</span>
-                  {vencidas > 0 && <span className="badge" style={{background:"rgba(248,113,113,.12)",color:"#f87171"}}>⚠ {vencidas} vencida{vencidas!==1?"s":""}</span>}
+                  {vencidas > 0 && <span className="badge" style={{background:"var(--red-dim)",color:"#f87171"}}>⚠ {vencidas} vencida{vencidas!==1?"s":""}</span>}
                   {urgentes > 0 && <span className="badge" style={{background:"rgba(251,191,36,.1)",color:"#fbbf24"}}>⚡ {urgentes} urgente{urgentes!==1?"s":""}</span>}
                 </div>
               </div>
@@ -1029,7 +1029,7 @@ function TabHitos({ hitos, updHito, setModal, setDelConf, setFicha }) {
                 {/* Quick-complete: checkbox grande, área táctil 36x36px */}
                 <button className="hito-ckbox"
                   title={h.completado ? "Marcar como pendiente" : "Marcar como completado"}
-                  style={{borderColor:h.completado?"#34d399":"var(--border)",background:h.completado?"rgba(52,211,153,.15)":"transparent"}}
+                  style={{borderColor:h.completado?"#34d399":"var(--border)",background:h.completado?"var(--green-dim)":"transparent"}}
                   onClick={() => updHito(h.id,"completado",!h.completado)}>
                   {h.completado
                     ? <span style={{color:"#34d399",fontSize:"1rem",lineHeight:1}}>✓</span>
@@ -1304,7 +1304,7 @@ function FichaProyecto({ ficha, equipo, documentos, onClose, onEditar, onElimina
               {docVinculado && (
                 <div style={{ marginTop: ".8rem", padding: ".6rem 0", borderTop: "1px dashed var(--border)", display: "flex", alignItems: "center", gap: "1rem" }}>
                   <div style={{ fontFamily:"var(--font-mono)", fontSize:".6rem", color:"var(--text-muted)", textTransform:"uppercase", fontWeight:700 }}>Doc vinculado</div>
-                  <a href="#" className="badge" style={{background:"rgba(34,211,238,.12)",color:"var(--cyan)",textDecoration:"none",fontSize:".7rem",padding:".3rem .6rem",border:"1px solid rgba(34,211,238,.2)"}} 
+                  <a href="#" className="badge" style={{background:"var(--cyan-dim)",color:"var(--cyan)",textDecoration:"none",fontSize:".7rem",padding:".3rem .6rem",border:"1px solid rgba(34,211,238,.2)"}} 
                      onClick={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "documentos" } })); }}>
                     📎 {docVinculado.nombre} →
                   </a>
@@ -1365,8 +1365,8 @@ const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap');
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--text);font-family:var(--font-display);min-height:100vh;
-    background-image:radial-gradient(ellipse 80% 35% at 15% -5%,rgba(34,211,238,.04) 0%,transparent 55%),
-      radial-gradient(ellipse 60% 25% at 85% 5%,rgba(167,139,250,.03) 0%,transparent 50%)}
+    background-image:radial-gradient(ellipse 80% 35% at 15% -5%,var(--cyan-dim) 0%,transparent 55%),
+      radial-gradient(ellipse 60% 25% at 85% 5%,var(--violet-dim) 0%,transparent 50%)}
   .layout{display:flex;min-height:100vh}
   /* SIDEBAR */
   .sidebar{width:220px;min-height:100vh;height:100vh;position:sticky;top:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
@@ -1374,7 +1374,7 @@ const CSS = `
   .sley{font-family:var(--font-mono);font-size:.48rem;color:var(--cyan);letter-spacing:.2em;text-transform:uppercase;margin-bottom:.3rem;opacity:.7}
   .sltitle{font-size:1.5rem;font-weight:800;background:linear-gradient(135deg,#fff 0%,var(--violet) 60%,var(--cyan) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
   .slsub{font-family:var(--font-mono);font-size:.55rem;color:var(--text-muted);margin-top:.25rem}
-  .scountdown{padding:.85rem 1rem;border-bottom:1px solid var(--border);text-align:center;background:linear-gradient(135deg,rgba(167,139,250,.05),rgba(34,211,238,.04))}
+  .scountdown{padding:.85rem 1rem;border-bottom:1px solid var(--border);text-align:center;background:linear-gradient(135deg,var(--violet-dim),var(--cyan-dim))}
   .scd-label{font-family:var(--font-mono);font-size:.5rem;text-transform:uppercase;letter-spacing:.15em;color:var(--text-muted);margin-bottom:.2rem}
   .scd-val{font-family:var(--font-mono);font-size:2rem;font-weight:800;color:var(--violet);line-height:1}
   .scd-unit{font-family:var(--font-mono);font-size:.6rem;color:var(--text-muted);margin-top:.1rem}
@@ -1392,7 +1392,7 @@ const CSS = `
   .nbadge{margin-left:auto;font-size:.52rem;font-family:var(--font-mono);padding:.1rem .3rem;border-radius:3px;font-weight:700}
   .sf{padding:.75rem;border-top:1px solid var(--border)}
   .bsave{width:100%;padding:.5rem;background:rgba(167,139,250,.1);color:var(--violet);border:1px solid rgba(167,139,250,.25);border-radius:var(--r-sm);font-family:var(--font-mono);font-size:.68rem;font-weight:700;cursor:pointer;transition:all .15s}
-  .bsave:hover{background:rgba(167,139,250,.18)} .bsave.saved{background:rgba(52,211,153,.12);color:var(--green);border-color:rgba(52,211,153,.25)}
+  .bsave:hover{background:rgba(167,139,250,.18)} .bsave.saved{background:var(--green-dim);color:var(--green);border-color:rgba(52,211,153,.25)}
   /* MAIN */
   .main{flex:1;min-width:0;padding:1.5rem 1.25rem 4rem;overflow-x:hidden}
   .tc{animation:fu .2s ease both}
@@ -1444,12 +1444,12 @@ const CSS = `
   .hito-line{width:2px;flex:1;background:var(--border);min-height:16px;margin:3px 0}
   .hito-label{padding:.5rem 0 .5rem .75rem;flex:1}
   .hito-card{display:flex;align-items:center;gap:.75rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:.85rem;transition:all .15s}
-  .hito-card:hover{border-color:var(--border-light)} .hito-card.hito-done{opacity:.55} .hito-card.hito-vencido{border-color:rgba(248,113,113,.3);background:rgba(248,113,113,.03)}
+  .hito-card:hover{border-color:var(--border-light)} .hito-card.hito-done{opacity:.55} .hito-card.hito-vencido{border-color:rgba(248,113,113,.3);background:var(--red-dim)}
   .hito-card-gem{width:14px;height:14px;border-radius:3px;transform:rotate(45deg);flex-shrink:0}
   /* TAREAS */
   .tarea-row{display:flex;align-items:flex-start;gap:.75rem;background:var(--surface);border:1px solid var(--border);border-left:3px solid;border-radius:var(--r);padding:.75rem;transition:all .15s}
   .tarea-row:hover{border-color:var(--border-light)}
-  .tarea-row.tarea-vencida{background:rgba(248,113,113,.03);border-color:rgba(248,113,113,.25)}
+  .tarea-row.tarea-vencida{background:var(--red-dim);border-color:rgba(248,113,113,.25)}
   .tarea-estado-col{flex-shrink:0}
   .est-sel{border-radius:5px;padding:.2rem .4rem;font-family:var(--font-mono);font-size:.65rem;cursor:pointer;outline:none;font-weight:700}
   /* GANTT */
@@ -1475,9 +1475,9 @@ const CSS = `
   /* UTILS */
   .inp:focus{border-color:var(--violet);box-shadow:0 0 0 2px rgba(167,139,250,.1)}
   .btn:hover{transform:translateY(-1px)}
-  .btn.primary{background:rgba(167,139,250,.15);color:var(--violet);border:1px solid rgba(167,139,250,.3)} .btn.primary:hover{background:rgba(167,139,250,.25)}
+  .btn.primary{background:var(--violet-dim);color:var(--violet);border:1px solid rgba(167,139,250,.3)} .btn.primary:hover{background:rgba(167,139,250,.25)}
   .btn.ghost{background:transparent;color:var(--text-muted);border:1px solid var(--border)} .btn.ghost:hover{color:var(--text);border-color:var(--border-light)}
-  .btn.red{background:rgba(248,113,113,.12);color:#f87171;border:1px solid rgba(248,113,113,.2)}
+  .btn.red{background:var(--red-dim);color:#f87171;border:1px solid rgba(248,113,113,.2)}
   .btn.xs{padding:.2rem .4rem;font-size:.65rem}
   .mt1{margin-top:.5rem} .w100{width:100%;justify-content:center}
   .empty{text-align:center;padding:2rem;color:var(--text-muted);font-family:var(--font-mono);font-size:.75rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--r)}
@@ -1532,7 +1532,7 @@ const CSS = `
   .kanban-empty{text-align:center;padding:1.25rem;color:var(--text-dim);font-family:var(--font-mono);font-size:.62rem}
   .kanban-card{background:var(--surface2);border:1px solid var(--border);border-left:3px solid;border-radius:var(--r-sm);padding:.65rem .75rem;cursor:pointer;transition:all .15s;user-select:none;display:flex;flex-direction:column;gap:.35rem}
   .kanban-card:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.35);border-color:var(--border-light)}
-  .kanban-card-venc{border-color:rgba(248,113,113,.35)!important;background:rgba(248,113,113,.03)!important}
+  .kanban-card-venc{border-color:rgba(248,113,113,.35)!important;background:var(--red-dim)!important}
   .kanban-card-bloq{opacity:.75;border-style:dashed}
   .kanban-bloq-badge{font-family:var(--font-mono);font-size:.52rem;font-weight:700;color:#f87171;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.2);border-radius:3px;padding:.1rem .35rem;align-self:flex-start}
   .kanban-card-titulo{font-size:.78rem;font-weight:700;line-height:1.35}

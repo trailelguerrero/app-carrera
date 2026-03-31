@@ -20,11 +20,11 @@ const getCfg  = (nivel) => NIVEL_CFG[nivel] || NIVEL_CFG.Colaborador;
 
 const ESTADOS = ["prospecto", "negociando", "confirmado", "cobrado", "cancelado"];
 const ESTADO_CFG = {
-  prospecto:  { color: "#5a6a8a", bg: "rgba(90,106,138,0.12)", label: "Prospecto" },
-  negociando: { color: "#fbbf24", bg: "rgba(251,191,36,0.12)",  label: "Negociando" },
-  confirmado: { color: "#22d3ee", bg: "rgba(34,211,238,0.12)",  label: "Confirmado" },
-  cobrado:    { color: "#34d399", bg: "rgba(52,211,153,0.12)",  label: "Cobrado" },
-  cancelado:  { color: "#f87171", bg: "rgba(248,113,113,0.12)", label: "Cancelado" },
+  prospecto:  { color: "var(--text-muted)", bg: "rgba(90,106,138,0.12)", label: "Prospecto" },
+  negociando: { color: "#fbbf24", bg: "var(--amber-dim)",  label: "Negociando" },
+  confirmado: { color: "#22d3ee", bg: "var(--cyan-dim)",  label: "Confirmado" },
+  cobrado:    { color: "#34d399", bg: "var(--green-dim)",  label: "Cobrado" },
+  cancelado:  { color: "#f87171", bg: "var(--red-dim)", label: "Cancelado" },
 };
 
 const CONTRAPRESTACIONES_TIPO = [

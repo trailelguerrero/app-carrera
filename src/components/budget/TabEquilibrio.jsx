@@ -86,7 +86,7 @@ export const TabEquilibrio = ({
 
       {/* ── Alerta: evento no viable ── */}
       {!viable && peG !== null && (
-        <div style={{ background:"rgba(248,113,113,0.06)",
+        <div style={{ background:"var(--red-dim)",
           border:"1px solid rgba(248,113,113,0.3)", borderRadius:10,
           padding:"0.85rem 1rem", marginBottom:"1rem" }}>
           <div style={{ display:"flex", gap:"0.6rem", alignItems:"flex-start" }}>

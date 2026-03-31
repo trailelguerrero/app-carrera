@@ -19,7 +19,7 @@ const BUDGET_CSS = `
   .overflow-x  { overflow-x: auto; }
   .total-row   { background: var(--surface2); font-weight: 700; }
   .total-row td { border-top: 2px solid var(--border); padding: 0.75rem 0.6rem; }
-  .ra td { background: rgba(248,113,113,0.04); }
+  .ra td { background: var(--red-dim); }
 
   .card-title.fijo     { color: var(--cyan);   }
   .card-title.variable { color: var(--green);  }
@@ -78,7 +78,7 @@ const BUDGET_CSS = `
     white-space: nowrap; cursor: pointer; transition: all 0.15s;
     border: 1px solid transparent;
   }
-  .bflow-step.done  { color: var(--green); background: rgba(52,211,153,0.08); border-color: rgba(52,211,153,0.2); }
+  .bflow-step.done  { color: var(--green); background: var(--green-dim); border-color: rgba(52,211,153,0.2); }
   .bflow-step.active { color: var(--primary); background: var(--primary-dim); border-color: rgba(99,102,241,0.4); box-shadow: 0 0 8px rgba(99,102,241,0.2); }
   .bflow-step.pending { color: var(--text-dim); background: transparent; border-color: var(--border); }
   .bflow-step:hover { opacity: 0.85; transform: translateY(-1px); }

@@ -12,13 +12,13 @@ const CAT_ICONS = { Avituallamiento:"🍎", Señalización:"🚩", Seguridad:"�
 const CAT_COLORS = { Avituallamiento:"#34d399", Señalización:"#fbbf24", Seguridad:"#fb923c", Comunicación:"#22d3ee", Médico:"#f87171", Organización:"#a78bfa", Infraestructura:"#60a5fa" };
 const ESTADO_ENTREGA = ["pendiente","en tránsito","entregado","recogido"];
 const ESTADO_TAREA = ["pendiente","en curso","completado","bloqueado"];
-const ESTADO_COLORES = { pendiente:"#fbbf24","en tránsito":"#22d3ee",entregado:"#34d399",recogido:"#5a6a8a","en curso":"#22d3ee",completado:"#34d399",bloqueado:"#f87171" };
+const ESTADO_COLORES = { pendiente:"#fbbf24","en tránsito":"#22d3ee",entregado:"#34d399",recogido:"var(--text-muted)","en curso":"#22d3ee",completado:"#34d399",bloqueado:"#f87171" };
 const FASES_CHECKLIST = ["3 meses antes","2 meses antes","1 mes antes","Semana antes","Día antes","Mañana carrera","Durante carrera","Post-carrera"];
 const PUESTOS_REF = ["Zona Salida/Meta","Avituallamiento KM 4","Avituallamiento KM 9","Avituallamiento KM 16","Control KM 7","Control KM 13","Seguridad Cruce 1","Seguridad Cruce 2","Señalización Ruta Alta","Parking","Zona Llegada/Trofeos","Primeros Auxilios Base"];
 
 const TIPOS_LOC = ["meta", "avituallamiento", "control", "seguridad", "señalización", "parking", "sanidad", "otro"];
 const LOC_ICONS = { meta:"🎏", avituallamiento:"🍎", control:"📍", seguridad:"🦸", señalización:"🚩", parking:"🅿️", sanidad:"🏥", otro:"📌" };
-const LOC_COLORS = { meta:"var(--green)", avituallamiento:"var(--cyan)", control:"var(--amber)", seguridad:"var(--red)", señalización:"#fbbf24", parking:"#60a5fa", sanidad:"#f87171", otro:"#5a6a8a" };
+const LOC_COLORS = { meta:"var(--green)", avituallamiento:"var(--cyan)", control:"var(--amber)", seguridad:"var(--red)", señalización:"#fbbf24", parking:"#60a5fa", sanidad:"#f87171", otro:"var(--text-muted)" };
 
 const LOCS_DEFAULT = [
   {id:1,nombre:"Zona Salida/Meta",tipo:"meta",descripcion:"Punto de salida y llegada de todas las distancias"},
@@ -349,8 +349,8 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie }) {
       {/* ── Countdown hero compacto ── */}
       <div className="card mb log-hero" style={{
         background: esSemana
-          ? "linear-gradient(135deg,rgba(248,113,113,0.08),rgba(248,113,113,0.03))"
-          : "linear-gradient(135deg,rgba(34,211,238,0.06),rgba(167,139,250,0.04))",
+          ? "linear-gradient(135deg,var(--red-dim),var(--red-dim))"
+          : "linear-gradient(135deg,var(--cyan-dim),var(--violet-dim))",
         borderColor: esSemana ? "rgba(248,113,113,0.3)" : "var(--border)",
       }}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:"0.75rem"}}>
@@ -425,7 +425,7 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie }) {
           {prox.map(t=>(
             <div key={t.id} className="tlmr">
               <div className="tlh">{t.hora}</div>
-              <div className="tld" style={{background:TLC[t.categoria]||"#5a6a8a"}} />
+              <div className="tld" style={{background:TLC[t.categoria]||"var(--text-muted)"}} />
               <div style={{flex:1,minWidth:0}}>
                 <div className="tlt">{t.titulo}</div>
                 <div className="tlr">{t.responsable}</div>
@@ -623,7 +623,7 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
                   <span className="log-k-cnt" style={{background:"var(--violet-dim)",color:"var(--violet)",border:"1px solid rgba(167,139,250,.3)"}}>{voluntariosConCoche.length}</span>
                 </div>
                 {voluntariosConCoche.map(vol => (
-                  <div key={vol.id} className="log-k-card" style={{borderLeftColor:"var(--violet)",background:"rgba(167,139,250,0.03)"}}>
+                  <div key={vol.id} className="log-k-card" style={{borderLeftColor:"var(--violet)",background:"var(--violet-dim)"}}>
                     <div style={{fontWeight:700,fontSize:".76rem",marginBottom:".2rem"}}>{vol.nombre}</div>
                     <div className="mono xs muted">🚙 Vehículo propio</div>
                     <a href={`tel:${vol.telefono}`} style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--violet)",textDecoration:"none"}}>📞 {vol.telefono}</a>
@@ -665,7 +665,7 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
               <div style={{marginTop:"1.5rem"}}>
                 <div className="sl" style={{color:"var(--violet)",borderBottom:"1px solid rgba(167,139,250,0.3)"}}>🙋‍♂️ Pool de Vehículos Voluntarios</div>
                 {voluntariosConCoche.map(vol => (
-                  <div key={vol.id} className="card vcard" style={{borderLeft:"2px solid var(--violet)",background:"rgba(167,139,250,0.03)"}}>
+                  <div key={vol.id} className="card vcard" style={{borderLeft:"2px solid var(--violet)",background:"var(--violet-dim)"}}>
                     <div className="vh" style={{marginBottom:"0.5rem"}}>
                       <div className="vi" style={{color:"var(--violet)"}}>🚙</div>
                       <div style={{flex:1}}><div className="vn">{vol.nombre}</div><div className="vm mono" style={{color:"var(--violet)"}}>Vehículo propio</div></div>
@@ -739,7 +739,7 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
           {["logistica","organizacion","voluntarios","carrera","comunicacion"].map(cat=>{
             const items=sorted.filter(t=>t.categoria===cat);
             if(!items.length) return null;
-            const color=TLC[cat]||"#5a6a8a";
+            const color=TLC[cat]||"var(--text-muted)";
             return(<div key={cat} className="log-k-col">
               <div className="log-k-hdr" style={{borderTopColor:color}}>
                 <span style={{fontSize:".65rem",fontWeight:700,color}}>{TLI[cat]} {cat}</span>
@@ -755,7 +755,7 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
         </div>
       ):(
       <div className="tlcon">{sorted.map((t,i)=>{
-        const color=TLC[t.categoria]||"#5a6a8a";const ec=ESTADO_COLORES[t.estado];
+        const color=TLC[t.categoria]||"var(--text-muted)";const ec=ESTADO_COLORES[t.estado];
         return(
           <div key={t.id} className={cls("tlrow",t.estado==="completado"&&"tldone",t.estado==="bloqueado"&&"tlblk")}>
             <div className="tlleft">
@@ -989,7 +989,7 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
               <span style={{fontSize:"0.72rem",fontWeight:600}}>{f.f}</span>
               {f.f===faseActiva && (
                 <span style={{fontFamily:"var(--font-mono)",fontSize:"0.5rem",fontWeight:700,
-                  background:"rgba(34,211,238,0.15)",color:"var(--cyan)",
+                  background:"var(--cyan-dim)",color:"var(--cyan)",
                   border:"1px solid rgba(34,211,238,0.3)",borderRadius:3,
                   padding:"0.05rem 0.3rem",lineHeight:1.2,flexShrink:0}}>AHORA</span>
               )}
@@ -1059,7 +1059,7 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
                   <span style={{fontSize:"0.72rem",fontWeight:600}}>{f.f}</span>
                   {f.f===faseActiva && (
                     <span style={{fontFamily:"var(--font-mono)",fontSize:"0.5rem",fontWeight:700,
-                      background:"rgba(34,211,238,0.15)",color:"var(--cyan)",
+                      background:"var(--cyan-dim)",color:"var(--cyan)",
                       border:"1px solid rgba(34,211,238,0.3)",borderRadius:3,
                       padding:"0.05rem 0.3rem",lineHeight:1.2,flexShrink:0}}>AHORA</span>
                   )}
@@ -1133,7 +1133,7 @@ function TabLocalizaciones({ locs, setLocs }) {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: ".65rem" }}>
         {locsF.map(l => {
-          const color = LOC_COLORS[l.tipo] || "#5a6a8a";
+          const color = LOC_COLORS[l.tipo] || "var(--text-muted)";
           const icon  = LOC_ICONS[l.tipo]  || "📌";
           return (
             <div key={l.id} className="card" style={{ borderLeft: `3px solid ${color}`, cursor: "pointer" }} onClick={() => openEditar(l)}>
@@ -1166,7 +1166,7 @@ function TabLocalizaciones({ locs, setLocs }) {
           {TIPOS_LOC.map(t => {
             const n = locs.filter(l => l.tipo === t).length;
             if (!n) return null;
-            const color = LOC_COLORS[t] || "#5a6a8a";
+            const color = LOC_COLORS[t] || "var(--text-muted)";
             return (
               <span key={t} style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", padding: ".2rem .6rem", borderRadius: 20,
                 background: `${color}15`, color, border: `1px solid ${color}33`, cursor: "pointer" }}
@@ -1324,7 +1324,7 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar })
               {/* Protocolo de escalado automático según gravedad */}
               {data.gravedad && data.estado !== "resuelta" && (
                 <div style={{marginTop:".5rem",padding:".6rem .75rem",borderRadius:8,
-                  background:data.gravedad==="alta"?"rgba(248,113,113,0.06)":data.gravedad==="media"?"rgba(251,191,36,0.06)":"rgba(52,211,153,0.06)",
+                  background:data.gravedad==="alta"?"var(--red-dim)":data.gravedad==="media"?"var(--amber-dim)":"var(--green-dim)",
                   border:`1px solid ${data.gravedad==="alta"?"rgba(248,113,113,0.25)":data.gravedad==="media"?"rgba(251,191,36,0.25)":"rgba(52,211,153,0.25)"}`}}>
                   <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
                     color:data.gravedad==="alta"?"var(--red)":data.gravedad==="media"?"var(--amber)":"var(--green)",
@@ -1506,7 +1506,7 @@ const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap');
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;
-    background-image:radial-gradient(ellipse 80% 40% at 50% -5%,rgba(34,211,238,0.05) 0%,transparent 55%)}
+    background-image:radial-gradient(ellipse 80% 40% at 50% -5%,var(--cyan-dim) 0%,transparent 55%)}
   .layout{display:flex;min-height:100vh}
   .sidebar{width:200px;min-height:100vh;height:100vh;position:sticky;top:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;z-index:10}
   .sidebar-logo{padding:1.2rem 1rem;border-bottom:1px solid var(--border)}
@@ -1612,7 +1612,7 @@ const CSS = `
   .ftab{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:.5rem .75rem;cursor:pointer;text-align:left;transition:all .15s;min-width:110px}
   .ftab:hover{border-color:var(--border-light)} .ftab.fa{border-color:var(--cyan);background:var(--cyan-dim)}
   .ftab>span:first-child{display:block;font-size:.72rem;font-weight:600;margin-bottom:.15rem}
-  .ftab-activa{border-color:rgba(34,211,238,0.35) !important;background:rgba(34,211,238,0.04) !important;}
+  .ftab-activa{border-color:rgba(34,211,238,0.35) !important;background:var(--cyan-dim) !important;}
   .kpi[style*="cursor:pointer"]:hover{transform:translateY(-2px);border-color:var(--border-light);box-shadow:0 4px 16px rgba(0,0,0,.3)}
   .fprog{display:block;font-family:var(--font-mono);font-size:.62rem;margin-bottom:.25rem}
   .fbar{height:3px;background:var(--surface3);border-radius:2px;overflow:hidden}

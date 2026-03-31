@@ -44,11 +44,11 @@ const GESTIONES_DEFAULT = [
 // Estados del documento con colores
 const ESTADOS_DOC = [
   { id: "pendiente",  label: "Pendiente",  color: "#94a3b8", bg: "rgba(148,163,184,0.12)" },
-  { id: "en_tramite", label: "En trámite", color: "#22d3ee", bg: "rgba(34,211,238,0.12)"  },
+  { id: "en_tramite", label: "En trámite", color: "#22d3ee", bg: "var(--cyan-dim)"  },
   { id: "enviado",    label: "Enviado",    color: "#60a5fa", bg: "rgba(96,165,250,0.12)"   },
-  { id: "firmado",    label: "Firmado",    color: "#a78bfa", bg: "rgba(167,139,250,0.12)" },
-  { id: "aprobado",   label: "Aprobado",   color: "#34d399", bg: "rgba(52,211,153,0.12)"  },
-  { id: "denegado",   label: "Denegado",   color: "#f87171", bg: "rgba(248,113,113,0.12)" },
+  { id: "firmado",    label: "Firmado",    color: "#a78bfa", bg: "var(--violet-dim)" },
+  { id: "aprobado",   label: "Aprobado",   color: "#34d399", bg: "var(--green-dim)"  },
+  { id: "denegado",   label: "Denegado",   color: "#f87171", bg: "var(--red-dim)" },
 ];
 
 const getEstadoCfg = (id) => ESTADOS_DOC.find(e => e.id === id) || ESTADOS_DOC[0];
@@ -272,8 +272,8 @@ export default function Documentos() {
       text-align:center; cursor:pointer; transition:all .22s; position:relative;
       background:rgba(255,255,255,0.02); }
     @media(max-width:640px){ .doc-dropzone { padding:1.25rem .75rem; } }
-    .doc-dropzone:hover { border-color:var(--cyan); background:rgba(34,211,238,0.03); }
-    .doc-dropzone.over { border-color:var(--cyan); background:rgba(34,211,238,0.07);
+    .doc-dropzone:hover { border-color:var(--cyan); background:var(--cyan-dim); }
+    .doc-dropzone.over { border-color:var(--cyan); background:var(--cyan-dim);
       animation:doc-glow .8s ease infinite; }
     .doc-dropzone-icon { font-size:2.8rem; margin-bottom:.6rem; transition:transform .2s; }
     .doc-dropzone.over .doc-dropzone-icon { animation:doc-pulse .6s ease infinite; }
@@ -417,7 +417,7 @@ export default function Documentos() {
               return (
                 <div key={g.id} style={{display:"flex",alignItems:"center",gap:".5rem",
                   padding:".3rem .6rem",borderRadius:6,marginBottom:".25rem",
-                  background: g._tipo==="denegado"?"rgba(248,113,113,0.08)":g._tipo==="vencida"?"rgba(248,113,113,0.06)":"rgba(251,191,36,0.06)",
+                  background: g._tipo==="denegado"?"var(--red-dim)":g._tipo==="vencida"?"var(--red-dim)":"var(--amber-dim)",
                   border:`1px solid ${g._tipo==="proxima"?"rgba(251,191,36,0.2)":"rgba(248,113,113,0.2)"}`}}>
                   <span style={{fontSize:".75rem"}}>{g._tipo==="denegado"?"🚫":g._tipo==="vencida"?"⚠️":"⏰"}</span>
                   <span style={{flex:1,fontFamily:"var(--font-mono)",fontSize:".65rem",fontWeight:600,
