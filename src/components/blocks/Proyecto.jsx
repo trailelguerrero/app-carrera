@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import dataService, { useData } from "@/lib/dataService";
 
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
+import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const LS = "teg_proyecto_v1";
 const TODAY = new Date();
