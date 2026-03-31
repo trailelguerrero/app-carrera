@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
+import { LOCS_DEFAULT as LOCS_DEFAULT_SHARED, LOCS_KEY } from "@/constants/localizaciones";
 import { useData } from "@/lib/dataService";
 
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";// ─── CONSTANTS ────────────────────────────────────────────────────────────────
@@ -19,20 +20,7 @@ const TIPOS_LOC = ["meta", "avituallamiento", "control", "seguridad", "señaliza
 const LOC_ICONS = { meta:"🎏", avituallamiento:"🍎", control:"📍", seguridad:"🦸", señalización:"🚩", parking:"🅿️", sanidad:"🏥", otro:"📌" };
 const LOC_COLORS = { meta:"var(--green)", avituallamiento:"var(--cyan)", control:"var(--amber)", seguridad:"var(--red)", señalización:"#fbbf24", parking:"#60a5fa", sanidad:"#f87171", otro:"var(--text-muted)" };
 
-const LOCS_DEFAULT = [
-  {id:1,nombre:"Zona Salida/Meta",tipo:"meta",descripcion:"Punto de salida y llegada de todas las distancias"},
-  {id:2,nombre:"Avituallamiento KM 4",tipo:"avituallamiento",descripcion:"Primer avituallamiento líquido TG7/TG13/TG25"},
-  {id:3,nombre:"Avituallamiento KM 9",tipo:"avituallamiento",descripcion:"Segundo avituallamiento sólido+líquido TG13/TG25"},
-  {id:4,nombre:"Avituallamiento KM 16",tipo:"avituallamiento",descripcion:"Avituallamiento completo TG25 únicamente"},
-  {id:5,nombre:"Control KM 7",tipo:"control",descripcion:"Control de paso TG13/TG25"},
-  {id:6,nombre:"Control KM 13",tipo:"control",descripcion:"Control de paso TG25"},
-  {id:7,nombre:"Seguridad Cruce 1",tipo:"seguridad",descripcion:"Cruce de carretera peligroso"},
-  {id:8,nombre:"Seguridad Cruce 2",tipo:"seguridad",descripcion:"Segundo cruce de carretera"},
-  {id:9,nombre:"Señalización Ruta Alta",tipo:"señalización",descripcion:"Zona de cambio de dirección ruta TG25"},
-  {id:10,nombre:"Parking",tipo:"parking",descripcion:"Área de aparcamiento para corredores y equipo"},
-  {id:11,nombre:"Zona Llegada/Trofeos",tipo:"meta",descripcion:"Zona de llegada y entrega de trofeos"},
-  {id:12,nombre:"Primeros Auxilios Base",tipo:"sanidad",descripcion:"Puesto médico fijo en zona meta"},
-];
+// LOCS_DEFAULT importado de @/constants/localizaciones
 
 // ─── DATOS DEFAULT ────────────────────────────────────────────────────────────
 const MAT0 = [
@@ -166,7 +154,7 @@ export default function App() {
   const [rawCk, setCk] = useData(LS+"_ck", CK0);
   const ck = Array.isArray(rawCk) ? rawCk : [];
   // Localizaciones maestras compartidas
-  const [rawLocs, setLocs] = useData("teg_localizaciones_v1", LOCS_DEFAULT);
+  const [rawLocs, setLocs] = useData(LOCS_KEY, LOCS_DEFAULT_SHARED);
   const locs = Array.isArray(rawLocs) ? rawLocs : [];
   // Patrocinadores (solo lectura) para sección especie en material
   const [rawPats] = useData("teg_patrocinadores_v1_pats", []);

@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
+import { LOCS_DEFAULT, LOCS_KEY } from "@/constants/localizaciones";
 import { useData } from "@/lib/dataService";
 
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
@@ -398,7 +399,7 @@ export default function App() {
   const puestos = Array.isArray(rawPuestos) ? rawPuestos : [];
   const [rawVoluntarios, setVoluntarios] = useData(LS_KEY + "_voluntarios", VOLUNTARIOS_DEFAULT);
   const voluntarios = Array.isArray(rawVoluntarios) ? rawVoluntarios : [];
-  const [locs] = useData("teg_localizaciones_v1", []);
+  const [locs] = useData(LOCS_KEY, LOCS_DEFAULT);
   // Material asignado a localizaciones (solo lectura, para mostrar en ficha de puesto)
   const [rawMat]  = useData("teg_logistica_v1_mat",  []);
   const [rawAsig] = useData("teg_logistica_v1_asig", []);
