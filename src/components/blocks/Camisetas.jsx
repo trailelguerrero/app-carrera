@@ -100,9 +100,14 @@ export default function App() {
 
   // Tallas de voluntarios: lectura automática (solo confirmados/pendientes, excluye cancelados)
   const [rawVols] = useData("teg_voluntarios_v1_voluntarios", []);
-  const voluntariosActivos = Array.isArray(rawVols)
-    ? rawVols.filter(v => v?.estado !== "cancelado" && v?.talla)
+  const voluntariosConfirmados = Array.isArray(rawVols)
+    ? rawVols.filter(v => v?.estado === "confirmado" && v?.talla)
     : [];
+  const voluntariosPendientes = Array.isArray(rawVols)
+    ? rawVols.filter(v => v?.estado === "pendiente" && v?.talla)
+    : [];
+  // Para el pedido al proveedor usamos confirmados + pendientes (excluye cancelados)
+  const voluntariosActivos = [...voluntariosConfirmados, ...voluntariosPendientes];
 
   const [fuentesActivas, setFuentesActivas] = useData(LS + "_fuentes", FUENTES_DEFAULT);
 
@@ -222,9 +227,11 @@ export default function App() {
           {tab==="dashboard" && <TabDashboard stats={stats} pedidos={pedidos} coste={coste} setCoste={setCoste} setTab={setTab} abrirFicha={abrirFicha}
             precioCorrExt={precioCorrExt} setPrecioCorrExt={(v) => setPrecioPlatExt({ precio: v })}
             fuentesActivas={fuentesActivas} setFuentesActivas={setFuentesActivas}
-            corredoresExt={corredoresExt} voluntariosActivos={voluntariosActivos} />}
+            corredoresExt={corredoresExt} voluntariosActivos={voluntariosActivos}
+            voluntariosConfirmados={voluntariosConfirmados} voluntariosPendientes={voluntariosPendientes} />}
           {tab==="pedidos"   && <TabPedidos   pedidos={pedidos} coste={coste} abrirFicha={abrirFicha} abrirModal={abrirModal} />}
-          {tab==="tallas"    && <TabTallas    pedidos={pedidos} corredoresExt={corredoresExt} setCorredores={setCorredores} voluntariosActivos={voluntariosActivos} fuentesActivas={fuentesActivas} />}
+          {tab==="tallas"    && <TabTallas    pedidos={pedidos} corredoresExt={corredoresExt} setCorredores={setCorredores} voluntariosActivos={voluntariosActivos} fuentesActivas={fuentesActivas}
+            voluntariosConfirmados={voluntariosConfirmados} voluntariosPendientes={voluntariosPendientes} />}
           {tab==="checklist" && <TabChecklist pedidos={pedidos} updateLinea={updateLinea} abrirFicha={abrirFicha} />}
         </div>
       </div>
@@ -556,7 +563,7 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal }) {
 }
 
 // ─── TAB TALLAS ───────────────────────────────────────────────────────────────
-function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, fuentesActivas }) {
+function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, fuentesActivas, voluntariosConfirmados, voluntariosPendientes }) {
   const [editCorredores, setEditCorredores] = useState(false);
   const [tmpCor, setTmpCor] = useState({ ...corredoresExt });
 
@@ -747,7 +754,7 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
         <div className="card">
           <SectionTitle
             icon="👥" title="Voluntario — automático"
-            subtitle={`${voluntariosActivos.length} voluntario(s) activos sincronizados en tiempo real`}
+            subtitle={`${voluntariosConfirmados?.length || 0} confirmados · ${voluntariosPendientes?.length || 0} pendientes · sincronizado en tiempo real`}
             color={TC.voluntario.color}
           />
           {TALLAS.filter(t => (tallasVol[t] || 0) > 0).length === 0

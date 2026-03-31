@@ -399,6 +399,22 @@ export default function App() {
   const [rawVoluntarios, setVoluntarios] = useData(LS_KEY + "_voluntarios", VOLUNTARIOS_DEFAULT);
   const voluntarios = Array.isArray(rawVoluntarios) ? rawVoluntarios : [];
   const [locs] = useData("teg_localizaciones_v1", []);
+  // Material asignado a localizaciones (solo lectura, para mostrar en ficha de puesto)
+  const [rawMat]  = useData("teg_logistica_v1_mat",  []);
+  const [rawAsig] = useData("teg_logistica_v1_asig", []);
+  const matPorLoc = useMemo(() => {
+    const mat   = Array.isArray(rawMat)  ? rawMat  : [];
+    const asigs = Array.isArray(rawAsig) ? rawAsig : [];
+    const map = {}; // locNombre → [{nombre, cantidad, unidad}]
+    asigs.forEach(a => {
+      if (!a.puesto) return;
+      const item = mat.find(m => m.id === a.materialId);
+      if (!item) return;
+      if (!map[a.puesto]) map[a.puesto] = [];
+      map[a.puesto].push({ nombre: item.nombre, cantidad: a.cantidad, unidad: item.unidad || "ud" });
+    });
+    return map;
+  }, [rawMat, rawAsig]);
   const [saveStatus, setSaveStatus] = useState("idle");
   const [imgFront, setImgFront] = useData(LS_KEY + "_imgFront", SHIRT_PLACEHOLDER_FRONT);
   const [imgBack, setImgBack] = useData(LS_KEY + "_imgBack", SHIRT_PLACEHOLDER_BACK);
@@ -1246,7 +1262,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
 }
 
 // ─── TAB PUESTOS ──────────────────────────────────────────────────────────────
-function TabPuestos({ puestosConStats, voluntarios, locs, onUpdatePuesto, onDeletePuesto, onNuevoPuesto, onEditPuesto, onEditarVol, onFichaPuesto, onFichaVol }) {
+function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpdatePuesto, onDeletePuesto, onNuevoPuesto, onEditPuesto, onEditarVol, onFichaPuesto, onFichaVol }) {
   const [ordenAlfa, setOrdenAlfa] = useState(false);
   const puestosOrdenados = ordenAlfa
     ? [...puestosConStats].sort((a,b) => (a.nombre||"").localeCompare(b.nombre||"","es"))
@@ -1277,7 +1293,23 @@ function TabPuestos({ puestosConStats, voluntarios, locs, onUpdatePuesto, onDele
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.3rem", flexWrap: "wrap" }}>
                     <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>{p.nombre}</span>
                     <span className="badge badge-cyan">{p.tipo}</span>
-                    {p.localizacionId && <span className="badge badge-gold" title="Vinculado a localización maestra">📍 Sincronizado</span>}
+                    {p.localizacionId && (
+                      <>
+                        <span className="badge badge-gold" title="Vinculado a localización maestra">📍 Vinculado</span>
+                        {(() => {
+                          const loc = locs.find(l => l.id === p.localizacionId);
+                          const items = loc ? (matPorLoc[loc.nombre] || []) : [];
+                          if (!items.length) return null;
+                          return (
+                            <span style={{ fontFamily: "var(--font-mono)", fontSize: ".58rem",
+                              color: "var(--cyan)", background: "var(--cyan-dim)",
+                              padding: ".1rem .4rem", borderRadius: 4, whiteSpace: "nowrap" }}>
+                              📦 {items.length} mat.
+                            </span>
+                          );
+                        })()}
+                      </>
+                    )}
                     {p.distancias.map(d => (
                       <span key={d} style={{ fontFamily: "var(--font-mono)", fontSize: "0.58rem", padding: "0.1rem 0.35rem", borderRadius: 3, background: "rgba(34,211,238,0.08)", color: DIST_COLORS[d] || "var(--text-muted)", border: `1px solid ${DIST_COLORS[d] || "var(--border)"}33` }}>{d}</span>
                     ))}

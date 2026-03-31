@@ -177,10 +177,26 @@ export default function App() {
 
   // Voluntarios (solo lectura para el pool de vehículos)
   const [rawVols] = useData("teg_voluntarios_v1_voluntarios", []);
+  const [rawPuestos] = useData("teg_voluntarios_v1_puestos", []);
   const voluntariosConCoche = useMemo(() => {
     const v = Array.isArray(rawVols) ? rawVols : [];
     return v.filter(vol => vol && vol.coche && vol.estado === "confirmado");
   }, [rawVols]);
+  // Voluntarios agrupados por localización para mostrar en TabLocalizaciones
+  const volsPorLoc = useMemo(() => {
+    const vols = Array.isArray(rawVols) ? rawVols : [];
+    const puestos = Array.isArray(rawPuestos) ? rawPuestos : [];
+    const map = {}; // localizacionId → [{voluntario, puesto}]
+    puestos.forEach(p => {
+      if (!p.localizacionId) return;
+      const asignados = vols.filter(v => v.puestoId === p.id && v.estado !== "cancelado");
+      if (asignados.length > 0) {
+        if (!map[p.localizacionId]) map[p.localizacionId] = [];
+        asignados.forEach(v => map[p.localizacionId].push({ vol: v, puesto: p }));
+      }
+    });
+    return map;
+  }, [rawVols, rawPuestos]);
   const [saved, setSaved] = useState(false);
   const [modal, setModal] = useState(null);
   const [del, setDel] = useState(null);
@@ -272,7 +288,7 @@ export default function App() {
           {tab==="timeline" && <TabTL tl={tl} setTl={setTl} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenTL} setOrdenAlfa={setOrdenTL} />}
           {tab==="contactos" && <TabCont cont={cont} setCont={setCont} inc={inc} setInc={setInc} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCont} setOrdenAlfa={setOrdenCont} />}
           {tab==="checklist" && <TabCK ck={ck} setCk={setCk} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCK} setOrdenAlfa={setOrdenCK} config={config} />}
-          {tab==="localizaciones" && <TabLocalizaciones locs={locs} setLocs={setLocs} />}
+          {tab==="localizaciones" && <TabLocalizaciones locs={locs} setLocs={setLocs} volsPorLoc={volsPorLoc} />}
         </div>
       </div>
 
@@ -1096,7 +1112,7 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
 }
 
 // ─── LOCALIZACIONES MAESTRAS ─────────────────────────────────────────────────
-function TabLocalizaciones({ locs, setLocs }) {
+function TabLocalizaciones({ locs, setLocs, volsPorLoc = {} }) {
   const genId = (arr) => arr.length ? Math.max(...arr.map(x => x.id)) + 1 : 1;
   const [modal, setModal] = useState(null); // null | {data: loc|null}
   const [del, setDel] = useState(null);
@@ -1149,6 +1165,44 @@ function TabLocalizaciones({ locs, setLocs }) {
                   style={{ flexShrink: 0, padding: ".15rem .4rem", fontSize: ".65rem" }}>✕</button>
               </div>
               {l.descripcion && <div style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", color: "var(--text-muted)", fontStyle: "italic", marginTop: ".2rem" }}>{l.descripcion}</div>}
+              {(() => {
+                const asig = volsPorLoc[l.id] || [];
+                if (!asig.length) return (
+                  <div style={{ marginTop: ".45rem", fontFamily: "var(--font-mono)", fontSize: ".58rem",
+                    color: "var(--text-dim)", borderTop: "1px solid var(--border)", paddingTop: ".4rem" }}>
+                    👥 Sin voluntarios asignados
+                  </div>
+                );
+                const conf = asig.filter(a => a.vol.estado === "confirmado");
+                const pend = asig.filter(a => a.vol.estado === "pendiente");
+                return (
+                  <div style={{ marginTop: ".45rem", borderTop: "1px solid var(--border)", paddingTop: ".4rem" }}>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: ".58rem", color: "var(--text-muted)",
+                      marginBottom: ".3rem", display: "flex", alignItems: "center", gap: ".4rem" }}>
+                      👥 <span style={{ fontWeight: 700 }}>{asig.length} voluntario{asig.length!==1?"s":""}</span>
+                      {conf.length > 0 && <span style={{ color: "var(--green)", fontWeight: 700 }}>· {conf.length} ✓</span>}
+                      {pend.length > 0 && <span style={{ color: "var(--amber)" }}>· {pend.length} pend.</span>}
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: ".18rem" }}>
+                      {asig.slice(0,4).map((a, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: ".4rem",
+                          fontSize: ".62rem", fontFamily: "var(--font-mono)" }}>
+                          <span style={{ width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
+                            background: a.vol.estado === "confirmado" ? "var(--green)" :
+                              a.vol.estado === "pendiente" ? "var(--amber)" : "var(--text-dim)" }} />
+                          <span style={{ color: "var(--text)", fontWeight: 600 }}>{a.vol.nombre}</span>
+                          <span style={{ color: "var(--text-dim)", fontSize: ".55rem" }}>— {a.puesto.nombre}</span>
+                        </div>
+                      ))}
+                      {asig.length > 4 && (
+                        <div style={{ fontSize: ".58rem", color: "var(--text-dim)", fontFamily: "var(--font-mono)", paddingLeft: ".6rem" }}>
+                          +{asig.length-4} más…
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           );
         })}
