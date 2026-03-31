@@ -29,6 +29,28 @@ export const BLOCK_CSS = `
     --r-sm:         8px;
   }
 
+
+  /* ── Modo claro (cuando ThemeProvider no añade .dark al html) ─────────── */
+  html:not(.dark) :root,
+  html.light :root {
+    --bg:           #f0f4f8;
+    --surface:      #ffffff;
+    --surface2:     #e8eef6;
+    --surface3:     #dde5f0;
+    --border:       #c0cfdf;
+    --border-light: #a8bdd4;
+    --text:         #0f1e36;
+    --text-muted:   #4a6080;
+    --text-dim:     #6a80a0;
+    --cyan:         #0891b2;  --cyan-dim:   rgba(8,145,178,0.10);
+    --violet:       #7c3aed;  --violet-dim: rgba(124,58,237,0.10);
+    --green:        #059669;  --green-dim:  rgba(5,150,105,0.10);
+    --amber:        #d97706;  --amber-dim:  rgba(217,119,6,0.10);
+    --red:          #dc2626;  --red-dim:    rgba(220,38,38,0.10);
+    --orange:       #ea580c;  --orange-dim: rgba(234,88,12,0.10);
+    --primary:      #4f46e5;  --primary-dim:rgba(79,70,229,0.12);
+  }
+
   /* ── Block shell ────────────────────────────────────────────────────────── */
   .block-container {
     padding: 1rem;

@@ -78,7 +78,8 @@ function estadoBg(e) {
 }
 
 // ─── PUBLIC REGISTRATION FORM ──────────────────────────────────────────────────
-export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: imgF, imgBack: imgB, imgGuiaTallas, opcionPuesto, opcionVehiculo }) {
+export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: imgF, imgBack: imgB, imgGuiaTallas, opcionPuesto, opcionVehiculo, config: cfgProp }) {
+  const config = cfgProp || { nombre:"Trail El Guerrero", edicion:"2026", lugar:"Candeleda", provincia:"Ávila", organizador:"Club Trail El Guerrero", fecha:"2026-08-29" };
   const [form, setForm] = useState({ nombre: "", apellidos: "", telefono: "", email: "", talla: "", puestoId: "", coche: false });
   const [enviado, setEnviado] = useState(false);
   const [errores, setErrores] = useState({});
@@ -483,6 +484,7 @@ export default function App() {
         imgGuiaTallas={imgGuiaTallas}
         opcionPuesto={opcionPuesto}
         opcionVehiculo={opcionVehiculo}
+        config={config}
         onRegistrar={(data) => { addVoluntario(data); setVista("gestion"); setTab("voluntarios"); }}
       />
     </AppShell>
@@ -751,7 +753,7 @@ function AppShell({ children }) {
     <>
       <style>{BLOCK_CSS}</style>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
@@ -759,11 +761,11 @@ function AppShell({ children }) {
           --surface: #0f1629;
           --surface2: #151e35;
           --surface3: #1a2540;
-          --border: #1e2d50;
-          --border-light: #2a3f6a;
+          --border: #263754;
+          --border-light: #344d7a;
           --text: #e8eef8;
-          --text-muted: #5a6a8a;
-          --text-dim: #3a4a6a;
+          --text-muted: #8a9dba;
+          --text-dim: #7080a0;
           --cyan: #22d3ee;
           --cyan-dim: rgba(34,211,238,0.1);
           --violet: #a78bfa;
@@ -776,7 +778,7 @@ function AppShell({ children }) {
           --red-dim: rgba(248,113,113,0.1);
           --orange: #fb923c;
           --font-display: 'Syne', sans-serif;
-          --font-mono: var(--font-mono);
+          --font-mono: 'DM Mono', 'Space Mono', monospace;
           --radius: 12px;
           --radius-sm: 8px;
         }
