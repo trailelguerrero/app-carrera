@@ -39,6 +39,19 @@ const CFG_CSS = `
     margin-top: 1rem; display: flex; justify-content: flex-end; align-items: center; gap: .75rem;
   }
   .cfg-saved { font-family: var(--font-mono); font-size: .65rem; color: var(--green); }
+  .backup-btn {
+    display: flex; align-items: center; gap: .5rem;
+    padding: .55rem 1rem; border-radius: var(--r-sm);
+    font-family: var(--font-display); font-size: .78rem; font-weight: 700;
+    cursor: pointer; border: 1px solid var(--border); transition: all .15s;
+  }
+  .backup-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .backup-btn.export { background: var(--cyan-dim); color: var(--cyan); border-color: rgba(34,211,238,.3); }
+  .backup-btn.export:hover:not(:disabled) { background: var(--cyan); color: var(--bg); }
+  .backup-btn.import { background: var(--amber-dim); color: var(--amber); border-color: rgba(251,191,36,.3); }
+  .backup-btn.import:hover { background: var(--amber); color: var(--bg); }
+  .backup-btn.csv { background: var(--green-dim); color: var(--green); border-color: rgba(52,211,153,.3); }
+  .backup-btn.csv:hover { background: var(--green); color: var(--bg); }
 `;
 
 export default function Configuracion() {
@@ -48,6 +61,8 @@ export default function Configuracion() {
 
   const [draft, setDraft] = useState(null);
   const [saved, setSaved] = useState(false);
+  const [exportando, setExportando] = useState(false);
+  const [importMsg, setImportMsg] = useState(null); // {tipo:'ok'|'error', texto}
 
   const form = draft ?? config;
   const upd  = (k, v) => setDraft(p => ({ ...(p ?? config), [k]: v }));
@@ -60,6 +75,130 @@ export default function Configuracion() {
     setDraft(null);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
+  };
+
+
+  // ── Todas las claves de datos de la app ──────────────────────────────────
+  const ALL_DATA_KEYS = [
+    "teg_event_config_v1",
+    "teg_presupuesto_v1_tramos",
+    "teg_presupuesto_v1_conceptos",
+    "teg_presupuesto_v1_inscritos",
+    "teg_presupuesto_v1_ingresosExtra",
+    "teg_presupuesto_v1_merchandising",
+    "teg_presupuesto_v1_maximos",
+    "teg_voluntarios_v1_voluntarios",
+    "teg_voluntarios_v1_puestos",
+    "teg_voluntarios_v1_imgFront",
+    "teg_voluntarios_v1_imgBack",
+    "teg_voluntarios_v1_imgGuiaTallas",
+    "teg_voluntarios_v1_opcionPuesto",
+    "teg_voluntarios_v1_opcionVehiculo",
+    "teg_patrocinadores_v1_pats",
+    "teg_patrocinadores_v1_obj",
+    "teg_logistica_v1_mat",
+    "teg_logistica_v1_asig",
+    "teg_logistica_v1_veh",
+    "teg_logistica_v1_rut",
+    "teg_logistica_v1_tl",
+    "teg_logistica_v1_cont",
+    "teg_logistica_v1_inc",
+    "teg_logistica_v1_ck",
+    "teg_localizaciones_v1",
+    "teg_proyecto_v1_tareas",
+    "teg_proyecto_v1_hitos",
+    "teg_proyecto_v1_equipo",
+    "teg_documentos_v1",
+    "teg_documentos_v1_gestiones",
+    "teg_camisetas_v1",
+  ];
+
+  // ── Exportar todos los datos como JSON ───────────────────────────────────
+  const handleExport = async () => {
+    setExportando(true);
+    try {
+      const backup = {
+        version: "1.0",
+        fecha: new Date().toISOString(),
+        evento: form.nombre + " " + form.edicion,
+        datos: {}
+      };
+      for (const key of ALL_DATA_KEYS) {
+        try {
+          const raw = localStorage.getItem(key);
+          if (raw) backup.datos[key] = JSON.parse(raw);
+        } catch {}
+      }
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href     = url;
+      const fecha = new Date().toISOString().split("T")[0];
+      a.download = `backup_${(form.nombre||"evento").replace(/\s+/g,"-").toLowerCase()}_${fecha}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExportando(false);
+    }
+  };
+
+  // ── Exportar voluntarios como CSV ────────────────────────────────────────
+  const handleExportVoluntariosCSV = () => {
+    try {
+      const raw = localStorage.getItem("teg_voluntarios_v1_voluntarios");
+      const vols = raw ? JSON.parse(raw) : [];
+      if (!vols.length) { setImportMsg({tipo:"error",texto:"No hay voluntarios para exportar"}); return; }
+      const cols = ["id","nombre","telefono","email","talla","estado","rol","puestoId","coche","notas","fechaRegistro"];
+      const csv  = [cols.join(";"),
+        ...vols.map(v => cols.map(c => `"${(v[c]??"")}"`).join(";"))
+      ].join("\n");
+      const blob = new Blob(["\uFEFF"+csv], { type: "text/csv;charset=utf-8" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+      a.download = `voluntarios_${new Date().toISOString().split("T")[0]}.csv`; a.click();
+    } catch { setImportMsg({tipo:"error",texto:"Error exportando voluntarios"}); }
+  };
+
+  // ── Exportar patrocinadores como CSV ─────────────────────────────────────
+  const handleExportPatrocinadores = () => {
+    try {
+      const raw = localStorage.getItem("teg_patrocinadores_v1_pats");
+      const pats = raw ? JSON.parse(raw) : [];
+      if (!pats.length) { setImportMsg({tipo:"error",texto:"No hay patrocinadores para exportar"}); return; }
+      const cols = ["id","nombre","nivel","importe","estado","contacto","email","telefono","notas"];
+      const csv  = [cols.join(";"),
+        ...pats.map(p => cols.map(c => `"${(p[c]??"")}"`).join(";"))
+      ].join("\n");
+      const blob = new Blob(["\uFEFF"+csv], { type: "text/csv;charset=utf-8" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+      a.download = `patrocinadores_${new Date().toISOString().split("T")[0]}.csv`; a.click();
+    } catch { setImportMsg({tipo:"error",texto:"Error exportando patrocinadores"}); }
+  };
+
+  // ── Importar backup JSON ──────────────────────────────────────────────────
+  const handleImport = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const backup = JSON.parse(ev.target.result);
+        if (!backup.datos || typeof backup.datos !== "object")
+          throw new Error("Formato de backup no reconocido");
+        let count = 0;
+        for (const [key, value] of Object.entries(backup.datos)) {
+          if (ALL_DATA_KEYS.includes(key)) {
+            localStorage.setItem(key, JSON.stringify(value));
+            count++;
+          }
+        }
+        setImportMsg({ tipo: "ok", texto: `✓ Backup restaurado — ${count} colecciones importadas. Recarga la app para ver los cambios.` });
+        window.dispatchEvent(new Event("teg-sync"));
+      } catch (err) {
+        setImportMsg({ tipo: "error", texto: `Error al importar: ${err.message}` });
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
   };
 
   const fechaEvento   = form.fecha ? new Date(form.fecha) : null;
@@ -182,6 +321,50 @@ export default function Configuracion() {
               ))}
             </div>
           )}
+        </div>
+
+
+        {/* ── Backup y exportación ─────────────────────────────────────── */}
+        <div className="card cfg-section">
+          <div className="cfg-section-title">💾 Backup y exportación de datos</div>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:".68rem", color:"var(--text-muted)", marginBottom:"1rem", lineHeight:1.6 }}>
+            Exporta todos los datos de la app a un archivo JSON para hacer copias de seguridad
+            o trasladar los datos a otro dispositivo. También puedes exportar listas concretas a CSV.
+          </div>
+
+          <div style={{ display:"flex", flexWrap:"wrap", gap:".6rem", marginBottom:"1rem" }}>
+            <button className="backup-btn export" onClick={handleExport} disabled={exportando}>
+              {exportando ? "⏳ Exportando…" : "⬇️ Backup completo (JSON)"}
+            </button>
+            <button className="backup-btn csv" onClick={handleExportVoluntariosCSV}>
+              📋 Voluntarios (CSV)
+            </button>
+            <button className="backup-btn csv" onClick={handleExportPatrocinadores}>
+              🤝 Patrocinadores (CSV)
+            </button>
+            <label className="backup-btn import" style={{ cursor:"pointer" }}>
+              ⬆️ Restaurar backup (JSON)
+              <input type="file" accept=".json" onChange={handleImport} style={{ display:"none" }} />
+            </label>
+          </div>
+
+          {importMsg && (
+            <div style={{
+              padding:".65rem .85rem", borderRadius:8,
+              background: importMsg.tipo === "ok" ? "var(--green-dim)" : "var(--red-dim)",
+              border: `1px solid ${importMsg.tipo === "ok" ? "rgba(52,211,153,.3)" : "rgba(248,113,113,.3)"}`,
+              color: importMsg.tipo === "ok" ? "var(--green)" : "var(--red)",
+              fontFamily:"var(--font-mono)", fontSize:".72rem", lineHeight:1.6,
+              display:"flex", justifyContent:"space-between", alignItems:"center", gap:".5rem"
+            }}>
+              <span>{importMsg.texto}</span>
+              <button onClick={() => setImportMsg(null)} style={{ background:"none", border:"none", cursor:"pointer", color:"inherit", fontSize:"1rem", padding:0, flexShrink:0 }}>✕</button>
+            </div>
+          )}
+
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:".58rem", color:"var(--text-dim)", lineHeight:1.7, marginTop:".75rem" }}>
+            ⚠️ Restaurar un backup sobreescribe todos los datos actuales. Exporta primero si quieres conservar los cambios recientes.
+          </div>
         </div>
 
         <div className="cfg-save-bar">
