@@ -943,7 +943,7 @@ function AppShell({ children }) {
           border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface2);
           margin-bottom: 0.4rem; transition: all 0.15s; }
         .checklist-row.presente { border-color: rgba(52,211,153,0.3); background: rgba(52,211,153,0.05); }
-        .checklist-row.ausente { border-color: rgba(248,113,113,0.2); background: rgba(248,113,113,0.04); }
+        .checklist-row.ausente { border-color: rgba(248,113,113,0.25); background: var(--red-dim); }
 
         /* OVERFLOW */
         .overflow-x { overflow-x: auto; }
@@ -998,14 +998,14 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
       </div>
 
       {alertas.length > 0 && (
-        <div style={{ background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: "var(--radius)", padding: "0.85rem 1rem", marginBottom: "0.85rem" }}>
+        <div style={{ background: "var(--red-dim)", border: "1px solid rgba(248,113,113,0.25)", borderRadius: "var(--radius)", padding: "0.85rem 1rem", marginBottom: "0.85rem" }}>
           <div style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--red)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.5rem" }}>⚠️ Puestos con cobertura insuficiente</div>
           {alertas.map(p => (
             <div key={p.id}
               onClick={() => onEditarPuesto(p)}
               title="Click para abrir ficha del puesto"
               style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.3rem 0.3rem", borderBottom: "1px solid rgba(248,113,113,0.1)", fontSize: "0.78rem", cursor: "pointer", borderRadius: 4, transition: "background .12s" }}
-              onMouseEnter={e => e.currentTarget.style.background = "rgba(248,113,113,0.06)"}
+              onMouseEnter={e => e.currentTarget.style.background = "var(--red-dim)"}
               onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
               <span>{p.nombre}</span>
               <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.7rem", color: "var(--red)", fontWeight: 700 }}>{p.totalAsignados}/{p.necesarios} ({p.cobertura}%)</span>
@@ -1839,7 +1839,7 @@ function ModalPuesto({ puesto, locs, onSave, onClose }) {
             <div><label className="field-label">Hora de fin (voluntario)</label><input className="inp" type="time" value={form.horaFin} onChange={e => upd("horaFin", e.target.value)} /></div>
           </div>
           {form.tipo === "Control" && (
-            <div style={{ background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.2)", borderRadius: 8, padding: "0.65rem 0.85rem" }}>
+            <div style={{ background: "var(--amber-dim)", border: "1px solid rgba(251,191,36,0.25)", borderRadius: 8, padding: "0.65rem 0.85rem" }}>
               <label className="field-label" style={{ color: "var(--amber)" }}>⏱ Tiempo límite de paso (corredor)</label>
               <input className="inp" type="time" value={form.tiempoLimite || ""} onChange={e => upd("tiempoLimite", e.target.value)}
                 placeholder="Hora máxima de paso" />

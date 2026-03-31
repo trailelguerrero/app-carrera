@@ -495,7 +495,7 @@ export default function Dashboard() {
 
         {/* Estado OK — sin alertas */}
         {d.alertasCriticas.length === 0 && d.alertasAvisos.length === 0 && (
-          <div className="card mb" style={{ padding:"0.65rem 1rem", display:"flex", alignItems:"center", gap:"0.6rem", background:"rgba(52,211,153,0.04)", borderColor:"rgba(52,211,153,0.2)" }}>
+          <div className="card mb" style={{ padding:"0.65rem 1rem", display:"flex", alignItems:"center", gap:"0.6rem", background:"var(--green-dim)", borderColor:"rgba(52,211,153,0.2)" }}>
             <span style={{ fontSize:"1rem" }}>✅</span>
             <span className="mono xs" style={{ color:"var(--green)" }}>Todo en orden — sin alertas activas</span>
           </div>
