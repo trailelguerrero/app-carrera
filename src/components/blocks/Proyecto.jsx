@@ -1,6 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import dataService, { useData } from "@/lib/dataService";
-import { EVENT_DATE, EVENT_DATE_STR } from "@/constants/budgetConstants";
 
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
@@ -134,6 +133,8 @@ export default function App() {
   const [rawTareas, setTareas]   = useData(LS+"_tareas", TAREAS0);
   const [rawHitos, setHitos]     = useData(LS+"_hitos", HITOS0);
   const [rawEquipo, setEquipo]   = useData(LS+"_equipo", EQUIPO0);
+  const [eventCfg]               = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
+  const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
   const [rawDocs]                = useData("teg_documentos_v1", []);
   const [rawGest]                = useData("teg_documentos_v1_gestiones", []);
 
@@ -172,7 +173,8 @@ export default function App() {
 
   // ── Derived stats ──────────────────────────────────────────────────────────
   const stats = useMemo(() => {
-    const diasEvento = diasHasta(EVENT_DATE_STR);
+    const _eventFechaStr = config?.fecha || "2026-08-29";
+    const diasEvento = diasHasta(_eventFechaStr);
     const total = tareas.length;
     const completadas = tareas.filter(t => t.estado === "completado").length;
     const bloqueadas = tareas.filter(t => t.estado === "bloqueado").length;

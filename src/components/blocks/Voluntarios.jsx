@@ -1,7 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { useData } from "@/lib/dataService";
-import { EVENT_DATE } from "@/constants/budgetConstants";
 
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
@@ -491,7 +490,7 @@ export default function App() {
   );
 
   // Días hasta el evento — para reordenar tabs en semana de carrera
-  const diasHastaEvento = Math.ceil((EVENT_DATE - new Date()) / 86400000);
+  const diasHastaEvento = Math.ceil(((config?.fecha ? new Date(config.fecha) : new Date("2026-08-29")) - new Date()) / 86400000);
   const esSemanaCarrera = diasHastaEvento >= 0 && diasHastaEvento <= 7;
 
   const TABS_BASE = [
