@@ -91,7 +91,9 @@ export default function Documentos() {
   const [nota,   setNota]       = useState("");
   const [estadoNuevo, setEstadoNuevo] = useState("pendiente");
   const [vencNuevo, setVencNuevo]     = useState("");
+  const [emisorNuevo, setEmisorNuevo]   = useState("");
   const [busqueda, setBusqueda] = useState("");
+  const [busqGlobal, setBusqGlobal] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(true); // colapsable en móvil
   const [editId,  setEditId]    = useState(null);
   const [editForm, setEditForm] = useState({});
@@ -100,6 +102,7 @@ export default function Documentos() {
   const [gForm, setGForm]   = useState({ nombre:"", subcategoria:"Ayuntamiento", estado:"pendiente", fechaVencimiento:"", nota:"", url:"" });
   const [gEditId, setGEditId] = useState(null);
   const fileRef = useRef(null);
+  const [visorDoc, setVisorDoc] = useState(null); // doc a visualizar en modal
 
   useEffect(() => {
     dataService.get(LS_KEY, []).then(setDocs);
@@ -137,9 +140,11 @@ export default function Documentos() {
       newDocs.push({
         id: genId(),
         nombre: file.name,
+        nombreDisplay: nota ? nota.trim() : file.name.replace(/\.[^.]+$/, ""),
+        emisor: emisorNuevo || null,
         categoria: tab,
         subcategoria: subcat || null,
-        nota: nota || null,
+        nota: null,
         estado: estadoNuevo,
         fechaVencimiento: vencNuevo || null,
         size: file.size,
@@ -150,7 +155,7 @@ export default function Documentos() {
       });
     }
     save([...docs, ...newDocs]);
-    setNota(""); setSubcat(""); setVencNuevo(""); setEstadoNuevo("pendiente");
+    setNota(""); setSubcat(""); setVencNuevo(""); setEstadoNuevo("pendiente"); setEmisorNuevo("");
     setUploading(false);
   }, [docs, tab, subcat, nota, estadoNuevo, vencNuevo, uploading, save]);
 
@@ -167,21 +172,15 @@ export default function Documentos() {
 
   const deleteDoc   = (id) => { if (!confirm("¿Eliminar este documento?")) return; save(docs.filter(d => d.id !== id)); };
   const downloadDoc = (doc) => { const a = document.createElement("a"); a.href = doc.data; a.download = doc.nombre; a.click(); };
-  const viewDoc     = (doc) => {
-    if (doc.tipo?.startsWith("image/")) {
-      const w = window.open("", "_blank");
-      w.document.write(`<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="${doc.data}" style="max-width:100%;max-height:100vh" /></body></html>`);
-    } else {
-      const w = window.open();
-      w.document.write(`<iframe src="${doc.data}" style="width:100%;height:100%;border:none" title="${doc.nombre}"></iframe>`);
-    }
-  };
+  const viewDoc = (doc) => { setVisorDoc(doc); };
 
   const startEdit = (doc) => {
     const main = document.querySelector("main");
     if (main) main.scrollTo({ top: 0, behavior: "instant" });
     setEditId(doc.id);
     setEditForm({
+      nombreDisplay: doc.nombreDisplay || doc.nombre.replace(/\.[^.]+$/, ""),
+      emisor: doc.emisor || "",
       nota: doc.nota || "",
       subcategoria: doc.subcategoria || "",
       estado: doc.estado || "pendiente",
@@ -236,13 +235,25 @@ export default function Documentos() {
     return dias !== null && dias < 0 && d.estado !== "aprobado";
   });
 
+  // Búsqueda global (todas las categorías)
+  const resultadosGlobales = busqueda && busqGlobal
+    ? docs.filter(d => {
+        const q = busqueda.toLowerCase();
+        return (d.nombreDisplay||d.nombre).toLowerCase().includes(q)
+          || (d.emisor||"").toLowerCase().includes(q)
+          || (d.nota||"").toLowerCase().includes(q)
+          || (d.subcategoria||"").toLowerCase().includes(q);
+      }).sort((a,b) => new Date(b.fechaSubida) - new Date(a.fechaSubida))
+    : null;
+
   // Filtrado: categoría + búsqueda
   const catDocs = docs
     .filter(d => d.categoria === tab)
     .filter(d => {
-      if (!busqueda) return true;
+      if (!busqueda || busqGlobal) return true;
       const q = busqueda.toLowerCase();
-      return d.nombre.toLowerCase().includes(q)
+      return (d.nombreDisplay||d.nombre).toLowerCase().includes(q)
+        || (d.emisor||"").toLowerCase().includes(q)
         || (d.nota||"").toLowerCase().includes(q)
         || (d.subcategoria||"").toLowerCase().includes(q)
         || (d.estado||"").toLowerCase().includes(q);
@@ -251,7 +262,6 @@ export default function Documentos() {
 
   // ─── CSS ──────────────────────────────────────────────────────────────────
   const DOC_CSS = `
-    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap');
     @keyframes doc-pulse  { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.7;transform:scale(1.08)} }
     @keyframes doc-fadein { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
     @keyframes doc-glow   { 0%,100%{box-shadow:0 0 12px rgba(34,211,238,0.2)} 50%{box-shadow:0 0 28px rgba(34,211,238,0.55)} }
@@ -392,11 +402,22 @@ export default function Documentos() {
               <input
                 value={busqueda}
                 onChange={e => setBusqueda(e.target.value)}
-                placeholder="Buscar documentos…"
+                placeholder={busqGlobal ? "Buscar en todos…" : "Buscar aquí…"}
               />
               {busqueda && (
-                <button onClick={() => setBusqueda("")}
-                  style={{background:"none",border:"none",color:"var(--text-muted)",cursor:"pointer",fontSize:".7rem",padding:0}}>✕</button>
+                <>
+                  <button
+                    onClick={() => setBusqGlobal(v => !v)}
+                    title={busqGlobal ? "Buscar solo en esta categoría" : "Buscar en todas las categorías"}
+                    style={{background:busqGlobal?"var(--cyan-dim)":"none",border:busqGlobal?"1px solid rgba(34,211,238,0.3)":"none",
+                      color:busqGlobal?"var(--cyan)":"var(--text-muted)",cursor:"pointer",
+                      fontSize:".6rem",padding:".1rem .35rem",borderRadius:4,
+                      fontFamily:"var(--font-mono)",whiteSpace:"nowrap",flexShrink:0}}>
+                    {busqGlobal ? "🌐 Global" : "📁 Esta"}
+                  </button>
+                  <button onClick={() => { setBusqueda(""); setBusqGlobal(false); }}
+                    style={{background:"none",border:"none",color:"var(--text-muted)",cursor:"pointer",fontSize:".7rem",padding:0}}>✕</button>
+                </>
               )}
             </div>
           </div>
@@ -661,6 +682,10 @@ export default function Documentos() {
 
           {/* Campos de metadatos */}
           <div className="doc-upload-fields">
+            <input value={nota} onChange={e => setNota(e.target.value)}
+              placeholder="Nombre descriptivo (ej: Seguro RC Mapfre 2026)" className="doc-input" style={{flexBasis:"100%"}} />
+            <input value={emisorNuevo} onChange={e => setEmisorNuevo(e.target.value)}
+              placeholder="Emisor / proveedor (ej: Mapfre, Cruz Roja…)" className="doc-input" />
             {subcats.length > 0 && (
               <select value={subcat} onChange={e => setSubcat(e.target.value)} className="doc-select">
                 <option value="">— Subcategoría —</option>
@@ -672,8 +697,6 @@ export default function Documentos() {
             </select>
             <input type="date" value={vencNuevo} onChange={e => setVencNuevo(e.target.value)}
               className="doc-select" title="Fecha de vencimiento (opcional)" />
-            <input value={nota} onChange={e => setNota(e.target.value)}
-              placeholder="Nota descriptiva (opcional)" className="doc-input" />
           </div>
 
           {/* Drop zone — más visual con instrucción explícita */}
@@ -713,8 +736,64 @@ export default function Documentos() {
         </div>
         )} {/* fin ternario isGestion */}
 
+        {/* ── Resultados búsqueda global ── */}
+        {resultadosGlobales && (
+          <div className="card mb" style={{padding:".75rem 1rem"}}>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:".62rem",color:"var(--cyan)",
+              fontWeight:700,marginBottom:".65rem"}}>
+              🌐 {resultadosGlobales.length} resultado{resultadosGlobales.length!==1?"s":""} en todos los documentos para "{busqueda}"
+            </div>
+            <div className="doc-list">
+              {resultadosGlobales.map(doc => {
+                const cat = CATEGORIAS.find(c => c.id === doc.categoria) || CATEGORIAS[0];
+                const ecfg = getEstadoCfg(doc.estado);
+                const dV = diasHasta(doc.fechaVencimiento);
+                const vc = dV !== null ? (dV < 0 ? "var(--red)" : dV <= 30 ? "var(--amber)" : "var(--text-muted)") : "var(--text-muted)";
+                return (
+                  <div key={doc.id} className="doc-card" onClick={() => setTab(doc.categoria)} style={{cursor:"pointer"}}>
+                    <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:cat.color,borderRadius:"12px 12px 0 0"}} />
+                    <div style={{display:"flex",alignItems:"center",gap:8,paddingTop:4}}>
+                      <span style={{fontSize:"1.5rem"}}>{getFileIcon(doc.tipo)}</span>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div className="doc-card-name" style={{fontSize:".75rem"}}>{doc.nombreDisplay || doc.nombre}</div>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:cat.color,marginTop:".1rem"}}>
+                          {cat.icon} {cat.label}{doc.subcategoria ? ` · ${doc.subcategoria}` : ""}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{display:"flex",gap:".4rem",flexWrap:"wrap",alignItems:"center"}}>
+                      <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",padding:".08rem .35rem",
+                        borderRadius:3,background:ecfg.bg,color:ecfg.color,border:`1px solid ${ecfg.color}33`}}>
+                        {ecfg.label}
+                      </span>
+                      {doc.emisor && <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-muted)"}}>🏢 {doc.emisor}</span>}
+                      {doc.fechaVencimiento && dV !== null && (
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:vc,fontWeight:700}}>
+                          ⏰ {formatDate(doc.fechaVencimiento)}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-dim)"}}>
+                      {formatSize(doc.size)} · {formatDate(doc.fechaSubida)}
+                    </div>
+                    <div className="doc-card-actions">
+                      <button onClick={e=>{e.stopPropagation();viewDoc(doc);}} className="doc-btn doc-btn-view">👁 Ver</button>
+                      <button onClick={e=>{e.stopPropagation();downloadDoc(doc);}} className="doc-btn doc-btn-dl">⬇</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {resultadosGlobales.length === 0 && (
+              <div style={{textAlign:"center",padding:"1.5rem",color:"var(--text-dim)",fontFamily:"var(--font-mono)",fontSize:".72rem"}}>
+                Sin resultados para "{busqueda}"
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── Document list ── */}
-        {isGestion ? null : catDocs.length === 0 ? (
+        {isGestion ? null : (!busqGlobal && catDocs.length === 0) ? (
           <div className="doc-empty">
             <div className="doc-empty-icon">{busqueda ? "🔍" : catInfo.icon}</div>
             <div className="doc-empty-text">
@@ -723,7 +802,7 @@ export default function Documentos() {
                 : `No hay documentos en ${catInfo.label}`}
             </div>
           </div>
-        ) : (
+        ) : busqGlobal ? null : (
           <>
             {busqueda && (
               <div className="mono xs muted mb-sm">
@@ -746,18 +825,23 @@ export default function Documentos() {
                     {editId === doc.id ? (
                       /* ── Edit mode ── */
                       <div className="doc-edit-card" style={{paddingTop:4}}>
-                        <div style={{fontSize:".7rem",fontWeight:700,color:catInfo.color}}>✏️ Editando metadatos</div>
-                        {/* Mover a otra categoría */}
+                        <div style={{fontSize:".7rem",fontWeight:700,color:catInfo.color,marginBottom:".25rem"}}>✏️ Editando documento</div>
+                        <input value={editForm.nombreDisplay}
+                          onChange={e => setEditForm(p=>({...p,nombreDisplay:e.target.value}))}
+                          placeholder="Nombre descriptivo *" className="doc-input" style={{width:"100%",boxSizing:"border-box"}} />
+                        <input value={editForm.emisor}
+                          onChange={e => setEditForm(p=>({...p,emisor:e.target.value}))}
+                          placeholder="Emisor / proveedor" className="doc-input" style={{width:"100%",boxSizing:"border-box"}} />
                         <select value={editForm.categoria ?? doc.categoria}
                           onChange={e => setEditForm(p=>({...p,categoria:e.target.value}))}
                           className="doc-select" style={{width:"100%"}}>
                           {CATEGORIAS.map(c => <option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
                         </select>
-                        {subcats.length > 0 && (
+                        {(SUBCATEGORIAS[editForm.categoria ?? doc.categoria]||[]).length > 0 && (
                           <select value={editForm.subcategoria} onChange={e => setEditForm(p=>({...p,subcategoria:e.target.value}))}
                             className="doc-select" style={{width:"100%"}}>
                             <option value="">— Subcategoría —</option>
-                            {subcats.map(s => <option key={s} value={s}>{s}</option>)}
+                            {(SUBCATEGORIAS[editForm.categoria ?? doc.categoria]||[]).map(sc => <option key={sc} value={sc}>{sc}</option>)}
                           </select>
                         )}
                         <select value={editForm.estado} onChange={e => setEditForm(p=>({...p,estado:e.target.value}))}
@@ -768,7 +852,7 @@ export default function Documentos() {
                           onChange={e => setEditForm(p=>({...p,fechaVencimiento:e.target.value}))}
                           className="doc-select" style={{width:"100%"}} />
                         <input value={editForm.nota} onChange={e => setEditForm(p=>({...p,nota:e.target.value}))}
-                          placeholder="Nota descriptiva" className="doc-input" style={{width:"100%",boxSizing:"border-box"}} />
+                          placeholder="Notas adicionales" className="doc-input" style={{width:"100%",boxSizing:"border-box"}} />
                         <div style={{display:"flex",gap:6}}>
                           <button onClick={saveEdit} className="doc-btn doc-btn-save">✅ Guardar</button>
                           <button onClick={() => setEditId(null)} className="doc-btn doc-btn-cancel">Cancelar</button>
@@ -777,16 +861,36 @@ export default function Documentos() {
                     ) : (
                       /* ── View mode ── */
                       <>
-                        <div style={{display:"flex",alignItems:"flex-start",gap:10,paddingTop:4}}>
-                          <span style={{fontSize:"2rem"}}>{getFileIcon(doc.tipo)}</span>
+                        {/* Thumbnail para imágenes */}
+                        {doc.tipo?.startsWith("image/") && doc.data && (
+                          <div onClick={() => viewDoc(doc)} style={{
+                            width:"100%", height:100, borderRadius:8,
+                            overflow:"hidden", cursor:"pointer",
+                            background:"var(--surface2)",
+                            marginBottom:".25rem",
+                          }}>
+                            <img src={doc.data} alt={doc.nombreDisplay||doc.nombre}
+                              style={{width:"100%",height:"100%",objectFit:"cover"}} />
+                          </div>
+                        )}
+
+                        <div style={{display:"flex",alignItems:"flex-start",gap:8,paddingTop:doc.tipo?.startsWith("image/")?"0":"4px"}}>
+                          {!doc.tipo?.startsWith("image/") && (
+                            <span style={{fontSize:"1.8rem",flexShrink:0}}>{getFileIcon(doc.tipo)}</span>
+                          )}
                           <div style={{flex:1,minWidth:0}}>
-                            <div className="doc-card-name">{doc.nombre}</div>
+                            <div className="doc-card-name">{doc.nombreDisplay || doc.nombre}</div>
+                            {doc.emisor && (
+                              <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+                                color:"var(--text-muted)",marginTop:".1rem"}}>
+                                🏢 {doc.emisor}
+                              </div>
+                            )}
                           </div>
                         </div>
 
                         {/* Estado + fecha vencimiento */}
                         <div style={{display:"flex",alignItems:"center",gap:".4rem",flexWrap:"wrap"}}>
-                          {/* Selector de estado inline */}
                           <select
                             className="doc-estado-sel"
                             value={doc.estado || "pendiente"}
@@ -811,7 +915,8 @@ export default function Documentos() {
                           <span className="doc-card-meta-item">{formatDate(doc.fechaSubida)}</span>
                           {doc.subcategoria && (
                             <span className="doc-badge" style={{
-                              background:`${catInfo.color}18`,color:catInfo.color,border:`1px solid ${catInfo.color}44`
+                              background:`${catInfo.color}18`,color:catInfo.color,
+                              border:`1px solid ${catInfo.color}44`
                             }}>{doc.subcategoria}</span>
                           )}
                         </div>
@@ -833,6 +938,102 @@ export default function Documentos() {
           </>
         )}
       </div>
+
+      {/* ── VISOR DE DOCUMENTOS — funciona en iOS/Android ── */}
+      {visorDoc && (
+        <div onClick={e => e.target===e.currentTarget && setVisorDoc(null)} style={{
+          position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",
+          backdropFilter:"blur(8px)",zIndex:9999,
+          display:"flex",flexDirection:"column",
+        }}>
+          {/* Header del visor */}
+          <div style={{
+            display:"flex",alignItems:"center",justifyContent:"space-between",
+            padding:".75rem 1rem",background:"rgba(0,0,0,0.6)",
+            borderBottom:"1px solid rgba(255,255,255,0.1)",flexShrink:0,
+          }}>
+            <div>
+              <div style={{fontFamily:"var(--font-display)",fontWeight:700,fontSize:".85rem",color:"#fff"}}>
+                {getFileIcon(visorDoc.tipo)} {visorDoc.nombreDisplay || visorDoc.nombre}
+              </div>
+              {visorDoc.emisor && (
+                <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"rgba(255,255,255,0.5)",marginTop:".15rem"}}>
+                  🏢 {visorDoc.emisor}
+                </div>
+              )}
+            </div>
+            <div style={{display:"flex",gap:".5rem",alignItems:"center"}}>
+              <button onClick={() => downloadDoc(visorDoc)} style={{
+                background:"rgba(52,211,153,0.15)",color:"#34d399",
+                border:"1px solid rgba(52,211,153,0.3)",borderRadius:8,
+                padding:".35rem .75rem",fontFamily:"var(--font-display)",
+                fontWeight:700,fontSize:".72rem",cursor:"pointer",
+              }}>⬇ Descargar</button>
+              <button onClick={() => setVisorDoc(null)} style={{
+                background:"rgba(255,255,255,0.1)",color:"#fff",
+                border:"1px solid rgba(255,255,255,0.2)",borderRadius:8,
+                padding:".35rem .75rem",fontFamily:"var(--font-display)",
+                fontWeight:700,fontSize:".72rem",cursor:"pointer",
+              }}>✕ Cerrar</button>
+            </div>
+          </div>
+
+          {/* Contenido del visor */}
+          <div style={{flex:1,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
+            {visorDoc.tipo?.startsWith("image/") ? (
+              <img
+                src={visorDoc.data}
+                alt={visorDoc.nombreDisplay || visorDoc.nombre}
+                style={{maxWidth:"100%",maxHeight:"100%",objectFit:"contain",borderRadius:8}}
+              />
+            ) : visorDoc.tipo === "application/pdf" ? (
+              <div style={{width:"100%",height:"100%",display:"flex",flexDirection:"column",gap:".75rem"}}>
+                {/* Embed funciona en desktop. En móvil mostramos botón de descarga */}
+                <object
+                  data={visorDoc.data}
+                  type="application/pdf"
+                  style={{width:"100%",flex:1,borderRadius:8,border:"none"}}
+                >
+                  {/* Fallback para móvil donde object no funciona */}
+                  <div style={{
+                    display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+                    height:"100%",gap:"1rem",color:"rgba(255,255,255,0.7)",textAlign:"center",
+                  }}>
+                    <span style={{fontSize:"4rem"}}>📄</span>
+                    <div style={{fontFamily:"var(--font-display)",fontWeight:700,fontSize:"1rem",color:"#fff"}}>
+                      {visorDoc.nombreDisplay || visorDoc.nombre}
+                    </div>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:".72rem",color:"rgba(255,255,255,0.5)"}}>
+                      {formatSize(visorDoc.size)} · PDF
+                    </div>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:".72rem",color:"rgba(255,255,255,0.5)",maxWidth:300}}>
+                      Tu navegador no puede mostrar PDFs en línea.
+                      Descarga el archivo para verlo.
+                    </div>
+                    <button onClick={() => downloadDoc(visorDoc)} style={{
+                      background:"#34d399",color:"#0f1629",border:"none",borderRadius:10,
+                      padding:".75rem 2rem",fontFamily:"var(--font-display)",
+                      fontWeight:800,fontSize:".9rem",cursor:"pointer",marginTop:".5rem",
+                    }}>⬇ Descargar PDF</button>
+                  </div>
+                </object>
+              </div>
+            ) : (
+              <div style={{textAlign:"center",color:"rgba(255,255,255,0.6)"}}>
+                <div style={{fontSize:"4rem",marginBottom:"1rem"}}>📎</div>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:".75rem"}}>
+                  Tipo de archivo no previsualizable
+                </div>
+                <button onClick={() => downloadDoc(visorDoc)} style={{
+                  marginTop:"1rem",background:"#34d399",color:"#0f1629",border:"none",
+                  borderRadius:10,padding:".65rem 1.75rem",fontFamily:"var(--font-display)",
+                  fontWeight:800,fontSize:".85rem",cursor:"pointer",
+                }}>⬇ Descargar</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       {/* ── Modal nueva gestión ── */}
       {gModal && (
         <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setGModal(false)}>
