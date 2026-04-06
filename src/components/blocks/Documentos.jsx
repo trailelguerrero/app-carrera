@@ -103,6 +103,7 @@ export default function Documentos() {
   const [gEditId, setGEditId] = useState(null);
   const fileRef = useRef(null);
   const [visorDoc, setVisorDoc] = useState(null); // doc a visualizar en modal
+  const [visorBlobUrl, setVisorBlobUrl] = useState(null);
 
   useEffect(() => {
     dataService.get(LS_KEY, []).then(setDocs);
@@ -172,7 +173,24 @@ export default function Documentos() {
 
   const deleteDoc   = (id) => { if (!confirm("¿Eliminar este documento?")) return; save(docs.filter(d => d.id !== id)); };
   const downloadDoc = (doc) => { const a = document.createElement("a"); a.href = doc.data; a.download = doc.nombre; a.click(); };
-  const viewDoc = (doc) => { setVisorDoc(doc); };
+  const viewDoc = (doc) => {
+    // Convertir base64 → Blob URL: funciona en iOS Safari y Android Chrome
+    // donde los base64 directos en <object>/<iframe> están bloqueados
+    if (doc.data && doc.tipo === "application/pdf") {
+      try {
+        const base64 = doc.data.split(",")[1];
+        const binary  = atob(base64);
+        const bytes   = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        const blob    = new Blob([bytes], { type: "application/pdf" });
+        const url     = URL.createObjectURL(blob);
+        setVisorBlobUrl(url);
+      } catch { setVisorBlobUrl(null); }
+    } else {
+      setVisorBlobUrl(null);
+    }
+    setVisorDoc(doc);
+  };
 
   const startEdit = (doc) => {
     const main = document.querySelector("main");
@@ -941,7 +959,7 @@ export default function Documentos() {
 
       {/* ── VISOR DE DOCUMENTOS — funciona en iOS/Android ── */}
       {visorDoc && (
-        <div onClick={e => e.target===e.currentTarget && setVisorDoc(null)} style={{
+        <div onClick={e => { if (e.target===e.currentTarget) { setVisorDoc(null); if(visorBlobUrl) URL.revokeObjectURL(visorBlobUrl); setVisorBlobUrl(null); } }} style={{
           position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",
           backdropFilter:"blur(8px)",zIndex:9999,
           display:"flex",flexDirection:"column",
@@ -969,7 +987,7 @@ export default function Documentos() {
                 padding:".35rem .75rem",fontFamily:"var(--font-display)",
                 fontWeight:700,fontSize:".72rem",cursor:"pointer",
               }}>⬇ Descargar</button>
-              <button onClick={() => setVisorDoc(null)} style={{
+              <button onClick={() => { setVisorDoc(null); if(visorBlobUrl) URL.revokeObjectURL(visorBlobUrl); setVisorBlobUrl(null); }} style={{
                 background:"rgba(255,255,255,0.1)",color:"#fff",
                 border:"1px solid rgba(255,255,255,0.2)",borderRadius:8,
                 padding:".35rem .75rem",fontFamily:"var(--font-display)",
@@ -987,36 +1005,26 @@ export default function Documentos() {
                 style={{maxWidth:"100%",maxHeight:"100%",objectFit:"contain",borderRadius:8}}
               />
             ) : visorDoc.tipo === "application/pdf" ? (
-              <div style={{width:"100%",height:"100%",display:"flex",flexDirection:"column",gap:".75rem"}}>
-                {/* Embed funciona en desktop. En móvil mostramos botón de descarga */}
-                <object
-                  data={visorDoc.data}
-                  type="application/pdf"
-                  style={{width:"100%",flex:1,borderRadius:8,border:"none"}}
-                >
-                  {/* Fallback para móvil donde object no funciona */}
+              <div style={{width:"100%",height:"100%",display:"flex",flexDirection:"column"}}>
+                {/* Blob URL funciona en iOS Safari y Android Chrome
+                    a diferencia de base64 directa que está bloqueada en móvil */}
+                {visorBlobUrl ? (
+                  <iframe
+                    src={visorBlobUrl}
+                    title={visorDoc.nombreDisplay || visorDoc.nombre}
+                    style={{width:"100%",flex:1,border:"none",borderRadius:8,background:"#fff"}}
+                  />
+                ) : (
                   <div style={{
-                    display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
-                    height:"100%",gap:"1rem",color:"rgba(255,255,255,0.7)",textAlign:"center",
+                    display:"flex",flexDirection:"column",alignItems:"center",
+                    justifyContent:"center",height:"100%",gap:"1rem",textAlign:"center",
                   }}>
-                    <span style={{fontSize:"4rem"}}>📄</span>
-                    <div style={{fontFamily:"var(--font-display)",fontWeight:700,fontSize:"1rem",color:"#fff"}}>
-                      {visorDoc.nombreDisplay || visorDoc.nombre}
+                    <span style={{fontSize:"3rem"}}>⏳</span>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:".75rem",color:"rgba(255,255,255,0.6)"}}>
+                      Cargando…
                     </div>
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:".72rem",color:"rgba(255,255,255,0.5)"}}>
-                      {formatSize(visorDoc.size)} · PDF
-                    </div>
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:".72rem",color:"rgba(255,255,255,0.5)",maxWidth:300}}>
-                      Tu navegador no puede mostrar PDFs en línea.
-                      Descarga el archivo para verlo.
-                    </div>
-                    <button onClick={() => downloadDoc(visorDoc)} style={{
-                      background:"#34d399",color:"#0f1629",border:"none",borderRadius:10,
-                      padding:".75rem 2rem",fontFamily:"var(--font-display)",
-                      fontWeight:800,fontSize:".9rem",cursor:"pointer",marginTop:".5rem",
-                    }}>⬇ Descargar PDF</button>
                   </div>
-                </object>
+                )}
               </div>
             ) : (
               <div style={{textAlign:"center",color:"rgba(255,255,255,0.6)"}}>
