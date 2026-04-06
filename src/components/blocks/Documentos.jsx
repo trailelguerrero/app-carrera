@@ -235,21 +235,39 @@ export default function Documentos() {
     return null;
   };
 
-  const viewDoc = async (doc) => {
-    setVisorDoc({ ...doc, _loading: true });
-    setVisorBlobUrl(null);
-    const data = await fetchDocData(doc);
-    if (!data) { setVisorDoc({ ...doc, _error: true }); return; }
+  const base64ToBlobUrl = (data, tipo) => {
+    try {
+      const b64 = data.includes(",") ? data.split(",")[1] : data;
+      const bin = atob(b64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return URL.createObjectURL(new Blob([bytes], { type: tipo }));
+    } catch { return null; }
+  };
 
+  const viewDoc = async (doc) => {
+    setVisorBlobUrl(null);
+
+    // Caso 1: el doc ya tiene data en memoria (localStorage o subida reciente)
+    if (doc.data) {
+      if (doc.tipo === "application/pdf") {
+        const url = base64ToBlobUrl(doc.data, "application/pdf");
+        setVisorBlobUrl(url);
+      }
+      setVisorDoc({ ...doc, _loading: false });
+      return;
+    }
+
+    // Caso 2: el data está en Neon — hay que pedirlo
+    setVisorDoc({ ...doc, _loading: true });
+    const data = await fetchDocData(doc);
+    if (!data) {
+      setVisorDoc({ ...doc, _loading: false, _error: true });
+      return;
+    }
     if (doc.tipo === "application/pdf") {
-      try {
-        const base64 = data.split(",")[1];
-        const binary = atob(base64);
-        const bytes  = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-        const blob = new Blob([bytes], { type: "application/pdf" });
-        setVisorBlobUrl(URL.createObjectURL(blob));
-      } catch { setVisorBlobUrl(null); }
+      const url = base64ToBlobUrl(data, "application/pdf");
+      setVisorBlobUrl(url);
     }
     setVisorDoc({ ...doc, data, _loading: false });
   };
@@ -1072,11 +1090,29 @@ export default function Documentos() {
           {/* Contenido del visor */}
           <div style={{flex:1,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
             {visorDoc.tipo?.startsWith("image/") ? (
-              <img
-                src={visorDoc.data}
-                alt={visorDoc.nombreDisplay || visorDoc.nombre}
-                style={{maxWidth:"100%",maxHeight:"100%",objectFit:"contain",borderRadius:8}}
-              />
+              visorDoc._loading ? (
+                <div style={{display:"flex",flexDirection:"column",alignItems:"center",
+                  justifyContent:"center",height:"100%",gap:"1rem"}}>
+                  <div style={{width:40,height:40,borderRadius:"50%",
+                    border:"3px solid rgba(255,255,255,0.15)",borderTopColor:"var(--cyan)",
+                    animation:"teg-spin 0.7s linear infinite"}} />
+                  <style>{`@keyframes teg-spin{to{transform:rotate(360deg)}}`}</style>
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:".72rem",color:"rgba(255,255,255,0.5)"}}>
+                    Cargando imagen…
+                  </div>
+                </div>
+              ) : visorDoc.data ? (
+                <img
+                  src={visorDoc.data}
+                  alt={visorDoc.nombreDisplay || visorDoc.nombre}
+                  style={{maxWidth:"100%",maxHeight:"100%",objectFit:"contain",borderRadius:8}}
+                />
+              ) : (
+                <div style={{textAlign:"center",color:"rgba(255,255,255,0.6)"}}>
+                  <div style={{fontSize:"3rem",marginBottom:".5rem"}}>⚠️</div>
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:".75rem"}}>No se pudo cargar la imagen</div>
+                </div>
+              )
             ) : visorDoc.tipo === "application/pdf" ? (
               <div style={{width:"100%",height:"100%",display:"flex",flexDirection:"column"}}>
                 {/* Blob URL funciona en iOS Safari y Android Chrome

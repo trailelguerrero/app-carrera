@@ -10,6 +10,17 @@ export default async function handler(req, res) {
 
   try {
     const sql = neon(process.env.DATABASE_URL);
+    // Crear tabla si no existe (primer acceso)
+    await sql`
+      CREATE TABLE IF NOT EXISTS documents (
+        id TEXT PRIMARY KEY, nombre TEXT NOT NULL,
+        nombre_display TEXT, emisor TEXT, categoria TEXT NOT NULL,
+        subcategoria TEXT, nota TEXT, estado TEXT DEFAULT 'pendiente',
+        fecha_vencimiento TEXT, size INTEGER, tipo TEXT, data TEXT NOT NULL,
+        fecha_subida TIMESTAMPTZ DEFAULT NOW(),
+        fecha_modificacion TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
     const { id } = req.query;
     const rows = await sql`SELECT data, tipo, nombre FROM documents WHERE id = ${id}`;
     if (!rows.length) return res.status(404).json({ error: 'Not found' });
