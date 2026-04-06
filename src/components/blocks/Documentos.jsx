@@ -105,19 +105,34 @@ export default function Documentos() {
   const [visorDoc, setVisorDoc] = useState(null); // doc a visualizar en modal
   const [visorBlobUrl, setVisorBlobUrl] = useState(null);
 
+  // ── Carga inicial desde API ───────────────────────────────────────────────
   useEffect(() => {
-    dataService.get(LS_KEY, []).then(setDocs);
-    dataService.get(LS_KEY + "_gestiones", GESTIONES_DEFAULT).then(setGestiones);
-    return dataService.onChange(() => {
-      dataService.get(LS_KEY, []).then(setDocs);
+    const load = async () => {
+      try {
+        // Documentos desde tabla dedicada (sin data base64 — solo metadatos)
+        const apiKey = import.meta.env.VITE_API_KEY;
+        const res = await fetch("/api/documents", {
+          headers: { "x-api-key": apiKey }
+        });
+        if (res.ok) {
+          const rows = await res.json();
+          // Los docs de la API no tienen .data — se carga solo al ver/descargar
+          setDocs(rows.map(r => ({ ...r, data: null })));
+        } else {
+          // Fallback a localStorage si la API no responde
+          dataService.get(LS_KEY, []).then(d => setDocs(Array.isArray(d) ? d : []));
+        }
+      } catch {
+        dataService.get(LS_KEY, []).then(d => setDocs(Array.isArray(d) ? d : []));
+      }
+      // Gestiones siguen en colección JSON normal
       dataService.get(LS_KEY + "_gestiones", GESTIONES_DEFAULT).then(setGestiones);
-    });
+    };
+    load();
   }, []);
 
-  const save = useCallback((next) => {
-    setDocs(next);
-    dataService.set(LS_KEY, next).then(() => dataService.notify());
-  }, []);
+  // save() solo actualiza el estado local — cada operación llama a la API directamente
+  const save = useCallback((next) => { setDocs(next); }, []);
   const saveGestiones = useCallback((next) => {
     setGestiones(next);
     dataService.set(LS_KEY + "_gestiones", next).then(() => dataService.notify());
@@ -155,7 +170,25 @@ export default function Documentos() {
         fechaModificacion: new Date().toISOString(),
       });
     }
-    save([...docs, ...newDocs]);
+    // Subir cada documento a la API
+    const apiKey = import.meta.env.VITE_API_KEY;
+    const subidos = [];
+    for (const doc of newDocs) {
+      try {
+        const res = await fetch("/api/documents", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-api-key": apiKey },
+          body: JSON.stringify(doc),
+        });
+        if (res.ok) {
+          // Guardar en estado local sin el data (ya está en la nube)
+          subidos.push({ ...doc, data: null });
+        }
+      } catch (e) {
+        console.error("Error subiendo documento:", e);
+      }
+    }
+    save([...docs, ...subidos]);
     setNota(""); setSubcat(""); setVencNuevo(""); setEstadoNuevo("pendiente"); setEmisorNuevo("");
     setUploading(false);
   }, [docs, tab, subcat, nota, estadoNuevo, vencNuevo, uploading, save]);
@@ -171,25 +204,54 @@ export default function Documentos() {
   const handleDragOver  = (e) => { e.preventDefault(); setDragOver(true); };
   const handleDragLeave = (e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(false); };
 
-  const deleteDoc   = (id) => { if (!confirm("¿Eliminar este documento?")) return; save(docs.filter(d => d.id !== id)); };
-  const downloadDoc = (doc) => { const a = document.createElement("a"); a.href = doc.data; a.download = doc.nombre; a.click(); };
-  const viewDoc = (doc) => {
-    // Convertir base64 → Blob URL: funciona en iOS Safari y Android Chrome
-    // donde los base64 directos en <object>/<iframe> están bloqueados
-    if (doc.data && doc.tipo === "application/pdf") {
+  const deleteDoc = async (id) => {
+    if (!confirm("¿Eliminar este documento?")) return;
+    try {
+      await fetch(`/api/documents?id=${id}`, {
+        method: "DELETE",
+        headers: { "x-api-key": import.meta.env.VITE_API_KEY }
+      });
+    } catch (e) { console.error("Error eliminando:", e); }
+    save(docs.filter(d => d.id !== id));
+  };
+  const downloadDoc = async (doc) => {
+    const data = await fetchDocData(doc);
+    if (!data) return;
+    const a = document.createElement("a");
+    a.href = data; a.download = doc.nombre; a.click();
+  };
+  // Obtener el data del documento desde la API (lazy — no se descarga al listar)
+  const fetchDocData = async (doc) => {
+    if (doc.data) return doc.data; // ya en memoria (localStorage fallback)
+    try {
+      const res = await fetch(`/api/documents/${doc.id}`, {
+        headers: { "x-api-key": import.meta.env.VITE_API_KEY }
+      });
+      if (res.ok) {
+        const { data } = await res.json();
+        return data;
+      }
+    } catch (e) { console.error("Error obteniendo datos:", e); }
+    return null;
+  };
+
+  const viewDoc = async (doc) => {
+    setVisorDoc({ ...doc, _loading: true });
+    setVisorBlobUrl(null);
+    const data = await fetchDocData(doc);
+    if (!data) { setVisorDoc({ ...doc, _error: true }); return; }
+
+    if (doc.tipo === "application/pdf") {
       try {
-        const base64 = doc.data.split(",")[1];
-        const binary  = atob(base64);
-        const bytes   = new Uint8Array(binary.length);
+        const base64 = data.split(",")[1];
+        const binary = atob(base64);
+        const bytes  = new Uint8Array(binary.length);
         for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-        const blob    = new Blob([bytes], { type: "application/pdf" });
-        const url     = URL.createObjectURL(blob);
-        setVisorBlobUrl(url);
+        const blob = new Blob([bytes], { type: "application/pdf" });
+        setVisorBlobUrl(URL.createObjectURL(blob));
       } catch { setVisorBlobUrl(null); }
-    } else {
-      setVisorBlobUrl(null);
     }
-    setVisorDoc(doc);
+    setVisorDoc({ ...doc, data, _loading: false });
   };
 
   const startEdit = (doc) => {
@@ -206,20 +268,31 @@ export default function Documentos() {
     });
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
+    try {
+      await fetch(`/api/documents?id=${editId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "x-api-key": import.meta.env.VITE_API_KEY },
+        body: JSON.stringify(editForm),
+      });
+    } catch (e) { console.error("Error actualizando:", e); }
     save(docs.map(d => d.id === editId
       ? { ...d, ...editForm, fechaModificacion: new Date().toISOString() }
       : d
     ));
-    // Si cambió de categoría, navegar a la nueva
     const doc = docs.find(d => d.id === editId);
-    if (doc && editForm.categoria && editForm.categoria !== doc.categoria) {
-      setTab(editForm.categoria);
-    }
+    if (doc && editForm.categoria && editForm.categoria !== doc.categoria) setTab(editForm.categoria);
     setEditId(null);
   };
 
-  const updateEstado = (id, estado) => {
+  const updateEstado = async (id, estado) => {
+    try {
+      await fetch(`/api/documents?id=${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "x-api-key": import.meta.env.VITE_API_KEY },
+        body: JSON.stringify({ estado }),
+      });
+    } catch (e) { console.error("Error actualizando estado:", e); }
     save(docs.map(d => d.id === id ? { ...d, estado, fechaModificacion: new Date().toISOString() } : d));
   };
 
@@ -1008,20 +1081,37 @@ export default function Documentos() {
               <div style={{width:"100%",height:"100%",display:"flex",flexDirection:"column"}}>
                 {/* Blob URL funciona en iOS Safari y Android Chrome
                     a diferencia de base64 directa que está bloqueada en móvil */}
-                {visorBlobUrl ? (
+                {visorDoc._loading ? (
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"center",
+                    justifyContent:"center",height:"100%",gap:"1rem",textAlign:"center"}}>
+                    <div style={{width:40,height:40,borderRadius:"50%",
+                      border:"3px solid rgba(255,255,255,0.15)",borderTopColor:"var(--cyan)",
+                      animation:"teg-spin 0.7s linear infinite"}} />
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:".72rem",color:"rgba(255,255,255,0.5)"}}>
+                      Cargando desde la nube…
+                    </div>
+                    <style>{`@keyframes teg-spin{to{transform:rotate(360deg)}}`}</style>
+                  </div>
+                ) : visorDoc._error ? (
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"center",
+                    justifyContent:"center",height:"100%",gap:"1rem",textAlign:"center"}}>
+                    <span style={{fontSize:"3rem"}}>⚠️</span>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:".75rem",color:"rgba(255,255,255,0.6)"}}>
+                      Error al cargar el documento
+                    </div>
+                  </div>
+                ) : visorBlobUrl ? (
                   <iframe
                     src={visorBlobUrl}
                     title={visorDoc.nombreDisplay || visorDoc.nombre}
                     style={{width:"100%",flex:1,border:"none",borderRadius:8,background:"#fff"}}
                   />
                 ) : (
-                  <div style={{
-                    display:"flex",flexDirection:"column",alignItems:"center",
-                    justifyContent:"center",height:"100%",gap:"1rem",textAlign:"center",
-                  }}>
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"center",
+                    justifyContent:"center",height:"100%",gap:"1rem",textAlign:"center"}}>
                     <span style={{fontSize:"3rem"}}>⏳</span>
                     <div style={{fontFamily:"var(--font-mono)",fontSize:".75rem",color:"rgba(255,255,255,0.6)"}}>
-                      Cargando…
+                      Preparando visualizador…
                     </div>
                   </div>
                 )}
