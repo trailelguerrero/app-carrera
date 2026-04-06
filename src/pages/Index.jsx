@@ -159,7 +159,7 @@ function PinScreen({ onUnlock }) {
 
   const tryPin = useCallback((pin) => {
     if (hashPin(pin) === storedHash) {
-      sessionStorage.setItem(AUTH_KEY, String(Date.now() + 8 * 3600 * 1000));
+      localStorage.setItem(AUTH_KEY, String(Date.now() + 8 * 3600 * 1000));
       onUnlock();
     } else {
       setShake(true);
@@ -323,7 +323,7 @@ function ChangePinModal({ onClose }) {
 // ── MAIN EXPORT ────────────────────────────────────────────────────────────────
 export default function Index() {
   const [authed, setAuthed] = useState(() => {
-    const exp = Number(sessionStorage.getItem(AUTH_KEY) || 0);
+    const exp = Number(localStorage.getItem(AUTH_KEY) || 0);
     return exp > Date.now();
   });
   const [showChangePin, setShowChangePin] = useState(false);
