@@ -104,7 +104,6 @@ export default function Documentos() {
   const [gEditId, setGEditId] = useState(null);
   const fileRef = useRef(null);
   const [visorDoc, setVisorDoc] = useState(null); // doc a visualizar en modal
-  const [visorBlobUrl, setVisorBlobUrl] = useState(null);
 
   // ── Carga inicial desde API ───────────────────────────────────────────────
   useEffect(() => {
@@ -237,48 +236,53 @@ export default function Documentos() {
   };
 
   const viewDoc = async (doc) => {
-    // Primero: abrir modal inmediatamente con spinner
-    setVisorBlobUrl(null);
-    setVisorDoc({ ...doc, _loading: true, _error: false });
-
     // Obtener data — de memoria o de la API
     let data = doc.data || null;
     if (!data) {
+      // Mostrar modal con spinner mientras carga
+      setVisorDoc({ ...doc, _loading: true });
       data = await fetchDocData(doc);
     }
 
     if (!data) {
-      setVisorDoc(prev => prev ? { ...prev, _loading: false, _error: true } : null);
+      setVisorDoc({ ...doc, _loading: false, _error: true });
       return;
     }
 
-    // Preparar Blob URL para PDFs (único método que funciona en móvil)
-    let blobUrl = null;
     const esPdf = doc.tipo === "application/pdf"
       || doc.nombre?.toLowerCase().endsWith(".pdf")
       || data.startsWith("data:application/pdf");
 
+    const esImg = doc.tipo?.startsWith("image/")
+      || !!doc.nombre?.match(/\.(png|jpe?g|webp)$/i);
+
     if (esPdf) {
+      // PDFs: Blob URL + window.open — único método fiable en Android Chrome e iOS Safari
+      // Los iframes con blob:// no renderizan PDFs en navegadores móviles
       try {
-        const b64 = data.includes(",") ? data.split(",")[1] : data;
-        const bin = atob(b64);
-        const bytes = new Uint8Array(bin.length);
-        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-        blobUrl = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+        const b64  = data.includes(",") ? data.split(",")[1] : data;
+        const bin  = atob(b64);
+        const buf  = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+        const url  = URL.createObjectURL(new Blob([buf], { type: "application/pdf" }));
+        window.open(url, "_blank");
+        // Liberar memoria tras un momento
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
       } catch (e) {
-        console.error("Error creando BlobURL:", e);
+        // Fallback: abrir base64 directamente
+        window.open(data, "_blank");
       }
+      return; // No abrir modal para PDFs — el sistema los maneja
     }
 
-    // Actualizar estado de una vez (sin race condition)
-    setVisorBlobUrl(blobUrl);
-    setVisorDoc(prev => prev ? {
-      ...prev,
-      data,
-      tipo: esPdf ? "application/pdf" : (doc.tipo || (data.match(/^data:([^;]+)/)?.[1])),
-      _loading: false,
-      _error: false,
-    } : null);
+    if (esImg) {
+      // Imágenes: mostrar en modal interno
+      setVisorDoc({ ...doc, data, _loading: false });
+      return;
+    }
+
+    // Tipo desconocido: intentar abrir igual
+    window.open(data, "_blank");
   };
 
   const startEdit = (doc) => {
@@ -1059,7 +1063,7 @@ export default function Documentos() {
 
       {/* ── VISOR DE DOCUMENTOS — portal a document.body para evitar overflow:auto del main ── */}
       {visorDoc && createPortal(
-        <div onClick={e => { if (e.target===e.currentTarget) { setVisorDoc(null); if(visorBlobUrl) URL.revokeObjectURL(visorBlobUrl); setVisorBlobUrl(null); } }} style={{
+        <div onClick={e => { if (e.target===e.currentTarget) { setVisorDoc(null); } }} style={{
           position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",
           backdropFilter:"blur(8px)",zIndex:9999,
           display:"flex",flexDirection:"column",
@@ -1087,7 +1091,7 @@ export default function Documentos() {
                 padding:".35rem .75rem",fontFamily:"var(--font-display)",
                 fontWeight:700,fontSize:".72rem",cursor:"pointer",
               }}>⬇ Descargar</button>
-              <button onClick={() => { setVisorDoc(null); if(visorBlobUrl) URL.revokeObjectURL(visorBlobUrl); setVisorBlobUrl(null); }} style={{
+              <button onClick={() => { setVisorDoc(null); }} style={{
                 background:"rgba(255,255,255,0.1)",color:"#fff",
                 border:"1px solid rgba(255,255,255,0.2)",borderRadius:8,
                 padding:".35rem .75rem",fontFamily:"var(--font-display)",
@@ -1096,80 +1100,35 @@ export default function Documentos() {
             </div>
           </div>
 
-          {/* Contenido del visor */}
+          {/* Contenido del visor — solo imágenes y spinner de carga */}
           <div style={{flex:1,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
-            {(() => {
-              const spin = (msg) => (
-                <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"1rem",textAlign:"center"}}>
-                  <div style={{width:40,height:40,borderRadius:"50%",
-                    border:"3px solid rgba(255,255,255,0.15)",borderTopColor:"#22d3ee",
-                    animation:"teg-spin 0.7s linear infinite"}} />
-                  <style>{`@keyframes teg-spin{to{transform:rotate(360deg)}}`}</style>
-                  <div style={{fontFamily:"monospace",fontSize:".72rem",color:"rgba(255,255,255,0.5)"}}>{msg}</div>
+            {visorDoc._loading ? (
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"1rem",textAlign:"center"}}>
+                <div style={{width:40,height:40,borderRadius:"50%",
+                  border:"3px solid rgba(255,255,255,0.15)",borderTopColor:"#22d3ee",
+                  animation:"teg-spin 0.7s linear infinite"}} />
+                <style>{`@keyframes teg-spin{to{transform:rotate(360deg)}}`}</style>
+                <div style={{fontFamily:"monospace",fontSize:".72rem",color:"rgba(255,255,255,0.5)"}}>
+                  Cargando documento…
                 </div>
-              );
-
-              // Cargando
-              if (visorDoc._loading) return spin("Cargando documento…");
-
-              // Error
-              if (visorDoc._error) return (
-                <div style={{textAlign:"center",color:"rgba(255,255,255,0.7)"}}>
-                  <div style={{fontSize:"3rem",marginBottom:".75rem"}}>⚠️</div>
-                  <div style={{fontFamily:"monospace",fontSize:".78rem",marginBottom:"1rem"}}>
-                    No se pudo cargar el documento
-                  </div>
-                  <button onClick={() => downloadDoc(visorDoc)} style={{
-                    background:"#34d399",color:"#0f1629",border:"none",borderRadius:10,
-                    padding:".6rem 1.5rem",fontWeight:800,fontSize:".85rem",cursor:"pointer",
-                  }}>⬇ Descargar en su lugar</button>
+              </div>
+            ) : visorDoc._error ? (
+              <div style={{textAlign:"center",color:"rgba(255,255,255,0.7)"}}>
+                <div style={{fontSize:"3rem",marginBottom:".75rem"}}>⚠️</div>
+                <div style={{fontFamily:"monospace",fontSize:".78rem",marginBottom:"1rem"}}>
+                  No se pudo cargar el documento
                 </div>
-              );
-
-              // PDF con Blob URL
-              if (visorBlobUrl) return (
-                <iframe src={visorBlobUrl}
-                  title={visorDoc.nombreDisplay || visorDoc.nombre}
-                  style={{width:"100%",height:"100%",border:"none",borderRadius:8,background:"#fff"}}
-                />
-              );
-
-              // Imagen
-              if (visorDoc.data && (visorDoc.tipo?.startsWith("image/") || visorDoc.nombre?.match(/\.(png|jpe?g|webp)$/i))) return (
-                <img src={visorDoc.data}
-                  alt={visorDoc.nombreDisplay || visorDoc.nombre}
-                  style={{maxWidth:"100%",maxHeight:"100%",objectFit:"contain",borderRadius:8}}
-                />
-              );
-
-              // PDF sin Blob URL (falló la conversión) — ofrecer descarga
-              if (visorDoc.tipo === "application/pdf" || visorDoc.nombre?.toLowerCase().endsWith(".pdf")) return (
-                <div style={{textAlign:"center",color:"rgba(255,255,255,0.7)"}}>
-                  <div style={{fontSize:"3rem",marginBottom:".75rem"}}>📄</div>
-                  <div style={{fontFamily:"monospace",fontSize:".78rem",marginBottom:"1rem"}}>
-                    No se pudo renderizar el PDF en este navegador
-                  </div>
-                  <button onClick={() => downloadDoc(visorDoc)} style={{
-                    background:"#34d399",color:"#0f1629",border:"none",borderRadius:10,
-                    padding:".6rem 1.5rem",fontWeight:800,fontSize:".85rem",cursor:"pointer",
-                  }}>⬇ Descargar PDF</button>
-                </div>
-              );
-
-              // Tipo no soportado
-              return (
-                <div style={{textAlign:"center",color:"rgba(255,255,255,0.6)"}}>
-                  <div style={{fontSize:"4rem",marginBottom:"1rem"}}>📎</div>
-                  <div style={{fontFamily:"monospace",fontSize:".75rem",marginBottom:"1rem"}}>
-                    Tipo de archivo no previsualizable
-                  </div>
-                  <button onClick={() => downloadDoc(visorDoc)} style={{
-                    background:"#34d399",color:"#0f1629",border:"none",borderRadius:10,
-                    padding:".6rem 1.5rem",fontWeight:800,fontSize:".85rem",cursor:"pointer",
-                  }}>⬇ Descargar</button>
-                </div>
-              );
-            })()}
+                <button onClick={() => downloadDoc(visorDoc)} style={{
+                  background:"#34d399",color:"#0f1629",border:"none",borderRadius:10,
+                  padding:".6rem 1.5rem",fontWeight:800,fontSize:".85rem",cursor:"pointer",
+                }}>⬇ Descargar</button>
+              </div>
+            ) : visorDoc.data ? (
+              <img src={visorDoc.data}
+                alt={visorDoc.nombreDisplay || visorDoc.nombre}
+                style={{maxWidth:"100%",maxHeight:"100%",objectFit:"contain",borderRadius:8}}
+              />
+            ) : null}
           </div>
         </div>
       , document.body)}
