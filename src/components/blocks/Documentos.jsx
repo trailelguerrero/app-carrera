@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import dataService, { useData } from "@/lib/dataService";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
@@ -1056,8 +1057,8 @@ export default function Documentos() {
         )}
       </div>
 
-      {/* ── VISOR DE DOCUMENTOS — funciona en iOS/Android ── */}
-      {visorDoc && (
+      {/* ── VISOR DE DOCUMENTOS — portal a document.body para evitar overflow:auto del main ── */}
+      {visorDoc && createPortal(
         <div onClick={e => { if (e.target===e.currentTarget) { setVisorDoc(null); if(visorBlobUrl) URL.revokeObjectURL(visorBlobUrl); setVisorBlobUrl(null); } }} style={{
           position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",
           backdropFilter:"blur(8px)",zIndex:9999,
@@ -1171,9 +1172,9 @@ export default function Documentos() {
             })()}
           </div>
         </div>
-      )}
+      , document.body)}
       {/* ── Modal nueva gestión ── */}
-      {gModal && (
+      {gModal && createPortal(
         <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setGModal(false)}>
           <div className="modal" style={{maxWidth:480}}>
             <div className="modal-header">
@@ -1227,7 +1228,7 @@ export default function Documentos() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </>
   );
 }
