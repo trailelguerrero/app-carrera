@@ -235,41 +235,49 @@ export default function Documentos() {
     return null;
   };
 
-  const base64ToBlobUrl = (data, tipo) => {
-    try {
-      const b64 = data.includes(",") ? data.split(",")[1] : data;
-      const bin = atob(b64);
-      const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      return URL.createObjectURL(new Blob([bytes], { type: tipo }));
-    } catch { return null; }
-  };
-
   const viewDoc = async (doc) => {
+    // Primero: abrir modal inmediatamente con spinner
     setVisorBlobUrl(null);
+    setVisorDoc({ ...doc, _loading: true, _error: false });
 
-    // Caso 1: el doc ya tiene data en memoria (localStorage o subida reciente)
-    if (doc.data) {
-      if (doc.tipo === "application/pdf") {
-        const url = base64ToBlobUrl(doc.data, "application/pdf");
-        setVisorBlobUrl(url);
-      }
-      setVisorDoc({ ...doc, _loading: false });
-      return;
-    }
-
-    // Caso 2: el data está en Neon — hay que pedirlo
-    setVisorDoc({ ...doc, _loading: true });
-    const data = await fetchDocData(doc);
+    // Obtener data — de memoria o de la API
+    let data = doc.data || null;
     if (!data) {
-      setVisorDoc({ ...doc, _loading: false, _error: true });
+      data = await fetchDocData(doc);
+    }
+
+    if (!data) {
+      setVisorDoc(prev => prev ? { ...prev, _loading: false, _error: true } : null);
       return;
     }
-    if (doc.tipo === "application/pdf") {
-      const url = base64ToBlobUrl(data, "application/pdf");
-      setVisorBlobUrl(url);
+
+    // Preparar Blob URL para PDFs (único método que funciona en móvil)
+    let blobUrl = null;
+    const esPdf = doc.tipo === "application/pdf"
+      || doc.nombre?.toLowerCase().endsWith(".pdf")
+      || data.startsWith("data:application/pdf");
+
+    if (esPdf) {
+      try {
+        const b64 = data.includes(",") ? data.split(",")[1] : data;
+        const bin = atob(b64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        blobUrl = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+      } catch (e) {
+        console.error("Error creando BlobURL:", e);
+      }
     }
-    setVisorDoc({ ...doc, data, _loading: false });
+
+    // Actualizar estado de una vez (sin race condition)
+    setVisorBlobUrl(blobUrl);
+    setVisorDoc(prev => prev ? {
+      ...prev,
+      data,
+      tipo: esPdf ? "application/pdf" : (doc.tipo || (data.match(/^data:([^;]+)/)?.[1])),
+      _loading: false,
+      _error: false,
+    } : null);
   };
 
   const startEdit = (doc) => {
@@ -1089,82 +1097,78 @@ export default function Documentos() {
 
           {/* Contenido del visor */}
           <div style={{flex:1,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
-            {visorDoc.tipo?.startsWith("image/") ? (
-              visorDoc._loading ? (
-                <div style={{display:"flex",flexDirection:"column",alignItems:"center",
-                  justifyContent:"center",height:"100%",gap:"1rem"}}>
+            {(() => {
+              const spin = (msg) => (
+                <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"1rem",textAlign:"center"}}>
                   <div style={{width:40,height:40,borderRadius:"50%",
-                    border:"3px solid rgba(255,255,255,0.15)",borderTopColor:"var(--cyan)",
+                    border:"3px solid rgba(255,255,255,0.15)",borderTopColor:"#22d3ee",
                     animation:"teg-spin 0.7s linear infinite"}} />
                   <style>{`@keyframes teg-spin{to{transform:rotate(360deg)}}`}</style>
-                  <div style={{fontFamily:"var(--font-mono)",fontSize:".72rem",color:"rgba(255,255,255,0.5)"}}>
-                    Cargando imagen…
-                  </div>
+                  <div style={{fontFamily:"monospace",fontSize:".72rem",color:"rgba(255,255,255,0.5)"}}>{msg}</div>
                 </div>
-              ) : visorDoc.data ? (
-                <img
-                  src={visorDoc.data}
+              );
+
+              // Cargando
+              if (visorDoc._loading) return spin("Cargando documento…");
+
+              // Error
+              if (visorDoc._error) return (
+                <div style={{textAlign:"center",color:"rgba(255,255,255,0.7)"}}>
+                  <div style={{fontSize:"3rem",marginBottom:".75rem"}}>⚠️</div>
+                  <div style={{fontFamily:"monospace",fontSize:".78rem",marginBottom:"1rem"}}>
+                    No se pudo cargar el documento
+                  </div>
+                  <button onClick={() => downloadDoc(visorDoc)} style={{
+                    background:"#34d399",color:"#0f1629",border:"none",borderRadius:10,
+                    padding:".6rem 1.5rem",fontWeight:800,fontSize:".85rem",cursor:"pointer",
+                  }}>⬇ Descargar en su lugar</button>
+                </div>
+              );
+
+              // PDF con Blob URL
+              if (visorBlobUrl) return (
+                <iframe src={visorBlobUrl}
+                  title={visorDoc.nombreDisplay || visorDoc.nombre}
+                  style={{width:"100%",height:"100%",border:"none",borderRadius:8,background:"#fff"}}
+                />
+              );
+
+              // Imagen
+              if (visorDoc.data && (visorDoc.tipo?.startsWith("image/") || visorDoc.nombre?.match(/\.(png|jpe?g|webp)$/i))) return (
+                <img src={visorDoc.data}
                   alt={visorDoc.nombreDisplay || visorDoc.nombre}
                   style={{maxWidth:"100%",maxHeight:"100%",objectFit:"contain",borderRadius:8}}
                 />
-              ) : (
+              );
+
+              // PDF sin Blob URL (falló la conversión) — ofrecer descarga
+              if (visorDoc.tipo === "application/pdf" || visorDoc.nombre?.toLowerCase().endsWith(".pdf")) return (
+                <div style={{textAlign:"center",color:"rgba(255,255,255,0.7)"}}>
+                  <div style={{fontSize:"3rem",marginBottom:".75rem"}}>📄</div>
+                  <div style={{fontFamily:"monospace",fontSize:".78rem",marginBottom:"1rem"}}>
+                    No se pudo renderizar el PDF en este navegador
+                  </div>
+                  <button onClick={() => downloadDoc(visorDoc)} style={{
+                    background:"#34d399",color:"#0f1629",border:"none",borderRadius:10,
+                    padding:".6rem 1.5rem",fontWeight:800,fontSize:".85rem",cursor:"pointer",
+                  }}>⬇ Descargar PDF</button>
+                </div>
+              );
+
+              // Tipo no soportado
+              return (
                 <div style={{textAlign:"center",color:"rgba(255,255,255,0.6)"}}>
-                  <div style={{fontSize:"3rem",marginBottom:".5rem"}}>⚠️</div>
-                  <div style={{fontFamily:"var(--font-mono)",fontSize:".75rem"}}>No se pudo cargar la imagen</div>
+                  <div style={{fontSize:"4rem",marginBottom:"1rem"}}>📎</div>
+                  <div style={{fontFamily:"monospace",fontSize:".75rem",marginBottom:"1rem"}}>
+                    Tipo de archivo no previsualizable
+                  </div>
+                  <button onClick={() => downloadDoc(visorDoc)} style={{
+                    background:"#34d399",color:"#0f1629",border:"none",borderRadius:10,
+                    padding:".6rem 1.5rem",fontWeight:800,fontSize:".85rem",cursor:"pointer",
+                  }}>⬇ Descargar</button>
                 </div>
-              )
-            ) : visorDoc.tipo === "application/pdf" ? (
-              <div style={{width:"100%",height:"100%",display:"flex",flexDirection:"column"}}>
-                {/* Blob URL funciona en iOS Safari y Android Chrome
-                    a diferencia de base64 directa que está bloqueada en móvil */}
-                {visorDoc._loading ? (
-                  <div style={{display:"flex",flexDirection:"column",alignItems:"center",
-                    justifyContent:"center",height:"100%",gap:"1rem",textAlign:"center"}}>
-                    <div style={{width:40,height:40,borderRadius:"50%",
-                      border:"3px solid rgba(255,255,255,0.15)",borderTopColor:"var(--cyan)",
-                      animation:"teg-spin 0.7s linear infinite"}} />
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:".72rem",color:"rgba(255,255,255,0.5)"}}>
-                      Cargando desde la nube…
-                    </div>
-                    <style>{`@keyframes teg-spin{to{transform:rotate(360deg)}}`}</style>
-                  </div>
-                ) : visorDoc._error ? (
-                  <div style={{display:"flex",flexDirection:"column",alignItems:"center",
-                    justifyContent:"center",height:"100%",gap:"1rem",textAlign:"center"}}>
-                    <span style={{fontSize:"3rem"}}>⚠️</span>
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:".75rem",color:"rgba(255,255,255,0.6)"}}>
-                      Error al cargar el documento
-                    </div>
-                  </div>
-                ) : visorBlobUrl ? (
-                  <iframe
-                    src={visorBlobUrl}
-                    title={visorDoc.nombreDisplay || visorDoc.nombre}
-                    style={{width:"100%",flex:1,border:"none",borderRadius:8,background:"#fff"}}
-                  />
-                ) : (
-                  <div style={{display:"flex",flexDirection:"column",alignItems:"center",
-                    justifyContent:"center",height:"100%",gap:"1rem",textAlign:"center"}}>
-                    <span style={{fontSize:"3rem"}}>⏳</span>
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:".75rem",color:"rgba(255,255,255,0.6)"}}>
-                      Preparando visualizador…
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div style={{textAlign:"center",color:"rgba(255,255,255,0.6)"}}>
-                <div style={{fontSize:"4rem",marginBottom:"1rem"}}>📎</div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:".75rem"}}>
-                  Tipo de archivo no previsualizable
-                </div>
-                <button onClick={() => downloadDoc(visorDoc)} style={{
-                  marginTop:"1rem",background:"#34d399",color:"#0f1629",border:"none",
-                  borderRadius:10,padding:".65rem 1.75rem",fontFamily:"var(--font-display)",
-                  fontWeight:800,fontSize:".85rem",cursor:"pointer",
-                }}>⬇ Descargar</button>
-              </div>
-            )}
+              );
+            })()}
           </div>
         </div>
       )}
