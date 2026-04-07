@@ -63,35 +63,40 @@ const savePromises = new Map();
 // ─── API ADAPTER (para Vercel + Neon) ───────────────────────────────────────
 const apiAdapter = {
   async get(collection, defaultValue = null) {
-    // Si hay una actualización pendiente de enviarse, o se ha guardado algo recientemente, 
-    // no sobreescribir con datos (posiblemente viejos) de la API
-    const lastSave = parseInt(localStorage.getItem(`__last_save_${collection}`) || '0');
-    if (saveTimeouts.has(collection) || (Date.now() - lastSave < 2000)) {
+    // Si hay escritura pendiente, usar local
+    if (saveTimeouts.has(collection)) {
       return localAdapter.get(collection, defaultValue);
     }
 
+    const lastSave  = parseInt(localStorage.getItem(`__last_save_${collection}`) || '0');
+    const lastFetch = parseInt(localStorage.getItem(`__last_fetch_${collection}`) || '0');
+    const localData = await localAdapter.get(collection, null);
+    const CACHE_TTL = 5 * 60 * 1000; // 5 minutos — no ir a Neon si los datos son recientes
+
+    // Usar caché local si:
+    // 1. Se guardó hace menos de 5 min (datos propios, frescos)
+    // 2. Se fetcheó hace menos de 5 min (datos de Neon, frescos)
+    // 3. Hay escritura reciente (< 2s)
+    const cacheValida = localData !== null && (
+      (Date.now() - lastSave  < CACHE_TTL) ||
+      (Date.now() - lastFetch < CACHE_TTL) ||
+      (Date.now() - lastSave  < 2000)
+    );
+
+    if (cacheValida) return localData;
+
     try {
       const res = await fetch(`${API_BASE_URL}/data/${collection}`, {
-        headers: {
-          'x-api-key': import.meta.env.VITE_API_KEY
-        }
+        headers: { 'x-api-key': import.meta.env.VITE_API_KEY }
       });
-      if (!res.ok) {
-        // Si la API da error (ej 404), tiramos de lo que haya en local
-        return localAdapter.get(collection, defaultValue);
-      }
+      if (!res.ok) return localData ?? defaultValue;
       const data = await res.json();
-      
-      // Doble check post-fetch: ¿se ha iniciado una grabación mientras esperábamos?
-      if (saveTimeouts.has(collection)) {
-        return localAdapter.get(collection, defaultValue);
-      }
-
-      await localAdapter.set(collection, data); // Guardar cache
+      if (saveTimeouts.has(collection)) return localAdapter.get(collection, defaultValue);
+      await localAdapter.set(collection, data);
+      localStorage.setItem(`__last_fetch_${collection}`, Date.now().toString());
       return data;
     } catch {
-      // Fallback a localStorage si la API no responde
-      return localAdapter.get(collection, defaultValue);
+      return localData ?? defaultValue;
     }
   },
 
@@ -158,21 +163,40 @@ const apiAdapter = {
   },
 
   async getMultiple(keys) {
+    const CACHE_TTL = 5 * 60 * 1000;
+
+    // Comprobar si todos los keys tienen caché válida
+    const allCached = await Promise.all(
+      Object.keys(keys).map(async k => {
+        const lastFetch = parseInt(localStorage.getItem(`__last_fetch_${k}`) || '0');
+        const lastSave  = parseInt(localStorage.getItem(`__last_save_${k}`)  || '0');
+        const local     = await localAdapter.get(k, null);
+        return local !== null && (
+          Date.now() - lastFetch < CACHE_TTL ||
+          Date.now() - lastSave  < CACHE_TTL
+        );
+      })
+    );
+
+    // Si todos en caché, no ir a Neon
+    if (allCached.every(Boolean)) {
+      return localAdapter.getMultiple(keys);
+    }
+
     try {
       const params = new URLSearchParams({ keys: Object.keys(keys).join(',') });
       const res = await fetch(`${API_BASE_URL}/data/batch?${params}`, {
-        headers: {
-          'x-api-key': import.meta.env.VITE_API_KEY
-        }
+        headers: { 'x-api-key': import.meta.env.VITE_API_KEY }
       });
       if (!res.ok) throw new Error();
       const data = await res.json();
-      
+      const now = Date.now().toString();
       const result = {};
       for (const [key, defaultValue] of Object.entries(keys)) {
         result[key] = data[key] !== undefined ? data[key] : defaultValue;
         if (data[key] !== undefined) {
-          await localAdapter.set(key, data[key]); // Cache
+          await localAdapter.set(key, data[key]);
+          localStorage.setItem(`__last_fetch_${key}`, now);
         }
       }
       return result;

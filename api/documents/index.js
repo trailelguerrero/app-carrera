@@ -30,12 +30,18 @@ const ensureTable = async (sql) => {
   `;
 };
 
+// Tabla creada una vez por cold start
+let tableReady = false;
+
 export default async function handler(req, res) {
   if (!auth(req, res)) return;
 
   try {
     const sql = neon(process.env.DATABASE_URL);
-    await ensureTable(sql);
+    if (!tableReady) {
+      await ensureTable(sql);
+      tableReady = true;
+    }
 
     // GET — listar metadatos (sin data — no descargamos los archivos)
     if (req.method === 'GET') {
