@@ -1454,12 +1454,12 @@ function DocManager({ pat, addDoc, deleteDoc, cfg }) {
               <div className="mono xs muted">{d.tipo} · {d.fecha} · {((d.size||0)/1024).toFixed(0)} KB</div>
             </div>
             <div style={{ display:"flex", gap:".3rem", flexShrink:0 }}>
-              {d.data && (d.mime==="application/pdf" || d.mime?.startsWith("image/")) && (
+              {(d.blob_url || d.data) && (d.mime==="application/pdf" || d.mime?.startsWith("image/")) && (
                 <button className="btn btn-sm" style={{ background:cfg.dim, color:cfg.color, border:`1px solid ${cfg.border}` }}
                   onClick={() => setPreview(d)}>👁 Ver</button>
               )}
-              {d.data && (
-                <a href={d.data} download={d.nombre} className="btn btn-sm btn-ghost" style={{ textDecoration:"none" }}>⬇</a>
+              {(d.blob_url || d.data) && (
+                <a href={d.blob_url || d.data} download={d.nombre} target="_blank" rel="noreferrer" className="btn btn-sm btn-ghost" style={{ textDecoration:"none" }}>⬇</a>
               )}
               <button className="btn btn-sm btn-red" onClick={() => handleDelete(d.id)}>✕</button>
             </div>
@@ -1479,15 +1479,24 @@ function DocManager({ pat, addDoc, deleteDoc, cfg }) {
             <div style={{ padding:".75rem 1rem", display:"flex", justifyContent:"space-between", alignItems:"center", borderBottom:"1px solid var(--border)" }}>
               <div><div style={{ fontWeight:700, fontSize:".85rem" }}>{preview.nombre}</div><div className="mono xs muted">{preview.tipo}</div></div>
               <div style={{ display:"flex", gap:".4rem" }}>
-                {preview.data && <a href={preview.data} download={preview.nombre} className="btn btn-sm btn-ghost" style={{ textDecoration:"none" }}>⬇ Descargar</a>}
+                {(preview.blob_url || preview.data) && <a href={preview.blob_url || preview.data} download={preview.nombre} target="_blank" rel="noreferrer" className="btn btn-sm btn-ghost" style={{ textDecoration:"none" }}>⬇ Descargar</a>}
                 <button className="btn btn-sm btn-ghost" onClick={() => setPreview(null)}>✕</button>
               </div>
             </div>
             <div style={{ flex:1, overflow:"auto", minHeight:0 }}>
               {preview.mime==="application/pdf" ? (
-                <iframe src={preview.data} style={{ width:"100%", height:"70vh", border:"none" }} title={preview.nombre} />
+                <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+                  height:"60vh", gap:"1rem", color:"var(--text-muted)" }}>
+                  <span style={{ fontSize:"3rem" }}>📄</span>
+                  <div style={{ fontFamily:"var(--font-mono)", fontSize:".78rem" }}>{preview.nombre}</div>
+                  <button onClick={() => window.open(preview.blob_url || preview.data, "_blank")} style={{
+                    background:"var(--cyan)", color:"var(--bg)", border:"none", borderRadius:10,
+                    padding:".65rem 1.75rem", fontWeight:800, fontSize:".9rem", cursor:"pointer"
+                  }}>📄 Abrir PDF</button>
+                </div>
               ) : (
-                <img src={preview.data} alt={preview.nombre} style={{ maxWidth:"100%", display:"block", margin:"0 auto" }} />
+                <img src={preview.blob_url || preview.data} alt={preview.nombre}
+                  style={{ maxWidth:"100%", display:"block", margin:"0 auto" }} />
               )}
             </div>
           </div>

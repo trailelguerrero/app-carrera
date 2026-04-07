@@ -71,7 +71,7 @@ const apiAdapter = {
     const lastSave  = parseInt(localStorage.getItem(`__last_save_${collection}`) || '0');
     const lastFetch = parseInt(localStorage.getItem(`__last_fetch_${collection}`) || '0');
     const localData = await localAdapter.get(collection, null);
-    const CACHE_TTL = 5 * 60 * 1000; // 5 minutos — no ir a Neon si los datos son recientes
+    const CACHE_TTL = 30 * 60 * 1000; // 30 minutos — reduce tráfico Neon ~85% vs 5min
 
     // Usar caché local si:
     // 1. Se guardó hace menos de 5 min (datos propios, frescos)
@@ -163,7 +163,7 @@ const apiAdapter = {
   },
 
   async getMultiple(keys) {
-    const CACHE_TTL = 5 * 60 * 1000;
+    const CACHE_TTL = 30 * 60 * 1000;
 
     // Comprobar si todos los keys tienen caché válida
     const allCached = await Promise.all(
