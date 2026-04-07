@@ -116,8 +116,8 @@ export default function Documentos() {
         });
         if (res.ok) {
           const rows = await res.json();
-          // Los docs de la API no tienen .data — se carga solo al ver/descargar
-          setDocs(rows.map(r => ({ ...r, data: null })));
+          // Los docs tienen blobUrl — no necesitan data en memoria
+          setDocs(rows);
         } else {
           // Fallback a localStorage si la API no responde
           dataService.get(LS_KEY, []).then(d => setDocs(Array.isArray(d) ? d : []));
@@ -215,74 +215,72 @@ export default function Documentos() {
     save(docs.filter(d => d.id !== id));
   };
   const downloadDoc = async (doc) => {
-    const data = await fetchDocData(doc);
+    // Preferir blobUrl — descarga directa sin pasar por Neon
+    if (doc.blobUrl) {
+      const a = document.createElement("a");
+      a.href = doc.blobUrl;
+      a.download = doc.nombre;
+      a.target = "_blank";
+      a.click();
+      return;
+    }
+    // Fallback legacy: base64 en memoria
+    const data = doc.data || await fetchDocData(doc);
     if (!data) return;
     const a = document.createElement("a");
     a.href = data; a.download = doc.nombre; a.click();
   };
   // Obtener el data del documento desde la API (lazy — no se descarga al listar)
+  // fetchDocData — ya no necesario para nuevos docs (tienen blobUrl)
+  // Se mantiene como fallback para docs legacy con base64 en memoria
   const fetchDocData = async (doc) => {
-    if (doc.data) return doc.data; // ya en memoria (localStorage fallback)
-    try {
-      const res = await fetch(`/api/documents/${doc.id}`, {
-        headers: { "x-api-key": import.meta.env.VITE_API_KEY }
-      });
-      if (res.ok) {
-        const { data } = await res.json();
-        return data;
-      }
-    } catch (e) { console.error("Error obteniendo datos:", e); }
+    if (doc.data) return doc.data;
     return null;
   };
 
   const viewDoc = async (doc) => {
-    // Obtener data — de memoria o de la API
-    let data = doc.data || null;
-    if (!data) {
-      // Mostrar modal con spinner mientras carga
-      setVisorDoc({ ...doc, _loading: true });
-      data = await fetchDocData(doc);
-    }
-
-    if (!data) {
-      setVisorDoc({ ...doc, _loading: false, _error: true });
-      return;
-    }
-
-    const esPdf = doc.tipo === "application/pdf"
-      || doc.nombre?.toLowerCase().endsWith(".pdf")
-      || data.startsWith("data:application/pdf");
-
     const esImg = doc.tipo?.startsWith("image/")
       || !!doc.nombre?.match(/\.(png|jpe?g|webp)$/i);
 
-    if (esPdf) {
-      // PDFs: Blob URL + window.open — único método fiable en Android Chrome e iOS Safari
-      // Los iframes con blob:// no renderizan PDFs en navegadores móviles
-      try {
-        const b64  = data.includes(",") ? data.split(",")[1] : data;
-        const bin  = atob(b64);
-        const buf  = new Uint8Array(bin.length);
-        for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
-        const url  = URL.createObjectURL(new Blob([buf], { type: "application/pdf" }));
-        window.open(url, "_blank");
-        // Liberar memoria tras un momento
-        setTimeout(() => URL.revokeObjectURL(url), 10000);
-      } catch (e) {
-        // Fallback: abrir base64 directamente
-        window.open(data, "_blank");
+    // CASO 1: doc tiene blobUrl (nuevo sistema — Vercel Blob)
+    if (doc.blobUrl) {
+      if (esImg) {
+        // Imágenes: mostrar en modal con la URL directa
+        setVisorDoc({ ...doc, _loading: false });
+      } else {
+        // PDFs y otros: abrir en nueva pestaña — el navegador/SO lo gestiona
+        window.open(doc.blobUrl, "_blank");
       }
-      return; // No abrir modal para PDFs — el sistema los maneja
-    }
-
-    if (esImg) {
-      // Imágenes: mostrar en modal interno
-      setVisorDoc({ ...doc, data, _loading: false });
       return;
     }
 
-    // Tipo desconocido: intentar abrir igual
-    window.open(data, "_blank");
+    // CASO 2: doc legacy con base64 en memoria
+    if (doc.data) {
+      const esPdf = doc.tipo === "application/pdf"
+        || doc.nombre?.toLowerCase().endsWith(".pdf")
+        || doc.data.startsWith("data:application/pdf");
+      if (esPdf) {
+        try {
+          const b64 = doc.data.includes(",") ? doc.data.split(",")[1] : doc.data;
+          const bin = atob(b64);
+          const buf = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+          const url = URL.createObjectURL(new Blob([buf], { type: "application/pdf" }));
+          window.open(url, "_blank");
+          setTimeout(() => URL.revokeObjectURL(url), 10000);
+        } catch { window.open(doc.data, "_blank"); }
+        return;
+      }
+      if (esImg) {
+        setVisorDoc({ ...doc, _loading: false });
+        return;
+      }
+      window.open(doc.data, "_blank");
+      return;
+    }
+
+    // CASO 3: sin data ni blobUrl — error
+    setVisorDoc({ ...doc, _loading: false, _error: true });
   };
 
   const startEdit = (doc) => {
@@ -984,14 +982,14 @@ export default function Documentos() {
                       /* ── View mode ── */
                       <>
                         {/* Thumbnail para imágenes */}
-                        {doc.tipo?.startsWith("image/") && doc.data && (
+                        {(doc.tipo?.startsWith("image/")) && (doc.blobUrl || doc.data) && (
                           <div onClick={() => viewDoc(doc)} style={{
                             width:"100%", height:100, borderRadius:8,
                             overflow:"hidden", cursor:"pointer",
                             background:"var(--surface2)",
                             marginBottom:".25rem",
                           }}>
-                            <img src={doc.data} alt={doc.nombreDisplay||doc.nombre}
+                            <img src={doc.blobUrl || doc.data} alt={doc.nombreDisplay||doc.nombre}
                               style={{width:"100%",height:"100%",objectFit:"cover"}} />
                           </div>
                         )}
@@ -1123,8 +1121,9 @@ export default function Documentos() {
                   padding:".6rem 1.5rem",fontWeight:800,fontSize:".85rem",cursor:"pointer",
                 }}>⬇ Descargar</button>
               </div>
-            ) : visorDoc.data ? (
-              <img src={visorDoc.data}
+            ) : (visorDoc.blobUrl || visorDoc.data) ? (
+              <img
+                src={visorDoc.blobUrl || visorDoc.data}
                 alt={visorDoc.nombreDisplay || visorDoc.nombre}
                 style={{maxWidth:"100%",maxHeight:"100%",objectFit:"contain",borderRadius:8}}
               />
