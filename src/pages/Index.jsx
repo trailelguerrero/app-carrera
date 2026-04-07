@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react"
 import { motion, AnimatePresence } from "framer-motion";
 import ReadmeModal from "../components/blocks/ReadmeModal";
 import OnboardingModal from "../components/blocks/OnboardingModal";
+import { exportBlockToPdf } from "../components/blocks/PdfExport";
 import { ThemeToggle } from "../components/ui/ThemeToggle";
 
 // Lazy-style imports for blocks
@@ -440,7 +441,7 @@ export default function Index() {
                   fontFamily:"'DM Mono', 'Space Mono', monospace,monospace",
                   fontSize: isMobile ? "0.5rem" : "0.58rem", fontWeight:700, cursor:"pointer",
                 }}>📖{!isMobile && " README"}</button>
-                <button onClick={async () => { const { exportBlockToPdf } = await import("../components/blocks/PdfExport"); exportBlockToPdf(activeBlock); }} style={{
+                <button onClick={() => exportBlockToPdf(activeBlock)} style={{
                   background:"rgba(52,211,153,0.1)", color:"#059669",
                   border:"1px solid rgba(52,211,153,0.22)", borderRadius:6,
                   padding: isMobile ? "0.22rem 0.38rem" : "0.26rem 0.55rem",
