@@ -1376,9 +1376,10 @@ function DocManager({ pat, addDoc, deleteDoc, cfg }) {
           fecha: new Date().toISOString().split("T")[0],
         };
         const res = await fetch(API, { method:"POST", headers, body: JSON.stringify(body) });
-        const { id } = await res.json();
-        setDocs(prev => [{ ...body, id }, ...prev]);
-        // Sync to parent state (lightweight: no data)
+        if (!res.ok) { alert("Error al subir el archivo"); setUploading(false); return; }
+        const { id, blob_url } = await res.json();
+        // Guardar con blob_url — necesario para Ver/Descargar sin recargar
+        setDocs(prev => [{ ...body, id, blob_url, data: null }, ...prev]);
         addDoc(pat.id, { id, nombre: file.name, tipo, mime: file.type, size: file.size, fecha: body.fecha });
       } catch(e) { alert("Error subiendo el archivo"); }
       setUploading(false);

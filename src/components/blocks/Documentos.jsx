@@ -181,8 +181,13 @@ export default function Documentos() {
           body: JSON.stringify(doc),
         });
         if (res.ok) {
-          // Guardar en estado local sin el data (ya está en la nube)
-          subidos.push({ ...doc, data: null });
+          const { blobUrl } = await res.json();
+          // Guardar en estado con blobUrl — necesario para Ver/Descargar
+          subidos.push({ ...doc, data: null, blobUrl: blobUrl || null });
+        } else {
+          const err = await res.json().catch(() => ({}));
+          console.error("Error subiendo documento:", err);
+          alert(`❌ Error al subir "${doc.nombre}": ${err.error || res.status}`);
         }
       } catch (e) {
         console.error("Error subiendo documento:", e);
