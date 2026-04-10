@@ -12,6 +12,7 @@ import { TabTramos }      from "../budget/TabTramos";
 import { TabInscritos }   from "../budget/TabInscritos";
 import { TabResumen }     from "../budget/TabResumen";
 import { TabEquilibrio }  from "../budget/TabEquilibrio";
+import { DISTANCIAS }       from "@/constants/budgetConstants";
 
 // ─── CSS específico del bloque ─────────────────────────────────────────────
 const BUDGET_CSS = `
@@ -135,6 +136,8 @@ const Presupuesto = () => {
   const [scenarioOverrides, setScenarioOverrides] = useState({
     scenarioInscritos: null,
     scenarioConceptos: null,
+    scenarioIngresosExtra: null,
+    scenarioMerchandising: null,
   });
 
   const {
@@ -187,6 +190,8 @@ const Presupuesto = () => {
     isScenarioMode,
     scenarioInscritos,
     scenarioConceptos,
+    scenarioIngresosExtra,
+    scenarioMerchandising,
     createScenario,
     loadScenario,
     exitScenario: _exitScenario,
@@ -196,18 +201,60 @@ const Presupuesto = () => {
     renameScenario,
     updateScenarioInscritos,
     toggleScenarioConcepto,
-  } = useScenario(inscritos, conceptos);
+    setScenarioIngresosExtra,
+    setScenarioMerchandising,
+  } = useScenario(inscritos, conceptos, ingresosExtra, merchandising);
 
   // Sincronizar los overrides del escenario con useBudgetLogic
   // Esto es el puente que hace que los cálculos reflejen el escenario activo.
   useEffect(() => {
-    setScenarioOverrides({ scenarioInscritos, scenarioConceptos });
-  }, [scenarioInscritos, scenarioConceptos]);
+    setScenarioOverrides({ 
+      scenarioInscritos, 
+      scenarioConceptos,
+      scenarioIngresosExtra,
+      scenarioMerchandising,
+    });
+  }, [scenarioInscritos, scenarioConceptos, scenarioIngresosExtra, scenarioMerchandising]);
 
   // Salir del escenario también limpia los overrides
   const exitScenario = () => {
     _exitScenario();
-    setScenarioOverrides({ scenarioInscritos: null, scenarioConceptos: null });
+    setScenarioOverrides({ scenarioInscritos: null, scenarioConceptos: null, scenarioIngresosExtra: null, scenarioMerchandising: null });
+  };
+
+  // Interceptores para TabPresupuesto
+  const handleUpdateConcepto = (id, field, value) => {
+    if (isScenarioMode) {
+      if (field === "activo") toggleScenarioConcepto(id);
+      else overrideScenarioConcepto(id, field, value);
+    } else {
+      updateConcepto(id, field, value);
+    }
+  };
+
+  const handleUpdateCostePorDistancia = (id, dist, value) => {
+    if (isScenarioMode) {
+      const curr = (scenarioConceptos || conceptos).find(c => c.id === id);
+      if (!curr) return;
+      let newCostes = { ...curr.costePorDistancia, [dist]: value };
+      if (curr.modoUniforme) {
+        DISTANCIAS.forEach(d => { newCostes[d] = value; });
+      }
+      overrideScenarioConcepto(id, "costePorDistancia", newCostes);
+    } else {
+      updateCostePorDistancia(id, dist, value);
+    }
+  };
+
+  const handleUpdateActivoDistancia = (id, dist, value) => {
+    if (isScenarioMode) {
+      const curr = (scenarioConceptos || conceptos).find(c => c.id === id);
+      if (!curr) return;
+      const newActivos = { ...curr.activoDistancias, [dist]: value };
+      overrideScenarioConcepto(id, "activoDistancias", newActivos);
+    } else {
+      updateActivoDistancia(id, dist, value);
+    }
   };
 
   const resPositivo = (resultado?.total ?? 0) >= 0;
@@ -368,14 +415,14 @@ const Presupuesto = () => {
         <div key={tab}>
           {tab === "presupuesto" && (
             <TabPresupuesto
-              conceptos={conceptos}
+              conceptos={isScenarioMode ? (scenarioConceptos ?? conceptos) : conceptos}
               totalInscritos={totalInscritos}
               costesFijos={costesFijos}
               costesVariables={costesVariables}
               totalIngresosExtra={totalIngresosExtra}
-              updateConcepto={updateConcepto}
-              updateCostePorDistancia={updateCostePorDistancia}
-              updateActivoDistancia={updateActivoDistancia}
+              updateConcepto={handleUpdateConcepto}
+              updateCostePorDistancia={handleUpdateCostePorDistancia}
+              updateActivoDistancia={handleUpdateActivoDistancia}
               addConcepto={addConcepto}
               removeConcepto={removeConcepto}
               reorderConceptos={reorderConceptos}
@@ -383,11 +430,11 @@ const Presupuesto = () => {
           )}
           {tab === "ingresos" && (
             <TabIngresos
-              ingresosExtra={ingresosExtra}
-              setIngresosExtra={setIngresosExtra}
+              ingresosExtra={isScenarioMode ? (scenarioIngresosExtra ?? ingresosExtra) : ingresosExtra}
+              setIngresosExtra={isScenarioMode ? setScenarioIngresosExtra : setIngresosExtra}
               totalIngresosExtra={totalIngresosExtra}
-              merchandising={merchandising}
-              setMerchandising={setMerchandising}
+              merchandising={isScenarioMode ? (scenarioMerchandising ?? merchandising) : merchandising}
+              setMerchandising={isScenarioMode ? setScenarioMerchandising : setMerchandising}
               merchTotales={merchTotales}
               totalIngresosConMerch={totalIngresosConMerch}
               ingresosPorDistancia={ingresosPorDistancia}

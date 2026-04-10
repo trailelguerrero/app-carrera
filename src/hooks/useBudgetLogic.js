@@ -35,7 +35,7 @@ import {
  * @param {object} [scenarioOverrides.scenarioInscritos] - Inscritos del escenario activo.
  * @param {Array}  [scenarioOverrides.scenarioConceptos] - Conceptos del escenario activo.
  */
-export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos } = {}) => {
+export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioIngresosExtra, scenarioMerchandising } = {}) => {
   // ─── STATE ──────────────────────────────────────────────────────────────────
   const [tab, setTab] = useState("presupuesto");
   const [tramos, setTramos] = useState(TRAMOS_DEFAULT);
@@ -279,6 +279,8 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos } = {}) =>
   // El autosave (arriba) siempre usa `inscritos` y `conceptos` reales — sin contaminar.
   const _inscritos = scenarioInscritos ?? inscritos;
   const _conceptos = scenarioConceptos ?? conceptos;
+  const _ingresosExtra = scenarioIngresosExtra ?? ingresosExtra;
+  const _merchandising = scenarioMerchandising ?? merchandising;
 
   const totalInscritos = useMemo(() => calculateTotalInscritos(tramos, _inscritos), [tramos, _inscritos]);
   const ingresosPorDistancia = useMemo(() => calculateIngresosPorDistancia(tramos, _inscritos), [tramos, _inscritos]);
@@ -287,12 +289,12 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos } = {}) =>
   const costesVariables = useMemo(() => calculateCostesVariables(_conceptos, totalInscritos), [_conceptos, totalInscritos]);
   const costesVarPorCorredor = useMemo(() => calculateCostesVarPorCorredor(_conceptos), [_conceptos]);
   const costesFijoPorCorredor = useMemo(() => calculateCostesFijoPorCorredor(costesFijos, totalInscritos), [costesFijos, totalInscritos]);
-  const merchTotales = useMemo(() => calculateMerchTotales(merchandising), [merchandising]);
+  const merchTotales = useMemo(() => calculateMerchTotales(_merchandising), [_merchandising]);
   const ingresosDesglosados = useMemo(() => calculateIngresosDesglosados(tramos, _inscritos), [tramos, _inscritos]);
 
   const totalIngresosExtra = useMemo(() =>
-    ingresosExtra.filter(i => i.activo).reduce((s, i) => s + i.valor, 0),
-    [ingresosExtra]
+    _ingresosExtra.filter(i => i.activo).reduce((s, i) => s + i.valor, 0),
+    [_ingresosExtra]
   );
 
   const totalIngresosConMerch = useMemo(() => totalIngresosExtra + merchTotales.beneficio, [totalIngresosExtra, merchTotales]);

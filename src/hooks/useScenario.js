@@ -12,7 +12,7 @@ const LS_KEY = "teg_scenarios_v1";
  * - Los datos reales (inscritos, conceptos) son inmutables desde la perspectiva
  *   del escenario: se pasan aquí como referencia, nunca se modifican.
  */
-export const useScenario = (realInscritos, realConceptos) => {
+export const useScenario = (realInscritos, realConceptos, realIngresosExtra, realMerchandising) => {
   // ── Escenarios guardados (persistidos) ──────────────────────────────────
   const [savedScenarios, setSavedScenarios] = useData(LS_KEY, []);
 
@@ -37,9 +37,17 @@ export const useScenario = (realInscritos, realConceptos) => {
     return realConceptos.map((c) => ({
       ...c,
       ...(activeScenario.conceptosOverride?.[c.id] ?? {}),
-      activo: !(activeScenario.conceptosExcluidos ?? []).includes(c.id) && c.activo,
+      activo: !(activeScenario.conceptosExcluidos ?? []).includes(c.id),
     }));
   }, [isScenarioMode, realConceptos, activeScenario?.conceptosOverride, activeScenario?.conceptosExcluidos]);
+
+  const scenarioIngresosExtra = isScenarioMode
+    ? (activeScenario.ingresosExtra ?? realIngresosExtra)
+    : null;
+
+  const scenarioMerchandising = isScenarioMode
+    ? (activeScenario.merchandising ?? realMerchandising)
+    : null;
 
   // ── Acciones sobre el draft activo ──────────────────────────────────────
 
@@ -54,10 +62,12 @@ export const useScenario = (realInscritos, realConceptos) => {
           .filter((c) => !c.activo)
           .map((c) => c.id),
         conceptosOverride: {},
+        ingresosExtra: JSON.parse(JSON.stringify(realIngresosExtra)),
+        merchandising: JSON.parse(JSON.stringify(realMerchandising)),
         creadoEn: new Date().toISOString(),
       });
     },
-    [realInscritos, realConceptos]
+    [realInscritos, realConceptos, realIngresosExtra, realMerchandising]
   );
 
   /** Carga un escenario guardado como draft activo. */
@@ -131,6 +141,24 @@ export const useScenario = (realInscritos, realConceptos) => {
     setActiveScenario((prev) => (prev ? { ...prev, nombre } : prev));
   }, []);
 
+  const setScenarioIngresosExtra = useCallback((action) => {
+    setActiveScenario((prev) => {
+      if (!prev) return prev;
+      const current = prev.ingresosExtra ?? realIngresosExtra;
+      const next = typeof action === 'function' ? action(current) : action;
+      return { ...prev, ingresosExtra: next };
+    });
+  }, [realIngresosExtra]);
+
+  const setScenarioMerchandising = useCallback((action) => {
+    setActiveScenario((prev) => {
+      if (!prev) return prev;
+      const current = prev.merchandising ?? realMerchandising;
+      const next = typeof action === 'function' ? action(current) : action;
+      return { ...prev, merchandising: next };
+    });
+  }, [realMerchandising]);
+
   // ── Persistencia ─────────────────────────────────────────────────────────
 
   /** Guarda el draft en la lista de escenarios persistidos. */
@@ -191,6 +219,8 @@ export const useScenario = (realInscritos, realConceptos) => {
     // Overrides calculados (se pasan a useBudgetLogic)
     scenarioInscritos,
     scenarioConceptos,
+    scenarioIngresosExtra,
+    scenarioMerchandising,
 
     // Acciones
     createScenario,
@@ -203,5 +233,7 @@ export const useScenario = (realInscritos, realConceptos) => {
     updateScenarioInscritos,
     toggleScenarioConcepto,
     overrideScenarioConcepto,
+    setScenarioIngresosExtra,
+    setScenarioMerchandising,
   };
 };
