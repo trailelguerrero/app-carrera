@@ -623,7 +623,7 @@ export default function App() {
         </div>
 
         {/* TABS */}
-        <div className="tabs">
+        <div className="tabs-scroll-wrap"><div className="tabs">
           {TABS_VOL.map(item => (
             <button key={item.id} className={cls("tab-btn", tab===item.id && "active")} onClick={() => setTab(item.id)}>
               {item.icon} {item.label}
@@ -632,7 +632,7 @@ export default function App() {
               )}
             </button>
           ))}
-        </div>
+        </div></div>
 
         {/* CONTENIDO */}
         <div key={tab}>

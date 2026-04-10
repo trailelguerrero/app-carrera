@@ -220,9 +220,9 @@ export default function App() {
             <button className="btn btn-primary" onClick={()=>abrirModal(null)}>+ Nuevo pedido</button>
           </div>
         </div>
-        <div className="tabs">
+        <div className="tabs-scroll-wrap"><div className="tabs">
           {TABS.map(t=>(<button key={t.id} className={cls("tab-btn",tab===t.id&&"active")} onClick={()=>setTab(t.id)}>{t.icon} {t.label}</button>))}
-        </div>
+        </div></div>
         <div key={tab}>
           {tab==="dashboard" && <TabDashboard stats={stats} pedidos={pedidos} coste={coste} setCoste={setCoste} setTab={setTab} abrirFicha={abrirFicha}
             precioCorrExt={precioCorrExt} setPrecioCorrExt={(v) => setPrecioPlatExt({ precio: v })}

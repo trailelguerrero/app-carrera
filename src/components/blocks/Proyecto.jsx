@@ -317,7 +317,7 @@ export default function App() {
         </div>
 
         {/* TABS */}
-        <div className="tabs">
+        <div className="tabs-scroll-wrap"><div className="tabs">
           {TABS.map(t => (
             <button key={t.id} className={cls("tab-btn", tab===t.id && "active")} onClick={() => setTab(t.id)}>
               {t.icon} {t.label}
@@ -325,7 +325,7 @@ export default function App() {
               {t.id==="hitos" && <span className="badge badge-cyan" style={{marginLeft:"0.3rem"}}>{hitos.filter(h=>!h.completado).length}</span>}
             </button>
           ))}
-        </div>
+        </div></div>
 
         {/* CONTENIDO */}
         <div key={tab}>

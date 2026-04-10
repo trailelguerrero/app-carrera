@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReadmeModal from "../components/blocks/ReadmeModal";
+import DiaCarrera   from "../components/blocks/DiaCarrera";
 import OnboardingModal from "../components/blocks/OnboardingModal";
 import { exportBlockToPdf } from "../components/blocks/PdfExport";
 import { ThemeToggle } from "../components/ui/ThemeToggle";
@@ -329,6 +330,7 @@ export default function Index() {
   const [showChangePin, setShowChangePin] = useState(false);
   const [activeBlock, setActiveBlock]     = useState("dashboard");
   const [readmeBlock, setReadmeBlock]     = useState(null);
+  const [showDiaCarrera, setShowDiaCarrera] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(
     () => !localStorage.getItem("teg_onboarding_done")
   );
@@ -378,6 +380,10 @@ export default function Index() {
   if (!authed) return <PinScreen onUnlock={() => setAuthed(true)} />;
 
   const NAV_H = isMobile ? 68 : 66;
+  const diasCarrera = Math.ceil(
+    (new Date("2026-08-29") - new Date()) / 86400000
+  );
+  const mostrarBtnDiaD = diasCarrera <= 7;
 
   return (
     <>
@@ -432,6 +438,20 @@ export default function Index() {
               onMouseLeave={e => e.currentTarget.style.color="var(--teg-text-muted)"}
             >🔐</button>
 
+            {mostrarBtnDiaD && (
+              <button
+                onClick={() => setShowDiaCarrera(true)}
+                style={{
+                  background:"rgba(248,113,113,0.15)", color:"#f87171",
+                  border:"1px solid rgba(248,113,113,0.35)", borderRadius:6,
+                  padding: isMobile ? "0.22rem 0.38rem" : "0.26rem 0.55rem",
+                  fontFamily:"var(--font-mono)",
+                  fontSize: isMobile ? "0.5rem" : "0.58rem",
+                  fontWeight:700, cursor:"pointer", animation:"teg-pulse 2s ease infinite",
+                }}>
+                🏁{!isMobile && " Día D"}
+              </button>
+            )}
             {activeBlock !== "dashboard" && (
               <>
                 <button onClick={() => setReadmeBlock(activeBlock)} style={{
@@ -470,7 +490,8 @@ export default function Index() {
                 fontFamily:"'DM Mono', 'Space Mono', monospace,monospace", fontSize:"0.6rem",
                 color:"var(--teg-text-muted)", letterSpacing:"0.1em",
               }}>Cargando módulo…</div>
-              <style>{`@keyframes teg-spin { to { transform: rotate(360deg); } }`}</style>
+              <style>{`@keyframes teg-spin { to { transform: rotate(360deg); } }
+          @keyframes teg-pulse { 0%,100%{opacity:1} 50%{opacity:.55} }`}</style>
             </div>
           }>
             {ActiveComponent && <ActiveComponent key={activeBlock} />}
@@ -565,6 +586,7 @@ export default function Index() {
 
         {/* MODALS */}
         {readmeBlock && <ReadmeModal block={readmeBlock} onClose={() => setReadmeBlock(null)} />}
+        {showDiaCarrera && <DiaCarrera onClose={() => setShowDiaCarrera(false)} />}
         {showOnboarding && <OnboardingModal onClose={cerrarOnboarding} onNavigate={(id) => { handleBlockChange(id); cerrarOnboarding(); }} />}
         <AnimatePresence>
           {showChangePin && <ChangePinModal onClose={() => setShowChangePin(false)} />}
