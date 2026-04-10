@@ -105,20 +105,19 @@ const BUDGET_CSS = `
 
 // ─── Pasos del flujo ─────────────────────────────────────────────────────────
 const FLOW_STEPS = [
-  { id: "tramos",      n: 1, icon: "📅", label: "Tramos"    },
-  { id: "inscritos",   n: 2, icon: "🏃", label: "Inscritos" },
-  { id: "presupuesto", n: 3, icon: "💰", label: "Costes"    },
-  { id: "ingresos",    n: 4, icon: "🟣", label: "Ingresos"  },
-  { id: "resumen",     n: 5, icon: "📉", label: "P&L"       },
-  { id: "equilibrio",  n: 6, icon: "⚖️", label: "Equilibrio"},
+  { id: "inscripciones",n: 1, icon: "🏃", label: "Inscripciones" },
+  { id: "presupuesto",  n: 2, icon: "💰", label: "Costes"    },
+  { id: "ingresos",     n: 3, icon: "🟣", label: "Ingresos"  },
+  { id: "resumen",      n: 4, icon: "📉", label: "P&L"       },
+  { id: "equilibrio",   n: 5, icon: "⚖️", label: "Equilibrio"},
 ];
 
 const TABS = [
-  { id: "presupuesto", label: "Costes", short: "Costes", icon: "💰" },
-  { id: "ingresos",    label: "Otros ingresos", short: "Ingresos", icon: "🟣" },
-  { id: "inscripciones", label: "Inscripciones", short: "Inscritos", icon: "🏃" },
-  { id: "resumen",     label: "P&L Resumen", short: "P&L", icon: "📉" },
-  { id: "equilibrio",  label: "Equilibrio", short: "Equilibrio", icon: "⚖️" },
+  { id: "inscripciones", label: "Inscripciones", short: "Inscripciones", icon: "🏃" },
+  { id: "presupuesto", label: "Costes del Evento", short: "Costes", icon: "💰" },
+  { id: "ingresos",    label: "Ingresos Adicionales", short: "Otros ingresos", icon: "🟣" },
+  { id: "resumen",     label: "Resumen P&L", short: "P&L Resumen", icon: "📉" },
+  { id: "equilibrio",  label: "Puntos de Equilibrio", short: "Equilibrio", icon: "⚖️" },
 ];
 
 // ─── Componente principal ─────────────────────────────────────────────────────
@@ -273,8 +272,7 @@ const Presupuesto = () => {
     const actual = FLOW_STEPS.findIndex(s => s.id === tab);
     if (orden < actual) return "done";
     // Heurística: consideramos "done" si hay datos relevantes
-    if (id === "tramos"      && tramos.length > 0)             return "done";
-    if (id === "inscritos"   && (totalInscritos?.total ?? 0) > 0) return "done";
+    if (id === "inscripciones" && (totalInscritos?.total ?? 0) > 0) return "done";
     if (id === "presupuesto" && conceptos.length > 0)           return "done";
     if (id === "ingresos"    && ingresosExtra.length > 0)       return "done";
     return "pending";

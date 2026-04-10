@@ -37,7 +37,7 @@ import {
  */
 export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioIngresosExtra, scenarioMerchandising } = {}) => {
   // ─── STATE ──────────────────────────────────────────────────────────────────
-  const [tab, setTab] = useState("presupuesto");
+  const [tab, setTab] = useState("inscripciones");
   const [tramos, setTramos] = useState(TRAMOS_DEFAULT);
   const [conceptos, setConceptos] = useState(CONCEPTOS_DEFAULT);
   const [inscritos, setInscritos] = useState(INSCRITOS_DEFAULT);
