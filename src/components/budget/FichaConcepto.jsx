@@ -198,13 +198,16 @@ export function ModalEditarConcepto({ concepto: c, totalInscritos, onSave, onClo
                       />
                     </div>
                     <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.6rem",
-                      color:"var(--text-muted)", width:60, textAlign:"right" }}>
-                      = {fmt(
-                        (form.modoUniforme
-                          ? (form.costePorDistancia["TG7"] || 0)
-                          : (form.costePorDistancia[d] || 0)
-                        ) * (totalInscritos?.[d] || 0)
-                      )}
+                      color: form.activoDistancias[d] ? "var(--text-muted)" : "var(--text-dim)",
+                      width:60, textAlign:"right" }}>
+                      {form.activoDistancias[d]
+                        ? "= " + fmt(
+                            (form.modoUniforme
+                              ? (form.costePorDistancia["TG7"] || 0)
+                              : (form.costePorDistancia[d] || 0)
+                            ) * (totalInscritos?.[d] || 0)
+                          )
+                        : "— excluida"}
                     </span>
                   </div>
                 ))}

@@ -177,7 +177,10 @@ export const TabPresupuesto = ({
 
   // ── Fila VARIABLE ─────────────────────────────────────────────────────────
   const renderFilaVariable = (c, idx, arr) => {
-    const total = DISTANCIAS.reduce((s, d) => s + (c.costePorDistancia[d] || 0) * totalInscritos[d], 0);
+    const total = DISTANCIAS.reduce((s, d) => {
+      if (c.activoDistancias && c.activoDistancias[d] === false) return s;
+      return s + (c.costePorDistancia[d] || 0) * totalInscritos[d];
+    }, 0);
 
     return (
       <tr key={c.id}>
