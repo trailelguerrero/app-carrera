@@ -89,6 +89,7 @@ export default async function handler(req, res) {
       const mimeType = tipo || mimeMap[ext] || 'application/octet-stream';
 
       const blob = await put(`documents/${id}.${ext}`, buffer, {
+        access:      'public',
         contentType: mimeType,
         token:       process.env.BLOB_READ_WRITE_TOKEN,
       });
