@@ -45,13 +45,6 @@ function hashPin(pin) {
   return String(h);
 }
 
-// ── SERVICE WORKER ─────────────────────────────────────────────────────────────
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {});
-  });
-}
-
 // ── AUTOSAVE STATUS HOOK ───────────────────────────────────────────────────────
 function useGlobalSaveStatus() {
   const [status, setStatus] = useState(null);
