@@ -217,11 +217,78 @@ export const ScenarioBar = ({
   onDuplicateScenario,
   onDeleteScenario,
   onRenameScenario,
+
+  // Datos reales para el diff
+  realConceptos,
+  realInscritos,
+  realIngresosExtra,
+  realTramos,
 }) => {
   const [showList, setShowList] = useState(false);
   const [showNewModal, setShowNewModal] = useState(false);
+  const [showDiffModal, setShowDiffModal] = useState(false);
   const [newName, setNewName] = useState("");
   const [editingName, setEditingName] = useState(false);
+
+  const computeDiffs = () => {
+    if (!activeScenario) return [];
+    const diffs = [];
+
+    // Conceptos Excluidos
+    if (activeScenario.conceptosExcluidos?.length > 0) {
+      activeScenario.conceptosExcluidos.forEach(cid => {
+        const c = realConceptos?.find(x => x.id === cid);
+        if (c) diffs.push({ type: "coste", icon: "🗑️", ref: c.nombre, msg: "Concepto desactivado de forma temporal" });
+      });
+    }
+
+    // Conceptos Modificados (Overrides)
+    if (activeScenario.conceptosOverride) {
+      Object.entries(activeScenario.conceptosOverride).forEach(([cid, over]) => {
+        const c = realConceptos?.find(x => x.id === cid);
+        if (c) {
+          Object.keys(over).forEach(key => {
+            if (JSON.stringify(over[key]) === JSON.stringify(c[key])) return;
+            let varName = key;
+            if (key === "costePorDistancia") varName = "Coste variable por distancia";
+            if (key === "costeFijo") varName = "Coste fijo";
+            diffs.push({ type: "coste", icon: "✏️", ref: c.nombre, msg: `Modificado: ${varName}` });
+          });
+        }
+      });
+    }
+
+    // Inscritos
+    if (activeScenario.inscritos?.tramos) {
+      Object.entries(activeScenario.inscritos.tramos).forEach(([tId, dists]) => {
+        const t = realTramos?.find(x => x.id === tId);
+        const name = t ? t.nombre : "Tramo";
+        Object.entries(dists).forEach(([d, val]) => {
+          const realVal = realInscritos?.tramos?.[tId]?.[d] || 0;
+          if (val !== realVal) {
+             diffs.push({ type: "inscritos", icon: "🏃", ref: `${name} (${DISTANCIA_LABELS[d] || d})`, msg: `${realVal} → ${val} corredores` });
+          }
+        });
+      });
+    }
+
+    // IngresosExtra
+    if (activeScenario.ingresosExtra && realIngresosExtra) {
+      activeScenario.ingresosExtra.forEach(ing => {
+        const r = realIngresosExtra.find(x => x.id === ing.id);
+        if (r && JSON.stringify(r) !== JSON.stringify(ing)) {
+          let msg = "";
+          if (r.importe !== ing.importe) msg += `Importe: ${fmt(r.importe)} → ${fmt(ing.importe)} `;
+          if (r.concepto !== ing.concepto) msg += `Concepto: ${r.concepto} → ${ing.concepto} `;
+          if (msg) {
+            diffs.push({ type: "extra", icon: "💰", ref: `Ingreso Extra: ${r.concepto || 'Nuevo'}`, msg: msg.trim() });
+          }
+        }
+      });
+    }
+
+    return diffs;
+  };
 
   const handleCreate = () => {
     const name = newName.trim() || "Nuevo escenario";
@@ -301,6 +368,14 @@ export const ScenarioBar = ({
           <div className="sc-actions">
             {isScenarioMode ? (
               <>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setShowDiffModal(true)}
+                  title="Ver qué he modificado"
+                  style={{ color: "var(--amber)", fontWeight: 700 }}
+                >
+                  🔍 Cambios
+                </button>
                 <button
                   className="btn btn-primary btn-sm"
                   onClick={onSaveScenario}
@@ -595,6 +670,52 @@ export const ScenarioBar = ({
               >
                 Cerrar
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* ── Modal: Diferencias del Escenario ── */}
+      {showDiffModal && (
+        <div className="sc-list-overlay" onClick={() => setShowDiffModal(false)}>
+          <div className="sc-list-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="sc-list-header">
+              <div>
+                <div style={{ fontWeight: 800, fontSize: "0.95rem", color: "var(--text)" }}>
+                  🔍 Cambios vs Datos Reales
+                </div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-muted)", marginTop: "0.15rem" }}>
+                  ¿Qué has modificado en este escenario?
+                </div>
+              </div>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowDiffModal(false)}>✕</button>
+            </div>
+            <div className="sc-list-body" style={{ padding: "1rem" }}>
+              {(() => {
+                const diffs = computeDiffs();
+                if (diffs.length === 0) {
+                  return (
+                    <div className="empty-state" style={{ minHeight: 150 }}>
+                      <div className="empty-state-icon">🧘</div>
+                      <div>No hay cambios</div>
+                      <div style={{ marginTop: "0.3rem", opacity: 0.7 }}>Este escenario es idéntico a los datos reales actuales.</div>
+                    </div>
+                  );
+                }
+                return diffs.map((d, i) => (
+                  <div key={i} style={{
+                    display: "flex", gap: "0.75rem", padding: "0.75rem",
+                    borderBottom: i < diffs.length - 1 ? "1px solid var(--border-light)" : "none",
+                    alignItems: "center"
+                  }}>
+                    <div style={{ fontSize: "1.2rem", flexShrink: 0, opacity: 0.8 }}>{d.icon}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text)" }}>{d.ref}</div>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.7rem", color: "var(--text-muted)", marginTop: 2 }}>{d.msg}</div>
+                    </div>
+                  </div>
+                ));
+              })()}
             </div>
           </div>
         </div>

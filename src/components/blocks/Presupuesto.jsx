@@ -8,8 +8,7 @@ import { KpiGlobal }      from "../budget/KpiGlobal";
 import { ScenarioBar }    from "../budget/ScenarioBar";
 import { TabPresupuesto } from "../budget/TabPresupuesto";
 import { TabIngresos }    from "../budget/TabIngresos";
-import { TabTramos }      from "../budget/TabTramos";
-import { TabInscritos }   from "../budget/TabInscritos";
+import { TabInscripciones } from "../budget/TabInscripciones";
 import { TabResumen }     from "../budget/TabResumen";
 import { TabEquilibrio }  from "../budget/TabEquilibrio";
 import { DISTANCIAS }       from "@/constants/budgetConstants";
@@ -115,12 +114,11 @@ const FLOW_STEPS = [
 ];
 
 const TABS = [
-  { id: "presupuesto", icon: "💰", label: "Costes",         short: "Costes"   },
-  { id: "ingresos",    icon: "🟣", label: "Otros ingresos", short: "Ingresos" },
-  { id: "tramos",      icon: "📅", label: "Tramos",         short: "Tramos"   },
-  { id: "inscritos",   icon: "🏃", label: "Inscritos",      short: "Inscritos"},
-  { id: "resumen",     icon: "📉", label: "P&L Resumen",    short: "P&L"      },
-  { id: "equilibrio",  icon: "⚖️", label: "Equilibrio",     short: "Equil."   },
+  { id: "presupuesto", label: "Costes", short: "Costes", icon: "💰" },
+  { id: "ingresos",    label: "Otros ingresos", short: "Ingresos", icon: "🟣" },
+  { id: "inscripciones", label: "Inscripciones", short: "Inscritos", icon: "🏃" },
+  { id: "resumen",     label: "P&L Resumen", short: "P&L", icon: "📉" },
+  { id: "equilibrio",  label: "Equilibrio", short: "Equilibrio", icon: "⚖️" },
 ];
 
 // ─── Componente principal ─────────────────────────────────────────────────────
@@ -351,6 +349,10 @@ const Presupuesto = () => {
           realTotalInscritos={realTotalInscritos}
           scenarioResultado={resultado}
           scenarioTotalInscritos={totalInscritos}
+          realConceptos={conceptos}
+          realInscritos={inscritos}
+          realIngresosExtra={ingresosExtra}
+          realTramos={tramos}
           onCreateScenario={createScenario}
           onLoadScenario={loadScenario}
           onSaveScenario={saveScenario}
@@ -444,25 +446,16 @@ const Presupuesto = () => {
               setSyncConfig={setSyncConfig}
             />
           )}
-          {tab === "tramos" && (
-            <TabTramos
+          {tab === "inscripciones" && (
+            <TabInscripciones
               tramos={tramos}
               setTramos={setTramos}
               updateTramoPrecio={updateTramoPrecio}
               addTramo={addTramo}
-              inscritos={inscritos}
-            />
-          )}
-          {tab === "inscritos" && (
-            <TabInscritos
-              tramos={tramos}
-              // En modo escenario, el tab muestra los inscritos del draft.
-              // updateInscritos actualiza el draft, no los datos reales.
               inscritos={isScenarioMode ? (scenarioInscritos ?? inscritos) : inscritos}
               updateInscritos={isScenarioMode ? updateScenarioInscritos : updateInscritos}
               totalInscritos={totalInscritos}
               ingresosPorDistancia={ingresosPorDistancia}
-              precioMedioDistancia={precioMedioDistancia}
               maximos={maximos}
               setMaximos={setMaximos}
             />
