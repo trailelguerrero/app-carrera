@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReadmeModal  from "../components/blocks/ReadmeModal";
+import ErrorBoundary from "../components/ErrorBoundary";
 import DiaCarrera   from "../components/blocks/DiaCarrera";
 import OnboardingModal from "../components/blocks/OnboardingModal";
 import { exportBlockToPdf } from "../components/blocks/PdfExport";
@@ -482,26 +483,32 @@ export default function Index() {
 
         {/* CONTENT */}
         <main style={{ flex:1, overflow:"auto", paddingBottom: NAV_H + 8 }}>
-          <Suspense fallback={
-            <div style={{
-              display:"flex", flexDirection:"column", alignItems:"center",
-              justifyContent:"center", minHeight:"60vh", gap:"1rem",
-            }}>
+          <ErrorBoundary
+            key={activeBlock}
+            blockName={BLOCKS.find(b => b.id === activeBlock)?.label}
+            onNavigate={handleBlockChange}
+          >
+            <Suspense fallback={
               <div style={{
-                width:36, height:36, borderRadius:"50%",
-                border:"3px solid var(--teg-border)",
-                borderTopColor:"var(--teg-cyan)",
-                animation:"teg-spin 0.7s linear infinite",
-              }} />
-              <div style={{
-                fontFamily:"'DM Mono', 'Space Mono', monospace,monospace", fontSize:"0.6rem",
-                color:"var(--teg-text-muted)", letterSpacing:"0.1em",
-              }}>Cargando módulo…</div>
-              <style>{`@keyframes teg-spin { to { transform: rotate(360deg); } }`}</style>
-            </div>
-          }>
-            {ActiveComponent && <ActiveComponent key={activeBlock} />}
-          </Suspense>
+                display:"flex", flexDirection:"column", alignItems:"center",
+                justifyContent:"center", minHeight:"60vh", gap:"1rem",
+              }}>
+                <div style={{
+                  width:36, height:36, borderRadius:"50%",
+                  border:"3px solid var(--teg-border)",
+                  borderTopColor:"var(--teg-cyan)",
+                  animation:"teg-spin 0.7s linear infinite",
+                }} />
+                <div style={{
+                  fontFamily:"'DM Mono', 'Space Mono', monospace,monospace", fontSize:"0.6rem",
+                  color:"var(--teg-text-muted)", letterSpacing:"0.1em",
+                }}>Cargando módulo…</div>
+                <style>{`@keyframes teg-spin { to { transform: rotate(360deg); } }`}</style>
+              </div>
+            }>
+              {ActiveComponent && <ActiveComponent key={activeBlock} />}
+            </Suspense>
+          </ErrorBoundary>
         </main>
 
         {/* BOTTOM NAV */}
