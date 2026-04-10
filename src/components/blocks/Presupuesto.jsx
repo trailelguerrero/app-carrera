@@ -11,6 +11,7 @@ import { TabIngresos }    from "../budget/TabIngresos";
 import { TabInscripciones } from "../budget/TabInscripciones";
 import { TabResumen }     from "../budget/TabResumen";
 import { TabEquilibrio }  from "../budget/TabEquilibrio";
+import { TabHistorial }   from "../budget/TabHistorial";
 import { DISTANCIAS }       from "@/constants/budgetConstants";
 
 // ─── CSS específico del bloque ─────────────────────────────────────────────
@@ -118,6 +119,7 @@ const TABS = [
   { id: "ingresos",    label: "Ingresos Adicionales", short: "Otros ingresos", icon: "🟣" },
   { id: "resumen",     label: "Resumen P&L", short: "P&L Resumen", icon: "📉" },
   { id: "equilibrio",  label: "Puntos de Equilibrio", short: "Equilibrio", icon: "⚖️" },
+  { id: "historial",   label: "Historial", short: "Historial", icon: "🕐" },
 ];
 
 // ─── Componente principal ─────────────────────────────────────────────────────
@@ -489,6 +491,7 @@ const Presupuesto = () => {
               maximos={maximos}
             />
           )}
+          {tab === "historial" && <TabHistorial />}
         </div>
 
       </div>

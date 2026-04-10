@@ -189,15 +189,47 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     }, 2000);
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
   }, [tramos, conceptos, inscritos, ingresosExtra, merchandising, maximos]);
+  // ── Historial de cambios ──────────────────────────────────────────────────
+  const logCambio = (concepto, campo, valorAntes, valorNuevo) => {
+    // Fire-and-forget — no bloquea la UI, fallo silencioso
+    const apiKey = import.meta.env.VITE_API_KEY;
+    fetch("/api/budget-log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": apiKey },
+      body: JSON.stringify({
+        conceptoId: concepto.id,
+        concepto:   concepto.nombre || `#${concepto.id}`,
+        campo,
+        valorAntes: String(valorAntes ?? ""),
+        valorNuevo: String(valorNuevo ?? ""),
+        tipo:       concepto.tipo ?? null,
+      }),
+    }).catch(() => {}); // nunca interrumpir el flujo por un error de log
+  };
+
   const updateConcepto = (id, field, value) => {
-    setConceptos(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c));
+    setConceptos(prev => {
+      const next = prev.map(c => {
+        if (c.id !== id) return c;
+        // Registrar solo cambios en campos relevantes (no reordenamientos)
+        const camposLog = ["nombre","activo","costeTotal","modoUniforme",
+                           "estadoPago","estadoPedido","proveedor","contacto",
+                           "fechaPago","fechaEntrega","costeUnitarioReal"];
+        if (camposLog.includes(field) && c[field] !== value) {
+          logCambio(c, field, c[field], value);
+        }
+        return { ...c, [field]: value };
+      });
+      return next;
+    });
   };
 
   const updateCostePorDistancia = (id, dist, value) => {
     setConceptos(prev => prev.map(c => {
       if (c.id !== id) return c;
-      // Si modoUniforme, aplicar el mismo precio a TODAS las distancias
       if (c.modoUniforme) {
+        const antes = c.costePorDistancia.TG7;
+        if (antes !== value) logCambio(c, "precio (todas las distancias)", antes, value);
         return {
           ...c,
           costePorDistancia: Object.fromEntries(
@@ -205,16 +237,20 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
           )
         };
       }
-      // Si precios distintos por distancia, actualizar solo la distancia editada
+      const antes = c.costePorDistancia[dist];
+      if (antes !== value) logCambio(c, `precio ${dist}`, antes, value);
       return { ...c, costePorDistancia: { ...c.costePorDistancia, [dist]: value } };
     }));
   };
 
   const updateActivoDistancia = (id, dist, value) => {
-    setConceptos(prev => prev.map(c => c.id === id ? { 
-      ...c, 
-      activoDistancias: { ...c.activoDistancias, [dist]: value } 
-    } : c));
+    setConceptos(prev => prev.map(c => {
+      if (c.id !== id) return c;
+      if (c.activoDistancias[dist] !== value) {
+        logCambio(c, `${dist} activo`, c.activoDistancias[dist], value);
+      }
+      return { ...c, activoDistancias: { ...c.activoDistancias, [dist]: value } };
+    }));
   };
 
   const addConcepto = (tipo) => {
