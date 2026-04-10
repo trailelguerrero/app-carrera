@@ -377,7 +377,7 @@ export default function Index() {
 
   if (!authed) return <PinScreen onUnlock={() => setAuthed(true)} />;
 
-  const NAV_H = isMobile ? 62 : 66;
+  const NAV_H = isMobile ? 68 : 66;
 
   return (
     <>
@@ -499,7 +499,7 @@ export default function Index() {
                   background:"none", border:"none", cursor:"pointer",
                   display:"flex", flexDirection:"column", alignItems:"center",
                   justifyContent:"center", gap:"0.18rem",
-                  padding: isMobile ? "0.3rem 0.45rem" : "0.35rem 0.6rem",
+                  padding: isMobile ? "0.35rem 0.4rem" : "0.35rem 0.6rem",
                   borderRadius:10,
                   transition:"opacity 0.2s",
                   opacity: isActive ? 1 : 0.42,
@@ -525,7 +525,7 @@ export default function Index() {
 
                 {/* Icon */}
                 <span style={{
-                  fontSize: isMobile ? "1.1rem" : "1.18rem",
+                  fontSize: isMobile ? "1.45rem" : "1.18rem",
                   filter: isActive ? "none" : "grayscale(0.55)",
                   transform: isActive ? "scale(1.1)" : "scale(1)",
                   transition:"all 0.2s",
@@ -535,7 +535,7 @@ export default function Index() {
                 {/* Label — SIEMPRE VISIBLE */}
                 <span style={{
                   fontFamily:"'DM Mono', 'Space Mono', monospace,monospace",
-                  fontSize: isMobile ? "0.41rem" : "0.49rem",
+                  fontSize: isMobile ? "0.52rem" : "0.49rem",
                   fontWeight:700, letterSpacing:"0.01em",
                   color: isActive ? "var(--teg-cyan)" : "var(--teg-text-muted)",
                   transition:"color 0.2s",

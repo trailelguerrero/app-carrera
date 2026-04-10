@@ -242,7 +242,7 @@ export const BLOCK_CSS = `
 
   /* ── Buttons ────────────────────────────────────────────────────────────── */
   .btn {
-    padding: 0.45rem 0.9rem;
+    padding: 0.55rem 0.9rem;
     border-radius: var(--r-sm);
     font-weight: 700;
     font-size: 0.78rem;
@@ -270,7 +270,7 @@ export const BLOCK_CSS = `
   .btn-red:hover    { background: var(--red);    color: #fff; }
   .btn-primary{ background: var(--primary-dim);color: #c4c6ff;      border-color: rgba(99,102,241,0.4); }
   .btn-primary:hover{ background: var(--primary); color: #fff; }
-  .btn-sm { padding: 0.28rem 0.6rem; font-size: 0.68rem; }
+  .btn-sm { padding: 0.4rem 0.65rem; font-size: 0.7rem; }
   .btn-icon { padding: 0.35rem 0.45rem; }
 
   /* ── Badges ─────────────────────────────────────────────────────────────── */
@@ -444,8 +444,21 @@ export const BLOCK_CSS = `
     .kpi { padding: 0.75rem 0.85rem; }
     .kpi-value { font-size: 1.2rem; }
     .card { padding: 0.85rem; }
-    .tabs { gap: 0.3rem; }
-    .tab-btn { padding: 0.45rem 0.8rem; font-size: 0.72rem; }
+    .tabs { gap: 0.3rem; position: relative; }
+    .tab-btn { padding: 0.5rem 0.9rem; font-size: 0.74rem; min-height: 36px; }
+  }
+  /* Indicador de scroll en tabs — gradiente derecho */
+  .tabs-scroll-wrap {
+    position: relative;
+  }
+  .tabs-scroll-wrap::after {
+    content: "";
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 32px;
+    background: linear-gradient(to right, transparent, var(--surface));
+    pointer-events: none;
+    border-radius: 0 8px 8px 0;
   }
 `;
 
