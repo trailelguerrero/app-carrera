@@ -429,6 +429,7 @@ export default function App() {
   const [modalPuesto, setModalPuesto] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmDeletePuesto, setConfirmDeletePuesto] = useState(null);
+  const [urlCopiada, setUrlCopiada] = useState(false);
   const [ficha, setFicha] = useState(null); // {tipo:'vol'|'puesto', data}
   const abrirFicha = (tipo, data) => {
     const main = document.querySelector("main");
@@ -555,12 +556,61 @@ export default function App() {
             {stats.cancelados > 0 && <span className="badge badge-red">{stats.cancelados} cancelados</span>}
             <button className="btn btn-primary" onClick={() => setModalVol("nuevo")}>+ Voluntario</button>
             <button className="btn btn-ghost" onClick={() => setVista("formulario")}>🔗 Formulario</button>
-            <button className="btn btn-ghost btn-sm" onClick={() => {
-              const url = window.location.origin + "/voluntarios/registro";
-              navigator.clipboard.writeText(url);
-              alert("Enlace copiado:\n" + url);
-            }}>📋</button>
           </div>
+        </div>
+
+        {/* ── URL Formulario público ── */}
+        <div className="card mb" style={{
+          padding:".6rem .85rem",
+          display:"flex", alignItems:"center", gap:".65rem",
+          background:"rgba(34,211,238,.05)",
+          border:"1px solid rgba(34,211,238,.2)",
+        }}>
+          <span style={{fontSize:".85rem",flexShrink:0}}>🔗</span>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+              color:"var(--text-muted)",marginBottom:".1rem",
+              textTransform:"uppercase",letterSpacing:".06em"}}>
+              Formulario público de registro
+            </div>
+            <div style={{
+              fontFamily:"var(--font-mono)",fontSize:".65rem",
+              color:"var(--cyan)",fontWeight:600,
+              overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
+            }}>
+              {window.location.origin}/voluntarios/registro
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              const url = window.location.origin + "/voluntarios/registro";
+              navigator.clipboard.writeText(url).then(() => {
+                setUrlCopiada(true);
+                setTimeout(() => setUrlCopiada(false), 2000);
+              });
+            }}
+            style={{
+              background: urlCopiada ? "rgba(52,211,153,.15)" : "var(--surface2)",
+              border: urlCopiada ? "1px solid rgba(52,211,153,.3)" : "1px solid var(--border)",
+              borderRadius:8, padding:".3rem .65rem",
+              fontFamily:"var(--font-mono)", fontSize:".6rem", fontWeight:700,
+              color: urlCopiada ? "var(--green)" : "var(--text-muted)",
+              cursor:"pointer", flexShrink:0, transition:"all .2s", whiteSpace:"nowrap",
+            }}>
+            {urlCopiada ? "✓ Copiado" : "📋 Copiar"}
+          </button>
+          <a
+            href={window.location.origin + "/voluntarios/registro"}
+            target="_blank" rel="noreferrer"
+            style={{
+              background:"var(--surface2)", border:"1px solid var(--border)",
+              borderRadius:8, padding:".3rem .65rem",
+              fontFamily:"var(--font-mono)", fontSize:".6rem", fontWeight:700,
+              color:"var(--text-muted)", textDecoration:"none",
+              flexShrink:0, transition:"all .2s", whiteSpace:"nowrap",
+            }}>
+            ↗ Abrir
+          </a>
         </div>
 
         {/* KPIs */}
