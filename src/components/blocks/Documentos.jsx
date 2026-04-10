@@ -16,8 +16,10 @@ const CATEGORIAS = [
   { id: "permisos",     icon: "📋", label: "Permisos",     color: "#a78bfa" },
   { id: "seguros",      icon: "🛡️", label: "Seguros",      color: "#fbbf24" },
   { id: "protocolos",   icon: "📑", label: "Protocolos",   color: "#fb923c" },
-  { id: "gestiones",    icon: "🏛️", label: "Gestiones",    color: "#38bdf8", esGestion: true },
 ];
+// Gestiones es una sección separada — no mezclar con categorías de archivo
+const CAT_GESTIONES = { id: "gestiones", icon: "🏛️", label: "Gestiones legales", color: "#38bdf8", esGestion: true };
+const TODAS_CATEGORIAS = [...CATEGORIAS, { ...CAT_GESTIONES }]; // solo para búsqueda global
 
 const SUBCATEGORIAS = {
   permisos:     ["Ayuntamiento", "Diputación", "Medio Ambiente", "Otro"],
@@ -332,7 +334,7 @@ export default function Documentos() {
 
   // ─── DERIVED ─────────────────────────────────────────────────────────────
   const catInfo   = CATEGORIAS.find(c => c.id === tab);
-  const isGestion = catInfo?.esGestion === true;
+  const isGestion = tab === "gestiones"; // gestiones es sección separada, no categoría
   const subcats   = SUBCATEGORIAS[tab] || [];
   const totalSize = docs.reduce((s, d) => s + (d.size || 0), 0);
   const storagePct = Math.min((totalSize / (100*1024*1024)) * 100, 100);
@@ -632,6 +634,7 @@ export default function Documentos() {
         )}
 
         {/* ── KPIs por categoría ── */}
+        {/* ── KPIs Documentos (archivos) ── */}
         <div className="kpi-grid mb">
           {CATEGORIAS.map(c => {
             const cnt   = docs.filter(d => d.categoria === c.id).length;
@@ -641,24 +644,18 @@ export default function Documentos() {
               d.estado !== "aprobado").length;
             return (
               <div key={c.id} className="kpi" style={{cursor:"pointer",borderLeftColor:c.color,borderLeftWidth:3,borderLeftStyle:"solid"}}
-                onClick={() => setTab(c.id)}>
+                onClick={() => { setTab(c.id); setBusqueda(""); }}>
                 <div className="kpi-label">{c.icon} {c.label}</div>
                 <div className="kpi-value" style={{color:c.color}}>{cnt}</div>
                 <div className="kpi-sub">
                   {alert > 0
                     ? <span style={{color:"var(--amber)"}}>⏰ {alert} por vencer</span>
-                    : cnt === 0 ? "sin documentos" : "documentos"
+                    : cnt === 0 ? "sin archivos" : "archivos"
                   }
                 </div>
               </div>
             );
           })}
-          <div className="kpi" style={{cursor:"pointer",borderLeftColor:"var(--text-dim)",borderLeftWidth:3,borderLeftStyle:"solid"}}
-            onClick={()=>setTab("gestiones")}>
-            <div className="kpi-label">📦 Total docs</div>
-            <div className="kpi-value">{docs.length}</div>
-            <div className="kpi-sub">{formatSize(totalSize)}</div>
-          </div>
         </div>
 
         {/* ── Storage bar ── */}
@@ -678,7 +675,7 @@ export default function Documentos() {
           </div>
         </div>
 
-        {/* ── Category tabs ── */}
+        {/* ── Category tabs — solo archivos ── */}
         <div className="tabs" style={{gap:".4rem",flexWrap:"wrap"}}>
           {CATEGORIAS.map(c => {
             const active = tab === c.id;
@@ -699,96 +696,8 @@ export default function Documentos() {
           })}
         </div>
 
-        {/* ── Upload zone / Formulario gestión — según categoría ── */}
-        {isGestion ? (
-          /* ── FORMULARIO GESTIONES LEGALES ── */
-          <div className="card mb">
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".75rem"}}>
-              <span className="card-title" style={{color:"#38bdf8",margin:0}}>🏛️ Gestiones legales pendientes</span>
-              <button className="btn btn-primary btn-sm" onClick={()=>{
-                setGForm({nombre:"",subcategoria:"Ayuntamiento",estado:"pendiente",fechaVencimiento:"",nota:"",url:""});
-                setGEditId(null); setGModal(true);
-              }}>+ Nueva gestión</button>
-            </div>
-            <div style={{display:"flex",flexDirection:"column",gap:".45rem"}}>
-              {gestiones.length === 0 && (
-                <div style={{textAlign:"center",padding:"2rem",color:"var(--text-dim)",fontFamily:"var(--font-mono)",fontSize:".72rem"}}>
-                  Sin gestiones registradas
-                </div>
-              )}
-              {gestiones.map(g => {
-                const ecfg = getEstadoCfg(g.estado);
-                const dias = diasHasta(g.fechaVencimiento);
-                const vcolor = dias===null?"var(--text-muted)":dias<0?"var(--red)":dias<=7?"var(--red)":dias<=30?"var(--amber)":"var(--text-muted)";
-                const isEditing = gEditId === g.id;
-                return (
-                  <div key={g.id} style={{background:"var(--surface2)",border:`1px solid ${ecfg.color}33`,
-                    borderLeft:`3px solid ${ecfg.color}`,borderRadius:8,padding:".65rem .85rem"}}>
-                    {isEditing ? (
-                      /* Modo edición inline */
-                      <div style={{display:"flex",flexDirection:"column",gap:".4rem"}}>
-                        <input className="inp" value={gForm.nombre} onChange={e=>setGForm(p=>({...p,nombre:e.target.value}))} placeholder="Nombre de la gestión *" />
-                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem"}}>
-                          <select className="inp inp-sm" value={gForm.subcategoria} onChange={e=>setGForm(p=>({...p,subcategoria:e.target.value}))}>
-                            {(SUBCATEGORIAS.gestiones||[]).map(sc=><option key={sc} value={sc}>{sc}</option>)}
-                          </select>
-                          <select className="inp inp-sm" value={gForm.estado} onChange={e=>setGForm(p=>({...p,estado:e.target.value}))} style={{color:getEstadoCfg(gForm.estado).color}}>
-                            {ESTADOS_DOC.map(e=><option key={e.id} value={e.id}>{e.label}</option>)}
-                          </select>
-                        </div>
-                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem"}}>
-                          <div><label style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",display:"block",marginBottom:".2rem"}}>Fecha límite</label>
-                            <input className="inp inp-sm" type="date" value={gForm.fechaVencimiento} onChange={e=>setGForm(p=>({...p,fechaVencimiento:e.target.value}))} /></div>
-                          <div><label style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",display:"block",marginBottom:".2rem"}}>URL / Referencia</label>
-                            <input className="inp inp-sm" value={gForm.url||""} onChange={e=>setGForm(p=>({...p,url:e.target.value}))} placeholder="https://…" /></div>
-                        </div>
-                        <textarea className="inp" rows={2} value={gForm.nota||""} onChange={e=>setGForm(p=>({...p,nota:e.target.value}))} placeholder="Notas / instrucciones…" style={{resize:"vertical"}} />
-                        <div style={{display:"flex",gap:".4rem"}}>
-                          <button className="btn btn-primary btn-sm" onClick={()=>{
-                            if(!gForm.nombre.trim()) return;
-                            saveGestiones(gestiones.map(x=>x.id===g.id?{...x,...gForm}:x));
-                            setGEditId(null);
-                          }}>✅ Guardar</button>
-                          <button className="btn btn-ghost btn-sm" onClick={()=>setGEditId(null)}>Cancelar</button>
-                          <button className="btn btn-red btn-sm" style={{marginLeft:"auto"}} onClick={()=>{
-                            if(!confirm("¿Eliminar esta gestión?")) return;
-                            saveGestiones(gestiones.filter(x=>x.id!==g.id));
-                            setGEditId(null);
-                          }}>🗑 Eliminar</button>
-                        </div>
-                      </div>
-                    ) : (
-                      /* Modo vista */
-                      <div style={{display:"flex",gap:".75rem",alignItems:"flex-start"}}>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontWeight:700,fontSize:".82rem",marginBottom:".2rem"}}>{g.nombre}</div>
-                          <div style={{display:"flex",gap:".4rem",flexWrap:"wrap",alignItems:"center"}}>
-                            <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",padding:".08rem .35rem",
-                              borderRadius:3,background:`${ecfg.color}18`,color:ecfg.color,border:`1px solid ${ecfg.color}33`}}>
-                              {ecfg.label}
-                            </span>
-                            {g.subcategoria && <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-muted)"}}>{g.subcategoria}</span>}
-                            {g.fechaVencimiento && (
-                              <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:vcolor,fontWeight:700}}>
-                                {dias===null?"":dias<0?`⚠ Venció ${formatDate(g.fechaVencimiento)}`:dias===0?"⏰ Hoy":`⏰ ${dias}d · ${formatDate(g.fechaVencimiento)}`}
-                              </span>
-                            )}
-                            {g.url && <a href={g.url} target="_blank" rel="noreferrer" style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"#38bdf8"}} onClick={e=>e.stopPropagation()}>🔗 Ver enlace</a>}
-                          </div>
-                          {g.nota && <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",marginTop:".25rem",lineHeight:1.5}}>{g.nota}</div>}
-                        </div>
-                        <button className="btn btn-ghost btn-sm" style={{flexShrink:0}} onClick={()=>{
-                          setGForm({nombre:g.nombre,subcategoria:g.subcategoria||"Ayuntamiento",estado:g.estado,fechaVencimiento:g.fechaVencimiento||"",nota:g.nota||"",url:g.url||""});
-                          setGEditId(g.id);
-                        }}>✏️</button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ) : (
+        {/* ── Upload zone — solo para categorías de archivo ── */}
+        {!isGestion && (
         <div className="card mb" style={{padding: uploadOpen ? undefined : ".65rem 1rem"}}>
           <button
             onClick={() => setUploadOpen(v => !v)}
@@ -859,7 +768,7 @@ export default function Documentos() {
             </div>
           )}
         </div>
-        )} {/* fin ternario isGestion */}
+        )}
 
         {/* ── Resultados búsqueda global ── */}
         {resultadosGlobales && (
@@ -870,7 +779,7 @@ export default function Documentos() {
             </div>
             <div className="doc-list">
               {resultadosGlobales.map(doc => {
-                const cat = CATEGORIAS.find(c => c.id === doc.categoria) || CATEGORIAS[0];
+                const cat = TODAS_CATEGORIAS.find(c => c.id === doc.categoria) || CATEGORIAS[0];
                 const ecfg = getEstadoCfg(doc.estado);
                 const dV = diasHasta(doc.fechaVencimiento);
                 const vc = dV !== null ? (dV < 0 ? "var(--red)" : dV <= 30 ? "var(--amber)" : "var(--text-muted)") : "var(--text-muted)";
@@ -1136,6 +1045,123 @@ export default function Documentos() {
           </div>
         </div>
       , document.body)}
+      {/* ── SECCIÓN GESTIONES LEGALES — siempre visible ── */}
+      <div style={{marginTop:"1.5rem"}}>
+        <div style={{
+          display:"flex", justifyContent:"space-between", alignItems:"center",
+          marginBottom:".75rem", paddingBottom:".6rem",
+          borderBottom:"2px solid rgba(56,189,248,0.2)",
+        }}>
+          <div>
+            <div style={{
+              fontFamily:"var(--font-display)", fontWeight:800, fontSize:".9rem",
+              color:"#38bdf8", display:"flex", alignItems:"center", gap:".5rem",
+            }}>
+              🏛️ Gestiones legales
+            </div>
+            <div style={{
+              fontFamily:"var(--font-mono)", fontSize:".6rem",
+              color:"var(--text-muted)", marginTop:".15rem",
+            }}>
+              Trámites y autorizaciones · sin archivo adjunto
+            </div>
+          </div>
+          <div style={{display:"flex",gap:".5rem",alignItems:"center"}}>
+            {(gestionesVencidas.length > 0 || gestionesCriticas.length > 0) && (
+              <span style={{
+                fontFamily:"var(--font-mono)", fontSize:".6rem", fontWeight:700,
+                color:"var(--red)", background:"var(--red-dim)",
+                border:"1px solid rgba(248,113,113,0.25)",
+                borderRadius:20, padding:".15rem .55rem",
+              }}>
+                ⚠️ {gestionesVencidas.length + gestionesCriticas.length} urgente{(gestionesVencidas.length+gestionesCriticas.length)>1?"s":""}
+              </span>
+            )}
+            <button className="btn btn-primary btn-sm" onClick={()=>{
+              setGForm({nombre:"",subcategoria:"Ayuntamiento",estado:"pendiente",fechaVencimiento:"",nota:"",url:""});
+              setGEditId(null); setGModal(true);
+            }}>+ Nueva gestión</button>
+          </div>
+        </div>
+
+        <div style={{display:"flex",flexDirection:"column",gap:".45rem"}}>
+          {gestiones.length === 0 && (
+            <div style={{textAlign:"center",padding:"2rem",color:"var(--text-dim)",
+              fontFamily:"var(--font-mono)",fontSize:".72rem"}}>
+              Sin gestiones registradas
+            </div>
+          )}
+          {gestiones.map(g => {
+            const ecfg = getEstadoCfg(g.estado);
+            const dias = diasHasta(g.fechaVencimiento);
+            const vcolor = dias===null?"var(--text-muted)":dias<0?"var(--red)":dias<=7?"var(--red)":dias<=30?"var(--amber)":"var(--text-muted)";
+            const isEditing = gEditId === g.id;
+            return (
+              <div key={g.id} style={{background:"var(--surface2)",border:`1px solid ${ecfg.color}33`,
+                borderLeft:`3px solid ${ecfg.color}`,borderRadius:8,padding:".65rem .85rem"}}>
+                {isEditing ? (
+                  <div style={{display:"flex",flexDirection:"column",gap:".4rem"}}>
+                    <input className="inp" value={gForm.nombre} onChange={e=>setGForm(p=>({...p,nombre:e.target.value}))} placeholder="Nombre de la gestión *" />
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem"}}>
+                      <select className="inp inp-sm" value={gForm.subcategoria} onChange={e=>setGForm(p=>({...p,subcategoria:e.target.value}))}>
+                        {(SUBCATEGORIAS.gestiones||[]).map(sc=><option key={sc} value={sc}>{sc}</option>)}
+                      </select>
+                      <select className="inp inp-sm" value={gForm.estado} onChange={e=>setGForm(p=>({...p,estado:e.target.value}))} style={{color:getEstadoCfg(gForm.estado).color}}>
+                        {ESTADOS_DOC.map(e=><option key={e.id} value={e.id}>{e.label}</option>)}
+                      </select>
+                    </div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem"}}>
+                      <div><label style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",display:"block",marginBottom:".2rem"}}>Fecha límite</label>
+                        <input className="inp inp-sm" type="date" value={gForm.fechaVencimiento} onChange={e=>setGForm(p=>({...p,fechaVencimiento:e.target.value}))} /></div>
+                      <div><label style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",display:"block",marginBottom:".2rem"}}>URL / Referencia</label>
+                        <input className="inp inp-sm" value={gForm.url||""} onChange={e=>setGForm(p=>({...p,url:e.target.value}))} placeholder="https://…" /></div>
+                    </div>
+                    <textarea className="inp" rows={2} value={gForm.nota||""} onChange={e=>setGForm(p=>({...p,nota:e.target.value}))} placeholder="Notas…" style={{resize:"vertical"}} />
+                    <div style={{display:"flex",gap:".4rem"}}>
+                      <button className="btn btn-primary btn-sm" onClick={()=>{
+                        if(!gForm.nombre.trim()) return;
+                        saveGestiones(gestiones.map(x=>x.id===g.id?{...x,...gForm}:x));
+                        setGEditId(null);
+                      }}>✅ Guardar</button>
+                      <button className="btn btn-ghost btn-sm" onClick={()=>setGEditId(null)}>Cancelar</button>
+                      <button className="btn btn-red btn-sm" style={{marginLeft:"auto"}} onClick={()=>{
+                        if(!confirm("¿Eliminar esta gestión?")) return;
+                        saveGestiones(gestiones.filter(x=>x.id!==g.id));
+                        setGEditId(null);
+                      }}>🗑 Eliminar</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{display:"flex",gap:".75rem",alignItems:"flex-start"}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:700,fontSize:".82rem",marginBottom:".2rem"}}>{g.nombre}</div>
+                      <div style={{display:"flex",gap:".4rem",flexWrap:"wrap",alignItems:"center"}}>
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",padding:".08rem .35rem",
+                          borderRadius:3,background:`${ecfg.color}18`,color:ecfg.color,border:`1px solid ${ecfg.color}33`}}>
+                          {ecfg.label}
+                        </span>
+                        {g.subcategoria && <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-muted)"}}>{g.subcategoria}</span>}
+                        {g.fechaVencimiento && (
+                          <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:vcolor,fontWeight:700}}>
+                            {dias===null?"":dias<0?`⚠ Venció ${formatDate(g.fechaVencimiento)}`:dias===0?"⏰ Hoy":`⏰ ${dias}d · ${formatDate(g.fechaVencimiento)}`}
+                          </span>
+                        )}
+                        {g.url && <a href={g.url} target="_blank" rel="noreferrer" style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"#38bdf8"}} onClick={e=>e.stopPropagation()}>🔗 Ver enlace</a>}
+                      </div>
+                      {g.nota && <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",marginTop:".25rem",lineHeight:1.5}}>{g.nota}</div>}
+                    </div>
+                    <button className="btn btn-ghost btn-sm" style={{flexShrink:0}} onClick={()=>{
+                      setGForm({nombre:g.nombre,subcategoria:g.subcategoria||"Ayuntamiento",estado:g.estado,fechaVencimiento:g.fechaVencimiento||"",nota:g.nota||"",url:g.url||""});
+                      setGEditId(g.id);
+                    }}>✏️</button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* ── Modal nueva gestión ── */}
       {gModal && createPortal(
         <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setGModal(false)}>

@@ -45,6 +45,7 @@ export default function Dashboard() {
   const [refreshing,  setRefreshing]  = useState(false);  // refresco silencioso
   const [lastUpdated, setLastUpdated] = useState(null);
   const [alertasExpandidas, setAlertasExpandidas] = useState(false); // avisos colapsables
+  const [saludExpandida, setSaludExpandida] = useState(false);     // salud colapsable
   const intervalRef = useRef(null);
 
   const loadData = useCallback(async (silent = false) => {
@@ -412,32 +413,56 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Barra de salud del evento */}
+              {/* Barra de salud del evento — colapsada si todo va bien */}
               <div className="dash-salud-box">
-                <div className="mono xs muted" style={{ marginBottom:"0.5rem", textTransform:"uppercase", letterSpacing:"0.08em", fontSize:"0.55rem" }}>
-                  Salud del evento
-                </div>
-                <div className="dash-salud-score" style={{ color: saludColor }}>
-                  {d.saludGlobal}%
-                </div>
-                <div className="mono xs" style={{ color: saludColor, marginBottom:"0.6rem" }}>
-                  {saludLabel}
-                </div>
-                <div className="dash-salud-bars">
-                  {d.saludModulos.map(m => (
-                    <div key={m.label}
-                      className="dash-salud-bar-row"
-                      onClick={() => navigate(m.bloque)}
-                      title={`Ir a ${m.label}`}>
-                      <span className="dash-salud-bar-icon">{m.icon}</span>
-                      <div className="dash-salud-bar-track">
-                        <div className="dash-salud-bar-fill"
-                          style={{ width:`${m.score}%`, background: m.color }} />
-                      </div>
-                      <span className="mono" style={{ fontSize:"0.58rem", color: m.color, minWidth:28, textAlign:"right" }}>{m.score}%</span>
+                <button
+                  onClick={() => setSaludExpandida(v => !v)}
+                  style={{ width:"100%", background:"none", border:"none", cursor:"pointer",
+                    padding:0, textAlign:"left" }}>
+                  <div style={{ display:"flex", alignItems:"center",
+                    justifyContent:"space-between", marginBottom: saludExpandida ? "0.5rem" : 0 }}>
+                    <div className="mono xs muted" style={{ textTransform:"uppercase",
+                      letterSpacing:"0.08em", fontSize:"0.55rem" }}>
+                      Salud del evento
                     </div>
-                  ))}
-                </div>
+                    <div style={{ display:"flex", alignItems:"center", gap:"0.5rem" }}>
+                      <span className="dash-salud-score" style={{ color: saludColor, fontSize:"1rem" }}>
+                        {d.saludGlobal}%
+                      </span>
+                      <span className="mono" style={{ color: saludColor, fontSize:"0.65rem" }}>
+                        {saludExpandida ? "▲" : "▼"}
+                      </span>
+                    </div>
+                  </div>
+                  {!saludExpandida && (
+                    <div className="mono xs" style={{ color: saludColor }}>
+                      {saludLabel}
+                    </div>
+                  )}
+                </button>
+                {saludExpandida && (
+                  <>
+                    <div className="mono xs" style={{ color: saludColor, marginBottom:"0.6rem" }}>
+                      {saludLabel}
+                    </div>
+                    <div className="dash-salud-bars">
+                      {d.saludModulos.map(m => (
+                        <div key={m.label}
+                          className="dash-salud-bar-row"
+                          onClick={() => navigate(m.bloque)}
+                          title={`Ir a ${m.label}`}>
+                          <span className="dash-salud-bar-icon">{m.icon}</span>
+                          <div className="dash-salud-bar-track">
+                            <div className="dash-salud-bar-fill"
+                              style={{ width:`${m.score}%`, background: m.color }} />
+                          </div>
+                          <span className="mono" style={{ fontSize:"0.58rem", color: m.color,
+                            minWidth:28, textAlign:"right" }}>{m.score}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
