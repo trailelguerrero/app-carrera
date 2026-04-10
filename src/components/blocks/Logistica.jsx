@@ -257,7 +257,7 @@ export default function App() {
         </div>
 
         {/* TABS */}
-        <div className="tabs-scroll-wrap"><div className="tabs">
+        <div className="tabs">
           {TABS.map(t => (
             <button key={t.id} className={cls("tab-btn", tab===t.id && "active")} onClick={() => setTab(t.id)}>
               {t.icon} {t.label}
@@ -266,7 +266,7 @@ export default function App() {
               {t.id==="contactos" && stats.incOpen>0 && <span className="badge badge-amber" style={{marginLeft:"0.3rem"}}>{stats.incOpen}</span>}
             </button>
           ))}
-        </div></div>
+        </div>
 
         {/* CONTENIDO */}
         <div key={tab}>

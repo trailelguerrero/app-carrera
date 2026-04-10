@@ -272,7 +272,7 @@ const Presupuesto = () => {
         </div>
 
         {/* ── TABS ── */}
-        <div className="tabs-scroll-wrap"><div className="tabs">
+        <div className="tabs">
           {TABS.map(t => (
             <button key={t.id}
               className={cls("tab-btn", tab === t.id && "active")}
@@ -282,7 +282,7 @@ const Presupuesto = () => {
               <span className="tab-label-short">{t.short}</span>
             </button>
           ))}
-        </div></div>
+        </div>
 
         {/* ── CONTENIDO ── */}
         <div key={tab}>

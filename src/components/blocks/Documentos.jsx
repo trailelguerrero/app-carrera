@@ -679,7 +679,7 @@ export default function Documentos() {
         </div>
 
         {/* ── Category tabs ── */}
-        <div className="tabs-scroll-wrap"><div className="tabs" style={{gap:".4rem",flexWrap:"wrap"}}>
+        <div className="tabs" style={{gap:".4rem",flexWrap:"wrap"}}>
           {CATEGORIAS.map(c => {
             const active = tab === c.id;
             const cnt    = docs.filter(d => d.categoria === c.id).length;
@@ -697,7 +697,7 @@ export default function Documentos() {
               </button>
             );
           })}
-        </div></div>
+        </div>
 
         {/* ── Upload zone / Formulario gestión — según categoría ── */}
         {isGestion ? (
