@@ -187,10 +187,20 @@ export const useBudgetLogic = () => {
   };
 
   const updateCostePorDistancia = (id, dist, value) => {
-    setConceptos(prev => prev.map(c => c.id === id ? { 
-      ...c, 
-      costePorDistancia: { ...c.costePorDistancia, [dist]: value } 
-    } : c));
+    setConceptos(prev => prev.map(c => {
+      if (c.id !== id) return c;
+      // Si modoUniforme, aplicar el mismo precio a TODAS las distancias
+      if (c.modoUniforme) {
+        return {
+          ...c,
+          costePorDistancia: Object.fromEntries(
+            ["TG7","TG13","TG25"].map(d => [d, value])
+          )
+        };
+      }
+      // Si precios distintos por distancia, actualizar solo la distancia editada
+      return { ...c, costePorDistancia: { ...c.costePorDistancia, [dist]: value } };
+    }));
   };
 
   const updateActivoDistancia = (id, dist, value) => {

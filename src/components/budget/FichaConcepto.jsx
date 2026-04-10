@@ -50,9 +50,11 @@ export function ModalEditarConcepto({ concepto: c, totalInscritos, onSave, onClo
   const handleGuardar = () => {
     let costeFinal = { ...form.costePorDistancia };
     if (!esFijo && form.modoUniforme) {
+      // Modo uniforme: propagar precio de TG7 a todas las distancias
       const base = form.costePorDistancia.TG7 || 0;
       DISTANCIAS.forEach(d => { costeFinal[d] = base; });
     }
+    // Modo por distancia: costePorDistancia ya tiene cada precio independiente
     onSave({ ...c, ...form, costePorDistancia: costeFinal });
   };
 
@@ -177,12 +179,19 @@ export function ModalEditarConcepto({ concepto: c, totalInscritos, onSave, onClo
                     </span>
                     <div style={{ flex:1, display:"flex", justifyContent:"flex-end" }}>
                       <NumInput
-                        value={form.costePorDistancia[d] || 0}
+                        key={`${d}-${form.modoUniforme}`}
+                        value={form.modoUniforme
+                          ? (form.costePorDistancia["TG7"] || 0)
+                          : (form.costePorDistancia[d] || 0)}
                         onChange={v => {
                           if (form.modoUniforme) {
+                            // Modo uniforme: mismo precio para todas
                             setForm(p => ({ ...p, costePorDistancia:
                               Object.fromEntries(DISTANCIAS.map(dd => [dd, v])) }));
-                          } else { updDist("costePorDistancia", d, v); }
+                          } else {
+                            // Modo por distancia: precio independiente
+                            updDist("costePorDistancia", d, v);
+                          }
                         }}
                         step={0.01} small
                         disabled={form.modoUniforme && i > 0}
@@ -190,7 +199,12 @@ export function ModalEditarConcepto({ concepto: c, totalInscritos, onSave, onClo
                     </div>
                     <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.6rem",
                       color:"var(--text-muted)", width:60, textAlign:"right" }}>
-                      = {fmt((form.costePorDistancia[d]||0) * (totalInscritos?.[d]||0))}
+                      = {fmt(
+                        (form.modoUniforme
+                          ? (form.costePorDistancia["TG7"] || 0)
+                          : (form.costePorDistancia[d] || 0)
+                        ) * (totalInscritos?.[d] || 0)
+                      )}
                     </span>
                   </div>
                 ))}
