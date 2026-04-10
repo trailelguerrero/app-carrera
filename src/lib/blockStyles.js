@@ -147,8 +147,21 @@ export const BLOCK_CSS = `
     padding-bottom: 0.4rem;
     -ms-overflow-style: none;
     scrollbar-width: none;
+    position: relative;
   }
   .tabs::-webkit-scrollbar { display: none; }
+  .tabs-wrap {
+    position: relative;
+  }
+  .tabs-wrap::after {
+    content: "";
+    position: absolute;
+    right: 0; top: 0; bottom: 4px;
+    width: 40px;
+    background: linear-gradient(to right, transparent, var(--surface));
+    pointer-events: none;
+    z-index: 1;
+  }
   .tab-btn {
     padding: 0.55rem 1.1rem;
     border-radius: var(--r-sm);
@@ -447,19 +460,7 @@ export const BLOCK_CSS = `
     .tabs { gap: 0.3rem; position: relative; }
     .tab-btn { padding: 0.5rem 0.9rem; font-size: 0.74rem; min-height: 36px; }
   }
-  /* Indicador de scroll en tabs — gradiente derecho */
-  .tabs-scroll-wrap {
-    position: relative;
-  }
-  .tabs-scroll-wrap::after {
-    content: "";
-    position: absolute;
-    right: 0; top: 0; bottom: 0;
-    width: 32px;
-    background: linear-gradient(to right, transparent, var(--surface));
-    pointer-events: none;
-    border-radius: 0 8px 8px 0;
-  }
+
 `;
 
 /** Combina clases condicionalmente */
