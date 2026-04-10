@@ -99,6 +99,7 @@ export default function Documentos() {
   const [busqGlobal, setBusqGlobal] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(true); // colapsable en móvil
   const [editId,  setEditId]    = useState(null);
+  const [delConfirm, setDelConfirm] = useState(null); // {id, nombre, esGestion}
   const [editForm, setEditForm] = useState({});
   // Modal nueva gestión
   const [gModal, setGModal] = useState(false);
@@ -212,14 +213,25 @@ export default function Documentos() {
   const handleDragLeave = (e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(false); };
 
   const deleteDoc = async (id) => {
-    if (!confirm("¿Eliminar este documento?")) return;
-    try {
-      await fetch(`/api/documents?id=${id}`, {
-        method: "DELETE",
-        headers: { "x-api-key": import.meta.env.VITE_API_KEY }
-      });
-    } catch (e) { console.error("Error eliminando:", e); }
-    save(docs.filter(d => d.id !== id));
+    setDelConfirm({ id, nombre: docs.find(d=>d.id===id)?.nombreDisplay || docs.find(d=>d.id===id)?.nombre || "documento", esGestion: false });
+  };
+
+  const confirmarDelete = async () => {
+    if (!delConfirm) return;
+    const { id, esGestion } = delConfirm;
+    setDelConfirm(null);
+    if (esGestion) {
+      saveGestiones(gestiones.filter(x => x.id !== id));
+      setGEditId(null);
+    } else {
+      try {
+        await fetch(`/api/documents?id=${id}`, {
+          method: "DELETE",
+          headers: { "x-api-key": import.meta.env.VITE_API_KEY }
+        });
+      } catch (e) { console.error("Error eliminando:", e); }
+      save(docs.filter(d => d.id !== id));
+    }
   };
   const downloadDoc = async (doc) => {
     // Preferir blobUrl — descarga directa sin pasar por Neon
@@ -1161,6 +1173,40 @@ export default function Documentos() {
           })}
         </div>
       </div>
+
+      {/* ── Modal confirmación eliminar ── */}
+      {delConfirm && createPortal(
+        <div onClick={() => setDelConfirm(null)} style={{
+          position:"fixed", inset:0, background:"rgba(0,0,0,0.75)",
+          display:"flex", alignItems:"center", justifyContent:"center",
+          zIndex:9999, padding:"1rem",
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background:"var(--surface)", border:"1px solid var(--border)",
+            borderRadius:14, padding:"1.5rem", maxWidth:320, width:"100%",
+            textAlign:"center",
+          }}>
+            <div style={{ fontSize:"2.2rem", marginBottom:".6rem" }}>🗑</div>
+            <div style={{ fontWeight:800, fontSize:".9rem", marginBottom:".35rem" }}>
+              ¿Eliminar este {delConfirm.esGestion ? "trámite" : "documento"}?
+            </div>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:".65rem",
+              color:"var(--text-muted)", marginBottom:"1.25rem",
+              overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+              {delConfirm.nombre}
+            </div>
+            <div style={{ display:"flex", gap:".5rem", justifyContent:"center" }}>
+              <button onClick={() => setDelConfirm(null)} className="btn btn-ghost">
+                Cancelar
+              </button>
+              <button onClick={confirmarDelete} className="btn btn-red">
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* ── Modal nueva gestión ── */}
       {gModal && createPortal(

@@ -468,48 +468,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ── ALERTAS CRÍTICAS ── */}
-        {d.alertasCriticas.length > 0 && (
-          <div className="dash-alertas-criticas mb">
-            <div className="dash-alertas-header">
-              <span>🚨 {d.alertasCriticas.length} alerta{d.alertasCriticas.length !== 1 ? "s" : ""} crítica{d.alertasCriticas.length !== 1 ? "s" : ""}</span>
-            </div>
-            {d.alertasCriticas.map((a,i) => (
-              <div key={i} className="dash-alerta dash-alerta-danger dash-alerta-clickable"
-                onClick={() => navigate(a.modulo)} title={`Ir a ${a.modulo}`}>
-                <span>{a.icon}</span>
-                <span className="dash-alerta-text">{a.texto}</span>
-                <span className="badge badge-muted" style={{ flexShrink:0 }}>{a.modulo} →</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* ── AVISOS (colapsables) ── */}
-        {d.alertasAvisos.length > 0 && (
-          <div className="card mb" style={{ padding:"0.75rem 1rem" }}>
-            <button className="dash-avisos-toggle" onClick={() => setAlertasExpandidas(v => !v)}>
-              <span className="mono xs" style={{ color:"var(--amber)" }}>
-                ⚡ {d.alertasAvisos.length} aviso{d.alertasAvisos.length !== 1 ? "s" : ""} pendiente{d.alertasAvisos.length !== 1 ? "s" : ""}
-              </span>
-              <span className="mono xs muted">{alertasExpandidas ? "▲ ocultar" : "▼ mostrar"}</span>
-            </button>
-            {alertasExpandidas && (
-              <div style={{ marginTop:"0.5rem", display:"flex", flexDirection:"column", gap:"0.3rem" }}>
-                {d.alertasAvisos.map((a,i) => (
-                  <div key={i} className={`dash-alerta ${a.icon==="🔵" ? "dash-alerta-info" : "dash-alerta-warning"} dash-alerta-clickable`}
-                    onClick={() => navigate(a.modulo)} title={`Ir a ${a.modulo}`}>
-                    <span>{a.icon}</span>
-                    <span className="dash-alerta-text">{a.texto}</span>
-                    <span className="badge badge-muted" style={{ flexShrink:0 }}>{a.modulo} →</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-
         {/* ── HAZ ESTO AHORA ─────────────────────────────────────────────── */}
         {(() => {
           // Generar lista de acciones concretas priorizadas
@@ -673,6 +631,48 @@ export default function Dashboard() {
             </div>
           );
         })()}
+
+        {/* ── ALERTAS CRÍTICAS ── */}
+        {d.alertasCriticas.length > 0 && (
+          <div className="dash-alertas-criticas mb">
+            <div className="dash-alertas-header">
+              <span>🚨 {d.alertasCriticas.length} alerta{d.alertasCriticas.length !== 1 ? "s" : ""} crítica{d.alertasCriticas.length !== 1 ? "s" : ""}</span>
+            </div>
+            {d.alertasCriticas.map((a,i) => (
+              <div key={i} className="dash-alerta dash-alerta-danger dash-alerta-clickable"
+                onClick={() => navigate(a.modulo)} title={`Ir a ${a.modulo}`}>
+                <span>{a.icon}</span>
+                <span className="dash-alerta-text">{a.texto}</span>
+                <span className="badge badge-muted" style={{ flexShrink:0 }}>{a.modulo} →</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── AVISOS (colapsables) ── */}
+        {d.alertasAvisos.length > 0 && (
+          <div className="card mb" style={{ padding:"0.75rem 1rem" }}>
+            <button className="dash-avisos-toggle" onClick={() => setAlertasExpandidas(v => !v)}>
+              <span className="mono xs" style={{ color:"var(--amber)" }}>
+                ⚡ {d.alertasAvisos.length} aviso{d.alertasAvisos.length !== 1 ? "s" : ""} pendiente{d.alertasAvisos.length !== 1 ? "s" : ""}
+              </span>
+              <span className="mono xs muted">{alertasExpandidas ? "▲ ocultar" : "▼ mostrar"}</span>
+            </button>
+            {alertasExpandidas && (
+              <div style={{ marginTop:"0.5rem", display:"flex", flexDirection:"column", gap:"0.3rem" }}>
+                {d.alertasAvisos.map((a,i) => (
+                  <div key={i} className={`dash-alerta ${a.icon==="🔵" ? "dash-alerta-info" : "dash-alerta-warning"} dash-alerta-clickable`}
+                    onClick={() => navigate(a.modulo)} title={`Ir a ${a.modulo}`}>
+                    <span>{a.icon}</span>
+                    <span className="dash-alerta-text">{a.texto}</span>
+                    <span className="badge badge-muted" style={{ flexShrink:0 }}>{a.modulo} →</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
 
         {/* ── WIDGET EXPRESS: Actualizar Inscritos ── */}
         <WidgetInscritos tramos={d.tramos} inscritos={d.rawInscritos} 
@@ -1004,8 +1004,28 @@ const DASH_EXTRA_CSS = `
   .dash-alerta-clickable { cursor:pointer; transition:filter .15s; }
   .dash-alerta-clickable:hover { filter:brightness(1.15); }
 
-  /* KPIs clickables */
-  .dash-kpi-clickable { cursor:pointer; }
+  /* KPIs clickables — indicador visual de tocable */
+  .dash-kpi-clickable {
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  }
+  .dash-kpi-clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+  .dash-kpi-clickable:active { transform: translateY(0); }
+  /* Flecha sutil en esquina indicando que es navegable */
+  .dash-kpi-clickable::after {
+    content: "→";
+    position: absolute;
+    bottom: 0.4rem;
+    right: 0.5rem;
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .dash-kpi-clickable:hover::after { opacity: 1; }
   .dash-kpi-clickable:hover { transform:translateY(-2px); border-color:var(--border-light) !important; }
   .dash-kpi-arrow {
     font-family:var(--font-mono); font-size:0.6rem;

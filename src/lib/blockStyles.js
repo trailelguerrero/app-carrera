@@ -452,7 +452,9 @@ export const BLOCK_CSS = `
   /* ── Responsive ─────────────────────────────────────────────────────────── */
   @media (max-width: 640px) {
     .block-container { padding: 0.6rem; }
-    .block-title { font-size: 1.1rem; }
+    .block-title { font-size: 0.95rem; }
+    .block-title-sub { display: none; }
+    .block-header { margin-bottom: 0.75rem; }
     .kpi-grid { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
     .kpi { padding: 0.75rem 0.85rem; }
     .kpi-value { font-size: 1.2rem; }
