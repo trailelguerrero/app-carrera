@@ -514,7 +514,6 @@ export default function App() {
     { id: "dashboard",  icon: "📊", label: "Dashboard" },
     { id: "voluntarios",icon: "👥", label: "Voluntarios", badge: stats.total },
     { id: "puestos",    icon: "📍", label: "Puestos",     badge: puestos.length },
-    { id: "tallas",     icon: "👕", label: "Tallas" },
     { id: "dia-d",      icon: "🏁", label: esSemanaCarrera ? "🚨 Día de Carrera" : "Día de Carrera" },
   ];
   // En semana de carrera, Día de Carrera sube a primera posición
@@ -659,7 +658,6 @@ export default function App() {
               onFichaVol={(v) => abrirFicha("vol", v)}
             />
           )}
-          {tab==="tallas" && <TabTallas stats={stats} voluntarios={voluntarios} />}
           {tab==="dia-d"  && <TabDiaD puestosConStats={puestosConStats} voluntarios={voluntarios} onUpdateVol={updateVoluntario} />}
         </div>
       </div>

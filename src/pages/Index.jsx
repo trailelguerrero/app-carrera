@@ -17,6 +17,9 @@ const Documentos = lazy(() => import("../components/blocks/Documentos"));
 const Camisetas = lazy(() => import("../components/blocks/Camisetas"));
 const Configuracion = lazy(() => import("../components/blocks/Configuracion"));
 
+const BLOCKS_NAV = [
+  // Solo bloques visibles en la nav — Configuración se accede desde el header
+];
 const BLOCKS = [
   { id: "dashboard",      icon: "📊", label: "Dashboard",      shortLabel: "Dash",   component: Dashboard },
   { id: "proyecto",       icon: "🏔️", label: "Proyecto",       shortLabel: "Proy.",  component: Proyecto },
@@ -26,7 +29,6 @@ const BLOCKS = [
   { id: "patrocinadores", icon: "🤝", label: "Patrocinadores", shortLabel: "Pat.",   component: Patrocinadores },
   { id: "camisetas",      icon: "👕", label: "Camisetas",      shortLabel: "Cam.",   component: Camisetas },
   { id: "documentos",     icon: "📁", label: "Docs",           shortLabel: "Docs",   component: Documentos },
-  { id: "configuracion",  icon: "⚙️", label: "Configuración",  shortLabel: "Config", component: Configuracion },
 ];
 
 // ── PIN CONFIG ────────────────────────────────────────────────────────────────
@@ -436,6 +438,18 @@ export default function Index() {
               onMouseLeave={e => e.currentTarget.style.color="var(--teg-text-muted)"}
             >🔐</button>
 
+            <button
+              onClick={() => handleBlockChange("configuracion")}
+              title="Configuración"
+              style={{ background: activeBlock==="configuracion" ? "rgba(167,139,250,0.12)" : "transparent",
+                border: activeBlock==="configuracion" ? "1px solid rgba(167,139,250,0.3)" : "none",
+                color: activeBlock==="configuracion" ? "var(--teg-accent)" : "var(--teg-text-muted)",
+                cursor:"pointer", fontSize:"0.85rem", padding:"0.3rem 0.4rem",
+                borderRadius:6, lineHeight:1, transition:"all 0.2s" }}
+              onMouseEnter={e => { if(activeBlock!=="configuracion") e.currentTarget.style.color="var(--teg-text-secondary)"; }}
+              onMouseLeave={e => { if(activeBlock!=="configuracion") e.currentTarget.style.color="var(--teg-text-muted)"; }}
+            >⚙️</button>
+
             {mostrarBtnDiaD && (
               <button onClick={() => setShowDiaCarrera(true)} style={{
                 background:"rgba(248,113,113,0.15)", color:"#f87171",
@@ -500,7 +514,7 @@ export default function Index() {
           paddingBottom:"env(safe-area-inset-bottom,0px)",
           zIndex:50, overflowX:"auto",
         }}>
-          {BLOCKS.map((b, idx) => {
+          {BLOCKS.filter(b => b.id !== "configuracion").map((b, idx) => {
             const isActive = activeBlock === b.id;
             return (
               <button
