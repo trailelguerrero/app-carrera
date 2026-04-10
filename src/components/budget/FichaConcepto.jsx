@@ -44,18 +44,21 @@ export function ModalEditarConcepto({ concepto: c, totalInscritos, onSave, onClo
     costeUnitarioReal: c.costeUnitarioReal ?? "",
   });
 
+  const [guardado, setGuardado] = useState(false);
   const upd = (k, v) => setForm(p => ({ ...p, [k]: v }));
   const updDist = (k, d, v) => setForm(p => ({ ...p, [k]: { ...p[k], [d]: v } }));
 
   const handleGuardar = () => {
     let costeFinal = { ...form.costePorDistancia };
     if (!esFijo && form.modoUniforme) {
-      // Modo uniforme: propagar precio de TG7 a todas las distancias
       const base = form.costePorDistancia.TG7 || 0;
       DISTANCIAS.forEach(d => { costeFinal[d] = base; });
     }
-    // Modo por distancia: costePorDistancia ya tiene cada precio independiente
-    onSave({ ...c, ...form, costePorDistancia: costeFinal });
+    // Mostrar feedback visual antes de cerrar
+    setGuardado(true);
+    setTimeout(() => {
+      onSave({ ...c, ...form, costePorDistancia: costeFinal });
+    }, 500);
   };
 
   const FL = ({ children }) => (
@@ -249,9 +252,10 @@ export function ModalEditarConcepto({ concepto: c, totalInscritos, onSave, onClo
         </div>
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
-          <button className={`btn ${esFijo ? "btn-cyan" : "btn-green"}`}
-            onClick={handleGuardar} disabled={!form.nombre.trim()}>
-            Guardar cambios
+          <button className={`btn ${guardado ? "btn-green" : esFijo ? "btn-cyan" : "btn-green"}`}
+            onClick={handleGuardar} disabled={!form.nombre.trim() || guardado}
+            style={{ transition: "all 0.2s", minWidth: 130 }}>
+            {guardado ? "✓ Guardado" : "Guardar cambios"}
           </button>
         </div>
       </div>

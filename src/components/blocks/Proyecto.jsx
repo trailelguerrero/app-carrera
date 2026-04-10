@@ -248,11 +248,11 @@ export default function App() {
   const updHito = (id, field, val) => setHitos(p => p.map(h => h.id===id ? {...h,[field]:val} : h));
 
   const TABS = [
-    {id:"dashboard",  icon:"📊", label:"Dashboard"},
     {id:"tablón",     icon:"📋", label:"Tablón"},
+    {id:"dashboard",  icon:"📊", label:"Resumen"},
+    {id:"hitos",      icon:"🏁", label:"Hitos"},
     {id:"gantt",      icon:"📅", label:"Calendario"},
     {id:"equipo",     icon:"👥", label:"Equipo"},
-    {id:"hitos",      icon:"🏁", label:"Hitos"},
   ];
 
   return (
