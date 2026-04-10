@@ -316,6 +316,8 @@ const dataService = {
 };
 
 export default dataService;
+export { dataService };
+
 
 /**
  * Hook para React — reemplaza useLS/useLocalStorage en los bloques.

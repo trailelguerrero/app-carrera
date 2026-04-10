@@ -3,7 +3,9 @@ import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { useData } from "@/lib/dataService";
 import { useBudgetLogic } from "../../hooks/useBudgetLogic";
+import { useScenario }    from "../../hooks/useScenario";
 import { KpiGlobal }      from "../budget/KpiGlobal";
+import { ScenarioBar }    from "../budget/ScenarioBar";
 import { TabPresupuesto } from "../budget/TabPresupuesto";
 import { TabIngresos }    from "../budget/TabIngresos";
 import { TabTramos }      from "../budget/TabTramos";
@@ -126,6 +128,15 @@ const Presupuesto = () => {
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
   const [confirmReset, setConfirmReset] = useState(false);
 
+  // ── Lógica de presupuesto real ──────────────────────────────────────────────
+  // Se instancia primero con scenarioInscritos / scenarioConceptos siendo null
+  // hasta que el hook de escenario tenga estado. React garantiza consistencia
+  // porque el flujo siempre sigue el mismo orden de hooks.
+  const [scenarioOverrides, setScenarioOverrides] = useState({
+    scenarioInscritos: null,
+    scenarioConceptos: null,
+  });
+
   const {
     tab, setTab,
     tramos, setTramos,
@@ -163,7 +174,41 @@ const Presupuesto = () => {
     totalMerchBeneficio,
     syncConfig, setSyncConfig,
     ingresosDesglosados,
-  } = useBudgetLogic();
+    // Datos reales para comparación de deltas (nunca cambian por el escenario)
+    realTotalInscritos,
+    realResultado,
+  } = useBudgetLogic(scenarioOverrides);
+
+  // ── Sistema de escenarios ───────────────────────────────────────────────────
+  // Pasa los datos reales cargados para que "Nuevo escenario" parta del estado real.
+  const {
+    savedScenarios,
+    activeScenario,
+    isScenarioMode,
+    scenarioInscritos,
+    scenarioConceptos,
+    createScenario,
+    loadScenario,
+    exitScenario: _exitScenario,
+    saveScenario,
+    duplicateScenario,
+    deleteScenario,
+    renameScenario,
+    updateScenarioInscritos,
+    toggleScenarioConcepto,
+  } = useScenario(inscritos, conceptos);
+
+  // Sincronizar los overrides del escenario con useBudgetLogic
+  // Esto es el puente que hace que los cálculos reflejen el escenario activo.
+  useEffect(() => {
+    setScenarioOverrides({ scenarioInscritos, scenarioConceptos });
+  }, [scenarioInscritos, scenarioConceptos]);
+
+  // Salir del escenario también limpia los overrides
+  const exitScenario = () => {
+    _exitScenario();
+    setScenarioOverrides({ scenarioInscritos: null, scenarioConceptos: null });
+  };
 
   const resPositivo = (resultado?.total ?? 0) >= 0;
 
@@ -224,6 +269,23 @@ const Presupuesto = () => {
             <span className="badge badge-cyan">
               🏃 {totalInscritos?.total ?? 0} corredores
             </span>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => {
+                // Fija el título del documento para el PDF y luego imprime
+                const prev = document.title;
+                document.title = isScenarioMode
+                  ? `Presupuesto — ${activeScenario?.nombre ?? "Escenario"} — ${config.nombre} ${config.edicion}`
+                  : `Presupuesto — Datos reales — ${config.nombre} ${config.edicion}`;
+                window.print();
+                document.title = prev;
+              }}
+              title="Imprimir o exportar como PDF"
+              style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}
+            >
+              <span>🖨️</span>
+              <span>PDF</span>
+            </button>
             <button className="btn btn-ghost btn-sm" onClick={() => { const m = document.querySelector("main"); if (m) m.scrollTo({ top:0, behavior:"instant" }); setConfirmReset(true); }}>
               Restablecer
             </button>
@@ -232,6 +294,24 @@ const Presupuesto = () => {
             </button>
           </div>
         </div>
+
+        {/* ── SCENARIO BAR ── */}
+        <ScenarioBar
+          isScenarioMode={isScenarioMode}
+          activeScenario={activeScenario}
+          savedScenarios={savedScenarios}
+          realResultado={realResultado}
+          realTotalInscritos={realTotalInscritos}
+          scenarioResultado={resultado}
+          scenarioTotalInscritos={totalInscritos}
+          onCreateScenario={createScenario}
+          onLoadScenario={loadScenario}
+          onSaveScenario={saveScenario}
+          onExitScenario={exitScenario}
+          onDuplicateScenario={duplicateScenario}
+          onDeleteScenario={deleteScenario}
+          onRenameScenario={renameScenario}
+        />
 
         {/* ── KPIs GLOBALES ── */}
         <KpiGlobal
@@ -329,8 +409,10 @@ const Presupuesto = () => {
           {tab === "inscritos" && (
             <TabInscritos
               tramos={tramos}
-              inscritos={inscritos}
-              updateInscritos={updateInscritos}
+              // En modo escenario, el tab muestra los inscritos del draft.
+              // updateInscritos actualiza el draft, no los datos reales.
+              inscritos={isScenarioMode ? (scenarioInscritos ?? inscritos) : inscritos}
+              updateInscritos={isScenarioMode ? updateScenarioInscritos : updateInscritos}
               totalInscritos={totalInscritos}
               ingresosPorDistancia={ingresosPorDistancia}
               precioMedioDistancia={precioMedioDistancia}

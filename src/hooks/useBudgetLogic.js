@@ -28,7 +28,14 @@ import {
   calculatePEGlobal
 } from "../lib/budgetUtils";
 
-export const useBudgetLogic = () => {
+/**
+ * @param {object} [scenarioOverrides] - Overrides opcionales del sistema de escenarios.
+ *   Si se proporcionan, los cálculos usan estos valores en lugar de los reales.
+ *   El autosave NUNCA usa estos overrides — solo actúa sobre los datos reales.
+ * @param {object} [scenarioOverrides.scenarioInscritos] - Inscritos del escenario activo.
+ * @param {Array}  [scenarioOverrides.scenarioConceptos] - Conceptos del escenario activo.
+ */
+export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos } = {}) => {
   // ─── STATE ──────────────────────────────────────────────────────────────────
   const [tab, setTab] = useState("presupuesto");
   const [tramos, setTramos] = useState(TRAMOS_DEFAULT);
@@ -268,29 +275,34 @@ export const useBudgetLogic = () => {
   };
 
   // ─── DERIVED STATE ──────────────────────────────────────────────────────────
-  const totalInscritos = useMemo(() => calculateTotalInscritos(tramos, inscritos), [tramos, inscritos]);
-  const ingresosPorDistancia = useMemo(() => calculateIngresosPorDistancia(tramos, inscritos), [tramos, inscritos]);
+  // Si hay un escenario activo, los cálculos usan sus overrides en lugar de los datos reales.
+  // El autosave (arriba) siempre usa `inscritos` y `conceptos` reales — sin contaminar.
+  const _inscritos = scenarioInscritos ?? inscritos;
+  const _conceptos = scenarioConceptos ?? conceptos;
+
+  const totalInscritos = useMemo(() => calculateTotalInscritos(tramos, _inscritos), [tramos, _inscritos]);
+  const ingresosPorDistancia = useMemo(() => calculateIngresosPorDistancia(tramos, _inscritos), [tramos, _inscritos]);
   const precioMedioDistancia = useMemo(() => calculatePrecioMedioDistancia(totalInscritos, ingresosPorDistancia), [totalInscritos, ingresosPorDistancia]);
-  const costesFijos = useMemo(() => calculateCostesFijos(conceptos, totalInscritos), [conceptos, totalInscritos]);
-  const costesVariables = useMemo(() => calculateCostesVariables(conceptos, totalInscritos), [conceptos, totalInscritos]);
-  const costesVarPorCorredor = useMemo(() => calculateCostesVarPorCorredor(conceptos), [conceptos]);
+  const costesFijos = useMemo(() => calculateCostesFijos(_conceptos, totalInscritos), [_conceptos, totalInscritos]);
+  const costesVariables = useMemo(() => calculateCostesVariables(_conceptos, totalInscritos), [_conceptos, totalInscritos]);
+  const costesVarPorCorredor = useMemo(() => calculateCostesVarPorCorredor(_conceptos), [_conceptos]);
   const costesFijoPorCorredor = useMemo(() => calculateCostesFijoPorCorredor(costesFijos, totalInscritos), [costesFijos, totalInscritos]);
   const merchTotales = useMemo(() => calculateMerchTotales(merchandising), [merchandising]);
-  const ingresosDesglosados = useMemo(() => calculateIngresosDesglosados(tramos, inscritos), [tramos, inscritos]);
-  
-  const totalIngresosExtra = useMemo(() => 
-    ingresosExtra.filter(i => i.activo).reduce((s, i) => s + i.valor, 0), 
+  const ingresosDesglosados = useMemo(() => calculateIngresosDesglosados(tramos, _inscritos), [tramos, _inscritos]);
+
+  const totalIngresosExtra = useMemo(() =>
+    ingresosExtra.filter(i => i.activo).reduce((s, i) => s + i.valor, 0),
     [ingresosExtra]
   );
-  
+
   const totalIngresosConMerch = useMemo(() => totalIngresosExtra + merchTotales.beneficio, [totalIngresosExtra, merchTotales]);
-  
-  const resultado = useMemo(() => 
+
+  const resultado = useMemo(() =>
     calculateResultado(totalInscritos, ingresosPorDistancia, costesFijos, costesVariables, totalIngresosConMerch),
     [totalInscritos, ingresosPorDistancia, costesFijos, costesVariables, totalIngresosConMerch]
   );
 
-  const puntoEquilibrio = useMemo(() => 
+  const puntoEquilibrio = useMemo(() =>
     calculatePuntoEquilibrio(totalInscritos, precioMedioDistancia, costesVarPorCorredor, costesFijos, totalIngresosConMerch, maximos),
     [totalInscritos, precioMedioDistancia, costesVarPorCorredor, costesFijos, totalIngresosConMerch, maximos]
   );
@@ -298,6 +310,17 @@ export const useBudgetLogic = () => {
   const peGlobal = useMemo(() =>
     calculatePEGlobal(totalInscritos, precioMedioDistancia, costesVarPorCorredor, costesFijos, totalIngresosConMerch, maximos),
     [totalInscritos, precioMedioDistancia, costesVarPorCorredor, costesFijos, totalIngresosConMerch, maximos]
+  );
+
+  // ─── ESTADO REAL (para comparación de deltas en ScenarioBar) ────────────────
+  // Siempre calculados sobre los datos reales, independientemente del escenario.
+  const realTotalInscritos = useMemo(() => calculateTotalInscritos(tramos, inscritos), [tramos, inscritos]);
+  const realIngresosPorDistancia = useMemo(() => calculateIngresosPorDistancia(tramos, inscritos), [tramos, inscritos]);
+  const realCostesFijos = useMemo(() => calculateCostesFijos(conceptos, realTotalInscritos), [conceptos, realTotalInscritos]);
+  const realCostesVariables = useMemo(() => calculateCostesVariables(conceptos, realTotalInscritos), [conceptos, realTotalInscritos]);
+  const realResultado = useMemo(() =>
+    calculateResultado(realTotalInscritos, realIngresosPorDistancia, realCostesFijos, realCostesVariables, totalIngresosConMerch),
+    [realTotalInscritos, realIngresosPorDistancia, realCostesFijos, realCostesVariables, totalIngresosConMerch]
   );
 
   return {
@@ -335,6 +358,9 @@ export const useBudgetLogic = () => {
     totalIngresosConMerch,
     resultado,
     puntoEquilibrio,
-    peGlobal
+    peGlobal,
+    // Para comparación de deltas en ScenarioBar
+    realTotalInscritos,
+    realResultado
   };
 };

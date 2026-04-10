@@ -151,3 +151,69 @@ All colors MUST be HSL.
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--teg-scrollbar); border-radius: 2px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--teg-scrollbar-hover); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   ESTILOS DE IMPRESIÓN / PDF
+   Se aplican cuando el usuario pulsa Ctrl+P o el botón 🖨️ PDF
+   ═══════════════════════════════════════════════════════════════════ */
+@media print {
+  /* Ocultar elementos de navegación y control */
+  header,
+  nav,
+  footer,
+  .block-actions,
+  .sc-bar,
+  .tabs-nav,
+  .btn,
+  [class*="action"],
+  [class*="tooltip"] {
+    display: none !important;
+  }
+
+  /* Fondo blanco limpio para el PDF */
+  body,
+  html,
+  main,
+  .block-body,
+  .block-section,
+  [class*="surface"],
+  [class*="card"],
+  .kpi-card,
+  .kpi-global {
+    background: #ffffff !important;
+    color: #0a0a0a !important;
+    box-shadow: none !important;
+    border-color: #ddd !important;
+  }
+
+  /* Evitar cortes de página en medio de una tarjeta */
+  .kpi-card,
+  .kpi-global-grid,
+  table,
+  tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Asegurar que el contenido usa todo el ancho */
+  .block-body,
+  main {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Tamaño de página A4 apaisado para tablas amplias */
+  @page {
+    size: A4 landscape;
+    margin: 1.5cm 1cm;
+  }
+
+  /* Mostrar la URL en el pie de página nativa del navegador queda bien;
+     aquí solo aseguramos que los textos sean legibles */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
