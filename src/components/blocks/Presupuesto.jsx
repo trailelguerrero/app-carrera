@@ -200,6 +200,7 @@ const Presupuesto = () => {
     renameScenario,
     updateScenarioInscritos,
     toggleScenarioConcepto,
+    overrideScenarioConcepto,
     setScenarioIngresosExtra,
     setScenarioMerchandising,
   } = useScenario(inscritos, conceptos, ingresosExtra, merchandising);
