@@ -375,10 +375,7 @@ export default function Dashboard() {
               )}
             </div>
           </div>
-          <button className="btn btn-ghost btn-sm"
-            onClick={() => loadData(false)} title="Recargar datos">
-            🔄 Actualizar
-          </button>
+
         </div>
 
         {/* ── HERO: COUNTDOWN + SALUD ── */}
@@ -403,14 +400,7 @@ export default function Dashboard() {
                       </>
                   }
                 </div>
-                {/* Progreso global */}
-                <div className="flex-center gap-sm" style={{ marginTop:"0.5rem" }}>
-                  <span className="mono xs muted" style={{ whiteSpace:"nowrap" }}>Progreso global</span>
-                  <div className="progress-bar" style={{ flex:1, minWidth:80 }}>
-                    <div className="progress-fill" style={{ width:`${d.progresoGlobal}%`, background:"linear-gradient(90deg,#22d3ee,#a78bfa)" }} />
-                  </div>
-                  <span className="mono xs bold" style={{ color:"#22d3ee", whiteSpace:"nowrap" }}>{d.progresoGlobal}%</span>
-                </div>
+
               </div>
 
               {/* Barra de salud del evento — colapsada si todo va bien */}
@@ -473,16 +463,9 @@ export default function Dashboard() {
           // Generar lista de acciones concretas priorizadas
           const acciones = [];
 
-          // 1. Alertas críticas → acción directa (máxima prioridad)
-          d.alertasCriticas.slice(0,2).forEach(a => {
-            acciones.push({
-              prioridad: "critica",
-              icon: a.icon,
-              accion: a.texto,
-              cta: `Ir a ${a.modulo}`,
-              modulo: a.modulo,
-            });
-          });
+          // 1. Alertas críticas — solo si no hay acciones específicas mejores
+          // No las duplicamos aquí porque ya aparecen en el panel de alertas.
+          // Solo añadimos la más crítica si no hay ninguna otra acción concreta.
 
           // 2. Tramo de inscripción cerrando pronto
           const hoy = new Date();
@@ -583,6 +566,14 @@ export default function Dashboard() {
             });
           }
 
+          // Fallback: si no hay acciones concretas pero sí alertas críticas, añadir las 2 primeras
+          if (acciones.length === 0 && d.alertasCriticas.length > 0) {
+            d.alertasCriticas.slice(0,2).forEach(a => {
+              acciones.push({ prioridad:"critica", icon:a.icon, accion:a.texto,
+                cta:`Ir a ${a.modulo}`, modulo:a.modulo });
+            });
+          }
+
           // Solo mostrar si hay acciones
           if (acciones.length === 0) return null;
 
@@ -674,20 +665,50 @@ export default function Dashboard() {
         )}
 
 
-        {/* ── WIDGET EXPRESS: Actualizar Inscritos ── */}
-        <WidgetInscritos tramos={d.tramos} inscritos={d.rawInscritos} 
-          onSave={async (tramoId, newVals) => {
-            const next = { ...d.rawInscritos, tramos: { ...(d.rawInscritos?.tramos || {}), [tramoId]: newVals } };
-            await dataService.set("teg_presupuesto_v1_inscritos", next);
-            window.dispatchEvent(new CustomEvent("teg-sync"));
-          }} 
-        />
-
-        {/* Estado OK — sin alertas */}
+        {/* Estado OK — resumen positivo con datos reales */}
         {d.alertasCriticas.length === 0 && d.alertasAvisos.length === 0 && (
-          <div className="card mb" style={{ padding:"0.65rem 1rem", display:"flex", alignItems:"center", gap:"0.6rem", background:"var(--green-dim)", borderColor:"rgba(52,211,153,0.2)" }}>
-            <span style={{ fontSize:"1rem" }}>✅</span>
-            <span className="mono xs" style={{ color:"var(--green)" }}>Todo en orden — sin alertas activas</span>
+          <div className="card mb" style={{
+            padding:".75rem 1rem",
+            background:"var(--green-dim)",
+            border:"1px solid rgba(52,211,153,0.2)",
+          }}>
+            <div style={{ display:"flex", alignItems:"center", gap:".5rem", marginBottom:".5rem" }}>
+              <span style={{ fontSize:".9rem" }}>✅</span>
+              <span style={{ fontWeight:800, fontSize:".82rem", color:"var(--green)" }}>
+                Todo en orden
+              </span>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+                color:"var(--text-muted)", marginLeft:"auto" }}>
+                sin alertas activas
+              </span>
+            </div>
+            <div style={{ display:"flex", gap:".75rem", flexWrap:"wrap" }}>
+              {d.totalInscritos > 0 && (
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:".62rem",
+                  color:"var(--cyan)" }}>
+                  🏃 {d.totalInscritos} inscritos
+                  {d.ocupacionGlobal !== null ? ` (${d.ocupacionGlobal}%)` : ""}
+                </span>
+              )}
+              {d.coberturaVol > 0 && (
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:".62rem",
+                  color:"var(--green)" }}>
+                  👥 {d.coberturaVol}% voluntarios
+                </span>
+              )}
+              {d.resultado > 0 && (
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:".62rem",
+                  color:"var(--green)" }}>
+                  💰 {fmt(d.resultado)} resultado
+                </span>
+              )}
+              {d.progresoGlobal > 0 && (
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:".62rem",
+                  color:"var(--violet)" }}>
+                  📋 {d.progresoGlobal}% tareas
+                </span>
+              )}
+            </div>
           </div>
         )}
 
@@ -793,6 +814,27 @@ export default function Dashboard() {
                   </BarChart>
                 </ResponsiveContainer>
             }
+            {/* Resultado — resumen al pie del gráfico */}
+            {(d.totalIngresos > 0 || d.totalCostesFijos > 0) && (
+              <div style={{
+                display:"flex", justifyContent:"space-between", alignItems:"center",
+                marginTop:".6rem", paddingTop:".5rem",
+                borderTop:"1px solid var(--border)",
+              }}>
+                <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+                  color:"var(--text-muted)",display:"flex",alignItems:"center",gap:".4rem"}}>
+                  Resultado
+                  <span className={`badge ${d.roiGlobal>=0?"badge-green":"badge-red"}`}
+                    style={{fontSize:".5rem"}}>
+                    ROI {d.roiGlobal>0?"+":""}{d.roiGlobal}%
+                  </span>
+                </span>
+                <span style={{fontFamily:"var(--font-mono)",fontSize:".78rem",
+                  fontWeight:800,color:resColor}}>
+                  {fmt(d.resultado)}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Objetivos */}
@@ -861,33 +903,14 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ── DESGLOSE ECONÓMICO ── */}
-        <div className="card">
-          <div className="flex-between mb-sm">
-            <div className="card-title" style={{ marginBottom:0 }}>💰 Desglose Económico</div>
-            <button className="btn btn-ghost btn-sm" onClick={() => navigate("presupuesto")}>Ver detalle →</button>
-          </div>
-          {[
-            ["Ingresos inscripciones",    fmt(d.totalIngresos),           "var(--cyan)",  false],
-            ["Patrocinios y subvenciones",fmt(d.totalIngresosExtra),      "var(--green)",   d.syncConfig.patrocinios],
-            ["Merchandising (neto)",      fmt(d.merchBeneficio),          "var(--violet)", d.syncConfig.camisetas],
-            ["Costes fijos",              `-${fmt(d.totalCostesFijos)}`,  "var(--red)",    false],
-            ["Costes variables",          `-${fmt(d.totalCostesVars)}`,   "var(--orange)",  false],
-          ].map(([label,val,color,sync]) => (
-            <div key={label} className="flex-between" style={{ padding:"0.35rem 0", borderBottom:"1px solid rgba(30,45,80,0.35)" }}>
-              <span className="mono xs muted" style={{ display:"flex", alignItems:"center", gap:"0.4rem" }}>
-                {label} {sync && <span className="badge badge-cyan" style={{fontSize:"0.5rem", padding:"0 0.2rem"}}>🔗 auto</span>}
-              </span>
-              <span className="mono xs bold" style={{ color }}>{val}</span>
-            </div>
-          ))}
-          <div className="flex-between" style={{ padding:"0.65rem 0 0", borderTop:"2px solid var(--border)", marginTop:"0.2rem" }}>
-            <span className="mono xs bold" style={{ display:"flex", alignItems:"center", gap:"0.6rem" }}>
-              RESULTADO <span className={`badge ${d.roiGlobal >= 0 ? "badge-green" : "badge-red"}`} style={{fontSize:"0.55rem"}}>ROI {d.roiGlobal > 0 ? "+" : ""}{d.roiGlobal}%</span>
-            </span>
-            <span className="mono sm bold" style={{ color:resColor }}>{fmt(d.resultado)}</span>
-          </div>
-        </div>
+        {/* ── WIDGET INSCRITOS — al final, contexto correcto ── */}
+        <WidgetInscritos tramos={d.tramos} inscritos={d.rawInscritos}
+          onSave={async (tramoId, newVals) => {
+            const next = { ...d.rawInscritos, tramos: { ...(d.rawInscritos?.tramos || {}), [tramoId]: newVals } };
+            await dataService.set("teg_presupuesto_v1_inscritos", next);
+            window.dispatchEvent(new CustomEvent("teg-sync"));
+          }}
+        />
 
       </div>
     </>
