@@ -252,6 +252,7 @@ export default function App() {
     {id:"dashboard",  icon:"📊", label:"Resumen"},
     {id:"hitos",      icon:"🏁", label:"Hitos"},
     {id:"gantt",      icon:"📅", label:"Vista áreas"},
+    {id:"equipo",     icon:"👥", label:"Equipo"},
   ];
 
   return (
@@ -379,17 +380,17 @@ function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, upd
           {stats.porArea.map(a => {
             const sc = {green:"#34d399", amber:"#fbbf24", red:"#f87171", blue:"#22d3ee"}[a.semaforo];
             return (
-              <div key={a.id} className="area-card" style={{borderTopColor:a.color}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:".4rem"}}
-                  onClick={() => { setFiltroArea(a.id); setTab("tablón"); }}
-                  title={`Ver tareas de ${a.label}`} style={{cursor:"pointer"}}>
+              <div key={a.id} className="area-card" style={{borderTopColor:a.color,cursor:"pointer"}}
+                onClick={() => { setFiltroArea(a.id); setTab("tablón"); }}
+                title={`Ver tareas de ${a.label}`}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:".4rem"}}>
                   <div>
                     <div style={{fontSize:"1.1rem",marginBottom:".15rem"}}>{a.icon}</div>
                     <div style={{fontSize:".72rem",fontWeight:700,color:a.color,lineHeight:1.2}}>{a.label}</div>
                   </div>
                   <div style={{width:10,height:10,borderRadius:"50%",background:sc,boxShadow:`0 0 8px ${sc}88`,flexShrink:0,marginTop:2}}/>
                 </div>
-                <div style={{cursor:"pointer"}} onClick={() => { setFiltroArea(a.id); setTab("tablón"); }}>
+                <div>
                   <div className="pbar" style={{marginBottom:".3rem"}}>
                     <div className="pfill" style={{width:`${a.pct}%`,background:a.color}}/>
                   </div>
@@ -466,7 +467,12 @@ function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, upd
               </div>
             </div>
           ))}
-          <button className="btn btn-ghost mt1 w100" onClick={() => setTab("equipo")}>Ver detalle del equipo →</button>
+          <div style={{display:"flex",gap:".4rem",marginTop:".75rem"}}>
+            <button className="btn btn-ghost" style={{flex:1}}
+              onClick={() => setTab("equipo")}>Ver equipo completo →</button>
+            <button className="btn btn-ghost btn-sm"
+              onClick={() => setModal({tipo:"persona",data:null})}>+ Persona</button>
+          </div>
         </div>
       </div>
 
@@ -593,10 +599,21 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
 
   return (
     <>
-      <div className="ph">
+      <div className="ph" style={{
+        borderLeft: filtroArea !== "todas"
+          ? `3px solid ${AREAS.find(a=>a.id===filtroArea)?.color || "var(--violet)"}`
+          : "none",
+        paddingLeft: filtroArea !== "todas" ? ".75rem" : undefined,
+        transition: "all .2s",
+      }}>
         <div>
-          <div className="pt">📋 Tablón de Tareas</div>
-          <div className="pd">{tareas.length} de {todasTareas.length} tareas mostradas · click para editar</div>
+          <div className="pt">
+            {filtroArea !== "todas"
+              ? <>{AREAS.find(a=>a.id===filtroArea)?.icon} {AREAS.find(a=>a.id===filtroArea)?.label}</>
+              : "📋 Tablón de Tareas"
+            }
+          </div>
+          <div className="pd">{tareas.length} de {todasTareas.length} tareas · click para ver ficha</div>
         </div>
         <div style={{display:"flex",gap:".5rem",alignItems:"center"}}>
           <div style={{display:"flex",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:"var(--r-sm)",overflow:"hidden"}}>
@@ -1230,6 +1247,35 @@ function TabHitos({ hitos, updHito, setModal, setDelConf, setFicha }) {
           <button className="btn btn-primary" onClick={() => setModal({tipo:"hito",data:null})}>+ Nuevo hito</button>
         </div>
       </div>
+
+      {/* Progreso global de hitos */}
+      {hitos.length > 0 && (() => {
+        const comp = hitos.filter(h=>h.completado).length;
+        const pct  = Math.round(comp/hitos.length*100);
+        return (
+          <div style={{marginBottom:".65rem",padding:".6rem .75rem",
+            background:"var(--surface2)",borderRadius:8,
+            border:"1px solid var(--border)"}}>
+            <div style={{display:"flex",justifyContent:"space-between",
+              alignItems:"center",marginBottom:".35rem"}}>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+                color:"var(--text-muted)"}}>
+                {comp}/{hitos.length} hitos completados
+              </span>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",
+                fontWeight:700,
+                color:pct===100?"var(--green)":pct>=60?"var(--cyan)":"var(--amber)"}}>
+                {pct}%
+              </span>
+            </div>
+            <div style={{height:4,background:"var(--surface3)",borderRadius:2,overflow:"hidden"}}>
+              <div style={{height:"100%",borderRadius:2,transition:"width .5s",
+                width:`${pct}%`,
+                background:pct===100?"var(--green)":pct>=60?"var(--cyan)":"var(--amber)"}}/> 
+            </div>
+          </div>
+        );
+      })()}
 
       <div style={{display:"flex",flexDirection:"column",gap:".5rem"}}>
         {sorted.map((h,i) => {
