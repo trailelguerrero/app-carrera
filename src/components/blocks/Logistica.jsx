@@ -221,7 +221,7 @@ export default function App() {
     {id:"material",icon:"📦",label:"Material"},
     {id:"vehiculos",icon:"🚗",label:"Vehículos"},
     {id:"timeline",icon:"⏱️",label:"Timeline"},
-    {id:"contactos",icon:"📡",label:"Comunicaciones"},
+    {id:"contactos",icon:"🚨",label:"Emergencias"},
     {id:"checklist",icon:"✅",label:"Checklist"},
     {id:"localizaciones",icon:"📍",label:"Localizaciones"},
   ];
@@ -247,7 +247,7 @@ export default function App() {
           </div>
           <div className="block-actions">
             {stats.stockErr > 0 && <span className="badge badge-red" style={{cursor:"pointer"}} onClick={()=>setTab("material")}>⚠ {stats.stockErr} stock</span>}
-            {stats.incOpen > 0 && <span className="badge badge-amber" style={{cursor:"pointer"}} onClick={()=>setTab("contactos")}>📡 {stats.incOpen} incidencias</span>}
+            {stats.incOpen > 0 && <span className="badge badge-amber" style={{cursor:"pointer"}} onClick={()=>setTab("contactos")}>🚨 {stats.incOpen} incidencias</span>}
             <span className="badge badge-cyan">✅ {stats.ckDone}/{stats.ckTotal}</span>
             <button className="btn btn-sm" style={{background:"rgba(248,113,113,0.1)",color:"var(--red)",border:"1px solid rgba(248,113,113,0.25)",fontFamily:"var(--font-mono)",fontSize:"0.62rem"}}
               onClick={()=>{setTab("contactos");}}>
@@ -812,7 +812,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
   return(
     <>
       <div className="ph">
-        <div><div className="pt">📡 Comunicaciones</div><div className="pd">Directorio · Protocolo · Incidencias</div></div>
+        <div><div className="pt">🚨 Emergencias</div><div className="pd">Directorio · Protocolo · Incidencias</div></div>
         <div className="fr g1">
           {sub==="directorio" && (
             <div className="log-vista-toggle">

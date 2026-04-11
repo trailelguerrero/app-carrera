@@ -281,20 +281,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* PROGRESS BAR objetivo */}
-        <div className="card mb" style={{padding:"0.85rem 1.1rem"}}>
-          <div className="flex-between mb-sm">
-            <span className="mono xs muted">Captado vs Objetivo</span>
-            <span className="mono xs bold" style={{color:"#f59e0b"}}>{fmt(stats.comprometido)} <span className="muted">/ {fmt(objetivo)}</span></span>
-          </div>
-          <div className="progress-bar">
-            <div className="progress-fill" style={{width:`${stats.pctObj}%`,background:"linear-gradient(90deg,#f59e0b,#fbbf24)"}} />
-          </div>
-          <div className="flex-between" style={{marginTop:"0.4rem"}}>
-            <span className="mono xs muted">Cobrado: {fmt(stats.cobrado)}</span>
-            <span className="mono xs muted">Pipeline: {fmt(stats.pipeline)}</span>
-          </div>
-        </div>
+
 
         {/* TABS */}
         <div className="tabs">
@@ -376,7 +363,29 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
     return { n, count: np.length, total, cfg: NIVEL_CFG[n] };
   });
 
-  const recientes = [...pats].filter(p => p && p.fechaAcuerdo).sort((a, b) => b.fechaAcuerdo.localeCompare(a.fechaAcuerdo)).slice(0, 4);
+  // Patrocinadores que requieren acción (en orden de urgencia)
+  const requierenAtencion = (() => {
+    const lista = [];
+    // 1. Vencidos sin cobrar — máxima urgencia
+    pats.filter(p => p.fechaVencimiento && p.estado !== "cobrado" && p.estado !== "cancelado" &&
+      Math.ceil((new Date(p.fechaVencimiento) - new Date()) / 86400000) < 0)
+      .forEach(p => lista.push({ ...p, _motivo:"vencido", _color:"var(--red)" }));
+    // 2. Negociando (hay que cerrar)
+    pats.filter(p => p.estado === "negociando")
+      .forEach(p => lista.push({ ...p, _motivo:"negociando", _color:"#fbbf24" }));
+    // 3. Confirmados sin cobrar
+    pats.filter(p => p.estado === "confirmado")
+      .forEach(p => lista.push({ ...p, _motivo:"pendiente cobro", _color:"var(--cyan)" }));
+    // 4. Contraprestaciones pendientes
+    pats.filter(p => (p.contraprestaciones||[]).some(c => c.estado === "pendiente") &&
+      p.estado !== "cancelado")
+      .filter(p => !lista.find(x => x.id === p.id)) // evitar duplicados
+      .forEach(p => {
+        const n = (p.contraprestaciones||[]).filter(c => c.estado === "pendiente").length;
+        lista.push({ ...p, _motivo:`${n} compromisos`, _color:"var(--violet)" });
+      });
+    return lista.slice(0, 6);
+  })();
 
   const vencProx = pats.filter(p => p && p.fechaVencimiento && p.estado !== "cobrado" && p.estado !== "cancelado")
     .sort((a, b) => a.fechaVencimiento.localeCompare(b.fechaVencimiento)).slice(0, 4);
@@ -416,41 +425,48 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
       </div>
 
       {/* Barra de progreso objetivo */}
-      <div className="card obj-card">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: ".5rem" }}>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: "1rem" }}>🎯 Objetivo de captación</div>
-            <div className="pd">Ingresos por patrocinios para {config.nombre} {config.edicion}</div>
-          </div>
-          {editObj ? (
-            <div style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
-              <input className="inp" type="number" value={tmpObj} onChange={e => setTmpObj(parseFloat(e.target.value) || 0)} style={{ width: 100 }} />
-              <button className="btn btn-gold" onClick={() => { setObjetivo(tmpObj); setEditObj(false); }}>OK</button>
-              <button className="btn btn-ghost" onClick={() => setEditObj(false)}>✕</button>
+      {/* Objetivo editable — compacto, sin duplicar KPIs */}
+      <div style={{ display:"flex", alignItems:"center", gap:".6rem",
+        marginBottom:".85rem", padding:".55rem .85rem",
+        background:"rgba(245,158,11,.05)", border:"1px solid rgba(245,158,11,.15)",
+        borderRadius:"var(--r-sm)" }}>
+        <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+          color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:".06em" }}>
+          🎯 Objetivo
+        </span>
+        {editObj ? (
+          <>
+            <input className="inp" type="number" value={tmpObj}
+              onChange={e => setTmpObj(parseFloat(e.target.value)||0)}
+              style={{ width:90, fontFamily:"var(--font-mono)", fontSize:".75rem" }}
+              autoFocus />
+            <button className="btn btn-gold btn-sm"
+              onClick={()=>{ setObjetivo(tmpObj); setEditObj(false); }}>OK</button>
+            <button className="btn btn-ghost btn-sm"
+              onClick={()=>setEditObj(false)}>✕</button>
+          </>
+        ) : (
+          <>
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:".82rem",
+              fontWeight:800, color:"#f59e0b" }}>{fmt(objetivo)}</span>
+            <div style={{ flex:1, height:4, background:"var(--surface3)",
+              borderRadius:2, overflow:"hidden", maxWidth:160 }}>
+              <div style={{ height:"100%", borderRadius:2, transition:"width .5s",
+                width:`${stats.pctObj}%`,
+                background:"linear-gradient(90deg,#f59e0b,#fbbf24)" }} />
             </div>
-          ) : (
-            <button className="btn btn-ghost" onClick={() => { setTmpObj(objetivo); setEditObj(true); }}>✏️ Editar objetivo</button>
-          )}
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1rem" }}>
-          {[
-            { label: "Comprometido", valor: stats.comprometido, pct: stats.pctObj, color: "#f59e0b" },
-            { label: "Cobrado", valor: stats.cobrado, pct: stats.pctCobrado, color: "#34d399" },
-          ].map(b => (
-            <div key={b.label}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: ".4rem" }}>
-                <span style={{ fontSize: ".72rem", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>{b.label}</span>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: ".72rem", color: b.color, fontWeight: 700 }}>{b.pct}%</span>
-              </div>
-              <div className="pbar">
-                <div className="pfill" style={{ width: `${b.pct}%`, background: b.color }} />
-              </div>
-              <div style={{ marginTop: ".3rem", fontFamily: "var(--font-mono)", fontSize: ".78rem", fontWeight: 700, color: b.color }}>
-                {fmt(b.valor)} <span style={{ color: "var(--text-dim)", fontWeight: 400 }}>/ {fmt(objetivo)}</span>
-              </div>
-            </div>
-          ))}
-        </div>
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:".72rem",
+              fontWeight:700, color:stats.pctObj>=80?"var(--green)":stats.pctObj>=50?"#f59e0b":"var(--red)" }}>
+              {stats.pctObj}%
+            </span>
+            <button className="btn btn-ghost btn-sm"
+              style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+                color:"var(--text-dim)", marginLeft:"auto" }}
+              onClick={()=>{ setTmpObj(objetivo); setEditObj(true); }}>
+              ✏️ Editar
+            </button>
+          </>
+        )}
       </div>
 
       <div className="twocol">
@@ -500,30 +516,66 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
         </div>
       </div>
 
-      {/* Últimos acuerdos */}
+      {/* Requiere atención */}
       <div className="card">
-        <div className="ct">🕐 Actividad reciente</div>
-        <div className="rec-grid">
-          {recientes.map(p => {
-            const cfg = getCfg(p.nivel) || NIVEL_CFG.Especie;
-            const ecfg = ESTADO_CFG[p.estado] || ESTADO_CFG.prospecto;
-            return (
-              <div key={p.id} className="rec-card" style={{ borderLeftColor: cfg.color, cursor:"pointer" }} onClick={()=>openDetalle(p)}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: ".3rem" }}>
-                  <span style={{ fontSize: ".8rem", fontWeight: 700 }}>{p.nombre}</span>
-                  <span className="badge" style={{ background: cfg.dim, color: cfg.color, border: `1px solid ${cfg.border}` }}>{cfg.icon} {p.nivel}</span>
-                </div>
-                <div className="mono xs muted" style={{ marginBottom: ".4rem" }}>{p.sector}</div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span className="badge" style={{ background: ecfg.bg, color: ecfg.color }}>{ecfg.label}</span>
-                  <span className="mono" style={{ fontSize: ".76rem", fontWeight: 700, color: cfg.color }}>
-                    {p.especie > 0 ? `${fmt(p.especie)} especie` : fmt(p.importe)}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
+          marginBottom:".65rem" }}>
+          <div className="ct" style={{ marginBottom:0 }}>⚡ Requiere atención</div>
+          {requierenAtencion.length === 0 && (
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+              color:"var(--green)" }}>✅ Todo en orden</span>
+          )}
         </div>
+        {requierenAtencion.length === 0 ? (
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:".72rem",
+            color:"var(--text-muted)", textAlign:"center", padding:".75rem 0" }}>
+            Sin acciones pendientes en patrocinadores
+          </div>
+        ) : (
+          <div style={{ display:"flex", flexDirection:"column", gap:".35rem" }}>
+            {requierenAtencion.map(p => {
+              const cfg = getCfg(p.nivel) || NIVEL_CFG.Especie;
+              return (
+                <div key={p.id+p._motivo}
+                  onClick={() => openDetalle(p)}
+                  style={{ display:"flex", alignItems:"center", gap:".65rem",
+                    padding:".5rem .65rem", borderRadius:8, cursor:"pointer",
+                    background:"var(--surface2)", border:"1px solid var(--border)",
+                    borderLeft:`3px solid ${p._color}`, transition:"border-color .12s" }}
+                  onMouseEnter={e=>e.currentTarget.style.borderColor="var(--border-light)"}
+                  onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border)"}>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:".78rem", fontWeight:700,
+                      overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                      {p.nombre}
+                    </div>
+                    <div style={{ fontFamily:"var(--font-mono)", fontSize:".58rem",
+                      color:"var(--text-muted)", marginTop:".1rem" }}>
+                      {cfg.icon} {p.nivel} · {p.sector}
+                    </div>
+                  </div>
+                  <div style={{ display:"flex", flexDirection:"column",
+                    alignItems:"flex-end", gap:".15rem", flexShrink:0 }}>
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:".62rem",
+                      fontWeight:700, color:p._color,
+                      background:`${p._color}15`, border:`1px solid ${p._color}33`,
+                      borderRadius:3, padding:".1rem .4rem", whiteSpace:"nowrap" }}>
+                      {p._motivo}
+                    </span>
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:".62rem",
+                      color:"var(--text-muted)" }}>
+                      {p.especie > 0 ? `${fmt(p.especie)} especie` : fmt(p.importe)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+            <button className="btn btn-ghost" style={{ marginTop:".25rem", fontSize:".65rem" }}
+              onClick={() => setTab("patrocinadores")}>
+              Ver todos los patrocinadores →
+            </button>
+          </div>
+        )}
       </div>
     </>
   );

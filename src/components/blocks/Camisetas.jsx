@@ -639,6 +639,50 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
         </div>
       </div>
 
+      {/* ── PANEL DE FUENTES — orientación antes de la tabla ── */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",
+        gap:".5rem", marginBottom:".85rem" }}>
+        {[
+          { key:"corredoresPlat", icon:"🏃", label:"Corredores", sub:"Plataforma externa",
+            color:TC.corredor.color, dim:TC.corredor.dim,
+            total: fuentesActivas.corredoresPlat ? TALLAS.reduce((s,t)=>s+(corredoresExt[t]||0),0) : 0 },
+          { key:"extrasCorredor", icon:"👕", label:"Extras corredor", sub:"Pedidos manuales",
+            color:TC.corredor.color, dim:TC.corredor.dim,
+            total: fuentesActivas.extrasCorredor
+              ? pedidos.filter(p=>p.lineas?.some(l=>l.tipo==="corredor")).reduce((s,p)=>s+p.lineas.filter(l=>l.tipo==="corredor").reduce((ss,l)=>ss+l.cantidad,0),0)
+              : 0 },
+          { key:"voluntariosAuto", icon:"👥", label:"Voluntarios", sub:"Sincronizado auto",
+            color:TC.voluntario.color, dim:TC.voluntario.dim,
+            total: fuentesActivas.voluntariosAuto ? voluntariosActivos.length : 0 },
+          { key:"extrasVoluntario", icon:"👥+", label:"Extras voluntario", sub:"Pedidos manuales",
+            color:TC.voluntario.color, dim:TC.voluntario.dim,
+            total: fuentesActivas.extrasVoluntario
+              ? pedidos.filter(p=>p.lineas?.some(l=>l.tipo==="voluntario")).reduce((s,p)=>s+p.lineas.filter(l=>l.tipo==="voluntario").reduce((ss,l)=>ss+l.cantidad,0),0)
+              : 0 },
+        ].map(f => (
+          <div key={f.key} style={{
+            padding:".55rem .75rem", borderRadius:8,
+            background: fuentesActivas[f.key] ? f.dim : "var(--surface2)",
+            border: `1px solid ${fuentesActivas[f.key] ? f.color+"33" : "var(--border)"}`,
+            opacity: fuentesActivas[f.key] ? 1 : 0.5,
+          }}>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:".58rem",
+              color:"var(--text-muted)", marginBottom:".2rem" }}>
+              {f.icon} {f.label}
+              {!fuentesActivas[f.key] && <span style={{marginLeft:".35rem",color:"var(--red)"}}>🚫</span>}
+            </div>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+              color:"var(--text-dim)", marginBottom:".3rem" }}>{f.sub}</div>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:"1rem",
+              fontWeight:800, color: fuentesActivas[f.key] ? f.color : "var(--text-dim)" }}>
+              {f.total}
+            </div>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:".58rem",
+              color:"var(--text-muted)" }}>unidades</div>
+          </div>
+        ))}
+      </div>
+
       {/* ── TABLA CONSOLIDADA: PEDIDO TOTAL AL PROVEEDOR (4 columnas) ── */}
       <div className="card" style={{ marginBottom: '.85rem', borderLeft: '3px solid var(--primary)' }}>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: '.65rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '.75rem' }}>📦 Pedido Total al Proveedor — desglose por fuente</div>

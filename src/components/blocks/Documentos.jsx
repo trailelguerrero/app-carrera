@@ -536,28 +536,32 @@ export default function Documentos() {
             )}
             <span className="badge badge-cyan">{docs.length} doc{docs.length!==1?"s":""}</span>
 
-            {/* Buscador en el header */}
+            {/* Buscador con alcance siempre visible */}
             <div className="doc-search">
               <span style={{opacity:.5, fontSize:".8rem", flexShrink:0}}>🔍</span>
               <input
                 value={busqueda}
                 onChange={e => setBusqueda(e.target.value)}
-                placeholder={busqGlobal ? "Buscar en todos…" : "Buscar aquí…"}
+                placeholder="Buscar documentos…"
               />
+              {/* Alcance: siempre visible, no solo cuando hay texto */}
+              <button
+                onClick={() => setBusqGlobal(v => !v)}
+                title={busqGlobal ? "Buscar solo en esta categoría" : "Buscar en todas las categorías"}
+                style={{
+                  background: busqGlobal ? "var(--cyan-dim)" : "var(--surface3)",
+                  border: busqGlobal ? "1px solid rgba(34,211,238,0.3)" : "1px solid var(--border)",
+                  color: busqGlobal ? "var(--cyan)" : "var(--text-muted)",
+                  cursor:"pointer", fontSize:".58rem", padding:".12rem .4rem",
+                  borderRadius:4, fontFamily:"var(--font-mono)",
+                  whiteSpace:"nowrap", flexShrink:0, transition:"all .15s",
+                }}>
+                {busqGlobal ? "🌐" : "📁"}
+              </button>
               {busqueda && (
-                <>
-                  <button
-                    onClick={() => setBusqGlobal(v => !v)}
-                    title={busqGlobal ? "Buscar solo en esta categoría" : "Buscar en todas las categorías"}
-                    style={{background:busqGlobal?"var(--cyan-dim)":"none",border:busqGlobal?"1px solid rgba(34,211,238,0.3)":"none",
-                      color:busqGlobal?"var(--cyan)":"var(--text-muted)",cursor:"pointer",
-                      fontSize:".6rem",padding:".1rem .35rem",borderRadius:4,
-                      fontFamily:"var(--font-mono)",whiteSpace:"nowrap",flexShrink:0}}>
-                    {busqGlobal ? "🌐 Global" : "📁 Esta"}
-                  </button>
-                  <button onClick={() => { setBusqueda(""); setBusqGlobal(false); }}
-                    style={{background:"none",border:"none",color:"var(--text-muted)",cursor:"pointer",fontSize:".7rem",padding:0}}>✕</button>
-                </>
+                <button onClick={() => { setBusqueda(""); setBusqGlobal(false); }}
+                  style={{background:"none",border:"none",color:"var(--text-muted)",
+                    cursor:"pointer",fontSize:".7rem",padding:0}}>✕</button>
               )}
             </div>
           </div>
