@@ -329,7 +329,7 @@ export default function App() {
 
         {/* CONTENIDO */}
         <div key={tab}>
-          {tab==="dashboard" && <TabDash stats={stats} equipo={equipo} setTab={setTab} setModal={setModal} setFicha={abrirFicha} tareas={tareas} hitos={hitos} updEstado={updEstado} isMobile={isMobile} setFiltroArea={setFiltroArea} setFiltroResponsable={setFiltroResponsable} />}
+          {tab==="dashboard" && <TabDash stats={stats} equipo={equipo} setTab={setTab} setModal={setModal} setFicha={abrirFicha} tareas={tareas} hitos={hitos} updEstado={updEstado} isMobile={isMobile} setFiltroArea={setFiltroArea} setFiltroResponsable={setFiltroResponsable} gestiones={Array.isArray(rawGest)?rawGest:[]} />}
           {tab==="tablón" && <TabTablon tareas={tareasFiltradas} todasTareas={tareas} equipo={equipo}
             filtroArea={filtroArea} setFiltroArea={setFiltroArea}
             filtroResponsable={filtroResponsable} setFiltroResponsable={setFiltroResponsable}
@@ -338,7 +338,7 @@ export default function App() {
             busqueda={busquedaGlobal || busqueda} setBusqueda={(v)=>{setBusqueda(v); setBusquedaGlobal(v);}}
             updEstado={updEstado} setModal={setModal} setDelConf={setDelConf} setFicha={abrirFicha}
             vista={vistaTablon} setVista={setVistaTablon} />}
-          {tab==="gantt"  && <TabGantt tareas={tareas} hitos={hitos} equipo={equipo} setModal={setModal} setFicha={abrirFicha} />}
+          {tab==="gantt"  && <TabGantt tareas={tareas} hitos={hitos} equipo={equipo} setModal={setModal} setFicha={abrirFicha} setFiltroArea={setFiltroArea} setTabParent={setTab} />}
           {tab==="equipo" && <TabEquipo equipo={equipo} tareas={tareas} setModal={setModal} setDelConf={setDelConf} setFicha={abrirFicha} />}
           {tab==="hitos"  && <TabHitos hitos={hitos} updHito={updHito} setModal={setModal} setDelConf={setDelConf} setFicha={abrirFicha} />}
         </div>
@@ -370,7 +370,7 @@ export default function App() {
 }
 
 // ─── TAB DASHBOARD ────────────────────────────────────────────────────────────
-function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, updEstado, isMobile, setFiltroArea, setFiltroResponsable }) {
+function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, updEstado, isMobile, setFiltroArea, setFiltroResponsable, gestiones }) {
   return (
     <>
       {/* Semáforo por área */}
@@ -380,21 +380,31 @@ function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, upd
           {stats.porArea.map(a => {
             const sc = {green:"#34d399", amber:"#fbbf24", red:"#f87171", blue:"#22d3ee"}[a.semaforo];
             return (
-              <div key={a.id} className="area-card" style={{borderTopColor:a.color}}
-                onClick={() => { setFiltroArea(a.id); setTab("tablón"); }}
-                title={`Ver tareas de ${a.label}`}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:".4rem"}}>
+              <div key={a.id} className="area-card" style={{borderTopColor:a.color}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:".4rem"}}
+                  onClick={() => { setFiltroArea(a.id); setTab("tablón"); }}
+                  title={`Ver tareas de ${a.label}`} style={{cursor:"pointer"}}>
                   <div>
                     <div style={{fontSize:"1.1rem",marginBottom:".15rem"}}>{a.icon}</div>
                     <div style={{fontSize:".72rem",fontWeight:700,color:a.color,lineHeight:1.2}}>{a.label}</div>
                   </div>
                   <div style={{width:10,height:10,borderRadius:"50%",background:sc,boxShadow:`0 0 8px ${sc}88`,flexShrink:0,marginTop:2}}/>
                 </div>
-                <div className="pbar" style={{marginBottom:".3rem"}}>
-                  <div className="pfill" style={{width:`${a.pct}%`,background:a.color}}/>
+                <div style={{cursor:"pointer"}} onClick={() => { setFiltroArea(a.id); setTab("tablón"); }}>
+                  <div className="pbar" style={{marginBottom:".3rem"}}>
+                    <div className="pfill" style={{width:`${a.pct}%`,background:a.color}}/>
+                  </div>
+                  <div className="mono xs muted">{a.done}/{a.total} · {a.pct}%</div>
+                  {a.venc > 0 && <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"#f87171",marginTop:".15rem"}}>⚠ {a.venc} vencida{a.venc!==1?"s":""}</div>}
                 </div>
-                <div className="mono xs muted">{a.done}/{a.total} · {a.pct}%</div>
-                {a.venc > 0 && <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"#f87171",marginTop:".15rem"}}>⚠ {a.venc} vencida{a.venc!==1?"s":""}</div>}
+                {{
+                  permisos:       <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"documentos"}}))}}>🏛️ Ver gestiones →</button>,
+                  economico:      <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"presupuesto"}}))}}>💰 Ver presupuesto →</button>,
+                  patrocinadores: <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"patrocinadores"}}))}}>🤝 Ver patrocinadores →</button>,
+                  voluntarios:    <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"voluntarios"}}))}}>👥 Ver voluntarios →</button>,
+                  logistica:      <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"logistica"}}))}}>📦 Ver logística →</button>,
+                  diaD:           <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"diaCarrera"}}))}}>🏁 Vista día D →</button>,
+                }[a.id] || null}
               </div>
             );
           })}
@@ -456,6 +466,79 @@ function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, upd
           <button className="btn btn-ghost mt1 w100" onClick={() => setTab("equipo")}>Ver detalle del equipo →</button>
         </div>
       </div>
+
+      {/* ── GESTIONES LEGALES — panel de conexión con Documentos ── */}
+      {gestiones && gestiones.length > 0 && (() => {
+        const ESTADO_CFG = {
+          pendiente:  { color:"#94a3b8", label:"Pendiente" },
+          en_tramite: { color:"#22d3ee", label:"En trámite" },
+          enviado:    { color:"#60a5fa", label:"Enviado" },
+          firmado:    { color:"#a78bfa", label:"Firmado" },
+          aprobado:   { color:"#34d399", label:"Aprobado ✓" },
+          denegado:   { color:"#f87171", label:"Denegado ✗" },
+        };
+        const urgentes = gestiones.filter(g =>
+          g.estado !== "aprobado" && g.estado !== "denegado"
+        );
+        return (
+          <div className="card" style={{marginBottom:".85rem",borderLeft:"3px solid #38bdf8"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".65rem"}}>
+              <div className="ct" style={{marginBottom:0}}>🏛️ Gestiones legales</div>
+              <button className="btn btn-ghost btn-sm"
+                onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"documentos"}}))}>
+                Ver en Documentos →
+              </button>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:".35rem"}}>
+              {urgentes.map(g => {
+                const ec = ESTADO_CFG[g.estado] || ESTADO_CFG.pendiente;
+                const diasV = g.fechaVencimiento
+                  ? Math.ceil((new Date(g.fechaVencimiento)-new Date())/86400000)
+                  : null;
+                const vcolor = diasV===null?"var(--text-muted)":diasV<0?"#f87171":diasV<=30?"#fbbf24":"var(--text-muted)";
+                return (
+                  <div key={g.id} style={{
+                    display:"flex",alignItems:"center",gap:".65rem",
+                    padding:".5rem .65rem",borderRadius:8,
+                    background:"var(--surface2)",border:"1px solid var(--border)",
+                  }}>
+                    <div style={{width:8,height:8,borderRadius:"50%",
+                      background:ec.color,flexShrink:0,
+                      boxShadow:`0 0 6px ${ec.color}66`}}/>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:".78rem",fontWeight:600,
+                        overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                        {g.nombre}
+                      </div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                        color:"var(--text-muted)"}}>
+                        {g.subcategoria}
+                        {g.fechaVencimiento && (
+                          <span style={{color:vcolor,marginLeft:".5rem",fontWeight:700}}>
+                            {diasV===null?"":diasV<0?`⚠ venció hace ${Math.abs(diasV)}d`:diasV===0?"⏰ hoy":`· ${diasV}d`}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <span style={{
+                      fontFamily:"var(--font-mono)",fontSize:".58rem",fontWeight:700,
+                      color:ec.color,background:`${ec.color}15`,
+                      border:`1px solid ${ec.color}33`,
+                      borderRadius:3,padding:".1rem .4rem",flexShrink:0,
+                    }}>{ec.label}</span>
+                  </div>
+                );
+              })}
+              {urgentes.length === 0 && (
+                <div style={{fontFamily:"var(--font-mono)",fontSize:".72rem",
+                  color:"var(--green)",padding:".5rem 0",textAlign:"center"}}>
+                  ✅ Todas las gestiones legales están aprobadas
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Próximos hitos */}
       <div className="card">
@@ -708,7 +791,7 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
 }
 
 // ─── TAB GANTT ────────────────────────────────────────────────────────────────
-function TabGantt({ tareas, hitos, equipo, setModal, setFicha }) {
+function TabGantt({ tareas, hitos, equipo, setModal, setFicha, setFiltroArea, setTabParent }) {
   // Simplified visual calendar: months from today to event + 1
   const months = [];
   let d = new Date(TODAY);
@@ -780,7 +863,9 @@ function TabGantt({ tareas, hitos, equipo, setModal, setFicha }) {
                   left:`${left}%`, width:`${width}%`,
                   background:`linear-gradient(90deg, ${a.color}cc, ${a.color}66)`,
                   border:`1px solid ${a.color}44`,
-                }}>
+                  cursor:"pointer",
+                }} title={`Ver tareas de ${a.label}`}
+                  onClick={() => { setFiltroArea && setFiltroArea(a.id); setTabParent && setTabParent("tablón"); }}>
                   <div className="gantt-bar-fill" style={{width:`${a.pctDone}%`,background:a.color+"99"}}/>
                   <span className="gantt-bar-label">{a.done}/{a.total}</span>
                 </div>
@@ -1313,6 +1398,46 @@ function FichaProyecto({ ficha, equipo, documentos, onClose, onEditar, onElimina
                   </a>
                 </div>
               )}
+              {/* Gestión legal relacionada — para tareas del área permisos */}
+              {data.area === "permisos" && (() => {
+                const gestRelacionada = documentos?.filter(d => d.subcategoria && !d.tipo)
+                  .find(g => {
+                    const t = (data.titulo || "").toLowerCase();
+                    const n = (g.nombre || "").toLowerCase();
+                    // Match por palabras clave compartidas
+                    const words = n.split(/\s+/).filter(w => w.length > 4);
+                    return words.some(w => t.includes(w));
+                  });
+                if (!gestRelacionada) return null;
+                const ESTADO_CFG = {
+                  pendiente:"#94a3b8", en_tramite:"#22d3ee",
+                  enviado:"#60a5fa", firmado:"#a78bfa",
+                  aprobado:"#34d399", denegado:"#f87171",
+                };
+                const ec = ESTADO_CFG[gestRelacionada.estado] || "#94a3b8";
+                return (
+                  <div style={{ marginTop: ".8rem", padding: ".65rem .75rem",
+                    borderTop: "1px dashed var(--border)",
+                    background:"rgba(56,189,248,.06)",
+                    border:"1px solid rgba(56,189,248,.2)",
+                    borderRadius:8 }}>
+                    <div style={{ fontFamily:"var(--font-mono)", fontSize:".58rem",
+                      color:"#38bdf8", textTransform:"uppercase", fontWeight:700,
+                      marginBottom:".35rem" }}>🏛️ Gestión legal relacionada</div>
+                    <div style={{ display:"flex", alignItems:"center", gap:".6rem" }}>
+                      <div style={{width:8,height:8,borderRadius:"50%",
+                        background:ec,boxShadow:`0 0 5px ${ec}66`,flexShrink:0}}/>
+                      <span style={{fontSize:".78rem",fontWeight:600,flex:1}}>
+                        {gestRelacionada.nombre}
+                      </span>
+                      <button className="btn btn-ghost btn-sm" style={{fontSize:".58rem",padding:".15rem .45rem",flexShrink:0}}
+                        onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"documentos"}}))}>
+                        Ver →
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
               {data.notas && (
                 <div style={{ background:"var(--surface2)", borderRadius:8,
                   padding:".65rem .75rem", borderLeft:`2px solid ${accent}`, marginTop:".5rem" }}>
