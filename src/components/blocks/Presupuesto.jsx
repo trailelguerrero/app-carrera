@@ -201,6 +201,7 @@ const Presupuesto = () => {
     updateScenarioInscritos,
     toggleScenarioConcepto,
     overrideScenarioConcepto,
+    overrideScenarioConceptoCosteDist,
     setScenarioIngresosExtra,
     setScenarioMerchandising,
   } = useScenario(inscritos, conceptos, ingresosExtra, merchandising);
@@ -234,13 +235,8 @@ const Presupuesto = () => {
 
   const handleUpdateCostePorDistancia = (id, dist, value) => {
     if (isScenarioMode) {
-      const curr = (scenarioConceptos || conceptos).find(c => c.id === id);
-      if (!curr) return;
-      let newCostes = { ...curr.costePorDistancia, [dist]: value };
-      if (curr.modoUniforme) {
-        DISTANCIAS.forEach(d => { newCostes[d] = value; });
-      }
-      overrideScenarioConcepto(id, "costePorDistancia", newCostes);
+      // Leer desde el activeScenario directamente para evitar estado stale del memo
+      overrideScenarioConceptoCosteDist(id, dist, value);
     } else {
       updateCostePorDistancia(id, dist, value);
     }

@@ -33,13 +33,15 @@ export const useScenario = (realInscritos, realConceptos, realIngresosExtra, rea
     : null;
 
   const scenarioConceptos = useMemo(() => {
-    if (!isScenarioMode) return null;
+    if (!isScenarioMode || !activeScenario) return null;
     return realConceptos.map((c) => ({
       ...c,
       ...(activeScenario.conceptosOverride?.[c.id] ?? {}),
       activo: !(activeScenario.conceptosExcluidos ?? []).includes(c.id),
     }));
-  }, [isScenarioMode, realConceptos, activeScenario?.conceptosOverride, activeScenario?.conceptosExcluidos]);
+  // Usar activeScenario completo — evita que optional chaining enmascare cambios
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isScenarioMode, realConceptos, activeScenario]);
 
   const scenarioIngresosExtra = isScenarioMode
     ? (activeScenario.ingresosExtra ?? realIngresosExtra)
@@ -135,6 +137,38 @@ export const useScenario = (realInscritos, realConceptos, realIngresosExtra, rea
       };
     });
   }, []);
+
+  /**
+   * Sobreescribe el precio por distancia de un concepto variable.
+   * Lee directamente del estado del draft (no del memo) para evitar valores stale.
+   */
+  const overrideScenarioConceptoCosteDist = useCallback((conceptoId, dist, value) => {
+    setActiveScenario((prev) => {
+      if (!prev) return prev;
+      // Obtener el costePorDistancia actual: override existente o del concepto real
+      const realConcepto = realConceptos.find(c => c.id === conceptoId);
+      const currentOverride = prev.conceptosOverride?.[conceptoId] ?? {};
+      const currentCostes = currentOverride.costePorDistancia
+        ?? realConcepto?.costePorDistancia
+        ?? {};
+      const modoUniforme = currentOverride.modoUniforme ?? realConcepto?.modoUniforme ?? false;
+
+      let newCostes = { ...currentCostes, [dist]: value };
+      if (modoUniforme) {
+        ["TG7", "TG13", "TG25"].forEach(d => { newCostes[d] = value; });
+      }
+      return {
+        ...prev,
+        conceptosOverride: {
+          ...prev.conceptosOverride,
+          [conceptoId]: {
+            ...currentOverride,
+            costePorDistancia: newCostes,
+          },
+        },
+      };
+    });
+  }, [realConceptos]);
 
   /** Renombra el draft activo. */
   const renameScenario = useCallback((nombre) => {
@@ -233,6 +267,7 @@ export const useScenario = (realInscritos, realConceptos, realIngresosExtra, rea
     updateScenarioInscritos,
     toggleScenarioConcepto,
     overrideScenarioConcepto,
+    overrideScenarioConceptoCosteDist,
     setScenarioIngresosExtra,
     setScenarioMerchandising,
   };
