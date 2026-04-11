@@ -69,7 +69,19 @@ export const TabEquilibrio = ({
           <div className="kpi-sub">
             {peG === null ? "sin margen positivo"
               : dif >= 0 ? "ya superado"
-              : `faltan ${Math.abs(dif)} corredores`}
+              : (
+                <button
+                  onClick={() => window.dispatchEvent(
+                    new CustomEvent("teg-navigate", { detail: { block:"presupuesto", subtab:"inscripciones" } })
+                  )}
+                  style={{ background:"none", border:"none", cursor:"pointer",
+                    fontFamily:"var(--font-mono)", fontSize:".65rem",
+                    color:"var(--amber)", fontWeight:700, padding:0,
+                    textDecoration:"underline" }}>
+                  faltan {Math.abs(dif)} corredores →
+                </button>
+              )
+            }
           </div>
         </div>
 

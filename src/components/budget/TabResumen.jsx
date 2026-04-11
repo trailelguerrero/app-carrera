@@ -122,9 +122,16 @@ export const TabResumen = ({
         </div>
       </div>
 
-      <div className="resumen-grid">
-        <div className="card" style={{ marginBottom: 0, gridColumn: "span 3" }}>
-          <div className="card-title resumen mb-2">Top Conceptos por Coste</div>
+      <div style={{ marginTop: "1rem" }}>
+        <div className="card" style={{ marginBottom: 0 }}>
+          <div style={{ display:"flex", justifyContent:"space-between",
+            alignItems:"center", marginBottom:".75rem" }}>
+            <div className="card-title resumen" style={{ marginBottom:0 }}>
+              📊 Top Conceptos por Coste
+            </div>
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+              color:"var(--text-muted)" }}>Análisis de estructura de costes</span>
+          </div>
           <div className="overflow-x">
             <table className="tbl">
               <thead>

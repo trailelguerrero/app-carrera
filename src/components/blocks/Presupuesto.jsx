@@ -305,16 +305,9 @@ const Presupuesto = () => {
             <div className="block-title-sub">{config.nombre} {config.edicion} · Gestión económica</div>
           </div>
           <div className="block-actions">
-            <span className={`badge ${resPositivo ? "badge-green" : "badge-red"}`}>
-              {resPositivo ? "▲" : "▼"} {Math.abs(resultado?.total ?? 0).toFixed(0)} €
-            </span>
-            <span className="badge badge-cyan">
-              🏃 {totalInscritos?.total ?? 0} corredores
-            </span>
             <button
               className="btn btn-ghost btn-sm"
               onClick={() => {
-                // Fija el título del documento para el PDF y luego imprime
                 const prev = document.title;
                 document.title = isScenarioMode
                   ? `Presupuesto — ${activeScenario?.nombre ?? "Escenario"} — ${config.nombre} ${config.edicion}`
@@ -323,91 +316,103 @@ const Presupuesto = () => {
                 document.title = prev;
               }}
               title="Imprimir o exportar como PDF"
-              style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}
-            >
-              <span>🖨️</span>
-              <span>PDF</span>
-            </button>
-            <button className="btn btn-ghost btn-sm" onClick={() => { const m = document.querySelector("main"); if (m) m.scrollTo({ top:0, behavior:"instant" }); setConfirmReset(true); }}>
-              Restablecer
-            </button>
+            >🖨️ PDF</button>
+            <button
+              className="btn btn-ghost btn-sm"
+              title="Restablecer todos los datos"
+              onClick={() => { const m = document.querySelector("main"); if (m) m.scrollTo({ top:0, behavior:"instant" }); setConfirmReset(true); }}
+              style={{ color: "var(--text-dim)", fontSize: "0.72rem" }}
+            >↺</button>
             <button className={saveCls} onClick={saveData} disabled={saveStatus === "saving"}>
               {saveLabel}
             </button>
           </div>
         </div>
 
-        {/* ── SCENARIO BAR ── */}
-        <ScenarioBar
-          isScenarioMode={isScenarioMode}
-          activeScenario={activeScenario}
-          savedScenarios={savedScenarios}
-          realResultado={realResultado}
-          realTotalInscritos={realTotalInscritos}
-          scenarioResultado={resultado}
-          scenarioTotalInscritos={totalInscritos}
-          realConceptos={conceptos}
-          realInscritos={inscritos}
-          realIngresosExtra={ingresosExtra}
-          realTramos={tramos}
-          onCreateScenario={createScenario}
-          onLoadScenario={loadScenario}
-          onSaveScenario={saveScenario}
-          onExitScenario={exitScenario}
-          onDuplicateScenario={duplicateScenario}
-          onDeleteScenario={deleteScenario}
-          onRenameScenario={renameScenario}
-        />
+        {/* ── SCENARIO BAR ── colapsada cuando no hay escenarios ni modo activo */}
+        {(isScenarioMode || savedScenarios.length > 0) ? (
+          <ScenarioBar
+            isScenarioMode={isScenarioMode}
+            activeScenario={activeScenario}
+            savedScenarios={savedScenarios}
+            realResultado={realResultado}
+            realTotalInscritos={realTotalInscritos}
+            scenarioResultado={resultado}
+            scenarioTotalInscritos={totalInscritos}
+            realConceptos={conceptos}
+            realInscritos={inscritos}
+            realIngresosExtra={ingresosExtra}
+            realTramos={tramos}
+            onCreateScenario={createScenario}
+            onLoadScenario={loadScenario}
+            onSaveScenario={saveScenario}
+            onExitScenario={exitScenario}
+            onDuplicateScenario={duplicateScenario}
+            onDeleteScenario={deleteScenario}
+            onRenameScenario={renameScenario}
+          />
+        ) : (
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "flex-end",
+            marginBottom: ".65rem",
+          }}>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => createScenario()}
+              style={{ fontFamily: "var(--font-mono)", fontSize: ".62rem",
+                color: "var(--text-dim)", gap: ".3rem" }}
+            >
+              🔬 Crear escenario hipotético
+            </button>
+          </div>
+        )}
 
-        {/* ── KPIs GLOBALES ── */}
-        <KpiGlobal
-          totalInscritos={totalInscritos}
-          ingresosPorDistancia={ingresosPorDistancia}
-          costesFijos={costesFijos}
-          costesVariables={costesVariables}
-          totalIngresosExtra={totalIngresosExtra}
-          merchTotales={merchTotales}
-          totalIngresosConMerch={totalIngresosConMerch}
-          resultado={resultado}
-          maximos={maximos}
-        />
+        {/* ── KPIs GLOBALES — solo en pestañas operativas, no en Equilibrio ni Historial ── */}
+        {tab !== "equilibrio" && tab !== "historial" && (
+          <KpiGlobal
+            totalInscritos={totalInscritos}
+            ingresosPorDistancia={ingresosPorDistancia}
+            costesFijos={costesFijos}
+            costesVariables={costesVariables}
+            totalIngresosExtra={totalIngresosExtra}
+            merchTotales={merchTotales}
+            totalIngresosConMerch={totalIngresosConMerch}
+            resultado={resultado}
+            maximos={maximos}
+          />
+        )}
 
-        {/* ── BREADCRUMB DE FLUJO ── */}
-        <div className="budget-flow">
-          {FLOW_STEPS.map((step, i) => {
-            const status = stepStatus(step.id);
+        {/* ── TABS — con indicador de completado integrado ── */}
+        <div className="tabs">
+          {TABS.map(t => {
+            // Reutilizar la heurística de stepStatus para las tabs operativas
+            const isDone = (() => {
+              if (t.id === "historial") return false; // nunca "done"
+              if (t.id === tab) return false;         // activa no muestra tick
+              if (t.id === "inscripciones" && (totalInscritos?.total ?? 0) > 0) return true;
+              if (t.id === "presupuesto"   && conceptos.length > 0)            return true;
+              if (t.id === "ingresos"      && ingresosExtra.length > 0)        return true;
+              return false;
+            })();
             return (
-              <React.Fragment key={step.id}>
-                <button
-                  className={`bflow-step ${status}`}
-                  onClick={() => setTab(step.id)}
-                  title={`Ir a ${step.label}`}
-                >
-                  {status === "done"
-                    ? <span>✓</span>
-                    : <span style={{ opacity: 0.6 }}>{step.n}</span>
-                  }
-                  {step.icon} {step.label}
-                </button>
-                {i < FLOW_STEPS.length - 1 && (
-                  <span className="bflow-arrow">›</span>
+              <button key={t.id}
+                className={cls("tab-btn", tab === t.id && "active")}
+                onClick={() => setTab(t.id)}
+                style={{ position: "relative" }}>
+                {isDone && (
+                  <span style={{
+                    position: "absolute", top: 3, right: 3,
+                    width: 7, height: 7, borderRadius: "50%",
+                    background: "var(--green)",
+                    boxShadow: "0 0 4px var(--green)",
+                  }} />
                 )}
-              </React.Fragment>
+                {t.icon}{" "}
+                <span className="tab-label-full">{t.label}</span>
+                <span className="tab-label-short">{t.short}</span>
+              </button>
             );
           })}
-        </div>
-
-        {/* ── TABS ── */}
-        <div className="tabs">
-          {TABS.map(t => (
-            <button key={t.id}
-              className={cls("tab-btn", tab === t.id && "active")}
-              onClick={() => setTab(t.id)}>
-              {t.icon}{" "}
-              <span className="tab-label-full">{t.label}</span>
-              <span className="tab-label-short">{t.short}</span>
-            </button>
-          ))}
         </div>
 
         {/* ── CONTENIDO ── */}
