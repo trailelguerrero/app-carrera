@@ -251,8 +251,7 @@ export default function App() {
     {id:"tablón",     icon:"📋", label:"Tablón"},
     {id:"dashboard",  icon:"📊", label:"Resumen"},
     {id:"hitos",      icon:"🏁", label:"Hitos"},
-    {id:"gantt",      icon:"📅", label:"Calendario"},
-    {id:"equipo",     icon:"👥", label:"Equipo"},
+    {id:"gantt",      icon:"📅", label:"Vista áreas"},
   ];
 
   return (
@@ -344,9 +343,9 @@ export default function App() {
         </div>
       </div>
 
-      {ficha?.tipo==="tarea"   && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} documentos={documentos} onClose={()=>setFicha(null)} onEditar={()=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
-      {ficha?.tipo==="hito"    && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} documentos={documentos} onClose={()=>setFicha(null)} onEditar={()=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
-      {ficha?.tipo==="persona" && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} documentos={documentos} onClose={()=>setFicha(null)} onEditar={()=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
+      {ficha?.tipo==="tarea"   && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} documentos={documentos} tareas={tareas} onClose={()=>setFicha(null)} onEditar={()=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
+      {ficha?.tipo==="hito"    && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} documentos={documentos} tareas={tareas} onClose={()=>setFicha(null)} onEditar={()=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
+      {ficha?.tipo==="persona" && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} documentos={documentos} tareas={tareas} onClose={()=>setFicha(null)} onEditar={()=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
       {modal?.tipo==="tarea"   && <ModalTarea   key={modal.data?.id||"new"} data={modal.data} equipo={equipo} tareas={tareas} documentos={documentos} onSave={saveTarea}   onClose={() => setModal(null)} />}
       {modal?.tipo==="hito"    && <ModalHito    key={modal.data?.id||"new"} data={modal.data}                                  onSave={saveHito}    onClose={() => setModal(null)} />}
       {modal?.tipo==="persona" && <ModalPersona key={modal.data?.id||"new"} data={modal.data}                                  onSave={savePersona} onClose={() => setModal(null)} />}
@@ -456,6 +455,10 @@ function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, upd
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:".76rem",fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.nombre}</div>
                 <div className="mono xs muted">{p.pendientes} pendiente{p.pendientes!==1?"s":""}{p.urgentes>0?` · ${p.urgentes} urgente${p.urgentes!==1?"s":""}`:""}</div>
+                {/* Contacto directo — sin ir a otra pestaña */}
+                <div style={{display:"flex",gap:".5rem",marginTop:".2rem"}} onClick={e=>e.stopPropagation()}>
+                  {p.telefono && <a href={`tel:${p.telefono}`} className="mono xs" style={{color:"var(--cyan)",textDecoration:"none",opacity:.8}}>📞 {p.telefono}</a>}
+                </div>
               </div>
               <div style={{display:"flex",gap:".25rem",flexShrink:0}}>
                 {p.urgentes > 0 && <span className="badge" style={{background:"var(--red-dim)",color:"#f87171"}}>{p.urgentes}⚡</span>}
@@ -577,6 +580,17 @@ function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, upd
 // ─── TAB TABLÓN ───────────────────────────────────────────────────────────────
 function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, filtroResponsable, setFiltroResponsable, filtroEstado, setFiltroEstado, filtroPrioridad, setFiltroPrioridad, busqueda, setBusqueda, updEstado, setModal, setDelConf, setFicha, vista, setVista }) {
   const hayFiltros = filtroArea!=="todas"||filtroResponsable!=="todos"||filtroEstado!=="todos"||filtroPrioridad!=="todas"||busqueda;
+  const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
+  const limpiar = () => { setFiltroArea("todas"); setFiltroResponsable("todos"); setFiltroEstado("todos"); setFiltroPrioridad("todas"); setBusqueda(""); };
+
+  // Resumen de filtros activos para mostrar en el botón cuando están colapsados
+  const resumenFiltros = [
+    filtroArea !== "todas" && AREAS.find(a=>a.id===filtroArea)?.label,
+    filtroResponsable !== "todos" && equipo.find(p=>String(p.id)===filtroResponsable)?.nombre.split(" ")[0],
+    filtroEstado !== "todos" && EST_CFG[filtroEstado]?.label,
+    filtroPrioridad !== "todas" && filtroPrioridad,
+  ].filter(Boolean);
+
   return (
     <>
       <div className="ph">
@@ -600,29 +614,155 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
         </div>
       </div>
 
-      {/* Filtros */}
-      <div className="card filtros-card">
-        <div style={{display:"flex",gap:".5rem",flexWrap:"wrap",alignItems:"center"}}>
-          <input className="inp" placeholder="🔍 Buscar tareas..." value={busqueda}
-            onChange={e => setBusqueda(e.target.value)} style={{maxWidth:240}}/>
-          <select className="inp" value={filtroArea} onChange={e => setFiltroArea(e.target.value)} style={{width:"auto"}}>
-            <option value="todas">Todas las áreas</option>
-            {AREAS.map(a => <option key={a.id} value={a.id}>{a.icon} {a.label}</option>)}
-          </select>
-          <select className="inp" value={filtroResponsable} onChange={e => setFiltroResponsable(e.target.value)} style={{width:"auto"}}>
-            <option value="todos">Todos</option>
-            {equipo.map(p => <option key={p.id} value={String(p.id)}>{p.nombre.split(" ")[0]}</option>)}
-          </select>
-          <select className="inp" value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)} style={{width:"auto"}}>
-            <option value="todos">Todos los estados</option>
-            {ESTADOS.map(s => <option key={s} value={s}>{EST_CFG[s].label}</option>)}
-          </select>
-          <select className="inp" value={filtroPrioridad} onChange={e => setFiltroPrioridad(e.target.value)} style={{width:"auto"}}>
-            <option value="todas">Toda prioridad</option>
-            {PRIORIDADES.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
-          {hayFiltros && <button className="btn btn-ghost btn-sm" onClick={() => {setFiltroArea("todas");setFiltroResponsable("todos");setFiltroEstado("todos");setFiltroPrioridad("todas");setBusqueda("");}}>✕ Limpiar</button>}
+      {/* Filtros — barra principal siempre visible */}
+      <div className="card filtros-card" style={{padding:".55rem .75rem"}}>
+        <div style={{display:"flex",gap:".5rem",alignItems:"center"}}>
+          {/* Buscador — siempre visible */}
+          <div style={{flex:1,display:"flex",alignItems:"center",gap:".35rem",
+            background:"var(--surface2)",border:"1px solid var(--border)",
+            borderRadius:6,padding:".3rem .6rem",minWidth:0}}>
+            <span style={{opacity:.45,fontSize:".8rem",flexShrink:0}}>🔍</span>
+            <input placeholder="Buscar tareas..." value={busqueda}
+              onChange={e => setBusqueda(e.target.value)}
+              style={{background:"none",border:"none",color:"var(--text)",
+                fontFamily:"var(--font-display)",fontSize:".78rem",
+                outline:"none",width:"100%",minWidth:0}}/>
+            {busqueda && (
+              <button onClick={()=>setBusqueda("")}
+                style={{background:"none",border:"none",color:"var(--text-muted)",
+                  cursor:"pointer",fontSize:".7rem",padding:0,flexShrink:0}}>✕</button>
+            )}
+          </div>
+
+          {/* Botón de filtros — muestra resumen de activos */}
+          <button
+            onClick={() => setFiltrosAbiertos(v=>!v)}
+            style={{
+              display:"flex",alignItems:"center",gap:".4rem",
+              background: hayFiltros ? "rgba(167,139,250,.12)" : "var(--surface2)",
+              border: hayFiltros ? "1px solid rgba(167,139,250,.35)" : "1px solid var(--border)",
+              borderRadius:6, padding:".32rem .65rem",
+              fontFamily:"var(--font-mono)",fontSize:".65rem",fontWeight:700,
+              color: hayFiltros ? "var(--violet)" : "var(--text-muted)",
+              cursor:"pointer",transition:"all .15s",flexShrink:0,whiteSpace:"nowrap",
+            }}>
+            🎛 {hayFiltros ? `${resumenFiltros.length} filtro${resumenFiltros.length!==1?"s":""}` : "Filtrar"}
+            <span style={{fontSize:".55rem",opacity:.7}}>{filtrosAbiertos?"▲":"▼"}</span>
+          </button>
+
+          {/* Limpiar — solo si hay filtros activos */}
+          {hayFiltros && (
+            <button onClick={limpiar}
+              style={{background:"none",border:"none",color:"var(--text-muted)",
+                cursor:"pointer",fontSize:".75rem",padding:".3rem",flexShrink:0}}
+              title="Limpiar filtros">✕</button>
+          )}
         </div>
+
+        {/* Resumen de filtros activos (chips) */}
+        {hayFiltros && !filtrosAbiertos && (
+          <div style={{display:"flex",gap:".3rem",flexWrap:"wrap",marginTop:".4rem"}}>
+            {filtroArea!=="todas" && (
+              <span style={{display:"inline-flex",alignItems:"center",gap:".25rem",
+                fontFamily:"var(--font-mono)",fontSize:".58rem",fontWeight:700,
+                background:"rgba(167,139,250,.1)",color:"var(--violet)",
+                border:"1px solid rgba(167,139,250,.25)",borderRadius:20,
+                padding:".1rem .5rem"}}>
+                {AREAS.find(a=>a.id===filtroArea)?.icon} {AREAS.find(a=>a.id===filtroArea)?.label}
+                <button onClick={()=>setFiltroArea("todas")}
+                  style={{background:"none",border:"none",color:"inherit",cursor:"pointer",
+                    padding:0,fontSize:".6rem",opacity:.7,lineHeight:1}}>✕</button>
+              </span>
+            )}
+            {filtroEstado!=="todos" && (
+              <span style={{display:"inline-flex",alignItems:"center",gap:".25rem",
+                fontFamily:"var(--font-mono)",fontSize:".58rem",fontWeight:700,
+                background:EST_CFG[filtroEstado]?.bg,color:EST_CFG[filtroEstado]?.color,
+                border:`1px solid ${EST_CFG[filtroEstado]?.color}44`,borderRadius:20,
+                padding:".1rem .5rem"}}>
+                {EST_CFG[filtroEstado]?.label}
+                <button onClick={()=>setFiltroEstado("todos")}
+                  style={{background:"none",border:"none",color:"inherit",cursor:"pointer",
+                    padding:0,fontSize:".6rem",opacity:.7,lineHeight:1}}>✕</button>
+              </span>
+            )}
+            {filtroPrioridad!=="todas" && (
+              <span style={{display:"inline-flex",alignItems:"center",gap:".25rem",
+                fontFamily:"var(--font-mono)",fontSize:".58rem",fontWeight:700,
+                background:PRI_CFG[filtroPrioridad]?.bg,color:PRI_CFG[filtroPrioridad]?.color,
+                border:`1px solid ${PRI_CFG[filtroPrioridad]?.color}44`,borderRadius:20,
+                padding:".1rem .5rem"}}>
+                {filtroPrioridad}
+                <button onClick={()=>setFiltroPrioridad("todas")}
+                  style={{background:"none",border:"none",color:"inherit",cursor:"pointer",
+                    padding:0,fontSize:".6rem",opacity:.7,lineHeight:1}}>✕</button>
+              </span>
+            )}
+            {filtroResponsable!=="todos" && (
+              <span style={{display:"inline-flex",alignItems:"center",gap:".25rem",
+                fontFamily:"var(--font-mono)",fontSize:".58rem",fontWeight:700,
+                background:"var(--surface3)",color:"var(--text-muted)",
+                border:"1px solid var(--border)",borderRadius:20,padding:".1rem .5rem"}}>
+                👤 {equipo.find(p=>String(p.id)===filtroResponsable)?.nombre.split(" ")[0]}
+                <button onClick={()=>setFiltroResponsable("todos")}
+                  style={{background:"none",border:"none",color:"inherit",cursor:"pointer",
+                    padding:0,fontSize:".6rem",opacity:.7,lineHeight:1}}>✕</button>
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Panel expandido de filtros */}
+        {filtrosAbiertos && (
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem",marginTop:".5rem"}}>
+            <div>
+              <label style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+                color:"var(--text-muted)",display:"block",marginBottom:".2rem",
+                textTransform:"uppercase",letterSpacing:".06em"}}>Área</label>
+              <select className="inp inp-sm" value={filtroArea}
+                onChange={e => setFiltroArea(e.target.value)}>
+                <option value="todas">Todas ({todasTareas.length})</option>
+                {AREAS.map(a => {
+                  const cnt = todasTareas.filter(t=>t.area===a.id).length;
+                  const pend = todasTareas.filter(t=>t.area===a.id&&t.estado!=="completado").length;
+                  return <option key={a.id} value={a.id}>{a.icon} {a.label} ({pend} pend.)</option>;
+                })}
+              </select>
+            </div>
+            <div>
+              <label style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+                color:"var(--text-muted)",display:"block",marginBottom:".2rem",
+                textTransform:"uppercase",letterSpacing:".06em"}}>Estado</label>
+              <select className="inp inp-sm" value={filtroEstado}
+                onChange={e => setFiltroEstado(e.target.value)}
+                style={{color:filtroEstado!=="todos"?EST_CFG[filtroEstado]?.color:undefined}}>
+                <option value="todos">Todos</option>
+                {ESTADOS.map(s => <option key={s} value={s}>{EST_CFG[s].label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+                color:"var(--text-muted)",display:"block",marginBottom:".2rem",
+                textTransform:"uppercase",letterSpacing:".06em"}}>Prioridad</label>
+              <select className="inp inp-sm" value={filtroPrioridad}
+                onChange={e => setFiltroPrioridad(e.target.value)}
+                style={{color:filtroPrioridad!=="todas"?PRI_CFG[filtroPrioridad]?.color:undefined}}>
+                <option value="todas">Todas</option>
+                {PRIORIDADES.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+                color:"var(--text-muted)",display:"block",marginBottom:".2rem",
+                textTransform:"uppercase",letterSpacing:".06em"}}>Responsable</label>
+              <select className="inp inp-sm" value={filtroResponsable}
+                onChange={e => setFiltroResponsable(e.target.value)}>
+                <option value="todos">Todos</option>
+                {equipo.map(p => <option key={p.id} value={String(p.id)}>{p.nombre.split(" ")[0]}</option>)}
+              </select>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Vistas */}
@@ -671,7 +811,7 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
                         <span className="mono xs muted">{resp.nombre.split(" ")[0]}</span>
                       </span>
                     )}
-                    {t.notas && <span className="mono xs muted" style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:260}}>{t.notas}</span>}
+                    {t.notas && <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-dim)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:220,fontStyle:"italic"}}>{t.notas}</span>}
                   </div>
                 </div>
                 {/* Fecha */}
@@ -1351,7 +1491,7 @@ function FichaRow({ label, value, color }) {
   );
 }
 
-function FichaProyecto({ ficha, equipo, documentos, onClose, onEditar, onEliminar }) {
+function FichaProyecto({ ficha, equipo, documentos, tareas, onClose, onEditar, onEliminar }) {
   const { tipo, data } = ficha;
   const accent = tipo === "tarea" ? "var(--violet)" : tipo === "hito" ? "var(--cyan)" : "var(--green)";
   const icon   = tipo === "tarea" ? "📋" : tipo === "hito" ? "🏁" : "👤";
@@ -1438,6 +1578,51 @@ function FichaProyecto({ ficha, equipo, documentos, onClose, onEditar, onElimina
                   </div>
                 );
               })()}
+              {/* Dependencias */}
+              {(() => {
+                if (!tareas) return null;
+                const bloqueadaPor = data.dependeDe
+                  ? tareas.find(t => t.id === data.dependeDe) : null;
+                const bloqueaA = tareas.filter(t =>
+                  t.dependeDe === data.id && t.estado !== "completado"
+                );
+                if (!bloqueadaPor && bloqueaA.length === 0) return null;
+                return (
+                  <div style={{ marginTop:".75rem", display:"flex", flexDirection:"column", gap:".4rem" }}>
+                    {bloqueadaPor && (
+                      <div style={{ padding:".5rem .65rem", borderRadius:8,
+                        background:"rgba(248,113,113,.06)",
+                        border:"1px solid rgba(248,113,113,.2)" }}>
+                        <div style={{ fontFamily:"var(--font-mono)", fontSize:".55rem",
+                          color:"#f87171", fontWeight:700, marginBottom:".25rem",
+                          textTransform:"uppercase" }}>🔒 Bloqueada por</div>
+                        <div style={{ fontSize:".75rem", fontWeight:600 }}>{bloqueadaPor.titulo}</div>
+                        <div style={{ fontFamily:"var(--font-mono)", fontSize:".58rem",
+                          color:"var(--text-muted)", marginTop:".1rem" }}>
+                          {EST_CFG[bloqueadaPor.estado]?.label} · {getArea(bloqueadaPor.area)?.label}
+                        </div>
+                      </div>
+                    )}
+                    {bloqueaA.length > 0 && (
+                      <div style={{ padding:".5rem .65rem", borderRadius:8,
+                        background:"rgba(251,191,36,.06)",
+                        border:"1px solid rgba(251,191,36,.2)" }}>
+                        <div style={{ fontFamily:"var(--font-mono)", fontSize:".55rem",
+                          color:"var(--amber)", fontWeight:700, marginBottom:".3rem",
+                          textTransform:"uppercase" }}>⏳ Desbloquea {bloqueaA.length} tarea{bloqueaA.length!==1?"s":""}</div>
+                        {bloqueaA.map(t => (
+                          <div key={t.id} style={{ fontSize:".72rem", color:"var(--text-muted)",
+                            padding:".15rem 0", display:"flex", alignItems:"center", gap:".4rem" }}>
+                            <span style={{ color:"var(--amber)", fontSize:".65rem" }}>→</span>
+                            {t.titulo}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               {data.notas && (
                 <div style={{ background:"var(--surface2)", borderRadius:8,
                   padding:".65rem .75rem", borderLeft:`2px solid ${accent}`, marginTop:".5rem" }}>
