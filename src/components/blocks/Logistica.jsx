@@ -216,15 +216,18 @@ export default function App() {
     return { tlDone, tlTotal:tl.length, ckDone, ckTotal:ck.length, stockErr, incOpen };
   }, [tl, ck, material, asigs, inc]);
 
-  const TABS = [
+  const TABS_OPERATIVAS = [
     {id:"dashboard",icon:"📊",label:"Dashboard"},
     {id:"material",icon:"📦",label:"Material"},
     {id:"vehiculos",icon:"🚗",label:"Vehículos"},
     {id:"timeline",icon:"⏱️",label:"Timeline"},
     {id:"contactos",icon:"🚨",label:"Emergencias"},
     {id:"checklist",icon:"✅",label:"Checklist"},
+  ];
+  const TABS_CONFIG = [
     {id:"localizaciones",icon:"📍",label:"Localizaciones"},
   ];
+  const TABS = [...TABS_OPERATIVAS, ...TABS_CONFIG];
 
   const doDelete = () => {
     if (!del) return;
@@ -246,19 +249,25 @@ export default function App() {
             <div className="block-title-sub">{config.nombre} {config.edicion} · Módulo Operativo</div>
           </div>
           <div className="block-actions">
-            {stats.stockErr > 0 && <span className="badge badge-red" style={{cursor:"pointer"}} onClick={()=>setTab("material")}>⚠ {stats.stockErr} stock</span>}
-            {stats.incOpen > 0 && <span className="badge badge-amber" style={{cursor:"pointer"}} onClick={()=>setTab("contactos")}>🚨 {stats.incOpen} incidencias</span>}
-            <span className="badge badge-cyan">✅ {stats.ckDone}/{stats.ckTotal}</span>
-            <button className="btn btn-sm" style={{background:"rgba(248,113,113,0.1)",color:"var(--red)",border:"1px solid rgba(248,113,113,0.25)",fontFamily:"var(--font-mono)",fontSize:"0.62rem"}}
-              onClick={()=>{setTab("contactos");}}>
-              🚨 Emergencias
-            </button>
+            {stats.stockErr > 0 && (
+              <span className="badge badge-red" style={{cursor:"pointer"}}
+                onClick={()=>setTab("material")}>⚠ {stats.stockErr} stock</span>
+            )}
+            {stats.incOpen > 0 && (
+              <span className="badge badge-amber" style={{cursor:"pointer"}}
+                onClick={()=>setTab("contactos")}>🚨 {stats.incOpen} incidencias</span>
+            )}
+            <span className="badge badge-cyan" style={{cursor:"pointer"}}
+              onClick={()=>setTab("checklist")}
+              title="Ir al checklist">
+              ✅ {stats.ckDone}/{stats.ckTotal}
+            </span>
           </div>
         </div>
 
-        {/* TABS */}
+        {/* TABS — operativas + configuración separadas */}
         <div className="tabs">
-          {TABS.map(t => (
+          {TABS_OPERATIVAS.map(t => (
             <button key={t.id} className={cls("tab-btn", tab===t.id && "active")} onClick={() => setTab(t.id)}>
               {t.icon} {t.label}
               {t.id==="checklist" && <span className="badge badge-cyan" style={{marginLeft:"0.3rem"}}>{stats.ckDone}/{stats.ckTotal}</span>}
@@ -266,14 +275,27 @@ export default function App() {
               {t.id==="contactos" && stats.incOpen>0 && <span className="badge badge-amber" style={{marginLeft:"0.3rem"}}>{stats.incOpen}</span>}
             </button>
           ))}
+          {/* Separador visual — Localizaciones es configuración, no operación */}
+          <span style={{
+            display:"inline-flex", alignItems:"center",
+            padding:"0 .25rem", color:"var(--border)",
+            fontSize:"1rem", userSelect:"none", flexShrink:0,
+          }}>│</span>
+          {TABS_CONFIG.map(t => (
+            <button key={t.id} className={cls("tab-btn", tab===t.id && "active")}
+              onClick={() => setTab(t.id)}
+              style={{ opacity: tab === t.id ? 1 : 0.65 }}>
+              {t.icon} {t.label}
+            </button>
+          ))}
         </div>
 
         {/* CONTENIDO */}
         <div key={tab}>
-          {tab==="dashboard" && <TabDash stats={stats} tl={tl} ck={ck} setTab={setTab} config={config} patsConEspecie={patsConEspecie} />}
+          {tab==="dashboard" && <TabDash stats={stats} tl={tl} ck={ck} setTab={setTab} config={config} patsConEspecie={patsConEspecie} material={material} asigs={asigs} />}
           {tab==="material" && <TabMat material={material} setMaterial={setMaterial} asigs={asigs} setAsigs={setAsigs} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenMat} setOrdenAlfa={setOrdenMat} locs={locs} patsConEspecie={patsConEspecie} />}
           {tab==="vehiculos" && <TabVeh veh={veh} setVeh={setVeh} rutas={rutas} setRutas={setRutas} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenVeh} setOrdenAlfa={setOrdenVeh} voluntariosConCoche={voluntariosConCoche} />}
-          {tab==="timeline" && <TabTL tl={tl} setTl={setTl} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenTL} setOrdenAlfa={setOrdenTL} />}
+          {tab==="timeline" && <TabTL tl={tl} setTl={setTl} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenTL} setOrdenAlfa={setOrdenTL} config={config} />}
           {tab==="contactos" && <TabCont cont={cont} setCont={setCont} inc={inc} setInc={setInc} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCont} setOrdenAlfa={setOrdenCont} />}
           {tab==="checklist" && <TabCK ck={ck} setCk={setCk} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCK} setOrdenAlfa={setOrdenCK} config={config} />}
           {tab==="localizaciones" && <TabLocalizaciones locs={locs} setLocs={setLocs} volsPorLoc={volsPorLoc} />}
@@ -306,7 +328,7 @@ export default function App() {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
-function TabDash({ stats, tl, ck, setTab, config, patsConEspecie }) {
+function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [], asigs = [] }) {
   const prox = [...tl].filter(t=>t.estado!=="completado").sort((a,b)=>a.hora.localeCompare(b.hora)).slice(0,6);
   const porFase = FASES_CHECKLIST.map(f => { const it=ck.filter(c=>c.fase===f); const d=it.filter(c=>c.estado==="completado").length; return {f,d,t:it.length,pct:it.length?Math.round(d/it.length*100):0}; });
   const eventoFecha = config?.fecha ? new Date(config.fecha) : new Date("2026-08-29");
@@ -349,6 +371,63 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie }) {
           </div>
         ))}
       </div>
+
+      {/* ── Panel de déficit de stock — solo si hay problemas ── */}
+      {stats.stockErr > 0 && (() => {
+        const enDeficit = material.map(m => {
+          const totalAsig = asigs.filter(a => a.materialId === m.id)
+            .reduce((s, a) => s + a.cantidad, 0);
+          const def = totalAsig - m.stock;
+          return def > 0 ? { ...m, def, totalAsig } : null;
+        }).filter(Boolean);
+        if (!enDeficit.length) return null;
+        return (
+          <div style={{
+            marginBottom: ".85rem", padding: ".65rem .85rem",
+            background: "rgba(248,113,113,.05)",
+            border: "1px solid rgba(248,113,113,.2)",
+            borderLeft: "3px solid var(--red)",
+            borderRadius: "var(--r-sm)",
+          }}>
+            <div style={{ display:"flex", justifyContent:"space-between",
+              alignItems:"center", marginBottom:".45rem" }}>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+                fontWeight:700, color:"var(--red)", textTransform:"uppercase",
+                letterSpacing:".06em" }}>
+                ⚠ Stock insuficiente
+              </span>
+              <button className="btn btn-ghost btn-sm"
+                style={{ fontSize:".6rem", color:"var(--text-dim)" }}
+                onClick={() => setTab("material")}>
+                Ver material →
+              </button>
+            </div>
+            <div style={{ display:"flex", flexDirection:"column", gap:".3rem" }}>
+              {enDeficit.map(m => (
+                <div key={m.id} style={{
+                  display:"flex", alignItems:"center", gap:".6rem",
+                  fontSize:".75rem",
+                }}>
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+                    fontWeight:800, color:"var(--red)",
+                    background:"rgba(248,113,113,.1)", padding:".08rem .4rem",
+                    borderRadius:3, flexShrink:0, minWidth:48, textAlign:"center" }}>
+                    -{m.def} {m.unidad}
+                  </span>
+                  <span style={{ fontWeight:600, flex:1, minWidth:0,
+                    overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                    {m.nombre}
+                  </span>
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+                    color:"var(--text-muted)", flexShrink:0 }}>
+                    {m.stock} stock · {m.totalAsig} asig.
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Countdown hero compacto ── */}
       <div className="card mb log-hero" style={{
@@ -706,7 +785,7 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
 }
 
 // ─── TIMELINE ─────────────────────────────────────────────────────────────────
-function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal}) {
+function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,config}) {
   const [vistaKanban,setVistaKanban]=useState(false);
   const sorted=useMemo(()=>{
     let arr=[...tl];
@@ -729,7 +808,7 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
   return(
     <>
       <div className="ph">
-        <div><div className="pt">⏱️ Timeline del Día</div><div className="pd">{tl.filter(t=>t.estado==="completado").length}/{tl.length} completadas · 29 agosto 2026</div></div>
+        <div><div className="pt">⏱️ Timeline del Día</div><div className="pd">{tl.filter(t=>t.estado==="completado").length}/{tl.length} completadas · {config?.fecha ? new Date(config.fecha).toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"}) : "29 agosto 2026"}</div></div>
         <div className="fr g1">
           <div className="log-vista-toggle">
             {[["lista","☰"],["kanban","⬛"]].map(([v,ic])=>(<button key={v} onClick={()=>setVistaKanban(v==="kanban")} style={{padding:".3rem .55rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,background:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"rgba(34,211,238,.2)":"transparent",color:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"var(--cyan)":"var(--text-muted)"}}>{ic}</button>))}
@@ -1055,24 +1134,7 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
         </div>
       ) : (
         <>
-          {/* ── LISTA: tabs de fase + items ── */}
-          <div className="ftabs">
-            {pf.map(f=>(
-              <button key={f.f} className={cls("ftab",fase===f.f&&"fa",f.f===faseActiva&&"ftab-activa")} onClick={()=>setFase(f.f)}>
-                <div style={{display:"flex",alignItems:"center",gap:"0.3rem",marginBottom:"0.15rem"}}>
-                  <span style={{fontSize:"0.72rem",fontWeight:600}}>{f.f}</span>
-                  {f.f===faseActiva && (
-                    <span style={{fontFamily:"var(--font-mono)",fontSize:"0.5rem",fontWeight:700,
-                      background:"var(--cyan-dim)",color:"var(--cyan)",
-                      border:"1px solid rgba(34,211,238,0.3)",borderRadius:3,
-                      padding:"0.05rem 0.3rem",lineHeight:1.2,flexShrink:0}}>AHORA</span>
-                  )}
-                </div>
-                <span className="fprog mono" style={{color:f.pct===100?"var(--green)":f.pct>50?"var(--cyan)":"var(--text-muted)"}}>{f.d}/{f.t}</span>
-                <div className="fbar"><div className="ffill" style={{width:`${f.pct}%`,background:f.pct===100?"var(--green)":f.pct>50?"var(--cyan)":"var(--amber)"}}/></div>
-              </button>
-            ))}
-          </div>
+          {/* ── LISTA: items de la fase seleccionada ── */}
           <div style={{display:"flex",flexDirection:"column",gap:"0.4rem"}}>
             {(ordenAlfa?[...(fd?.it||[])].sort((a,b)=>(a.tarea||"").localeCompare(b.tarea||"","es")):fd?.it||[]).map(item=>(
               <div key={item.id} className={cls("cki",item.estado==="completado"&&"ckd",item.estado==="bloqueado"&&"ckb")} style={{cursor:"pointer"}} onClick={()=>abrirFicha("ck",item)}>
