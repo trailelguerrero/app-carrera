@@ -281,7 +281,7 @@ const Presupuesto = () => {
   };
 
   const handleReset = () => {
-    resetAllData();
+    resetAllData(true); // sinConfirm=true — modal ya fue mostrado
     setConfirmReset(false);
   };
 

@@ -1,10 +1,8 @@
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import ReadmeModal  from "../components/blocks/ReadmeModal";
 import ErrorBoundary from "../components/ErrorBoundary";
 import DiaCarrera   from "../components/blocks/DiaCarrera";
 import OnboardingModal from "../components/blocks/OnboardingModal";
-import { exportBlockToPdf } from "../components/blocks/PdfExport";
 import { ThemeToggle } from "../components/ui/ThemeToggle";
 
 // Lazy-style imports for blocks
@@ -77,28 +75,23 @@ function AutosaveIndicator({ status }) {
   if (!c) return null;
 
   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={status}
-        initial={{ opacity: 0, scale: 0.85 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.85 }}
-        transition={{ duration: 0.18 }}
-        style={{
-          display: "inline-flex", alignItems: "center", gap: "0.3rem",
-          fontFamily: "var(--font-mono)", fontSize: "0.55rem",
-          color: c.color, background: c.bg,
-          border: `1px solid ${c.border}`,
-          borderRadius: 6, padding: "0.2rem 0.5rem", whiteSpace: "nowrap",
-        }}
-      >
-        <span style={{
-          width: 5, height: 5, borderRadius: "50%", background: "currentColor", flexShrink: 0,
-          animation: c.pulse ? "teg-pulse 1s ease-in-out infinite" : "none",
-        }} />
-        {c.text}
-      </motion.div>
-    </AnimatePresence>
+    <div
+      key={status}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: "0.3rem",
+        fontFamily: "var(--font-mono)", fontSize: "0.55rem",
+        color: c.color, background: c.bg,
+        border: `1px solid ${c.border}`,
+        borderRadius: 6, padding: "0.2rem 0.5rem", whiteSpace: "nowrap",
+        animation: "teg-fadein-scale 0.18s ease",
+      }}
+    >
+      <span style={{
+        width: 5, height: 5, borderRadius: "50%", background: "currentColor", flexShrink: 0,
+        animation: c.pulse ? "teg-pulse 1s ease-in-out infinite" : "none",
+      }} />
+      {c.text}
+    </div>
   );
 }
 
@@ -191,11 +184,10 @@ function PinScreen({ onUnlock }) {
       padding: "2rem", fontFamily: "'Syne', sans-serif",
       backgroundImage: "radial-gradient(ellipse 60% 40% at 50% 0%, var(--teg-cyan-subtle) 0%, transparent 60%)",
     }}>
-      <motion.div
-        initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: "easeOut" }}
-        style={{ width: "100%", maxWidth: 300, textAlign: "center" }}
-      >
+      <div style={{
+        width: "100%", maxWidth: 300, textAlign: "center",
+        animation: "teg-fadein 0.45s ease-out",
+      }}>
         <div style={{ fontSize: "2.2rem", marginBottom: "0.4rem" }}>🏔️</div>
         <div style={{ fontWeight: 800, fontSize: "1.25rem", color: "var(--teg-text-primary)", marginBottom: "0.2rem" }}>
           Trail El Guerrero
@@ -205,13 +197,12 @@ function PinScreen({ onUnlock }) {
           Panel de gestión · 2026
         </div>
 
-        <motion.div
-          animate={shake ? { x: [-10, 10, -8, 8, -4, 4, 0] } : {}}
-          transition={{ duration: 0.5 }}
-          style={{ marginBottom: "0.75rem" }}
-        >
+        <div style={{
+          marginBottom: "0.75rem",
+          animation: shake ? "teg-shake 0.5s ease" : "none",
+        }}>
           <PinDots count={4} filled={digits.length} />
-        </motion.div>
+        </div>
 
         <div style={{ height: "1.2rem", fontFamily: "var(--font-mono)",
           fontSize: "0.62rem", color: "#dc2626", marginBottom: "1.5rem" }}>{hint}</div>
@@ -223,7 +214,7 @@ function PinScreen({ onUnlock }) {
           PIN por defecto: <span style={{ color: "var(--teg-text-secondary)" }}>2026</span><br />
           Cámbialo desde el icono 🔐 en el panel
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
@@ -274,25 +265,24 @@ function ChangePinModal({ onClose }) {
   }, [handleDigit, handleBackspace, onClose]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+    <div
       onClick={onClose}
       style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)",
         zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center",
-        backdropFilter: "blur(10px)", padding: "1rem" }}
+        backdropFilter: "blur(10px)", padding: "1rem",
+        animation: "teg-fadein-scale 0.18s ease" }}
     >
-      <motion.div
+      <div
         onClick={e => e.stopPropagation()}
-        initial={{ scale: 0.88, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.88, y: 20 }}
-        transition={{ type: "spring", stiffness: 360, damping: 28 }}
         style={{ background: "var(--teg-surface)", border: "1px solid var(--teg-border)", borderRadius: 18,
-          padding: "2rem 1.75rem", width: "100%", maxWidth: 290, textAlign: "center" }}
+          padding: "2rem 1.75rem", width: "100%", maxWidth: 290, textAlign: "center",
+          animation: "teg-fadein 0.2s ease" }}
       >
         {ok ? (
-          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 400 }}>
+          <div style={{ animation: "teg-fadein-scale 0.25s ease" }}>
             <div style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>✅</div>
             <div style={{ color: "#059669", fontWeight: 800, fontSize: "1rem" }}>PIN actualizado</div>
-          </motion.div>
+          </div>
         ) : (
           <>
             <div style={{ fontWeight: 800, fontSize: "0.95rem", color: "var(--teg-text-primary)", marginBottom: "0.3rem" }}>
@@ -312,8 +302,8 @@ function ChangePinModal({ onClose }) {
               fontSize: "0.6rem" }}>Cancelar</button>
           </>
         )}
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }
 
@@ -462,7 +452,10 @@ export default function Index() {
                   fontFamily:"'DM Mono', 'Space Mono', monospace,monospace",
                   fontSize: isMobile ? "0.5rem" : "0.58rem", fontWeight:700, cursor:"pointer",
                 }}>📖{!isMobile && " README"}</button>
-                <button onClick={() => exportBlockToPdf(activeBlock)} style={{
+                <button onClick={async () => {
+                  const { exportBlockToPdf } = await import("../components/blocks/PdfExport");
+                  exportBlockToPdf(activeBlock);
+                }} style={{
                   background:"rgba(52,211,153,0.1)", color:"#059669",
                   border:"1px solid rgba(52,211,153,0.22)", borderRadius:6,
                   padding: isMobile ? "0.22rem 0.38rem" : "0.26rem 0.55rem",
@@ -539,15 +532,11 @@ export default function Index() {
               >
                 {/* Active pill background */}
                 {isActive && (
-                  <motion.div
-                    layoutId="nav-pill"
-                    style={{
+                  <div style={{
                       position:"absolute", inset:0, borderRadius:10,
                       background:"rgba(34,211,238,0.07)",
                       border:"1px solid rgba(34,211,238,0.18)",
-                    }}
-                    transition={{ type:"spring", stiffness:400, damping:34 }}
-                  />
+                    }} />
                 )}
 
                 {/* Icon */}
@@ -574,16 +563,12 @@ export default function Index() {
 
                 {/* Active dot */}
                 {isActive && (
-                  <motion.div
-                    layoutId="nav-dot"
-                    style={{
+                  <div style={{
                       width:3, height:3, borderRadius:"50%",
                       background:"var(--teg-cyan)",
                       boxShadow:"0 0 5px var(--teg-cyan-subtle)",
                       position:"relative", zIndex:1,
-                    }}
-                    transition={{ type:"spring", stiffness:400, damping:34 }}
-                  />
+                    }} />
                 )}
               </button>
             );
@@ -594,9 +579,7 @@ export default function Index() {
         {readmeBlock && <ReadmeModal block={readmeBlock} onClose={() => setReadmeBlock(null)} />}
         {showDiaCarrera && <DiaCarrera onClose={() => setShowDiaCarrera(false)} />}
         {showOnboarding && <OnboardingModal onClose={cerrarOnboarding} onNavigate={(id) => { handleBlockChange(id); cerrarOnboarding(); }} />}
-        <AnimatePresence>
-          {showChangePin && <ChangePinModal onClose={() => setShowChangePin(false)} />}
-        </AnimatePresence>
+        {showChangePin && <ChangePinModal onClose={() => setShowChangePin(false)} />}
       </div>
     </>
   );

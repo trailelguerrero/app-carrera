@@ -150,14 +150,12 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   }, [tramos, conceptos, inscritos, ingresosExtra, merchandising, maximos]);
 
   const resetAllData = useCallback(() => {
-    if (window.confirm("¿Estás seguro de que quieres restablecer todos los datos a los valores predeterminados?")) {
-      setTramos(TRAMOS_DEFAULT);
-      setConceptos(CONCEPTOS_DEFAULT);
-      setInscritos(INSCRITOS_DEFAULT);
-      setIngresosExtra(INGRESOS_EXTRA_DEFAULT);
-      setMerchandising(MERCHANDISING_DEFAULT);
-      setMaximos(MAXIMOS_DEFAULT);
-    }
+    // Confirmación gestionada por el componente padre mediante modal propio
+    setTramos(TRAMOS_DEFAULT);
+    setConceptos(CONCEPTOS_DEFAULT);
+    setInscritos(INSCRITOS_DEFAULT);
+    setIngresosExtra(INGRESOS_EXTRA_DEFAULT);
+    setMerchandising(MERCHANDISING_DEFAULT);
   }, []);
 
   // ─── AUTOSAVE (debounced, 2s tras el último cambio) ─────────────────────────

@@ -1,10 +1,11 @@
-import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import { ThemeToggle } from "../components/ui/ThemeToggle";
 
 export default function Landing() {
   return (
+    <>
+      <style>{`@keyframes teg-fadein-scale{from{opacity:0;transform:scale(0.85)}to{opacity:1;transform:scale(1)}}@keyframes teg-fadein{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`}</style>
     <div className="min-h-[100dvh] bg-background text-foreground font-sans flex flex-col relative overflow-hidden">
       
       {/* Background Effects */}
@@ -25,12 +26,7 @@ export default function Landing() {
       <main className="flex-1 relative z-10 flex flex-col items-center justify-center p-6 mt-16 md:mt-0 w-full max-w-5xl mx-auto">
         
         {/* Main Circular Logo */}
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="relative mb-12 lg:mb-16 flex justify-center"
-        >
+        <div className="relative mb-12 lg:mb-16 flex justify-center" style={{animation:"teg-fadein-scale 0.8s ease-out"}}>
           <div className="w-[280px] h-[280px] sm:w-[350px] sm:h-[350px] md:w-[450px] md:h-[450px] rounded-full overflow-hidden shadow-2xl flex items-center justify-center">
             <img 
               src="/logo.webp" 
@@ -46,15 +42,10 @@ export default function Landing() {
               }}
             />
           </div>
-        </motion.div>
+        </div>
 
         {/* 3 Distance Logos */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-          className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 w-full mb-16"
-        >
+        <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 w-full mb-16" style={{animation:"teg-fadein 0.8s ease-out 0.2s both"}}>
           {['TG7.webp', 'TG13.webp', 'TG25.webp'].map((img, i) => (
             <div key={img} className="flex flex-col items-center justify-center w-48 sm:w-56 md:w-64 hover:-translate-y-2 transition-transform duration-300">
               <img 
@@ -65,15 +56,10 @@ export default function Landing() {
               />
             </div>
           ))}
-        </motion.div>
+        </div>
 
         {/* CTA Button to Panel */}
-        <motion.div
-           initial={{ opacity: 0, y: 20 }}
-           animate={{ opacity: 1, y: 0 }}
-           transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
-           className="mt-auto md:mt-0"
-        >
+        <div className="mt-auto md:mt-0" style={{animation:"teg-fadein 0.8s ease-out 0.4s both"}}>
           <Link 
             to="/panel" 
             className="group flex items-center justify-center gap-3 px-8 py-4 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 transition-all active:scale-95 backdrop-blur-md shadow-2xl"
@@ -83,9 +69,10 @@ export default function Landing() {
               <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
             </div>
           </Link>
-        </motion.div>
+        </div>
 
       </main>
     </div>
+    </>
   );
 }

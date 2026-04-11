@@ -1342,6 +1342,7 @@ function ModalPat({ data, onSave, onClose }) {
 
 // ─── DOC MANAGER (inside ModalDetalle) ───────────────────────────────────────
 function DocManager({ pat, addDoc, deleteDoc, cfg }) {
+  const [uploadError, setUploadError] = useState(null);
   const API  = "/api/docs/" + pat.id;
   const AKEY = import.meta.env.VITE_API_KEY || "";
   const headers = { "Content-Type": "application/json", "x-api-key": AKEY };
@@ -1364,7 +1365,7 @@ function DocManager({ pat, addDoc, deleteDoc, cfg }) {
     if (!file) return;
     const maxMB = 5;
     if (file.size > maxMB * 1024 * 1024) {
-      alert(`El archivo supera ${maxMB}MB.`); return;
+      setUploadError(`El archivo supera ${maxMB} MB.`); return;
     }
     setUploading(true);
     const reader = new FileReader();
@@ -1376,12 +1377,12 @@ function DocManager({ pat, addDoc, deleteDoc, cfg }) {
           fecha: new Date().toISOString().split("T")[0],
         };
         const res = await fetch(API, { method:"POST", headers, body: JSON.stringify(body) });
-        if (!res.ok) { alert("Error al subir el archivo"); setUploading(false); return; }
+        if (!res.ok) { setUploadError("Error al subir el archivo."); setUploading(false); return; }
         const { id, blob_url } = await res.json();
         // Guardar con blob_url — necesario para Ver/Descargar sin recargar
         setDocs(prev => [{ ...body, id, blob_url, data: null }, ...prev]);
         addDoc(pat.id, { id, nombre: file.name, tipo, mime: file.type, size: file.size, fecha: body.fecha });
-      } catch(e) { alert("Error subiendo el archivo"); }
+      } catch(e) { setUploadError("Error al subir el archivo."); }
       setUploading(false);
     };
     reader.readAsDataURL(file);

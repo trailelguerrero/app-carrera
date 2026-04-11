@@ -100,6 +100,7 @@ export default function Documentos() {
   const [uploadOpen, setUploadOpen] = useState(true); // colapsable en móvil
   const [editId,  setEditId]    = useState(null);
   const [delConfirm, setDelConfirm] = useState(null); // {id, nombre, esGestion}
+  const [uploadError, setUploadError] = useState(null); // mensaje de error de subida
   const [editForm, setEditForm] = useState({});
   // Modal nueva gestión
   const [gModal, setGModal] = useState(false);
@@ -147,8 +148,8 @@ export default function Documentos() {
     const validFiles = Array.from(files).filter(f => {
       const typeOk = ALLOWED_TYPES.includes(f.type) ||
         f.name.match(/\.(pdf|png|jpe?g|webp)$/i);
-      if (!typeOk) { alert(`❌ Tipo no permitido: "${f.name}". Usa PDF, PNG, JPG o WebP.`); return false; }
-      if (f.size > MAX_FILE_SIZE) { alert(`❌ "${f.name}" excede 10MB.`); return false; }
+      if (!typeOk) { setUploadError(`Tipo no permitido: "${f.name}". Usa PDF, PNG, JPG o WebP.`); return false; }
+      if (f.size > MAX_FILE_SIZE) { setUploadError(`"${f.name}" excede 10 MB.`); return false; }
       return true;
     });
     if (!validFiles.length) return;
@@ -190,7 +191,7 @@ export default function Documentos() {
         } else {
           const err = await res.json().catch(() => ({}));
           console.error("Error subiendo documento:", err);
-          alert(`❌ Error al subir "${doc.nombre}": ${err.error || res.status}`);
+          setUploadError(`Error al subir "${doc.nombre}": ${err.error || res.status}`);
         }
       } catch (e) {
         console.error("Error subiendo documento:", e);
@@ -1137,9 +1138,7 @@ export default function Documentos() {
                       }}>✅ Guardar</button>
                       <button className="btn btn-ghost btn-sm" onClick={()=>setGEditId(null)}>Cancelar</button>
                       <button className="btn btn-red btn-sm" style={{marginLeft:"auto"}} onClick={()=>{
-                        if(!confirm("¿Eliminar esta gestión?")) return;
-                        saveGestiones(gestiones.filter(x=>x.id!==g.id));
-                        setGEditId(null);
+                        setDelConfirm({ id: g.id, nombre: g.nombre, esGestion: true });
                       }}>🗑 Eliminar</button>
                     </div>
                   </div>
@@ -1173,6 +1172,24 @@ export default function Documentos() {
           })}
         </div>
       </div>
+
+      {/* ── Toast error de subida ── */}
+      {uploadError && (
+        <div onClick={() => setUploadError(null)} style={{
+          position:"fixed", bottom:"calc(env(safe-area-inset-bottom,0px) + 80px)",
+          left:"50%", transform:"translateX(-50%)",
+          background:"var(--red-dim)", border:"1px solid rgba(248,113,113,.35)",
+          borderRadius:10, padding:".65rem 1rem",
+          fontFamily:"var(--font-mono)", fontSize:".7rem", fontWeight:600,
+          color:"var(--red)", zIndex:9998, maxWidth:340, width:"90%",
+          display:"flex", alignItems:"center", gap:".6rem",
+          boxShadow:"0 4px 20px rgba(0,0,0,.3)", cursor:"pointer",
+        }}>
+          <span style={{flexShrink:0}}>❌</span>
+          <span style={{flex:1}}>{uploadError}</span>
+          <span style={{flexShrink:0, opacity:.6, fontSize:".65rem"}}>Toca para cerrar</span>
+        </div>
+      )}
 
       {/* ── Modal confirmación eliminar ── */}
       {delConfirm && createPortal(

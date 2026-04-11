@@ -627,13 +627,7 @@ export const ScenarioBar = ({
                         title="Eliminar escenario"
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (
-                            window.confirm(
-                              `¿Eliminar el escenario "${sc.nombre}"?`
-                            )
-                          ) {
-                            onDeleteScenario(sc.id);
-                          }
+                          setConfirmDel(sc);
                         }}
                       >
                         🗑
