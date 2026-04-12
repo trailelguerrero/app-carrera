@@ -166,6 +166,20 @@ export default function App() {
   const conceptosPres = Array.isArray(rawConceptos) && rawConceptos.length > 0
     ? rawConceptos : [];
   const locs = Array.isArray(rawLocs) ? rawLocs : [];
+  // ── Inscritos del presupuesto (compartido entre pestañas, incluida Pedidos) ──
+  const [rawTramos]    = useData("teg_presupuesto_v1_tramos",    []);
+  const [rawInscritos] = useData("teg_presupuesto_v1_inscritos", { tramos: {} });
+  const [rawMaximos]   = useData("teg_presupuesto_v1_maximos",   {});
+  const totalInscritos = useMemo(() => {
+    const tramos = Array.isArray(rawTramos) ? rawTramos : [];
+    let total = 0;
+    tramos.forEach(t => {
+      ["TG7","TG13","TG25"].forEach(d => {
+        total += rawInscritos?.tramos?.[t.id]?.[d] || 0;
+      });
+    });
+    return total;
+  }, [rawTramos, rawInscritos]);
   // Patrocinadores (solo lectura) para sección especie en material
   const [rawPats] = useData("teg_patrocinadores_v1_pats", []);
   const patsConEspecie = useMemo(() => {

@@ -25,9 +25,9 @@ export default function Landing() {
       {/* Main Content */}
       <main className="flex-1 relative z-10 flex flex-col items-center justify-center p-6 mt-16 md:mt-0 w-full max-w-5xl mx-auto">
         
-        {/* Main Circular Logo */}
-        <div className="relative mb-12 lg:mb-16 flex justify-center" style={{animation:"teg-fadein-scale 0.8s ease-out"}}>
-          <div className="w-[280px] h-[280px] sm:w-[350px] sm:h-[350px] md:w-[450px] md:h-[450px] rounded-full overflow-hidden shadow-2xl flex items-center justify-center">
+        {/* Main Circular Logo — más pequeño en mobile para que el CTA quede en el fold */}
+        <div className="relative mb-6 sm:mb-10 lg:mb-14 flex justify-center" style={{animation:"teg-fadein-scale 0.8s ease-out"}}>
+          <div className="w-[160px] h-[160px] sm:w-[260px] sm:h-[260px] md:w-[400px] md:h-[400px] rounded-full overflow-hidden shadow-2xl flex items-center justify-center">
             <img 
               src="/logo.webp" 
               alt="Logo Trail El Guerrero" 
@@ -44,13 +44,13 @@ export default function Landing() {
           </div>
         </div>
 
-        {/* 3 Distance Logos */}
-        <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 w-full mb-16" style={{animation:"teg-fadein 0.8s ease-out 0.2s both"}}>
+        {/* 3 Distance Logos — horizontal en mobile para ahorrar espacio vertical */}
+        <div className="flex flex-row md:flex-row items-center justify-center gap-3 sm:gap-8 md:gap-16 w-full mb-8 sm:mb-14" style={{animation:"teg-fadein 0.8s ease-out 0.2s both"}}>
           {['TG7.webp', 'TG13.webp', 'TG25.webp'].map((img, i) => (
-            <div key={img} className="flex flex-col items-center justify-center w-48 sm:w-56 md:w-64 hover:-translate-y-2 transition-transform duration-300">
+            <div key={img} className="flex flex-col items-center justify-center w-24 sm:w-44 md:w-60 hover:-translate-y-2 transition-transform duration-300">
               <img 
                 src={`/${img}`} 
-                alt={`Distancia ${img.replace('.png', '')}`} 
+                alt={`Distancia ${img.replace('.webp', '')}`} 
                 className="w-full h-auto drop-shadow-2xl"
                 onError={(e) => { e.currentTarget.style.display = 'none'; }}
               />
@@ -58,8 +58,8 @@ export default function Landing() {
           ))}
         </div>
 
-        {/* CTA Button to Panel */}
-        <div className="mt-auto md:mt-0" style={{animation:"teg-fadein 0.8s ease-out 0.4s both"}}>
+        {/* CTA Button to Panel — siempre en el fold, sin necesidad de scroll */}
+        <div style={{animation:"teg-fadein 0.8s ease-out 0.4s both"}}>
           <Link 
             to="/panel" 
             className="group flex items-center justify-center gap-3 px-8 py-4 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 transition-all active:scale-95 backdrop-blur-md shadow-2xl"

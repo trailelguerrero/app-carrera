@@ -64,6 +64,25 @@ function useGlobalSaveStatus() {
   return status;
 }
 
+// ── GLOBAL MOBILE FOCUS HELPER ────────────────────────────────────────────────
+function useMobileKeyboardScroll() {
+  useEffect(() => {
+    const handleFocus = (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
+        const isModal = e.target.closest('.modal-body') || e.target.closest('.modal');
+        if (isModal) {
+          // Un pequeño timeout asegura que el teclado virtual ya se haya desplegado
+          setTimeout(() => {
+            e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 300);
+        }
+      }
+    };
+    document.addEventListener("focusin", handleFocus);
+    return () => document.removeEventListener("focusin", handleFocus);
+  }, []);
+}
+
 // ── AUTOSAVE INDICATOR ─────────────────────────────────────────────────────────
 function AutosaveIndicator({ status }) {
   const cfg = {
@@ -97,13 +116,24 @@ function AutosaveIndicator({ status }) {
 
 // ── PIN NUMPAD (shared) ────────────────────────────────────────────────────────
 function Numpad({ onDigit, onBackspace }) {
+  const haptic = (type = 'light') => {
+    if (!navigator.vibrate) return;
+    if (type === 'light')  navigator.vibrate(8);
+    if (type === 'error')  navigator.vibrate([30, 10, 30]);
+    if (type === 'success')navigator.vibrate(50);
+  };
+
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.6rem" }}>
       {["1","2","3","4","5","6","7","8","9","","0","⌫"].map((k, i) => (
         <button
           key={i}
-          onClick={() => k === "⌫" ? onBackspace() : k !== "" ? onDigit(k) : null}
+          onClick={() => {
+            if (k === "⌫") { haptic('light'); onBackspace(); }
+            else if (k !== "") { haptic('light'); onDigit(k); }
+          }}
           disabled={k === ""}
+          aria-label={k === "⌫" ? "Borrar" : k === "" ? undefined : `Número ${k}`}
           style={{
             padding: "0.9rem 0", borderRadius: 10,
             border: `1px solid ${k === "" ? "transparent" : "var(--teg-border)"}`,
@@ -114,6 +144,7 @@ function Numpad({ onDigit, onBackspace }) {
             color: k === "" ? "transparent" : "var(--teg-text-primary)",
             transition: "all 0.15s",
             WebkitTapHighlightColor: "transparent",
+            minHeight: 52,
           }}
           onMouseEnter={e => { if (k && k !== "") { e.currentTarget.style.background = "var(--teg-cyan-subtle)"; e.currentTarget.style.borderColor = "var(--teg-cyan-border)"; }}}
           onMouseLeave={e => { if (k && k !== "") { e.currentTarget.style.background = "var(--teg-surface)"; e.currentTarget.style.borderColor = "var(--teg-border)"; }}}
@@ -125,7 +156,11 @@ function Numpad({ onDigit, onBackspace }) {
 
 function PinDots({ count, filled }) {
   return (
-    <div style={{ display: "flex", justifyContent: "center", gap: "0.9rem" }}>
+    <div
+      style={{ display: "flex", justifyContent: "center", gap: "0.9rem" }}
+      role="status"
+      aria-label={`PIN: ${filled} de ${count} dígitos introducidos`}
+    >
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} style={{
           width: 13, height: 13, borderRadius: "50%",
@@ -150,8 +185,10 @@ function PinScreen({ onUnlock }) {
   const tryPin = useCallback((pin) => {
     if (hashPin(pin) === storedHash) {
       localStorage.setItem(AUTH_KEY, String(Date.now() + 8 * 3600 * 1000));
+      if (navigator.vibrate) navigator.vibrate(50); // haptic éxito
       onUnlock();
     } else {
+      if (navigator.vibrate) navigator.vibrate([30, 10, 30]); // haptic error
       setShake(true);
       setHint("PIN incorrecto");
       setTimeout(() => { setShake(false); setHint(""); setDigits(""); }, 900);
@@ -322,8 +359,9 @@ export default function Index() {
       return cfg?.fecha ? new Date(cfg.fecha) : new Date("2026-08-29");
     } catch { return new Date("2026-08-29"); }
   })();
-  const [showChangePin, setShowChangePin] = useState(false);
-  const [activeBlock, setActiveBlock]     = useState("dashboard");
+  const [showChangePin, setShowChangePin]   = useState(false);
+  const [showMoreNav, setShowMoreNav]       = useState(false);
+  const [activeBlock, setActiveBlock]       = useState("dashboard");
   const [readmeBlock, setReadmeBlock]     = useState(null);
   const [showDiaCarrera, setShowDiaCarrera] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(
@@ -343,6 +381,7 @@ export default function Index() {
   }, []);
 
   const saveStatus = useGlobalSaveStatus();
+  useMobileKeyboardScroll();
 
   const handleBlockChange = useCallback((id) => {
     window.dispatchEvent(new Event("teg-sync"));
@@ -366,7 +405,7 @@ export default function Index() {
       if (!e.ctrlKey && !e.metaKey && !e.altKey && n >= 1 && n <= BLOCKS.length) {
         handleBlockChange(BLOCKS[n - 1].id);
       }
-      if (e.key === "Escape") { setReadmeBlock(null); setShowChangePin(false); }
+      if (e.key === "Escape") { setReadmeBlock(null); setShowChangePin(false); setShowMoreNav(false); }
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
@@ -377,6 +416,14 @@ export default function Index() {
   const NAV_H = isMobile ? 68 : 66;
   const diasCarrera = Math.ceil((eventFecha - new Date()) / 86400000);
   const mostrarBtnDiaD = diasCarrera <= 7 && diasCarrera >= 0;
+
+  // Nav: en mobile mostramos 5 principales + "Más" para los extra
+  const NAV_MAIN_IDS = ["dashboard", "proyecto", "presupuesto", "voluntarios", "logistica"];
+  const NAV_MORE_IDS = ["patrocinadores", "camisetas", "documentos"];
+  const navBlocks    = BLOCKS.filter(b => b.id !== "configuracion");
+  const navMain      = isMobile ? navBlocks.filter(b => NAV_MAIN_IDS.includes(b.id)) : navBlocks;
+  const navMore      = isMobile ? navBlocks.filter(b => NAV_MORE_IDS.includes(b.id)) : [];
+  const moreIsActive = navMore.some(b => b.id === activeBlock);
 
   return (
     <>
@@ -424,9 +471,11 @@ export default function Index() {
             <button
               onClick={() => setShowChangePin(true)}
               title="Cambiar PIN de acceso"
+              aria-label="Cambiar PIN"
               style={{ background:"transparent", border:"none", color:"var(--teg-text-muted)",
-                cursor:"pointer", fontSize:"0.8rem", padding:"0.3rem",
-                borderRadius:6, lineHeight:1, transition:"color 0.2s" }}
+                cursor:"pointer", fontSize:"0.8rem", padding:"0.45rem",
+                borderRadius:6, lineHeight:1, transition:"color 0.2s",
+                minWidth:34, minHeight:34, display:"flex", alignItems:"center", justifyContent:"center" }}
               onMouseEnter={e => e.currentTarget.style.color="var(--teg-text-secondary)"}
               onMouseLeave={e => e.currentTarget.style.color="var(--teg-text-muted)"}
             >🔐</button>
@@ -434,11 +483,14 @@ export default function Index() {
             <button
               onClick={() => handleBlockChange("configuracion")}
               title="Configuración"
+              aria-label="Configuración"
+              aria-current={activeBlock==="configuracion" ? "page" : undefined}
               style={{ background: activeBlock==="configuracion" ? "rgba(167,139,250,0.12)" : "transparent",
                 border: activeBlock==="configuracion" ? "1px solid rgba(167,139,250,0.3)" : "none",
                 color: activeBlock==="configuracion" ? "var(--teg-accent)" : "var(--teg-text-muted)",
-                cursor:"pointer", fontSize:"0.85rem", padding:"0.3rem 0.4rem",
-                borderRadius:6, lineHeight:1, transition:"all 0.2s" }}
+                cursor:"pointer", fontSize:"0.85rem", padding:"0.45rem",
+                borderRadius:6, lineHeight:1, transition:"all 0.2s",
+                minWidth:34, minHeight:34, display:"flex", alignItems:"center", justifyContent:"center" }}
               onMouseEnter={e => { if(activeBlock!=="configuracion") e.currentTarget.style.color="var(--teg-text-secondary)"; }}
               onMouseLeave={e => { if(activeBlock!=="configuracion") e.currentTarget.style.color="var(--teg-text-muted)"; }}
             >⚙️</button>
@@ -477,7 +529,10 @@ export default function Index() {
         </header>
 
         {/* CONTENT */}
-        <main style={{ flex:1, overflow:"auto", paddingBottom: NAV_H + 8 }}>
+        <main style={{
+          flex:1, overflow:"auto",
+          paddingBottom: `calc(${NAV_H}px + 8px + env(safe-area-inset-bottom, 0px))`,
+        }}>
           <ErrorBoundary
             key={activeBlock}
             blockName={BLOCKS.find(b => b.id === activeBlock)?.label}
@@ -507,22 +562,27 @@ export default function Index() {
         </main>
 
         {/* BOTTOM NAV */}
-        <nav style={{
-          position:"fixed", bottom:0, left:0, right:0,
-          background:"var(--teg-surface)", backdropFilter:"blur(14px)",
-          WebkitBackdropFilter:"blur(14px)", borderTop:"1px solid var(--teg-border)",
-          display:"flex", justifyContent:"space-around", alignItems:"center",
-          height: NAV_H,
-          paddingBottom:"env(safe-area-inset-bottom,0px)",
-          zIndex:50, overflowX:"auto",
-        }}>
-          {BLOCKS.filter(b => b.id !== "configuracion").map((b, idx) => {
+        <nav
+          aria-label="Navegación principal"
+          style={{
+            position:"fixed", bottom:0, left:0, right:0,
+            background:"var(--teg-surface)", backdropFilter:"blur(14px)",
+            WebkitBackdropFilter:"blur(14px)", borderTop:"1px solid var(--teg-border)",
+            display:"flex", justifyContent:"space-around", alignItems:"center",
+            height: NAV_H,
+            paddingBottom:"env(safe-area-inset-bottom,0px)",
+            zIndex:50,
+          }}
+        >
+          {/* Ítems principales */}
+          {navMain.map((b, idx) => {
             const isActive = activeBlock === b.id;
             return (
               <button
                 key={b.id}
-                onClick={() => handleBlockChange(b.id)}
+                onClick={() => { handleBlockChange(b.id); setShowMoreNav(false); }}
                 aria-label={b.label}
+                aria-current={isActive ? "page" : undefined}
                 title={`${b.label} (${idx + 1})`}
                 style={{
                   background:"none", border:"none", cursor:"pointer",
@@ -532,14 +592,12 @@ export default function Index() {
                   borderRadius:10,
                   transition:"opacity 0.2s",
                   opacity: isActive ? 1 : 0.42,
-                  flex: isMobile ? "0 0 auto" : 1,
-                  minWidth: isMobile ? 44 : 0,
-                  maxWidth: isMobile ? 68 : "none",
+                  flex: 1,
                   position:"relative", outline:"none",
                   WebkitTapHighlightColor:"transparent",
+                  minHeight: NAV_H - 4,
                 }}
               >
-                {/* Active pill background */}
                 {isActive && (
                   <div style={{
                       position:"absolute", inset:0, borderRadius:10,
@@ -547,8 +605,6 @@ export default function Index() {
                       border:"1px solid rgba(34,211,238,0.18)",
                     }} />
                 )}
-
-                {/* Icon */}
                 <span style={{
                   fontSize: isMobile ? "1.45rem" : "1.18rem",
                   filter: isActive ? "none" : "grayscale(0.55)",
@@ -556,8 +612,6 @@ export default function Index() {
                   transition:"all 0.2s",
                   pointerEvents:"none", position:"relative", zIndex:1,
                 }}>{b.icon}</span>
-
-                {/* Label — SIEMPRE VISIBLE */}
                 <span style={{
                   fontFamily:"'DM Mono', 'Space Mono', monospace,monospace",
                   fontSize: isMobile ? "0.52rem" : "0.49rem",
@@ -569,8 +623,6 @@ export default function Index() {
                 }}>
                   {isMobile ? b.shortLabel : b.label}
                 </span>
-
-                {/* Active dot */}
                 {isActive && (
                   <div style={{
                       width:3, height:3, borderRadius:"50%",
@@ -582,7 +634,115 @@ export default function Index() {
               </button>
             );
           })}
+
+          {/* Botón "Más" — solo en mobile */}
+          {isMobile && navMore.length > 0 && (
+            <button
+              onClick={() => setShowMoreNav(v => !v)}
+              aria-label="Más secciones"
+              aria-expanded={showMoreNav}
+              aria-haspopup="true"
+              style={{
+                background:"none", border:"none", cursor:"pointer",
+                display:"flex", flexDirection:"column", alignItems:"center",
+                justifyContent:"center", gap:"0.18rem",
+                padding:"0.35rem 0.4rem",
+                borderRadius:10,
+                transition:"opacity 0.2s",
+                opacity: (showMoreNav || moreIsActive) ? 1 : 0.42,
+                flex:1, position:"relative", outline:"none",
+                WebkitTapHighlightColor:"transparent",
+                minHeight: NAV_H - 4,
+              }}
+            >
+              {(showMoreNav || moreIsActive) && (
+                <div style={{
+                    position:"absolute", inset:0, borderRadius:10,
+                    background:"rgba(34,211,238,0.07)",
+                    border:"1px solid rgba(34,211,238,0.18)",
+                  }} />
+              )}
+              <span style={{
+                fontSize:"1.45rem",
+                filter: (showMoreNav || moreIsActive) ? "none" : "grayscale(0.55)",
+                transform:(showMoreNav || moreIsActive) ? "scale(1.1)" : "scale(1)",
+                transition:"all 0.2s", position:"relative", zIndex:1,
+              }}>{"•••"}</span>
+              <span style={{
+                fontFamily:"'DM Mono', 'Space Mono', monospace,monospace",
+                fontSize:"0.52rem", fontWeight:700,
+                color:(showMoreNav || moreIsActive) ? "var(--teg-cyan)" : "var(--teg-text-muted)",
+                transition:"color 0.2s",
+                pointerEvents:"none", whiteSpace:"nowrap",
+                position:"relative", zIndex:1,
+              }}>Más</span>
+            </button>
+          )}
         </nav>
+
+        {/* DRAWER “MÁS” — solo visible en mobile cuando showMoreNav=true */}
+        {isMobile && showMoreNav && (
+          <>
+            {/* Backdrop del drawer */}
+            <div
+              onClick={() => setShowMoreNav(false)}
+              style={{
+                position:"fixed", inset:0, zIndex:48,
+                background:"rgba(0,0,0,0.35)",
+                backdropFilter:"blur(4px)",
+                animation:"teg-fadein 0.15s ease",
+              }}
+            />
+            {/* Drawer en sí */}
+            <div style={{
+              position:"fixed", bottom: NAV_H, left:0, right:0, zIndex:49,
+              background:"var(--teg-surface)",
+              borderTop:"1px solid var(--teg-border)",
+              borderRadius:"16px 16px 0 0",
+              padding:"0.75rem 1rem",
+              paddingBottom:"0.5rem",
+              boxShadow:"0 -8px 32px rgba(0,0,0,0.3)",
+              animation:"slideUp 0.22s cubic-bezier(0.34,1.56,0.64,1)",
+            }}>
+              {/* Handle visual */}
+              <div style={{ width:36, height:4, background:"var(--teg-border)", borderRadius:2, margin:"0 auto 0.75rem" }} />
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.6rem", color:"var(--teg-text-muted)",
+                textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:"0.5rem", paddingLeft:"0.25rem" }}>
+                Más secciones
+              </div>
+              <div style={{ display:"flex", gap:"0.5rem" }}>
+                {navMore.map(b => {
+                  const isActive = activeBlock === b.id;
+                  return (
+                    <button
+                      key={b.id}
+                      onClick={() => { handleBlockChange(b.id); setShowMoreNav(false); }}
+                      aria-label={b.label}
+                      aria-current={isActive ? "page" : undefined}
+                      style={{
+                        flex:1, background: isActive ? "rgba(34,211,238,0.08)" : "var(--teg-surface2)",
+                        border: isActive ? "1px solid rgba(34,211,238,0.25)" : "1px solid var(--teg-border)",
+                        borderRadius:12, padding:"0.75rem 0.5rem",
+                        cursor:"pointer", display:"flex", flexDirection:"column",
+                        alignItems:"center", gap:"0.3rem",
+                        WebkitTapHighlightColor:"transparent",
+                        transition:"all 0.15s",
+                      }}
+                    >
+                      <span style={{ fontSize:"1.6rem" }}>{b.icon}</span>
+                      <span style={{
+                        fontFamily:"'DM Mono','Space Mono',monospace",
+                        fontSize:"0.6rem", fontWeight:700,
+                        color: isActive ? "var(--teg-cyan)" : "var(--teg-text-muted)",
+                        whiteSpace:"nowrap",
+                      }}>{b.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
 
         {/* MODALS */}
         {readmeBlock && <ReadmeModal block={readmeBlock} onClose={() => setReadmeBlock(null)} />}
