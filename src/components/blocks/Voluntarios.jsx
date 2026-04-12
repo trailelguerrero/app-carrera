@@ -1114,7 +1114,10 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
 
 // ─── TAB VOLUNTARIOS ──────────────────────────────────────────────────────────
 function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda, filtroEstado, setFiltroEstado, filtroPuesto, setFiltroPuesto, onUpdate, onDelete, onNuevo, onEditar, onFicha }) {
-  const [orden, setOrden] = useState("nombre"); // "nombre" | "puesto"
+  const [orden, setOrden]           = useState("nombre");
+  const [colapsados, setColapsados] = useState({});
+
+  const toggleGrupo = (key) => setColapsados(p => ({...p, [key]: !p[key]}));
 
   const volsOrdenados = [...voluntarios].sort((a, b) => {
     if (orden === "nombre") return (a.nombre || "").localeCompare(b.nombre || "", "es");
@@ -1125,6 +1128,13 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
     }
     return 0;
   });
+
+  // Grupos para la vista agrupada por estado
+  const GRUPOS_ESTADO = [
+    { id:"confirmado", label:"Confirmados", color:"var(--green)",  bg:"rgba(52,211,153,.08)"  },
+    { id:"pendiente",  label:"Pendientes",  color:"var(--amber)",  bg:"rgba(251,191,36,.08)"  },
+    { id:"cancelado",  label:"Cancelados",  color:"var(--red)",    bg:"rgba(248,113,113,.06)" },
+  ];
 
   return (
     <>
@@ -1169,87 +1179,142 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
         </div>
       </div>
 
-      {/* VISTA UNIFICADA — cards adaptativas (funciona en móvil y desktop) */}
-      {volsOrdenados.length === 0 && (
+      {/* Listado agrupado por estado — cada grupo colapsable */}
+      {volsOrdenados.length === 0 ? (
         <div style={{ textAlign:"center", color:"var(--text-muted)", padding:"2rem",
           fontFamily:"var(--font-mono)", fontSize:"0.75rem",
           background:"var(--surface)", border:"1px solid var(--border)",
           borderRadius:"var(--radius-sm)" }}>
           No hay voluntarios con estos filtros
         </div>
-      )}
-      <div style={{ display:"flex", flexDirection:"column", gap:"0.45rem" }}>
-        {volsOrdenados.map(v => {
-          const puesto = puestos.find(p => p.id === v.puestoId);
-          return (
-            <div key={v.id}
-              onClick={() => onFicha(v)}
-              style={{ background:"var(--surface)", border:"1px solid var(--border)",
-                borderRadius:"var(--radius-sm)", padding:"0.65rem 0.85rem",
-                cursor:"pointer", transition:"border-color .15s",
-                borderLeft:`3px solid ${v.estado==="confirmado"?"var(--green)":v.estado==="cancelado"?"var(--red)":"var(--amber)"}` }}
-              onMouseEnter={e=>e.currentTarget.style.borderColor="var(--border-light)"}
-              onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border)"}>
-              <div style={{ display:"flex", alignItems:"center", gap:"0.65rem" }}>
-                {/* Avatar */}
-                <div style={{ width:34, height:34, borderRadius:"50%",
-                  background:"var(--surface2)", border:"1px solid var(--border)",
-                  display:"flex", alignItems:"center", justifyContent:"center",
-                  fontSize:"0.62rem", fontWeight:700, color:"var(--cyan)", flexShrink:0 }}>
-                  {(v.nombre||"V").split(" ").map(n=>n[0]).slice(0,2).join("")}
-                </div>
-                {/* Nombre + meta */}
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:"0.45rem",
-                    flexWrap:"wrap", marginBottom:"0.2rem" }}>
-                    <span style={{ fontWeight:700, fontSize:"0.84rem",
-                      overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                      {v.nombre||"Sin nombre"}
-                    </span>
-                    <span className={`badge ${v.rol==="responsable"?"badge-violet":"badge-cyan"}`}
-                      style={{ fontSize:"0.5rem" }}>
-                      {v.rol||"apoyo"}
-                    </span>
-                    {v.coche && <span style={{ fontSize:"0.65rem" }} title="Tiene vehículo">🚗</span>}
+      ) : (
+        <div style={{ display:"flex", flexDirection:"column", gap:".6rem" }}>
+          {GRUPOS_ESTADO.map(grupo => {
+            const items = volsOrdenados.filter(v => v.estado === grupo.id);
+            if (items.length === 0) return null;
+            const collapsed = colapsados[grupo.id];
+            return (
+              <div key={grupo.id} style={{
+                borderRadius:10, overflow:"hidden",
+                border:`1px solid ${grupo.color}2a`,
+              }}>
+                {/* Cabecera del grupo */}
+                <button
+                  onClick={() => toggleGrupo(grupo.id)}
+                  style={{
+                    width:"100%", display:"flex", alignItems:"center",
+                    gap:".65rem", padding:".55rem .85rem",
+                    background: grupo.bg, border:"none",
+                    cursor:"pointer", textAlign:"left",
+                    borderBottom: collapsed ? "none" : `1px solid ${grupo.color}1a`,
+                  }}>
+                  <span style={{
+                    width:8, height:8, borderRadius:"50%",
+                    background: grupo.color, flexShrink:0, display:"inline-block",
+                  }}/>
+                  <span style={{
+                    fontFamily:"var(--font-mono)", fontWeight:700, fontSize:".75rem",
+                    color: grupo.color, flex:1,
+                  }}>
+                    {grupo.label}
+                  </span>
+                  <span style={{
+                    fontFamily:"var(--font-mono)", fontSize:".65rem",
+                    color:"var(--text-dim)",
+                    padding:".1rem .4rem", borderRadius:20,
+                    background:"rgba(255,255,255,.05)",
+                  }}>
+                    {items.length}
+                  </span>
+                  <span style={{
+                    fontFamily:"var(--font-mono)", fontSize:".7rem",
+                    color:"var(--text-dim)", flexShrink:0,
+                    transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)",
+                    transition:"transform .18s",
+                  }}>▼</span>
+                </button>
+
+                {/* Cards del grupo */}
+                {!collapsed && (
+                  <div style={{
+                    display:"flex", flexDirection:"column", gap:"0",
+                    background:"var(--surface)",
+                  }}>
+                    {items.map((v, idx) => {
+                      const puesto = puestos.find(p => p.id === v.puestoId);
+                      return (
+                        <div key={v.id}
+                          onClick={() => onFicha(v)}
+                          style={{
+                            background:"var(--surface)", padding:"0.65rem 0.85rem",
+                            cursor:"pointer", transition:"background .12s",
+                            borderLeft:`3px solid ${grupo.color}`,
+                            borderBottom: idx < items.length-1 ? "1px solid var(--border)" : "none",
+                          }}
+                          onMouseEnter={e=>e.currentTarget.style.background="var(--surface2)"}
+                          onMouseLeave={e=>e.currentTarget.style.background="var(--surface)"}>
+                          <div style={{ display:"flex", alignItems:"center", gap:"0.65rem" }}>
+                            <div style={{ width:34, height:34, borderRadius:"50%",
+                              background:"var(--surface2)", border:"1px solid var(--border)",
+                              display:"flex", alignItems:"center", justifyContent:"center",
+                              fontSize:"0.62rem", fontWeight:700, color:"var(--cyan)", flexShrink:0 }}>
+                              {(v.nombre||"V").split(" ").map(n=>n[0]).slice(0,2).join("")}
+                            </div>
+                            <div style={{ flex:1, minWidth:0 }}>
+                              <div style={{ display:"flex", alignItems:"center", gap:"0.45rem",
+                                flexWrap:"wrap", marginBottom:"0.2rem" }}>
+                                <span style={{ fontWeight:700, fontSize:"0.84rem",
+                                  overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                                  {v.nombre||"Sin nombre"}
+                                </span>
+                                <span className={`badge ${v.rol==="responsable"?"badge-violet":"badge-cyan"}`}
+                                  style={{ fontSize:"0.5rem" }}>
+                                  {v.rol||"apoyo"}
+                                </span>
+                                {v.coche && <span style={{ fontSize:"0.65rem" }} title="Tiene vehículo">🚗</span>}
+                              </div>
+                              <div style={{ display:"flex", gap:"0.75rem", flexWrap:"wrap" }}>
+                                <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.6rem",
+                                  color:"var(--text-muted)" }}>{v.telefono||"—"}</span>
+                                <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.6rem",
+                                  color:puesto?"var(--text-muted)":"var(--text-dim)" }}>
+                                  📍 {puesto?puesto.nombre:"Sin asignar"}
+                                </span>
+                                {v.talla && (
+                                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.6rem",
+                                    color:"var(--cyan)" }}>👕 {v.talla}</span>
+                                )}
+                              </div>
+                            </div>
+                            <div onClick={e=>e.stopPropagation()} style={{ display:"flex",
+                              alignItems:"center", gap:"0.3rem", flexShrink:0 }}>
+                              <select className="inp inp-sm" value={v.estado}
+                                onChange={e=>onUpdate(v.id,{estado:e.target.value})}
+                                style={{ width:"auto", color:estadoColor(v.estado),
+                                  background:estadoBg(v.estado), fontSize:"0.65rem" }}>
+                                {Object.entries(ESTADOS).map(([k,lbl])=><option key={k} value={k}>{lbl}</option>)}
+                              </select>
+                              <button className="btn btn-ghost"
+                                style={{ padding:"0.22rem 0.38rem", fontSize:"0.65rem" }}
+                                onClick={()=>onEditar(v)}>✏️</button>
+                              <button className="btn btn-red"
+                                style={{ padding:"0.22rem 0.38rem", fontSize:"0.65rem" }}
+                                onClick={()=>onDelete(v.id)}>✕</button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div style={{ display:"flex", gap:"0.75rem", flexWrap:"wrap" }}>
-                    <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.6rem",
-                      color:"var(--text-muted)" }}>{v.telefono||"—"}</span>
-                    <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.6rem",
-                      color:puesto?"var(--text-muted)":"var(--text-dim)" }}>
-                      📍 {puesto?puesto.nombre:"Sin asignar"}
-                    </span>
-                    {v.talla && (
-                      <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.6rem",
-                        color:"var(--cyan)" }}>👕 {v.talla}</span>
-                    )}
-                  </div>
-                </div>
-                {/* Estado inline — stopPropagation para no abrir ficha */}
-                <div onClick={e=>e.stopPropagation()} style={{ display:"flex",
-                  alignItems:"center", gap:"0.3rem", flexShrink:0 }}>
-                  <select className="inp inp-sm" value={v.estado}
-                    onChange={e=>onUpdate(v.id,{estado:e.target.value})}
-                    style={{ width:"auto", color:estadoColor(v.estado),
-                      background:estadoBg(v.estado), fontSize:"0.65rem" }}>
-                    {Object.entries(ESTADOS).map(([k,lbl])=><option key={k} value={k}>{lbl}</option>)}
-                  </select>
-                  <button className="btn btn-ghost"
-                    style={{ padding:"0.22rem 0.38rem", fontSize:"0.65rem" }}
-                    onClick={()=>onEditar(v)}>✏️</button>
-                  <button className="btn btn-red"
-                    style={{ padding:"0.22rem 0.38rem", fontSize:"0.65rem" }}
-                    onClick={()=>onDelete(v.id)}>✕</button>
-                </div>
+                )}
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </>
   );
 }
-
 // ─── TAB PUESTOS ──────────────────────────────────────────────────────────────
 function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpdatePuesto, onDeletePuesto, onNuevoPuesto, onEditPuesto, onEditarVol, onFichaPuesto, onFichaVol }) {
   const [ordenAlfa, setOrdenAlfa] = useState(false);

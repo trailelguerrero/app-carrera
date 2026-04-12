@@ -1144,21 +1144,77 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf, setFicha }) {
         </div>
       )}
 
-      {/* ── CARDS ── */}
+      {/* ── CARDS — agrupadas por área, colapsables ── */}
       {vistaEquipo === "cards" && (
-      <div className="equipo-grid">
-        {equipo.map(p => {
-          const pt = tareas.filter(t => t.responsableId===p.id);
-          const completadas = pt.filter(t => t.estado==="completado").length;
-          const pendientes = pt.filter(t => t.estado!=="completado").length;
-          const vencidas = pt.filter(t => t.estado!=="completado" && t.fechaLimite && diasHasta(t.fechaLimite) < 0).length;
-          const urgentes = pt.filter(t => t.estado!=="completado" && t.fechaLimite && diasHasta(t.fechaLimite) <= 14 && diasHasta(t.fechaLimite) >= 0).length;
-          const pct = pt.length ? Math.round(completadas/pt.length*100) : 0;
-          const area = getArea(p.area);
-          return (
-            <div key={p.id} className="persona-card" style={{borderTopColor:p.color, cursor:"pointer"}}
-              onClick={() => setFicha("persona", p)}
-              title={`Ver ficha de ${p.nombre}`}>
+        <div style={{display:"flex", flexDirection:"column", gap:".75rem"}}>
+          {areasConPersonas.map(area => {
+            const personas = ordenAlfa
+              ? [...equipo].filter(p => p.area === area.id)
+                .sort((a,b) => (a.nombre||"").localeCompare(b.nombre||"","es"))
+              : equipo.filter(p => p.area === area.id);
+            const collapsed = areasColapsadas[area.id];
+            const tareasArea = personas.flatMap(p => tareas.filter(t => t.responsableId===p.id && t.estado!=="completado"));
+            const urgentesArea = tareasArea.filter(t => t.fechaLimite && diasHasta(t.fechaLimite) <= 7).length;
+            return (
+              <div key={area.id} style={{
+                borderRadius:10, overflow:"hidden",
+                border:`1px solid ${area.color}2a`,
+              }}>
+                {/* Cabecera del área */}
+                <button
+                  onClick={() => toggleArea(area.id)}
+                  style={{
+                    width:"100%", display:"flex", alignItems:"center", gap:".65rem",
+                    padding:".6rem .9rem", background:`${area.color}0d`,
+                    border:"none", cursor:"pointer", textAlign:"left",
+                    borderBottom: collapsed ? "none" : `1px solid ${area.color}1a`,
+                  }}>
+                  <span style={{fontSize:"1rem"}}>{area.icon}</span>
+                  <span style={{fontFamily:"var(--font-mono)", fontWeight:700,
+                    fontSize:".75rem", color:area.color, flex:1}}>
+                    {area.label}
+                  </span>
+                  {urgentesArea > 0 && (
+                    <span style={{fontFamily:"var(--font-mono)", fontSize:".6rem",
+                      fontWeight:700, padding:".1rem .4rem", borderRadius:20,
+                      background:"rgba(251,191,36,.15)", color:"var(--amber)",
+                      border:"1px solid rgba(251,191,36,.25)"}}>
+                      ⚡ {urgentesArea} urgente{urgentesArea!==1?"s":""}
+                    </span>
+                  )}
+                  <span style={{fontFamily:"var(--font-mono)", fontSize:".65rem",
+                    color:"var(--text-dim)", padding:".1rem .4rem",
+                    borderRadius:20, background:"rgba(255,255,255,.05)"}}>
+                    {personas.length} persona{personas.length!==1?"s":""}
+                  </span>
+                  <span style={{
+                    fontFamily:"var(--font-mono)", fontSize:".7rem",
+                    color:"var(--text-dim)", flexShrink:0,
+                    transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)",
+                    transition:"transform .18s",
+                  }}>▼</span>
+                </button>
+
+                {/* Grid de personas */}
+                {!collapsed && (
+                  <div style={{
+                    display:"grid",
+                    gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",
+                    gap:".75rem", padding:".75rem",
+                    background:"var(--surface)",
+                  }}>
+                    {personas.map(p => {
+                      const pt = tareas.filter(t => t.responsableId===p.id);
+                      const completadas = pt.filter(t => t.estado==="completado").length;
+                      const pendientes = pt.filter(t => t.estado!=="completado").length;
+                      const vencidas = pt.filter(t => t.estado!=="completado" && t.fechaLimite && diasHasta(t.fechaLimite) < 0).length;
+                      const urgentes = pt.filter(t => t.estado!=="completado" && t.fechaLimite && diasHasta(t.fechaLimite) <= 14 && diasHasta(t.fechaLimite) >= 0).length;
+                      const pct = pt.length ? Math.round(completadas/pt.length*100) : 0;
+                      const areaP = getArea(p.area);
+                      return (
+                        <div key={p.id} className="persona-card" style={{borderTopColor:p.color, cursor:"pointer"}}
+                          onClick={() => setFicha("persona", p)}
+                          title={`Ver ficha de ${p.nombre}`}>
               <div style={{display:"flex",gap:".75rem",alignItems:"flex-start",marginBottom:".85rem"}}>
                 <div className="avatar-lg" style={{background:p.color+"22",border:`2px solid ${p.color}66`,color:p.color}}>
                   {iniciales(p.nombre)}
@@ -1167,21 +1223,15 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf, setFicha }) {
                   <div style={{fontWeight:800,fontSize:".92rem",marginBottom:".15rem"}}>{p.nombre}</div>
                   <div className="mono xs muted" style={{marginBottom:".25rem"}}>{p.rol}</div>
                   <div style={{display:"flex",alignItems:"center",gap:".3rem"}}>
-                    <span style={{fontSize:".7rem"}}>{area.icon}</span>
-                    <span className="mono xs" style={{color:area.color}}>{area.label}</span>
+                    <span style={{fontSize:".7rem"}}>{areaP.icon}</span>
+                    <span className="mono xs" style={{color:areaP.color}}>{areaP.label}</span>
                   </div>
                 </div>
-                <div style={{display:"flex",gap:".25rem",flexShrink:0}}>
-                </div>
               </div>
-
-              {/* Contacto */}
               <div style={{display:"flex",flexDirection:"column",gap:".2rem",marginBottom:".75rem",padding:".5rem .65rem",background:"var(--surface2)",borderRadius:8}}>
                 {p.telefono && <a href={`tel:${p.telefono}`} className="mono xs" style={{color:"var(--cyan)",textDecoration:"none"}}>📞 {p.telefono}</a>}
                 {p.email && <a href={`mailto:${p.email}`} className="mono xs" style={{color:"var(--cyan)",textDecoration:"none"}}>✉️ {p.email}</a>}
               </div>
-
-              {/* Progreso */}
               <div>
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:".3rem"}}>
                   <span className="mono xs muted">Progreso de tareas</span>
@@ -1197,11 +1247,9 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf, setFicha }) {
                   {urgentes > 0 && <span className="badge" style={{background:"rgba(251,191,36,.1)",color:"#fbbf24"}}>⚡ {urgentes} urgente{urgentes!==1?"s":""}</span>}
                 </div>
               </div>
-
-              {/* Próximas tareas */}
               {pt.filter(t => t.estado!=="completado").length > 0 && (
                 <div style={{marginTop:".75rem",borderTop:"1px solid var(--border)",paddingTop:".6rem"}}>
-                  <div className="mono xs muted" style={{marginBottom:".3rem"}}>Próximas tareas · click para ver ficha</div>
+                  <div className="mono xs muted" style={{marginBottom:".3rem"}}>Próximas tareas</div>
                   {pt.filter(t => t.estado!=="completado" && t.fechaLimite).sort((a,b) => a.fechaLimite.localeCompare(b.fechaLimite)).slice(0,3).map(t => {
                     const dias = diasHasta(t.fechaLimite);
                     return (
@@ -1224,7 +1272,12 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf, setFicha }) {
             </div>
           );
         })}
-      </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       )}
     </>
   );

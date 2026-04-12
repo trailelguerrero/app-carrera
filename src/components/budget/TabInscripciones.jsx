@@ -120,9 +120,12 @@ export const TabInscripciones = ({
   const [importText, setImportText]   = useState("");
   const [importDist, setImportDist]   = useState("TG7");
   const [importMsg,  setImportMsg]    = useState(null);
-  const [editCodigo, setEditCodigo]   = useState(null); // null | {codigo} para editar
-  const [delCodigo,  setDelCodigo]    = useState(null); // null | id para confirmar borrado
+  const [editCodigo, setEditCodigo]   = useState(null);
+  const [delCodigo,  setDelCodigo]    = useState(null);
   const [importOpen, setImportOpen]   = useState(false);
+  // Secciones por distancia colapsadas
+  const [colapsadas, setColapsadas]   = useState({});
+  const toggleDistancia = (d) => setColapsadas(p => ({...p, [d]: !p[d]}));
 
   // Cargar códigos iniciales si está vacío
   const codigosRef = useRef(codigos);
@@ -585,7 +588,7 @@ export const TabInscripciones = ({
           </div>
         </div>
 
-        {/* Lista de códigos — mobile-first, tap targets ≥48px */}
+        {/* Lista de códigos — agrupada por distancia, colapsable */}
         {(() => {
           const filtrados = codigos
             .filter(c => {
@@ -613,153 +616,185 @@ export const TabInscripciones = ({
             </div>
           );
 
-          return (
-            <div style={{display:"flex", flexDirection:"column", gap:".5rem"}}>
-              {filtrados.map(c => {
-                const usado   = c.estado === "usado";
-                const dColor  = DISTANCIA_COLORS[c.distancia] || "var(--cyan)";
-                return (
-                  <div key={c.id} style={{
-                    borderRadius:10,
-                    background:"var(--surface2)",
-                    border:"1px solid var(--border)",
-                    borderLeft:`3px solid ${usado ? "var(--border)" : dColor}`,
-                    overflow:"hidden",
+          // Agrupar por distancia
+          const grupos = ["TG7","TG13","TG25"].map(d => ({
+            dist: d,
+            items: filtrados.filter(c => c.distancia === d),
+            color: DISTANCIA_COLORS[d] || "var(--cyan)",
+          })).filter(g => g.items.length > 0);
+
+          const renderCard = (c) => {
+            const usado   = c.estado === "usado";
+            const dColor  = DISTANCIA_COLORS[c.distancia] || "var(--cyan)";
+            return (
+              <div key={c.id} style={{
+                borderRadius:10, background:"var(--surface2)",
+                border:"1px solid var(--border)",
+                borderLeft:`3px solid ${usado ? "var(--border)" : dColor}`,
+                overflow:"hidden",
+              }}>
+                <div style={{
+                  display:"flex", alignItems:"center",
+                  gap:".5rem", padding:".75rem .85rem", minHeight:56,
+                }}>
+                  <span style={{
+                    fontFamily:"var(--font-mono)", fontWeight:800, fontSize:".88rem",
+                    letterSpacing:".06em", flex:1, minWidth:0,
+                    color: usado ? "var(--text-dim)" : "var(--text)",
+                    textDecoration: usado ? "line-through" : "none",
                   }}>
-                    {/* Fila principal */}
-                    <div style={{
-                      display:"flex", alignItems:"center",
-                      gap:".5rem", padding:".75rem .85rem",
-                      minHeight:56,
-                    }}>
-                      {/* Distancia pill */}
-                      <span style={{
-                        fontFamily:"var(--font-mono)", fontSize:".62rem", fontWeight:800,
-                        padding:".2rem .5rem", borderRadius:20, flexShrink:0,
-                        background: dColor+"1a", color: dColor, border:`1px solid ${dColor}33`,
-                        letterSpacing:".03em",
-                      }}>
-                        {c.distancia}
-                      </span>
+                    {c.codigo}
+                  </span>
 
-                      {/* Código */}
-                      <span style={{
-                        fontFamily:"var(--font-mono)", fontWeight:800, fontSize:".88rem",
-                        letterSpacing:".06em", flexShrink:0,
-                        color: usado ? "var(--text-dim)" : "var(--text)",
-                        textDecoration: usado ? "line-through" : "none",
-                      }}>
-                        {c.codigo}
-                      </span>
-
-                      {/* Separador / nombre inscrito */}
-                      <div style={{flex:1, minWidth:0}}>
-                        {usado ? (
-                          <div style={{
-                            fontFamily:"var(--font-mono)", fontSize:".7rem",
-                            color:"var(--text-muted)",
-                            overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
-                          }}>
-                            {c.usadoPor || "—"}
-                            {c.fechaUso && (
-                              <span style={{color:"var(--text-dim)", marginLeft:".4rem"}}>
-                                · {c.fechaUso}
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <input
-                            placeholder="Inscrito... ↵"
-                            aria-label={`Marcar código ${c.codigo} como usado`}
-                            style={{
-                              background:"transparent", border:"none",
-                              borderBottom:"1px solid rgba(52,211,153,.35)",
-                              color:"var(--text)", fontFamily:"var(--font-mono)",
-                              fontSize:".72rem", outline:"none",
-                              width:"100%", padding:".15rem 0",
-                              transition:"border-color .15s",
-                            }}
-                            onFocus={e => e.target.style.borderBottomColor = "var(--green)"}
-                            onBlur={e  => e.target.style.borderBottomColor = "rgba(52,211,153,.35)"}
-                            onKeyDown={e => {
-                              if (e.key === "Enter" && e.target.value.trim()) {
-                                const nombre = e.target.value.trim();
-                                setCodigos(prev => prev.map(x => x.id === c.id
-                                  ? {...x, estado:"usado", usadoPor:nombre,
-                                     fechaUso: new Date().toISOString().split("T")[0]}
-                                  : x));
-                                e.target.value = "";
-                              }
-                            }}
-                          />
+                  <div style={{flex:2, minWidth:0}}>
+                    {usado ? (
+                      <div style={{fontFamily:"var(--font-mono)", fontSize:".7rem",
+                        color:"var(--text-muted)",
+                        overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>
+                        {c.usadoPor || "—"}
+                        {c.fechaUso && (
+                          <span style={{color:"var(--text-dim)", marginLeft:".4rem"}}>
+                            · {c.fechaUso}
+                          </span>
                         )}
                       </div>
+                    ) : (
+                      <input
+                        placeholder="Inscrito... ↵"
+                        aria-label={`Marcar código ${c.codigo} como usado`}
+                        style={{
+                          background:"transparent", border:"none",
+                          borderBottom:"1px solid rgba(52,211,153,.35)",
+                          color:"var(--text)", fontFamily:"var(--font-mono)",
+                          fontSize:".72rem", outline:"none",
+                          width:"100%", padding:".15rem 0",
+                          transition:"border-color .15s",
+                        }}
+                        onFocus={e => e.target.style.borderBottomColor = "var(--green)"}
+                        onBlur={e  => e.target.style.borderBottomColor = "rgba(52,211,153,.35)"}
+                        onKeyDown={e => {
+                          if (e.key === "Enter" && e.target.value.trim()) {
+                            const nombre = e.target.value.trim();
+                            setCodigos(prev => prev.map(x => x.id === c.id
+                              ? {...x, estado:"usado", usadoPor:nombre,
+                                 fechaUso: new Date().toISOString().split("T")[0]}
+                              : x));
+                            e.target.value = "";
+                          }
+                        }}
+                      />
+                    )}
+                  </div>
 
-                      {/* Acciones — tap targets 44×44 */}
-                      <div style={{display:"flex", gap:".25rem", flexShrink:0}}>
-                        {usado && (
-                          <button
-                            title="Liberar código"
-                            aria-label="Liberar código"
-                            onClick={() => setCodigos(prev => prev.map(x => x.id === c.id
-                              ? {...x, estado:"disponible", usadoPor:null, fechaUso:null} : x))}
-                            style={{
-                              display:"flex", alignItems:"center", justifyContent:"center",
-                              width:40, height:40, borderRadius:8,
-                              background:"rgba(251,191,36,.12)",
-                              border:"1px solid rgba(251,191,36,.3)",
-                              color:"var(--amber)", fontSize:".85rem",
-                              cursor:"pointer", flexShrink:0,
-                            }}>
-                            ↩
-                          </button>
-                        )}
-                        <button
-                          title="Editar"
-                          aria-label="Editar código"
-                          onClick={() => setEditCodigo({...c})}
-                          style={{
-                            display:"flex", alignItems:"center", justifyContent:"center",
-                            width:40, height:40, borderRadius:8,
-                            background:"var(--surface3)",
-                            border:"1px solid var(--border)",
-                            color:"var(--text-muted)", fontSize:".8rem",
-                            cursor:"pointer", flexShrink:0,
-                          }}>
-                          ✏️
-                        </button>
-                        <button
-                          title="Eliminar"
-                          aria-label="Eliminar código"
-                          onClick={() => setDelCodigo(c.id)}
-                          style={{
-                            display:"flex", alignItems:"center", justifyContent:"center",
-                            width:40, height:40, borderRadius:8,
-                            background:"rgba(248,113,113,.1)",
-                            border:"1px solid rgba(248,113,113,.25)",
-                            color:"var(--red)", fontSize:".8rem", fontWeight:700,
-                            cursor:"pointer", flexShrink:0,
-                          }}>
-                          ✕
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Banda de estado */}
+                  <div style={{display:"flex", gap:".25rem", flexShrink:0}}>
                     {usado && (
-                      <div style={{
-                        padding:".25rem .85rem",
-                        background:"rgba(255,255,255,.025)",
-                        borderTop:"1px solid var(--border)",
-                        fontFamily:"var(--font-mono)", fontSize:".58rem",
-                        color:"var(--text-dim)",
-                        display:"flex", alignItems:"center", gap:".35rem",
+                      <button
+                        title="Liberar código" aria-label="Liberar código"
+                        onClick={() => setCodigos(prev => prev.map(x => x.id === c.id
+                          ? {...x, estado:"disponible", usadoPor:null, fechaUso:null} : x))}
+                        style={{display:"flex",alignItems:"center",justifyContent:"center",
+                          width:40,height:40,borderRadius:8,
+                          background:"rgba(251,191,36,.12)",border:"1px solid rgba(251,191,36,.3)",
+                          color:"var(--amber)",fontSize:".85rem",cursor:"pointer"}}>
+                        ↩
+                      </button>
+                    )}
+                    <button title="Editar" aria-label="Editar código"
+                      onClick={() => setEditCodigo({...c})}
+                      style={{display:"flex",alignItems:"center",justifyContent:"center",
+                        width:40,height:40,borderRadius:8,
+                        background:"var(--surface3)",border:"1px solid var(--border)",
+                        color:"var(--text-muted)",fontSize:".8rem",cursor:"pointer"}}>
+                      ✏️
+                    </button>
+                    <button title="Eliminar" aria-label="Eliminar código"
+                      onClick={() => setDelCodigo(c.id)}
+                      style={{display:"flex",alignItems:"center",justifyContent:"center",
+                        width:40,height:40,borderRadius:8,
+                        background:"rgba(248,113,113,.1)",border:"1px solid rgba(248,113,113,.25)",
+                        color:"var(--red)",fontSize:".8rem",fontWeight:700,cursor:"pointer"}}>
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          };
+
+          return (
+            <div style={{display:"flex", flexDirection:"column", gap:".75rem"}}>
+              {grupos.map(({dist, items, color}) => {
+                const usados = items.filter(c => c.estado === "usado").length;
+                const libres = items.length - usados;
+                const collapsed = colapsadas[dist];
+                return (
+                  <div key={dist} style={{
+                    borderRadius:10, overflow:"hidden",
+                    border:`1px solid ${color}33`,
+                  }}>
+                    {/* Cabecera de grupo — clickable */}
+                    <button
+                      onClick={() => toggleDistancia(dist)}
+                      style={{
+                        width:"100%", display:"flex", alignItems:"center",
+                        gap:".65rem", padding:".6rem .85rem",
+                        background:`${color}0d`, border:"none",
+                        cursor:"pointer", textAlign:"left",
+                        borderBottom: collapsed ? "none" : `1px solid ${color}22`,
                       }}>
-                        <span style={{
-                          width:6, height:6, borderRadius:"50%",
-                          background:"var(--text-dim)", display:"inline-block", flexShrink:0,
-                        }}/>
-                        Usado · {c.fechaUso || "sin fecha"}
+                      <span style={{
+                        fontFamily:"var(--font-mono)", fontWeight:800, fontSize:".8rem",
+                        color, letterSpacing:".04em",
+                      }}>
+                        {dist}
+                      </span>
+                      <span style={{
+                        fontFamily:"var(--font-mono)", fontSize:".65rem",
+                        color:"var(--text-muted)", flex:1,
+                      }}>
+                        {items.length} código{items.length!==1?"s":""}
+                      </span>
+                      {/* Pills libres/usados */}
+                      <div style={{display:"flex", gap:".3rem"}}>
+                        {libres > 0 && (
+                          <span style={{
+                            fontFamily:"var(--font-mono)", fontSize:".6rem", fontWeight:700,
+                            padding:".1rem .45rem", borderRadius:20,
+                            background:"rgba(52,211,153,.12)", color:"var(--green)",
+                            border:"1px solid rgba(52,211,153,.25)",
+                          }}>
+                            {libres} libre{libres!==1?"s":""}
+                          </span>
+                        )}
+                        {usados > 0 && (
+                          <span style={{
+                            fontFamily:"var(--font-mono)", fontSize:".6rem", fontWeight:700,
+                            padding:".1rem .45rem", borderRadius:20,
+                            background:"rgba(148,163,184,.1)", color:"var(--text-dim)",
+                            border:"1px solid var(--border)",
+                          }}>
+                            {usados} usado{usados!==1?"s":""}
+                          </span>
+                        )}
+                      </div>
+                      <span style={{
+                        fontFamily:"var(--font-mono)", fontSize:".7rem",
+                        color:"var(--text-dim)", flexShrink:0,
+                        transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)",
+                        transition:"transform .18s",
+                      }}>
+                        ▼
+                      </span>
+                    </button>
+
+                    {/* Cards del grupo */}
+                    {!collapsed && (
+                      <div style={{
+                        display:"flex", flexDirection:"column", gap:".35rem",
+                        padding:".5rem .5rem",
+                        background:"var(--surface)",
+                      }}>
+                        {items.map(renderCard)}
                       </div>
                     )}
                   </div>
@@ -767,6 +802,8 @@ export const TabInscripciones = ({
               })}
             </div>
           );
+        })()}
+
         })()}
 
         {/* Modal editar/crear código */}
