@@ -961,6 +961,7 @@ function AppShell({ children }) {
 
 // ─── TAB DASHBOARD ────────────────────────────────────────────────────────────
 function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol, onEditarPuesto }) {
+  const [alertasColapsadas, setAlertasColapsadas] = useState(false);
   const alertas = puestosConStats.filter(p => p.cobertura < 50);
   const cobColor = stats.coberturaGlobal >= 80 ? "c-green" : stats.coberturaGlobal >= 50 ? "c-amber" : "c-red";
 
@@ -1005,19 +1006,49 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
       </div>
 
       {alertas.length > 0 && (
-        <div style={{ background: "var(--red-dim)", border: "1px solid rgba(248,113,113,0.25)", borderRadius: "var(--radius)", padding: "0.85rem 1rem", marginBottom: "0.85rem" }}>
-          <div style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--red)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.5rem" }}>⚠️ Puestos con cobertura insuficiente</div>
-          {alertas.map(p => (
-            <div key={p.id}
-              onClick={() => onEditarPuesto(p)}
-              title="Click para abrir ficha del puesto"
-              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.3rem 0.3rem", borderBottom: "1px solid rgba(248,113,113,0.1)", fontSize: "0.78rem", cursor: "pointer", borderRadius: 4, transition: "background .12s" }}
-              onMouseEnter={e => e.currentTarget.style.background = "var(--red-dim)"}
-              onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-              <span>{p.nombre}</span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.7rem", color: "var(--red)", fontWeight: 700 }}>{p.totalAsignados}/{p.necesarios} ({p.cobertura}%)</span>
+        <div style={{borderRadius:10,overflow:"hidden",marginBottom:".85rem",
+          border:"1px solid rgba(248,113,113,.25)",background:"var(--red-dim)"}}>
+          <button
+            onClick={() => setAlertasColapsadas(v => !v)}
+            style={{width:"100%",display:"flex",alignItems:"center",gap:".65rem",
+              padding:".6rem .85rem",background:"transparent",border:"none",
+              cursor:"pointer",textAlign:"left",
+              borderBottom: alertasColapsadas ? "none" : "1px solid rgba(248,113,113,.2)"}}>
+            <span style={{width:8,height:8,borderRadius:"50%",
+              background:"var(--red)",flexShrink:0,display:"inline-block"}}/>
+            <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:".72rem",
+              color:"var(--red)",flex:1}}>
+              ⚠️ Puestos con cobertura insuficiente
+            </span>
+            <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",
+              color:"var(--red)",padding:".1rem .4rem",borderRadius:20,
+              background:"rgba(248,113,113,.15)"}}>
+              {alertas.length}
+            </span>
+            <span style={{fontFamily:"var(--font-mono)",fontSize:".7rem",
+              color:"rgba(248,113,113,.6)",flexShrink:0,
+              transform:alertasColapsadas?"rotate(-90deg)":"rotate(0deg)",transition:"transform .18s"}}>▼</span>
+          </button>
+          {!alertasColapsadas && (
+            <div style={{padding:".35rem .85rem .6rem"}}>
+              {alertas.map(p => (
+                <div key={p.id}
+                  onClick={() => onEditarPuesto(p)}
+                  title="Click para abrir ficha del puesto"
+                  style={{ display:"flex",alignItems:"center",justifyContent:"space-between",
+                    padding:"0.3rem 0.3rem",borderBottom:"1px solid rgba(248,113,113,0.1)",
+                    fontSize:"0.78rem",cursor:"pointer",borderRadius:4,transition:"background .12s"}}
+                  onMouseEnter={e => e.currentTarget.style.background="rgba(248,113,113,.08)"}
+                  onMouseLeave={e => e.currentTarget.style.background="transparent"}>
+                  <span>{p.nombre}</span>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:"0.7rem",
+                    color:"var(--red)",fontWeight:700}}>
+                    {p.totalAsignados}/{p.necesarios} ({p.cobertura}%)
+                  </span>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       )}
 

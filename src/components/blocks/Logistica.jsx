@@ -250,20 +250,25 @@ export default function App() {
     return { tlDone, tlTotal:tl.length, ckDone, ckTotal:ck.length, stockErr, incOpen };
   }, [tl, ck, material, asigs, inc]);
 
+  // Operativas: las que se usan en el día a día
   const TABS_OPERATIVAS = [
-    {id:"dashboard",icon:"📊",label:"Dashboard"},
-    {id:"material",icon:"📦",label:"Material"},
-    {id:"vehiculos",icon:"🚗",label:"Vehículos"},
-    {id:"timeline",icon:"⏱️",label:"Timeline"},
-    {id:"contactos",icon:"📋",label:"Contactos"},
-    {id:"emergencias",icon:"🚨",label:"Emergencias"},
-    {id:"checklist",icon:"✅",label:"Checklist"},
-    {id:"pedidos",icon:"🛒",label:"Pedidos"},
+    {id:"dashboard",  icon:"📊", label:"Dashboard"},
+    {id:"material",   icon:"📦", label:"Material"},
+    {id:"vehiculos",  icon:"🚗", label:"Vehículos"},
+    {id:"timeline",   icon:"⏱️", label:"Timeline"},
+    {id:"pedidos",    icon:"🛒", label:"Pedidos"},
+    {id:"checklist",  icon:"✅", label:"Checklist"},
   ];
+  // Personas: contactos y emergencias
+  const TABS_PERSONAS = [
+    {id:"contactos",   icon:"📋", label:"Contactos"},
+    {id:"emergencias", icon:"🚨", label:"Emergencias"},
+  ];
+  // Configuración
   const TABS_CONFIG = [
-    {id:"localizaciones",icon:"📍",label:"Localizaciones"},
+    {id:"localizaciones", icon:"📍", label:"Localizaciones"},
   ];
-  const TABS = [...TABS_OPERATIVAS, ...TABS_CONFIG];
+  const TABS = [...TABS_OPERATIVAS, ...TABS_PERSONAS, ...TABS_CONFIG];
 
   const doDelete = () => {
     if (!del) return;
@@ -723,6 +728,9 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
 // ─── VEHÍCULOS ────────────────────────────────────────────────────────────────
 function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,voluntariosConCoche=[]}) {
   const [vistaKanban,setVistaKanban]=useState(false);
+  const [vehColapsado,setVehCol]=useState(false);
+  const [rutasColapsadas,setRutasCol]=useState(false);
+  const [poolColapsado,setPoolCol]=useState(false);
   const moverVeh=(id,dir)=>{
     if(ordenAlfa) return;
     setVeh(prev=>{const arr=[...prev];const i=arr.findIndex(x=>x.id===id);const j=i+dir;if(j<0||j>=arr.length)return arr;[arr[i],arr[j]]=[arr[j],arr[i]];return arr;});
@@ -787,8 +795,18 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
       ):(
         <div className="twocol">
           <div>
-            <div className="sl">Flota de vehículos</div>
-            {vehOrdenado.map((v,i,arr)=>(
+            {/* Flota colapsable */}
+            <button onClick={()=>setVehCol(v=>!v)}
+              style={{width:"100%",display:"flex",alignItems:"center",gap:".5rem",
+                padding:".45rem .65rem",marginBottom:".4rem",background:"var(--surface2)",
+                border:"1px solid var(--border)",borderRadius:"var(--r-sm)",cursor:"pointer",textAlign:"left"}}>
+              <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:".68rem",flex:1}}>🚐 Flota de vehículos</span>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--cyan)",
+                padding:".06rem .35rem",borderRadius:20,background:"var(--cyan-dim)"}}>{veh.length}</span>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-dim)",
+                transform:vehColapsado?"rotate(-90deg)":"rotate(0deg)",transition:"transform .18s"}}>▼</span>
+            </button>
+            {!vehColapsado && vehOrdenado.map((v,i,arr)=>(
               <div key={v.id} className="card vcard" style={{cursor:"pointer"}} onClick={()=>abrirFicha("veh",v)}>
                 <div className="vh">
                   {!ordenAlfa&&<div className="log-reorder" onClick={e=>e.stopPropagation()}><span onClick={()=>moverVeh(v.id,-1)} style={{opacity:i===0?.2:1}}>▲</span><span onClick={()=>moverVeh(v.id,+1)} style={{opacity:i===arr.length-1?.2:1}}>▼</span></div>}
@@ -800,10 +818,21 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
               </div>
             ))}
 
+            )}
             {/* SECCIÓN VEHÍCULOS VOLUNTARIOS (POOL) — LISTA */}
             {voluntariosConCoche.length > 0 && (
-              <div style={{marginTop:"1.5rem"}}>
-                <div className="sl" style={{color:"var(--violet)",borderBottom:"1px solid rgba(167,139,250,0.3)"}}>🙋‍♂️ Pool de Vehículos Voluntarios</div>
+              <div style={{marginTop:"1rem"}}>
+                <button onClick={()=>setPoolCol(v=>!v)}
+                  style={{width:"100%",display:"flex",alignItems:"center",gap:".5rem",
+                    padding:".45rem .65rem",marginBottom:".4rem",background:"var(--violet-dim)",
+                    border:"1px solid rgba(167,139,250,.25)",borderRadius:"var(--r-sm)",cursor:"pointer",textAlign:"left"}}>
+                  <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:".68rem",color:"var(--violet)",flex:1}}>🙋‍♂️ Pool de Voluntarios</span>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--violet)",
+                    padding:".06rem .35rem",borderRadius:20,background:"rgba(167,139,250,.15)"}}>{voluntariosConCoche.length}</span>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"rgba(167,139,250,.5)",
+                    transform:poolColapsado?"rotate(-90deg)":"rotate(0deg)",transition:"transform .18s"}}>▼</span>
+                </button>
+                {!poolColapsado && <>
                 {voluntariosConCoche.map(vol => (
                   <div key={vol.id} className="card vcard" style={{borderLeft:"2px solid var(--violet)",background:"var(--violet-dim)"}}>
                     <div className="vh" style={{marginBottom:"0.5rem"}}>
@@ -813,11 +842,23 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
                     </div>
                   </div>
                 ))}
+                </>}
               </div>
             )}
           </div>
           <div>
-            <div className="sl">Rutas de reparto</div>
+            {/* Rutas colapsable */}
+            <button onClick={()=>setRutasCol(v=>!v)}
+              style={{width:"100%",display:"flex",alignItems:"center",gap:".5rem",
+                padding:".45rem .65rem",marginBottom:".4rem",background:"var(--surface2)",
+                border:"1px solid var(--border)",borderRadius:"var(--r-sm)",cursor:"pointer",textAlign:"left"}}>
+              <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:".68rem",flex:1}}>🗺️ Rutas de reparto</span>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--amber)",
+                padding:".06rem .35rem",borderRadius:20,background:"var(--amber-dim)"}}>{rutas.length}</span>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-dim)",
+                transform:rutasColapsadas?"rotate(-90deg)":"rotate(0deg)",transition:"transform .18s"}}>▼</span>
+            </button>
+            {!rutasColapsadas && <>
             {rutas.map(r=>{const v=veh.find(x=>x.id===r.vehiculoId);return(
               <div key={r.id} className="card rcard" style={{cursor:"pointer"}} onClick={()=>abrirFicha("ruta",r)}>
                 <div className="rh">
@@ -834,6 +875,7 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
                 ))}</div>
               </div>
             );})}
+            </>}
           </div>
         </div>
       )}

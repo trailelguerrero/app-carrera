@@ -505,6 +505,7 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal }) {
   const [fPago, setFPago]    = useState("todos");
   const [fEnt,  setFEnt]     = useState("todos");
   const [bus,   setBus]      = useState("");
+  const [pedGrupos, setPedGrupos] = useState({}); // grupos colapsados por estado
   const filtrados = useMemo(()=>{
     let list = pedidos.filter(p=>{
       const q  = bus.toLowerCase();
@@ -587,32 +588,67 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal }) {
           })}
         </div>
       ) : (
-        <div style={{display:"flex",flexDirection:"column",gap:".5rem"}}>
-          {filtrados.map(p=>{
-            const {totalVenta}=calcPedido(p,coste); const bp=badgePago(p); const be=badgeEnt(p);
+        /* Vista lista agrupada por estado de pago */
+        <div style={{display:"flex",flexDirection:"column",gap:".6rem"}}>
+          {ESTADOS_PAGO.map(estado => {
+            const cfg = EP[estado];
+            const items = filtrados.filter(p => {
+              const counts = {};
+              p.lineas.forEach(l=>{counts[l.estadoPago||"pendiente"]=(counts[l.estadoPago||"pendiente"]||0)+l.cantidad;});
+              return Object.entries(counts).sort((a,b)=>b[1]-a[1])[0]?.[0]===estado;
+            });
+            if (!items.length) return null;
+            const collapsed = pedGrupos[estado];
             return (
-              <div key={p.id} className="cam-row" onClick={()=>abrirFicha(p)}>
-                <div style={{display:"flex",alignItems:"center",gap:".6rem",flex:1,minWidth:0}}>
-                  <span style={{fontSize:"1.4rem",flexShrink:0}}>{bp.icon}</span>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontWeight:700,fontSize:".88rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
-                    <div style={{display:"flex",gap:".3rem",flexWrap:"wrap",marginTop:".15rem"}}>
-                      {p.lineas.map((l,i)=>(
-                        <span key={i} style={{fontFamily:"var(--font-mono)",fontSize:".6rem",padding:".08rem .35rem",borderRadius:3,background:TC[l.tipo]?.dim,color:TC[l.tipo]?.color,display:"flex",alignItems:"center",gap:".2rem"}}>
-                          {TC[l.tipo]?.icon} {l.talla}×{l.cantidad} {EP[l.estadoPago||"pendiente"]?.icon}{EE[l.estadoEntrega||"pendiente"]?.icon}
-                        </span>
-                      ))}
-                    </div>
-                    {p.notas&&<div className="mono xs muted" style={{marginTop:".1rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.notas}</div>}
+              <div key={estado} style={{borderRadius:10,overflow:"hidden",
+                border:`1px solid ${cfg.color}33`}}>
+                <button
+                  onClick={()=>setPedGrupos(p=>({...p,[estado]:!p[estado]}))}
+                  style={{width:"100%",display:"flex",alignItems:"center",gap:".65rem",
+                    padding:".55rem .85rem",background:`${cfg.color}08`,
+                    border:"none",cursor:"pointer",textAlign:"left",
+                    borderBottom:collapsed?"none":`1px solid ${cfg.color}1a`}}>
+                  <span style={{fontSize:".85rem"}}>{cfg.icon}</span>
+                  <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:".72rem",
+                    color:cfg.color,flex:1}}>{cfg.label}</span>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:".62rem",
+                    color:"var(--text-dim)",padding:".1rem .4rem",borderRadius:20,
+                    background:"rgba(255,255,255,.05)"}}>{items.length}</span>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-dim)",
+                    transform:collapsed?"rotate(-90deg)":"rotate(0deg)",transition:"transform .18s"}}>▼</span>
+                </button>
+                {!collapsed && (
+                  <div style={{display:"flex",flexDirection:"column",
+                    background:"var(--surface)"}}>
+                    {items.map((p,idx)=>{
+                      const {totalVenta}=calcPedido(p,coste); const bp=badgePago(p); const be=badgeEnt(p);
+                      return (
+                        <div key={p.id} className="cam-row"
+                          style={{borderBottom:idx<items.length-1?"1px solid var(--border)":"none",
+                            borderRadius:0}}
+                          onClick={()=>abrirFicha(p)}>
+                          <div style={{display:"flex",alignItems:"center",gap:".6rem",flex:1,minWidth:0}}>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontWeight:700,fontSize:".88rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
+                              <div style={{display:"flex",gap:".3rem",flexWrap:"wrap",marginTop:".15rem"}}>
+                                {p.lineas.map((l,i)=>(
+                                  <span key={i} style={{fontFamily:"var(--font-mono)",fontSize:".6rem",padding:".08rem .35rem",borderRadius:3,background:TC[l.tipo]?.dim,color:TC[l.tipo]?.color,display:"flex",alignItems:"center",gap:".2rem"}}>
+                                    {TC[l.tipo]?.icon} {l.talla}×{l.cantidad} {EE[l.estadoEntrega||"pendiente"]?.icon}
+                                  </span>
+                                ))}
+                              </div>
+                              {p.notas&&<div className="mono xs muted" style={{marginTop:".1rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.notas}</div>}
+                            </div>
+                          </div>
+                          <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:".3rem",flexShrink:0}}>
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:".88rem",fontWeight:800}}>{fmt(totalVenta)}</div>
+                            <span className="badge" style={{background:be.bg,color:be.color,fontSize:".52rem"}}>{be.icon}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
-                <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:".3rem",flexShrink:0}}>
-                  <div style={{fontFamily:"var(--font-mono)",fontSize:".88rem",fontWeight:800}}>{fmt(totalVenta)}</div>
-                  <div style={{display:"flex",gap:".3rem"}}>
-                    <span className="badge" style={{background:bp.bg,color:bp.color,fontSize:".52rem"}}>{bp.label}</span>
-                    <span className="badge" style={{background:be.bg,color:be.color,fontSize:".52rem"}}>{be.icon}</span>
-                  </div>
-                </div>
+                )}
               </div>
             );
           })}
@@ -627,6 +663,8 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
   const [editCorredores, setEditCorredores] = useState(false);
   const [tmpCor, setTmpCor] = useState({ ...corredoresExt });
   const [editNino, setEditNino] = useState(false);
+  const [secColapsadas, setSecCol] = useState({}); // { corredor, voluntario, nino, total }
+  const toggleSec = (k) => setSecCol(p => ({...p,[k]:!p[k]}));
   const [tmpNino, setTmpNino] = useState({ ...ninoExt });
 
   // Al abrir edición, sincronizar el estado temporal
@@ -684,6 +722,31 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
   const grandTotalVol  = TALLAS.reduce((s, t)      => s + (totalVoluntario[t] || 0), 0);
   const grandTotalNino = TALLAS_NINO.reduce((s, t) => s + (ninoExt[t] || 0) + (tallasExtrasNino[t] || 0), 0);
   const grandTotal     = grandTotalCor + grandTotalVol + grandTotalNino;
+
+  // Helper: cabecera de sección colapsable
+  const ColSec = ({ id, icon, title, total, color, children, action }) => {
+    const col = secColapsadas[id];
+    return (
+      <div style={{borderRadius:10,overflow:"hidden",border:`1px solid ${color}2a`,marginBottom:".85rem"}}>
+        <button onClick={()=>toggleSec(id)}
+          style={{width:"100%",display:"flex",alignItems:"center",gap:".65rem",
+            padding:".6rem .9rem",background:`${color}09`,
+            border:"none",cursor:"pointer",textAlign:"left",
+            borderBottom:col?"none":`1px solid ${color}18`}}>
+          <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:".72rem",color,flex:1}}>
+            {icon} {title}
+          </span>
+          {action && <span onClick={e=>e.stopPropagation()}>{action}</span>}
+          <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",
+            color:"var(--text-dim)",padding:".1rem .4rem",borderRadius:20,
+            background:"rgba(255,255,255,.05)",flexShrink:0}}>{total} ud</span>
+          <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-dim)",
+            transform:col?"rotate(-90deg)":"rotate(0deg)",transition:"transform .18s",flexShrink:0}}>▼</span>
+        </button>
+        {!col && <div style={{padding:".75rem .9rem",background:"var(--surface)"}}>{children}</div>}
+      </div>
+    );
+  };
 
   const SectionTitle = ({ icon, title, subtitle, color, action }) => (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '.6rem', gap: '.5rem', flexWrap: 'wrap' }}>
@@ -766,9 +829,24 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
         ))}
       </div>
 
-      {/* ── TABLA CONSOLIDADA: PEDIDO TOTAL AL PROVEEDOR (4 columnas) ── */}
-      <div className="card" style={{ marginBottom: '.85rem', borderLeft: '3px solid var(--primary)' }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '.65rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '.75rem' }}>📦 Pedido Total al Proveedor — desglose por fuente</div>
+      {/* ── TABLA CONSOLIDADA: colapsable ── */}
+      <div style={{borderRadius:10,overflow:"hidden",marginBottom:".85rem",
+        border:"1px solid rgba(99,102,241,.25)"}}>
+        <button onClick={()=>toggleSec("tabla")}
+          style={{width:"100%",display:"flex",alignItems:"center",gap:".65rem",
+            padding:".65rem .9rem",background:"rgba(99,102,241,.06)",
+            border:"none",cursor:"pointer",textAlign:"left",
+            borderBottom:secColapsadas.tabla?"none":"1px solid rgba(99,102,241,.15)"}}>
+          <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:".72rem",
+            color:"var(--primary)",flex:1}}>📦 Pedido Total al Proveedor — desglose por fuente</span>
+          <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",
+            color:"var(--text-dim)",padding:".1rem .4rem",borderRadius:20,
+            background:"rgba(255,255,255,.05)",flexShrink:0}}>{grandTotal} ud</span>
+          <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-dim)",
+            transform:secColapsadas.tabla?"rotate(-90deg)":"rotate(0deg)",
+            transition:"transform .18s",flexShrink:0}}>▼</span>
+        </button>
+        {!secColapsadas.tabla && <div style={{padding:".75rem .9rem",background:"var(--surface)"}}>
         <div className="overflow-x">
           <table className="tbl">
             <thead>
@@ -897,10 +975,26 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
             </div>
           </div>
         ) : null}
+        </div>}
       </div>
 
-      {/* ── DESGLOSE POR FUENTE ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '.85rem' }}>
+      {/* ── DESGLOSE POR FUENTE — colapsable ── */}
+      <div style={{borderRadius:10,overflow:"hidden",marginBottom:".85rem",
+        border:"1px solid var(--border)"}}>
+        <button onClick={()=>toggleSec("fuentes")}
+          style={{width:"100%",display:"flex",alignItems:"center",gap:".65rem",
+            padding:".6rem .9rem",background:"var(--surface2)",
+            border:"none",cursor:"pointer",textAlign:"left",
+            borderBottom:secColapsadas.fuentes?"none":"1px solid var(--border)"}}>
+          <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:".72rem",flex:1}}>
+            📋 Desglose por fuente
+          </span>
+          <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-dim)",
+            transform:secColapsadas.fuentes?"rotate(-90deg)":"rotate(0deg)",
+            transition:"transform .18s",flexShrink:0}}>▼</span>
+        </button>
+        {!secColapsadas.fuentes && <div style={{padding:".75rem .9rem",background:"var(--surface)"}}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '.85rem' }}>
 
         {/* ── FUENTE 1: Corredores (plataforma externa) ── */}
         <div className="card">
@@ -1032,13 +1126,16 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
           )}
         </div>
       </div>
+        </div>}
+      </div>
     </>
   );
 }
 
 // ─── TAB CHECKLIST ────────────────────────────────────────────────────────────
 function TabChecklist({ pedidos, updateLinea, abrirFicha }) {
-  const [filtro,setFiltro] = useState("todos");
+  const [filtro,setFiltro]   = useState("todos");
+  const [pedColaps, setPedCo] = useState({}); // pedidos colapsados por id
   const todas = useMemo(()=>pedidos.flatMap(p=>p.lineas.map(l=>({...l,pedNombre:p.nombre,pedId:p.id,ped:p}))),[pedidos]);
   const filtradas = useMemo(()=>todas.filter(l=>{
     const ep=l.estadoPago||"pendiente"; const ee=l.estadoEntrega||"pendiente";
@@ -1069,29 +1166,128 @@ function TabChecklist({ pedidos, updateLinea, abrirFicha }) {
         ))}
       </div>
       {filtradas.length===0&&<div className="empty-state"><div className="empty-state-icon">✅</div>Sin líneas con estos filtros</div>}
-      <div style={{display:"flex",flexDirection:"column",gap:".4rem"}}>
-        {filtradas.map(l=>{
-          const tcfg=TC[l.tipo]; const ep=l.estadoPago||"pendiente"; const ee=l.estadoEntrega||"pendiente";
-          const epCfg=EP[ep]; const eeCfg=EE[ee];
-          return (
-            <div key={`${l.pedId}-${l.id}`} className="card" style={{padding:".7rem 1rem",borderLeft:`3px solid ${eeCfg.color}`}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:".75rem",flexWrap:"wrap"}}>
-                <div style={{cursor:"pointer",flex:1,minWidth:0}} onClick={()=>abrirFicha(l.ped)}>
-                  <div style={{fontWeight:700,fontSize:".84rem",marginBottom:".15rem"}}>{l.pedNombre}</div>
-                  <div style={{display:"flex",alignItems:"center",gap:".5rem",flexWrap:"wrap"}}>
-                    <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",padding:".1rem .4rem",borderRadius:4,background:tcfg?.dim,color:tcfg?.color}}>{tcfg?.icon} {tcfg?.label} — {l.talla} × {l.cantidad} ud</span>
-                    <span className="badge" style={{background:epCfg.bg,color:epCfg.color,fontSize:".55rem"}}>{epCfg.icon} {epCfg.label}</span>
-                  </div>
+
+      {/* Agrupado por pedido — cada pedido colapsable */}
+      {filtradas.length > 0 && (() => {
+        // Agrupar líneas filtradas por pedido
+        const porPedido = [];
+        const pedIdsSeen = new Set();
+        filtradas.forEach(l => {
+          if (!pedIdsSeen.has(l.pedId)) {
+            pedIdsSeen.add(l.pedId);
+            porPedido.push({
+              ped: l.ped,
+              lineas: filtradas.filter(x => x.pedId === l.pedId),
+            });
+          }
+        });
+
+        return (
+          <div style={{display:"flex",flexDirection:"column",gap:".5rem"}}>
+            {porPedido.map(({ ped, lineas }) => {
+              const pendEnt = lineas.filter(l=>(l.estadoEntrega||"pendiente")==="pendiente").length;
+              const pendPago = lineas.filter(l=>(l.estadoPago||"pendiente")==="pendiente" && l.estadoPago!=="regalo").length;
+              const collapsed = pedColaps[ped.id];
+              const allEntregado = pendEnt === 0;
+
+              return (
+                <div key={ped.id} style={{borderRadius:10,overflow:"hidden",
+                  border:`1px solid ${allEntregado?"var(--border)":"rgba(251,191,36,.2)"}`,
+                  opacity: allEntregado ? .7 : 1}}>
+
+                  {/* Cabecera del pedido */}
+                  <button
+                    onClick={()=>setPedCo(p=>({...p,[ped.id]:!p[ped.id]}))}
+                    style={{width:"100%",display:"flex",alignItems:"center",gap:".6rem",
+                      padding:".6rem .85rem",background:allEntregado?"var(--surface2)":"rgba(251,191,36,.05)",
+                      border:"none",cursor:"pointer",textAlign:"left",
+                      borderBottom:collapsed?"none":"1px solid var(--border)"}}>
+                    <span style={{fontWeight:700,fontSize:".8rem",flex:1,minWidth:0,
+                      overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
+                      textAlign:"left"}}>
+                      {allEntregado ? "✅ " : "📦 "}{ped.nombre}
+                    </span>
+                    <div style={{display:"flex",gap:".3rem",flexShrink:0}}>
+                      {pendEnt > 0 && (
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
+                          padding:".1rem .4rem",borderRadius:20,
+                          background:"rgba(251,191,36,.15)",color:"var(--amber)",
+                          border:"1px solid rgba(251,191,36,.3)"}}>
+                          {pendEnt} por entregar
+                        </span>
+                      )}
+                      {pendPago > 0 && (
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
+                          padding:".1rem .4rem",borderRadius:20,
+                          background:"rgba(248,113,113,.12)",color:"var(--red)",
+                          border:"1px solid rgba(248,113,113,.25)"}}>
+                          {pendPago} sin cobrar
+                        </span>
+                      )}
+                      <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",
+                        color:"var(--text-dim)",
+                        transform:collapsed?"rotate(-90deg)":"rotate(0deg)",
+                        transition:"transform .18s"}}>▼</span>
+                    </div>
+                  </button>
+
+                  {/* Líneas del pedido */}
+                  {!collapsed && (
+                    <div style={{background:"var(--surface)"}}>
+                      {lineas.map((l,idx) => {
+                        const tcfg=TC[l.tipo]; const ep=l.estadoPago||"pendiente";
+                        const ee=l.estadoEntrega||"pendiente";
+                        const epCfg=EP[ep]; const eeCfg=EE[ee];
+                        return (
+                          <div key={`${l.pedId}-${l.id}`}
+                            style={{padding:".6rem .85rem",
+                              borderBottom:idx<lineas.length-1?"1px solid var(--border)":"none",
+                              borderLeft:`3px solid ${eeCfg.color}`,
+                              display:"flex",justifyContent:"space-between",
+                              alignItems:"center",gap:".75rem",flexWrap:"wrap"}}>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{display:"flex",alignItems:"center",gap:".5rem",flexWrap:"wrap"}}>
+                                <span style={{fontFamily:"var(--font-mono)",fontSize:".7rem",
+                                  padding:".1rem .4rem",borderRadius:4,
+                                  background:tcfg?.dim,color:tcfg?.color,fontWeight:700}}>
+                                  {tcfg?.icon} {tcfg?.label} — {l.talla} × {l.cantidad} ud
+                                </span>
+                                <span className="badge" style={{background:epCfg.bg,color:epCfg.color,fontSize:".55rem"}}>
+                                  {epCfg.icon} {epCfg.label}
+                                </span>
+                              </div>
+                            </div>
+                            <div style={{display:"flex",gap:".35rem",flexShrink:0}}>
+                              <button
+                                onClick={()=>updateLinea(l.pedId,l.id,"estadoEntrega",ee==="entregado"?"pendiente":"entregado")}
+                                style={{fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,
+                                  padding:".3rem .65rem",borderRadius:"var(--r-sm)",
+                                  border:`1px solid ${eeCfg.color}44`,background:eeCfg.bg,
+                                  color:eeCfg.color,cursor:"pointer",whiteSpace:"nowrap"}}>
+                                {ee==="entregado"?"✔️ Entregado":"📦 Entregar"}
+                              </button>
+                              {ep!=="regalo" && (
+                                <button
+                                  onClick={()=>updateLinea(l.pedId,l.id,"estadoPago",ep==="pagado"?"pendiente":"pagado")}
+                                  style={{fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,
+                                    padding:".3rem .65rem",borderRadius:"var(--r-sm)",
+                                    border:`1px solid ${epCfg.color}44`,background:epCfg.bg,
+                                    color:epCfg.color,cursor:"pointer",whiteSpace:"nowrap"}}>
+                                  {ep==="pagado"?"✅ Pagado":"⏳ Cobrar"}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-                <div style={{display:"flex",gap:".35rem",flexShrink:0}} onClick={e=>e.stopPropagation()}>
-                  <button onClick={()=>updateLinea(l.pedId,l.id,"estadoEntrega",ee==="entregado"?"pendiente":"entregado")} style={{fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,padding:".3rem .65rem",borderRadius:"var(--r-sm)",border:`1px solid ${eeCfg.color}44`,background:eeCfg.bg,color:eeCfg.color,cursor:"pointer",transition:"all .15s",whiteSpace:"nowrap"}}>{ee==="entregado"?"✔️ Entregado":"📦 Entregar"}</button>
-                  {ep!=="regalo"&&<button onClick={()=>updateLinea(l.pedId,l.id,"estadoPago",ep==="pagado"?"pendiente":"pagado")} style={{fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,padding:".3rem .65rem",borderRadius:"var(--r-sm)",border:`1px solid ${epCfg.color}44`,background:epCfg.bg,color:epCfg.color,cursor:"pointer",transition:"all .15s",whiteSpace:"nowrap"}}>{ep==="pagado"?"✅ Pagado":"⏳ Cobrar"}</button>}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+              );
+            })}
+          </div>
+        );
+      })()}
     </>
   );
 }

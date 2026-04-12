@@ -248,13 +248,16 @@ export default function App() {
   const updEstado = (id, estado) => setTareas(p => p.map(t => t.id===id ? {...t,estado} : t));
   const updHito = (id, field, val) => setHitos(p => p.map(h => h.id===id ? {...h,[field]:val} : h));
 
-  const TABS = [
-    {id:"tablón",     icon:"📋", label:"Tablón"},
-    {id:"dashboard",  icon:"📊", label:"Resumen"},
-    {id:"hitos",      icon:"🏁", label:"Hitos"},
-    {id:"gantt",      icon:"📅", label:"Vista áreas"},
-    {id:"equipo",     icon:"👥", label:"Equipo"},
+  const TABS_VISTAS = [
+    {id:"tablón",    icon:"📋", label:"Tablón"},
+    {id:"dashboard", icon:"📊", label:"Resumen"},
+    {id:"gantt",     icon:"📅", label:"Áreas"},
   ];
+  const TABS_GESTION = [
+    {id:"hitos",  icon:"🏁", label:"Hitos"},
+    {id:"equipo", icon:"👥", label:"Equipo"},
+  ];
+  const TABS = [...TABS_VISTAS, ...TABS_GESTION];
 
   return (
     <>
@@ -372,6 +375,7 @@ export default function App() {
 
 // ─── TAB DASHBOARD ────────────────────────────────────────────────────────────
 function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, updEstado, isMobile, setFiltroArea, setFiltroResponsable, gestiones }) {
+  const [cargaColapsada, setCargaColapsada] = useState(false);
   return (
     <>
       {/* Semáforo por área */}
@@ -444,9 +448,26 @@ function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, upd
           <button className="btn btn-ghost mt1 w100" onClick={() => setTab("tablón")}>Ver todas las tareas →</button>
         </div>
 
-        {/* Carga por persona */}
-        <div className="card">
-          <div className="ct">👥 Carga del equipo</div>
+        {/* Carga por persona — colapsable */}
+        <div className="card" style={{padding:0,overflow:"hidden"}}>
+          <button
+            onClick={() => setCargaColapsada(v => !v)}
+            style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",
+              padding:".75rem 1rem",background:"transparent",border:"none",
+              cursor:"pointer",textAlign:"left",
+              borderBottom: cargaColapsada ? "none" : "1px solid var(--border)"}}>
+            <div>
+              <div style={{fontWeight:700,fontSize:".82rem",marginBottom:".1rem"}}>👥 Carga del equipo</div>
+              <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)"}}>
+                {stats.porPersona.filter(p=>p.urgentes>0).length > 0
+                  ? `⚡ ${stats.porPersona.filter(p=>p.urgentes>0).length} persona${stats.porPersona.filter(p=>p.urgentes>0).length!==1?"s":"" } con tareas urgentes`
+                  : `${stats.porPersona.length} personas · sin urgencias`}
+              </div>
+            </div>
+            <span style={{fontFamily:"var(--font-mono)",fontSize:".7rem",color:"var(--text-dim)",
+              transform:cargaColapsada?"rotate(-90deg)":"rotate(0deg)",transition:"transform .18s"}}>▼</span>
+          </button>
+          {!cargaColapsada && <div style={{padding:".5rem 1rem 1rem"}}>
           {stats.porPersona.map(p => (
             <div key={p.id} className="carga-row" style={{cursor:"pointer"}}
               onClick={() => { setFiltroResponsable(String(p.id)); setTab("tablón"); }}
@@ -474,6 +495,7 @@ function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, upd
             <button className="btn btn-ghost btn-sm"
               onClick={() => setModal({tipo:"persona",data:null})}>+ Persona</button>
           </div>
+          </div>}
         </div>
       </div>
 
