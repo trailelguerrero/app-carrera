@@ -2928,6 +2928,31 @@ function SugerenciasMedallas({ inscritos, totalInscritos, precioMedalla, concept
 }
 
 // ── Modal crear/editar pedido ─────────────────────────────────────────────────
+// Calcula el precio UNITARIO correcto de un concepto del presupuesto
+// - Variable: costePorDistancia (ya es €/corredor)
+// - Fijo con material vinculado: costeTotal ÷ stock del artículo
+// - Fijo sin vínculo: 0 (el usuario debe introducirlo manualmente)
+function calcPrecioUnitario(concepto, material=[]) {
+  if (!concepto) return { precio:0, esTotal:false };
+  if (concepto.tipo === "variable") {
+    // Precio uniforme o media de distancias activas
+    const dists = ["TG7","TG13","TG25"].filter(d =>
+      concepto.activoDistancias?.[d] && (concepto.costePorDistancia?.[d]||0) > 0
+    );
+    if (!dists.length) return { precio: 0, esTotal:false };
+    const media = dists.reduce((s,d)=>s+(concepto.costePorDistancia[d]||0),0) / dists.length;
+    return { precio: media, esTotal: false };
+  }
+  // Fijo: buscar artículo de material vinculado para obtener las unidades
+  const matVinculado = material.find(m => m.presupuestoConceptoId === concepto.id);
+  if (matVinculado && matVinculado.stock > 0) {
+    return { precio: concepto.costeTotal / matVinculado.stock, esTotal: false,
+             unidades: matVinculado.stock, matNombre: matVinculado.nombre };
+  }
+  // Sin vínculo: devolver 0 y marcar que el precio es el total (requiere ajuste manual)
+  return { precio: 0, esTotal: true, costeTotal: concepto.costeTotal };
+}
+
 function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, material=[], conceptosPres=[] }) {
   const esEdit = !!data?.id;
   const [form, setForm] = useState(() => {
@@ -3017,12 +3042,11 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
                     const mat=material&&material.length>0?material[0]:null;
                     const concepto=mat?.presupuestoConceptoId
                       ? conceptosPres.find(c=>c.id===mat.presupuestoConceptoId) : null;
-                    const precio=concepto
-                      ? (concepto.tipo==="variable"
-                          ? (concepto.costePorDistancia?.TG7||0)
-                          : (concepto.costeTotal||0))
-                      : 0;
-                    addArtDef({nombre:mat?.nombre||"",materialId:mat?.id||null,cantidad:1,precioUnit:precio,fuente:"material"});
+                    const { precio, esTotal } = concepto
+                      ? calcPrecioUnitario(concepto, material)
+                      : { precio: 0, esTotal: false };
+                    addArtDef({nombre:mat?.nombre||"",materialId:mat?.id||null,
+                      cantidad:1,precioUnit:precio,esTotal,fuente:"material"});
                   }}>
                   + de Inventario
                 </button>
@@ -3030,10 +3054,12 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
                   style={{fontSize:".6rem",color:"var(--violet)"}}
                   onClick={()=>{
                     const c=conceptosPres&&conceptosPres.length>0?conceptosPres[0]:null;
-                    const precio=c
-                      ? (c.tipo==="variable"?(c.costePorDistancia?.TG7||0):(c.costeTotal||0))
-                      : 0;
-                    addArtDef({nombre:c?.nombre||"",conceptoId:c?.id||null,cantidad:1,precioUnit:precio,fuente:"presupuesto"});
+                    const { precio:precioC, esTotal:esTotalC, costeTotal:ct } = c
+                      ? calcPrecioUnitario(c, material)
+                      : { precio:0, esTotal:false };
+                    addArtDef({nombre:c?.nombre||"",conceptoId:c?.id||null,
+                      cantidad:1,precioUnit:precioC,esTotal:esTotalC,
+                      costeTotal:ct,fuente:"presupuesto"});
                   }}>
                   + de Presupuesto
                 </button>
@@ -3062,12 +3088,13 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
                           const mat=material.find(m=>m.id===parseInt(e.target.value));
                           const concepto=mat?.presupuestoConceptoId
                             ? conceptosPres.find(c=>c.id===mat.presupuestoConceptoId) : null;
-                          const precio=concepto
-                            ? (concepto.tipo==="variable"?(concepto.costePorDistancia?.TG7||0):(concepto.costeTotal||0))
-                            : a.precioUnit;
+                          const { precio:precioM, esTotal:esTotalM } = concepto
+                            ? calcPrecioUnitario(concepto, material)
+                            : { precio: a.precioUnit, esTotal: false };
                           updArt(i,"materialId",parseInt(e.target.value));
                           updArt(i,"nombre",mat?.nombre||"");
-                          if(precio>0) updArt(i,"precioUnit",precio);
+                          updArt(i,"esTotal",esTotalM);
+                          if(precioM>0) updArt(i,"precioUnit",precioM);
                         }}>
                         {material.map(m=><option key={m.id} value={m.id}>{m.nombre}</option>)}
                       </select>
@@ -3075,10 +3102,14 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
                       <select className="inp inp-sm" value={a.conceptoId||""}
                         onChange={e=>{
                           const c=conceptosPres.find(cc=>cc.id===parseInt(e.target.value));
-                          const precio=c?(c.tipo==="variable"?(c.costePorDistancia?.TG7||0):(c.costeTotal||0)):0;
+                          const { precio:precioP, esTotal:esTotalP, costeTotal:ctP } = c
+                            ? calcPrecioUnitario(c, material)
+                            : { precio:0, esTotal:false };
                           updArt(i,"conceptoId",parseInt(e.target.value));
                           updArt(i,"nombre",c?.nombre||"");
-                          updArt(i,"precioUnit",precio);
+                          updArt(i,"esTotal",esTotalP);
+                          updArt(i,"costeTotal",ctP);
+                          updArt(i,"precioUnit",precioP);
                         }}>
                         {conceptosPres.map(c=><option key={c.id} value={c.id}>[{c.tipo==="variable"?"var":"fijo"}] {c.nombre}</option>)}
                       </select>
@@ -3105,6 +3136,15 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
                     disabled={form.articulos.length<=1}
                     onClick={()=>delArt(i)}>✕</button>
                 </div>
+                {a.esTotal && (
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                    padding:".2rem .45rem",borderRadius:4,marginBottom:".2rem",
+                    background:"var(--amber-dim)",color:"var(--amber)",
+                    border:"1px solid rgba(251,191,36,.25)"}}>
+                    ⚠ Concepto fijo sin cantidad en inventario — introduce el €/ud manualmente
+                    {a.costeTotal>0 && ` (coste total en presupuesto: ${fmtEur(a.costeTotal)})`}
+                  </div>
+                )}
                 <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
                   color:"var(--text-muted)",display:"flex",justifyContent:"flex-end"}}>
                   Subtotal: {fmtEur(a.cantidad*(a.precioUnit||0))}
