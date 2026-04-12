@@ -156,6 +156,8 @@ export default function App() {
   const ck = Array.isArray(rawCk) ? rawCk : [];
   // Localizaciones maestras compartidas
   const [rawLocs, setLocs] = useData(LOCS_KEY, LOCS_DEFAULT_SHARED);
+  // Tipos de contacto personalizados (extensibles por el usuario)
+  const [tiposContacto, setTiposContacto] = useData(LS+"_tipos_cont", []);
 
   // ── Pedidos a proveedores ──────────────────────────────────────────────────
   const [rawPedidosProv, setPedidosProv] = useData(LS+"_pedidos_prov", []);
@@ -166,6 +168,10 @@ export default function App() {
   const conceptosPres = Array.isArray(rawConceptos) && rawConceptos.length > 0
     ? rawConceptos : [];
   const locs = Array.isArray(rawLocs) ? rawLocs : [];
+  // Tareas del Proyecto (solo lectura) para vincular con checklist
+  const [rawTareasProyecto] = useData("teg_proyecto_v1_tareas", []);
+  const tareasProyecto = Array.isArray(rawTareasProyecto) ? rawTareasProyecto : [];
+
   // Patrocinadores (solo lectura) para sección especie en material
   const [rawPats] = useData("teg_patrocinadores_v1_pats", []);
   const patsConEspecie = useMemo(() => {
@@ -307,12 +313,14 @@ export default function App() {
           {tab==="material" && <TabMat material={material} setMaterial={setMaterial} asigs={asigs} setAsigs={setAsigs} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenMat} setOrdenAlfa={setOrdenMat} locs={locs} patsConEspecie={patsConEspecie} />}
           {tab==="vehiculos" && <TabVeh veh={veh} setVeh={setVeh} rutas={rutas} setRutas={setRutas} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenVeh} setOrdenAlfa={setOrdenVeh} voluntariosConCoche={voluntariosConCoche} />}
           {tab==="timeline" && <TabTL tl={tl} setTl={setTl} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenTL} setOrdenAlfa={setOrdenTL} config={config} />}
-          {tab==="contactos" && <TabCont cont={cont} setCont={setCont} inc={inc} setInc={setInc} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCont} setOrdenAlfa={setOrdenCont} />}
-          {tab==="checklist" && <TabCK ck={ck} setCk={setCk} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCK} setOrdenAlfa={setOrdenCK} config={config} />}
+          {tab==="contactos" && <TabCont cont={cont} setCont={setCont} inc={inc} setInc={setInc} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCont} setOrdenAlfa={setOrdenCont} tiposContacto={tiposContacto} setTiposContacto={setTiposContacto} />}
+          {tab==="checklist" && <TabCK ck={ck} setCk={setCk} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCK} setOrdenAlfa={setOrdenCK} config={config} tareasProyecto={tareasProyecto} setTareasProyecto={(fn)=>{ const next=typeof fn==="function"?fn(tareasProyecto):fn; import("@/lib/dataService").then(m=>m.default.set("teg_proyecto_v1_tareas",next)); }} />}
           {tab==="localizaciones" && <TabLocalizaciones locs={locs} setLocs={setLocs} volsPorLoc={volsPorLoc} />}
           {tab==="pedidos" && <TabPedidosProv
             pedidos={pedidosProv} setPedidos={setPedidosProv}
             cont={cont}
+            material={material}
+            conceptosPres={conceptosPres}
             totalInscritos={totalInscritos}
             inscritos={(() => {
               const tramos = Array.isArray(rawTramos) ? rawTramos : [];
@@ -327,14 +335,14 @@ export default function App() {
         </div>
       </div>
 
-      {ficha && <FichaLogistica ficha={ficha} material={material} veh={veh} onClose={()=>setFicha(null)} onEditar={(tipo,data)=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo,data});}} onEliminar={(tipo,id)=>{setFicha(null);setDel({tipo,id});}} />}
+      {ficha && <FichaLogistica ficha={ficha} material={material} veh={veh} onClose={()=>setFicha(null)} onEditar={(tipo,data)=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo,data,...(tipo==="ck"?{tareasProyecto}:{}),...(tipo==="mat"?{conceptosPres}:{})});}} onEliminar={(tipo,id)=>{setFicha(null);setDel({tipo,id});}} />}
       {modal && (
         <ModalRouter key={modal.tipo+(modal.data?.id||"n")} modal={modal} onClose={() => setModal(null)}
           material={material} setMaterial={setMaterial} asigs={asigs} setAsigs={setAsigs}
           veh={veh} setVeh={setVeh} rutas={rutas} setRutas={setRutas}
           tl={tl} setTl={setTl} cont={cont} setCont={setCont}
           inc={inc} setInc={setInc} ck={ck} setCk={setCk}
-          locs={locs} />
+          locs={locs} tiposContacto={tiposContacto} conceptosPres={conceptosPres} />
       )}
       {del && (
         <div className="modal-backdrop" style={{zIndex:200}} onClick={e => e.target===e.currentTarget && setDel(null)}>
@@ -630,7 +638,7 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
             </div>
             <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
           </>)}
-          <button className="btn btn-primary" onClick={()=>abrirModal({tipo:vistaAsig?"asig":"mat"})}>+ Añadir</button>
+          <button className="btn btn-primary" onClick={()=>abrirModal({tipo:vistaAsig?"asig":"mat",conceptosPres:conceptosPres})}>+ Añadir</button>
         </div>
       </div>
       {!vistaAsig?(<>
@@ -667,7 +675,22 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
                 <td onClick={e=>e.stopPropagation()} style={{padding:"0.3rem 0.2rem"}}>
                   {!ordenAlfa&&<div className="log-reorder"><span onClick={()=>mover(m.id,-1)} style={{opacity:i===0?.2:1}}>▲</span><span onClick={()=>mover(m.id,+1)} style={{opacity:i===arr.length-1?.2:1}}>▼</span></div>}
                 </td>
-                <td className="f6">{m.nombre}</td>
+                <td className="f6">
+                  <div style={{display:"flex",alignItems:"center",gap:".35rem",flexWrap:"wrap"}}>
+                    {m.nombre}
+                    {m.presupuestoConceptoId && (() => {
+                      const c=conceptosPres.find(c=>c.id===m.presupuestoConceptoId);
+                      return c ? (
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+                          padding:".06rem .3rem",borderRadius:10,
+                          background:"var(--violet-dim)",color:"var(--violet)",
+                          border:"1px solid rgba(167,139,250,.25)"}}>
+                          💰 {c.nombre}
+                        </span>
+                      ) : null;
+                    })()}
+                  </div>
+                </td>
                 <td><span className="badge" style={{background:`${CAT_COLORS[m.categoria]}18`,color:CAT_COLORS[m.categoria],border:`1px solid ${CAT_COLORS[m.categoria]}33`}}>{CAT_ICONS[m.categoria]} {m.categoria}</span></td>
                 <td className="tr mono">{m.stock} {m.unidad}</td>
                 <td className="tr mono" style={{color:m.asig>0?"var(--cyan)":"var(--text-muted)"}}>{m.asig} {m.unidad}</td>
@@ -913,101 +936,220 @@ const PROTO_PASOS=[
   {id:4,titulo:"Problema en avituallamiento",icon:"🍎",pasos:["Identificar qué falta (agua, isotónico, otro)","Contactar con furgoneta de reparto","Si urgente: enviar voluntario con coche propio","Alternativa: reducir raciones hasta reponer","Registrar en incidencias para próxima edición"]},
 ];
 
-function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal}) {
-  const [sub,setSub]=useState("directorio");
-  const [proto,setProto]=useState(null);
-  const [vistaKanban,setVistaKanban]=useState(false);
-  const contOrdenado = ordenAlfa ? [...cont].sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es")) : cont;
+function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,tiposContacto=[],setTiposContacto}) {
+  const [sub,setSub]           = useState("directorio");
+  const [proto,setProto]       = useState(null);
+  const [filtroTipo,setFiltroTipo] = useState("todos");
+  const [modalTipo,setModalTipo]   = useState(false); // modal añadir tipo personalizado
+  const [nuevoTipo,setNuevoTipo]   = useState({nombre:"",icono:"🏷️",color:"#94a3b8"});
+
+  // Tipos base (siempre presentes) + personalizados del usuario
+  const TIPOS_BASE = [
+    {id:"emergencia",  nombre:"Emergencia",   icono:"🚨", color:"#f87171"},
+    {id:"proveedor",   nombre:"Proveedor",    icono:"🏭", color:"#fbbf24"},
+    {id:"staff",       nombre:"Staff",        icono:"👤", color:"#22d3ee"},
+    {id:"institucional",nombre:"Institucional",icono:"🏛️",color:"#a78bfa"},
+    {id:"medico",      nombre:"Médico",       icono:"🏥", color:"#34d399"},
+    {id:"media",       nombre:"Media/Prensa", icono:"📸", color:"#fb923c"},
+  ];
+  const tiposCustom  = Array.isArray(tiposContacto) ? tiposContacto : [];
+  const todosLosTipos = [...TIPOS_BASE, ...tiposCustom];
+  const getTipo = (id) => todosLosTipos.find(t=>t.id===id) || {nombre:id,icono:"🏷️",color:"var(--text-muted)"};
+
+  const contOrdenado = ordenAlfa
+    ? [...cont].sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es"))
+    : cont;
+  const contFiltrado = filtroTipo==="todos"
+    ? contOrdenado
+    : contOrdenado.filter(c=>c.tipo===filtroTipo);
+
+  const guardarTipo = () => {
+    if (!nuevoTipo.nombre.trim()) return;
+    const id = nuevoTipo.nombre.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
+    if (todosLosTipos.find(t=>t.id===id)) return;
+    setTiposContacto(prev=>[...(Array.isArray(prev)?prev:[]),{...nuevoTipo,id}]);
+    setNuevoTipo({nombre:"",icono:"🏷️",color:"#94a3b8"});
+    setModalTipo(false);
+  };
+  const eliminarTipo = (id) => {
+    setTiposContacto(prev=>(Array.isArray(prev)?prev:[]).filter(t=>t.id!==id));
+  };
+
+  const incAbiertas = inc.filter(i=>i.estado==="abierta").length;
 
   return(
     <>
       <div className="ph">
-        <div><div className="pt">🚨 Emergencias</div><div className="pd">Directorio · Protocolo · Incidencias</div></div>
+        <div>
+          <div className="pt">🚨 Emergencias</div>
+          <div className="pd">
+            {cont.length} contactos · {inc.length} incidencias
+            {incAbiertas>0 && <span style={{color:"var(--red)",marginLeft:".4rem"}}>· ⚠ {incAbiertas} abiertas</span>}
+          </div>
+        </div>
         <div className="fr g1">
           {sub==="directorio" && (
-            <div className="log-vista-toggle">
-              {[["lista","☰"],["kanban","⬛"]].map(([v,ic])=>(
-                <button key={v} onClick={()=>setVistaKanban(v==="kanban")}
-                  style={{padding:".3rem .55rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,
-                    background:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"rgba(34,211,238,.2)":"transparent",
-                    color:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"var(--cyan)":"var(--text-muted)"}}>
-                  {ic}
-                </button>
-              ))}
-            </div>
+            <button className="btn btn-primary" onClick={()=>abrirModal({tipo:"cont"})}>+ Contacto</button>
           )}
-          {[["directorio","Directorio"],["protocolo","Protocolo"],["incidencias","Incidencias"]].map(([id,label])=>(
-            <button key={id} className={cls("btn",sub===id?"btn-cyan":"btn-ghost")} onClick={()=>setSub(id)}>
-              {id==="incidencias"?label+(inc.filter(i=>i.estado==="abierta").length>0?" ⚠️":""):label}
-            </button>
-          ))}
+          {sub==="incidencias" && (
+            <button className="btn btn-sm" style={{background:"var(--red-dim)",color:"var(--red)",border:"1px solid rgba(248,113,113,0.2)"}}
+              onClick={()=>abrirModal({tipo:"inc"})}>+ Incidencia</button>
+          )}
         </div>
+      </div>
+
+      {/* Sub-tabs */}
+      <div style={{display:"flex",gap:".3rem",marginBottom:".85rem",
+        borderBottom:"1px solid var(--border)",paddingBottom:".5rem",flexWrap:"wrap"}}>
+        {[
+          {id:"directorio",  label:"📋 Directorio",  badge:cont.length},
+          {id:"protocolo",   label:"📘 Protocolos",  badge:null},
+          {id:"incidencias", label:"⚠️ Incidencias", badge:incAbiertas||null, badgeColor:"var(--red)"},
+        ].map(t=>(
+          <button key={t.id}
+            onClick={()=>setSub(t.id)}
+            style={{padding:".35rem .8rem",borderRadius:6,border:"none",cursor:"pointer",
+              fontFamily:"var(--font-mono)",fontSize:".68rem",fontWeight:700,
+              background:sub===t.id?"rgba(34,211,238,.12)":"transparent",
+              color:sub===t.id?"var(--cyan)":"var(--text-muted)",
+              borderBottom:sub===t.id?"2px solid var(--cyan)":"2px solid transparent",
+              display:"flex",alignItems:"center",gap:".3rem"}}>
+            {t.label}
+            {t.badge!=null && t.badge>0 && (
+              <span style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+                padding:".05rem .35rem",borderRadius:10,fontWeight:800,
+                background:t.badgeColor?t.badgeColor+"22":"rgba(34,211,238,.15)",
+                color:t.badgeColor||"var(--cyan)"}}>
+                {t.badge}
+              </span>
+            )}
+          </button>
+        ))}
       </div>
 
       {/* ── DIRECTORIO ── */}
       {sub==="directorio" && (
         <>
-          <div className="fb mb1">
-            <div className="fr g1">
-              {Object.entries(TICI).map(([t,ic])=>(
-                <span key={t} className="ctbadge" style={{background:`${TIC[t]}15`,color:TIC[t],border:`1px solid ${TIC[t]}33`}}>{ic} {t}</span>
-              ))}
-            </div>
-            <div className="fr g1">
-              <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
-              <button className="btn btn-primary" onClick={()=>abrirModal({tipo:"cont"})}>+ Contacto</button>
-            </div>
-          </div>
-
-          {vistaKanban ? (
-            <div className="log-kanban-grid" style={{gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))"}}>
-              {["emergencia","proveedor","staff","institucional"].map(tipo=>{
-                const items=contOrdenado.filter(c=>c.tipo===tipo);
-                if(!items.length) return null;
-                const color=TIC[tipo];
-                return(
-                  <div key={tipo} className="log-k-col">
-                    <div className="log-k-hdr" style={{borderTopColor:color}}>
-                      <span style={{fontSize:".65rem",fontWeight:700,color}}>{TICI[tipo]} {tipo}</span>
-                      <span className="log-k-cnt" style={{background:color+"22",color,border:`1px solid ${color}44`}}>{items.length}</span>
-                    </div>
-                    {items.map(c=>(
-                      <div key={c.id} className="log-k-card" style={{borderLeftColor:color,cursor:"pointer"}} onClick={()=>abrirFicha("cont",c)}>
-                        <div style={{fontWeight:700,fontSize:".76rem",marginBottom:".2rem"}}>{c.nombre}</div>
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",marginBottom:".2rem"}}>{c.rol}</div>
-                        <a href={`tel:${c.telefono}`} style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--cyan)",textDecoration:"none"}} onClick={e=>e.stopPropagation()}>📞 {c.telefono}</a>
-                      </div>
-                    ))}
-                  </div>
+          {/* Filtros por tipo */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+            gap:".5rem",flexWrap:"wrap",marginBottom:".65rem"}}>
+            <div style={{display:"flex",gap:".3rem",flexWrap:"wrap",flex:1}}>
+              <button
+                onClick={()=>setFiltroTipo("todos")}
+                style={{padding:".22rem .6rem",borderRadius:20,border:`1px solid ${filtroTipo==="todos"?"var(--cyan)":"var(--border)"}`,
+                  background:filtroTipo==="todos"?"var(--cyan-dim)":"transparent",
+                  color:filtroTipo==="todos"?"var(--cyan)":"var(--text-muted)",
+                  fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,cursor:"pointer"}}>
+                Todos ({cont.length})
+              </button>
+              {todosLosTipos.map(t=>{
+                const n = cont.filter(c=>c.tipo===t.id).length;
+                if (!n && !tiposCustom.find(tc=>tc.id===t.id)) return null;
+                return (
+                  <button key={t.id}
+                    onClick={()=>setFiltroTipo(filtroTipo===t.id?"todos":t.id)}
+                    style={{padding:".22rem .6rem",borderRadius:20,
+                      border:`1px solid ${filtroTipo===t.id?t.color:t.color+"44"}`,
+                      background:filtroTipo===t.id?t.color+"20":"transparent",
+                      color:filtroTipo===t.id?t.color:t.color+"bb",
+                      fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,cursor:"pointer",
+                      display:"flex",alignItems:"center",gap:".25rem"}}>
+                    {t.icono} {t.nombre}
+                    {n>0 && <span style={{background:t.color+"33",padding:"0 .3rem",borderRadius:10}}>{n}</span>}
+                  </button>
                 );
               })}
             </div>
+            <div style={{display:"flex",gap:".3rem",flexShrink:0}}>
+              <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")}
+                onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
+              <button className="btn btn-ghost btn-sm"
+                onClick={()=>setModalTipo(true)}
+                style={{fontFamily:"var(--font-mono)",fontSize:".6rem"}}>
+                + Tipo
+              </button>
+            </div>
+          </div>
+
+          {/* Tipos personalizados */}
+          {tiposCustom.length > 0 && (
+            <div style={{display:"flex",gap:".35rem",flexWrap:"wrap",
+              marginBottom:".6rem",padding:".4rem .6rem",
+              background:"var(--surface2)",borderRadius:6,
+              border:"1px solid var(--border)"}}>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                color:"var(--text-dim)",alignSelf:"center"}}>
+                Tipos personalizados:
+              </span>
+              {tiposCustom.map(t=>(
+                <span key={t.id} style={{display:"inline-flex",alignItems:"center",gap:".25rem",
+                  padding:".15rem .5rem",borderRadius:20,
+                  background:t.color+"15",color:t.color,
+                  border:`1px solid ${t.color}33`,
+                  fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700}}>
+                  {t.icono} {t.nombre}
+                  <button onClick={()=>eliminarTipo(t.id)}
+                    style={{background:"none",border:"none",cursor:"pointer",
+                      color:"var(--text-dim)",fontSize:".6rem",padding:0,lineHeight:1}}>✕</button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Grid de contactos */}
+          {contFiltrado.length === 0 ? (
+            <div className="card" style={{textAlign:"center",padding:"2rem",
+              color:"var(--text-dim)",fontFamily:"var(--font-mono)",fontSize:".72rem"}}>
+              Sin contactos {filtroTipo!=="todos"?`de tipo "${getTipo(filtroTipo).nombre}"`:""}
+            </div>
           ) : (
             <div className="cgrid">
-              {contOrdenado.map(c=>(
-                <div key={c.id} className="ccard" style={{borderTopColor:TIC[c.tipo],cursor:"pointer"}} onClick={()=>abrirFicha("cont",c)}>
-                  <div className="cch">
-                    <div className="ccti">{TICI[c.tipo]}</div>
-                    <div style={{flex:1,minWidth:0}}><div className="ccn">{c.nombre}</div><div className="ccr">{c.rol}</div></div>
+              {contFiltrado.map(c=>{
+                const t = getTipo(c.tipo);
+                return (
+                  <div key={c.id} className="ccard"
+                    style={{borderTopColor:t.color,cursor:"pointer"}}
+                    onClick={()=>abrirFicha("cont",c)}>
+                    <div className="cch">
+                      <div className="ccti" style={{fontSize:"1.1rem"}}>{t.icono}</div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div className="ccn">{c.nombre}</div>
+                        <div className="ccr">{c.rol}</div>
+                      </div>
+                      <span style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+                        padding:".1rem .4rem",borderRadius:10,flexShrink:0,
+                        background:t.color+"18",color:t.color,border:`1px solid ${t.color}33`}}>
+                        {t.nombre}
+                      </span>
+                    </div>
+                    <div className="ccd">
+                      <a href={`tel:${c.telefono}`} className="ctel">📞 {c.telefono}</a>
+                      {c.email&&<a href={`mailto:${c.email}`} className="ceml">✉️ {c.email}</a>}
+                    </div>
+                    {c.web&&<div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+                      color:"var(--cyan)",marginTop:".2rem"}}>
+                      <a href={c.web} target="_blank" rel="noreferrer"
+                        style={{color:"var(--cyan)",textDecoration:"none"}}
+                        onClick={e=>e.stopPropagation()}>🌐 {c.web}</a>
+                    </div>}
+                    {c.notas&&<div className="cnota">{c.notas}</div>}
                   </div>
-                  <div className="ccd">
-                    <a href={`tel:${c.telefono}`} className="ctel">📞 {c.telefono}</a>
-                    {c.email&&<a href={`mailto:${c.email}`} className="ceml">✉️ {c.email}</a>}
-                  </div>
-                  {c.notas&&<div className="cnota">{c.notas}</div>}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </>
       )}
 
-      {/* ── PROTOCOLO ── */}
+      {/* ── PROTOCOLOS ── */}
       {sub==="protocolo" && (
         <div>
           <div className="pintro">
             <span style={{fontSize:"1.5rem"}}>🚨</span>
-            <div><div style={{fontWeight:700,marginBottom:".2rem"}}>Protocolo de emergencias</div><div className="muted xs mono">Selecciona el tipo de incidencia para ver los pasos</div></div>
+            <div>
+              <div style={{fontWeight:700,marginBottom:".2rem"}}>Protocolo de emergencias</div>
+              <div className="muted xs mono">Selecciona el tipo de incidencia para ver los pasos</div>
+            </div>
           </div>
           <div className="pgrid">
             {PROTO_PASOS.map(p=>(
@@ -1019,8 +1161,8 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
           {proto && (
             <div className="psteps">
               <div className="pst">{PROTO_PASOS.find(p=>p.id===proto)?.icon} {PROTO_PASOS.find(p=>p.id===proto)?.titulo}</div>
-              {PROTO_PASOS.find(p=>p.id===proto)?.pasos.map((s,i)=>(
-                <div key={i} className="ps"><div className="psn">{i+1}</div><div className="pst2">{s}</div></div>
+              {PROTO_PASOS.find(p=>p.id===proto)?.pasos.map((ps,i)=>(
+                <div key={i} className="ps"><div className="psn">{i+1}</div><div className="pst2">{ps}</div></div>
               ))}
             </div>
           )}
@@ -1030,24 +1172,27 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
       {/* ── INCIDENCIAS ── */}
       {sub==="incidencias" && (
         <>
-          <div className="fb mb1">
-            <div className="pd">{inc.length} incidencias registradas</div>
-            <button className="btn" style={{background:"var(--red-dim)",color:"var(--red)",border:"1px solid rgba(248,113,113,0.2)"}} onClick={()=>abrirModal({tipo:"inc"})}>+ Registrar incidencia</button>
+          <div className="pd" style={{marginBottom:".75rem"}}>
+            {inc.length} incidencia{inc.length!==1?"s":""} ·{" "}
+            {incAbiertas} abierta{incAbiertas!==1?"s":""}
           </div>
-          <div style={{display:"flex",flexDirection:"column",gap:"0.55rem"}}>
+          <div style={{display:"flex",flexDirection:"column",gap:".55rem"}}>
             {inc.map(ic=>(
               <div key={ic.id} className={cls("icard",ic.estado==="resuelta"&&"ires")} style={{cursor:"pointer"}} onClick={()=>abrirFicha("inc",ic)}>
                 <div className="ich">
                   <div className="fr g1">
-                    <span className="mono" style={{fontSize:"0.72rem",color:"var(--amber)"}}>{ic.hora}</span>
+                    <span className="mono" style={{fontSize:".72rem",color:"var(--amber)"}}>{ic.hora}</span>
                     <span className="badge" style={{background:ic.gravedad==="alta"?"var(--red-dim)":ic.gravedad==="media"?"var(--amber-dim)":"var(--green-dim)",color:ic.gravedad==="alta"?"var(--red)":ic.gravedad==="media"?"var(--amber)":"var(--green)"}}>{ic.gravedad}</span>
                     <span className="badge" style={{background:"var(--cyan-dim)",color:"var(--cyan)"}}>{ic.tipo}</span>
                   </div>
                   <div className="fr g1" onClick={e=>e.stopPropagation()}>
-                    <button className="btn btn-sm" style={{background:"var(--green-dim)",color:"var(--green)",border:"1px solid rgba(52,211,153,0.2)"}} onClick={()=>setInc(p=>p.map(x=>x.id===ic.id?{...x,estado:x.estado==="resuelta"?"abierta":"resuelta"}:x))}>{ic.estado==="resuelta"?"✓ Resuelta":"Marcar resuelta"}</button>
+                    <button className="btn btn-sm" style={{background:"var(--green-dim)",color:"var(--green)",border:"1px solid rgba(52,211,153,0.2)"}}
+                      onClick={()=>setInc(p=>p.map(x=>x.id===ic.id?{...x,estado:x.estado==="resuelta"?"abierta":"resuelta"}:x))}>
+                      {ic.estado==="resuelta"?"✓ Resuelta":"Marcar resuelta"}
+                    </button>
                   </div>
                 </div>
-                <div style={{fontWeight:600,fontSize:"0.78rem",margin:"0.3rem 0"}}>{ic.descripcion}</div>
+                <div style={{fontWeight:600,fontSize:".78rem",margin:".3rem 0"}}>{ic.descripcion}</div>
                 {ic.responsable&&<div className="muted xs mono">👤 {ic.responsable}</div>}
                 {ic.resolucion&&<div className="ires-txt">✓ {ic.resolucion}</div>}
               </div>
@@ -1056,11 +1201,68 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
           </div>
         </>
       )}
+
+      {/* Modal nuevo tipo de contacto */}
+      {modalTipo && (
+        <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setModalTipo(false)}>
+          <div className="modal" style={{maxWidth:360}}>
+            <div className="modal-header">
+              <span className="modal-title">🏷️ Nuevo tipo de contacto</span>
+              <button className="btn btn-ghost btn-sm" onClick={()=>setModalTipo(false)}>✕</button>
+            </div>
+            <div className="modal-body" style={{gap:".5rem"}}>
+              <div>
+                <label className="fl">Nombre del tipo *</label>
+                <input className="inp" placeholder="ej. Federación, Patrocinador, Media..."
+                  value={nuevoTipo.nombre}
+                  onChange={e=>setNuevoTipo(p=>({...p,nombre:e.target.value}))} />
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem"}}>
+                <div>
+                  <label className="fl">Icono (emoji)</label>
+                  <input className="inp" placeholder="🏷️" maxLength={2}
+                    value={nuevoTipo.icono}
+                    onChange={e=>setNuevoTipo(p=>({...p,icono:e.target.value}))} />
+                </div>
+                <div>
+                  <label className="fl">Color</label>
+                  <div style={{display:"flex",gap:".3rem",alignItems:"center"}}>
+                    <input type="color" value={nuevoTipo.color}
+                      onChange={e=>setNuevoTipo(p=>({...p,color:e.target.value}))}
+                      style={{width:36,height:32,border:"1px solid var(--border)",borderRadius:6,cursor:"pointer",background:"none",padding:2}} />
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+                      color:"var(--text-muted)"}}>{nuevoTipo.color}</span>
+                  </div>
+                </div>
+              </div>
+              <div style={{padding:".4rem .6rem",borderRadius:6,
+                background:"var(--surface2)",border:"1px solid var(--border)"}}>
+                <span style={{fontFamily:"var(--font-mono)",fontSize:".62rem",
+                  color:"var(--text-muted)",marginRight:".4rem"}}>Vista previa:</span>
+                <span style={{fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,
+                  padding:".12rem .45rem",borderRadius:20,
+                  background:nuevoTipo.color+"20",color:nuevoTipo.color,
+                  border:`1px solid ${nuevoTipo.color}44`}}>
+                  {nuevoTipo.icono} {nuevoTipo.nombre||"Tipo"}
+                </span>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={()=>setModalTipo(false)}>Cancelar</button>
+              <button className="btn btn-primary"
+                disabled={!nuevoTipo.nombre.trim()}
+                style={{opacity:nuevoTipo.nombre.trim()?1:.5}}
+                onClick={guardarTipo}>Crear tipo</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
 
-function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,config}) {
+
+function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,config,tareasProyecto=[],setTareasProyecto}) {
   const eventFecha = config?.fecha ? new Date(config.fecha) : new Date("2026-08-29");
   const diasHasta = Math.ceil((eventFecha - new Date()) / 86400000);
   const faseActiva = (() => {
@@ -1074,7 +1276,16 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
   })();
   const [fase,setFase]=useState(faseActiva);
   const [vistaKanban,setVistaKanban]=useState(false);
-  const toggle=(id)=>setCk(p=>p.map(c=>c.id===id?{...c,estado:c.estado==="completado"?"pendiente":"completado"}:c));
+  const toggle=(id)=>setCk(p=>{
+    const next=p.map(c=>c.id===id?{...c,estado:c.estado==="completado"?"pendiente":"completado"}:c);
+    // Sincronizar con Proyecto si hay vínculo
+    const item=next.find(c=>c.id===id);
+    if(item?.proyectoTareaId && setTareasProyecto) {
+      const nuevoEstado=item.estado==="completado"?"completado":"en curso";
+      setTareasProyecto(prev=>prev.map(t=>t.id===item.proyectoTareaId?{...t,estado:nuevoEstado}:t));
+    }
+    return next;
+  });
   const upd=(id,f,v)=>setCk(p=>p.map(c=>c.id===id?{...c,[f]:v}:c));
   const pf=FASES_CHECKLIST.map(f=>{const it=ck.filter(c=>c.fase===f);const d=it.filter(c=>c.estado==="completado").length;return{f,it,d,t:it.length,pct:it.length?Math.round(d/it.length*100):0};});
   const fd=pf.find(x=>x.f===fase);
@@ -1094,7 +1305,7 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
             ))}
           </div>
           <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
-          <button className="btn btn-primary" onClick={()=>abrirModal({tipo:"ck",fase:fase})}>+ Tarea</button>
+          <button className="btn btn-primary" onClick={()=>abrirModal({tipo:"ck",fase:fase,tareasProyecto:tareasProyecto})}>+ Tarea</button>
         </div>
       </div>
       <div className="ftabs">
@@ -1492,15 +1703,32 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar })
 }
 
 
-function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setVeh,rutas,setRutas,tl,setTl,cont,setCont,inc,setInc,ck,setCk,locs}) {
+function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setVeh,rutas,setRutas,tl,setTl,cont,setCont,inc,setInc,ck,setCk,locs,tiposContacto=[],conceptosPres=[]}) {
   const {tipo,data}=modal;
   const locNames = locs && locs.length > 0 ? locs.map(l => l.nombre) : PUESTOS_REF;
   const sv=(setter,arr,item)=>{ if(item.id) setter(p=>p.map(x=>x.id===item.id?item:x)); else setter(p=>[...p,{...item,id:genId(arr)}]); onClose(); };
 
-  if(tipo==="mat") return <MF title={data?"✏️ Editar material":"📦 Nuevo material"} onClose={onClose}
-    fields={[{k:"nombre",l:"Nombre *",t:"text"},{k:"categoria",l:"Categoría",t:"sel",o:CATS_MATERIAL},{k:"cantidad",l:"Cantidad disponible",t:"num"},{k:"stock",l:"Stock total",t:"num"},{k:"unidad",l:"Unidad (ud/kg/rollos...)",t:"text"}]}
-    init={data||{nombre:"",categoria:"Avituallamiento",cantidad:0,stock:0,unidad:"ud"}}
-    onSave={v=>sv(setMaterial,material,v)} />;
+  if(tipo==="mat") {
+    const conceptosP = modal.conceptosPres || [];
+    const camposConcepto = conceptosP.length > 0 ? [{
+      k:"presupuestoConceptoId", l:"Concepto del presupuesto (opcional)",
+      t:"sel",
+      o:[null,...conceptosP.map(c=>c.id)],
+      lb:["— Sin vínculo",...conceptosP.map(c=>`[${c.tipo==="variable"?"var":"fijo"}] ${c.nombre}`)],
+      num:true, nullable:true,
+    }] : [];
+    return <MF title={data?"✏️ Editar material":"📦 Nuevo material"} onClose={onClose}
+      fields={[
+        {k:"nombre",l:"Nombre *",t:"text"},
+        {k:"categoria",l:"Categoría",t:"sel",o:CATS_MATERIAL},
+        {k:"cantidad",l:"Cantidad disponible",t:"num"},
+        {k:"stock",l:"Stock total",t:"num"},
+        {k:"unidad",l:"Unidad (ud/kg/rollos...)",t:"text"},
+        ...camposConcepto,
+      ]}
+      init={data||{nombre:"",categoria:"Avituallamiento",cantidad:0,stock:0,unidad:"ud",presupuestoConceptoId:null}}
+      onSave={v=>sv(setMaterial,material,{...v,presupuestoConceptoId:v.presupuestoConceptoId?parseInt(v.presupuestoConceptoId):null})} />;
+  }
 
   if(tipo==="asig") return <MF title={data?"✏️ Editar asignación":"📍 Nueva asignación"} onClose={onClose}
     fields={[{k:"materialId",l:"Material",t:"sel",o:material.map(m=>m.id),lb:material.map(m=>m.nombre),num:true},{k:"puesto",l:"Puesto destino",t:"sel",o:locNames},{k:"cantidad",l:"Cantidad",t:"num"},{k:"estado",l:"Estado entrega",t:"sel",o:ESTADO_ENTREGA}]}
@@ -1519,20 +1747,55 @@ function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setV
     init={data||{hora:"08:00",titulo:"",descripcion:"",responsable:"",categoria:"organizacion",estado:"pendiente"}}
     onSave={v=>sv(setTl,tl,v)} />;
 
-  if(tipo==="cont") return <MF title={data?"✏️ Editar contacto":"📞 Nuevo contacto"} onClose={onClose}
-    fields={[{k:"nombre",l:"Nombre *",t:"text"},{k:"rol",l:"Rol / Cargo",t:"text"},{k:"telefono",l:"Teléfono *",t:"text"},{k:"email",l:"Email",t:"text"},{k:"tipo",l:"Tipo",t:"sel",o:["emergencia","proveedor","staff","institucional"]},{k:"notas",l:"Notas",t:"text"}]}
-    init={data||{nombre:"",rol:"",telefono:"",email:"",tipo:"staff",notas:""}}
-    onSave={v=>sv(setCont,cont,v)} />;
+  if(tipo==="cont") {
+    const TIPOS_BASE_IDS = ["emergencia","proveedor","staff","institucional","medico","media"];
+    const tiposBase = [
+      {id:"emergencia",nombre:"Emergencia"},{id:"proveedor",nombre:"Proveedor"},
+      {id:"staff",nombre:"Staff"},{id:"institucional",nombre:"Institucional"},
+      {id:"medico",nombre:"Médico"},{id:"media",nombre:"Media/Prensa"},
+    ];
+    const tiposMerge = [...tiposBase, ...(tiposContacto||[])];
+    return <MF title={data?"✏️ Editar contacto":"📞 Nuevo contacto"} onClose={onClose}
+      fields={[
+        {k:"nombre",l:"Nombre *",t:"text"},
+        {k:"rol",l:"Rol / Cargo",t:"text"},
+        {k:"telefono",l:"Teléfono *",t:"text"},
+        {k:"email",l:"Email",t:"text"},
+        {k:"web",l:"Web",t:"text"},
+        {k:"tipo",l:"Tipo",t:"sel",o:tiposMerge.map(t=>t.id),lb:tiposMerge.map(t=>t.nombre)},
+        {k:"notas",l:"Notas",t:"text"},
+      ]}
+      init={data||{nombre:"",rol:"",telefono:"",email:"",web:"",tipo:"staff",notas:""}}
+      onSave={v=>sv(setCont,cont,v)} />;
+  }
 
   if(tipo==="inc") return <MF title={data?"✏️ Editar incidencia":"⚠️ Registrar incidencia"} onClose={onClose}
     fields={[{k:"hora",l:"Hora",t:"time"},{k:"tipo",l:"Tipo",t:"sel",o:["médica","señalización","avituallamiento","corredor perdido","meteorológica","otra"]},{k:"gravedad",l:"Gravedad",t:"sel",o:["baja","media","alta"]},{k:"descripcion",l:"Descripción *",t:"text"},{k:"responsable",l:"Responsable",t:"text"},{k:"estado",l:"Estado",t:"sel",o:["abierta","resuelta"]},{k:"resolucion",l:"Resolución",t:"text"}]}
     init={data||{hora:new Date().toTimeString().slice(0,5),tipo:"médica",gravedad:"media",descripcion:"",responsable:"",estado:"abierta",resolucion:""}}
     onSave={v=>sv(setInc,inc,v)} />;
 
-  if(tipo==="ck") return <MF title={data?"✏️ Editar tarea":"✅ Nueva tarea checklist"} onClose={onClose}
-    fields={[{k:"tarea",l:"Tarea *",t:"text"},{k:"fase",l:"Fase",t:"sel",o:FASES_CHECKLIST},{k:"responsable",l:"Responsable",t:"text"},{k:"prioridad",l:"Prioridad",t:"sel",o:["alta","media","baja"]},{k:"estado",l:"Estado",t:"sel",o:ESTADO_TAREA},{k:"notas",l:"Notas",t:"text"}]}
-    init={data||{tarea:"",fase:modal.fase||"Semana antes",responsable:"",prioridad:"media",estado:"pendiente",notas:""}}
-    onSave={v=>sv(setCk,ck,v)} />;
+  if(tipo==="ck") {
+    const tareasProy = Array.isArray(modal.tareasProyecto) ? modal.tareasProyecto : [];
+    const camposVinculo = tareasProy.length > 0 ? [{
+      k:"proyectoTareaId", l:"Vincular tarea de Proyecto (opcional)",
+      t:"sel",
+      o:[null,...tareasProy.map(t=>t.id)],
+      lb:["— Sin vínculo",...tareasProy.map(t=>`[${t.area||""}] ${(t.titulo||"").slice(0,40)}`)],
+      num:true, nullable:true
+    }] : [];
+    return <MF title={data?"✏️ Editar tarea":"✅ Nueva tarea checklist"} onClose={onClose}
+      fields={[
+        {k:"tarea",l:"Tarea *",t:"text"},
+        {k:"fase",l:"Fase",t:"sel",o:FASES_CHECKLIST},
+        {k:"responsable",l:"Responsable",t:"text"},
+        {k:"prioridad",l:"Prioridad",t:"sel",o:["alta","media","baja"]},
+        {k:"estado",l:"Estado",t:"sel",o:ESTADO_TAREA},
+        ...camposVinculo,
+        {k:"notas",l:"Notas",t:"text"},
+      ]}
+      init={data||{tarea:"",fase:modal.fase||"Semana antes",responsable:"",prioridad:"media",estado:"pendiente",proyectoTareaId:null,notas:""}}
+      onSave={v=>sv(setCk,ck,{...v,proyectoTareaId:v.proyectoTareaId?parseInt(v.proyectoTareaId):null})} />;
+  }
 
   return null;
 }
@@ -1817,7 +2080,7 @@ const ESTADOS_FACTURA = [
 const genPedidoId = (arr) => arr.length ? Math.max(...arr.map(x=>x.id||0))+1 : 1;
 const fmtEur = (n) => new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR",minimumFractionDigits:2}).format(n||0);
 
-function TabPedidosProv({ pedidos, setPedidos, cont, totalInscritos, inscritos, conceptosPres }) {
+function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=[], totalInscritos, inscritos }) {
   const [modal, setModal]   = useState(null); // null | "nuevo" | {pedido}
   const [delId, setDelId]   = useState(null);
   const [expanded, setExpanded] = useState(null);
@@ -2087,6 +2350,8 @@ function TabPedidosProv({ pedidos, setPedidos, cont, totalInscritos, inscritos, 
           data={modal._sugerido ? null : modal}
           sugerido={modal._sugerido ? modal : null}
           proveedores={proveedores}
+          material={material}
+          conceptosPres={conceptosPres}
           onSave={guardar}
           onClose={()=>setModal(null)}
         />
@@ -2095,6 +2360,8 @@ function TabPedidosProv({ pedidos, setPedidos, cont, totalInscritos, inscritos, 
         <ModalPedidoProv
           data={null} sugerido={null}
           proveedores={proveedores}
+          material={material}
+          conceptosPres={conceptosPres}
           onSave={guardar}
           onClose={()=>setModal(null)}
         />
@@ -2270,7 +2537,7 @@ function SugerenciasMedallas({ inscritos, totalInscritos, precioMedalla, concept
 }
 
 // ── Modal crear/editar pedido ─────────────────────────────────────────────────
-function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose }) {
+function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, material=[], conceptosPres=[] }) {
   const esEdit = !!data?.id;
   const [form, setForm] = useState(() => {
     if (data) return { ...data, articulos: (data.articulos||[]).map(a=>({...a})) };
@@ -2297,7 +2564,8 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose }) {
     ...p,
     articulos: p.articulos.map((a,j) => j===i ? {...a,[k]:v} : a)
   }));
-  const addArt = () => setForm(p=>({...p,articulos:[...p.articulos,{nombre:"",cantidad:1,precioUnit:0}]}));
+  const addArt    = () => setForm(p=>({...p,articulos:[...p.articulos,{nombre:"",cantidad:1,precioUnit:0,fuente:"manual"}]}));
+  const addArtDef = (def) => setForm(p=>({...p,articulos:[...p.articulos,def]}));
   const delArt = (i) => setForm(p=>({...p,articulos:p.articulos.filter((_,j)=>j!==i)}));
 
   // Recalcular importe total cuando cambian los artículos
@@ -2345,45 +2613,116 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose }) {
             </div>
           </div>
 
-          {/* Artículos */}
+          {/* Artículos — selector dual material / presupuesto */}
           <div>
             <div style={{display:"flex",justifyContent:"space-between",
               alignItems:"center",marginBottom:".4rem"}}>
               <label className="fl" style={{margin:0}}>Artículos</label>
-              <button className="btn btn-ghost btn-sm" onClick={addArt}>+ Añadir</button>
+              <div style={{display:"flex",gap:".3rem"}}>
+                <button className="btn btn-ghost btn-sm"
+                  style={{fontSize:".6rem",color:"var(--cyan)"}}
+                  onClick={()=>{
+                    // Añadir desde inventario de Material
+                    const mat=material&&material.length>0?material[0]:null;
+                    const concepto=mat?.presupuestoConceptoId
+                      ? conceptosPres.find(c=>c.id===mat.presupuestoConceptoId) : null;
+                    const precio=concepto
+                      ? (concepto.tipo==="variable"
+                          ? (concepto.costePorDistancia?.TG7||0)
+                          : (concepto.costeTotal||0))
+                      : 0;
+                    addArtDef({nombre:mat?.nombre||"",materialId:mat?.id||null,cantidad:1,precioUnit:precio,fuente:"material"});
+                  }}>
+                  + de Inventario
+                </button>
+                <button className="btn btn-ghost btn-sm"
+                  style={{fontSize:".6rem",color:"var(--violet)"}}
+                  onClick={()=>{
+                    const c=conceptosPres&&conceptosPres.length>0?conceptosPres[0]:null;
+                    const precio=c
+                      ? (c.tipo==="variable"?(c.costePorDistancia?.TG7||0):(c.costeTotal||0))
+                      : 0;
+                    addArtDef({nombre:c?.nombre||"",conceptoId:c?.id||null,cantidad:1,precioUnit:precio,fuente:"presupuesto"});
+                  }}>
+                  + de Presupuesto
+                </button>
+                <button className="btn btn-ghost btn-sm"
+                  style={{fontSize:".6rem"}}
+                  onClick={()=>addArtDef({nombre:"",cantidad:1,precioUnit:0,fuente:"manual"})}>
+                  + Manual
+                </button>
+              </div>
             </div>
             {form.articulos.map((a,i)=>(
-              <div key={i} style={{display:"grid",
-                gridTemplateColumns:"1fr 70px 80px 28px",
-                gap:".35rem",marginBottom:".35rem",alignItems:"end"}}>
-                <div>
-                  {i===0 && <label className="fl">Artículo</label>}
-                  <input className="inp inp-sm" value={a.nombre}
-                    onChange={e=>updArt(i,"nombre",e.target.value)}
-                    placeholder="ej. Medalla finisher" />
+              <div key={i} style={{background:"var(--surface2)",borderRadius:7,
+                padding:".5rem .65rem",marginBottom:".4rem",
+                borderLeft:`3px solid ${a.fuente==="material"?"var(--cyan)":a.fuente==="presupuesto"?"var(--violet)":"var(--border)"}`}}>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 70px 80px 28px",
+                  gap:".35rem",alignItems:"end",marginBottom:".3rem"}}>
+                  <div>
+                    <label className="fl" style={{display:"flex",alignItems:"center",gap:".3rem"}}>
+                      Artículo
+                      {a.fuente==="material" && <span style={{fontFamily:"var(--font-mono)",fontSize:".5rem",padding:".06rem .3rem",borderRadius:10,background:"var(--cyan-dim)",color:"var(--cyan)"}}>📦 Inventario</span>}
+                      {a.fuente==="presupuesto" && <span style={{fontFamily:"var(--font-mono)",fontSize:".5rem",padding:".06rem .3rem",borderRadius:10,background:"var(--violet-dim)",color:"var(--violet)"}}>💰 Presupuesto</span>}
+                    </label>
+                    {a.fuente==="material" && material.length>0 ? (
+                      <select className="inp inp-sm" value={a.materialId||""}
+                        onChange={e=>{
+                          const mat=material.find(m=>m.id===parseInt(e.target.value));
+                          const concepto=mat?.presupuestoConceptoId
+                            ? conceptosPres.find(c=>c.id===mat.presupuestoConceptoId) : null;
+                          const precio=concepto
+                            ? (concepto.tipo==="variable"?(concepto.costePorDistancia?.TG7||0):(concepto.costeTotal||0))
+                            : a.precioUnit;
+                          updArt(i,"materialId",parseInt(e.target.value));
+                          updArt(i,"nombre",mat?.nombre||"");
+                          if(precio>0) updArt(i,"precioUnit",precio);
+                        }}>
+                        {material.map(m=><option key={m.id} value={m.id}>{m.nombre}</option>)}
+                      </select>
+                    ) : a.fuente==="presupuesto" && conceptosPres.length>0 ? (
+                      <select className="inp inp-sm" value={a.conceptoId||""}
+                        onChange={e=>{
+                          const c=conceptosPres.find(cc=>cc.id===parseInt(e.target.value));
+                          const precio=c?(c.tipo==="variable"?(c.costePorDistancia?.TG7||0):(c.costeTotal||0)):0;
+                          updArt(i,"conceptoId",parseInt(e.target.value));
+                          updArt(i,"nombre",c?.nombre||"");
+                          updArt(i,"precioUnit",precio);
+                        }}>
+                        {conceptosPres.map(c=><option key={c.id} value={c.id}>[{c.tipo==="variable"?"var":"fijo"}] {c.nombre}</option>)}
+                      </select>
+                    ) : (
+                      <input className="inp inp-sm" value={a.nombre}
+                        onChange={e=>updArt(i,"nombre",e.target.value)}
+                        placeholder="Nombre del artículo" />
+                    )}
+                  </div>
+                  <div>
+                    <label className="fl">Cant.</label>
+                    <input className="inp inp-sm inp-mono" type="number" min="1"
+                      value={a.cantidad}
+                      onChange={e=>updArt(i,"cantidad",Math.max(1,parseInt(e.target.value)||1))} />
+                  </div>
+                  <div>
+                    <label className="fl">€/ud</label>
+                    <input className="inp inp-sm inp-mono" type="number" min="0" step="0.01"
+                      value={a.precioUnit}
+                      onChange={e=>updArt(i,"precioUnit",parseFloat(e.target.value)||0)} />
+                  </div>
+                  <button className="btn btn-red btn-sm"
+                    style={{marginBottom:1,padding:".25rem .4rem"}}
+                    disabled={form.articulos.length<=1}
+                    onClick={()=>delArt(i)}>✕</button>
                 </div>
-                <div>
-                  {i===0 && <label className="fl">Cant.</label>}
-                  <input className="inp inp-sm inp-mono" type="number" min="1"
-                    value={a.cantidad}
-                    onChange={e=>updArt(i,"cantidad",Math.max(1,parseInt(e.target.value)||1))} />
+                <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+                  color:"var(--text-muted)",display:"flex",justifyContent:"flex-end"}}>
+                  Subtotal: {fmtEur(a.cantidad*(a.precioUnit||0))}
                 </div>
-                <div>
-                  {i===0 && <label className="fl">€/unidad</label>}
-                  <input className="inp inp-sm inp-mono" type="number" min="0" step="0.01"
-                    value={a.precioUnit}
-                    onChange={e=>updArt(i,"precioUnit",parseFloat(e.target.value)||0)} />
-                </div>
-                <button className="btn btn-red btn-sm"
-                  style={{marginBottom:1,padding:".25rem .4rem"}}
-                  disabled={form.articulos.length<=1}
-                  onClick={()=>delArt(i)}>✕</button>
               </div>
             ))}
             <div style={{textAlign:"right",fontFamily:"var(--font-mono)",
-              fontSize:".72rem",fontWeight:800,color:"var(--cyan)",
-              marginTop:".35rem"}}>
-              Total: {fmtEur(importeCalc)}
+              fontSize:".72rem",fontWeight:800,color:"var(--cyan)",marginTop:".35rem"}}>
+              Total pedido: {fmtEur(importeCalc)}
             </div>
           </div>
 
