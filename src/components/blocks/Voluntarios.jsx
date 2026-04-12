@@ -405,6 +405,8 @@ export default function App() {
   // Material asignado a localizaciones (solo lectura, para mostrar en ficha de puesto)
   const [rawMat]  = useData("teg_logistica_v1_mat",  []);
   const [rawAsig] = useData("teg_logistica_v1_asig", []);
+  const [rawRutas] = useData("teg_logistica_v1_rut", []);
+  const rutas = Array.isArray(rawRutas) ? rawRutas : [];
   const matPorLoc = useMemo(() => {
     const mat   = Array.isArray(rawMat)  ? rawMat  : [];
     const asigs = Array.isArray(rawAsig) ? rawAsig : [];
@@ -654,6 +656,7 @@ export default function App() {
       {ficha?.tipo==="vol" && (
         <FichaVoluntario
           voluntario={ficha.data} puestos={puestos}
+          locs={locs} matPorLoc={matPorLoc}
           onClose={() => setFicha(null)}
           onEditar={() => { const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"}); setFicha(null); setModalVol(ficha.data); }}
           onEliminar={() => { setFicha(null); setConfirmDelete(ficha.data.id); }}
@@ -663,6 +666,7 @@ export default function App() {
       {ficha?.tipo==="puesto" && (
         <FichaPuesto
           puesto={ficha.data} voluntarios={voluntarios}
+          locs={locs} matPorLoc={matPorLoc} rutas={rutas}
           onClose={() => setFicha(null)}
           onEditar={() => { const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"}); setFicha(null); setModalPuesto(ficha.data); }}
           onEliminar={() => { setFicha(null); setConfirmDeletePuesto(ficha.data.id); }}
@@ -1396,10 +1400,14 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
                           const items = loc ? (matPorLoc[loc.nombre] || []) : [];
                           if (!items.length) return null;
                           return (
-                            <span style={{ fontFamily: "var(--font-mono)", fontSize: ".58rem",
-                              color: "var(--cyan)", background: "var(--cyan-dim)",
-                              padding: ".1rem .4rem", borderRadius: 4, whiteSpace: "nowrap" }}>
-                              📦 {items.length} mat.
+                            <span
+                              onClick={e => { e.stopPropagation(); window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"logistica",subtab:"material"}})); }}
+                              title="Ver material asignado en Logística"
+                              style={{ fontFamily: "var(--font-mono)", fontSize: ".58rem",
+                                color: "var(--cyan)", background: "var(--cyan-dim)",
+                                padding: ".1rem .4rem", borderRadius: 4, whiteSpace: "nowrap",
+                                cursor:"pointer", border:"1px solid rgba(34,211,238,.2)" }}>
+                              📦 {items.length} mat. →
                             </span>
                           );
                         })()}
@@ -1613,10 +1621,13 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
 }
 
 // ─── FICHA VOLUNTARIO ─────────────────────────────────────────────────────────
-function FichaVoluntario({ voluntario: v, puestos, onClose, onEditar, onEliminar, onUpdate }) {
+function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClose, onEditar, onEliminar, onUpdate }) {
   const puesto = puestos.find(p => p.id === v.puestoId);
   const estadoColor = v.estado === "confirmado" ? "var(--green)" : v.estado === "cancelado" ? "var(--red)" : "var(--amber)";
   const iniciales = (n) => (n||"V").split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
+  // Material asignado en Logística para la localización del puesto del voluntario
+  const loc = puesto ? locs.find(l => l.id === puesto.localizacionId) : null;
+  const materialEnLoc = loc ? (matPorLoc[loc.nombre] || []) : [];
 
   return (
     <div className="modal-backdrop" onClick={e => e.target===e.currentTarget && onClose()}>
@@ -1663,6 +1674,46 @@ function FichaVoluntario({ voluntario: v, puestos, onClose, onEditar, onEliminar
               <div style={{ fontSize:"0.78rem", lineHeight:1.5 }}>{v.notas}</div>
             </div>
           )}
+
+          {/* Material del puesto asignado (desde Logística) */}
+          {puesto && loc && (
+            <div style={{ background:"var(--surface2)", borderRadius:8, padding:"0.6rem 0.75rem",
+              borderLeft:"2px solid var(--cyan)", marginTop:"0.25rem" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
+                marginBottom:"0.3rem" }}>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.55rem",
+                  color:"var(--cyan)", textTransform:"uppercase", fontWeight:700 }}>
+                  📦 Material en tu puesto
+                </div>
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate",
+                    {detail:{block:"logistica",subtab:"material"}}))}
+                  style={{ fontFamily:"var(--font-mono)", fontSize:".5rem", padding:".08rem .3rem",
+                    borderRadius:3, border:"1px solid rgba(34,211,238,.3)",
+                    background:"rgba(34,211,238,.1)", color:"var(--cyan)", cursor:"pointer" }}>
+                  Ver →
+                </button>
+              </div>
+              {materialEnLoc.length === 0 ? (
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem",
+                  color:"var(--text-dim)" }}>Sin material asignado a {loc.nombre}</div>
+              ) : materialEnLoc.slice(0, 5).map((item, i) => (
+                <div key={i} style={{ display:"flex", justifyContent:"space-between",
+                  fontSize:"0.7rem", padding:"0.18rem 0",
+                  borderBottom: i < Math.min(materialEnLoc.length,5)-1 ? "1px solid var(--border)" : "none" }}>
+                  <span style={{ fontWeight:600 }}>{item.nombre}</span>
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem",
+                    color:"var(--cyan)" }}>{item.cantidad} {item.unidad}</span>
+                </div>
+              ))}
+              {materialEnLoc.length > 5 && (
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.58rem",
+                  color:"var(--text-dim)", marginTop:"0.2rem" }}>
+                  +{materialEnLoc.length - 5} ítems más
+                </div>
+              )}
+            </div>
+          )}
         </div>
         {/* Acciones rápidas de estado */}
         {onUpdate && v.estado !== "confirmado" && v.estado !== "cancelado" && (
@@ -1707,11 +1758,23 @@ function FichaVoluntario({ voluntario: v, puestos, onClose, onEditar, onEliminar
 }
 
 // ─── FICHA PUESTO ─────────────────────────────────────────────────────────────
-function FichaPuesto({ puesto: p, voluntarios, onClose, onEditar, onEliminar }) {
+function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], onClose, onEditar, onEliminar }) {
   const asignados = voluntarios.filter(v => v.puestoId === p.id && v.estado !== "cancelado");
   const confirmados = asignados.filter(v => v.estado === "confirmado").length;
   const cobertura = p.necesarios > 0 ? Math.round(asignados.length / p.necesarios * 100) : 0;
   const color = cobertura >= 100 ? "var(--green)" : cobertura >= 50 ? "var(--amber)" : "var(--red)";
+
+  // Material asignado en Logística para la localización vinculada
+  const loc = locs.find(l => l.id === p.localizacionId);
+  const materialEnLoc = loc ? (matPorLoc[loc.nombre] || []) : [];
+
+  // Rutas que pasan por esta localización (buscar nombre del puesto o de la loc en las paradas)
+  const rutasPorAqui = rutas.filter(r =>
+    (r.paradas || []).some(pa =>
+      (loc && pa.puesto && pa.puesto.toLowerCase().includes(loc.nombre.toLowerCase())) ||
+      pa.puesto?.toLowerCase().includes(p.nombre.toLowerCase())
+    )
+  );
 
   return (
     <div className="modal-backdrop" onClick={e => e.target===e.currentTarget && onClose()}>
@@ -1788,6 +1851,83 @@ function FichaPuesto({ puesto: p, voluntarios, onClose, onEditar, onEliminar }) 
               <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.55rem", color:"var(--text-muted)",
                 marginBottom:"0.25rem", textTransform:"uppercase" }}>Notas</div>
               <div style={{ fontSize:"0.78rem", lineHeight:1.5 }}>{p.notas}</div>
+            </div>
+          )}
+
+          {/* Material asignado en Logística */}
+          {loc && (
+            <div style={{ background:"var(--surface2)", borderRadius:8, padding:"0.6rem 0.75rem",
+              borderLeft:"2px solid var(--cyan)" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
+                marginBottom:"0.35rem" }}>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.55rem",
+                  color:"var(--cyan)", textTransform:"uppercase", fontWeight:700 }}>
+                  📦 Material en {loc.nombre}
+                </div>
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate",
+                    {detail:{block:"logistica",subtab:"material"}}))}
+                  style={{ fontFamily:"var(--font-mono)", fontSize:".52rem", padding:".1rem .35rem",
+                    borderRadius:3, border:"1px solid rgba(34,211,238,.3)",
+                    background:"rgba(34,211,238,.1)", color:"var(--cyan)", cursor:"pointer" }}>
+                  Ver en Logística →
+                </button>
+              </div>
+              {materialEnLoc.length === 0 ? (
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem",
+                  color:"var(--text-dim)" }}>Sin material asignado aún</div>
+              ) : (
+                <div style={{ display:"flex", flexDirection:"column", gap:"0.2rem" }}>
+                  {materialEnLoc.map((item, i) => (
+                    <div key={i} style={{ display:"flex", justifyContent:"space-between",
+                      fontSize:"0.72rem", padding:"0.2rem 0",
+                      borderBottom: i < materialEnLoc.length-1 ? "1px solid var(--border)" : "none" }}>
+                      <span style={{ fontWeight:600 }}>{item.nombre}</span>
+                      <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem",
+                        color:"var(--cyan)" }}>{item.cantidad} {item.unidad}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Rutas que pasan por este puesto */}
+          {rutasPorAqui.length > 0 && (
+            <div style={{ background:"var(--surface2)", borderRadius:8, padding:"0.6rem 0.75rem",
+              borderLeft:"2px solid var(--amber)" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
+                marginBottom:"0.35rem" }}>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.55rem",
+                  color:"var(--amber)", textTransform:"uppercase", fontWeight:700 }}>
+                  🗺️ Rutas que pasan por aquí
+                </div>
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate",
+                    {detail:{block:"logistica",subtab:"vehiculos"}}))}
+                  style={{ fontFamily:"var(--font-mono)", fontSize:".52rem", padding:".1rem .35rem",
+                    borderRadius:3, border:"1px solid rgba(251,191,36,.3)",
+                    background:"rgba(251,191,36,.1)", color:"var(--amber)", cursor:"pointer" }}>
+                  Ver vehículos →
+                </button>
+              </div>
+              {rutasPorAqui.map(r => {
+                const parada = (r.paradas||[]).find(pa =>
+                  (loc && pa.puesto?.toLowerCase().includes(loc.nombre.toLowerCase())) ||
+                  pa.puesto?.toLowerCase().includes(p.nombre.toLowerCase())
+                );
+                return (
+                  <div key={r.id} style={{ display:"flex", justifyContent:"space-between",
+                    alignItems:"center", padding:"0.2rem 0",
+                    borderBottom:"1px solid var(--border)", fontSize:"0.72rem" }}>
+                    <span style={{ fontWeight:600 }}>{r.nombre}</span>
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem",
+                      color:"var(--amber)" }}>
+                      {parada?.hora || r.horaInicio}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

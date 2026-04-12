@@ -1905,10 +1905,18 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {} }) {
                 return (
                   <div style={{ marginTop: ".45rem", borderTop: "1px solid var(--border)", paddingTop: ".4rem" }}>
                     <div style={{ fontFamily: "var(--font-mono)", fontSize: ".58rem", color: "var(--text-muted)",
-                      marginBottom: ".3rem", display: "flex", alignItems: "center", gap: ".4rem" }}>
+                      marginBottom: ".3rem", display: "flex", alignItems: "center", gap: ".4rem", flexWrap:"wrap" }}>
                       👥 <span style={{ fontWeight: 700 }}>{asig.length} voluntario{asig.length!==1?"s":""}</span>
                       {conf.length > 0 && <span style={{ color: "var(--green)", fontWeight: 700 }}>· {conf.length} ✓</span>}
                       {pend.length > 0 && <span style={{ color: "var(--amber)" }}>· {pend.length} pend.</span>}
+                      <button
+                        onClick={e => { e.stopPropagation(); window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"voluntarios"}})); }}
+                        style={{ fontFamily:"var(--font-mono)", fontSize:".5rem", padding:".06rem .3rem",
+                          borderRadius:3, border:"1px solid rgba(34,211,238,.3)",
+                          background:"rgba(34,211,238,.1)", color:"var(--cyan)", cursor:"pointer",
+                          marginLeft:"auto", flexShrink:0 }}>
+                        Ver →
+                      </button>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: ".18rem" }}>
                       {asig.slice(0,4).map((a, i) => (
