@@ -10,11 +10,13 @@ const genId = (arr) => arr.length ? Math.max(...arr.map(x => x.id)) + 1 : 1;
 const fmt   = (n) => new Intl.NumberFormat("es-ES", { style:"currency", currency:"EUR", minimumFractionDigits:2, maximumFractionDigits:2 }).format(n||0);
 const fmtN  = (n) => new Intl.NumberFormat("es-ES", { minimumFractionDigits:2, maximumFractionDigits:2 }).format(n||0);
 
-const TALLAS = ["XXS","XS","S","M","L","XL","XXL","3XL","4XL"];
-const TIPOS  = ["corredor","voluntario"];
+const TALLAS       = ["XXS","XS","S","M","L","XL","XXL","3XL","4XL"];
+const TALLAS_NINO  = ["4-6","6-8","8-10","10-12"];
+const TIPOS  = ["corredor","voluntario","nino"];
 const TC = {
-  corredor:   { label:"Corredor",   icon:"🏃", color:"var(--cyan)",   dim:"var(--cyan-dim)"   },
-  voluntario: { label:"Voluntario", icon:"👥", color:"var(--violet)", dim:"var(--violet-dim)" },
+  corredor:   { label:"Corredor",   icon:"🏃",  color:"var(--cyan)",   dim:"var(--cyan-dim)"   },
+  voluntario: { label:"Voluntario", icon:"👥",  color:"var(--violet)", dim:"var(--violet-dim)" },
+  nino:       { label:"Niño/a",     icon:"👶",  color:"var(--green)",  dim:"var(--green-dim)"  },
 };
 
 // estadoPago y estadoEntrega son POR LINEA (una persona puede tener pago+regalo en el mismo pedido)
@@ -41,7 +43,7 @@ const PEDIDOS_DEFAULT = [
     ]
   },
 ];
-const COSTE_DEFAULT = { corredor:8, voluntario:7 };
+const COSTE_DEFAULT = { corredor:8, voluntario:7, nino:6 };
 
 const calcPedido = (p, coste) => {
   const totalVenta    = p.lineas.reduce((s,l) => s + (l.estadoPago==="regalo" ? 0 : l.cantidad*(l.precioVenta||0)), 0);
@@ -69,11 +71,16 @@ const badgeEnt = (p) => p.lineas.some(l => (l.estadoEntrega||"pendiente")==="pen
 // Default corredor externos: un objeto { XXS:0, XS:0, S:0, M:0, L:0, XL:0, XXL:0, 3XL:0, 4XL:0 }
 const CORREDORES_DEFAULT = Object.fromEntries(TALLAS.map(t => [t, 0]));
 
+// Default tallas niño: entrada manual por talla
+const NINO_DEFAULT = Object.fromEntries(TALLAS_NINO.map(t => [t, 0]));
+
 const FUENTES_DEFAULT = {
   corredoresPlat: true,
   extrasCorredor: true,
   voluntariosAuto: true,
-  extrasVoluntario: true
+  extrasVoluntario: true,
+  ninoManual: true,
+  extrasNino: true,
 };
 
 export default function App() {
@@ -93,6 +100,12 @@ export default function App() {
   const corredoresExt = (rawCorredores && typeof rawCorredores === 'object' && !Array.isArray(rawCorredores))
     ? { ...CORREDORES_DEFAULT, ...rawCorredores }
     : CORREDORES_DEFAULT;
+
+  // Tallas de niño: entrada manual por talla
+  const [rawNino, setNino] = useData(LS+"_nino", NINO_DEFAULT);
+  const ninoExt = (rawNino && typeof rawNino === 'object' && !Array.isArray(rawNino))
+    ? { ...NINO_DEFAULT, ...rawNino }
+    : NINO_DEFAULT;
 
   // Precio manual de la camiseta corredor en plataforma externa
   const [precioPlatExt, setPrecioPlatExt] = useData(LS+"_precio_plataforma", { precio: 15 });
@@ -129,16 +142,16 @@ export default function App() {
 
   const stats = useMemo(() => {
     // 1. Unidades por fuente
-    const uCorExt = fuentesActivas.corredoresPlat ? TALLAS.reduce((s,t) => s + (corredoresExt[t]||0), 0) : 0;
+    const uCorExt  = fuentesActivas.corredoresPlat  ? TALLAS.reduce((s,t)      => s + (corredoresExt[t]||0), 0) : 0;
+    const uNinoExt = fuentesActivas.ninoManual       ? TALLAS_NINO.reduce((s,t) => s + (ninoExt[t]||0),      0) : 0;
     const uVolAuto = fuentesActivas.voluntariosAuto ? voluntariosActivos.length : 0;
     
     const extrasLineas = pedidos.flatMap(p => p.lineas);
-    const uExtrasCor = fuentesActivas.extrasCorredor 
-      ? extrasLineas.filter(l => l.tipo === "corredor").reduce((s,l) => s + l.cantidad, 0) : 0;
-    const uExtrasVol = fuentesActivas.extrasVoluntario 
-      ? extrasLineas.filter(l => l.tipo === "voluntario").reduce((s,l) => s + l.cantidad, 0) : 0;
+    const uExtrasCor  = fuentesActivas.extrasCorredor   ? extrasLineas.filter(l => l.tipo === "corredor").reduce((s,l)   => s + l.cantidad, 0) : 0;
+    const uExtrasVol  = fuentesActivas.extrasVoluntario  ? extrasLineas.filter(l => l.tipo === "voluntario").reduce((s,l) => s + l.cantidad, 0) : 0;
+    const uExtrasNino = fuentesActivas.extrasNino        ? extrasLineas.filter(l => l.tipo === "nino").reduce((s,l)       => s + l.cantidad, 0) : 0;
 
-    const totalUnidades = uCorExt + uVolAuto + uExtrasCor + uExtrasVol;
+    const totalUnidades = uCorExt + uVolAuto + uExtrasCor + uExtrasVol + uNinoExt + uExtrasNino;
 
     // 2. Ingresos por fuente
     const iCorExt = uCorExt * precioCorrExt; // Ingreso proyectado plataforma
@@ -160,12 +173,14 @@ export default function App() {
     const totalIngresosProyectado = (fuentesActivas.corredoresPlat ? iCorExt : 0) + iExtrasProyectado;
 
     // 3. Gastos por fuente
-    const gCorExt = uCorExt * (coste.corredor || 0);
+    const gCorExt  = uCorExt  * (coste.corredor   || 0);
+    const gNinoExt = uNinoExt * (coste.nino       || 0);
     const gVolAuto = uVolAuto * (coste.voluntario || 0);
-    const gExtrasCor = uExtrasCor * (coste.corredor || 0);
-    const gExtrasVol = uExtrasVol * (coste.voluntario || 0);
+    const gExtrasCor  = uExtrasCor  * (coste.corredor   || 0);
+    const gExtrasVol  = uExtrasVol  * (coste.voluntario  || 0);
+    const gExtrasNino = uExtrasNino * (coste.nino         || 0);
 
-    const totalGastos = gCorExt + gVolAuto + gExtrasCor + gExtrasVol;
+    const totalGastos = gCorExt + gVolAuto + gExtrasCor + gExtrasVol + gNinoExt + gExtrasNino;
 
     const beneficioNetoReal = totalIngresosReal - totalGastos;
     const beneficioNetoProyectado = totalIngresosProyectado - totalGastos;
@@ -189,7 +204,7 @@ export default function App() {
       totalGastos,
       beneficioNetoReal,
       beneficioNetoProyectado,
-      uCorExt, uVolAuto, uExtrasCor, uExtrasVol,
+      uCorExt, uVolAuto, uExtrasCor, uExtrasVol, uNinoExt, uExtrasNino,
       iCorExt, iExtrasReal, iExtrasProyectado,
       gRegalos,
       cPendCobro,
@@ -228,10 +243,12 @@ export default function App() {
             precioCorrExt={precioCorrExt} setPrecioCorrExt={(v) => setPrecioPlatExt({ precio: v })}
             fuentesActivas={fuentesActivas} setFuentesActivas={setFuentesActivas}
             corredoresExt={corredoresExt} voluntariosActivos={voluntariosActivos}
-            voluntariosConfirmados={voluntariosConfirmados} voluntariosPendientes={voluntariosPendientes} />}
+            voluntariosConfirmados={voluntariosConfirmados} voluntariosPendientes={voluntariosPendientes}
+            ninoExt={ninoExt} />}
           {tab==="pedidos"   && <TabPedidos   pedidos={pedidos} coste={coste} abrirFicha={abrirFicha} abrirModal={abrirModal} />}
           {tab==="tallas"    && <TabTallas    pedidos={pedidos} corredoresExt={corredoresExt} setCorredores={setCorredores} voluntariosActivos={voluntariosActivos} fuentesActivas={fuentesActivas}
-            voluntariosConfirmados={voluntariosConfirmados} voluntariosPendientes={voluntariosPendientes} />}
+            voluntariosConfirmados={voluntariosConfirmados} voluntariosPendientes={voluntariosPendientes}
+            ninoExt={ninoExt} setNino={setNino} />}
           {tab==="checklist" && <TabChecklist pedidos={pedidos} updateLinea={updateLinea} abrirFicha={abrirFicha} />}
         </div>
       </div>
@@ -251,7 +268,7 @@ export default function App() {
 }
 
 // ─── TAB DASHBOARD ────────────────────────────────────────────────────────────
-function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, precioCorrExt, setPrecioCorrExt, fuentesActivas, setFuentesActivas }) {
+function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, precioCorrExt, setPrecioCorrExt, fuentesActivas, setFuentesActivas, ninoExt = {} }) {
   const [editCoste,setEditCoste] = useState(false);
   const [tmpCoste, setTmpCoste]  = useState({...coste});
   const [editPrecioPlat, setEditPrecioPlat] = useState(false);
@@ -361,14 +378,14 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
             </div>
             {editCoste ? (
               <div style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
-                {TIPOS.map(tipo => (
+                {["corredor","voluntario","nino"].map(tipo => (
                   <input key={tipo} type="number" min="0" step="0.5" value={tmpCoste[tipo]} onChange={e => setTmpCoste(p => ({ ...p, [tipo]: parseFloat(e.target.value) || 0 }))} style={{ width: 50, background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text)", borderRadius: 4, padding: ".2rem", fontSize: ".7rem" }} />
                 ))}
                 <button className="btn btn-primary btn-sm" onClick={() => { setCoste(tmpCoste); setEditCoste(false); }}>OK</button>
               </div>
             ) : (
               <div style={{ display: "flex", gap: ".6rem" }}>
-                {TIPOS.map(tipo => <span key={tipo} className="mono xs">{TC[tipo].icon} {fmtN(coste[tipo])}€</span>)}
+{["corredor","voluntario","nino"].map(tipo => <span key={tipo} className="mono xs">{TC[tipo].icon} {fmtN(coste[tipo])}€</span>)}
                 <button className="btn btn-ghost btn-sm" onClick={() => setEditCoste(true)}>✏️</button>
               </div>
             )}
@@ -606,13 +623,17 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal }) {
 }
 
 // ─── TAB TALLAS ───────────────────────────────────────────────────────────────
-function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, fuentesActivas, voluntariosConfirmados, voluntariosPendientes }) {
+function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, fuentesActivas, voluntariosConfirmados, voluntariosPendientes, ninoExt = {}, setNino }) {
   const [editCorredores, setEditCorredores] = useState(false);
   const [tmpCor, setTmpCor] = useState({ ...corredoresExt });
+  const [editNino, setEditNino] = useState(false);
+  const [tmpNino, setTmpNino] = useState({ ...ninoExt });
 
   // Al abrir edición, sincronizar el estado temporal
-  const abrirEdicion = () => { setTmpCor({ ...corredoresExt }); setEditCorredores(true); };
+  const abrirEdicion     = () => { setTmpCor({ ...corredoresExt }); setEditCorredores(true); };
   const guardarCorredores = () => { setCorredores({ ...tmpCor }); setEditCorredores(false); };
+  const abrirEdicionNino  = () => { setTmpNino({ ...ninoExt }); setEditNino(true); };
+  const guardarNino       = () => { setNino && setNino({ ...tmpNino }); setEditNino(false); };
 
   // Tallas de EXTRAS (pedidos manuales) agrupadas por tipo/modelo de camiseta
   const tallasExtras = useMemo(() => {
@@ -620,6 +641,16 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
     TALLAS.forEach(t => { map[t] = {}; TIPOS.forEach(tp => { map[t][tp] = 0; }); });
     pedidos.forEach(p => p.lineas.forEach(l => {
       if (map[l.talla]) map[l.talla][l.tipo] = (map[l.talla][l.tipo] || 0) + l.cantidad;
+    }));
+    return map;
+  }, [pedidos]);
+
+  // Tallas de EXTRAS niño (pedidos manuales tipo "nino")
+  const tallasExtrasNino = useMemo(() => {
+    const map = {};
+    TALLAS_NINO.forEach(t => { map[t] = 0; });
+    pedidos.forEach(p => p.lineas.forEach(l => {
+      if (l.tipo === "nino" && map[l.talla] !== undefined) map[l.talla] += l.cantidad;
     }));
     return map;
   }, [pedidos]);
@@ -649,9 +680,10 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
     return tot;
   }, [tallasVol, tallasExtras]);
 
-  const grandTotalCor = TALLAS.reduce((s, t) => s + (totalCorredor[t] || 0), 0);
-  const grandTotalVol = TALLAS.reduce((s, t) => s + (totalVoluntario[t] || 0), 0);
-  const grandTotal = grandTotalCor + grandTotalVol;
+  const grandTotalCor  = TALLAS.reduce((s, t)      => s + (totalCorredor[t]  || 0), 0);
+  const grandTotalVol  = TALLAS.reduce((s, t)      => s + (totalVoluntario[t] || 0), 0);
+  const grandTotalNino = TALLAS_NINO.reduce((s, t) => s + (ninoExt[t] || 0) + (tallasExtrasNino[t] || 0), 0);
+  const grandTotal     = grandTotalCor + grandTotalVol + grandTotalNino;
 
   const SectionTitle = ({ icon, title, subtitle, color, action }) => (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '.6rem', gap: '.5rem', flexWrap: 'wrap' }}>
@@ -678,7 +710,7 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
       <div className="ph">
         <div>
           <div className="pt">📐 Tallas para producción</div>
-          <div className="pd">{grandTotal} unidades totales · {grandTotalCor} modelo corredor · {grandTotalVol} modelo voluntario</div>
+          <div className="pd">{grandTotal} unidades totales · {grandTotalCor} corredor · {grandTotalVol} voluntario{grandTotalNino > 0 ? ` · ${grandTotalNino} niño/a` : ""}</div>
         </div>
       </div>
 
@@ -701,6 +733,14 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
             color:TC.voluntario.color, dim:TC.voluntario.dim,
             total: fuentesActivas.extrasVoluntario
               ? pedidos.filter(p=>p.lineas?.some(l=>l.tipo==="voluntario")).reduce((s,p)=>s+p.lineas.filter(l=>l.tipo==="voluntario").reduce((ss,l)=>ss+l.cantidad,0),0)
+              : 0 },
+          { key:"ninoManual", icon:"👶", label:"Niño/a", sub:"Entrada manual",
+            color:TC.nino.color, dim:TC.nino.dim,
+            total: fuentesActivas.ninoManual ? TALLAS_NINO.reduce((s,t)=>s+(ninoExt[t]||0),0) : 0 },
+          { key:"extrasNino", icon:"👶+", label:"Extras niño/a", sub:"Pedidos manuales",
+            color:TC.nino.color, dim:TC.nino.dim,
+            total: fuentesActivas.extrasNino
+              ? pedidos.filter(p=>p.lineas?.some(l=>l.tipo==="nino")).reduce((s,p)=>s+p.lineas.filter(l=>l.tipo==="nino").reduce((ss,l)=>ss+l.cantidad,0),0)
               : 0 },
         ].map(f => (
           <div key={f.key} style={{
@@ -781,9 +821,82 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
                   👥 Total voluntario: <strong>{grandTotalVol}</strong>
                 </td>
               </tr>
+              <tr>
+                <td colSpan={3} style={{ fontFamily: 'var(--font-mono)', fontSize: '.58rem', color: TC.corredor.color, paddingTop: '.35rem' }}>
+                  🏃 Total corredor: <strong>{grandTotalCor}</strong>
+                </td>
+                <td colSpan={3} style={{ fontFamily: 'var(--font-mono)', fontSize: '.58rem', color: TC.voluntario.color, paddingTop: '.35rem' }}>
+                  👥 Total voluntario: <strong>{grandTotalVol}</strong>
+                </td>
+              </tr>
             </tfoot>
           </table>
         </div>
+
+        {/* ── SECCIÓN NIÑO/A — tallas propias ── */}
+        {grandTotalNino > 0 || fuentesActivas.ninoManual || fuentesActivas.extrasNino ? (
+          <div style={{ marginTop: '.85rem', borderTop: `2px solid ${TC.nino.color}33`,
+            paddingTop: '.75rem' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '.62rem', fontWeight: 700,
+              color: TC.nino.color, textTransform: 'uppercase', letterSpacing: '.08em',
+              marginBottom: '.6rem' }}>
+              👶 Niño/a — tallas especiales
+            </div>
+            <div className="overflow-x">
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>Talla</th>
+                    <th className="text-right" style={{ color: TC.nino.color, fontSize: '.58rem', opacity: fuentesActivas.ninoManual ? 1 : 0.4 }}>
+                      👶 Manual {!fuentesActivas.ninoManual && "🚫"}
+                    </th>
+                    <th className="text-right" style={{ color: TC.nino.color, fontSize: '.58rem', opacity: fuentesActivas.extrasNino ? 1 : 0.4 }}>
+                      👶+ Extras {!fuentesActivas.extrasNino && "🚫"}
+                    </th>
+                    <th className="text-right" style={{ fontWeight: 800 }}>TOTAL</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {TALLAS_NINO.map(t => {
+                    const manual = ninoExt[t] || 0;
+                    const extras = tallasExtrasNino[t] || 0;
+                    const tot    = manual + extras;
+                    if (!tot) return null;
+                    const cell = (v) => v > 0
+                      ? <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700,
+                          color: TC.nino.color, background: TC.nino.dim,
+                          padding: '.1rem .4rem', borderRadius: 4 }}>{v}</span>
+                      : <span style={{ color: 'var(--text-dim)' }}>—</span>;
+                    return (
+                      <tr key={t}>
+                        <td style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{t}</td>
+                        <td className="text-right">{cell(manual)}</td>
+                        <td className="text-right">{cell(extras)}</td>
+                        <td className="text-right">
+                          <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800 }}>{tot}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="total-row">
+                    <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>TOTAL</td>
+                    <td className="text-right" style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: TC.nino.color }}>
+                      {TALLAS_NINO.reduce((s,t)=>s+(ninoExt[t]||0),0)}
+                    </td>
+                    <td className="text-right" style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: TC.nino.color }}>
+                      {TALLAS_NINO.reduce((s,t)=>s+(tallasExtrasNino[t]||0),0)}
+                    </td>
+                    <td className="text-right" style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '.95rem', color: TC.nino.color }}>
+                      {grandTotalNino}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {/* ── DESGLOSE POR FUENTE ── */}
@@ -857,6 +970,65 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
                 <TallaBar key={t} talla={t} valor={tallasExtras[t].voluntario} total={TALLAS.reduce((s, tt) => s + (tallasExtras[tt]?.voluntario || 0), 0)} color={TC.voluntario.color} />
               ))}
             </div>
+          )}
+        </div>
+        {/* ── FUENTE 3: Niño/a (manual por talla) ── */}
+        <div className="card" style={{ borderLeft: `3px solid ${TC.nino.color}` }}>
+          <SectionTitle
+            icon="👶" title="Niño/a — manual"
+            subtitle="Tallas 4-6, 6-8, 8-10, 10-12 — introduce los totales manualmente"
+            color={TC.nino.color}
+            action={
+              !editNino
+                ? <button className="btn btn-ghost btn-sm" onClick={abrirEdicionNino}>✏️ Editar</button>
+                : <div style={{ display: 'flex', gap: '.35rem' }}>
+                    <button className="btn btn-primary btn-sm" onClick={guardarNino}>✓ Guardar</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => setEditNino(false)}>✕</button>
+                  </div>
+            }
+          />
+          {editNino ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: '.4rem' }}>
+              {TALLAS_NINO.map(t => (
+                <label key={t} style={{ display: 'flex', flexDirection: 'column', gap: '.2rem' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '.65rem', fontWeight: 700, color: TC.nino.color }}>{t}</span>
+                  <input
+                    type="number" min="0" value={tmpNino[t] || 0}
+                    onChange={e => setTmpNino(p => ({ ...p, [t]: Math.max(0, parseInt(e.target.value) || 0) }))}
+                    style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)',
+                      borderRadius: 'var(--r-sm)', padding: '.3rem .4rem', fontFamily: 'var(--font-mono)',
+                      fontSize: '.78rem', textAlign: 'right', outline: 'none', width: '100%' }}
+                  />
+                </label>
+              ))}
+            </div>
+          ) : (
+            <>
+              {TALLAS_NINO.filter(t => (ninoExt[t] || 0) > 0).length === 0
+                ? <div style={{ fontFamily: 'var(--font-mono)', fontSize: '.62rem', color: 'var(--text-dim)',
+                    textAlign: 'center', padding: '1rem 0' }}>
+                    Sin datos — haz clic en ✏️ Editar para introducir tallas
+                  </div>
+                : TALLAS_NINO.filter(t => (ninoExt[t] || 0) > 0).map(t => (
+                  <TallaBar key={t} talla={t} valor={ninoExt[t]}
+                    total={TALLAS_NINO.reduce((s, tt) => s + (ninoExt[tt] || 0), 0)}
+                    color={TC.nino.color} />
+                ))
+              }
+              {TALLAS_NINO.some(t => (tallasExtrasNino[t] || 0) > 0) && (
+                <div style={{ marginTop: '.75rem', paddingTop: '.6rem', borderTop: '1px dashed var(--border)' }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '.58rem',
+                    color: 'var(--text-muted)', marginBottom: '.4rem' }}>
+                    + Extras niño/a (pedidos manuales):
+                  </div>
+                  {TALLAS_NINO.filter(t => (tallasExtrasNino[t] || 0) > 0).map(t => (
+                    <TallaBar key={t} talla={t} valor={tallasExtrasNino[t]}
+                      total={TALLAS_NINO.reduce((s, tt) => s + (tallasExtrasNino[tt] || 0), 0)}
+                      color={TC.nino.color} />
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -1037,8 +1209,8 @@ function ModalPedido({ data, coste, onSave, onClose }) {
                 return (
                   <div key={i} style={{background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:8,padding:".65rem .75rem"}}>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 56px 76px 32px",gap:".4rem",alignItems:"end",marginBottom:".4rem"}}>
-                      <div><label className="fl">Tipo</label><select className="inp inp-sm" value={l.tipo} onChange={e=>updL(i,"tipo",e.target.value)}>{TIPOS.map(t=><option key={t} value={t}>{TC[t].icon} {TC[t].label}</option>)}</select></div>
-                      <div><label className="fl">Talla</label><select className="inp inp-sm" value={l.talla} onChange={e=>updL(i,"talla",e.target.value)}>{TALLAS.map(t=><option key={t} value={t}>{t}</option>)}</select></div>
+                      <div><label className="fl">Tipo</label><select className="inp inp-sm" value={l.tipo} onChange={e=>{const newTipo=e.target.value;const defaultTalla=newTipo==="nino"?"4-6":"M";updL(i,"tipo",newTipo);updL(i,"talla",defaultTalla);}}>{TIPOS.map(t=><option key={t} value={t}>{TC[t].icon} {TC[t].label}</option>)}</select></div>
+                      <div><label className="fl">Talla</label><select className="inp inp-sm" value={l.talla} onChange={e=>updL(i,"talla",e.target.value)}>{(l.tipo==="nino"?TALLAS_NINO:TALLAS).map(t=><option key={t} value={t}>{t}</option>)}</select></div>
                       <div><label className="fl">Cant.</label><input type="number" min="1" className="inp inp-sm inp-mono" value={l.cantidad} onChange={e=>updL(i,"cantidad",Math.max(1,parseInt(e.target.value)||1))} /></div>
                       <div><label className="fl">€ Venta</label><input type="number" min="0" step="0.5" className="inp inp-sm inp-mono" value={l.precioVenta||0} onChange={e=>updL(i,"precioVenta",parseFloat(e.target.value)||0)} disabled={esR} style={{opacity:esR?.45:1}} /></div>
                       <button className="btn btn-red btn-sm" onClick={()=>delL(i)} disabled={form.lineas.length<=1} style={{marginBottom:1}}>✕</button>
