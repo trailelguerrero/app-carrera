@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 import { useData } from "@/lib/dataService";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
@@ -60,6 +60,16 @@ export default function Configuracion() {
   const config = { ...EVENT_CONFIG_DEFAULT, ...(savedConfig || {}) };
 
   const [draft, setDraft] = useState(null);
+
+  // ── Códigos promocionales ──────────────────────────────────────────────────
+  const LS_CODIGOS = "teg_codigos_promo_v1";
+  const [rawCodigos, setCodigos] = useData(LS_CODIGOS, []);
+  const codigos = Array.isArray(rawCodigos) ? rawCodigos : [];
+  const [codigosTab, setCodigosTab] = useState("todos");
+  const [importText, setImportText]   = useState("");
+  const [importDist, setImportDist]   = useState("TG7");
+  const [importMsg2, setImportMsg2]  = useState(null);
+  const [busquedaCod, setBusquedaCod] = useState("");
   const [saved, setSaved] = useState(false);
   const [exportando, setExportando] = useState(false);
   const [importMsg, setImportMsg] = useState(null); // {tipo:'ok'|'error', texto}
@@ -67,6 +77,35 @@ export default function Configuracion() {
   const form = draft ?? config;
   const upd  = (k, v) => setDraft(p => ({ ...(p ?? config), [k]: v }));
   const dirty = draft !== null;
+
+  // Cargar los códigos iniciales proporcionados si el array está vacío
+  useMemo(() => {
+    if (codigos.length === 0) {
+      const CODIGOS_INICIALES = [
+        // TG7
+        {id:"7G7-1",      codigo:"7G7",       distancia:"TG7",  estado:"disponible", usadoPor:null, fechaUso:null},
+        {id:"KDZ145OX",   codigo:"KDZ145OX",  distancia:"TG7",  estado:"disponible", usadoPor:null, fechaUso:null},
+        {id:"LHNHNP8O",   codigo:"LHNHNP8O",  distancia:"TG7",  estado:"disponible", usadoPor:null, fechaUso:null},
+        {id:"Y24SA1TO",   codigo:"Y24SA1TO",  distancia:"TG7",  estado:"disponible", usadoPor:null, fechaUso:null},
+        {id:"H4D95XXK",   codigo:"H4D95XXK",  distancia:"TG7",  estado:"disponible", usadoPor:null, fechaUso:null},
+        {id:"INWPP2FZ",   codigo:"INWPP2FZ",  distancia:"TG7",  estado:"disponible", usadoPor:null, fechaUso:null},
+        // TG13
+        {id:"UBUQ4P9H",   codigo:"UBUQ4P9H",  distancia:"TG13", estado:"disponible", usadoPor:null, fechaUso:null},
+        {id:"E4AXY9BB",   codigo:"E4AXY9BB",  distancia:"TG13", estado:"disponible", usadoPor:null, fechaUso:null},
+        {id:"CFW8V4YX",   codigo:"CFW8V4YX",  distancia:"TG13", estado:"disponible", usadoPor:null, fechaUso:null},
+        {id:"OSEQZJW8",   codigo:"OSEQZJW8",  distancia:"TG13", estado:"disponible", usadoPor:null, fechaUso:null},
+        {id:"AAWKNOY8",   codigo:"AAWKNOY8",  distancia:"TG13", estado:"disponible", usadoPor:null, fechaUso:null},
+        // TG25
+        {id:"L3BBI448",   codigo:"L3BBI448",  distancia:"TG25", estado:"disponible", usadoPor:null, fechaUso:null},
+        {id:"E3Z05H0D",   codigo:"E3Z05H0D",  distancia:"TG25", estado:"disponible", usadoPor:null, fechaUso:null},
+        {id:"40ACCVZF",   codigo:"40ACCVZF",  distancia:"TG25", estado:"disponible", usadoPor:null, fechaUso:null},
+        {id:"K5RBRVHK",   codigo:"K5RBRVHK",  distancia:"TG25", estado:"disponible", usadoPor:null, fechaUso:null},
+        {id:"UUCTJWSV",   codigo:"UUCTJWSV",  distancia:"TG25", estado:"disponible", usadoPor:null, fechaUso:null},
+      ];
+      setCodigos(CODIGOS_INICIALES);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSave = async () => {
     const merged = { ...EVENT_CONFIG_DEFAULT, ...form };
@@ -390,6 +429,278 @@ export default function Configuracion() {
           <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
             color:"var(--text-dim)",lineHeight:1.7,marginTop:".6rem"}}>
             Vuelve a ver el tutorial de bienvenida. Útil para nuevos colaboradores o para repasar las funciones principales.
+          </div>
+        </div>
+
+        {/* ── Códigos promocionales ───────────────────────────────────── */}
+        <div className="card cfg-section">
+          <div className="cfg-section-title">🎟️ Códigos promocionales</div>
+          <div style={{fontFamily:"var(--font-mono)",fontSize:".68rem",
+            color:"var(--text-muted)",marginBottom:"1rem",lineHeight:1.6}}>
+            Inscripciones gratuitas por código. Registra quién usa cada código para
+            llevar el control. Puedes importar nuevos lotes en masa.
+          </div>
+
+          {/* Estadísticas rápidas */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",
+            gap:".5rem",marginBottom:"1rem"}}>
+            {["TG7","TG13","TG25"].map(d => {
+              const total = codigos.filter(c=>c.distancia===d).length;
+              const usados = codigos.filter(c=>c.distancia===d&&c.estado==="usado").length;
+              const disp = total - usados;
+              const color = d==="TG7"?"var(--cyan)":d==="TG13"?"var(--amber)":"var(--violet)";
+              return (
+                <div key={d} style={{padding:".55rem .7rem",borderRadius:8,
+                  background:"var(--surface2)",border:`1px solid ${color}33`,
+                  borderLeft:`3px solid ${color}`}}>
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                    color,fontWeight:700,marginBottom:".2rem"}}>{d}</div>
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:".9rem",fontWeight:800}}>
+                    {disp}<span style={{fontSize:".6rem",color:"var(--text-muted)",fontWeight:400}}>/{total}</span>
+                  </div>
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+                    color:"var(--text-dim)"}}>disponibles</div>
+                </div>
+              );
+            })}
+            <div style={{padding:".55rem .7rem",borderRadius:8,
+              background:"var(--surface2)",border:"1px solid var(--border)"}}>
+              <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                color:"var(--text-muted)",fontWeight:700,marginBottom:".2rem"}}>TOTAL</div>
+              <div style={{fontFamily:"var(--font-mono)",fontSize:".9rem",fontWeight:800,
+                color:"var(--green)"}}>
+                {codigos.filter(c=>c.estado==="disponible").length}
+                <span style={{fontSize:".6rem",color:"var(--text-muted)",fontWeight:400}}>
+                  /{codigos.length}
+                </span>
+              </div>
+              <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+                color:"var(--text-dim)"}}>disponibles</div>
+            </div>
+          </div>
+
+          {/* Filtros + buscador */}
+          <div style={{display:"flex",gap:".4rem",flexWrap:"wrap",
+            alignItems:"center",marginBottom:".65rem"}}>
+            {["todos","TG7","TG13","TG25","disponible","usado"].map(f => (
+              <button key={f} onClick={()=>setCodigosTab(f)}
+                style={{padding:".2rem .55rem",borderRadius:20,cursor:"pointer",
+                  fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
+                  border:`1px solid ${codigosTab===f?"var(--cyan)":"var(--border)"}`,
+                  background:codigosTab===f?"var(--cyan-dim)":"transparent",
+                  color:codigosTab===f?"var(--cyan)":"var(--text-muted)"}}>
+                {f==="todos"?"Todos":f==="disponible"?"✅ Disponibles":f==="usado"?"✓ Usados":f}
+              </button>
+            ))}
+            <input placeholder="Buscar código o nombre..."
+              value={busquedaCod} onChange={e=>setBusquedaCod(e.target.value)}
+              style={{flex:1,minWidth:140,background:"var(--surface2)",
+                border:"1px solid var(--border)",borderRadius:8,color:"var(--text)",
+                padding:".35rem .6rem",fontFamily:"var(--font-mono)",fontSize:".7rem",
+                outline:"none"}} />
+          </div>
+
+          {/* Tabla de códigos */}
+          {(() => {
+            const filtrados = codigos.filter(c => {
+              if (codigosTab==="disponible") return c.estado==="disponible";
+              if (codigosTab==="usado") return c.estado==="usado";
+              if (["TG7","TG13","TG25"].includes(codigosTab)) return c.distancia===codigosTab;
+              return true;
+            }).filter(c =>
+              !busquedaCod ||
+              c.codigo.toLowerCase().includes(busquedaCod.toLowerCase()) ||
+              (c.usadoPor||"").toLowerCase().includes(busquedaCod.toLowerCase())
+            );
+            if (!filtrados.length) return (
+              <div style={{textAlign:"center",padding:"1.5rem",fontFamily:"var(--font-mono)",
+                fontSize:".7rem",color:"var(--text-dim)"}}>Sin códigos con ese filtro</div>
+            );
+            return (
+              <div style={{overflowX:"auto"}}>
+                <table style={{width:"100%",borderCollapse:"collapse",
+                  fontFamily:"var(--font-mono)",fontSize:".72rem"}}>
+                  <thead>
+                    <tr style={{borderBottom:"1px solid var(--border)"}}>
+                      <th style={{textAlign:"left",padding:".3rem .5rem",
+                        color:"var(--text-muted)",fontWeight:600}}>Código</th>
+                      <th style={{textAlign:"left",padding:".3rem .5rem",
+                        color:"var(--text-muted)",fontWeight:600}}>Distancia</th>
+                      <th style={{textAlign:"left",padding:".3rem .5rem",
+                        color:"var(--text-muted)",fontWeight:600}}>Estado</th>
+                      <th style={{textAlign:"left",padding:".3rem .5rem",
+                        color:"var(--text-muted)",fontWeight:600}}>Usado por</th>
+                      <th style={{textAlign:"left",padding:".3rem .5rem",
+                        color:"var(--text-muted)",fontWeight:600}}>Fecha</th>
+                      <th style={{width:32}}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtrados.map(c => {
+                      const usado = c.estado==="usado";
+                      const dColor = c.distancia==="TG7"?"var(--cyan)":
+                        c.distancia==="TG13"?"var(--amber)":"var(--violet)";
+                      return (
+                        <tr key={c.id} style={{
+                          borderBottom:"1px solid rgba(255,255,255,.04)",
+                          opacity: usado ? .65 : 1}}>
+                          <td style={{padding:".35rem .5rem",fontWeight:700,
+                            color: usado?"var(--text-muted)":"var(--text)",
+                            textDecoration: usado?"line-through":"none",
+                            letterSpacing:".05em"}}>
+                            {c.codigo}
+                          </td>
+                          <td style={{padding:".35rem .5rem"}}>
+                            <span style={{padding:".1rem .4rem",borderRadius:20,
+                              background:dColor+"18",color:dColor,fontWeight:700,
+                              fontSize:".6rem"}}>
+                              {c.distancia}
+                            </span>
+                          </td>
+                          <td style={{padding:".35rem .5rem"}}>
+                            <span style={{fontWeight:700,
+                              color:usado?"var(--text-dim)":"var(--green)"}}>
+                              {usado?"✓ Usado":"✅ Disponible"}
+                            </span>
+                          </td>
+                          <td style={{padding:".35rem .5rem",minWidth:140}}>
+                            {usado ? (
+                              <span style={{color:"var(--text)"}}>{c.usadoPor||"—"}</span>
+                            ) : (
+                              <input
+                                placeholder="Nombre del inscrito..."
+                                style={{background:"transparent",border:"none",
+                                  borderBottom:"1px dashed var(--border)",
+                                  color:"var(--text)",fontFamily:"var(--font-mono)",
+                                  fontSize:".68rem",outline:"none",width:"100%",
+                                  padding:".1rem 0"}}
+                                onBlur={e => {
+                                  if (!e.target.value.trim()) return;
+                                  const nombre = e.target.value.trim();
+                                  setCodigos(prev => prev.map(x =>
+                                    x.id===c.id
+                                      ? {...x, estado:"usado", usadoPor:nombre,
+                                          fechaUso:new Date().toISOString().split("T")[0]}
+                                      : x
+                                  ));
+                                  e.target.value = "";
+                                }}
+                                onKeyDown={e => { if(e.key==="Enter") e.target.blur(); }}
+                              />
+                            )}
+                          </td>
+                          <td style={{padding:".35rem .5rem",color:"var(--text-dim)",
+                            fontSize:".65rem"}}>
+                            {c.fechaUso||"—"}
+                          </td>
+                          <td style={{padding:".2rem"}}>
+                            {usado && (
+                              <button
+                                title="Marcar como disponible de nuevo"
+                                onClick={()=>setCodigos(prev=>prev.map(x=>
+                                  x.id===c.id
+                                    ? {...x,estado:"disponible",usadoPor:null,fechaUso:null}
+                                    : x
+                                ))}
+                                style={{background:"none",border:"1px solid var(--border)",
+                                  borderRadius:4,cursor:"pointer",padding:".15rem .35rem",
+                                  color:"var(--text-dim)",fontSize:".6rem",fontWeight:700}}>
+                                ↩
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
+
+          {/* Importar nuevos códigos en lote */}
+          <div style={{marginTop:"1.25rem",padding:".85rem",borderRadius:8,
+            background:"var(--surface2)",border:"1px solid var(--border)"}}>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
+              color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:".06em",
+              marginBottom:".6rem"}}>
+              📥 Importar nuevos códigos en lote
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr auto",
+              gap:".5rem",marginBottom:".5rem",alignItems:"start"}}>
+              <div>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+                  color:"var(--text-dim)",marginBottom:".25rem"}}>
+                  Un código por línea (o separados por comas/espacios)
+                </div>
+                <textarea
+                  value={importText}
+                  onChange={e=>setImportText(e.target.value)}
+                  placeholder={"CODIGO1\nCODIGO2\nCODIGO3\n..."}
+                  rows={4}
+                  style={{width:"100%",background:"var(--surface)",
+                    border:"1px solid var(--border)",borderRadius:6,
+                    color:"var(--text)",padding:".45rem .6rem",
+                    fontFamily:"var(--font-mono)",fontSize:".75rem",
+                    outline:"none",resize:"vertical",boxSizing:"border-box"}} />
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:".4rem",minWidth:100}}>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+                  color:"var(--text-dim)"}}>Distancia</div>
+                {["TG7","TG13","TG25"].map(d=>(
+                  <button key={d} onClick={()=>setImportDist(d)}
+                    style={{padding:".3rem .6rem",borderRadius:6,cursor:"pointer",
+                      fontFamily:"var(--font-mono)",fontSize:".68rem",fontWeight:700,
+                      border:`1px solid ${importDist===d?"var(--cyan)":"var(--border)"}`,
+                      background:importDist===d?"var(--cyan-dim)":"transparent",
+                      color:importDist===d?"var(--cyan)":"var(--text-muted)"}}>
+                    {d}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div style={{display:"flex",gap:".5rem",alignItems:"center"}}>
+              <button
+                onClick={()=>{
+                  const lineas = importText
+                    .split(/[,\s\n\r]+/)
+                    .map(l=>l.trim().toUpperCase())
+                    .filter(l=>l.length>0);
+                  if (!lineas.length) return;
+                  const existentes = new Set(codigos.map(c=>c.codigo));
+                  const nuevos = lineas
+                    .filter(cod=>!existentes.has(cod))
+                    .map(cod=>({
+                      id: cod+"-"+Date.now()+Math.random().toString(36).slice(2,5),
+                      codigo:cod, distancia:importDist,
+                      estado:"disponible", usadoPor:null, fechaUso:null
+                    }));
+                  if (!nuevos.length) {
+                    setImportMsg2({tipo:"error",texto:"Todos los códigos ya existen."});
+                    return;
+                  }
+                  setCodigos(prev=>[...prev,...nuevos]);
+                  setImportText("");
+                  setImportMsg2({tipo:"ok",texto:`✓ ${nuevos.length} código${nuevos.length>1?"s":""} importados para ${importDist}${lineas.length-nuevos.length>0?` (${lineas.length-nuevos.length} ya existían)`:""}.`});
+                }}
+                className="btn btn-primary btn-sm"
+                disabled={!importText.trim()}
+                style={{opacity:importText.trim()?1:.5}}>
+                Importar {importText.trim().split(/[,\s\n\r]+/).filter(l=>l.trim()).length>0
+                  ? `(${importText.trim().split(/[,\s]+/).filter(l=>l.trim()).length} códigos)`
+                  : ""}
+              </button>
+              {importMsg2 && (
+                <div style={{fontFamily:"var(--font-mono)",fontSize:".62rem",
+                  color:importMsg2.tipo==="ok"?"var(--green)":"var(--red)",
+                  display:"flex",alignItems:"center",gap:".35rem"}}>
+                  {importMsg2.texto}
+                  <button onClick={()=>setImportMsg2(null)}
+                    style={{background:"none",border:"none",cursor:"pointer",
+                      color:"var(--text-dim)",fontSize:".7rem"}}>✕</button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

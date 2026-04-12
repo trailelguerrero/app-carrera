@@ -2477,25 +2477,19 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
   const [expanded, setExpanded] = useState(null);
 
   // Leer precio unitario real de medalla del presupuesto
-  const conceptoMedalla = conceptosPres.find(c =>
-    /medalla/i.test(c.nombre) && c.tipo === "variable"
-  );
-  // Precio medio ponderado entre distancias activas
+  // Buscar concepto medalla — variable o fijo
+  const conceptoMedalla = conceptosPres.find(c => /medalla/i.test(c.nombre));
+  // Usar calcPrecioUnitario para obtener siempre el precio POR UNIDAD correcto
   const precioMedalla = conceptoMedalla
-    ? (() => {
-        const dists = ["TG7","TG13","TG25"].filter(d =>
-          conceptoMedalla.activoDistancias?.[d] && (conceptoMedalla.costePorDistancia?.[d]||0) > 0
-        );
-        if (!dists.length) return conceptoMedalla.costePorDistancia?.TG7 || 0;
-        const sum = dists.reduce((s,d) => s + (conceptoMedalla.costePorDistancia[d]||0), 0);
-        return sum / dists.length;
-      })()
+    ? calcPrecioUnitario(conceptoMedalla, material).precio
     : 0;
 
-  // Trofeos: concepto fijo — coste total / cantidad base (18 ud por defecto del presupuesto)
+  // Trofeos: fijo — precio unitario via calcPrecioUnitario (usa stock si está vinculado)
   const conceptoTrofeos = conceptosPres.find(c => /trofeo/i.test(c.nombre));
-  const costeTrofeoUnit = conceptoTrofeos && conceptoTrofeos.costeTotal > 0
-    ? conceptoTrofeos.costeTotal / 18   // 18 = 3 posiciones × 2 géneros × 3 distancias
+  const costeTrofeoUnit = conceptoTrofeos
+    ? (calcPrecioUnitario(conceptoTrofeos, material).precio ||
+       // Fallback: costeTotal / 18 si no hay material vinculado
+       (conceptoTrofeos.costeTotal > 0 ? conceptoTrofeos.costeTotal / 18 : 0))
     : 0;
 
   // Proveedores del directorio de Emergencias
