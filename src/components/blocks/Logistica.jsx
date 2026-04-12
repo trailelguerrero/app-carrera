@@ -2476,21 +2476,30 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
   const [delId, setDelId]   = useState(null);
   const [expanded, setExpanded] = useState(null);
 
-  // Leer precio unitario real de medalla del presupuesto
-  // Buscar concepto medalla — variable o fijo
-  const conceptoMedalla = conceptosPres.find(c => /medalla/i.test(c.nombre));
-  // Usar calcPrecioUnitario para obtener siempre el precio POR UNIDAD correcto
-  const precioMedalla = conceptoMedalla
-    ? calcPrecioUnitario(conceptoMedalla, material).precio
-    : 0;
+  // Precio unitario de medalla: buscar PRIMERO en conceptos variables (€/corredor)
+  // Un concepto fijo "Medallas Zamac" es el precio de compra al proveedor — diferente.
+  const conceptoMedalla = conceptosPres.find(c =>
+    /medalla/i.test(c.nombre) && c.tipo === "variable"
+  ) || conceptosPres.find(c => /medalla/i.test(c.nombre));
 
-  // Trofeos: fijo — precio unitario via calcPrecioUnitario (usa stock si está vinculado)
+  const precioMedalla = (() => {
+    if (!conceptoMedalla) return 0;
+    if (conceptoMedalla.tipo === "variable") {
+      // Variable: usar costePorDistancia — ya es €/unidad
+      return calcPrecioUnitario(conceptoMedalla, material).precio;
+    }
+    // Fijo: solo si hay material vinculado con stock > 0
+    const { precio } = calcPrecioUnitario(conceptoMedalla, material);
+    return precio; // será 0 si no hay vínculo de material
+  })();
+
+  // Trofeos: concepto fijo — precio unitario solo si hay material vinculado con stock
   const conceptoTrofeos = conceptosPres.find(c => /trofeo/i.test(c.nombre));
   const costeTrofeoUnit = conceptoTrofeos
-    ? (calcPrecioUnitario(conceptoTrofeos, material).precio ||
-       // Fallback: costeTotal / 18 si no hay material vinculado
-       (conceptoTrofeos.costeTotal > 0 ? conceptoTrofeos.costeTotal / 18 : 0))
+    ? calcPrecioUnitario(conceptoTrofeos, material).precio
     : 0;
+  // El coste total de trofeos para referencia en el panel
+  const costeTrofeoTotal = conceptoTrofeos?.costeTotal || 0;
 
   // Proveedores del directorio de Emergencias
   const proveedores = (Array.isArray(cont) ? cont : []).filter(c => c.tipo === "proveedor");
@@ -2903,7 +2912,8 @@ function SugerenciasMedallas({ inscritos, totalInscritos, precioMedalla, concept
             articulos:[{
               nombre:"Medalla finisher",
               cantidad: cantidadSugerida,
-              precioUnit: precioMedalla,
+              precioUnit: precioMedalla,  // 0 si es fijo sin stock vinculado
+              esFijo: false, // medalla es variable por corredor
               notas:`Base: ${baseTotal} inscritos + ${extra} margen`
             }],
             importeEstimado: costeEstimado,
@@ -2928,25 +2938,35 @@ function SugerenciasMedallas({ inscritos, totalInscritos, precioMedalla, concept
 // - Fijo sin vínculo: 0 (el usuario debe introducirlo manualmente)
 function calcPrecioUnitario(concepto, material=[]) {
   if (!concepto) return { precio:0, esFijo:false, costeTotal:0 };
+
   if (concepto.tipo === "variable") {
+    // Variable: costePorDistancia ya es precio €/unidad (€/corredor)
     const dists = ["TG7","TG13","TG25"].filter(d =>
       concepto.activoDistancias?.[d] && (concepto.costePorDistancia?.[d]||0) > 0
     );
-    if (!dists.length) return { precio: 0, esFijo:false, costeTotal:0 };
-    const media = dists.reduce((s,d)=>s+(concepto.costePorDistancia[d]||0),0) / dists.length;
-    return { precio: media, esFijo: false, costeTotal: 0 };
+    if (!dists.length) return { precio: 0, esFijo: false, costeTotal: 0 };
+    // Si es uniforme usar TG7, sino media de distancias activas
+    const precio = concepto.modoUniforme
+      ? (concepto.costePorDistancia?.TG7 || 0)
+      : dists.reduce((s,d) => s + (concepto.costePorDistancia[d]||0), 0) / dists.length;
+    return { precio, esFijo: false, costeTotal: 0 };
   }
-  // Concepto FIJO: el presupuesto guarda el coste TOTAL del lote, no el unitario.
-  // Devolvemos esFijo:true para que el formulario trate el campo como "Importe total"
-  // y calcule el precioUnit dinámicamente como costeTotal / cantidad.
+
+  // Concepto FIJO: costeTotal es el precio del LOTE COMPLETO.
+  // El precio unitario solo se puede conocer si hay un artículo de Material vinculado con stock.
+  // Si no hay vínculo, precio=0 — el usuario lo introduce manualmente.
   const matVinculado = material.find(m => m.presupuestoConceptoId === concepto.id);
   const unidades = matVinculado?.stock || 0;
-  return {
-    precio: unidades > 0 ? concepto.costeTotal / unidades : concepto.costeTotal,
-    esFijo: true,
-    costeTotal: concepto.costeTotal,
-    unidades,
-  };
+  if (unidades > 0) {
+    return {
+      precio: concepto.costeTotal / unidades,
+      esFijo: true,
+      costeTotal: concepto.costeTotal,
+      unidades,
+    };
+  }
+  // Sin vínculo: precio unitario desconocido → el usuario lo introduce
+  return { precio: 0, esFijo: true, costeTotal: concepto.costeTotal, unidades: 0 };
 }
 
 function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, material=[], conceptosPres=[] }) {
