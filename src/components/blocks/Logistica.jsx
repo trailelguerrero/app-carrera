@@ -1036,8 +1036,9 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
   );
 }
 
-function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal}) {
-  const diasHasta = Math.ceil((EVENT_DATE - new Date()) / 86400000);
+function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,config}) {
+  const eventFecha = config?.fecha ? new Date(config.fecha) : new Date("2026-08-29");
+  const diasHasta = Math.ceil((eventFecha - new Date()) / 86400000);
   const faseActiva = (() => {
     if (diasHasta < 0)    return "Post-carrera";
     if (diasHasta <= 1)   return "Mañana carrera";
