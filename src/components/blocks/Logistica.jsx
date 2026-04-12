@@ -2779,25 +2779,46 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
                       </div>
                     )}
 
-                    {/* Acciones */}
-                    <div style={{display:"flex",gap:".4rem",justifyContent:"flex-end",
-                      paddingTop:".25rem",borderTop:"1px solid var(--border)"}}>
-                      {ESTADOS_PEDIDO.map(e => (
-                        <button key={e.id}
-                          className={`btn btn-sm ${p.estado===e.id?"btn-primary":"btn-ghost"}`}
-                          style={{fontSize:".6rem",
-                            ...(p.estado===e.id?{}:{color:e.color})}}
-                          onClick={()=>setPedidos(prev=>prev.map(x=>x.id===p.id?{...x,estado:e.id}:x))}>
-                          {e.label}
-                        </button>
-                      ))}
-                      <button className="btn btn-ghost btn-sm"
-                        style={{fontSize:".6rem",marginLeft:".25rem"}}
-                        onClick={()=>abrirEditar(p)}>✏️ Editar</button>
-                      <button className="btn btn-sm"
-                        style={{fontSize:".6rem",color:"var(--red)",
-                          background:"var(--red-dim)",border:"1px solid rgba(248,113,113,.25)"}}
-                        onClick={()=>setDelId(p.id)}>✕</button>
+                    {/* Acciones — estado a la izquierda, editar/borrar a la derecha */}
+                    <div style={{display:"flex",gap:".4rem",
+                      paddingTop:".25rem",borderTop:"1px solid var(--border)",
+                      flexWrap:"wrap",alignItems:"center"}}>
+                      {/* Segmented control de estado */}
+                      <div style={{display:"flex",background:"var(--surface2)",
+                        border:"1px solid var(--border)",borderRadius:7,overflow:"hidden",
+                        flex:"1 1 auto"}}>
+                        {ESTADOS_PEDIDO.map(e => (
+                          <button key={e.id}
+                            style={{flex:1,padding:".28rem .35rem",border:"none",
+                              cursor:"pointer",fontFamily:"var(--font-mono)",
+                              fontSize:".58rem",fontWeight:700,whiteSpace:"nowrap",
+                              background: p.estado===e.id ? e.bg : "transparent",
+                              color: p.estado===e.id ? e.color : "var(--text-dim)",
+                              transition:"background .12s,color .12s",
+                            }}
+                            onClick={()=>setPedidos(prev=>prev.map(x=>x.id===p.id?{...x,estado:e.id}:x))}>
+                            {e.label}
+                          </button>
+                        ))}
+                      </div>
+                      {/* Editar + Eliminar */}
+                      <div style={{display:"flex",gap:".3rem",flexShrink:0}}>
+                        <button
+                          style={{display:"flex",alignItems:"center",justifyContent:"center",
+                            width:36,height:36,borderRadius:7,cursor:"pointer",
+                            background:"var(--surface3)",border:"1px solid var(--border)",
+                            color:"var(--text-muted)",fontSize:".78rem"}}
+                          title="Editar pedido"
+                          onClick={()=>abrirEditar(p)}>✏️</button>
+                        <button
+                          style={{display:"flex",alignItems:"center",justifyContent:"center",
+                            width:36,height:36,borderRadius:7,cursor:"pointer",
+                            background:"rgba(248,113,113,.1)",
+                            border:"1px solid rgba(248,113,113,.25)",
+                            color:"var(--red)",fontSize:".78rem",fontWeight:700}}
+                          title="Eliminar pedido"
+                          onClick={()=>setDelId(p.id)}>✕</button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -2852,153 +2873,220 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
 }
 
 // ── Panel de sugerencias automáticas de medallas ──────────────────────────────
-function SugerenciasMedallas({ inscritos, totalInscritos, precioMedalla, conceptoMedalla, pedidos, onCrear }) {
-  const [margen, setMargen] = useState(20); // unidades extra por defecto
-  const [modo, setModo]     = useState("fijo"); // "fijo" | "pct"
+function SugerenciasMedallas({ inscritos, totalInscritos, precioMedalla, conceptoMedalla, pedidos, onCrear, onEliminar }) {
+  const [margen, setMargen]       = useState(20);
+  const [modo,   setModo]         = useState("fijo");
+  const [collapsed, setCollapsed] = useState(false);
 
-  const baseTotal = totalInscritos || 0;
-  const extra = modo === "pct"
-    ? Math.ceil(baseTotal * margen / 100)
-    : margen;
+  const baseTotal       = totalInscritos || 0;
+  const extra           = modo === "pct" ? Math.ceil(baseTotal * margen / 100) : margen;
   const cantidadSugerida = baseTotal + extra;
   const costeEstimado    = cantidadSugerida * precioMedalla;
 
-  // ¿Ya hay un pedido de medallas confirmado?
   const pedidoExistente = pedidos.find(p =>
     p.articulos?.some(a => /medalla/i.test(a.nombre)) && p.estado !== "borrador"
   );
 
+  // El pedido sugerido guardado (si existe en la lista)
+  const pedidoGuardado = pedidos.find(p => p._esSugerido);
+
   return (
-    <div className="card mb" style={{borderLeft:"3px solid var(--amber)",marginBottom:".85rem"}}>
-      <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
-        color:"var(--amber)",textTransform:"uppercase",letterSpacing:".08em",
-        marginBottom:".6rem",display:"flex",alignItems:"center",gap:".5rem"}}>
-        🏅 Pedido sugerido — Medallas finisher
-        {pedidoExistente && (
-          <span style={{fontSize:".55rem",padding:".1rem .4rem",borderRadius:3,
-            background:"var(--green-dim)",color:"var(--green)",
-            border:"1px solid rgba(52,211,153,.25)"}}>
-            ✓ Ya hay un pedido confirmado
-          </span>
-        )}
-      </div>
+    <div className="card mb" style={{padding:0,overflow:"hidden",
+      borderLeft:"3px solid var(--amber)",marginBottom:".5rem"}}>
 
-      {/* Desglose por distancia */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",
-        gap:".4rem",marginBottom:".65rem"}}>
-        {["TG7","TG13","TG25"].map(d => (
-          <div key={d} style={{padding:".45rem .6rem",borderRadius:7,
-            background:"var(--surface2)",border:"1px solid var(--border)"}}>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
-              color:"var(--text-muted)",marginBottom:".15rem"}}>{d}</div>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:".9rem",
-              fontWeight:800,color:"var(--amber)"}}>{inscritos?.[d]||0}</div>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
-              color:"var(--text-dim)"}}>inscritos</div>
+      {/* ── Cabecera — mismo patrón que pedidos guardados ── */}
+      <div style={{
+        display:"flex", alignItems:"center", gap:".65rem",
+        padding:".7rem .9rem", cursor:"pointer",
+        background:"rgba(251,191,36,.04)",
+      }} onClick={()=>setCollapsed(v=>!v)}>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:".5rem",flexWrap:"wrap"}}>
+            <span style={{fontWeight:700,fontSize:".82rem"}}>
+              🏅 Sugerencia — Medallas finisher
+            </span>
+            {pedidoExistente && (
+              <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                padding:".1rem .4rem",borderRadius:4,fontWeight:700,
+                background:"var(--green-dim)",color:"var(--green)",
+                border:"1px solid rgba(52,211,153,.2)"}}>
+                ✓ Pedido confirmado
+              </span>
+            )}
           </div>
-        ))}
+          <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+            color:"var(--text-muted)",marginTop:".1rem"}}>
+            {baseTotal} inscritos · sugerido: {cantidadSugerida} ud
+            {precioMedalla > 0 && ` · ${fmtEur(costeEstimado)} estimado`}
+          </div>
+        </div>
+        <div style={{textAlign:"right",flexShrink:0}}>
+          {precioMedalla > 0 ? (
+            <div style={{fontFamily:"var(--font-mono)",fontWeight:800,
+              fontSize:".85rem",color:"var(--amber)"}}>
+              {fmtEur(costeEstimado)}
+            </div>
+          ) : (
+            <div style={{fontFamily:"var(--font-mono)",fontSize:".68rem",
+              color:"var(--text-dim)"}}>sin precio</div>
+          )}
+          <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+            padding:".1rem .4rem",borderRadius:4,
+            background:"rgba(251,191,36,.15)",color:"var(--amber)",fontWeight:700}}>
+            Sugerido
+          </span>
+        </div>
+        <span style={{color:"var(--text-dim)",fontSize:".75rem",flexShrink:0,
+          transition:"transform .2s",transform:collapsed?"rotate(-90deg)":"rotate(0)"}}>
+          ▼
+        </span>
       </div>
 
-      {/* Cálculo con margen */}
-      <div style={{display:"flex",alignItems:"center",gap:".75rem",
-        flexWrap:"wrap",marginBottom:".65rem"}}>
-        <div style={{display:"flex",alignItems:"center",gap:".4rem"}}>
-          <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",
-            color:"var(--text-muted)"}}>Margen extra:</span>
-          <div style={{display:"flex",background:"var(--surface2)",
-            border:"1px solid var(--border)",borderRadius:6,overflow:"hidden"}}>
-            {[["fijo","ud"],["pct","%"]].map(([v,l])=>(
-              <button key={v} onClick={()=>setModo(v)}
-                style={{padding:".2rem .5rem",border:"none",cursor:"pointer",
-                  fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,
-                  background:modo===v?"rgba(251,191,36,.2)":"transparent",
-                  color:modo===v?"var(--amber)":"var(--text-muted)"}}>
-                {l}
-              </button>
+      {/* ── Detalle colapsable ── */}
+      {!collapsed && (
+        <div style={{borderTop:"1px solid var(--border)",
+          padding:".75rem .9rem",display:"flex",flexDirection:"column",gap:".65rem"}}>
+
+          {/* Desglose por distancia */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:".4rem"}}>
+            {["TG7","TG13","TG25"].map(d => (
+              <div key={d} style={{padding:".45rem .6rem",borderRadius:7,
+                background:"var(--surface2)",border:"1px solid var(--border)",
+                textAlign:"center"}}>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                  color:"var(--text-muted)",marginBottom:".1rem"}}>{d}</div>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:"1rem",
+                  fontWeight:800,color:"var(--amber)"}}>{inscritos?.[d]||0}</div>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+                  color:"var(--text-dim)"}}>inscritos</div>
+              </div>
             ))}
           </div>
-          <input type="number" min="0" max={modo==="pct"?100:500} value={margen}
-            onChange={e=>setMargen(Math.max(0,parseInt(e.target.value)||0))}
-            style={{width:52,background:"var(--surface2)",border:"1px solid var(--border)",
-              color:"var(--amber)",borderRadius:6,padding:".2rem .4rem",
-              fontFamily:"var(--font-mono)",fontSize:".72rem",textAlign:"right",outline:"none"}}
-          />
-          <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",
-            color:"var(--text-muted)"}}>{modo==="pct"?`% = +${extra} ud`:"ud extra"}</span>
-        </div>
-      </div>
 
-      {/* Resumen final */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
-        gap:"1rem",flexWrap:"wrap",padding:".55rem .75rem",borderRadius:8,
-        background:"rgba(251,191,36,.06)",border:"1px solid rgba(251,191,36,.2)"}}>
-        <div style={{display:"flex",gap:"1.5rem",flexWrap:"wrap"}}>
-          <div>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
-              color:"var(--text-muted)",textTransform:"uppercase"}}>
-              Base inscritos
+          {/* Margen */}
+          <div style={{display:"flex",alignItems:"center",gap:".5rem",flexWrap:"wrap"}}>
+            <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",
+              color:"var(--text-muted)",flexShrink:0}}>Margen extra:</span>
+            <div style={{display:"flex",background:"var(--surface2)",
+              border:"1px solid var(--border)",borderRadius:6,overflow:"hidden"}}>
+              {[["fijo","ud"],["pct","%"]].map(([v,l])=>(
+                <button key={v} onClick={e=>{e.stopPropagation();setModo(v);}}
+                  style={{padding:".22rem .55rem",border:"none",cursor:"pointer",
+                    fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,
+                    background:modo===v?"rgba(251,191,36,.2)":"transparent",
+                    color:modo===v?"var(--amber)":"var(--text-muted)"}}>
+                  {l}
+                </button>
+              ))}
             </div>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:".9rem",
-              fontWeight:800}}>{baseTotal}</div>
+            <input type="number" min="0" max={modo==="pct"?100:500} value={margen}
+              onClick={e=>e.stopPropagation()}
+              onChange={e=>setMargen(Math.max(0,parseInt(e.target.value)||0))}
+              style={{width:56,background:"var(--surface2)",border:"1px solid var(--border)",
+                color:"var(--amber)",borderRadius:6,padding:".22rem .4rem",
+                fontFamily:"var(--font-mono)",fontSize:".72rem",textAlign:"right",outline:"none"}}
+            />
+            <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",
+              color:"var(--text-muted)"}}>
+              {modo==="pct" ? `% = +${extra} ud` : "ud extra"}
+            </span>
           </div>
-          <div>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
-              color:"var(--text-muted)",textTransform:"uppercase"}}>
-              + Margen
-            </div>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:".9rem",
-              fontWeight:800,color:"var(--amber)"}}>+{extra}</div>
-          </div>
-          <div>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
-              color:"var(--amber)",textTransform:"uppercase",fontWeight:700}}>
-              = Pedir al proveedor
-            </div>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:"1.1rem",
-              fontWeight:800,color:"var(--amber)"}}>{cantidadSugerida}</div>
-          </div>
-          <div>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
-              color:"var(--text-muted)",textTransform:"uppercase"}}>
-              Coste estimado
-              {precioMedalla>0 && (
-                <span style={{marginLeft:".3rem",color:"var(--text-dim)"}}>
-                  ({fmtEur(precioMedalla)}/ud)
-                </span>
+
+          {/* Resumen */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+            gap:"1rem",flexWrap:"wrap",padding:".55rem .75rem",borderRadius:8,
+            background:"rgba(251,191,36,.06)",border:"1px solid rgba(251,191,36,.18)"}}>
+            <div style={{display:"flex",gap:"1.5rem",flexWrap:"wrap"}}>
+              <div>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                  color:"var(--text-muted)",textTransform:"uppercase",
+                  letterSpacing:".06em",marginBottom:".15rem"}}>
+                  BASE INSCRITOS
+                </div>
+                <div style={{fontFamily:"var(--font-mono)",fontWeight:800,fontSize:"1rem"}}>
+                  {baseTotal}
+                </div>
+              </div>
+              <div>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                  color:"var(--text-muted)",textTransform:"uppercase",
+                  letterSpacing:".06em",marginBottom:".15rem"}}>
+                  + MARGEN
+                </div>
+                <div style={{fontFamily:"var(--font-mono)",fontWeight:800,fontSize:"1rem",
+                  color:"var(--amber)"}}>
+                  +{extra}
+                </div>
+              </div>
+              <div>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                  color:"var(--text-muted)",textTransform:"uppercase",
+                  letterSpacing:".06em",marginBottom:".15rem"}}>
+                  = PEDIR AL PROVEEDOR
+                </div>
+                <div style={{fontFamily:"var(--font-mono)",fontWeight:800,fontSize:"1rem",
+                  color:"var(--cyan)"}}>
+                  {cantidadSugerida}
+                </div>
+              </div>
+              {precioMedalla > 0 && (
+                <div>
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                    color:"var(--text-muted)",textTransform:"uppercase",
+                    letterSpacing:".06em",marginBottom:".15rem"}}>
+                    COSTE ESTIMADO ({fmtEur(precioMedalla)}/UD)
+                  </div>
+                  <div style={{fontFamily:"var(--font-mono)",fontWeight:800,fontSize:"1rem",
+                    color:"var(--amber)"}}>
+                    {fmtEur(costeEstimado)}
+                  </div>
+                </div>
               )}
             </div>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:".9rem",
-              fontWeight:800,color:"var(--cyan)"}}>
-              {precioMedalla > 0 ? fmtEur(costeEstimado) : "— (sin precio en presupuesto)"}
-            </div>
+          </div>
+
+          {/* Acciones — mismo patrón que pedidos guardados */}
+          <div style={{display:"flex",gap:".4rem",justifyContent:"flex-end",
+            paddingTop:".25rem",borderTop:"1px solid var(--border)",flexWrap:"wrap"}}>
+            <button className="btn btn-ghost btn-sm"
+              style={{fontSize:".6rem",color:"var(--text-muted)"}}
+              onClick={e=>{e.stopPropagation();setCollapsed(true);}}>
+              Colapsar
+            </button>
+            <button className="btn btn-sm"
+              style={{fontSize:".6rem",
+                background:"rgba(251,191,36,.15)",color:"var(--amber)",
+                border:"1px solid rgba(251,191,36,.3)",marginLeft:"auto"}}
+              onClick={e=>{
+                e.stopPropagation();
+                onCrear({
+                  _sugerido: true,
+                  nombre:"Pedido medallas finisher",
+                  articulos:[{
+                    nombre:"Medalla finisher",
+                    cantidad: cantidadSugerida,
+                    precioUnit: precioMedalla,
+                    esFijo: false,
+                    notas:`Base: ${baseTotal} inscritos + ${extra} margen`
+                  }],
+                  importeEstimado: costeEstimado,
+                  importeTotal: costeEstimado,
+                  estado:"borrador",
+                  fechaEntrega:"",
+                  proveedor:"",
+                  notas:`Generado automáticamente. Base: ${baseTotal} inscritos (TG7:${inscritos?.TG7||0} + TG13:${inscritos?.TG13||0} + TG25:${inscritos?.TG25||0}) + ${extra} ud de margen.`,
+                  factura:null,
+                });
+              }}>
+              Crear pedido con esta cantidad →
+            </button>
           </div>
         </div>
-        <button className="btn btn-amber btn-sm"
-          style={{flexShrink:0,fontFamily:"var(--font-mono)",fontSize:".68rem"}}
-          onClick={()=>onCrear({
-            _sugerido: true,
-            nombre:"Pedido medallas finisher",
-            articulos:[{
-              nombre:"Medalla finisher",
-              cantidad: cantidadSugerida,
-              precioUnit: precioMedalla,  // 0 si es fijo sin stock vinculado
-              esFijo: false, // medalla es variable por corredor
-              notas:`Base: ${baseTotal} inscritos + ${extra} margen`
-            }],
-            importeEstimado: costeEstimado,
-            importeTotal: costeEstimado,
-            estado:"borrador",
-            fechaEntrega:"",
-            proveedor:"",
-            notas:`Generado automáticamente. Base: ${baseTotal} inscritos (TG7:${inscritos?.TG7||0} + TG13:${inscritos?.TG13||0} + TG25:${inscritos?.TG25||0}) + ${extra} ud de margen.`,
-            factura:null,
-          })}>
-          Crear pedido con esta cantidad →
-        </button>
-      </div>
+      )}
     </div>
   );
 }
+
 
 // ── Modal crear/editar pedido ─────────────────────────────────────────────────
 // Calcula el precio UNITARIO correcto de un concepto del presupuesto
