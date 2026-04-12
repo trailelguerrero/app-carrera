@@ -156,6 +156,15 @@ export default function App() {
   const ck = Array.isArray(rawCk) ? rawCk : [];
   // Localizaciones maestras compartidas
   const [rawLocs, setLocs] = useData(LOCS_KEY, LOCS_DEFAULT_SHARED);
+
+  // ── Pedidos a proveedores ──────────────────────────────────────────────────
+  const [rawPedidosProv, setPedidosProv] = useData(LS+"_pedidos_prov", []);
+  const pedidosProv = Array.isArray(rawPedidosProv) ? rawPedidosProv : [];
+
+  // Conceptos REALES del presupuesto (el usuario puede haberlos editado)
+  const [rawConceptos] = useData("teg_presupuesto_v1_conceptos", []);
+  const conceptosPres = Array.isArray(rawConceptos) && rawConceptos.length > 0
+    ? rawConceptos : [];
   const locs = Array.isArray(rawLocs) ? rawLocs : [];
   // Patrocinadores (solo lectura) para sección especie en material
   const [rawPats] = useData("teg_patrocinadores_v1_pats", []);
@@ -224,6 +233,7 @@ export default function App() {
     {id:"timeline",icon:"⏱️",label:"Timeline"},
     {id:"contactos",icon:"🚨",label:"Emergencias"},
     {id:"checklist",icon:"✅",label:"Checklist"},
+    {id:"pedidos",icon:"🛒",label:"Pedidos"},
   ];
   const TABS_CONFIG = [
     {id:"localizaciones",icon:"📍",label:"Localizaciones"},
@@ -300,6 +310,20 @@ export default function App() {
           {tab==="contactos" && <TabCont cont={cont} setCont={setCont} inc={inc} setInc={setInc} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCont} setOrdenAlfa={setOrdenCont} />}
           {tab==="checklist" && <TabCK ck={ck} setCk={setCk} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCK} setOrdenAlfa={setOrdenCK} config={config} />}
           {tab==="localizaciones" && <TabLocalizaciones locs={locs} setLocs={setLocs} volsPorLoc={volsPorLoc} />}
+          {tab==="pedidos" && <TabPedidosProv
+            pedidos={pedidosProv} setPedidos={setPedidosProv}
+            cont={cont}
+            totalInscritos={totalInscritos}
+            inscritos={(() => {
+              const tramos = Array.isArray(rawTramos) ? rawTramos : [];
+              const ins = {};
+              ["TG7","TG13","TG25"].forEach(d => {
+                ins[d] = tramos.reduce((s,t) => s + (rawInscritos?.tramos?.[t.id]?.[d]||0), 0);
+              });
+              return ins;
+            })()}
+            conceptosPres={conceptosPres}
+          />}
         </div>
       </div>
 
@@ -1777,3 +1801,664 @@ const CSS = `
   .log-reorder span:active{transform:scale(.9)}
   .muted{color:var(--text-muted)}
 `;
+
+
+// ─── TAB PEDIDOS A PROVEEDORES ────────────────────────────────────────────────
+const ESTADOS_PEDIDO = [
+  { id:"borrador",    label:"Borrador",    color:"var(--text-muted)", bg:"var(--surface2)" },
+  { id:"confirmado",  label:"Confirmado",  color:"var(--cyan)",       bg:"var(--cyan-dim)" },
+  { id:"recibido",    label:"Recibido",    color:"var(--green)",      bg:"var(--green-dim)" },
+  { id:"facturado",   label:"Facturado",   color:"var(--violet)",     bg:"var(--violet-dim)" },
+];
+const ESTADOS_FACTURA = [
+  { id:"pendiente", label:"Pendiente", color:"var(--amber)" },
+  { id:"pagada",    label:"Pagada",    color:"var(--green)" },
+];
+const genPedidoId = (arr) => arr.length ? Math.max(...arr.map(x=>x.id||0))+1 : 1;
+const fmtEur = (n) => new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR",minimumFractionDigits:2}).format(n||0);
+
+function TabPedidosProv({ pedidos, setPedidos, cont, totalInscritos, inscritos, conceptosPres }) {
+  const [modal, setModal]   = useState(null); // null | "nuevo" | {pedido}
+  const [delId, setDelId]   = useState(null);
+  const [expanded, setExpanded] = useState(null);
+
+  // Leer precio unitario real de medalla del presupuesto
+  const conceptoMedalla = conceptosPres.find(c =>
+    /medalla/i.test(c.nombre) && c.tipo === "variable"
+  );
+  // Precio medio ponderado entre distancias activas
+  const precioMedalla = conceptoMedalla
+    ? (() => {
+        const dists = ["TG7","TG13","TG25"].filter(d =>
+          conceptoMedalla.activoDistancias?.[d] && (conceptoMedalla.costePorDistancia?.[d]||0) > 0
+        );
+        if (!dists.length) return conceptoMedalla.costePorDistancia?.TG7 || 0;
+        const sum = dists.reduce((s,d) => s + (conceptoMedalla.costePorDistancia[d]||0), 0);
+        return sum / dists.length;
+      })()
+    : 0;
+
+  // Trofeos: concepto fijo — coste total / cantidad base (18 ud por defecto del presupuesto)
+  const conceptoTrofeos = conceptosPres.find(c => /trofeo/i.test(c.nombre));
+  const costeTrofeoUnit = conceptoTrofeos && conceptoTrofeos.costeTotal > 0
+    ? conceptoTrofeos.costeTotal / 18   // 18 = 3 posiciones × 2 géneros × 3 distancias
+    : 0;
+
+  // Proveedores del directorio de Emergencias
+  const proveedores = (Array.isArray(cont) ? cont : []).filter(c => c.tipo === "proveedor");
+
+  const totalPedidos = pedidos.length;
+  const pendFactura  = pedidos.filter(p => p.estado === "recibido" && !p.factura?.numero).length;
+  const totalComprometido = pedidos
+    .filter(p => p.estado !== "borrador")
+    .reduce((s,p) => s + (p.importeTotal||0), 0);
+
+  const abrirNuevo = () => setModal("nuevo");
+  const abrirEditar = (p) => setModal(p);
+  const guardar = (p) => {
+    if (p.id) setPedidos(prev => prev.map(x => x.id===p.id ? p : x));
+    else setPedidos(prev => [...prev, { ...p, id: genPedidoId(prev) }]);
+    setModal(null);
+  };
+  const eliminar = () => {
+    setPedidos(prev => prev.filter(x => x.id !== delId));
+    setDelId(null);
+  };
+
+  return (
+    <>
+      <div className="ph">
+        <div>
+          <div className="pt">🛒 Pedidos a Proveedores</div>
+          <div className="pd">
+            {totalPedidos} pedido{totalPedidos!==1?"s":""} ·{" "}
+            {fmtEur(totalComprometido)} comprometido
+            {pendFactura > 0 && <span style={{color:"var(--amber)",marginLeft:".5rem"}}>· ⚠ {pendFactura} sin factura</span>}
+          </div>
+        </div>
+        <button className="btn btn-primary" onClick={abrirNuevo}>+ Nuevo pedido</button>
+      </div>
+
+      {/* ── Sugerencias automáticas ── */}
+      <SugerenciasMedallas
+        inscritos={inscritos}
+        totalInscritos={totalInscritos}
+        precioMedalla={precioMedalla}
+        conceptoMedalla={conceptoMedalla}
+        pedidos={pedidos}
+        onCrear={(sugerido) => setModal(sugerido)}
+      />
+
+      {/* ── Lista de pedidos ── */}
+      {pedidos.length === 0 ? (
+        <div className="card" style={{textAlign:"center",padding:"2.5rem 1rem",
+          color:"var(--text-dim)",fontFamily:"var(--font-mono)",fontSize:".75rem"}}>
+          <div style={{fontSize:"2rem",marginBottom:".5rem",opacity:.35}}>🛒</div>
+          Sin pedidos aún. Usa las sugerencias de arriba o crea uno manualmente.
+        </div>
+      ) : (
+        <div style={{display:"flex",flexDirection:"column",gap:".5rem"}}>
+          {pedidos.map(p => {
+            const est = ESTADOS_PEDIDO.find(e=>e.id===p.estado)||ESTADOS_PEDIDO[0];
+            const isExp = expanded===p.id;
+            const desvPct = p.importeEstimado && p.factura?.importe
+              ? ((p.factura.importe - p.importeEstimado) / p.importeEstimado * 100)
+              : null;
+            return (
+              <div key={p.id} className="card" style={{padding:0,overflow:"hidden"}}>
+                {/* Cabecera clickable */}
+                <div style={{display:"flex",alignItems:"center",gap:".6rem",
+                  padding:".7rem .9rem",cursor:"pointer",
+                  borderLeft:`3px solid ${est.color}`}}
+                  onClick={()=>setExpanded(isExp?null:p.id)}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:700,fontSize:".82rem"}}>{p.nombre}</div>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+                      color:"var(--text-muted)",marginTop:".1rem"}}>
+                      {p.proveedor||"Sin proveedor"} · {p.articulos?.length||0} artículo{p.articulos?.length!==1?"s":""}
+                    </div>
+                  </div>
+                  <div style={{textAlign:"right",flexShrink:0}}>
+                    <div style={{fontFamily:"var(--font-mono)",fontWeight:800,
+                      fontSize:".85rem",color:est.color}}>
+                      {fmtEur(p.importeTotal||0)}
+                    </div>
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                      padding:".1rem .4rem",borderRadius:4,
+                      background:est.bg,color:est.color,fontWeight:700}}>
+                      {est.label}
+                    </span>
+                  </div>
+                  <span style={{color:"var(--text-dim)",fontSize:".7rem",flexShrink:0}}>
+                    {isExp?"▲":"▼"}
+                  </span>
+                </div>
+
+                {/* Detalle expandible */}
+                {isExp && (
+                  <div style={{borderTop:"1px solid var(--border)",
+                    padding:".75rem .9rem",display:"flex",flexDirection:"column",gap:".6rem"}}>
+
+                    {/* Artículos */}
+                    {(p.articulos||[]).length > 0 && (
+                      <div>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                          color:"var(--text-muted)",textTransform:"uppercase",
+                          letterSpacing:".06em",marginBottom:".35rem"}}>
+                          Artículos
+                        </div>
+                        <table style={{width:"100%",borderCollapse:"collapse",
+                          fontFamily:"var(--font-mono)",fontSize:".72rem"}}>
+                          <thead>
+                            <tr style={{borderBottom:"1px solid var(--border)"}}>
+                              <th style={{textAlign:"left",padding:".2rem .4rem",
+                                fontWeight:600,color:"var(--text-muted)"}}>Artículo</th>
+                              <th style={{textAlign:"right",padding:".2rem .4rem",
+                                fontWeight:600,color:"var(--text-muted)"}}>Cant.</th>
+                              <th style={{textAlign:"right",padding:".2rem .4rem",
+                                fontWeight:600,color:"var(--text-muted)"}}>€/ud</th>
+                              <th style={{textAlign:"right",padding:".2rem .4rem",
+                                fontWeight:600,color:"var(--text-muted)"}}>Total</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {p.articulos.map((a,i) => (
+                              <tr key={i} style={{borderBottom:"1px solid rgba(255,255,255,.04)"}}>
+                                <td style={{padding:".3rem .4rem"}}>{a.nombre}</td>
+                                <td style={{textAlign:"right",padding:".3rem .4rem",
+                                  fontWeight:700}}>{a.cantidad}</td>
+                                <td style={{textAlign:"right",padding:".3rem .4rem",
+                                  color:"var(--text-muted)"}}>{fmtEur(a.precioUnit)}</td>
+                                <td style={{textAlign:"right",padding:".3rem .4rem",
+                                  fontWeight:700,color:"var(--cyan)"}}>
+                                  {fmtEur(a.cantidad*a.precioUnit)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {/* Factura */}
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
+                      <div style={{padding:".55rem .7rem",borderRadius:8,
+                        background:"var(--surface2)",border:"1px solid var(--border)"}}>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                          color:"var(--text-muted)",marginBottom:".25rem"}}>
+                          📅 Entrega esperada
+                        </div>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:".75rem",fontWeight:700}}>
+                          {p.fechaEntrega||"—"}
+                        </div>
+                      </div>
+                      <div style={{padding:".55rem .7rem",borderRadius:8,
+                        background: p.factura?.numero?"var(--green-dim)":"var(--surface2)",
+                        border:`1px solid ${p.factura?.numero?"rgba(52,211,153,.25)":"var(--border)"}`}}>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                          color:"var(--text-muted)",marginBottom:".25rem"}}>
+                          🧾 Factura
+                        </div>
+                        {p.factura?.numero ? (
+                          <div>
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:".72rem",fontWeight:700}}>
+                              {p.factura.numero}
+                            </div>
+                            <div style={{display:"flex",alignItems:"center",gap:".4rem",marginTop:".1rem"}}>
+                              <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",
+                                color:"var(--text-muted)"}}>
+                                {fmtEur(p.factura.importe)}
+                              </span>
+                              {desvPct!==null && Math.abs(desvPct)>0.5 && (
+                                <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                                  color:desvPct>0?"var(--red)":"var(--green)",fontWeight:700}}>
+                                  {desvPct>0?"+":""}{desvPct.toFixed(1)}% vs estimado
+                                </span>
+                              )}
+                              {desvPct!==null && Math.abs(desvPct)<=0.5 && (
+                                <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                                  color:"var(--green)",fontWeight:700}}>✓ Sin desviación</span>
+                              )}
+                            </div>
+                            <div style={{marginTop:".15rem"}}>
+                              {ESTADOS_FACTURA.map(e => (
+                                <span key={e.id} style={{
+                                  fontFamily:"var(--font-mono)",fontSize:".58rem",
+                                  padding:".08rem .35rem",borderRadius:3,marginRight:".25rem",
+                                  fontWeight:700,cursor:"pointer",
+                                  background: p.factura.estado===e.id ? e.color+"22" : "transparent",
+                                  color: p.factura.estado===e.id ? e.color : "var(--text-dim)",
+                                  border:`1px solid ${p.factura.estado===e.id?e.color+"44":"transparent"}`,
+                                }} onClick={()=>{
+                                  const upd={...p,factura:{...p.factura,estado:e.id}};
+                                  setPedidos(prev=>prev.map(x=>x.id===p.id?upd:x));
+                                }}>{e.label}</span>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{fontFamily:"var(--font-mono)",fontSize:".68rem",
+                            color:"var(--text-dim)"}}>Sin factura registrada</div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Notas */}
+                    {p.notas && (
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:".65rem",
+                        color:"var(--text-muted)",padding:".4rem .6rem",
+                        background:"var(--surface2)",borderRadius:6,
+                        borderLeft:"2px solid var(--border)"}}>
+                        {p.notas}
+                      </div>
+                    )}
+
+                    {/* Acciones */}
+                    <div style={{display:"flex",gap:".4rem",justifyContent:"flex-end",
+                      paddingTop:".25rem",borderTop:"1px solid var(--border)"}}>
+                      {ESTADOS_PEDIDO.map(e => (
+                        <button key={e.id}
+                          className={`btn btn-sm ${p.estado===e.id?"btn-primary":"btn-ghost"}`}
+                          style={{fontSize:".6rem",
+                            ...(p.estado===e.id?{}:{color:e.color})}}
+                          onClick={()=>setPedidos(prev=>prev.map(x=>x.id===p.id?{...x,estado:e.id}:x))}>
+                          {e.label}
+                        </button>
+                      ))}
+                      <button className="btn btn-ghost btn-sm"
+                        style={{fontSize:".6rem",marginLeft:".25rem"}}
+                        onClick={()=>abrirEditar(p)}>✏️ Editar</button>
+                      <button className="btn btn-sm"
+                        style={{fontSize:".6rem",color:"var(--red)",
+                          background:"var(--red-dim)",border:"1px solid rgba(248,113,113,.25)"}}
+                        onClick={()=>setDelId(p.id)}>✕</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Modal nuevo/editar */}
+      {modal && modal !== "nuevo" && typeof modal === "object" && (
+        <ModalPedidoProv
+          data={modal._sugerido ? null : modal}
+          sugerido={modal._sugerido ? modal : null}
+          proveedores={proveedores}
+          onSave={guardar}
+          onClose={()=>setModal(null)}
+        />
+      )}
+      {modal === "nuevo" && (
+        <ModalPedidoProv
+          data={null} sugerido={null}
+          proveedores={proveedores}
+          onSave={guardar}
+          onClose={()=>setModal(null)}
+        />
+      )}
+
+      {/* Confirmar eliminar */}
+      {delId && (
+        <div className="modal-backdrop" style={{zIndex:200}}
+          onClick={e=>e.target===e.currentTarget&&setDelId(null)}>
+          <div className="modal" style={{maxWidth:320,textAlign:"center"}}>
+            <div className="modal-body" style={{paddingTop:"1.5rem"}}>
+              <div style={{fontSize:"2rem",marginBottom:".5rem"}}>⚠️</div>
+              <div style={{fontWeight:700}}>¿Eliminar pedido?</div>
+              <div className="mono xs muted">Esta acción no se puede deshacer.</div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={()=>setDelId(null)}>Cancelar</button>
+              <button className="btn btn-red" onClick={eliminar}>Eliminar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ── Panel de sugerencias automáticas de medallas ──────────────────────────────
+function SugerenciasMedallas({ inscritos, totalInscritos, precioMedalla, conceptoMedalla, pedidos, onCrear }) {
+  const [margen, setMargen] = useState(20); // unidades extra por defecto
+  const [modo, setModo]     = useState("fijo"); // "fijo" | "pct"
+
+  const baseTotal = totalInscritos || 0;
+  const extra = modo === "pct"
+    ? Math.ceil(baseTotal * margen / 100)
+    : margen;
+  const cantidadSugerida = baseTotal + extra;
+  const costeEstimado    = cantidadSugerida * precioMedalla;
+
+  // ¿Ya hay un pedido de medallas confirmado?
+  const pedidoExistente = pedidos.find(p =>
+    p.articulos?.some(a => /medalla/i.test(a.nombre)) && p.estado !== "borrador"
+  );
+
+  return (
+    <div className="card mb" style={{borderLeft:"3px solid var(--amber)",marginBottom:".85rem"}}>
+      <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
+        color:"var(--amber)",textTransform:"uppercase",letterSpacing:".08em",
+        marginBottom:".6rem",display:"flex",alignItems:"center",gap:".5rem"}}>
+        🏅 Pedido sugerido — Medallas finisher
+        {pedidoExistente && (
+          <span style={{fontSize:".55rem",padding:".1rem .4rem",borderRadius:3,
+            background:"var(--green-dim)",color:"var(--green)",
+            border:"1px solid rgba(52,211,153,.25)"}}>
+            ✓ Ya hay un pedido confirmado
+          </span>
+        )}
+      </div>
+
+      {/* Desglose por distancia */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",
+        gap:".4rem",marginBottom:".65rem"}}>
+        {["TG7","TG13","TG25"].map(d => (
+          <div key={d} style={{padding:".45rem .6rem",borderRadius:7,
+            background:"var(--surface2)",border:"1px solid var(--border)"}}>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+              color:"var(--text-muted)",marginBottom:".15rem"}}>{d}</div>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:".9rem",
+              fontWeight:800,color:"var(--amber)"}}>{inscritos?.[d]||0}</div>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+              color:"var(--text-dim)"}}>inscritos</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Cálculo con margen */}
+      <div style={{display:"flex",alignItems:"center",gap:".75rem",
+        flexWrap:"wrap",marginBottom:".65rem"}}>
+        <div style={{display:"flex",alignItems:"center",gap:".4rem"}}>
+          <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",
+            color:"var(--text-muted)"}}>Margen extra:</span>
+          <div style={{display:"flex",background:"var(--surface2)",
+            border:"1px solid var(--border)",borderRadius:6,overflow:"hidden"}}>
+            {[["fijo","ud"],["pct","%"]].map(([v,l])=>(
+              <button key={v} onClick={()=>setModo(v)}
+                style={{padding:".2rem .5rem",border:"none",cursor:"pointer",
+                  fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,
+                  background:modo===v?"rgba(251,191,36,.2)":"transparent",
+                  color:modo===v?"var(--amber)":"var(--text-muted)"}}>
+                {l}
+              </button>
+            ))}
+          </div>
+          <input type="number" min="0" max={modo==="pct"?100:500} value={margen}
+            onChange={e=>setMargen(Math.max(0,parseInt(e.target.value)||0))}
+            style={{width:52,background:"var(--surface2)",border:"1px solid var(--border)",
+              color:"var(--amber)",borderRadius:6,padding:".2rem .4rem",
+              fontFamily:"var(--font-mono)",fontSize:".72rem",textAlign:"right",outline:"none"}}
+          />
+          <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",
+            color:"var(--text-muted)"}}>{modo==="pct"?`% = +${extra} ud`:"ud extra"}</span>
+        </div>
+      </div>
+
+      {/* Resumen final */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+        gap:"1rem",flexWrap:"wrap",padding:".55rem .75rem",borderRadius:8,
+        background:"rgba(251,191,36,.06)",border:"1px solid rgba(251,191,36,.2)"}}>
+        <div style={{display:"flex",gap:"1.5rem",flexWrap:"wrap"}}>
+          <div>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+              color:"var(--text-muted)",textTransform:"uppercase"}}>
+              Base inscritos
+            </div>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:".9rem",
+              fontWeight:800}}>{baseTotal}</div>
+          </div>
+          <div>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+              color:"var(--text-muted)",textTransform:"uppercase"}}>
+              + Margen
+            </div>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:".9rem",
+              fontWeight:800,color:"var(--amber)"}}>+{extra}</div>
+          </div>
+          <div>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+              color:"var(--amber)",textTransform:"uppercase",fontWeight:700}}>
+              = Pedir al proveedor
+            </div>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:"1.1rem",
+              fontWeight:800,color:"var(--amber)"}}>{cantidadSugerida}</div>
+          </div>
+          <div>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+              color:"var(--text-muted)",textTransform:"uppercase"}}>
+              Coste estimado
+              {precioMedalla>0 && (
+                <span style={{marginLeft:".3rem",color:"var(--text-dim)"}}>
+                  ({fmtEur(precioMedalla)}/ud)
+                </span>
+              )}
+            </div>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:".9rem",
+              fontWeight:800,color:"var(--cyan)"}}>
+              {precioMedalla > 0 ? fmtEur(costeEstimado) : "— (sin precio en presupuesto)"}
+            </div>
+          </div>
+        </div>
+        <button className="btn btn-amber btn-sm"
+          style={{flexShrink:0,fontFamily:"var(--font-mono)",fontSize:".68rem"}}
+          onClick={()=>onCrear({
+            _sugerido: true,
+            nombre:"Pedido medallas finisher",
+            articulos:[{
+              nombre:"Medalla finisher",
+              cantidad: cantidadSugerida,
+              precioUnit: precioMedalla,
+              notas:`Base: ${baseTotal} inscritos + ${extra} margen`
+            }],
+            importeEstimado: costeEstimado,
+            importeTotal: costeEstimado,
+            estado:"borrador",
+            fechaEntrega:"",
+            proveedor:"",
+            notas:`Generado automáticamente. Base: ${baseTotal} inscritos (TG7:${inscritos?.TG7||0} + TG13:${inscritos?.TG13||0} + TG25:${inscritos?.TG25||0}) + ${extra} ud de margen.`,
+            factura:null,
+          })}>
+          Crear pedido con esta cantidad →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Modal crear/editar pedido ─────────────────────────────────────────────────
+function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose }) {
+  const esEdit = !!data?.id;
+  const [form, setForm] = useState(() => {
+    if (data) return { ...data, articulos: (data.articulos||[]).map(a=>({...a})) };
+    if (sugerido) return {
+      nombre: sugerido.nombre||"",
+      proveedor: sugerido.proveedor||"",
+      articulos: (sugerido.articulos||[]).map(a=>({...a})),
+      importeEstimado: sugerido.importeEstimado||0,
+      importeTotal: sugerido.importeTotal||0,
+      estado: "borrador",
+      fechaEntrega: sugerido.fechaEntrega||"",
+      notas: sugerido.notas||"",
+      factura: null,
+    };
+    return {
+      nombre:"", proveedor:"", articulos:[{nombre:"",cantidad:1,precioUnit:0}],
+      importeEstimado:0, importeTotal:0, estado:"borrador",
+      fechaEntrega:"", notas:"", factura:null,
+    };
+  });
+
+  const upd = (k,v) => setForm(p=>({...p,[k]:v}));
+  const updArt = (i,k,v) => setForm(p=>({
+    ...p,
+    articulos: p.articulos.map((a,j) => j===i ? {...a,[k]:v} : a)
+  }));
+  const addArt = () => setForm(p=>({...p,articulos:[...p.articulos,{nombre:"",cantidad:1,precioUnit:0}]}));
+  const delArt = (i) => setForm(p=>({...p,articulos:p.articulos.filter((_,j)=>j!==i)}));
+
+  // Recalcular importe total cuando cambian los artículos
+  const importeCalc = form.articulos.reduce((s,a)=>s+(a.cantidad*(a.precioUnit||0)),0);
+
+  const guardar = () => {
+    if (!form.nombre.trim()) return;
+    onSave({...form, importeTotal: importeCalc, importeEstimado: form.importeEstimado||importeCalc });
+  };
+
+  const updFactura = (k,v) => upd("factura", {...(form.factura||{}), [k]:v });
+
+  return (
+    <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal" style={{maxWidth:520}}>
+        <div className="modal-header">
+          <span className="modal-title">{esEdit?"✏️ Editar pedido":"🛒 Nuevo pedido"}</span>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body" style={{gap:".65rem"}}>
+
+          {/* Datos básicos */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
+            <div style={{gridColumn:"1/-1"}}>
+              <label className="fl">Nombre del pedido *</label>
+              <input className="inp" value={form.nombre}
+                onChange={e=>upd("nombre",e.target.value)}
+                placeholder="ej. Medallas finisher 2026" />
+            </div>
+            <div>
+              <label className="fl">Proveedor</label>
+              <select className="inp" value={form.proveedor}
+                onChange={e=>upd("proveedor",e.target.value)}>
+                <option value="">Sin asignar</option>
+                {proveedores.map(p=>(
+                  <option key={p.id} value={p.nombre}>{p.nombre}</option>
+                ))}
+                <option value="__otro__">Otro (escribir abajo)</option>
+              </select>
+            </div>
+            <div>
+              <label className="fl">Fecha entrega esperada</label>
+              <input className="inp" type="date" value={form.fechaEntrega}
+                onChange={e=>upd("fechaEntrega",e.target.value)} />
+            </div>
+          </div>
+
+          {/* Artículos */}
+          <div>
+            <div style={{display:"flex",justifyContent:"space-between",
+              alignItems:"center",marginBottom:".4rem"}}>
+              <label className="fl" style={{margin:0}}>Artículos</label>
+              <button className="btn btn-ghost btn-sm" onClick={addArt}>+ Añadir</button>
+            </div>
+            {form.articulos.map((a,i)=>(
+              <div key={i} style={{display:"grid",
+                gridTemplateColumns:"1fr 70px 80px 28px",
+                gap:".35rem",marginBottom:".35rem",alignItems:"end"}}>
+                <div>
+                  {i===0 && <label className="fl">Artículo</label>}
+                  <input className="inp inp-sm" value={a.nombre}
+                    onChange={e=>updArt(i,"nombre",e.target.value)}
+                    placeholder="ej. Medalla finisher" />
+                </div>
+                <div>
+                  {i===0 && <label className="fl">Cant.</label>}
+                  <input className="inp inp-sm inp-mono" type="number" min="1"
+                    value={a.cantidad}
+                    onChange={e=>updArt(i,"cantidad",Math.max(1,parseInt(e.target.value)||1))} />
+                </div>
+                <div>
+                  {i===0 && <label className="fl">€/unidad</label>}
+                  <input className="inp inp-sm inp-mono" type="number" min="0" step="0.01"
+                    value={a.precioUnit}
+                    onChange={e=>updArt(i,"precioUnit",parseFloat(e.target.value)||0)} />
+                </div>
+                <button className="btn btn-red btn-sm"
+                  style={{marginBottom:1,padding:".25rem .4rem"}}
+                  disabled={form.articulos.length<=1}
+                  onClick={()=>delArt(i)}>✕</button>
+              </div>
+            ))}
+            <div style={{textAlign:"right",fontFamily:"var(--font-mono)",
+              fontSize:".72rem",fontWeight:800,color:"var(--cyan)",
+              marginTop:".35rem"}}>
+              Total: {fmtEur(importeCalc)}
+            </div>
+          </div>
+
+          {/* Factura */}
+          <div style={{borderTop:"1px solid var(--border)",paddingTop:".6rem"}}>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
+              color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:".06em",
+              marginBottom:".4rem"}}>🧾 Factura (opcional)</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem"}}>
+              <div>
+                <label className="fl">Nº factura</label>
+                <input className="inp inp-sm inp-mono"
+                  value={form.factura?.numero||""}
+                  onChange={e=>updFactura("numero",e.target.value)}
+                  placeholder="FAC-2026-001" />
+              </div>
+              <div>
+                <label className="fl">Importe real (€)</label>
+                <input className="inp inp-sm inp-mono" type="number" min="0" step="0.01"
+                  value={form.factura?.importe||""}
+                  onChange={e=>updFactura("importe",parseFloat(e.target.value)||0)}
+                  placeholder={fmtEur(importeCalc)} />
+              </div>
+              <div>
+                <label className="fl">Estado de pago</label>
+                <select className="inp inp-sm"
+                  value={form.factura?.estado||"pendiente"}
+                  onChange={e=>updFactura("estado",e.target.value)}>
+                  {ESTADOS_FACTURA.map(e=>(
+                    <option key={e.id} value={e.id}>{e.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="fl">Fecha factura</label>
+                <input className="inp inp-sm" type="date"
+                  value={form.factura?.fecha||""}
+                  onChange={e=>updFactura("fecha",e.target.value)} />
+              </div>
+            </div>
+            {form.factura?.importe > 0 && importeCalc > 0 && (
+              <div style={{marginTop:".4rem",fontFamily:"var(--font-mono)",
+                fontSize:".62rem",color:"var(--text-muted)"}}>
+                Desviación vs estimado:{" "}
+                <span style={{fontWeight:700,
+                  color: Math.abs(form.factura.importe-importeCalc)<0.01
+                    ? "var(--green)"
+                    : form.factura.importe > importeCalc ? "var(--red)" : "var(--green)"}}>
+                  {form.factura.importe > importeCalc ? "+" : ""}
+                  {fmtEur(form.factura.importe - importeCalc)}
+                  {" "}({((form.factura.importe-importeCalc)/importeCalc*100).toFixed(1)}%)
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Notas */}
+          <div>
+            <label className="fl">Notas</label>
+            <textarea className="inp" rows={2} value={form.notas}
+              onChange={e=>upd("notas",e.target.value)}
+              placeholder="Condiciones, contacto del proveedor, observaciones…" />
+          </div>
+
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-primary"
+            disabled={!form.nombre.trim()}
+            style={{opacity:form.nombre.trim()?1:.5}}
+            onClick={guardar}>
+            {esEdit?"Guardar cambios":"Crear pedido"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
