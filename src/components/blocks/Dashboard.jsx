@@ -6,9 +6,10 @@ import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import dataService from "@/lib/dataService";
 import {
   RadialBarChart, RadialBar, ResponsiveContainer,
-  BarChart, Bar, XAxis, YAxis, Tooltip, Cell,
+  BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTip, Cell,
   PieChart, Pie,
 } from "recharts";
+import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 
 const ALL_KEYS = {
   "teg_presupuesto_v1_conceptos":    [],
@@ -715,32 +716,38 @@ export default function Dashboard() {
         {/* ── KPIs ── */}
         <div className="kpi-grid mb">
           <KPI icon="💰" label="Resultado"
+            tooltip="Ingresos totales (inscripciones + patrocinios + merch) menos costes fijos y variables.\nPositivo = superávit. Negativo = déficit."
             value={fmt(d.resultado)}
             sub={`Ingresos: ${fmt(d.totalIngresos + d.totalOtrosIngresos)}`}
             color={resColor} colorClass={d.resultado >= 0 ? "green" : "red"}
             onClick={() => navigate("presupuesto")} />
           <KPI icon="🏃" label="Inscritos"
+            tooltip="Corredores inscritos en todos los tramos y distancias.\nEl denominador es el aforo máximo configurado en Presupuesto → Inscripciones."
             value={d.ocupacionGlobal !== null ? `${d.totalInscritos}/${d.totalMaximos}` : String(d.totalInscritos)}
             sub={`TG7 ${d.inscritosPorDist.TG7}${d.ocupacionPorDist.TG7!==null?` (${d.ocupacionPorDist.TG7}%)`:""}  ·  TG13 ${d.inscritosPorDist.TG13}${d.ocupacionPorDist.TG13!==null?` (${d.ocupacionPorDist.TG13}%)`:""}  ·  TG25 ${d.inscritosPorDist.TG25}${d.ocupacionPorDist.TG25!==null?` (${d.ocupacionPorDist.TG25}%)`:""}`}
             color="var(--cyan)" colorClass="cyan"
             onClick={() => navigate("presupuesto", "inscritos")} />
           <KPI icon="👥" label="Voluntarios"
+            tooltip="Voluntarios confirmados sobre el total de plazas necesarias definidas en los puestos.\nEl % es la cobertura global: confirmados ÷ necesarios."
             value={`${d.volConfirmados}/${d.totalNecesarios}`}
             sub={`${d.coberturaVol}% cobertura · ${d.volPendientes} pendientes`}
             color={d.coberturaVol>=80?"var(--green)":d.coberturaVol>=50?"var(--amber)":"var(--red)"}
             colorClass={d.coberturaVol>=80?"green":d.coberturaVol>=50?"amber":"red"}
             onClick={() => navigate("voluntarios")} />
           <KPI icon="🤝" label="Patrocinio"
+            tooltip="Importe comprometido (confirmado + cobrado) de todos los patrocinadores activos.\nEl % indica el avance respecto al objetivo de captación."
             value={fmt(d.patComprometido)}
             sub={`${Math.round(d.patComprometido/Math.max(d.objetivo,1)*100)}% de ${fmt(d.objetivo)}`}
             color="var(--amber)" colorClass="amber"
             onClick={() => navigate("patrocinadores")} />
           <KPI icon="📋" label="Tareas"
+            tooltip="Tareas completadas del bloque Proyecto sobre el total.\nIncluye todas las áreas: permisos, logística, comunicación, etc."
             value={`${d.tareasCompletadas}/${d.tareasTotal}`}
             sub={`${d.progresoGlobal}% · ${d.tareasVencidas} vencidas`}
             color="var(--violet)" colorClass="violet"
             onClick={() => navigate("proyecto")} />
           <KPI icon="✅" label="Checklist"
+            tooltip="Ítems completados del checklist de Logística sobre el total.\nEl checklist se organiza por fases temporales antes del evento."
             value={`${d.ckDone}/${d.ckTotal}`}
             sub={`Timeline: ${d.tlDone}/${d.tlTotal} completados`}
             color="var(--cyan)" colorClass="cyan"
@@ -765,7 +772,7 @@ export default function Dashboard() {
                         ]} cx="50%" cy="50%" innerRadius={36} outerRadius={55} paddingAngle={3} dataKey="value">
                         {["#22d3ee","#a78bfa","#34d399"].map((c,i) => <Cell key={i} fill={c} opacity={0.9} />)}
                       </Pie>
-                      <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v,n) => [`${v} corredores`,n]} />
+                      <RechartsTip contentStyle={TOOLTIP_STYLE} formatter={(v,n) => [`${v} corredores`,n]} />
                     </PieChart>
                   </ResponsiveContainer>
                   <div style={{ display:"flex", flexDirection:"column", gap:"0.35rem" }}>
@@ -807,7 +814,7 @@ export default function Dashboard() {
                     ]} margin={{ top:4, right:4, left:-24, bottom:22 }}>
                     <XAxis dataKey="name" tick={{ fontSize:9, fontFamily:"var(--font-mono)", fill:"var(--text-muted)" }} angle={-35} textAnchor="end" interval={0} />
                     <YAxis tick={{ fontSize:8, fontFamily:"var(--font-mono)", fill:"var(--text-muted)" }} tickFormatter={v=>`${(v/1000).toFixed(0)}k`} />
-                    <Tooltip contentStyle={TOOLTIP_STYLE} formatter={v=>[fmt(Math.abs(v)),""]} labelStyle={{ color:"#e8eef8" }} />
+                    <RechartsTip contentStyle={TOOLTIP_STYLE} formatter={v=>[fmt(Math.abs(v)),""]} labelStyle={{ color:"#e8eef8" }} />
                     <Bar dataKey="val" radius={[4,4,0,0]}>
                       {["#22d3ee","#34d399","#a78bfa","#f87171","#fb923c"].map((c,i) => <Cell key={i} fill={c} opacity={0.85}/>)}
                     </Bar>
@@ -851,7 +858,7 @@ export default function Dashboard() {
                         { name:"Tareas",      value:d.progresoGlobal, fill:"#a78bfa" },
                       ]} startAngle={90} endAngle={-270}>
                       <RadialBar dataKey="value" background={{ fill:"#1a2540" }} cornerRadius={4} />
-                      <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v,n)=>[`${v}%`,n]} />
+                      <RechartsTip contentStyle={TOOLTIP_STYLE} formatter={(v,n)=>[`${v}%`,n]} />
                     </RadialBarChart>
                   </ResponsiveContainer>
                   <div style={{ display:"flex", flexDirection:"column", gap:"0.3rem" }}>
@@ -918,11 +925,14 @@ export default function Dashboard() {
 }
 
 // ─── Sub-componentes ──────────────────────────────────────────────────────────
-function KPI({ icon, label, value, sub, color, colorClass, onClick }) {
+function KPI({ icon, label, value, sub, color, colorClass, onClick, tooltip }) {
   return (
     <div className={`kpi ${colorClass||""} ${onClick?"dash-kpi-clickable":""}`}
       onClick={onClick} title={onClick ? `Ir a ${label}` : undefined}>
-      <div className="kpi-label">{icon} {label}</div>
+      <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>
+        {icon} {label}
+        {tooltip && <Tooltip text={tooltip}><TooltipIcon size={11}/></Tooltip>}
+      </div>
       <div className="kpi-value" style={{ color }}>{value}</div>
       <div className="kpi-sub">{sub}</div>
       {onClick && <div className="dash-kpi-arrow">→</div>}

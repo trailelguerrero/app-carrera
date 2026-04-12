@@ -968,14 +968,14 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
       <div className="kpi-grid">
         <div className={`kpi ${stats.coberturaGlobal>=80?"green":stats.coberturaGlobal>=50?"amber":"red"}`}
           style={{cursor:"pointer"}} onClick={() => setTab("puestos")}>
-          <div className="kpi-label">🎯 Cobertura global</div>
+          <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>🎯 Cobertura global<Tooltip text={"Voluntarios confirmados ÷ plazas necesarias en todos los puestos.\n100% = todos los puestos cubiertos por voluntarios confirmados."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value" style={{color:stats.coberturaGlobal>=80?"var(--green)":stats.coberturaGlobal>=50?"var(--amber)":"var(--red)"}}>
             {stats.coberturaGlobal}%
           </div>
           <div className="kpi-sub">{stats.confirmados}/{stats.totalNecesarios} confirmados</div>
         </div>
         <div className="kpi cyan" style={{cursor:"pointer"}} onClick={() => setTab("voluntarios")}>
-          <div className="kpi-label">👥 Total voluntarios</div>
+          <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>👥 Total voluntarios<Tooltip text={"Total de voluntarios registrados en el sistema, independientemente de su estado.\nIncluye confirmados, pendientes y cancelados."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value" style={{color:"var(--cyan)"}}>{stats.total}</div>
           <div className="kpi-sub">
             <span style={{color:"var(--green)"}}>{stats.confirmados} ✓</span>
@@ -986,7 +986,7 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
         </div>
         <div className={`kpi ${alertas.length>0?"red":"violet"}`}
           style={{cursor:"pointer"}} onClick={() => setTab("puestos")}>
-          <div className="kpi-label">📍 Puestos</div>
+          <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>📍 Puestos<Tooltip text={"Número de puestos operativos definidos para el evento.\nCada puesto tiene un número de voluntarios necesarios y un horario asignado."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value" style={{color:alertas.length>0?"var(--red)":"var(--violet)"}}>
             {puestosConStats.length}
           </div>
@@ -997,7 +997,7 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
           </div>
         </div>
         <div className="kpi amber">
-          <div className="kpi-label">🚗 Con vehículo</div>
+          <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>🚗 Con vehículo<Tooltip text={"Voluntarios confirmados que han indicado disponer de vehículo propio.\nÚtil para planificar rutas de reparto y acceso a puestos remotos."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value" style={{color:"var(--amber)"}}>{stats.conCoche}</div>
           <div className="kpi-sub">{stats.total>0?Math.round(stats.conCoche/stats.total*100):0}% del total</div>
         </div>

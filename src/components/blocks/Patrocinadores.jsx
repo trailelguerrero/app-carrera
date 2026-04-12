@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { useData } from "@/lib/dataService";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
@@ -403,22 +404,22 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
       {/* KPIs — clases del sistema BLOCK_CSS */}
       <div className="kpi-grid mb">
         <div className="kpi amber" style={{cursor:"pointer"}} onClick={()=>setTab("patrocinadores")} title="Ver patrocinadores">
-          <div className="kpi-label">💰 Captado</div>
+          <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>💰 Captado<Tooltip text={"Importe comprometido: suma de patrocinadores en estado 'confirmado' o 'cobrado'.\nNo incluye los que están en negociación o prospecto."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value" style={{color:"#f59e0b"}}>{fmt(stats.comprometido)}</div>
           <div className="kpi-sub">comprometido / confirmado</div>
         </div>
         <div className="kpi green" style={{cursor:"pointer"}} onClick={()=>setTab("patrocinadores")} title="Ver cobrados">
-          <div className="kpi-label">✅ Cobrado</div>
+          <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>✅ Cobrado<Tooltip text={"Importe efectivamente recibido en cuenta: solo patrocinadores en estado 'cobrado'.\nEs el dinero real disponible, a diferencia del comprometido que puede no haberse transferido aún."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value" style={{color:"var(--green)"}}>{fmt(stats.cobrado)}</div>
           <div className="kpi-sub">{stats.pctCobrado}% del objetivo</div>
         </div>
         <div className="kpi violet" style={{cursor:"pointer"}} onClick={()=>setTab("patrocinadores")} title="Ver en especie">
-          <div className="kpi-label">📦 En especie</div>
+          <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>📦 En especie<Tooltip text={"Valor estimado de las aportaciones no monetarias: material, servicios, productos.\nNo entra en la cuenta bancaria pero reduce costes del evento."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value" style={{color:"var(--violet)"}}>{fmt(stats.especie)}</div>
           <div className="kpi-sub">valor estimado</div>
         </div>
         <div className="kpi cyan" style={{cursor:"pointer"}} onClick={()=>setTab("pipeline")} title="Ver pipeline">
-          <div className="kpi-label">🔀 Pipeline</div>
+          <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>🔀 Pipeline<Tooltip text={"Importe potencial de los patrocinadores en estado 'negociando' o 'prospecto'.\nNo está garantizado — es el máximo que podría captarse si todos confirman."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value" style={{color:"var(--cyan)"}}>{fmt(stats.pipeline)}</div>
           <div className="kpi-sub">en negociación/prospecto</div>
         </div>

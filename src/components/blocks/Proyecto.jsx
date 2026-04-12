@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import dataService, { useData } from "@/lib/dataService";
 
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
@@ -295,22 +296,22 @@ export default function App() {
         {/* KPIs */}
         <div className="kpi-grid mb">
           <div className="kpi green">
-            <div className="kpi-label">✅ Completadas</div>
+            <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>✅ Completadas<Tooltip text={"Porcentaje de tareas marcadas como completadas sobre el total.\nIncluye todas las áreas del proyecto: permisos, logística, comunicación, etc."}><TooltipIcon size={11}/></Tooltip></div>
             <div className="kpi-value" style={{color:"var(--green)"}}>{stats.pct}%</div>
             <div className="kpi-sub">{stats.completadas} de {stats.total} tareas</div>
           </div>
           <div className="kpi cyan">
-            <div className="kpi-label">▶️ En curso</div>
+            <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>▶️ En curso<Tooltip text={"Tareas actualmente en estado 'en curso': se están ejecutando pero no están terminadas."}><TooltipIcon size={11}/></Tooltip></div>
             <div className="kpi-value" style={{color:"var(--cyan)"}}>{stats.enCurso}</div>
             <div className="kpi-sub">tareas activas</div>
           </div>
           <div className={`kpi ${stats.vencidas.length>0?"red":"green"}`}>
-            <div className="kpi-label">⏰ Vencidas</div>
+            <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>⏰ Vencidas<Tooltip text={"Tareas cuya fecha límite ya pasó y no están completadas.\nRequieren atención inmediata — cada día que pasan aumenta el riesgo para el evento."}><TooltipIcon size={11}/></Tooltip></div>
             <div className="kpi-value" style={{color:stats.vencidas.length>0?"var(--red)":"var(--green)"}}>{stats.vencidas.length}</div>
             <div className="kpi-sub">fecha límite superada</div>
           </div>
           <div className={`kpi ${stats.bloqueadas>0?"amber":"green"}`}>
-            <div className="kpi-label">🔒 Bloqueadas</div>
+            <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>🔒 Bloqueadas<Tooltip text={"Tareas que no pueden avanzar porque dependen de otra tarea pendiente.\nRevisa las dependencias en la ficha de cada tarea para desbloquearlas."}><TooltipIcon size={11}/></Tooltip></div>
             <div className="kpi-value" style={{color:stats.bloqueadas>0?"var(--amber)":"var(--green)"}}>{stats.bloqueadas}</div>
             <div className="kpi-sub">requieren acción</div>
           </div>

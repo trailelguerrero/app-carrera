@@ -340,19 +340,23 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
     { l:"⏱️ Timeline",   v:`${stats.tlDone}/${stats.tlTotal}`,
       s:"tareas completadas",
       color: stats.tlDone===stats.tlTotal && stats.tlTotal>0 ? "green" : "cyan",
-      tab:"timeline" },
+      tab:"timeline",
+      tip:"Tareas del Timeline completadas sobre el total.\nEl Timeline agrupa todas las acciones del día de carrera ordenadas por hora." },
     { l:"✅ Checklist",  v:`${Math.round(stats.ckDone/Math.max(stats.ckTotal,1)*100)}%`,
       s:`${stats.ckDone} de ${stats.ckTotal} ítems`,
       color: stats.ckDone===stats.ckTotal && stats.ckTotal>0 ? "green" : "cyan",
-      tab:"checklist" },
+      tab:"checklist",
+      tip:"Porcentaje de ítems completados del checklist pre-carrera.\nEl checklist se organiza por fases temporales: 3 meses antes, 1 mes antes, semana antes, etc." },
     { l:"📦 Stock",      v:stats.stockErr,
       s:"materiales en déficit",
       color: stats.stockErr>0 ? "red" : "green",
-      tab:"material" },
+      tab:"material",
+      tip:"Número de materiales cuya cantidad asignada supera el stock disponible.\nUn déficit significa que hay más asignaciones que unidades en almacén." },
     { l:"⚠️ Incidencias", v:stats.incOpen,
       s:"abiertas sin resolver",
       color: stats.incOpen>0 ? "red" : "green",
-      tab:"contactos" },
+      tab:"contactos",
+      tip:"Incidencias registradas en Emergencias que siguen abiertas.\nCada incidencia debe resolverse o documentarse antes del cierre del evento." },
   ];
 
   return (
@@ -364,7 +368,9 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
             className={`kpi ${k.color} log-kpi-link`}
             onClick={()=>setTab(k.tab)}
             title={`Ir a ${k.l}`}>
-            <div className="kpi-label">{k.l}</div>
+            <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>
+              {k.l}{k.tip&&<Tooltip text={k.tip}><TooltipIcon size={11}/></Tooltip>}
+            </div>
             <div className="kpi-value">{k.v}</div>
             <div className="kpi-sub">{k.s}</div>
             <div className="log-kpi-arrow">→ ver detalle</div>

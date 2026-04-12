@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { createPortal } from "react-dom";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import dataService, { useData } from "@/lib/dataService";
@@ -674,7 +675,12 @@ export default function Documentos() {
                 <div key={c.id} className="kpi" style={{cursor:"pointer",
                   borderLeftColor:c.color,borderLeftWidth:3,borderLeftStyle:"solid"}}
                   onClick={() => { setTab(c.id); setBusqueda(""); }}>
-                  <div className="kpi-label">{c.icon} {c.label}</div>
+                  <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>
+                  {c.icon} {c.label}
+                  <Tooltip text={`Documentos subidos en la categoría ${c.label}.\nHaz clic para ver y gestionar los archivos de esta categoría.`}>
+                    <TooltipIcon size={11}/>
+                  </Tooltip>
+                </div>
                   <div className="kpi-value" style={{color:c.color}}>{c.cnt}</div>
                   <div className="kpi-sub">
                     {c.alert > 0
