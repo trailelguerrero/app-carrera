@@ -175,7 +175,7 @@ export default function App() {
 
   // ── Derived stats ──────────────────────────────────────────────────────────
   const stats = useMemo(() => {
-    const _eventFechaStr = config?.fecha || "2026-08-29";
+    const _eventFechaStr = config?.fecha || EVENT_CONFIG_DEFAULT.fecha;
     const diasEvento = diasHasta(_eventFechaStr);
     const total = tareas.length;
     const completadas = tareas.filter(t => t.estado === "completado").length;
@@ -1091,8 +1091,10 @@ function TabGantt({ tareas, hitos, equipo, setModal, setFicha, setFiltroArea, se
 
 // ─── TAB EQUIPO ───────────────────────────────────────────────────────────────
 function TabEquipo({ equipo, tareas, setModal, setDelConf, setFicha }) {
-  const [vistaEquipo, setVistaEquipo] = useState("cards"); // "cards" | "kanban"
-  const [ordenAlfa, setOrdenAlfa] = useState(false);
+  const [vistaEquipo, setVistaEquipo]  = useState("cards"); // "cards" | "kanban"
+  const [ordenAlfa, setOrdenAlfa]      = useState(false);
+  const [areasColapsadas, setAreasCol] = useState({});
+  const toggleArea = (areaId) => setAreasCol(p => ({...p, [areaId]: !p[areaId]}));
   const equipoOrdenado = ordenAlfa
     ? [...equipo].sort((a,b) => (a.nombre||"").localeCompare(b.nombre||"","es"))
     : equipo;

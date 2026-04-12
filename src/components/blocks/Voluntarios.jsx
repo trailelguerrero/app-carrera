@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
+import { getEventDate } from "@/lib/eventUtils";
 import { LOCS_DEFAULT, LOCS_KEY } from "@/constants/localizaciones";
 import { useData } from "@/lib/dataService";
 
@@ -80,7 +81,7 @@ function estadoBg(e) {
 
 // ─── PUBLIC REGISTRATION FORM ──────────────────────────────────────────────────
 export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: imgF, imgBack: imgB, imgGuiaTallas, opcionPuesto, opcionVehiculo, config: cfgProp }) {
-  const config = cfgProp || { nombre:"Trail El Guerrero", edicion:"2026", lugar:"Candeleda", provincia:"Ávila", organizador:"Club Trail El Guerrero", fecha:"2026-08-29" };
+  const config = cfgProp || EVENT_CONFIG_DEFAULT;
   const [form, setForm] = useState({ nombre: "", apellidos: "", telefono: "", email: "", talla: "", puestoId: "", coche: false });
   const [enviado, setEnviado] = useState(false);
   const [errores, setErrores] = useState({});
@@ -509,7 +510,7 @@ export default function App() {
   );
 
   // Días hasta el evento — para reordenar tabs en semana de carrera
-  const diasHastaEvento = Math.ceil(((config?.fecha ? new Date(config.fecha) : new Date("2026-08-29")) - new Date()) / 86400000);
+  const diasHastaEvento = Math.ceil((getEventDate(config) - new Date()) / 86400000);
   const esSemanaCarrera = diasHastaEvento >= 0 && diasHastaEvento <= 7;
 
   const TABS_BASE = [

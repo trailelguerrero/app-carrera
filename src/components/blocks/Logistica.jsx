@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
+import { eventDateStr } from "@/lib/eventUtils";
 import { LOCS_DEFAULT as LOCS_DEFAULT_SHARED, LOCS_KEY } from "@/constants/localizaciones";
 import { useData } from "@/lib/dataService";
 
@@ -388,7 +389,7 @@ export default function App() {
 function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [], asigs = [] }) {
   const prox = [...tl].filter(t=>t.estado!=="completado").sort((a,b)=>a.hora.localeCompare(b.hora)).slice(0,6);
   const porFase = FASES_CHECKLIST.map(f => { const it=ck.filter(c=>c.fase===f); const d=it.filter(c=>c.estado==="completado").length; return {f,d,t:it.length,pct:it.length?Math.round(d/it.length*100):0}; });
-  const eventoFecha = config?.fecha ? new Date(config.fecha) : new Date("2026-08-29");
+  const eventoFecha = config?.fecha ? new Date(config.fecha) : new Date(EVENT_CONFIG_DEFAULT.fecha);
   const diasHasta = Math.ceil((eventoFecha - new Date()) / 86400000);
   const yaFue = diasHasta < 0;
   const esSemana = diasHasta >= 0 && diasHasta <= 7;
@@ -907,7 +908,7 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
   return(
     <>
       <div className="ph">
-        <div><div className="pt">⏱️ Timeline del Día</div><div className="pd">{tl.filter(t=>t.estado==="completado").length}/{tl.length} completadas · {config?.fecha ? new Date(config.fecha).toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"}) : "29 agosto 2026"}</div></div>
+        <div><div className="pt">⏱️ Timeline del Día</div><div className="pd">{tl.filter(t=>t.estado==="completado").length}/{tl.length} completadas · {config?.fecha ? new Date(config.fecha).toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"}) : eventDateStr(config)}</div></div>
         <div className="fr g1">
           <div className="log-vista-toggle">
             {[["lista","☰"],["kanban","⬛"]].map(([v,ic])=>(<button key={v} onClick={()=>setVistaKanban(v==="kanban")} style={{padding:".3rem .55rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,background:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"rgba(34,211,238,.2)":"transparent",color:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"var(--cyan)":"var(--text-muted)"}}>{ic}</button>))}
@@ -1696,7 +1697,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
 
 
 function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,config,tareasProyecto=[],setTareasProyecto}) {
-  const eventFecha = config?.fecha ? new Date(config.fecha) : new Date("2026-08-29");
+  const eventFecha = config?.fecha ? new Date(config.fecha) : new Date(EVENT_CONFIG_DEFAULT.fecha);
   const diasHasta = Math.ceil((eventFecha - new Date()) / 86400000);
   const faseActiva = (() => {
     if (diasHasta < 0)    return "Post-carrera";

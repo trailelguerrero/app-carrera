@@ -356,8 +356,8 @@ export default function Index() {
     try {
       const raw = localStorage.getItem("teg_event_config_v1");
       const cfg = raw ? JSON.parse(raw) : null;
-      return cfg?.fecha ? new Date(cfg.fecha) : new Date("2026-08-29");
-    } catch { return new Date("2026-08-29"); }
+      return cfg?.fecha ? new Date(cfg.fecha) : new Date(EVENT_CONFIG_DEFAULT.fecha);
+    } catch { return new Date(EVENT_CONFIG_DEFAULT.fecha); }
   })();
   const [showChangePin, setShowChangePin]   = useState(false);
   const [showMoreNav, setShowMoreNav]       = useState(false);

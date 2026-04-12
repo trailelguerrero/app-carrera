@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useData } from "@/lib/dataService";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
+import { getEventDate } from "@/lib/eventUtils";
 
 const LS_LOG = "teg_logistica_v1";
 const LS_VOL = "teg_voluntarios_v1";
@@ -274,7 +275,7 @@ export default function DiaCarrera({ onClose }) {
             {/* Solo mostrar fases relevantes para el día de carrera */}
             {(() => {
               const FASES_ORDEN = ["3 meses antes","2 meses antes","1 mes antes","Semana antes","Día antes","Mañana carrera","Post-carrera"];
-              const dias = Math.ceil((new Date(config.fecha||"2026-08-29") - new Date()) / 86400000);
+              const dias = Math.ceil((getEventDate(config) - new Date()) / 86400000);
               const faseActiva = dias < 0 ? "Post-carrera" : dias <= 1 ? "Mañana carrera" : dias <= 2 ? "Día antes" : dias <= 7 ? "Semana antes" : null;
               // Mostrar solo fases a partir de "Semana antes" en DiaCarrera
               const FASES_DIA_D = ["Semana antes","Día antes","Mañana carrera","Post-carrera"];
