@@ -159,6 +159,24 @@ export default function App() {
   // Tipos de contacto personalizados (extensibles por el usuario)
   const [tiposContacto, setTiposContacto] = useData(LS+"_tipos_cont", []);
 
+  // ── Inscritos del presupuesto — compartido con Material, Pedidos y Dashboard ──
+  const [rawTramos]    = useData("teg_presupuesto_v1_tramos",    []);
+  const [rawInscritos] = useData("teg_presupuesto_v1_inscritos", { tramos: {} });
+  const [rawMaximos]   = useData("teg_presupuesto_v1_maximos",   {});
+  const totalInscritos = useMemo(() => {
+    const tramos = Array.isArray(rawTramos) ? rawTramos : [];
+    let total = 0;
+    tramos.forEach(t => {
+      ["TG7","TG13","TG25"].forEach(d => {
+        total += rawInscritos?.tramos?.[t.id]?.[d] || 0;
+      });
+    });
+    return total;
+  }, [rawTramos, rawInscritos]);
+  const totalMaximos = useMemo(() => {
+    return (rawMaximos?.TG7||0) + (rawMaximos?.TG13||0) + (rawMaximos?.TG25||0);
+  }, [rawMaximos]);
+
   // ── Pedidos a proveedores ──────────────────────────────────────────────────
   const [rawPedidosProv, setPedidosProv] = useData(LS+"_pedidos_prov", []);
   const pedidosProv = Array.isArray(rawPedidosProv) ? rawPedidosProv : [];
@@ -311,7 +329,7 @@ export default function App() {
         {/* CONTENIDO */}
         <div key={tab}>
           {tab==="dashboard" && <TabDash stats={stats} tl={tl} ck={ck} setTab={setTab} config={config} patsConEspecie={patsConEspecie} material={material} asigs={asigs} />}
-          {tab==="material" && <TabMat material={material} setMaterial={setMaterial} asigs={asigs} setAsigs={setAsigs} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenMat} setOrdenAlfa={setOrdenMat} locs={locs} patsConEspecie={patsConEspecie} />}
+          {tab==="material" && <TabMat material={material} setMaterial={setMaterial} asigs={asigs} setAsigs={setAsigs} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenMat} setOrdenAlfa={setOrdenMat} locs={locs} patsConEspecie={patsConEspecie} totalInscritos={totalInscritos} totalMaximos={totalMaximos} rawInscritos={rawInscritos} rawTramos={rawTramos} conceptosPres={conceptosPres} />}
           {tab==="vehiculos" && <TabVeh veh={veh} setVeh={setVeh} rutas={rutas} setRutas={setRutas} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenVeh} setOrdenAlfa={setOrdenVeh} voluntariosConCoche={voluntariosConCoche} />}
           {tab==="timeline" && <TabTL tl={tl} setTl={setTl} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenTL} setOrdenAlfa={setOrdenTL} config={config} />}
           {tab==="contactos"   && <TabDirectorio cont={cont} setCont={setCont} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCont} setOrdenAlfa={setOrdenCont} tiposContacto={tiposContacto} setTiposContacto={setTiposContacto} />}
@@ -582,28 +600,12 @@ const TLC = {logistica:"#fbbf24",organizacion:"#a78bfa",voluntarios:"#34d399",ca
 const TLI = {logistica:"🚚",organizacion:"📋",voluntarios:"👥",carrera:"🏃",comunicacion:"📡"};
 
 // ─── MATERIAL ─────────────────────────────────────────────────────────────────
-function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,locs,patsConEspecie}) {
+function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,locs,patsConEspecie,totalInscritos=0,totalMaximos=0,rawInscritos={},rawTramos=[],conceptosPres=[]}) {
   const [vistaAsig,setVistaAsig]=useState(false);
   const [vistaKanban,setVistaKanban]=useState(false);
   const [cat,setCat]=useState("todas");
 
-  // ── Leer inscritos del Presupuesto (solo lectura, para el indicador contextual) ──
-  const [rawTramos]    = useData("teg_presupuesto_v1_tramos",    []);
-  const [rawInscritos] = useData("teg_presupuesto_v1_inscritos", { tramos: {} });
-  const [rawMaximos]   = useData("teg_presupuesto_v1_maximos",   {});
-  const totalInscritos = useMemo(() => {
-    const tramos = Array.isArray(rawTramos) ? rawTramos : [];
-    let total = 0;
-    tramos.forEach(t => {
-      ["TG7","TG13","TG25"].forEach(d => {
-        total += rawInscritos?.tramos?.[t.id]?.[d] || 0;
-      });
-    });
-    return total;
-  }, [rawTramos, rawInscritos]);
-  const totalMaximos = useMemo(() => {
-    return (rawMaximos?.TG7||0) + (rawMaximos?.TG13||0) + (rawMaximos?.TG25||0);
-  }, [rawMaximos]);
+  // (rawTramos, rawInscritos, totalInscritos, totalMaximos vienen del componente padre vía props)
 
   // Artículos cuyo stock debería escalar con los inscritos
   const ESCALA_CON_INSCRITOS = [
@@ -947,9 +949,12 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
   const todosLosTipos = [...TIPOS_BASE, ...tiposCustom];
   const getTipo = (id) => todosLosTipos.find(t=>t.id===id) || {nombre:id,icono:"🏷️",color:"var(--text-muted)"};
 
+  // Excluir emergencia y médico del directorio (están en la pestaña Emergencias)
+  const TIPOS_EXCLUIDOS_DIR = ["emergencia","medico"];
+  const contDir = cont.filter(c => !TIPOS_EXCLUIDOS_DIR.includes(c.tipo));
   const contOrdenado = ordenAlfa
-    ? [...cont].sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es"))
-    : cont;
+    ? [...contDir].sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es"))
+    : contDir;
   const contFiltrado = filtroTipo==="todos" ? contOrdenado : contOrdenado.filter(c=>c.tipo===filtroTipo);
 
   const guardarTipo = () => {
@@ -968,7 +973,7 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
       <div className="ph">
         <div>
           <div className="pt">📋 Directorio de Contactos</div>
-          <div className="pd">{cont.length} contacto{cont.length!==1?"s":""} · {todosLosTipos.length} tipos</div>
+          <div className="pd">{contDir.length} contacto{contDir.length!==1?"s":""} · Los urgentes están en Emergencias</div>
         </div>
         <div style={{display:"flex",gap:".4rem",flexWrap:"wrap"}}>
           <button className="btn btn-ghost btn-sm"
@@ -988,10 +993,10 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
             border:`1px solid ${filtroTipo==="todos"?"var(--cyan)":"var(--border)"}`,
             background:filtroTipo==="todos"?"var(--cyan-dim)":"transparent",
             color:filtroTipo==="todos"?"var(--cyan)":"var(--text-muted)"}}>
-          Todos ({cont.length})
+          Todos ({contDir.length})
         </button>
-        {todosLosTipos.map(t => {
-          const n = cont.filter(c=>c.tipo===t.id).length;
+        {todosLosTipos.filter(t=>!TIPOS_EXCLUIDOS_DIR.includes(t.id)).map(t => {
+          const n = contDir.filter(c=>c.tipo===t.id).length;
           if (!n) return null;
           return (
             <button key={t.id} onClick={()=>setFiltroTipo(filtroTipo===t.id?"todos":t.id)}
@@ -1426,7 +1431,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
                   background:filtroTipo==="todos"?"var(--cyan-dim)":"transparent",
                   color:filtroTipo==="todos"?"var(--cyan)":"var(--text-muted)",
                   fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,cursor:"pointer"}}>
-                Todos ({cont.length})
+                Todos ({contDir.length})
               </button>
               {todosLosTipos.map(t=>{
                 const n = cont.filter(c=>c.tipo===t.id).length;
