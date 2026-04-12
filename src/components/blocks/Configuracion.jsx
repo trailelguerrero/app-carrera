@@ -365,6 +365,32 @@ export default function Configuracion() {
           <div style={{ fontFamily:"var(--font-mono)", fontSize:".58rem", color:"var(--text-dim)", lineHeight:1.7, marginTop:".75rem" }}>
             ⚠️ Restaurar un backup sobreescribe todos los datos actuales. Exporta primero si quieres conservar los cambios recientes.
           </div>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:".58rem", color:"var(--text-dim)", lineHeight:1.7, marginTop:".35rem",
+            padding:".5rem .65rem", background:"var(--surface2)", borderRadius:6,
+            border:"1px solid var(--border)" }}>
+            📎 <strong style={{color:"var(--text-muted)"}}>Nota:</strong> El backup incluye todos los datos de la app excepto los archivos PDF/imágenes subidos en Documentos, que se almacenan en Vercel Blob y no se pueden exportar desde aquí. Para hacer copia de esos archivos, descárgalos individualmente desde el bloque Documentos.
+          </div>
+        </div>
+
+        {/* ── Otras opciones ── */}
+        <div className="card cfg-section" style={{marginBottom:0}}>
+          <div className="cfg-section-title">🛠️ Herramientas</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:".6rem"}}>
+            <button
+              className="backup-btn"
+              style={{background:"var(--violet-dim)",color:"var(--violet)",
+                border:"1px solid rgba(167,139,250,.3)"}}
+              onClick={() => {
+                localStorage.removeItem("teg_onboarding_done");
+                window.location.reload();
+              }}>
+              🎓 Ver tutorial de inicio
+            </button>
+          </div>
+          <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+            color:"var(--text-dim)",lineHeight:1.7,marginTop:".6rem"}}>
+            Vuelve a ver el tutorial de bienvenida. Útil para nuevos colaboradores o para repasar las funciones principales.
+          </div>
         </div>
 
         <div className="cfg-save-bar">

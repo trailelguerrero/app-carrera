@@ -265,18 +265,34 @@ export default function DiaCarrera({ onClose }) {
                   </div>
                 );
               })}
-            {contactos.length===0 && <Empty msg="Sin contactos. Añade en Logística → Comunicaciones." />}
+            {contactos.length===0 && <Empty msg="Sin contactos. Añade en Logística → Emergencias." />}
           </>
         )}
 
         {tab === "checklist" && (
           <>
-            {[...new Set(ck.map(t=>t.fase))].map(fase => {
+            {/* Solo mostrar fases relevantes para el día de carrera */}
+            {(() => {
+              const FASES_ORDEN = ["3 meses antes","2 meses antes","1 mes antes","Semana antes","Día antes","Mañana carrera","Post-carrera"];
+              const dias = Math.ceil((new Date(config.fecha||"2026-08-29") - new Date()) / 86400000);
+              const faseActiva = dias < 0 ? "Post-carrera" : dias <= 1 ? "Mañana carrera" : dias <= 2 ? "Día antes" : dias <= 7 ? "Semana antes" : null;
+              // Mostrar solo fases a partir de "Semana antes" en DiaCarrera
+              const FASES_DIA_D = ["Semana antes","Día antes","Mañana carrera","Post-carrera"];
+              const fasesPresentes = [...new Set(ck.map(t=>t.fase))];
+              const fasesAMostrar = fasesPresentes.filter(f => FASES_DIA_D.includes(f));
+              const fasesOrdenadas = FASES_ORDEN.filter(f => fasesAMostrar.includes(f));
+              if (fasesOrdenadas.length === 0) return (
+                <Empty msg="Sin tareas para esta fase. Añade en Logística → Checklist." />
+              );
+              return fasesOrdenadas.map(fase => {
               const items = ck.filter(t=>t.fase===fase);
               const comp  = items.filter(t=>t.estado==="completado").length;
+              const esActiva = fase === faseActiva;
               return (
                 <div key={fase}>
-                  <div className="dc-sect">{fase} · {comp}/{items.length}</div>
+                  <div className="dc-sect" style={{color: esActiva ? "#22d3ee" : undefined}}>
+                    {esActiva ? "● " : ""}{fase} · {comp}/{items.length}
+                  </div>
                   {items.map(item => {
                     const hecho = item.estado === "completado";
                     return (
@@ -312,7 +328,8 @@ export default function DiaCarrera({ onClose }) {
                   })}
                 </div>
               );
-            })}
+            }); // fin map fases
+            })()}
             {ck.length===0 && <Empty msg="Sin checklist. Añade tareas en Logística → Checklist." />}
           </>
         )}

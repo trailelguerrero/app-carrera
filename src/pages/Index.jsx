@@ -313,6 +313,15 @@ export default function Index() {
     const exp = Number(localStorage.getItem(AUTH_KEY) || 0);
     return exp > Date.now();
   });
+
+  // Leer fecha del evento desde config para el botón Día D
+  const eventFecha = (() => {
+    try {
+      const raw = localStorage.getItem("teg_event_config_v1");
+      const cfg = raw ? JSON.parse(raw) : null;
+      return cfg?.fecha ? new Date(cfg.fecha) : new Date("2026-08-29");
+    } catch { return new Date("2026-08-29"); }
+  })();
   const [showChangePin, setShowChangePin] = useState(false);
   const [activeBlock, setActiveBlock]     = useState("dashboard");
   const [readmeBlock, setReadmeBlock]     = useState(null);
@@ -366,7 +375,7 @@ export default function Index() {
   if (!authed) return <PinScreen onUnlock={() => setAuthed(true)} />;
 
   const NAV_H = isMobile ? 68 : 66;
-  const diasCarrera = Math.ceil((new Date("2026-08-29") - new Date()) / 86400000);
+  const diasCarrera = Math.ceil((eventFecha - new Date()) / 86400000);
   const mostrarBtnDiaD = diasCarrera <= 7 && diasCarrera >= 0;
 
   return (
