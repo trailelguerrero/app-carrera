@@ -2510,6 +2510,35 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
     .filter(p => p.estado !== "borrador")
     .reduce((s,p) => s + (p.importeTotal||0), 0);
 
+  // Detectar pedidos con artículos variables que difieren del precio actual
+  const pedidosConPrecioDesactualizado = pedidos.filter(p =>
+    (p.articulos||[]).some(a => {
+      if (!a.conceptoId) return false;
+      const c = conceptosPres.find(cc => cc.id === a.conceptoId);
+      if (!c || c.tipo !== "variable") return false;
+      const precioActual = calcPrecioUnitario(c, material).precio;
+      return Math.abs((a.precioUnit||0) - precioActual) > 0.001;
+    })
+  );
+
+  const actualizarPreciosVariables = () => {
+    setPedidos(prev => prev.map(p => {
+      const articulosActualizados = (p.articulos||[]).map(a => {
+        if (!a.conceptoId) return a;
+        const c = conceptosPres.find(cc => cc.id === a.conceptoId);
+        if (!c || c.tipo !== "variable") return a;
+        const precioActual = calcPrecioUnitario(c, material).precio;
+        const nuevoTotal = a.esFijo ? (a.costeTotal||0) : a.cantidad * precioActual;
+        return { ...a, precioUnit: precioActual };
+      });
+      // Recalcular importeTotal
+      const nuevoImporte = articulosActualizados.reduce(
+        (s,a) => s + (a.esFijo ? (a.costeTotal||0) : a.cantidad*(a.precioUnit||0)), 0
+      );
+      return { ...p, articulos: articulosActualizados, importeTotal: nuevoImporte };
+    }));
+  };
+
   const abrirNuevo = () => setModal("nuevo");
   const abrirEditar = (p) => setModal(p);
   const guardar = (p) => {
@@ -2535,6 +2564,30 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
         </div>
         <button className="btn btn-primary" onClick={abrirNuevo}>+ Nuevo pedido</button>
       </div>
+
+      {/* Banner: precios variables desactualizados */}
+      {pedidosConPrecioDesactualizado.length > 0 && (
+        <div style={{
+          display:"flex",alignItems:"center",justifyContent:"space-between",
+          gap:".75rem",padding:".6rem .85rem",borderRadius:8,marginBottom:".75rem",
+          background:"rgba(251,191,36,.07)",border:"1px solid rgba(251,191,36,.25)",
+          flexWrap:"wrap",
+        }}>
+          <div style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--amber)"}}>
+            ⚡ {pedidosConPrecioDesactualizado.length} pedido{pedidosConPrecioDesactualizado.length>1?"s tienen":"  tiene"} artículos variables con precio desactualizado
+            <span style={{color:"var(--text-muted)",marginLeft:".4rem"}}>
+              (los inscritos han cambiado desde que se crearon)
+            </span>
+          </div>
+          <button className="btn btn-sm"
+            style={{background:"rgba(251,191,36,.15)",color:"var(--amber)",
+              border:"1px solid rgba(251,191,36,.35)",fontFamily:"var(--font-mono)",
+              fontSize:".62rem",flexShrink:0}}
+            onClick={actualizarPreciosVariables}>
+            🔄 Actualizar precios
+          </button>
+        </div>
+      )}
 
       {/* ── Sugerencias automáticas ── */}
       <SugerenciasMedallas
@@ -2625,10 +2678,26 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
                                 <td style={{textAlign:"right",padding:".3rem .4rem",
                                   fontWeight:700}}>{a.cantidad}</td>
                                 <td style={{textAlign:"right",padding:".3rem .4rem",
-                                  color:"var(--text-muted)"}}>{fmtEur(a.precioUnit)}</td>
+                                  color:"var(--text-muted)"}}>
+                                  {fmtEur(a.precioUnit)}
+                                  {(() => {
+                                    if (!a.conceptoId) return null;
+                                    const c = conceptosPres.find(cc=>cc.id===a.conceptoId);
+                                    if (!c || c.tipo!=="variable") return null;
+                                    const actual = calcPrecioUnitario(c, material).precio;
+                                    if (Math.abs((a.precioUnit||0)-actual) < 0.001) return null;
+                                    return (
+                                      <span style={{fontFamily:"var(--font-mono)",
+                                        fontSize:".55rem",color:"var(--amber)",
+                                        marginLeft:".3rem",fontWeight:700}}>
+                                        → {fmtEur(actual)}
+                                      </span>
+                                    );
+                                  })()}
+                                </td>
                                 <td style={{textAlign:"right",padding:".3rem .4rem",
                                   fontWeight:700,color:"var(--cyan)"}}>
-                                  {fmtEur(a.cantidad*a.precioUnit)}
+                                  {fmtEur(a.esFijo?(a.costeTotal||0):a.cantidad*(a.precioUnit||0))}
                                 </td>
                               </tr>
                             ))}

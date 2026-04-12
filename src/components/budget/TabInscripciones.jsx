@@ -120,6 +120,9 @@ export const TabInscripciones = ({
   const [importText, setImportText]   = useState("");
   const [importDist, setImportDist]   = useState("TG7");
   const [importMsg,  setImportMsg]    = useState(null);
+  const [editCodigo, setEditCodigo]   = useState(null); // null | {codigo} para editar
+  const [delCodigo,  setDelCodigo]    = useState(null); // null | id para confirmar borrado
+  const [importOpen, setImportOpen]   = useState(false);
 
   // Cargar códigos iniciales si está vacío
   const codigosRef = useRef(codigos);
@@ -184,45 +187,144 @@ export const TabInscripciones = ({
 
       {/* ── CÓDIGOS PROMOCIONALES ── */}
       <div style={{marginBottom:"1.5rem"}}>
-        <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
-          color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:".1em",
-          borderBottom:"1px solid var(--border)",paddingBottom:".4rem",marginBottom:"1rem",
-          display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:".5rem"}}>
-          <span>🎟️ Códigos promocionales — inscripciones gratuitas</span>
-          <div style={{display:"flex",gap:".35rem"}}>
+
+        {/* Header con stats */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+          flexWrap:"wrap",gap:".5rem",marginBottom:".85rem"}}>
+          <div>
+            <div style={{fontWeight:700,fontSize:".9rem",marginBottom:".15rem"}}>
+              🎟️ Códigos promocionales
+            </div>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)"}}>
+              Inscripciones gratuitas · {codigos.filter(c=>c.estado==="disponible").length} disponibles de {codigos.length}
+            </div>
+          </div>
+          <div style={{display:"flex",gap:".4rem",flexWrap:"wrap",alignItems:"center"}}>
             {["TG7","TG13","TG25"].map(d=>{
               const disp=codigos.filter(c=>c.distancia===d&&c.estado==="disponible").length;
               const tot=codigos.filter(c=>c.distancia===d).length;
               const color=DISTANCIA_COLORS[d]||"var(--cyan)";
               return (
-                <span key={d} style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
-                  padding:".1rem .4rem",borderRadius:20,fontWeight:700,
-                  background:color+"18",color,border:`1px solid ${color}33`}}>
-                  {d}: {disp}/{tot}
-                </span>
+                <button key={d}
+                  onClick={()=>setCodigosTab(codigosTab===d?"todos":d)}
+                  style={{fontFamily:"var(--font-mono)",fontSize:".68rem",fontWeight:700,
+                    padding:".25rem .6rem",borderRadius:20,cursor:"pointer",
+                    background:codigosTab===d?color+"22":"transparent",
+                    color:codigosTab===d?color:color+"99",
+                    border:`1px solid ${codigosTab===d?color:color+"44"}`}}>
+                  {d} <span style={{opacity:.75}}>{disp}/{tot}</span>
+                </button>
               );
             })}
+            <button
+              onClick={()=>setEditCodigo({id:null,codigo:"",distancia:"TG7",estado:"disponible",usadoPor:"",fechaUso:""})}
+              style={{padding:".3rem .7rem",borderRadius:8,cursor:"pointer",fontWeight:700,
+                fontFamily:"var(--font-mono)",fontSize:".68rem",background:"var(--primary)",
+                color:"#fff",border:"none"}}>
+              + Nuevo
+            </button>
+            <button
+              onClick={()=>setImportOpen(v=>!v)}
+              style={{padding:".3rem .6rem",borderRadius:8,cursor:"pointer",fontWeight:700,
+                fontFamily:"var(--font-mono)",fontSize:".68rem",
+                background:importOpen?"var(--cyan-dim)":"var(--surface2)",
+                color:importOpen?"var(--cyan)":"var(--text-muted)",
+                border:`1px solid ${importOpen?"rgba(34,211,238,.35)":"var(--border)"}`}}>
+              📥 Lote
+            </button>
           </div>
         </div>
 
-        <div style={{display:"flex",gap:".35rem",flexWrap:"wrap",alignItems:"center",marginBottom:".65rem"}}>
-          {["todos","TG7","TG13","TG25","disponible","usado"].map(f=>(
-            <button key={f} onClick={()=>setCodigosTab(f)}
-              style={{padding:".18rem .5rem",borderRadius:20,cursor:"pointer",
-                fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
-                border:`1px solid ${codigosTab===f?"var(--cyan)":"var(--border)"}`,
-                background:codigosTab===f?"var(--cyan-dim)":"transparent",
-                color:codigosTab===f?"var(--cyan)":"var(--text-muted)"}}>
-              {f==="todos"?"Todos":f==="disponible"?"✅ Disponibles":f==="usado"?"✓ Usados":f}
-            </button>
-          ))}
-          <input placeholder="Buscar código o nombre..."
-            value={busquedaCod} onChange={e=>setBusquedaCod(e.target.value)}
-            style={{flex:1,minWidth:140,background:"var(--surface2)",
-              border:"1px solid var(--border)",borderRadius:8,color:"var(--text)",
-              padding:".3rem .55rem",fontFamily:"var(--font-mono)",fontSize:".7rem",outline:"none"}} />
+        {/* Importar en lote — colapsable */}
+        {importOpen && (
+          <div style={{padding:".75rem",borderRadius:8,marginBottom:".75rem",
+            background:"var(--surface2)",border:"1px solid rgba(34,211,238,.2)"}}>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
+              color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:".06em",
+              marginBottom:".5rem"}}>Pega los códigos (uno por línea o separados por espacios)</div>
+            <div style={{display:"flex",gap:".5rem",alignItems:"flex-start",flexWrap:"wrap"}}>
+              <textarea value={importText} onChange={e=>setImportText(e.target.value)}
+                placeholder="CODIGO1&#10;CODIGO2&#10;CODIGO3"
+                rows={4}
+                style={{flex:1,minWidth:200,background:"var(--surface)",
+                  border:"1px solid var(--border)",borderRadius:6,color:"var(--text)",
+                  padding:".4rem .55rem",fontFamily:"var(--font-mono)",fontSize:".75rem",
+                  outline:"none",resize:"vertical"}} />
+              <div style={{display:"flex",flexDirection:"column",gap:".3rem",minWidth:90}}>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                  color:"var(--text-dim)",marginBottom:".15rem"}}>Distancia</div>
+                {["TG7","TG13","TG25"].map(d=>(
+                  <button key={d} onClick={()=>setImportDist(d)}
+                    style={{padding:".28rem .5rem",borderRadius:6,cursor:"pointer",
+                      fontFamily:"var(--font-mono)",fontSize:".68rem",fontWeight:700,
+                      border:`1px solid ${importDist===d?"var(--cyan)":"var(--border)"}`,
+                      background:importDist===d?"var(--cyan-dim)":"transparent",
+                      color:importDist===d?"var(--cyan)":"var(--text-muted)"}}>
+                    {d}
+                  </button>
+                ))}
+                <button disabled={!importText.trim()}
+                  style={{marginTop:".25rem",padding:".35rem .5rem",borderRadius:6,cursor:"pointer",
+                    fontFamily:"var(--font-mono)",fontSize:".68rem",fontWeight:700,
+                    background:"var(--primary)",color:"#fff",border:"none",
+                    opacity:importText.trim()?1:.45}}
+                  onClick={()=>{
+                    const nuevos=importText.split(/[,\s\n\r]+/)
+                      .map(l=>l.trim().toUpperCase()).filter(l=>l.length>=2)
+                      .filter(cod=>!codigos.find(c=>c.codigo===cod))
+                      .map(cod=>({id:cod+"-"+Date.now().toString(36)+Math.random().toString(36).slice(2,4),
+                        codigo:cod,distancia:importDist,estado:"disponible",usadoPor:null,fechaUso:null}));
+                    if(!nuevos.length){setImportMsg({ok:false,txt:"Todos los códigos ya existen."});return;}
+                    setCodigos(prev=>[...prev,...nuevos]);
+                    setImportText("");
+                    setImportMsg({ok:true,txt:`✓ ${nuevos.length} código${nuevos.length>1?"s":""} importados para ${importDist}`});
+                    setTimeout(()=>setImportMsg(null),3500);
+                  }}>
+                  Importar
+                </button>
+              </div>
+            </div>
+            {importMsg && (
+              <div style={{fontFamily:"var(--font-mono)",fontSize:".62rem",marginTop:".4rem",
+                color:importMsg.ok?"var(--green)":"var(--red)"}}>
+                {importMsg.txt}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Buscador + filtros de estado */}
+        <div style={{display:"flex",gap:".4rem",flexWrap:"wrap",alignItems:"center",marginBottom:".6rem"}}>
+          <div style={{display:"flex",background:"var(--surface2)",border:"1px solid var(--border)",
+            borderRadius:8,overflow:"hidden",flexShrink:0}}>
+            {[["todos","Todos"],["disponible","✅ Libres"],["usado","✓ Usados"]].map(([v,l])=>(
+              <button key={v} onClick={()=>setCodigosTab(v)}
+                style={{padding:".28rem .6rem",border:"none",cursor:"pointer",
+                  fontFamily:"var(--font-mono)",fontSize:".65rem",fontWeight:700,
+                  background:codigosTab===v?"rgba(34,211,238,.15)":"transparent",
+                  color:codigosTab===v?"var(--cyan)":"var(--text-muted)",
+                  whiteSpace:"nowrap"}}>
+                {l}
+              </button>
+            ))}
+          </div>
+          <div style={{flex:1,minWidth:140,display:"flex",alignItems:"center",
+            background:"var(--surface2)",border:"1px solid var(--border)",
+            borderRadius:8,padding:".28rem .6rem",gap:".4rem"}}>
+            <span style={{opacity:.5,fontSize:".8rem",flexShrink:0}}>🔍</span>
+            <input placeholder="Buscar código o nombre..."
+              value={busquedaCod} onChange={e=>setBusquedaCod(e.target.value)}
+              style={{background:"none",border:"none",color:"var(--text)",
+                fontFamily:"var(--font-mono)",fontSize:".72rem",outline:"none",width:"100%"}} />
+            {busquedaCod && (
+              <button onClick={()=>setBusquedaCod("")}
+                style={{background:"none",border:"none",cursor:"pointer",
+                  color:"var(--text-muted)",fontSize:".7rem",padding:0,flexShrink:0}}>✕</button>
+            )}
+          </div>
         </div>
 
+        {/* Lista de códigos — optimizada para móvil */}
         {(() => {
           const filtrados = codigos
             .filter(c=>{
@@ -234,135 +336,221 @@ export const TabInscripciones = ({
             .filter(c=>!busquedaCod||
               c.codigo.toLowerCase().includes(busquedaCod.toLowerCase())||
               (c.usadoPor||"").toLowerCase().includes(busquedaCod.toLowerCase()));
+
           if(!filtrados.length) return (
-            <div style={{textAlign:"center",padding:"1.25rem",fontFamily:"var(--font-mono)",
-              fontSize:".7rem",color:"var(--text-dim)"}}>Sin códigos con ese filtro</div>
+            <div style={{textAlign:"center",padding:"2rem",fontFamily:"var(--font-mono)",
+              fontSize:".72rem",color:"var(--text-dim)",background:"var(--surface2)",
+              borderRadius:8,border:"1px solid var(--border)"}}>
+              {codigos.length===0
+                ? "Sin códigos aún. Usa + Nuevo o importa en lote."
+                : "Sin resultados con ese filtro."}
+            </div>
           );
+
           return (
-            <div style={{overflowX:"auto"}}>
-              <table style={{width:"100%",borderCollapse:"collapse",
-                fontFamily:"var(--font-mono)",fontSize:".72rem"}}>
-                <thead>
-                  <tr style={{borderBottom:"1px solid var(--border)"}}>
-                    {["Código","Dist.","Estado","Inscrito","Fecha",""].map((h,i)=>(
-                      <th key={i} style={{textAlign:"left",padding:".3rem .5rem",
-                        color:"var(--text-muted)",fontWeight:600,width:i===5?32:undefined}}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtrados.map(c=>{
-                    const usado=c.estado==="usado";
-                    const dColor=DISTANCIA_COLORS[c.distancia]||"var(--cyan)";
-                    return (
-                      <tr key={c.id} style={{borderBottom:"1px solid rgba(255,255,255,.04)",
-                        opacity:usado?.65:1}}>
-                        <td style={{padding:".3rem .5rem",fontWeight:700,letterSpacing:".04em",
-                          color:usado?"var(--text-muted)":"var(--text)",
-                          textDecoration:usado?"line-through":"none"}}>{c.codigo}</td>
-                        <td style={{padding:".3rem .5rem"}}>
-                          <span style={{padding:".08rem .35rem",borderRadius:20,
-                            background:dColor+"18",color:dColor,fontWeight:700,fontSize:".6rem"}}>
-                            {c.distancia}
-                          </span>
-                        </td>
-                        <td style={{padding:".3rem .5rem",fontWeight:700,
-                          color:usado?"var(--text-dim)":"var(--green)"}}>
-                          {usado?"✓ Usado":"✅ Libre"}
-                        </td>
-                        <td style={{padding:".3rem .5rem",minWidth:160}}>
-                          {usado ? (
-                            <span>{c.usadoPor||"—"}</span>
-                          ) : (
-                            <input placeholder="Nombre + Enter"
-                              style={{background:"transparent",border:"none",
-                                borderBottom:"1px dashed var(--border)",color:"var(--text)",
-                                fontFamily:"var(--font-mono)",fontSize:".68rem",
-                                outline:"none",width:"100%",padding:".1rem 0"}}
-                              onKeyDown={e=>{
-                                if(e.key==="Enter"&&e.target.value.trim()){
-                                  const nombre=e.target.value.trim();
-                                  setCodigos(prev=>prev.map(x=>x.id===c.id
-                                    ?{...x,estado:"usado",usadoPor:nombre,
-                                       fechaUso:new Date().toISOString().split("T")[0]}:x));
-                                  e.target.value="";
-                                }
-                              }}
-                            />
-                          )}
-                        </td>
-                        <td style={{padding:".3rem .5rem",color:"var(--text-dim)",fontSize:".65rem"}}>
-                          {c.fechaUso||"—"}
-                        </td>
-                        <td style={{padding:".2rem"}}>
-                          {usado&&(
-                            <button title="Liberar código"
-                              onClick={()=>setCodigos(prev=>prev.map(x=>x.id===c.id
-                                ?{...x,estado:"disponible",usadoPor:null,fechaUso:null}:x))}
-                              style={{background:"none",border:"1px solid var(--border)",
-                                borderRadius:4,cursor:"pointer",padding:".12rem .3rem",
-                                color:"var(--text-dim)",fontSize:".6rem",fontWeight:700}}>
-                              ↩
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            <div style={{display:"flex",flexDirection:"column",gap:".35rem"}}>
+              {filtrados.map(c=>{
+                const usado=c.estado==="usado";
+                const dColor=DISTANCIA_COLORS[c.distancia]||"var(--cyan)";
+                return (
+                  <div key={c.id} style={{
+                    display:"flex",alignItems:"center",gap:".6rem",
+                    padding:".55rem .75rem",borderRadius:8,
+                    background:"var(--surface2)",
+                    border:`1px solid ${usado?"var(--border)":"rgba(52,211,153,.15)"}`,
+                    borderLeft:`3px solid ${usado?"var(--text-dim)":dColor}`,
+                    opacity:usado?.7:1,
+                  }}>
+                    {/* Código + distancia */}
+                    <div style={{minWidth:0,flex:"0 0 auto"}}>
+                      <div style={{fontFamily:"var(--font-mono)",fontWeight:800,
+                        fontSize:".8rem",letterSpacing:".04em",
+                        color:usado?"var(--text-muted)":"var(--text)",
+                        textDecoration:usado?"line-through":"none"}}>
+                        {c.codigo}
+                      </div>
+                      <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                        fontWeight:700,padding:".06rem .3rem",borderRadius:20,
+                        background:dColor+"18",color:dColor,border:`1px solid ${dColor}33`}}>
+                        {c.distancia}
+                      </span>
+                    </div>
+
+                    {/* Estado / quien lo usó — crece */}
+                    <div style={{flex:1,minWidth:0}}>
+                      {usado ? (
+                        <div>
+                          <div style={{fontSize:".72rem",fontWeight:600,
+                            overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                            {c.usadoPor||"—"}
+                          </div>
+                          <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                            color:"var(--text-muted)"}}>
+                            {c.fechaUso||"sin fecha"}
+                          </div>
+                        </div>
+                      ) : (
+                        <input
+                          placeholder="Nombre del inscrito + Enter para marcar usado"
+                          style={{background:"transparent",border:"none",
+                            borderBottom:"1px dashed rgba(52,211,153,.4)",
+                            color:"var(--text)",fontFamily:"var(--font-mono)",fontSize:".7rem",
+                            outline:"none",width:"100%",padding:".1rem 0"}}
+                          onKeyDown={e=>{
+                            if(e.key==="Enter"&&e.target.value.trim()){
+                              const nombre=e.target.value.trim();
+                              setCodigos(prev=>prev.map(x=>x.id===c.id
+                                ?{...x,estado:"usado",usadoPor:nombre,
+                                   fechaUso:new Date().toISOString().split("T")[0]}:x));
+                              e.target.value="";
+                            }
+                          }}
+                        />
+                      )}
+                    </div>
+
+                    {/* Acciones */}
+                    <div style={{display:"flex",gap:".3rem",flexShrink:0,alignItems:"center"}}>
+                      {usado && (
+                        <button title="Liberar código"
+                          onClick={()=>setCodigos(prev=>prev.map(x=>x.id===c.id
+                            ?{...x,estado:"disponible",usadoPor:null,fechaUso:null}:x))}
+                          style={{background:"var(--amber-dim)",border:"1px solid rgba(251,191,36,.3)",
+                            borderRadius:6,cursor:"pointer",padding:".28rem .45rem",
+                            color:"var(--amber)",fontSize:".7rem",fontWeight:700,lineHeight:1}}>
+                          ↩
+                        </button>
+                      )}
+                      <button title="Editar código"
+                        onClick={()=>setEditCodigo({...c})}
+                        style={{background:"var(--surface3)",border:"1px solid var(--border)",
+                          borderRadius:6,cursor:"pointer",padding:".28rem .45rem",
+                          color:"var(--text-muted)",fontSize:".7rem",lineHeight:1}}>
+                        ✏️
+                      </button>
+                      <button title="Eliminar código"
+                        onClick={()=>setDelCodigo(c.id)}
+                        style={{background:"var(--red-dim)",border:"1px solid rgba(248,113,113,.25)",
+                          borderRadius:6,cursor:"pointer",padding:".28rem .45rem",
+                          color:"var(--red)",fontSize:".7rem",fontWeight:700,lineHeight:1}}>
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           );
         })()}
 
-        <div style={{marginTop:"1rem",padding:".75rem",borderRadius:8,
-          background:"var(--surface2)",border:"1px solid var(--border)"}}>
-          <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
-            color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:".06em",
-            marginBottom:".5rem"}}>📥 Añadir nuevos códigos en lote</div>
-          <div style={{display:"flex",gap:".5rem",alignItems:"flex-start",flexWrap:"wrap"}}>
-            <textarea value={importText} onChange={e=>setImportText(e.target.value)}
-              placeholder="CODIGO1 CODIGO2 CODIGO3" rows={3}
-              style={{flex:1,minWidth:200,background:"var(--surface)",border:"1px solid var(--border)",
-                borderRadius:6,color:"var(--text)",padding:".4rem .55rem",
-                fontFamily:"var(--font-mono)",fontSize:".72rem",outline:"none",resize:"vertical"}} />
-            <div style={{display:"flex",flexDirection:"column",gap:".3rem"}}>
-              {["TG7","TG13","TG25"].map(d=>(
-                <button key={d} onClick={()=>setImportDist(d)}
-                  style={{padding:".25rem .55rem",borderRadius:6,cursor:"pointer",
-                    fontFamily:"var(--font-mono)",fontSize:".65rem",fontWeight:700,
-                    border:`1px solid ${importDist===d?"var(--cyan)":"var(--border)"}`,
-                    background:importDist===d?"var(--cyan-dim)":"transparent",
-                    color:importDist===d?"var(--cyan)":"var(--text-muted)"}}>
-                  {d}
+        {/* Modal editar/crear código */}
+        {editCodigo && (
+          <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setEditCodigo(null)}>
+            <div className="modal" style={{maxWidth:420}}>
+              <div className="modal-header">
+                <span className="modal-title">
+                  {editCodigo.id ? "✏️ Editar código" : "🎟️ Nuevo código"}
+                </span>
+                <button className="btn btn-ghost btn-sm" onClick={()=>setEditCodigo(null)}>✕</button>
+              </div>
+              <div className="modal-body" style={{gap:".6rem"}}>
+                <div>
+                  <label className="fl">Código *</label>
+                  <input className="inp"
+                    value={editCodigo.codigo||""}
+                    onChange={e=>setEditCodigo(p=>({...p,codigo:e.target.value.toUpperCase()}))}
+                    placeholder="ej. ABC12345"
+                    style={{fontFamily:"var(--font-mono)",fontWeight:700,letterSpacing:".05em"}} />
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
+                  <div>
+                    <label className="fl">Distancia</label>
+                    <select className="inp" value={editCodigo.distancia||"TG7"}
+                      onChange={e=>setEditCodigo(p=>({...p,distancia:e.target.value}))}>
+                      <option value="TG7">TG7</option>
+                      <option value="TG13">TG13</option>
+                      <option value="TG25">TG25</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="fl">Estado</label>
+                    <select className="inp" value={editCodigo.estado||"disponible"}
+                      onChange={e=>setEditCodigo(p=>({...p,estado:e.target.value}))}>
+                      <option value="disponible">✅ Disponible</option>
+                      <option value="usado">✓ Usado</option>
+                    </select>
+                  </div>
+                </div>
+                {editCodigo.estado==="usado" && (
+                  <>
+                    <div>
+                      <label className="fl">Usado por</label>
+                      <input className="inp"
+                        value={editCodigo.usadoPor||""}
+                        onChange={e=>setEditCodigo(p=>({...p,usadoPor:e.target.value}))}
+                        placeholder="Nombre del inscrito" />
+                    </div>
+                    <div>
+                      <label className="fl">Fecha de uso</label>
+                      <input className="inp" type="date"
+                        value={editCodigo.fechaUso||""}
+                        onChange={e=>setEditCodigo(p=>({...p,fechaUso:e.target.value}))} />
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button className="btn btn-ghost" onClick={()=>setEditCodigo(null)}>Cancelar</button>
+                <button className="btn btn-primary"
+                  disabled={!editCodigo.codigo?.trim()}
+                  style={{opacity:editCodigo.codigo?.trim()?1:.5}}
+                  onClick={()=>{
+                    if (!editCodigo.codigo?.trim()) return;
+                    const cod = {
+                      ...editCodigo,
+                      codigo: editCodigo.codigo.trim().toUpperCase(),
+                      usadoPor: editCodigo.estado==="usado" ? (editCodigo.usadoPor||null) : null,
+                      fechaUso: editCodigo.estado==="usado" ? (editCodigo.fechaUso||null) : null,
+                    };
+                    if (cod.id) {
+                      setCodigos(prev=>prev.map(x=>x.id===cod.id?cod:x));
+                    } else {
+                      cod.id = cod.codigo+"-"+Date.now().toString(36);
+                      setCodigos(prev=>[...prev,cod]);
+                    }
+                    setEditCodigo(null);
+                  }}>
+                  {editCodigo.id ? "Guardar" : "Crear"}
                 </button>
-              ))}
-              <button disabled={!importText.trim()}
-                style={{padding:".3rem .55rem",borderRadius:6,cursor:"pointer",
-                  fontFamily:"var(--font-mono)",fontSize:".65rem",fontWeight:700,
-                  background:"var(--primary)",color:"#fff",border:"none",
-                  opacity:importText.trim()?1:.45,marginTop:".15rem"}}
-                onClick={()=>{
-                  const nuevos=importText.split(/[,\s\n\r]+/)
-                    .map(l=>l.trim().toUpperCase()).filter(l=>l.length>0)
-                    .filter(cod=>!codigos.find(c=>c.codigo===cod))
-                    .map(cod=>({id:cod+"-"+Date.now().toString(36),codigo:cod,
-                      distancia:importDist,estado:"disponible",usadoPor:null,fechaUso:null}));
-                  if(!nuevos.length){setImportMsg("Todos los códigos ya existen.");return;}
-                  setCodigos(prev=>[...prev,...nuevos]);
-                  setImportText("");
-                  setImportMsg("✓ "+nuevos.length+" importados para "+importDist);
-                  setTimeout(()=>setImportMsg(null),3000);
-                }}>
-                Importar
-              </button>
+              </div>
             </div>
           </div>
-          {importMsg&&<div style={{fontFamily:"var(--font-mono)",fontSize:".62rem",
-            color:importMsg.startsWith("✓")?"var(--green)":"var(--red)",marginTop:".4rem"}}>
-            {importMsg}
-          </div>}
-        </div>
+        )}
+
+        {/* Confirmar borrado de código */}
+        {delCodigo && (
+          <div className="modal-backdrop" style={{zIndex:200}}
+            onClick={e=>e.target===e.currentTarget&&setDelCodigo(null)}>
+            <div className="modal" style={{maxWidth:320,textAlign:"center"}}>
+              <div className="modal-body" style={{paddingTop:"1.5rem"}}>
+                <div style={{fontSize:"2rem",marginBottom:".5rem"}}>🗑️</div>
+                <div style={{fontWeight:700,marginBottom:".3rem"}}>¿Eliminar este código?</div>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:".72rem",
+                  color:"var(--text-muted)",marginBottom:".2rem"}}>
+                  {codigos.find(c=>c.id===delCodigo)?.codigo}
+                </div>
+                <div className="mono xs muted">Esta acción no se puede deshacer.</div>
+              </div>
+              <div className="modal-footer">
+                <button className="btn btn-ghost" onClick={()=>setDelCodigo(null)}>Cancelar</button>
+                <button className="btn btn-red" onClick={()=>{
+                  setCodigos(prev=>prev.filter(x=>x.id!==delCodigo));
+                  setDelCodigo(null);
+                }}>Eliminar</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── SECCIÓN 1: PLAZAS MÁXIMAS ── */}
