@@ -346,22 +346,22 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
       {/* ── KPIs operativos — solo lo que no está en la card principal ── */}
       <div className="kpi-grid mb">
         <div className="kpi cyan" style={{cursor:"pointer"}} onClick={() => setTab("pedidos")}>
-          <div className="kpi-label">👕 Pedidos extras</div>
+          <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>👕 Pedidos extras<Tooltip text={"Cantidad de pedidos ingresados manualmente para solicitantes extra."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value">{stats.totalPedidosExtras}</div>
           <div className="kpi-sub">{stats.totalPedidosExtras===0?"sin pedidos manuales":"pedidos manuales"}</div>
         </div>
         <div className={`kpi ${stats.cPendCobro > 0 ? "amber" : "green"}`} style={{cursor:"pointer"}} onClick={() => setTab("pedidos")}>
-          <div className="kpi-label">⏳ Pendiente cobro</div>
+          <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>⏳ Pendiente cobro<Tooltip text={"Importe total de pedidos manuales que aún no han sido cobrados."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value">{fmt(stats.cPendCobro)}</div>
           <div className="kpi-sub">{stats.cPendCobro > 0 ? "por cobrar" : "todo cobrado ✓"}</div>
         </div>
         <div className={`kpi ${stats.pendEnt > 0 ? "cyan" : "green"}`} style={{cursor:"pointer"}} onClick={() => setTab("checklist")}>
-          <div className="kpi-label">📦 Por entregar</div>
+          <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>📦 Por entregar<Tooltip text={"Cantidad de unidades correspondientes a pedidos extra que siguen pendientes de entrega."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value">{stats.pendEnt}</div>
           <div className="kpi-sub">{stats.pendEnt > 0 ? "unidades pendientes" : "todo entregado ✓"}</div>
         </div>
         <div className="kpi cyan" style={{cursor:"pointer"}} onClick={() => setTab("tallas")}>
-          <div className="kpi-label">🔢 Total unidades</div>
+          <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>🔢 Total unidades<Tooltip text={"Suma total de unidades calculadas de todas las fuentes activas."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value">{stats.totalUnidades}</div>
           <div className="kpi-sub">🏃 {stats.uCorExt + stats.uExtrasCor} cor · 👥 {stats.uVolAuto + stats.uExtrasVol} vol</div>
         </div>

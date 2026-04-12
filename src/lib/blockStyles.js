@@ -106,10 +106,12 @@ export const BLOCK_CSS = `
     border: 1px solid var(--border);
     border-left-width: 4px;
     transition: transform 0.15s;
+    cursor: pointer;
   }
-  .kpi:hover { transform: translateY(-1px); }
+  .kpi:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+  .kpi:active { transform: translateY(0); }
   .kpi-label {
-    font-size: 0.62rem;
+    font-size: 0.68rem;
     font-family: var(--font-mono);
     color: var(--text-muted);
     font-weight: 600;
@@ -125,10 +127,14 @@ export const BLOCK_CSS = `
     margin-bottom: 0.25rem;
   }
   .kpi-sub {
-    font-size: 0.62rem;
+    font-size: 0.68rem;
     font-family: var(--font-mono);
     color: var(--text-muted);
     line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
   }
   .kpi.cyan   { border-left-color: var(--cyan);   }
   .kpi.violet { border-left-color: var(--violet); }
@@ -175,8 +181,10 @@ export const BLOCK_CSS = `
     font-family: var(--font-display);
     transition: all 0.18s;
     flex-shrink: 0;
+    min-height: 36px;
   }
   .tab-btn:hover { color: var(--text); border-color: var(--border-light); }
+  .tab-btn:active { transform: scale(0.97); }
   .tab-btn.active {
     background: var(--primary-dim);
     color: #c4c6ff;
@@ -221,6 +229,22 @@ export const BLOCK_CSS = `
 
   /* ── Tables ─────────────────────────────────────────────────────────────── */
   .overflow-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  /* Contenedor con fade lateral para indicar scroll en mobile */
+  .tbl-scroll-wrap {
+    position: relative;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tbl-scroll-wrap::after {
+    content: '';
+    position: absolute;
+    right: 0; top: 0; bottom: 0; width: 40px;
+    background: linear-gradient(to right, transparent, var(--surface));
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .tbl-scroll-wrap.has-overflow::after { opacity: 1; }
   .tbl { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
   .tbl th {
     text-align: left; padding: 0.65rem 0.75rem;
@@ -229,14 +253,17 @@ export const BLOCK_CSS = `
     font-family: var(--font-mono); font-size: 0.68rem;
     text-transform: uppercase; letter-spacing: 0.05em;
     white-space: nowrap; background: var(--surface);
+    position: sticky; top: 0; z-index: 1;
   }
   .tbl td {
-    padding: 0.6rem 0.75rem;
+    padding: 0.65rem 0.75rem;
     border-bottom: 1px solid rgba(30,45,80,0.6);
     vertical-align: middle;
   }
   .tbl tr:last-child td { border-bottom: none; }
-  .tbl tbody tr:hover td { background: rgba(255,255,255,0.015); }
+  .tbl tbody tr { transition: background 0.1s; }
+  .tbl tbody tr:hover td { background: rgba(255,255,255,0.025); }
+  .tbl tbody tr:active td { background: rgba(255,255,255,0.04); }
   .total-row td {
     background: var(--surface2) !important;
     font-weight: 700;
@@ -265,9 +292,14 @@ export const BLOCK_CSS = `
     transition: all 0.18s;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.3rem;
     white-space: nowrap;
+    min-height: 36px;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
   }
+  .btn:active:not(:disabled) { transform: scale(0.96); }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .btn-ghost  { background: var(--surface2); color: var(--text-muted); border-color: var(--border); }
   .btn-ghost:hover { color: var(--text); border-color: var(--border-light); }
@@ -283,14 +315,15 @@ export const BLOCK_CSS = `
   .btn-red:hover    { background: var(--red);    color: #fff; }
   .btn-primary{ background: var(--primary-dim);color: #c4c6ff;      border-color: rgba(99,102,241,0.4); }
   .btn-primary:hover{ background: var(--primary); color: #fff; }
-  .btn-sm { padding: 0.4rem 0.65rem; font-size: 0.7rem; }
-  .btn-icon { padding: 0.35rem 0.45rem; }
+  /* min-height garantiza área táctil suficiente en mobile (≥ 36px) */
+  .btn-sm { padding: 0.4rem 0.65rem; font-size: 0.7rem; min-height: 34px; }
+  .btn-icon { padding: 0.4rem 0.5rem; min-width: 36px; min-height: 36px; }
 
   /* ── Badges ─────────────────────────────────────────────────────────────── */
   .badge {
     display: inline-flex; align-items: center;
-    padding: 0.12rem 0.45rem; border-radius: 4px;
-    font-size: 0.62rem; font-weight: 700;
+    padding: 0.15rem 0.5rem; border-radius: 4px;
+    font-size: 0.68rem; font-weight: 700;
     font-family: var(--font-mono);
     text-transform: uppercase; letter-spacing: 0.04em;
     white-space: nowrap;
@@ -331,20 +364,22 @@ export const BLOCK_CSS = `
     border: 1px solid var(--border);
     color: var(--text);
     border-radius: var(--r-sm);
-    padding: 0.4rem 0.65rem;
+    padding: 0.5rem 0.75rem;
     font-family: var(--font-display);
-    font-size: 0.82rem;
-    transition: border-color 0.15s;
+    font-size: 0.88rem;
+    transition: border-color 0.15s, box-shadow 0.15s;
     outline: none;
     width: 100%;
+    min-height: 40px;
+    -webkit-appearance: none;
   }
-  .inp:focus { border-color: var(--cyan); }
+  .inp:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--cyan-dim); }
   .inp::placeholder { color: var(--text-dim); }
   .inp-mono {
     font-family: var(--font-mono);
     text-align: right;
   }
-  .inp-sm { padding: 0.28rem 0.5rem; font-size: 0.72rem; }
+  .inp-sm { padding: 0.35rem 0.6rem; font-size: 0.78rem; min-height: 34px; }
   select.inp { cursor: pointer; }
 
   /* ── Progress bar ───────────────────────────────────────────────────────── */
@@ -418,21 +453,46 @@ export const BLOCK_CSS = `
     position: fixed; inset: 0; z-index: 100;
     background: rgba(0,0,0,0.75);
     backdrop-filter: blur(8px);
-    display: flex; align-items: center; justify-content: center;
-    padding: 1rem;
+    -webkit-backdrop-filter: blur(8px);
+    display: flex; align-items: flex-end; justify-content: center;
+    padding: 0;
     animation: fadeIn 0.15s ease;
+  }
+  /* En pantallas mayores de 640px — centrado clásico */
+  @media (min-width: 641px) {
+    .modal-backdrop {
+      align-items: center;
+      padding: 1rem;
+    }
+    .modal {
+      border-radius: 16px;
+    }
   }
   .modal {
     background: var(--surface);
     border: 1px solid var(--border-light);
-    border-radius: 16px;
-    max-height: 90vh; overflow-y: auto;
+    /* En mobile: sheet desde abajo. En desktop: modal centrado */
+    border-radius: 20px 20px 0 0;
+    /* dvh descuenta el teclado virtual en iOS Safari */
+    max-height: 92dvh; overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     width: 100%; max-width: 560px;
-    box-shadow: 0 24px 64px rgba(0,0,0,0.5);
-    animation: slideUp 0.2s ease;
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.4);
+    animation: slideUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    /* Franja de agarre visual en mobile */
+    padding-top: 0;
+  }
+  .modal::before {
+    content: '';
+    display: block;
+    width: 36px; height: 4px;
+    background: var(--border-light);
+    border-radius: 2px;
+    margin: 10px auto 2px;
+    opacity: 0.6;
   }
   .modal-header {
-    padding: 1.1rem 1.25rem 0.85rem;
+    padding: 0.85rem 1.25rem 0.85rem;
     border-bottom: 1px solid var(--border);
     display: flex; align-items: center; justify-content: space-between;
     position: sticky; top: 0; background: var(--surface); z-index: 1;
@@ -441,6 +501,8 @@ export const BLOCK_CSS = `
   .modal-body  { padding: 1.1rem 1.25rem; }
   .modal-footer {
     padding: 0.85rem 1.25rem;
+    /* Respeta el área segura inferior en iPhone con home indicator */
+    padding-bottom: calc(0.85rem + env(safe-area-inset-bottom, 0px));
     border-top: 1px solid var(--border);
     display: flex; justify-content: flex-end; gap: 0.5rem;
   }
@@ -454,13 +516,31 @@ export const BLOCK_CSS = `
     .block-container { padding: 0.6rem; }
     .block-title { font-size: 0.95rem; }
     .block-title-sub { display: none; }
-    .block-header { margin-bottom: 0.75rem; }
+    .block-header { margin-bottom: 0.75rem; gap: 0.5rem; }
+    /* KPI grid 2 columnas en mobile */
     .kpi-grid { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
     .kpi { padding: 0.75rem 0.85rem; }
+    .kpi-label { font-size: 0.72rem; }
+    /* En mobile el sub va en multilínea para que no se corte feo */
+    .kpi-sub {
+      white-space: normal;
+      font-size: 0.70rem;
+      line-height: 1.45;
+    }
     .kpi-value { font-size: 1.2rem; }
     .card { padding: 0.85rem; }
     .tabs { gap: 0.3rem; position: relative; }
-    .tab-btn { padding: 0.5rem 0.9rem; font-size: 0.74rem; min-height: 36px; }
+    .tab-btn { padding: 0.5rem 0.9rem; font-size: 0.74rem; min-height: 40px; }
+    /* Badge levemente más grande para ser legible */
+    .badge { font-size: 0.7rem; padding: 0.16rem 0.5rem; }
+    /* Inputs más grandes en mobile (≥ 44px para evitar zoom-in automático iOS) */
+    .inp { font-size: 16px; min-height: 44px; padding: 0.55rem 0.75rem; }
+    .inp-sm { font-size: 14px; min-height: 38px; }
+    /* Botones más accesibles en touch */
+    .btn { min-height: 40px; }
+    .btn-sm { min-height: 38px; }
+    /* Grids colapsan antes */
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
   }
 
 `;

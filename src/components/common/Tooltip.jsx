@@ -29,9 +29,10 @@ export function Tooltip({ text, children, position = "top", maxWidth = 260 }) {
   const hide = () => { clearTimeout(timer.current); timer.current = setTimeout(() => setVisible(false), 80); };
   // Toggle táctil: un toque muestra, otro oculta
   const toggle = (e) => {
+    e.preventDefault();
     e.stopPropagation();
     if (visible) { clearTimeout(timer.current); setVisible(false); }
-    else show();
+    else { clearTimeout(timer.current); setVisible(true); }
   };
   useEffect(() => () => clearTimeout(timer.current), []);
   // Cerrar al tocar fuera
