@@ -550,13 +550,13 @@ export default function App() {
                 });
               }}
               className="btn btn-ghost btn-sm"
-              title={`Copiar URL del formulario público: ${window.location.origin}/voluntarios/registro`}
+              title={`Copiar enlace del formulario de registro de voluntarios:\n${window.location.origin}/voluntarios/registro`}
               style={{ fontFamily:"var(--font-mono)", fontSize:".68rem" }}>
-              {urlCopiada ? "✓ URL copiada" : "🔗 Copiar URL"}
+              {urlCopiada ? "✓ Enlace copiado" : "🔗 Formulario registro"}
             </button>
             <button className="btn btn-ghost btn-sm" onClick={() => setVista("formulario")}
-              title="Previsualizar formulario público">
-              ↗ Formulario
+              title="Previsualizar el formulario público de registro de voluntarios">
+              ↗ Previsualizar
             </button>
           </div>
         </div>

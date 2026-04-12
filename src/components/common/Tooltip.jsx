@@ -27,7 +27,20 @@ export function Tooltip({ text, children, position = "top", maxWidth = 260 }) {
 
   const show = () => { clearTimeout(timer.current); timer.current = setTimeout(() => setVisible(true), 130); };
   const hide = () => { clearTimeout(timer.current); timer.current = setTimeout(() => setVisible(false), 80); };
+  // Toggle táctil: un toque muestra, otro oculta
+  const toggle = (e) => {
+    e.stopPropagation();
+    if (visible) { clearTimeout(timer.current); setVisible(false); }
+    else show();
+  };
   useEffect(() => () => clearTimeout(timer.current), []);
+  // Cerrar al tocar fuera
+  useEffect(() => {
+    if (!visible) return;
+    const close = () => { clearTimeout(timer.current); setVisible(false); };
+    document.addEventListener("click", close, { once: true });
+    return () => document.removeEventListener("click", close);
+  }, [visible]);
 
   useEffect(() => {
     if (!visible || !triggerRef.current) return;
@@ -41,8 +54,10 @@ export function Tooltip({ text, children, position = "top", maxWidth = 260 }) {
 
   return (
     <>
-      <span ref={triggerRef} onMouseEnter={show} onMouseLeave={hide}
-        style={{ display:"inline-flex", alignItems:"center", gap:4 }}>
+      <span ref={triggerRef}
+        onMouseEnter={show} onMouseLeave={hide}
+        onClick={toggle}
+        style={{ display:"inline-flex", alignItems:"center", gap:4, cursor:"help" }}>
         {children}
       </span>
       {visible && (
