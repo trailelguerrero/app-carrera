@@ -157,6 +157,25 @@ export default function App() {
   const [busquedaGlobal, setBusquedaGlobal] = useState("");
   const [vistaTablon, setVistaTablon] = useState("lista"); // "lista" | "kanban"
 
+  // Escuchar evento de crear tarea desde otros módulos (ej. Documentos)
+  useEffect(() => {
+    const handler = (e) => {
+      const { action, payload } = e.detail || {};
+      if (action !== "nueva-tarea") return;
+      // Navegar al Tablón y abrir modal de nueva tarea pre-rellenada
+      setTab("tablón");
+      setTimeout(() => {
+        setModal({
+          tipo: "tarea",
+          data: null,
+          prefill: payload || {},
+        });
+      }, 50);
+    };
+    window.addEventListener("teg-navigate", handler);
+    return () => window.removeEventListener("teg-navigate", handler);
+  }, []);
+
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 850);
     window.addEventListener("resize", handleResize);
@@ -343,7 +362,7 @@ export default function App() {
             updEstado={updEstado} setModal={setModal} setDelConf={setDelConf} setFicha={abrirFicha}
             vista={vistaTablon} setVista={setVistaTablon} />}
           {tab==="gantt"  && <TabGantt tareas={tareas} hitos={hitos} equipo={equipo} setModal={setModal} setFicha={abrirFicha} setFiltroArea={setFiltroArea} setTabParent={setTab} />}
-          {tab==="equipo" && <TabEquipo equipo={equipo} tareas={tareas} setModal={setModal} setDelConf={setDelConf} setFicha={abrirFicha} />}
+          {tab==="equipo" && <TabEquipo equipo={equipo} setEquipo={setEquipo} tareas={tareas} setModal={setModal} setDelConf={setDelConf} setFicha={abrirFicha} />}
           {tab==="hitos"  && <TabHitos hitos={hitos} updHito={updHito} setModal={setModal} setDelConf={setDelConf} setFicha={abrirFicha} />}
         </div>
       </div>
@@ -351,7 +370,7 @@ export default function App() {
       {ficha?.tipo==="tarea"   && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} documentos={documentos} tareas={tareas} onClose={()=>setFicha(null)} onEditar={()=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
       {ficha?.tipo==="hito"    && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} documentos={documentos} tareas={tareas} onClose={()=>setFicha(null)} onEditar={()=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
       {ficha?.tipo==="persona" && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} documentos={documentos} tareas={tareas} onClose={()=>setFicha(null)} onEditar={()=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
-      {modal?.tipo==="tarea"   && <ModalTarea   key={modal.data?.id||"new"} data={modal.data} equipo={equipo} tareas={tareas} documentos={documentos} onSave={saveTarea}   onClose={() => setModal(null)} />}
+      {modal?.tipo==="tarea"   && <ModalTarea   key={modal.data?.id||"new"} data={modal.data} prefill={modal.prefill} equipo={equipo} tareas={tareas} documentos={documentos} onSave={saveTarea}   onClose={() => setModal(null)} />}
       {modal?.tipo==="hito"    && <ModalHito    key={modal.data?.id||"new"} data={modal.data}                                  onSave={saveHito}    onClose={() => setModal(null)} />}
       {modal?.tipo==="persona" && <ModalPersona key={modal.data?.id||"new"} data={modal.data}                                  onSave={savePersona} onClose={() => setModal(null)} />}
       {delConf && (
@@ -403,11 +422,15 @@ function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, upd
                   {a.venc > 0 && <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"#f87171",marginTop:".15rem"}}>⚠ {a.venc} vencida{a.venc!==1?"s":""}</div>}
                 </div>
                 {{
-                  permisos:       <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"documentos"}}))}}>🏛️ Ver gestiones →</button>,
+                  permisos:       <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"documentos"}}))}}>🏛️ Ver gestiones legales →</button>,
                   economico:      <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"presupuesto"}}))}}>💰 Ver presupuesto →</button>,
+                  comunicacion:   <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"documentos"}}))}}>📁 Ver documentos →</button>,
                   patrocinadores: <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"patrocinadores"}}))}}>🤝 Ver patrocinadores →</button>,
                   voluntarios:    <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"voluntarios"}}))}}>👥 Ver voluntarios →</button>,
+                  ruta:           <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"logistica"}}))}}>🏔️ Ver logística →</button>,
                   logistica:      <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"logistica"}}))}}>📦 Ver logística →</button>,
+                  comercial:      <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"camisetas"}}))}}>👕 Ver camisetas →</button>,
+                  sanitario:      <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"logistica"}}))}}>🏥 Ver logística →</button>,
                   diaD:           <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"diaCarrera"}}))}}>🏁 Vista día D →</button>,
                 }[a.id] || null}
               </div>
@@ -1090,15 +1113,29 @@ function TabGantt({ tareas, hitos, equipo, setModal, setFicha, setFiltroArea, se
 }
 
 // ─── TAB EQUIPO ───────────────────────────────────────────────────────────────
-function TabEquipo({ equipo, tareas, setModal, setDelConf, setFicha }) {
-  const [vistaEquipo, setVistaEquipo]  = useState("cards"); // "cards" | "kanban"
+function TabEquipo({ equipo, setEquipo, tareas, setModal, setDelConf, setFicha }) {
+  const [vistaEquipo, setVistaEquipo]  = useState("cards");
   const [ordenAlfa, setOrdenAlfa]      = useState(false);
   const [areasColapsadas, setAreasCol] = useState({});
   const toggleArea = (areaId) => setAreasCol(p => ({...p, [areaId]: !p[areaId]}));
+
+  // Mover persona dentro del array global de equipo (solo cuando no hay A-Z)
+  const moverPersona = (id, dir) => {
+    if (ordenAlfa) return;
+    setEquipo(prev => {
+      const arr = [...prev];
+      const i = arr.findIndex(x => x.id === id);
+      const j = i + dir;
+      if (j < 0 || j >= arr.length) return arr;
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+      return arr;
+    });
+  };
+
   const equipoOrdenado = ordenAlfa
     ? [...equipo].sort((a,b) => (a.nombre||"").localeCompare(b.nombre||"","es"))
     : equipo;
-  const areasConPersonas = AREAS.filter(a => equipo.some(p => p.area === a.id));
+  const areasConPersonas = AREAS.filter(a => equipoOrdenado.some(p => p.area === a.id));
   return (
     <>
       <div className="ph">
@@ -1127,7 +1164,7 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf, setFicha }) {
       {vistaEquipo === "kanban" && (
         <div className="kanban-grid" style={{gridTemplateColumns:`repeat(${Math.min(areasConPersonas.length,3)},1fr)`}}>
           {areasConPersonas.map(area => {
-            const personas = equipo.filter(p => p.area === area.id);
+            const personas = equipoOrdenado.filter(p => p.area === area.id);
             return (
               <div key={area.id} className="kanban-col">
                 <div className="kanban-col-hdr" style={{borderTopColor:area.color}}>
@@ -1172,10 +1209,7 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf, setFicha }) {
       {vistaEquipo === "cards" && (
         <div style={{display:"flex", flexDirection:"column", gap:".75rem"}}>
           {areasConPersonas.map(area => {
-            const personas = ordenAlfa
-              ? [...equipo].filter(p => p.area === area.id)
-                .sort((a,b) => (a.nombre||"").localeCompare(b.nombre||"","es"))
-              : equipo.filter(p => p.area === area.id);
+            const personas = equipoOrdenado.filter(p => p.area === area.id);
             const collapsed = areasColapsadas[area.id];
             const tareasArea = personas.flatMap(p => tareas.filter(t => t.responsableId===p.id && t.estado!=="completado"));
             const urgentesArea = tareasArea.filter(t => t.fechaLimite && diasHasta(t.fechaLimite) <= 7).length;
@@ -1236,9 +1270,42 @@ function TabEquipo({ equipo, tareas, setModal, setDelConf, setFicha }) {
                       const pct = pt.length ? Math.round(completadas/pt.length*100) : 0;
                       const areaP = getArea(p.area);
                       return (
-                        <div key={p.id} className="persona-card" style={{borderTopColor:p.color, cursor:"pointer"}}
+                        <div key={p.id} className="persona-card" style={{borderTopColor:p.color, cursor:"pointer", position:"relative"}}
                           onClick={() => setFicha("persona", p)}
                           title={`Ver ficha de ${p.nombre}`}>
+                          {/* Botones de reorden — solo sin A-Z */}
+                          {!ordenAlfa && (
+                            <div
+                              onClick={e=>e.stopPropagation()}
+                              style={{position:"absolute",top:".5rem",right:".5rem",
+                                display:"flex",flexDirection:"column",gap:".15rem",zIndex:2}}>
+                              {(() => {
+                                const idxPersona = equipo.findIndex(x=>x.id===p.id);
+                                const prevArea = equipo[idxPersona-1];
+                                const nextArea = equipo[idxPersona+1];
+                                return (<>
+                                  <button
+                                    title="Subir"
+                                    disabled={idxPersona===0}
+                                    onClick={()=>moverPersona(p.id,-1)}
+                                    style={{width:22,height:22,borderRadius:4,border:"1px solid var(--border)",
+                                      background:"var(--surface2)",cursor:idxPersona===0?"not-allowed":"pointer",
+                                      color:idxPersona===0?"var(--text-dim)":"var(--text-muted)",
+                                      fontSize:".6rem",display:"flex",alignItems:"center",justifyContent:"center",
+                                      opacity:idxPersona===0?.35:1}}>▲</button>
+                                  <button
+                                    title="Bajar"
+                                    disabled={idxPersona===equipo.length-1}
+                                    onClick={()=>moverPersona(p.id,+1)}
+                                    style={{width:22,height:22,borderRadius:4,border:"1px solid var(--border)",
+                                      background:"var(--surface2)",cursor:idxPersona===equipo.length-1?"not-allowed":"pointer",
+                                      color:idxPersona===equipo.length-1?"var(--text-dim)":"var(--text-muted)",
+                                      fontSize:".6rem",display:"flex",alignItems:"center",justifyContent:"center",
+                                      opacity:idxPersona===equipo.length-1?.35:1}}>▼</button>
+                                </>);
+                              })()}
+                            </div>
+                          )}
               <div style={{display:"flex",gap:".75rem",alignItems:"flex-start",marginBottom:".85rem"}}>
                 <div className="avatar-lg" style={{background:p.color+"22",border:`2px solid ${p.color}66`,color:p.color}}>
                   {iniciales(p.nombre)}
@@ -1398,10 +1465,15 @@ function TabHitos({ hitos, updHito, setModal, setDelConf, setFicha }) {
 }
 
 // ─── MODAL TAREA ──────────────────────────────────────────────────────────────
-function ModalTarea({ data, equipo, tareas, documentos, onSave, onClose }) {
+function ModalTarea({ data, prefill={}, equipo, tareas, documentos, onSave, onClose }) {
   const [form, setForm] = useState(data || {
-    area:"permisos", titulo:"", responsableId:equipo[0]?.id||1,
-    fechaLimite:"", estado:"pendiente", prioridad:"media", notas:"", dependeDe:null, documentoId:null,
+    area: prefill.area || "permisos",
+    titulo: prefill.titulo || "",
+    responsableId: equipo[0]?.id || 1,
+    fechaLimite: prefill.fechaLimite || "",
+    estado: "pendiente", prioridad: "media",
+    notas: prefill.notas || "",
+    dependeDe: null, documentoId: null,
   });
   const [err, setErr] = useState({});
   const upd = (k,v) => setForm(p => ({...p,[k]:v}));

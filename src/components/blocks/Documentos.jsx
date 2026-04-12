@@ -1183,10 +1183,33 @@ export default function Documentos() {
                       </div>
                       {g.nota && <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",marginTop:".25rem",lineHeight:1.5}}>{g.nota}</div>}
                     </div>
-                    <button className="btn btn-ghost btn-sm" style={{flexShrink:0}} onClick={()=>{
-                      setGForm({nombre:g.nombre,subcategoria:g.subcategoria||"Ayuntamiento",estado:g.estado,fechaVencimiento:g.fechaVencimiento||"",nota:g.nota||"",url:g.url||""});
-                      setGEditId(g.id);
-                    }}>✏️</button>
+                    <div style={{display:"flex",gap:".3rem",flexShrink:0}}>
+                      <button
+                        title="Crear tarea en Proyecto"
+                        onClick={() => {
+                          const titulo = `Gestión: ${g.nombre}`;
+                          const nota = `Vinculado desde Documentos → Gestiones legales. Estado: ${g.estado}${g.fechaVencimiento ? ` · Vence: ${g.fechaVencimiento}` : ""}.`;
+                          // Navegar a Proyecto con una tarea pre-rellenada
+                          window.dispatchEvent(new CustomEvent("teg-navigate", {
+                            detail: { block: "proyecto", action: "nueva-tarea",
+                              payload: { titulo, area: "permisos", notas: nota,
+                                fechaLimite: g.fechaVencimiento || "" } }
+                          }));
+                        }}
+                        style={{
+                          fontFamily:"var(--font-mono)", fontSize:".58rem",
+                          padding:".2rem .45rem", borderRadius:5,
+                          border:"1px solid rgba(167,139,250,.3)",
+                          background:"rgba(167,139,250,.1)", color:"var(--violet)",
+                          cursor:"pointer", flexShrink:0, whiteSpace:"nowrap",
+                        }}>
+                        ＋ Tarea
+                      </button>
+                      <button className="btn btn-ghost btn-sm" style={{flexShrink:0}} onClick={()=>{
+                        setGForm({nombre:g.nombre,subcategoria:g.subcategoria||"Ayuntamiento",estado:g.estado,fechaVencimiento:g.fechaVencimiento||"",nota:g.nota||"",url:g.url||""});
+                        setGEditId(g.id);
+                      }}>✏️</button>
+                    </div>
                   </div>
                 )}
               </div>

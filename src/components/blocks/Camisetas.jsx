@@ -227,7 +227,16 @@ export default function App() {
         <div className="block-header">
           <div>
             <h1 className="block-title">👕 Camisetas Extra</h1>
-            <div className="block-title-sub">{config.nombre} {config.edicion} · Pedidos externos</div>
+            <div className="block-title-sub" style={{display:"flex",alignItems:"center",gap:".6rem",flexWrap:"wrap"}}>
+              <span>{config.nombre} {config.edicion} · Pedidos externos</span>
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "presupuesto" } }))}
+                style={{ fontFamily:"var(--font-mono)", fontSize:".55rem", padding:".12rem .4rem",
+                  borderRadius:4, border:"1px solid rgba(251,191,36,.3)",
+                  background:"rgba(251,191,36,.1)", color:"var(--amber)", cursor:"pointer" }}>
+                💰 Ver en presupuesto →
+              </button>
+            </div>
           </div>
           <div className="block-actions">
             {stats.cPendCobro>0 && <span className="badge badge-amber">⏳ {fmt(stats.cPendCobro)} pendiente</span>}

@@ -271,7 +271,16 @@ export default function App() {
         {/* HEADER */}
         <div className="block-header">
           <div>
-            <h1 className="block-title">🤝 Patrocinadores</h1>
+            <div style={{display:"flex",alignItems:"center",gap:".65rem",flexWrap:"wrap",marginBottom:".15rem"}}>
+              <h1 className="block-title" style={{margin:0}}>🤝 Patrocinadores</h1>
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"proyecto"}}))}
+                style={{fontFamily:"var(--font-mono)",fontSize:".58rem",padding:".15rem .45rem",
+                  borderRadius:4,border:"1px solid rgba(52,211,153,.3)",
+                  background:"rgba(52,211,153,.1)",color:"var(--green)",cursor:"pointer"}}>
+                📋 Ver en Proyecto →
+              </button>
+            </div>
             <div className="block-title-sub">{config.nombre} {config.edicion} · Gestión Comercial</div>
           </div>
           <div className="block-actions">

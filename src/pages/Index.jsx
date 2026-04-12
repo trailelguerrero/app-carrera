@@ -411,6 +411,75 @@ export default function Index() {
     return () => window.removeEventListener("keydown", h);
   }, [authed, handleBlockChange]);
 
+  // ── Badges de alertas en nav — calculados desde localStorage ────────────
+  const alertasBadges = useMemo(() => {
+    try {
+      const badges = {};
+      const get = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
+      
+      // Proyecto: tareas vencidas
+      const tareas = get("teg_proyecto_v1_tareas", []);
+      const vencidas = Array.isArray(tareas) ? tareas.filter(t =>
+        t.estado !== "completado" && t.fechaLimite &&
+        Math.ceil((new Date(t.fechaLimite) - new Date()) / 86400000) < 0
+      ).length : 0;
+      if (vencidas > 0) badges["proyecto"] = vencidas;
+
+      // Voluntarios: cobertura crítica
+      const vols    = get("teg_voluntarios_v1_voluntarios", []);
+      const puestos = get("teg_voluntarios_v1_puestos", []);
+      if (Array.isArray(puestos) && Array.isArray(vols)) {
+        const criticos = puestos.filter(p => {
+          const asign = vols.filter(v => v.puestoId === p.id && v.estado !== "cancelado").length;
+          return p.necesarios > 0 && asign / p.necesarios < 0.5;
+        }).length;
+        if (criticos > 0) badges["voluntarios"] = criticos;
+      }
+
+      // Documentos: vencidos o denegados
+      const docs  = get("teg_documentos_v1", []);
+      const gests = get("teg_documentos_v1_gestiones", []);
+      const docsV = Array.isArray(docs) ? docs.filter(d =>
+        d.fechaVencimiento && d.estado !== "vigente" &&
+        Math.ceil((new Date(d.fechaVencimiento) - new Date()) / 86400000) < 0
+      ).length : 0;
+      const gestV = Array.isArray(gests) ? gests.filter(g =>
+        g.estado !== "aprobado" && g.estado !== "denegado" && g.fechaVencimiento &&
+        Math.ceil((new Date(g.fechaVencimiento) - new Date()) / 86400000) < 0
+      ).length : 0;
+      if (docsV + gestV > 0) badges["documentos"] = docsV + gestV;
+
+      // Presupuesto: resultado negativo
+      const conceptos = get("teg_presupuesto_v1_conceptos", []);
+      const tramos    = get("teg_presupuesto_v1_tramos", []);
+      const inscritos = get("teg_presupuesto_v1_inscritos", { tramos: {} });
+      const maximos   = get("teg_presupuesto_v1_maximos", {});
+      if (Array.isArray(conceptos) && Array.isArray(tramos)) {
+        const totalIns = ["TG7","TG13","TG25"].reduce((s,d) =>
+          s + tramos.reduce((ss,t) => ss + (inscritos?.tramos?.[t.id]?.[d]||0), 0), 0
+        );
+        const ingresos = tramos.reduce((s,t) =>
+          s + ["TG7","TG13","TG25"].reduce((ss,d) =>
+            ss + (inscritos?.tramos?.[t.id]?.[d]||0) * (t.precios?.[d]||0), 0
+          ), 0);
+        const costes = conceptos.filter(c => c.activo).reduce((s,c) => {
+          if (c.tipo === "fijo") return s + (c.costeTotal || 0);
+          return s + ["TG7","TG13","TG25"].reduce((ss,d) =>
+            ss + (c.activoDistancias?.[d] ? (c.costePorDistancia?.[d]||0) * (tramos.reduce((st,t) => st + (inscritos?.tramos?.[t.id]?.[d]||0), 0)) : 0), 0
+          );
+        }, 0);
+        if (ingresos - costes < 0 && totalIns > 0) badges["presupuesto"] = "!";
+      }
+
+      // Logística: incidencias abiertas
+      const incidencias = get("teg_logistica_v1_inc", []);
+      const incAbiertas = Array.isArray(incidencias) ? incidencias.filter(i => i.estado === "abierta").length : 0;
+      if (incAbiertas > 0) badges["logistica"] = incAbiertas;
+
+      return badges;
+    } catch { return {}; }
+  }, [activeBlock]); // recalcular al cambiar de bloque
+
   if (!authed) return <PinScreen onUnlock={() => setAuthed(true)} />;
 
   const NAV_H = isMobile ? 68 : 66;
@@ -611,7 +680,23 @@ export default function Index() {
                   transform: isActive ? "scale(1.1)" : "scale(1)",
                   transition:"all 0.2s",
                   pointerEvents:"none", position:"relative", zIndex:1,
-                }}>{b.icon}</span>
+                }}>
+                  {b.icon}
+                  {alertasBadges[b.id] && (
+                    <span style={{
+                      position:"absolute", top:-3, right:-5,
+                      minWidth:13, height:13, borderRadius:7,
+                      background:"#f87171", color:"#fff",
+                      fontSize:".48rem", fontWeight:800,
+                      display:"flex", alignItems:"center", justifyContent:"center",
+                      padding:"0 3px", lineHeight:1,
+                      fontFamily:"monospace", border:"1.5px solid var(--bg)",
+                      zIndex:10,
+                    }}>
+                      {typeof alertasBadges[b.id] === "number" ? alertasBadges[b.id] : "!"}
+                    </span>
+                  )}
+                </span>
                 <span style={{
                   fontFamily:"'DM Mono', 'Space Mono', monospace,monospace",
                   fontSize: isMobile ? "0.52rem" : "0.49rem",

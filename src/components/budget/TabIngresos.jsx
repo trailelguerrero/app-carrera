@@ -93,12 +93,19 @@ export const TabIngresos = ({
                 onChange={v => setSyncConfig({ ...syncConfig, patrocinios: v })} 
               />
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap:"wrap" }}>
               <span style={{ fontSize: "0.65rem", fontWeight: 600 }}>Merchandising</span>
               <Toggle 
                 value={syncConfig.camisetas} 
                 onChange={v => setSyncConfig({ ...syncConfig, camisetas: v })} 
               />
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "camisetas" } }))}
+                style={{ fontFamily:"var(--font-mono)", fontSize:".58rem", padding:".15rem .45rem",
+                  borderRadius:4, border:"1px solid rgba(99,102,241,.3)",
+                  background:"rgba(99,102,241,.1)", color:"#c4c6ff", cursor:"pointer" }}>
+                👕 Ver camisetas →
+              </button>
             </div>
           </div>
         </div>
