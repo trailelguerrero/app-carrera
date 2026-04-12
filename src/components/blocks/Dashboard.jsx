@@ -107,6 +107,7 @@ export default function Dashboard() {
     const tramos       = get("teg_presupuesto_v1_tramos", []);
     const inscritos    = get("teg_presupuesto_v1_inscritos", { tramos: {} });
     const syncConfig     = get("teg_presupuesto_v1_syncConfig", { patrocinios: true, camisetas: true });
+    const scenarioActivo = get("teg_scenario_active_name", null);
     const merchStats     = get("teg_camisetas_v1_stats", {});
     const pats           = get("teg_patrocinadores_v1_pats", []);
     const ingresosExtra  = get("teg_presupuesto_v1_ingresosExtra", []);
@@ -710,6 +711,38 @@ export default function Dashboard() {
                 </span>
               )}
             </div>
+          </div>
+        )}
+
+        {/* ── Banner de escenario activo ── */}
+        {d.scenarioActivo && (
+          <div style={{
+            display:"flex", alignItems:"center", justifyContent:"space-between",
+            gap:".75rem", padding:".6rem 1rem", marginBottom:".85rem",
+            borderRadius:8, flexWrap:"wrap",
+            background:"rgba(251,191,36,.07)",
+            border:"1px solid rgba(251,191,36,.3)",
+          }}>
+            <div style={{display:"flex",alignItems:"center",gap:".6rem"}}>
+              <span style={{fontSize:"1.1rem"}}>🔬</span>
+              <div>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:".65rem",fontWeight:800,
+                  color:"var(--amber)",textTransform:"uppercase",letterSpacing:".06em"}}>
+                  Modo Escenario activo
+                </div>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:".62rem",color:"var(--text-muted)"}}>
+                  Los KPIs reflejan el escenario «{d.scenarioActivo}» — no los datos reales
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"presupuesto"}}))}
+              style={{fontFamily:"var(--font-mono)",fontSize:".62rem",padding:".25rem .6rem",
+                borderRadius:6,border:"1px solid rgba(251,191,36,.35)",
+                background:"rgba(251,191,36,.12)",color:"var(--amber)",cursor:"pointer",
+                flexShrink:0,whiteSpace:"nowrap"}}>
+              Ver en Presupuesto →
+            </button>
           </div>
         )}
 

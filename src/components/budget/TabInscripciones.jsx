@@ -439,6 +439,17 @@ export const TabInscripciones = ({
                   </div>
                   <div style={{ color: "var(--text-muted)", fontSize: "0.75rem", marginTop: 2 }}>
                     {totalInscritos.total} ctes totales
+                    {codigos.filter(c => c.estado === "usado").length > 0 && (
+                      <span style={{
+                        fontFamily:"var(--font-mono)", fontSize:"0.62rem",
+                        marginLeft:"0.4rem", padding:"0.05rem 0.3rem",
+                        borderRadius:3, background:"rgba(167,139,250,.15)",
+                        color:"var(--violet)", border:"1px solid rgba(167,139,250,.25)",
+                        fontWeight:700,
+                      }}>
+                        🎟️ {codigos.filter(c => c.estado === "usado").length} promo
+                      </span>
+                    )}
                   </div>
                 </td>
                 <td></td>

@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from "react";
 import { useData } from "../lib/dataService";
 
 const LS_KEY = "teg_scenarios_v1";
+const LS_ACTIVE_SCENARIO = "teg_scenario_active_name";
 
 /**
  * useScenario — Orquestador del sistema de escenarios de presupuesto.
@@ -76,7 +77,10 @@ export const useScenario = (realInscritos, realConceptos, realIngresosExtra, rea
   const loadScenario = useCallback(
     (id) => {
       const sc = savedScenarios.find((s) => s.id === id);
-      if (sc) setActiveScenario(JSON.parse(JSON.stringify(sc)));
+      if (sc) {
+        setActiveScenario(JSON.parse(JSON.stringify(sc)));
+        try { localStorage.setItem(LS_ACTIVE_SCENARIO, sc.nombre || sc.id); } catch {}
+      }
     },
     [savedScenarios]
   );
@@ -84,6 +88,7 @@ export const useScenario = (realInscritos, realConceptos, realIngresosExtra, rea
   /** Descarta el draft y vuelve a datos reales. */
   const exitScenario = useCallback(() => {
     setActiveScenario(null);
+    try { localStorage.removeItem(LS_ACTIVE_SCENARIO); } catch {}
   }, []);
 
   /** Actualiza los inscritos del draft. */

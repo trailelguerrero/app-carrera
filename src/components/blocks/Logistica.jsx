@@ -2544,6 +2544,19 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
   // El coste total de trofeos para referencia en el panel
   const costeTrofeoTotal = conceptoTrofeos?.costeTotal || 0;
 
+  // Dorsales: concepto variable (€/corredor)
+  const conceptoDorsal = conceptosPres.find(c => /dorsal/i.test(c.nombre) && c.tipo === "variable");
+  const precioDorsal = conceptoDorsal ? calcPrecioUnitario(conceptoDorsal, material).precio : 0;
+
+  // Avituallamiento: buscar conceptos variables de avituallamiento (puede haber varios)
+  const conceptosAvit = conceptosPres.filter(c =>
+    /avituallamiento|avituall|nutrición|agua|gel|isotónico/i.test(c.nombre) && c.tipo === "variable"
+  );
+  const precioAvitTotal = conceptosAvit.reduce((s, c) => {
+    const { precio } = calcPrecioUnitario(c, material);
+    return s + precio;
+  }, 0); // coste total por corredor sumando todos los avituallamientos
+
   // Proveedores del directorio de Emergencias
   const proveedores = (Array.isArray(cont) ? cont : []).filter(c => c.tipo === "proveedor");
 
@@ -2641,6 +2654,18 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
         pedidos={pedidos}
         onCrear={(sugerido) => setModal(sugerido)}
       />
+      {(conceptoDorsal || conceptosAvit.length > 0) && (
+        <SugerenciasSimples
+          inscritos={inscritos}
+          totalInscritos={totalInscritos}
+          conceptoDorsal={conceptoDorsal}
+          precioDorsal={precioDorsal}
+          conceptosAvit={conceptosAvit}
+          precioAvitTotal={precioAvitTotal}
+          pedidos={pedidos}
+          onCrear={(sugerido) => setModal(sugerido)}
+        />
+      )}
 
       {/* ── Lista de pedidos ── */}
       {pedidos.length === 0 ? (
@@ -2914,6 +2939,124 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
     </>
   );
 }
+
+// ── Panel de sugerencias simples: dorsales + avituallamiento ──────────────────
+function SugerenciasSimples({ inscritos, totalInscritos, conceptoDorsal, precioDorsal, conceptosAvit, precioAvitTotal, pedidos, onCrear }) {
+  const [colapsado, setColapsado] = useState(true); // colapsado por defecto para no saturar
+  const baseTotal = totalInscritos || 0;
+
+  const yaTieneDorsal = pedidos.some(p =>
+    p.articulos?.some(a => /dorsal/i.test(a.nombre)) && p.estado !== "borrador"
+  );
+  const yaTieneAvit = pedidos.some(p =>
+    p.articulos?.some(a => /avituall|nutrición|agua/i.test(a.nombre)) && p.estado !== "borrador"
+  );
+
+  const sugerencias = [
+    conceptoDorsal && {
+      key: "dorsal",
+      icon: "🔢",
+      label: "Dorsales",
+      cantidad: baseTotal,
+      precio: precioDorsal,
+      concepto: conceptoDorsal,
+      yaConfirmado: yaTieneDorsal,
+    },
+    ...conceptosAvit.map(c => ({
+      key: c.id,
+      icon: "🍎",
+      label: c.nombre,
+      cantidad: baseTotal,
+      precio: calcPrecioUnitario(c, []).precio,
+      concepto: c,
+      yaConfirmado: yaTieneAvit,
+    })),
+  ].filter(Boolean);
+
+  if (!sugerencias.length) return null;
+
+  return (
+    <div className="card mb" style={{padding:0,overflow:"hidden",
+      borderLeft:"3px solid var(--cyan)",marginBottom:".5rem"}}>
+      <button
+        onClick={() => setColapsado(v => !v)}
+        style={{width:"100%",display:"flex",alignItems:"center",gap:".65rem",
+          padding:".7rem .9rem",background:"rgba(34,211,238,.04)",
+          border:"none",cursor:"pointer",textAlign:"left"}}>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontWeight:700,fontSize:".82rem"}}>
+            📦 Sugerencias — Dorsales y Avituallamiento
+          </div>
+          <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+            color:"var(--text-muted)",marginTop:".1rem"}}>
+            {sugerencias.length} concepto{sugerencias.length!==1?"s":""} · {baseTotal} corredores base
+          </div>
+        </div>
+        <span style={{fontFamily:"var(--font-mono)",fontSize:".7rem",
+          color:"var(--text-dim)",flexShrink:0,
+          transform:colapsado?"rotate(-90deg)":"rotate(0deg)",transition:"transform .18s"}}>▼</span>
+      </button>
+
+      {!colapsado && (
+        <div style={{borderTop:"1px solid var(--border)",padding:".75rem .9rem",
+          display:"flex",flexDirection:"column",gap:".5rem"}}>
+          {sugerencias.map(sg => (
+            <div key={sg.key} style={{
+              display:"flex",alignItems:"center",gap:".75rem",
+              padding:".55rem .75rem",borderRadius:8,
+              background:"var(--surface2)",border:"1px solid var(--border)",
+              flexWrap:"wrap"}}>
+              <span style={{fontSize:"1.2rem",flexShrink:0}}>{sg.icon}</span>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:700,fontSize:".78rem"}}>{sg.label}</div>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+                  color:"var(--text-muted)",marginTop:".1rem"}}>
+                  {sg.cantidad} ud
+                  {sg.precio > 0 && ` · ${fmtEur(sg.precio)}/ud = ${fmtEur(sg.cantidad * sg.precio)}`}
+                  {sg.precio === 0 && " · precio no configurado en presupuesto"}
+                </div>
+              </div>
+              {sg.yaConfirmado ? (
+                <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+                  padding:".1rem .4rem",borderRadius:4,fontWeight:700,
+                  background:"var(--green-dim)",color:"var(--green)",
+                  border:"1px solid rgba(52,211,153,.2)",flexShrink:0}}>
+                  ✓ Pedido confirmado
+                </span>
+              ) : (
+                <button
+                  className="btn btn-sm"
+                  style={{background:"rgba(34,211,238,.15)",color:"var(--cyan)",
+                    border:"1px solid rgba(34,211,238,.3)",fontSize:".6rem",
+                    flexShrink:0,whiteSpace:"nowrap"}}
+                  onClick={() => onCrear({
+                    _sugerido: true,
+                    nombre: `Pedido ${sg.label}`,
+                    articulos: [{
+                      nombre: sg.label,
+                      cantidad: sg.cantidad,
+                      precioUnit: sg.precio,
+                      conceptoId: sg.concepto?.id || null,
+                      esFijo: false,
+                    }],
+                    importeEstimado: sg.cantidad * sg.precio,
+                    importeTotal: sg.cantidad * sg.precio,
+                    estado: "borrador",
+                    fechaEntrega: "", proveedor: "",
+                    notas: `Generado automáticamente. Base: ${baseTotal} corredores.`,
+                    factura: null,
+                  })}>
+                  Crear pedido →
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 // ── Panel de sugerencias automáticas de medallas ──────────────────────────────
 function SugerenciasMedallas({ inscritos, totalInscritos, precioMedalla, conceptoMedalla, pedidos, onCrear, onEliminar }) {
