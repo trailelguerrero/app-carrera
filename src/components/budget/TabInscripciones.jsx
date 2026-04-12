@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { useData } from "../../lib/dataService";
 import { Tooltip, TooltipIcon } from "../common/Tooltip";
 import { DISTANCIAS, DISTANCIA_COLORS, DISTANCIA_LABELS } from "../../constants/budgetConstants";
 import { NumInput } from "./common/NumInput";
@@ -109,6 +110,43 @@ export const TabInscripciones = ({
   setMaximos 
 }) => {
   const [pendingDelete, setPendingDelete] = useState(null);
+
+  // ── Códigos promocionales ──────────────────────────────────────────────────
+  const LS_CODIGOS = "teg_codigos_promo_v1";
+  const [rawCodigos, setCodigos] = useData(LS_CODIGOS, []);
+  const codigos = Array.isArray(rawCodigos) ? rawCodigos : [];
+  const [codigosTab, setCodigosTab]   = useState("todos");
+  const [busquedaCod, setBusquedaCod] = useState("");
+  const [importText, setImportText]   = useState("");
+  const [importDist, setImportDist]   = useState("TG7");
+  const [importMsg,  setImportMsg]    = useState(null);
+
+  // Cargar códigos iniciales si está vacío
+  const codigosRef = useRef(codigos);
+  useEffect(() => {
+    if (codigosRef.current.length === 0) {
+      setCodigos([
+        {id:"7G7-1",     codigo:"7G7",      distancia:"TG7",  estado:"disponible",usadoPor:null,fechaUso:null},
+        {id:"KDZ145OX",  codigo:"KDZ145OX", distancia:"TG7",  estado:"disponible",usadoPor:null,fechaUso:null},
+        {id:"LHNHNP8O",  codigo:"LHNHNP8O", distancia:"TG7",  estado:"disponible",usadoPor:null,fechaUso:null},
+        {id:"Y24SA1TO",  codigo:"Y24SA1TO", distancia:"TG7",  estado:"disponible",usadoPor:null,fechaUso:null},
+        {id:"H4D95XXK",  codigo:"H4D95XXK", distancia:"TG7",  estado:"disponible",usadoPor:null,fechaUso:null},
+        {id:"INWPP2FZ",  codigo:"INWPP2FZ", distancia:"TG7",  estado:"disponible",usadoPor:null,fechaUso:null},
+        {id:"UBUQ4P9H",  codigo:"UBUQ4P9H", distancia:"TG13", estado:"disponible",usadoPor:null,fechaUso:null},
+        {id:"E4AXY9BB",  codigo:"E4AXY9BB", distancia:"TG13", estado:"disponible",usadoPor:null,fechaUso:null},
+        {id:"CFW8V4YX",  codigo:"CFW8V4YX", distancia:"TG13", estado:"disponible",usadoPor:null,fechaUso:null},
+        {id:"OSEQZJW8",  codigo:"OSEQZJW8", distancia:"TG13", estado:"disponible",usadoPor:null,fechaUso:null},
+        {id:"AAWKNOY8",  codigo:"AAWKNOY8", distancia:"TG13", estado:"disponible",usadoPor:null,fechaUso:null},
+        {id:"L3BBI448",  codigo:"L3BBI448", distancia:"TG25", estado:"disponible",usadoPor:null,fechaUso:null},
+        {id:"E3Z05H0D",  codigo:"E3Z05H0D", distancia:"TG25", estado:"disponible",usadoPor:null,fechaUso:null},
+        {id:"40ACCVZF",  codigo:"40ACCVZF", distancia:"TG25", estado:"disponible",usadoPor:null,fechaUso:null},
+        {id:"K5RBRVHK",  codigo:"K5RBRVHK", distancia:"TG25", estado:"disponible",usadoPor:null,fechaUso:null},
+        {id:"UUCTJWSV",  codigo:"UUCTJWSV", distancia:"TG25", estado:"disponible",usadoPor:null,fechaUso:null},
+      ]);
+    }
+  }, []);
+
+  const fmtDate = (iso) => iso ? iso.split("T")[0] : "—";
 
   const handleRequestDelete = (t) => {
     const stats = tramoStats(t, inscritos);
@@ -399,6 +437,201 @@ export const TabInscripciones = ({
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* ── CÓDIGOS PROMOCIONALES ── */}
+      <div style={{marginTop:"1.5rem"}}>
+        <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
+          color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:".1em",
+          borderBottom:"1px solid var(--border)",paddingBottom:".4rem",marginBottom:"1rem",
+          display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <span>🎟️ Códigos promocionales — inscripciones gratuitas</span>
+          <div style={{display:"flex",gap:".35rem"}}>
+            {["TG7","TG13","TG25"].map(d=>{
+              const disp=codigos.filter(c=>c.distancia===d&&c.estado==="disponible").length;
+              const tot=codigos.filter(c=>c.distancia===d).length;
+              const color=d==="TG7"?DISTANCIA_COLORS.TG7:d==="TG13"?DISTANCIA_COLORS.TG13:DISTANCIA_COLORS.TG25;
+              return (
+                <span key={d} style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+                  padding:".1rem .4rem",borderRadius:20,fontWeight:700,
+                  background:color+"18",color,border:`1px solid ${color}33`}}>
+                  {d}: {disp}/{tot}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Filtros y buscador */}
+        <div style={{display:"flex",gap:".35rem",flexWrap:"wrap",
+          alignItems:"center",marginBottom:".65rem"}}>
+          {["todos","TG7","TG13","TG25","disponible","usado"].map(f=>(
+            <button key={f} onClick={()=>setCodigosTab(f)}
+              style={{padding:".18rem .5rem",borderRadius:20,cursor:"pointer",
+                fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
+                border:`1px solid ${codigosTab===f?"var(--cyan)":"var(--border)"}`,
+                background:codigosTab===f?"var(--cyan-dim)":"transparent",
+                color:codigosTab===f?"var(--cyan)":"var(--text-muted)"}}>
+              {f==="todos"?"Todos":f==="disponible"?"✅ Disponibles":f==="usado"?"✓ Usados":f}
+            </button>
+          ))}
+          <input placeholder="Buscar código o nombre..."
+            value={busquedaCod} onChange={e=>setBusquedaCod(e.target.value)}
+            style={{flex:1,minWidth:140,background:"var(--surface2)",
+              border:"1px solid var(--border)",borderRadius:8,color:"var(--text)",
+              padding:".3rem .55rem",fontFamily:"var(--font-mono)",fontSize:".7rem",outline:"none"}} />
+        </div>
+
+        {/* Tabla */}
+        {(() => {
+          const filtrados = codigos
+            .filter(c=>{
+              if(codigosTab==="disponible") return c.estado==="disponible";
+              if(codigosTab==="usado") return c.estado==="usado";
+              if(["TG7","TG13","TG25"].includes(codigosTab)) return c.distancia===codigosTab;
+              return true;
+            })
+            .filter(c=>!busquedaCod||
+              c.codigo.toLowerCase().includes(busquedaCod.toLowerCase())||
+              (c.usadoPor||"").toLowerCase().includes(busquedaCod.toLowerCase()));
+          if(!filtrados.length) return (
+            <div style={{textAlign:"center",padding:"1.25rem",fontFamily:"var(--font-mono)",
+              fontSize:".7rem",color:"var(--text-dim)"}}>Sin códigos con ese filtro</div>
+          );
+          return (
+            <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",
+                fontFamily:"var(--font-mono)",fontSize:".72rem"}}>
+                <thead>
+                  <tr style={{borderBottom:"1px solid var(--border)"}}>
+                    {["Código","Dist.","Estado","Inscrito","Fecha",""].map((h,i)=>(
+                      <th key={i} style={{textAlign:"left",padding:".3rem .5rem",
+                        color:"var(--text-muted)",fontWeight:600,
+                        width:i===5?32:undefined}}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtrados.map(c=>{
+                    const usado=c.estado==="usado";
+                    const dColor=c.distancia==="TG7"?DISTANCIA_COLORS.TG7:
+                      c.distancia==="TG13"?DISTANCIA_COLORS.TG13:DISTANCIA_COLORS.TG25;
+                    return (
+                      <tr key={c.id} style={{borderBottom:"1px solid rgba(255,255,255,.04)",
+                        opacity:usado?.65:1}}>
+                        <td style={{padding:".3rem .5rem",fontWeight:700,letterSpacing:".04em",
+                          color:usado?"var(--text-muted)":"var(--text)",
+                          textDecoration:usado?"line-through":"none"}}>
+                          {c.codigo}
+                        </td>
+                        <td style={{padding:".3rem .5rem"}}>
+                          <span style={{padding:".08rem .35rem",borderRadius:20,
+                            background:dColor+"18",color:dColor,fontWeight:700,fontSize:".6rem"}}>
+                            {c.distancia}
+                          </span>
+                        </td>
+                        <td style={{padding:".3rem .5rem",fontWeight:700,
+                          color:usado?"var(--text-dim)":"var(--green)"}}>
+                          {usado?"✓ Usado":"✅ Libre"}
+                        </td>
+                        <td style={{padding:".3rem .5rem",minWidth:160}}>
+                          {usado ? (
+                            <span>{c.usadoPor||"—"}</span>
+                          ) : (
+                            <input
+                              placeholder="Nombre del inscrito + Enter"
+                              style={{background:"transparent",border:"none",
+                                borderBottom:"1px dashed var(--border)",color:"var(--text)",
+                                fontFamily:"var(--font-mono)",fontSize:".68rem",
+                                outline:"none",width:"100%",padding:".1rem 0"}}
+                              onKeyDown={e=>{
+                                if(e.key==="Enter"&&e.target.value.trim()){
+                                  const nombre=e.target.value.trim();
+                                  setCodigos(prev=>prev.map(x=>x.id===c.id
+                                    ?{...x,estado:"usado",usadoPor:nombre,
+                                       fechaUso:new Date().toISOString().split("T")[0]}:x));
+                                  e.target.value="";
+                                }
+                              }}
+                            />
+                          )}
+                        </td>
+                        <td style={{padding:".3rem .5rem",color:"var(--text-dim)",fontSize:".65rem"}}>
+                          {c.fechaUso||"—"}
+                        </td>
+                        <td style={{padding:".2rem"}}>
+                          {usado&&(
+                            <button title="Liberar código"
+                              onClick={()=>setCodigos(prev=>prev.map(x=>x.id===c.id
+                                ?{...x,estado:"disponible",usadoPor:null,fechaUso:null}:x))}
+                              style={{background:"none",border:"1px solid var(--border)",
+                                borderRadius:4,cursor:"pointer",padding:".12rem .3rem",
+                                color:"var(--text-dim)",fontSize:".6rem",fontWeight:700}}>
+                              ↩
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
+
+        {/* Importar en lote */}
+        <div style={{marginTop:"1rem",padding:".75rem",borderRadius:8,
+          background:"var(--surface2)",border:"1px solid var(--border)"}}>
+          <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
+            color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:".06em",
+            marginBottom:".5rem"}}>📥 Añadir nuevos códigos en lote</div>
+          <div style={{display:"flex",gap:".5rem",alignItems:"flex-start",flexWrap:"wrap"}}>
+            <textarea
+              value={importText} onChange={e=>setImportText(e.target.value)}
+              placeholder="CODIGO1 CODIGO2 CODIGO3..."
+              rows={3}
+              style={{flex:1,minWidth:200,background:"var(--surface)",border:"1px solid var(--border)",
+                borderRadius:6,color:"var(--text)",padding:".4rem .55rem",
+                fontFamily:"var(--font-mono)",fontSize:".72rem",outline:"none",resize:"vertical"}} />
+            <div style={{display:"flex",flexDirection:"column",gap:".3rem"}}>
+              {["TG7","TG13","TG25"].map(d=>(
+                <button key={d} onClick={()=>setImportDist(d)}
+                  style={{padding:".25rem .55rem",borderRadius:6,cursor:"pointer",
+                    fontFamily:"var(--font-mono)",fontSize:".65rem",fontWeight:700,
+                    border:`1px solid ${importDist===d?"var(--cyan)":"var(--border)"}`,
+                    background:importDist===d?"var(--cyan-dim)":"transparent",
+                    color:importDist===d?"var(--cyan)":"var(--text-muted)"}}>
+                  {d}
+                </button>
+              ))}
+              <button
+                disabled={!importText.trim()}
+                style={{padding:".3rem .55rem",borderRadius:6,cursor:"pointer",
+                  fontFamily:"var(--font-mono)",fontSize:".65rem",fontWeight:700,
+                  background:"var(--primary)",color:"#fff",border:"none",
+                  opacity:importText.trim()?1:.45,marginTop:".15rem"}}
+                onClick={()=>{
+                  const nuevos=importText.split(/[,\s\n\r]+/)
+                    .map(l=>l.trim().toUpperCase()).filter(l=>l.length>0)
+                    .filter(cod=>!codigos.find(c=>c.codigo===cod))
+                    .map(cod=>({id:cod+"-"+Date.now().toString(36),codigo:cod,
+                      distancia:importDist,estado:"disponible",usadoPor:null,fechaUso:null}));
+                  if(!nuevos.length){setImportMsg("Todos los códigos ya existen.");return;}
+                  setCodigos(prev=>[...prev,...nuevos]);
+                  setImportText("");
+                  setImportMsg(`✓ ${nuevos.length} importados para ${importDist}`);
+                  setTimeout(()=>setImportMsg(null),3000);
+                }}>
+                Importar
+              </button>
+            </div>
+          </div>
+          {importMsg&&<div style={{fontFamily:"var(--font-mono)",fontSize:".62rem",
+            color:importMsg.startsWith("✓")?"var(--green)":"var(--red)",marginTop:".4rem"}}>
+            {importMsg}
+          </div>}
         </div>
       </div>
 
