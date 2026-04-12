@@ -326,41 +326,28 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
         </div>
       </div>
 
-      {/* ── KPIs DE PRODUCCIÓN ── */}
-      <div className="card mb" style={{ borderLeft: "3px solid var(--primary)", padding: ".85rem 1rem" }}>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: ".6rem", fontWeight: 700, color: "var(--primary)", textTransform: "uppercase", letterSpacing: ".1em", marginBottom: ".65rem" }}>
-          📦 Producción consolidada (Fuentes Activas)
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))", gap: ".6rem" }}>
-          {[
-            { l: "🔢 TOTAL UD", v: stats.totalUnidades, s: "fabricación activa", c: "var(--text)" },
-            { l: "🏃 Corredor", v: stats.uCorExt + stats.uExtrasCor, s: "total modelo", c: "var(--cyan)" },
-            { l: "👥 Voluntario", v: stats.uVolAuto + stats.uExtrasVol, s: "total modelo", c: "var(--violet)" },
-            { l: "⚗️ Coste Estim.", v: fmt(stats.totalGastos), s: "fabricación activa", c: "var(--amber)" },
-            { l: "📈 Ing. Estim.", v: fmt(stats.totalIngresosProyectado), s: "proyección activa", c: "var(--cyan)" },
-            { l: "💰 Margen Bru.", v: fmt(stats.beneficioNetoProyectado), s: "estimado final", c: "var(--green)" },
-          ].map(k => (
-            <div key={k.l} style={{ background: "var(--surface2)", borderRadius: "var(--r-sm)", padding: ".5rem .65rem" }}>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: ".56rem", color: "var(--text-muted)", marginBottom: ".2rem" }}>{k.l}</div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: ".95rem", fontWeight: 800, color: k.c }}>{k.v}</div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: ".5rem", color: "var(--text-dim)", marginTop: ".1rem" }}>{k.s}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── KPIs SECUNDARIOS ── */}
+      {/* ── KPIs operativos — solo lo que no está en la card principal ── */}
       <div className="kpi-grid mb">
-        {[
-          { l: "👕 Pedidos extras", v: stats.totalPedidosExtras, s: "manuales", color: "cyan", tab: "pedidos" },
-          { l: "✅ Recaudado Real", v: fmt(stats.iExtrasReal), s: "pedidos manuales", color: "green", tab: "pedidos" },
-          { l: "⏳ Pendiente Cobro", v: fmt(stats.cPendCobro), s: "proyectado extra", color: "amber", tab: "pedidos" },
-          { l: "🗳️ Ing. Externo", v: fmt(stats.iCorExt), s: "plataforma", color: "cyan", tab: "tallas" },
-        ].map((k, i) => (
-          <div key={i} className={`kpi ${k.color}`} style={{ cursor: "pointer" }} onClick={() => setTab(k.tab)}>
-            <div className="kpi-label">{k.l}</div><div className="kpi-value">{k.v}</div><div className="kpi-sub">{k.s}</div>
-          </div>
-        ))}
+        <div className="kpi cyan" style={{cursor:"pointer"}} onClick={() => setTab("pedidos")}>
+          <div className="kpi-label">👕 Pedidos extras</div>
+          <div className="kpi-value">{stats.totalPedidosExtras}</div>
+          <div className="kpi-sub">{stats.totalPedidosExtras===0?"sin pedidos manuales":"pedidos manuales"}</div>
+        </div>
+        <div className={`kpi ${stats.cPendCobro > 0 ? "amber" : "green"}`} style={{cursor:"pointer"}} onClick={() => setTab("pedidos")}>
+          <div className="kpi-label">⏳ Pendiente cobro</div>
+          <div className="kpi-value">{fmt(stats.cPendCobro)}</div>
+          <div className="kpi-sub">{stats.cPendCobro > 0 ? "por cobrar" : "todo cobrado ✓"}</div>
+        </div>
+        <div className={`kpi ${stats.pendEnt > 0 ? "cyan" : "green"}`} style={{cursor:"pointer"}} onClick={() => setTab("checklist")}>
+          <div className="kpi-label">📦 Por entregar</div>
+          <div className="kpi-value">{stats.pendEnt}</div>
+          <div className="kpi-sub">{stats.pendEnt > 0 ? "unidades pendientes" : "todo entregado ✓"}</div>
+        </div>
+        <div className="kpi cyan" style={{cursor:"pointer"}} onClick={() => setTab("tallas")}>
+          <div className="kpi-label">🔢 Total unidades</div>
+          <div className="kpi-value">{stats.totalUnidades}</div>
+          <div className="kpi-sub">🏃 {stats.uCorExt + stats.uExtrasCor} cor · 👥 {stats.uVolAuto + stats.uExtrasVol} vol</div>
+        </div>
       </div>
 
       {/* ── Configuración ── */}
@@ -409,31 +396,87 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
         </div>
       </div>
 
-      <div className="grid-2">
-        <div className="card">
-          <div className="card-title">🏷️ Consumo por modelo activo</div>
-          <div style={{ display: "grid", gap: ".75rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div className="flex-center gsm"><span style={{ color: "var(--cyan)" }}>🏃 Modelo Corredor</span></div>
-              <div className="mono">{stats.uCorExt + stats.uExtrasCor} ud</div>
+      {/* Pedidos pendientes de cobro o entrega */}
+      {(() => {
+        const pendientes = pedidos.filter(p =>
+          p.lineas?.some(l =>
+            l.estadoPago === "pendiente" || l.estadoEntrega === "pendiente"
+          )
+        );
+        if (!pendientes.length) return (
+          <div className="card" style={{
+            padding: ".65rem 1rem", display:"flex", alignItems:"center",
+            gap:".5rem", background:"var(--green-dim)",
+            border:"1px solid rgba(52,211,153,.2)"
+          }}>
+            <span>✅</span>
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:".72rem",
+              color:"var(--green)" }}>
+              Todos los pedidos cobrados y entregados
+            </span>
+          </div>
+        );
+        return (
+          <div className="card">
+            <div style={{ display:"flex", justifyContent:"space-between",
+              alignItems:"center", marginBottom:".6rem" }}>
+              <div className="card-title" style={{ marginBottom:0 }}>
+                ⚡ Requieren atención
+              </div>
+              <button className="btn btn-ghost btn-sm"
+                style={{ fontSize:".6rem" }}
+                onClick={() => setTab("pedidos")}>
+                Ver todos →
+              </button>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div className="flex-center gsm"><span style={{ color: "var(--violet)" }}>👥 Modelo Voluntario</span></div>
-              <div className="mono">{stats.uVolAuto + stats.uExtrasVol} ud</div>
+            <div style={{ display:"flex", flexDirection:"column", gap:".35rem" }}>
+              {pendientes.slice(0, 5).map(p => {
+                const pendCobro = p.lineas?.filter(l => l.estadoPago === "pendiente").reduce((s,l) => s + l.cantidad * (l.precioVenta || 0), 0) || 0;
+                const pendEnt   = p.lineas?.filter(l => l.estadoEntrega === "pendiente").reduce((s,l) => s + l.cantidad, 0) || 0;
+                return (
+                  <div key={p.id}
+                    onClick={() => abrirFicha(p)}
+                    style={{
+                      display:"flex", alignItems:"center", gap:".65rem",
+                      padding:".45rem .65rem", borderRadius:8,
+                      background:"var(--surface2)", border:"1px solid var(--border)",
+                      cursor:"pointer", transition:"border-color .12s",
+                    }}
+                    onMouseEnter={e=>e.currentTarget.style.borderColor="var(--border-light)"}
+                    onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border)"}>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:".78rem", fontWeight:700,
+                        overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                        {p.nombre}
+                      </div>
+                    </div>
+                    <div style={{ display:"flex", gap:".35rem", flexShrink:0 }}>
+                      {pendCobro > 0 && (
+                        <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+                          fontWeight:700, color:"var(--amber)",
+                          background:"var(--amber-dim)",
+                          border:"1px solid rgba(251,191,36,.25)",
+                          borderRadius:3, padding:".1rem .4rem" }}>
+                          ⏳ {fmt(pendCobro)}
+                        </span>
+                      )}
+                      {pendEnt > 0 && (
+                        <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+                          fontWeight:700, color:"var(--cyan)",
+                          background:"var(--cyan-dim)",
+                          border:"1px solid rgba(34,211,238,.25)",
+                          borderRadius:3, padding:".1rem .4rem" }}>
+                          📦 {pendEnt} ud
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        </div>
-        <div className="card">
-          <div className="card-title">🕐 Recientes</div>
-          {pedidos.slice(0, 3).map(p => (
-            <div key={p.id} className="flex-between" style={{ padding: ".3rem 0", borderBottom: "1px solid var(--border)" }} onClick={() => abrirFicha(p)}>
-              <span style={{ fontSize: ".75rem", fontWeight: 600 }}>{p.nombre}</span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem" }}>{fmt(calcPedido(p, coste).totalVenta)}</span>
-            </div>
-          ))}
-          <button className="btn btn-ghost mt1" style={{ width: "100%" }} onClick={() => setTab("pedidos")}>Ver todos →</button>
-        </div>
-      </div>
+        );
+      })()}
     </>
   );
 }

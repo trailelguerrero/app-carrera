@@ -97,7 +97,7 @@ export default function Documentos() {
   const [emisorNuevo, setEmisorNuevo]   = useState("");
   const [busqueda, setBusqueda] = useState("");
   const [busqGlobal, setBusqGlobal] = useState(false);
-  const [uploadOpen, setUploadOpen] = useState(true); // colapsable en móvil
+  const [uploadOpen, setUploadOpen] = useState(false); // cerrado por defecto — se abre al querer subir
   const [editId,  setEditId]    = useState(null);
   const [delConfirm, setDelConfirm] = useState(null); // {id, nombre, esGestion}
   const [uploadError, setUploadError] = useState(null); // mensaje de error de subida
@@ -567,130 +567,142 @@ export default function Documentos() {
           </div>
         </div>
 
-        {/* ── ALERTAS DE GESTIONES LEGALES ── */}
-        {(gestionesVencidas.length > 0 || gestionesCriticas.length > 0 || gestionesProxVencer.length > 0) && (
-          <div className="card mb" style={{padding:".75rem 1rem",borderLeft:"3px solid #38bdf8"}}>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,color:"#38bdf8",
-              textTransform:"uppercase",letterSpacing:".08em",marginBottom:".5rem"}}>
-              🏛️ Gestiones legales — atención requerida
-            </div>
-            {[...gestionesCriticas.map(g=>({...g,_tipo:"denegado"})),
-              ...gestionesVencidas.map(g=>({...g,_tipo:"vencida"})),
-              ...gestionesProxVencer.map(g=>({...g,_tipo:"proxima"}))
-            ].map(g => {
+        {/* ── PANEL DE ALERTAS UNIFICADO ── */}
+        {(gestionesCriticas.length > 0 || gestionesVencidas.length > 0 ||
+          vencidos.length > 0 || gestionesProxVencer.length > 0 || proxVencer.length > 0) && (() => {
+          // Unificamos gestiones + documentos en una sola lista priorizada
+          const items = [
+            ...gestionesCriticas.map(g => ({
+              id:"g"+g.id, icon:"🚫", nombre:g.nombre, color:"var(--red)",
+              bg:"var(--red-dim)", border:"rgba(248,113,113,.2)",
+              etiqueta:"Denegado", accion:()=>{setTab("gestiones");setGEditId(g.id);}, btnLabel:"Actualizar"
+            })),
+            ...gestionesVencidas.map(g => ({
+              id:"gv"+g.id, icon:"⚠️", nombre:g.nombre, color:"var(--red)",
+              bg:"var(--red-dim)", border:"rgba(248,113,113,.2)",
+              etiqueta:`Venció ${formatDate(g.fechaVencimiento)}`,
+              accion:()=>{setTab("gestiones");setGEditId(g.id);}, btnLabel:"Actualizar"
+            })),
+            ...vencidos.map(d => ({
+              id:"d"+d.id, icon:CATEGORIAS.find(c=>c.id===d.categoria)?.icon||"📄",
+              nombre:d.nombreDisplay||d.nombre, color:"var(--red)",
+              bg:"var(--red-dim)", border:"rgba(248,113,113,.2)",
+              etiqueta:`Venció ${formatDate(d.fechaVencimiento)}`,
+              accion:()=>{ setTab(d.categoria); startEdit(d); }, btnLabel:"Actualizar"
+            })),
+            ...gestionesProxVencer.map(g => {
               const dias = diasHasta(g.fechaVencimiento);
-              return (
-                <div key={g.id} style={{display:"flex",alignItems:"center",gap:".5rem",
-                  padding:".3rem .6rem",borderRadius:6,marginBottom:".25rem",
-                  background: g._tipo==="denegado"?"var(--red-dim)":g._tipo==="vencida"?"var(--red-dim)":"var(--amber-dim)",
-                  border:`1px solid ${g._tipo==="proxima"?"rgba(251,191,36,0.2)":"rgba(248,113,113,0.2)"}`}}>
-                  <span style={{fontSize:".75rem"}}>{g._tipo==="denegado"?"🚫":g._tipo==="vencida"?"⚠️":"⏰"}</span>
-                  <span style={{flex:1,fontFamily:"var(--font-mono)",fontSize:".65rem",fontWeight:600,
-                    overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.nombre}</span>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
-                    color:g._tipo==="proxima"?"var(--amber)":"var(--red)",fontWeight:700,flexShrink:0}}>
-                    {g._tipo==="denegado"?"Denegado":
-                     g._tipo==="vencida"?`Venció ${formatDate(g.fechaVencimiento)}`:
-                     dias===0?"Hoy":`en ${dias}d`}
-                  </span>
-                  <button style={{fontFamily:"var(--font-mono)",fontSize:".55rem",padding:".1rem .35rem",
-                    borderRadius:4,border:"1px solid rgba(56,189,248,0.3)",background:"rgba(56,189,248,0.1)",
-                    color:"#38bdf8",cursor:"pointer"}}
-                    onClick={()=>{setTab("gestiones");setGEditId(g.id);}}>
-                    Actualizar
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* ── ALERTAS DE VENCIMIENTO ── */}
-        {(vencidos.length > 0 || proxVencer.length > 0) && (
-          <div className="card mb" style={{padding:".75rem 1rem"}}>
-            {vencidos.length > 0 && (
-              <div style={{marginBottom: proxVencer.length > 0 ? ".5rem" : 0}}>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,color:"var(--red)",
-                  textTransform:"uppercase",letterSpacing:".08em",marginBottom:".35rem"}}>
-                  🚨 {vencidos.length} documento{vencidos.length>1?"s":""} vencido{vencidos.length>1?"s":""}
-                </div>
-                {vencidos.map(d => {
-                  const cat = CATEGORIAS.find(c => c.id === d.categoria);
-                  return (
-                    <div key={d.id} className="doc-venc-alert doc-venc-critico" style={{marginBottom:".25rem"}}>
-                      <span>{cat?.icon}</span>
-                      <span style={{flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.nombre}</span>
-                      <span>Venció {formatDate(d.fechaVencimiento)}</span>
-                      <button className="doc-btn doc-btn-edit" style={{padding:".1rem .4rem",fontSize:".55rem"}}
-                        onClick={() => { setTab(d.categoria); startEdit(d); }}>Actualizar</button>
-                    </div>
-                  );
-                })}
+              return {
+                id:"gp"+g.id, icon:"⏰", nombre:g.nombre, color:"var(--amber)",
+                bg:"var(--amber-dim)", border:"rgba(251,191,36,.2)",
+                etiqueta: dias===0?"Hoy":`en ${dias}d`,
+                accion:()=>{setTab("gestiones");setGEditId(g.id);}, btnLabel:"Ver"
+              };
+            }),
+            ...proxVencer.map(d => {
+              const dias = diasHasta(d.fechaVencimiento);
+              return {
+                id:"dp"+d.id, icon:CATEGORIAS.find(c=>c.id===d.categoria)?.icon||"📄",
+                nombre:d.nombreDisplay||d.nombre, color:"var(--amber)",
+                bg:"var(--amber-dim)", border:"rgba(251,191,36,.2)",
+                etiqueta: dias===0?"Hoy":`en ${dias}d`,
+                accion:()=>{ setTab(d.categoria); }, btnLabel:"Ver"
+              };
+            }),
+          ];
+          return (
+            <div className="card mb" style={{padding:".7rem .9rem"}}>
+              <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
+                color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:".08em",
+                marginBottom:".45rem"}}>
+                ⚠️ Requieren atención · {items.length} elemento{items.length!==1?"s":""}
               </div>
-            )}
-            {proxVencer.length > 0 && (
-              <div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,color:"var(--amber)",
-                  textTransform:"uppercase",letterSpacing:".08em",marginBottom:".35rem"}}>
-                  ⏰ Vencen en los próximos 30 días
-                </div>
-                {proxVencer.map(d => {
-                  const dias = diasHasta(d.fechaVencimiento);
-                  const cat  = CATEGORIAS.find(c => c.id === d.categoria);
-                  return (
-                    <div key={d.id} className="doc-venc-alert doc-venc-proximo" style={{marginBottom:".25rem"}}>
-                      <span>{cat?.icon}</span>
-                      <span style={{flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.nombre}</span>
-                      <span>{dias === 0 ? "Hoy" : `en ${dias}d`}</span>
-                    </div>
-                  );
-                })}
+              <div style={{display:"flex",flexDirection:"column",gap:".25rem"}}>
+                {items.map(item => (
+                  <div key={item.id} style={{
+                    display:"flex",alignItems:"center",gap:".5rem",
+                    padding:".28rem .55rem",borderRadius:6,
+                    background:item.bg,border:`1px solid ${item.border}`}}>
+                    <span style={{fontSize:".75rem",flexShrink:0}}>{item.icon}</span>
+                    <span style={{flex:1,fontFamily:"var(--font-mono)",fontSize:".63rem",
+                      fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                      {item.nombre}
+                    </span>
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                      color:item.color,fontWeight:700,flexShrink:0}}>
+                      {item.etiqueta}
+                    </span>
+                    <button
+                      style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+                        padding:".1rem .35rem",borderRadius:4,
+                        border:`1px solid ${item.color}44`,
+                        background:`${item.color}15`,
+                        color:item.color,cursor:"pointer",flexShrink:0}}
+                      onClick={item.accion}>
+                      {item.btnLabel}
+                    </button>
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          );
+        })()}
 
-        {/* ── KPIs por categoría ── */}
-        {/* ── KPIs Documentos (archivos) ── */}
-        <div className="kpi-grid mb">
-          {CATEGORIAS.map(c => {
-            const cnt   = docs.filter(d => d.categoria === c.id).length;
-            const alert = docs.filter(d => d.categoria === c.id && d.fechaVencimiento &&
+        {/* ── KPIs por categoría — solo las que tienen archivos ── */}
+        {(() => {
+          const cats = CATEGORIAS.map(c => ({
+            ...c,
+            cnt: docs.filter(d => d.categoria === c.id).length,
+            alert: docs.filter(d => d.categoria === c.id && d.fechaVencimiento &&
               (diasHasta(d.fechaVencimiento) ?? 999) <= 30 &&
               (diasHasta(d.fechaVencimiento) ?? 999) >= 0 &&
-              d.estado !== "aprobado").length;
-            return (
-              <div key={c.id} className="kpi" style={{cursor:"pointer",borderLeftColor:c.color,borderLeftWidth:3,borderLeftStyle:"solid"}}
-                onClick={() => { setTab(c.id); setBusqueda(""); }}>
-                <div className="kpi-label">{c.icon} {c.label}</div>
-                <div className="kpi-value" style={{color:c.color}}>{cnt}</div>
-                <div className="kpi-sub">
-                  {alert > 0
-                    ? <span style={{color:"var(--amber)"}}>⏰ {alert} por vencer</span>
-                    : cnt === 0 ? "sin archivos" : "archivos"
-                  }
+              d.estado !== "aprobado").length,
+          }));
+          const conArchivos = cats.filter(c => c.cnt > 0);
+          if (conArchivos.length === 0) return (
+            <div style={{ marginBottom:".85rem", padding:".6rem .85rem",
+              background:"var(--surface2)", border:"1px solid var(--border)",
+              borderRadius:"var(--r-sm)",
+              fontFamily:"var(--font-mono)", fontSize:".7rem",
+              color:"var(--text-muted)", textAlign:"center" }}>
+              📁 Sin archivos subidos todavía — usa la zona de subida para añadir documentos
+            </div>
+          );
+          return (
+            <div className="kpi-grid mb">
+              {conArchivos.map(c => (
+                <div key={c.id} className="kpi" style={{cursor:"pointer",
+                  borderLeftColor:c.color,borderLeftWidth:3,borderLeftStyle:"solid"}}
+                  onClick={() => { setTab(c.id); setBusqueda(""); }}>
+                  <div className="kpi-label">{c.icon} {c.label}</div>
+                  <div className="kpi-value" style={{color:c.color}}>{c.cnt}</div>
+                  <div className="kpi-sub">
+                    {c.alert > 0
+                      ? <span style={{color:"var(--amber)"}}>⏰ {c.alert} por vencer</span>
+                      : "archivos"
+                    }
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              ))}
+            </div>
+          );
+        })()}
 
-        {/* ── Storage bar ── */}
-        <div className="card mb" style={{padding:".75rem 1rem"}}>
-          <div className="flex-between mb-sm">
-            <span className="mono xs muted" style={{display:"flex",alignItems:"center",gap:6}}>
-              <span style={{width:8,height:8,borderRadius:"50%",background:storageColor,display:"inline-block",boxShadow:`0 0 6px ${storageColor}80`}}/>
-              {formatSize(totalSize)} · Neon Storage
-            </span>
-            <span className="mono xs bold" style={{color:storageColor}}>{storagePct.toFixed(0)}% de 100 MB</span>
+        {/* ── Storage bar — solo si >50% ocupado ── */}
+        {storagePct > 50 && (
+          <div className="card mb" style={{padding:".65rem 1rem"}}>
+            <div className="flex-between mb-sm">
+              <span className="mono xs muted" style={{display:"flex",alignItems:"center",gap:6}}>
+                <span style={{width:7,height:7,borderRadius:"50%",background:storageColor,display:"inline-block"}}/>
+                {formatSize(totalSize)} · Neon Storage
+              </span>
+              <span className="mono xs bold" style={{color:storageColor}}>{storagePct.toFixed(0)}% de 100 MB</span>
+            </div>
+            <div className="doc-storage-bar">
+              <div className="doc-storage-fill" style={{width:`${storagePct}%`,background:`linear-gradient(90deg,${storageColor}99,${storageColor})`}}/>
+            </div>
           </div>
-          <div className="doc-storage-bar">
-            <div className="doc-storage-fill" style={{width:`${storagePct}%`,background:`linear-gradient(90deg,${storageColor}99,${storageColor})`}}/>
-          </div>
-          <div className="mono" style={{fontSize:".55rem",color:"var(--text-dim)",marginTop:".3rem"}}>
-            Documentos guardados en la base de datos. Accesibles desde cualquier dispositivo.
-          </div>
-        </div>
+        )}
 
         {/* ── Category tabs — solo archivos ── */}
         <div className="tabs" style={{gap:".4rem",flexWrap:"wrap"}}>
