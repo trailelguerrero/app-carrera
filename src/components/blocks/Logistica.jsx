@@ -237,7 +237,8 @@ export default function App() {
     {id:"material",icon:"📦",label:"Material"},
     {id:"vehiculos",icon:"🚗",label:"Vehículos"},
     {id:"timeline",icon:"⏱️",label:"Timeline"},
-    {id:"contactos",icon:"🚨",label:"Emergencias"},
+    {id:"contactos",icon:"📋",label:"Contactos"},
+    {id:"emergencias",icon:"🚨",label:"Emergencias"},
     {id:"checklist",icon:"✅",label:"Checklist"},
     {id:"pedidos",icon:"🛒",label:"Pedidos"},
   ];
@@ -272,7 +273,7 @@ export default function App() {
             )}
             {stats.incOpen > 0 && (
               <span className="badge badge-amber" style={{cursor:"pointer"}}
-                onClick={()=>setTab("contactos")}>🚨 {stats.incOpen} incidencias</span>
+                onClick={()=>setTab("emergencias")}>🚨 {stats.incOpen} incidencias</span>
             )}
             <span className="badge badge-cyan" style={{cursor:"pointer"}}
               onClick={()=>setTab("checklist")}
@@ -289,7 +290,7 @@ export default function App() {
               {t.icon} {t.label}
               {t.id==="checklist" && <span className="badge badge-cyan" style={{marginLeft:"0.3rem"}}>{stats.ckDone}/{stats.ckTotal}</span>}
               {t.id==="material" && stats.stockErr>0 && <span className="badge badge-red" style={{marginLeft:"0.3rem"}}>⚠{stats.stockErr}</span>}
-              {t.id==="contactos" && stats.incOpen>0 && <span className="badge badge-amber" style={{marginLeft:"0.3rem"}}>{stats.incOpen}</span>}
+              {t.id==="emergencias" && stats.incOpen>0 && <span className="badge badge-amber" style={{marginLeft:"0.3rem"}}>{stats.incOpen}</span>}
             </button>
           ))}
           {/* Separador visual — Localizaciones es configuración, no operación */}
@@ -313,7 +314,8 @@ export default function App() {
           {tab==="material" && <TabMat material={material} setMaterial={setMaterial} asigs={asigs} setAsigs={setAsigs} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenMat} setOrdenAlfa={setOrdenMat} locs={locs} patsConEspecie={patsConEspecie} />}
           {tab==="vehiculos" && <TabVeh veh={veh} setVeh={setVeh} rutas={rutas} setRutas={setRutas} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenVeh} setOrdenAlfa={setOrdenVeh} voluntariosConCoche={voluntariosConCoche} />}
           {tab==="timeline" && <TabTL tl={tl} setTl={setTl} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenTL} setOrdenAlfa={setOrdenTL} config={config} />}
-          {tab==="contactos" && <TabCont cont={cont} setCont={setCont} inc={inc} setInc={setInc} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCont} setOrdenAlfa={setOrdenCont} tiposContacto={tiposContacto} setTiposContacto={setTiposContacto} />}
+          {tab==="contactos"   && <TabDirectorio cont={cont} setCont={setCont} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCont} setOrdenAlfa={setOrdenCont} tiposContacto={tiposContacto} setTiposContacto={setTiposContacto} />}
+          {tab==="emergencias" && <TabEmergencias cont={cont} inc={inc} setInc={setInc} abrirModal={abrirModal} abrirFicha={abrirFicha} setInc2={setInc} tiposContacto={tiposContacto} />}
           {tab==="checklist" && <TabCK ck={ck} setCk={setCk} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCK} setOrdenAlfa={setOrdenCK} config={config} tareasProyecto={tareasProyecto} setTareasProyecto={(fn)=>{ const next=typeof fn==="function"?fn(tareasProyecto):fn; import("@/lib/dataService").then(m=>m.default.set("teg_proyecto_v1_tareas",next)); }} />}
           {tab==="localizaciones" && <TabLocalizaciones locs={locs} setLocs={setLocs} volsPorLoc={volsPorLoc} />}
           {tab==="pedidos" && <TabPedidosProv
@@ -330,7 +332,6 @@ export default function App() {
               });
               return ins;
             })()}
-            conceptosPres={conceptosPres}
           />}
         </div>
       </div>
@@ -921,6 +922,391 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
           </div>
         );
       })}</div>
+      )}
+    </>
+  );
+}
+
+// ─── DIRECTORIO DE CONTACTOS ─────────────────────────────────────────────────
+// Todos los contactos del evento, con tipos personalizables
+function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,tiposContacto=[],setTiposContacto}) {
+  const [filtroTipo,setFiltroTipo] = useState("todos");
+  const [modalTipo,setModalTipo]   = useState(false);
+  const [nuevoTipo,setNuevoTipo]   = useState({nombre:"",icono:"🏷️",color:"#94a3b8"});
+
+  const TIPOS_BASE = [
+    {id:"emergencia",  nombre:"Emergencia",    icono:"🚨", color:"#f87171"},
+    {id:"medico",      nombre:"Médico",        icono:"🏥", color:"#34d399"},
+    {id:"proveedor",   nombre:"Proveedor",     icono:"🏭", color:"#fbbf24"},
+    {id:"staff",       nombre:"Staff",         icono:"👤", color:"#22d3ee"},
+    {id:"institucional",nombre:"Institucional",icono:"🏛️",color:"#a78bfa"},
+    {id:"media",       nombre:"Media/Prensa",  icono:"📸", color:"#fb923c"},
+    {id:"voluntario",  nombre:"Voluntario",    icono:"🙋", color:"#818cf8"},
+  ];
+  const tiposCustom   = Array.isArray(tiposContacto) ? tiposContacto : [];
+  const todosLosTipos = [...TIPOS_BASE, ...tiposCustom];
+  const getTipo = (id) => todosLosTipos.find(t=>t.id===id) || {nombre:id,icono:"🏷️",color:"var(--text-muted)"};
+
+  const contOrdenado = ordenAlfa
+    ? [...cont].sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es"))
+    : cont;
+  const contFiltrado = filtroTipo==="todos" ? contOrdenado : contOrdenado.filter(c=>c.tipo===filtroTipo);
+
+  const guardarTipo = () => {
+    if (!nuevoTipo.nombre.trim()) return;
+    const id = nuevoTipo.nombre.toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+      .replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
+    if (todosLosTipos.find(t=>t.id===id)) return;
+    setTiposContacto(prev=>[...(Array.isArray(prev)?prev:[]),{...nuevoTipo,id}]);
+    setNuevoTipo({nombre:"",icono:"🏷️",color:"#94a3b8"});
+    setModalTipo(false);
+  };
+
+  return (
+    <>
+      <div className="ph">
+        <div>
+          <div className="pt">📋 Directorio de Contactos</div>
+          <div className="pd">{cont.length} contacto{cont.length!==1?"s":""} · {todosLosTipos.length} tipos</div>
+        </div>
+        <div style={{display:"flex",gap:".4rem",flexWrap:"wrap"}}>
+          <button className="btn btn-ghost btn-sm"
+            style={{fontFamily:"var(--font-mono)",fontSize:".62rem"}}
+            onClick={()=>setModalTipo(true)}>+ Tipo</button>
+          <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")}
+            onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
+          <button className="btn btn-primary" onClick={()=>setModal({tipo:"cont"})}>+ Contacto</button>
+        </div>
+      </div>
+
+      {/* Filtros por tipo */}
+      <div style={{display:"flex",gap:".3rem",flexWrap:"wrap",marginBottom:".65rem"}}>
+        <button onClick={()=>setFiltroTipo("todos")}
+          style={{padding:".2rem .55rem",borderRadius:20,cursor:"pointer",
+            fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
+            border:`1px solid ${filtroTipo==="todos"?"var(--cyan)":"var(--border)"}`,
+            background:filtroTipo==="todos"?"var(--cyan-dim)":"transparent",
+            color:filtroTipo==="todos"?"var(--cyan)":"var(--text-muted)"}}>
+          Todos ({cont.length})
+        </button>
+        {todosLosTipos.map(t => {
+          const n = cont.filter(c=>c.tipo===t.id).length;
+          if (!n) return null;
+          return (
+            <button key={t.id} onClick={()=>setFiltroTipo(filtroTipo===t.id?"todos":t.id)}
+              style={{padding:".2rem .55rem",borderRadius:20,cursor:"pointer",
+                fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
+                border:`1px solid ${filtroTipo===t.id?t.color:t.color+"55"}`,
+                background:filtroTipo===t.id?t.color+"20":"transparent",
+                color:filtroTipo===t.id?t.color:t.color+"cc",
+                display:"flex",alignItems:"center",gap:".25rem"}}>
+              {t.icono} {t.nombre}
+              <span style={{background:t.color+"30",padding:"0 .3rem",borderRadius:10}}>{n}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Tipos personalizados activos */}
+      {tiposCustom.length > 0 && (
+        <div style={{display:"flex",gap:".3rem",flexWrap:"wrap",marginBottom:".5rem",
+          padding:".35rem .6rem",background:"var(--surface2)",borderRadius:6,
+          border:"1px solid var(--border)"}}>
+          <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+            color:"var(--text-dim)",alignSelf:"center"}}>Tipos propios:</span>
+          {tiposCustom.map(t=>(
+            <span key={t.id} style={{display:"inline-flex",alignItems:"center",gap:".25rem",
+              padding:".12rem .45rem",borderRadius:20,
+              background:t.color+"18",color:t.color,
+              border:`1px solid ${t.color}33`,fontFamily:"var(--font-mono)",
+              fontSize:".6rem",fontWeight:700}}>
+              {t.icono} {t.nombre}
+              <button onClick={()=>setTiposContacto(prev=>(Array.isArray(prev)?prev:[]).filter(x=>x.id!==t.id))}
+                style={{background:"none",border:"none",cursor:"pointer",
+                  color:"var(--text-dim)",fontSize:".6rem",padding:0,lineHeight:1}}>✕</button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Grid de contactos */}
+      {contFiltrado.length === 0 ? (
+        <div className="card" style={{textAlign:"center",padding:"2rem",
+          color:"var(--text-dim)",fontFamily:"var(--font-mono)",fontSize:".72rem"}}>
+          Sin contactos{filtroTipo!=="todos"?` de tipo "${getTipo(filtroTipo).nombre}"`:""}
+        </div>
+      ) : (
+        <div className="cgrid">
+          {contFiltrado.map(c=>{
+            const t = getTipo(c.tipo);
+            return (
+              <div key={c.id} className="ccard"
+                style={{borderTopColor:t.color,cursor:"pointer"}}
+                onClick={()=>abrirFicha("cont",c)}>
+                <div className="cch">
+                  <div className="ccti" style={{fontSize:"1.1rem"}}>{t.icono}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div className="ccn">{c.nombre}</div>
+                    <div className="ccr">{c.rol}</div>
+                  </div>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+                    padding:".1rem .35rem",borderRadius:10,flexShrink:0,
+                    background:t.color+"18",color:t.color,border:`1px solid ${t.color}33`}}>
+                    {t.nombre}
+                  </span>
+                </div>
+                <div className="ccd">
+                  <a href={`tel:${c.telefono}`} className="ctel">📞 {c.telefono}</a>
+                  {c.email&&<a href={`mailto:${c.email}`} className="ceml">✉️ {c.email}</a>}
+                </div>
+                {c.web&&<div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",marginTop:".2rem"}}>
+                  <a href={c.web} target="_blank" rel="noreferrer"
+                    style={{color:"var(--cyan)",textDecoration:"none"}}
+                    onClick={e=>e.stopPropagation()}>🌐 {c.web}</a>
+                </div>}
+                {c.notas&&<div className="cnota">{c.notas}</div>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Modal nuevo tipo personalizado */}
+      {modalTipo && (
+        <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setModalTipo(false)}>
+          <div className="modal" style={{maxWidth:360}}>
+            <div className="modal-header">
+              <span className="modal-title">🏷️ Nuevo tipo de contacto</span>
+              <button className="btn btn-ghost btn-sm" onClick={()=>setModalTipo(false)}>✕</button>
+            </div>
+            <div className="modal-body" style={{gap:".5rem"}}>
+              <div>
+                <label className="fl">Nombre *</label>
+                <input className="inp" placeholder="ej. Federación, Media, Patrocinador..."
+                  value={nuevoTipo.nombre}
+                  onChange={e=>setNuevoTipo(p=>({...p,nombre:e.target.value}))}
+                  onKeyDown={e=>e.key==="Enter"&&guardarTipo()} />
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem"}}>
+                <div>
+                  <label className="fl">Emoji / Icono</label>
+                  <input className="inp" placeholder="🏷️" maxLength={4}
+                    value={nuevoTipo.icono}
+                    onChange={e=>setNuevoTipo(p=>({...p,icono:e.target.value}))} />
+                </div>
+                <div>
+                  <label className="fl">Color</label>
+                  <div style={{display:"flex",gap:".35rem",alignItems:"center"}}>
+                    <input type="color" value={nuevoTipo.color}
+                      onChange={e=>setNuevoTipo(p=>({...p,color:e.target.value}))}
+                      style={{width:36,height:32,border:"1px solid var(--border)",
+                        borderRadius:6,cursor:"pointer",background:"none",padding:2}} />
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+                      color:"var(--text-muted)"}}>{nuevoTipo.color}</span>
+                  </div>
+                </div>
+              </div>
+              <div style={{padding:".4rem .6rem",borderRadius:6,
+                background:"var(--surface2)",border:"1px solid var(--border)"}}>
+                <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+                  color:"var(--text-muted)",marginRight:".4rem"}}>Vista previa:</span>
+                <span style={{fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,
+                  padding:".12rem .45rem",borderRadius:20,
+                  background:nuevoTipo.color+"20",color:nuevoTipo.color,
+                  border:`1px solid ${nuevoTipo.color}44`}}>
+                  {nuevoTipo.icono} {nuevoTipo.nombre||"Mi tipo"}
+                </span>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={()=>setModalTipo(false)}>Cancelar</button>
+              <button className="btn btn-primary"
+                disabled={!nuevoTipo.nombre.trim()}
+                style={{opacity:nuevoTipo.nombre.trim()?1:.5}}
+                onClick={guardarTipo}>Crear</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ─── EMERGENCIAS — solo urgencias reales: directorio urgente + protocolo + incidencias
+function TabEmergencias({cont,inc,setInc,abrirModal,abrirFicha,tiposContacto=[]}) {
+  const [sub,setSub]     = useState("urgentes");
+  const [proto,setProto] = useState(null);
+
+  const TIPOS_BASE = [
+    {id:"emergencia",icono:"🚨",color:"#f87171"},
+    {id:"medico",    icono:"🏥",color:"#34d399"},
+  ];
+  const todosLosTipos = [...TIPOS_BASE,...(Array.isArray(tiposContacto)?tiposContacto:[])];
+  const getTipo = (id) => todosLosTipos.find(t=>t.id===id)||{icono:"📞",color:"var(--text-muted)"};
+
+  // Contactos urgentes = emergencia + médico
+  const contUrgentes = cont.filter(c=>c.tipo==="emergencia"||c.tipo==="medico");
+  const incAbiertas  = inc.filter(i=>i.estado==="abierta").length;
+
+  return (
+    <>
+      <div className="ph">
+        <div>
+          <div className="pt">🚨 Emergencias</div>
+          <div className="pd">
+            {contUrgentes.length} contactos urgentes · {inc.length} incidencias
+            {incAbiertas>0&&<span style={{color:"var(--red)",marginLeft:".4rem"}}>· ⚠ {incAbiertas} abiertas</span>}
+          </div>
+        </div>
+        {sub==="incidencias" && (
+          <button className="btn btn-sm"
+            style={{background:"var(--red-dim)",color:"var(--red)",
+              border:"1px solid rgba(248,113,113,.2)"}}
+            onClick={()=>abrirModal({tipo:"inc"})}>+ Incidencia</button>
+        )}
+      </div>
+
+      {/* Banner 112 siempre visible */}
+      <div style={{padding:".5rem .85rem",borderRadius:8,marginBottom:".75rem",
+        background:"rgba(248,113,113,.08)",border:"1px solid rgba(248,113,113,.2)",
+        fontFamily:"var(--font-mono)",fontSize:".68rem",color:"var(--red)",
+        fontWeight:700,display:"flex",alignItems:"center",gap:".6rem"}}>
+        🚨 Emergencia grave → llama al <a href="tel:112" style={{color:"var(--red)",fontWeight:900,textDecoration:"underline"}}>112</a> primero
+      </div>
+
+      {/* Sub-tabs */}
+      <div style={{display:"flex",gap:".3rem",marginBottom:".75rem",
+        borderBottom:"1px solid var(--border)",paddingBottom:".4rem"}}>
+        {[
+          {id:"urgentes",  label:"📞 Contactos urgentes"},
+          {id:"protocolo", label:"📘 Protocolos"},
+          {id:"incidencias",label:"⚠️ Incidencias",
+           badge:incAbiertas>0?incAbiertas:null,badgeColor:"var(--red)"},
+        ].map(t=>(
+          <button key={t.id} onClick={()=>setSub(t.id)}
+            style={{padding:".3rem .7rem",borderRadius:6,border:"none",cursor:"pointer",
+              fontFamily:"var(--font-mono)",fontSize:".68rem",fontWeight:700,
+              background:sub===t.id?"rgba(248,113,113,.12)":"transparent",
+              color:sub===t.id?"var(--red)":"var(--text-muted)",
+              borderBottom:sub===t.id?"2px solid var(--red)":"2px solid transparent",
+              display:"flex",alignItems:"center",gap:".3rem"}}>
+            {t.label}
+            {t.badge&&<span style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+              padding:".05rem .35rem",borderRadius:10,fontWeight:800,
+              background:t.badgeColor+"22",color:t.badgeColor}}>{t.badge}</span>}
+          </button>
+        ))}
+      </div>
+
+      {/* Contactos urgentes */}
+      {sub==="urgentes" && (
+        <>
+          <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+            color:"var(--text-muted)",marginBottom:".5rem"}}>
+            Solo contactos de tipo <strong>Emergencia</strong> y <strong>Médico</strong>.
+            El resto están en la pestaña Contactos.
+          </div>
+          {contUrgentes.length===0 ? (
+            <div className="card" style={{textAlign:"center",padding:"2rem",
+              color:"var(--text-dim)",fontFamily:"var(--font-mono)",fontSize:".72rem"}}>
+              Sin contactos de emergencia. Añádelos en Contactos con tipo Emergencia o Médico.
+            </div>
+          ) : (
+            <div className="cgrid">
+              {contUrgentes.map(c=>{
+                const t=getTipo(c.tipo);
+                return (
+                  <div key={c.id} className="ccard"
+                    style={{borderTopColor:t.color,cursor:"pointer",
+                      borderLeft:`3px solid ${t.color}`}}
+                    onClick={()=>abrirFicha("cont",c)}>
+                    <div className="cch">
+                      <div className="ccti">{t.icono}</div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div className="ccn">{c.nombre}</div>
+                        <div className="ccr">{c.rol}</div>
+                      </div>
+                    </div>
+                    <div className="ccd">
+                      <a href={`tel:${c.telefono}`} className="ctel"
+                        style={{background:t.color+"18",color:t.color,
+                          border:`1px solid ${t.color}33`,borderRadius:6,
+                          padding:".3rem .7rem",fontWeight:800,fontSize:".8rem",
+                          textDecoration:"none",display:"inline-flex",
+                          alignItems:"center",gap:".35rem"}}>
+                        📞 {c.telefono}
+                      </a>
+                    </div>
+                    {c.notas&&<div className="cnota">{c.notas}</div>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Protocolos */}
+      {sub==="protocolo" && (
+        <div>
+          <div className="pgrid">
+            {PROTO_PASOS.map(p=>(
+              <button key={p.id} className={cls("pbtn",proto===p.id&&"pactive")}
+                onClick={()=>setProto(proto===p.id?null:p.id)}>
+                <span style={{fontSize:"1.4rem"}}>{p.icon}</span><span>{p.titulo}</span>
+              </button>
+            ))}
+          </div>
+          {proto&&(
+            <div className="psteps">
+              <div className="pst">{PROTO_PASOS.find(p=>p.id===proto)?.icon} {PROTO_PASOS.find(p=>p.id===proto)?.titulo}</div>
+              {PROTO_PASOS.find(p=>p.id===proto)?.pasos.map((ps,i)=>(
+                <div key={i} className="ps"><div className="psn">{i+1}</div><div className="pst2">{ps}</div></div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Incidencias */}
+      {sub==="incidencias" && (
+        <>
+          <div className="pd" style={{marginBottom:".65rem"}}>
+            {inc.length} incidencia{inc.length!==1?"s":""} · {incAbiertas} abierta{incAbiertas!==1?"s":""}
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:".5rem"}}>
+            {inc.map(ic=>(
+              <div key={ic.id} className={cls("icard",ic.estado==="resuelta"&&"ires")}
+                style={{cursor:"pointer"}} onClick={()=>abrirFicha("inc",ic)}>
+                <div className="ich">
+                  <div className="fr g1">
+                    <span className="mono" style={{fontSize:".72rem",color:"var(--amber)"}}>{ic.hora}</span>
+                    <span className="badge" style={{
+                      background:ic.gravedad==="alta"?"var(--red-dim)":ic.gravedad==="media"?"var(--amber-dim)":"var(--green-dim)",
+                      color:ic.gravedad==="alta"?"var(--red)":ic.gravedad==="media"?"var(--amber)":"var(--green)"}}>
+                      {ic.gravedad}
+                    </span>
+                    <span className="badge" style={{background:"var(--cyan-dim)",color:"var(--cyan)"}}>{ic.tipo}</span>
+                  </div>
+                  <div className="fr g1" onClick={e=>e.stopPropagation()}>
+                    <button className="btn btn-sm"
+                      style={{background:"var(--green-dim)",color:"var(--green)",
+                        border:"1px solid rgba(52,211,153,.2)"}}
+                      onClick={()=>setInc(p=>p.map(x=>x.id===ic.id
+                        ?{...x,estado:x.estado==="resuelta"?"abierta":"resuelta"}:x))}>
+                      {ic.estado==="resuelta"?"✓ Resuelta":"Marcar resuelta"}
+                    </button>
+                  </div>
+                </div>
+                <div style={{fontWeight:600,fontSize:".78rem",margin:".3rem 0"}}>{ic.descripcion}</div>
+                {ic.responsable&&<div className="muted xs mono">👤 {ic.responsable}</div>}
+                {ic.resolucion&&<div className="ires-txt">✓ {ic.resolucion}</div>}
+              </div>
+            ))}
+            {inc.length===0&&<div className="empty">✅ Sin incidencias registradas</div>}
+          </div>
+        </>
       )}
     </>
   );

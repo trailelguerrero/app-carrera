@@ -24,24 +24,33 @@ export function Tooltip({ text, children, position = "top", maxWidth = 260 }) {
   const [coords,  setCoords]  = useState({ top:0, left:0 });
   const triggerRef = useRef(null);
   const timer      = useRef(null);
+  const closeTimer = useRef(null);
 
   const show = () => { clearTimeout(timer.current); timer.current = setTimeout(() => setVisible(true), 130); };
   const hide = () => { clearTimeout(timer.current); timer.current = setTimeout(() => setVisible(false), 80); };
-  // Toggle táctil: un toque muestra, otro oculta
+
+  // Toggle táctil: un toque muestra, otro oculta.
+  // El listener de cierre se registra en el siguiente tick para que
+  // el propio click que abrió el tooltip no lo cierre inmediatamente.
   const toggle = (e) => {
-    e.preventDefault();
     e.stopPropagation();
-    if (visible) { clearTimeout(timer.current); setVisible(false); }
-    else { clearTimeout(timer.current); setVisible(true); }
+    clearTimeout(timer.current);
+    if (visible) {
+      setVisible(false);
+    } else {
+      setVisible(true);
+      // Diferir el listener de cierre al siguiente tick de eventos
+      clearTimeout(closeTimer.current);
+      closeTimer.current = setTimeout(() => {
+        const close = () => setVisible(false);
+        document.addEventListener("click", close, { once: true });
+      }, 0);
+    }
   };
-  useEffect(() => () => clearTimeout(timer.current), []);
-  // Cerrar al tocar fuera
-  useEffect(() => {
-    if (!visible) return;
-    const close = () => { clearTimeout(timer.current); setVisible(false); };
-    document.addEventListener("click", close, { once: true });
-    return () => document.removeEventListener("click", close);
-  }, [visible]);
+  useEffect(() => () => {
+    clearTimeout(timer.current);
+    clearTimeout(closeTimer.current);
+  }, []);
 
   useEffect(() => {
     if (!visible || !triggerRef.current) return;
