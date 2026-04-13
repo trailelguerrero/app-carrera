@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from "react";
 import ReadmeModal  from "../components/blocks/ReadmeModal";
 import ErrorBoundary from "../components/ErrorBoundary";
 import DiaCarrera   from "../components/blocks/DiaCarrera";
 import OnboardingModal from "../components/blocks/OnboardingModal";
 import { ThemeToggle } from "../components/ui/ThemeToggle";
+import { LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 
 // Lazy-style imports for blocks
 const Dashboard = lazy(() => import("../components/blocks/Dashboard"));
