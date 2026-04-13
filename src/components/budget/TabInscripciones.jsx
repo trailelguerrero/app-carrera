@@ -815,7 +815,6 @@ export const TabInscripciones = ({
           );
         })()}
 
-        })()}
 
         {/* Modal editar/crear código */}
         {editCodigo && (

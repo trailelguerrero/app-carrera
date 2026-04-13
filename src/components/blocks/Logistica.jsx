@@ -819,7 +819,6 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
               </div>
             ))}
 
-            )}
             {/* SECCIÓN VEHÍCULOS VOLUNTARIOS (POOL) — LISTA */}
             {voluntariosConCoche.length > 0 && (
               <div style={{marginTop:"1rem"}}>
