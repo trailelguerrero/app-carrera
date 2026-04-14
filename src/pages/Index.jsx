@@ -29,9 +29,11 @@ const BLOCKS = [
 ];
 
 // ── PIN CONFIG ────────────────────────────────────────────────────────────────
-const PIN_KEY     = "teg_panel_pin_hash";
-const AUTH_KEY    = "teg_panel_authed";
-const DEFAULT_PIN = "1975";
+const PIN_KEY        = "teg_panel_pin_hash";
+const AUTH_KEY       = "teg_panel_authed";
+const SESSION_VER    = "teg_panel_session_ver";
+const CURRENT_VER    = "2";          // Incrementar para invalidar todas las sesiones
+const DEFAULT_PIN    = "1975";
 
 function hashPin(pin) {
   let h = 0;
@@ -183,6 +185,7 @@ function PinScreen({ onUnlock }) {
   const tryPin = useCallback((pin) => {
     if (hashPin(pin) === storedHash) {
       localStorage.setItem(AUTH_KEY, String(Date.now() + 8 * 3600 * 1000));
+      localStorage.setItem(SESSION_VER, CURRENT_VER);
       if (navigator.vibrate) navigator.vibrate(50); // haptic éxito
       onUnlock();
     } else {
@@ -346,7 +349,13 @@ function ChangePinModal({ onClose }) {
 export default function Index() {
   const [authed, setAuthed] = useState(() => {
     const exp = Number(localStorage.getItem(AUTH_KEY) || 0);
-    return exp > Date.now();
+    const ver = localStorage.getItem(SESSION_VER);
+    // Sesión válida solo si no ha expirado Y tiene la versión actual
+    if (exp > Date.now() && ver === CURRENT_VER) return true;
+    // Limpiar sesión inválida o de versión anterior
+    localStorage.removeItem(AUTH_KEY);
+    localStorage.removeItem(SESSION_VER);
+    return false;
   });
 
   // Leer fecha del evento desde config para el botón Día D
