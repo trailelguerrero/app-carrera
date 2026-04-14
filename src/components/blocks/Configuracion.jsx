@@ -82,7 +82,8 @@ export default function Configuracion() {
   // Usamos useEffect para evitar side effects en render
   const codigosRef = useRef(codigos);
   useEffect(() => {
-    if (codigosRef.current.length === 0) {
+    const yaInicializado = localStorage.getItem("teg_codigos_initialized");
+    if (codigosRef.current.length === 0 && !yaInicializado) {
       const CODIGOS_INICIALES = [
         // TG7
         {id:"7G7-1",      codigo:"7G7",       distancia:"TG7",  estado:"disponible", usadoPor:null, fechaUso:null},
@@ -105,6 +106,7 @@ export default function Configuracion() {
         {id:"UUCTJWSV",   codigo:"UUCTJWSV",  distancia:"TG25", estado:"disponible", usadoPor:null, fechaUso:null},
       ];
       setCodigos(CODIGOS_INICIALES);
+      localStorage.setItem("teg_codigos_initialized", "1");
     }
   }, []); // Solo al montar
 
@@ -177,6 +179,7 @@ export default function Configuracion() {
       a.download = `backup_${(form.nombre||"evento").replace(/\s+/g,"-").toLowerCase()}_${fecha}.json`;
       a.click();
       URL.revokeObjectURL(url);
+      localStorage.setItem("teg_last_backup", new Date().toISOString());
     } finally {
       setExportando(false);
     }
@@ -222,6 +225,14 @@ export default function Configuracion() {
     reader.onload = async (ev) => {
       try {
         const backup = JSON.parse(ev.target.result);
+        // Validar estructura del backup antes de restaurar
+        if (!backup || typeof backup !== "object" || !backup.datos || typeof backup.datos !== "object") {
+          setImportMsg({ tipo: "error", texto: "Formato de backup inválido. El archivo no tiene la estructura esperada." });
+          return;
+        }
+        if (!backup.version) {
+          setImportMsg({ tipo: "error", texto: "Backup sin versión detectada. Puede ser de una versión anterior incompatible. Procede con cautela." });
+        }
         if (!backup.datos || typeof backup.datos !== "object")
           throw new Error("Formato de backup no reconocido");
         let count = 0;
@@ -303,6 +314,18 @@ export default function Configuracion() {
               <label className="cfg-label">Organizador</label>
               <input className="cfg-input" value={form.organizador} onChange={e => upd("organizador", e.target.value)} placeholder="Ej: Club Trail El Guerrero" />
             </div>
+            <div className="cfg-field">
+              <label className="cfg-label">Email de contacto</label>
+              <input className="cfg-input" type="email" value={form.emailContacto||""} onChange={e => upd("emailContacto", e.target.value)} placeholder="info@trailelguerrero.es" />
+            </div>
+            <div className="cfg-field">
+              <label className="cfg-label">Teléfono de contacto</label>
+              <input className="cfg-input" type="tel" value={form.telefonoContacto||""} onChange={e => upd("telefonoContacto", e.target.value)} placeholder="+34 600 000 000" />
+            </div>
+            <div className="cfg-field">
+              <label className="cfg-label">Web del evento</label>
+              <input className="cfg-input" type="url" value={form.webEvento||""} onChange={e => upd("webEvento", e.target.value)} placeholder="https://trailelguerrero.es" />
+            </div>
           </div>
         </div>
 
@@ -367,6 +390,25 @@ export default function Configuracion() {
         {/* ── Backup y exportación ─────────────────────────────────────── */}
         <div className="card cfg-section">
           <div className="cfg-section-title">💾 Backup y exportación de datos</div>
+          {(() => {
+            const lastBackup = localStorage.getItem("teg_last_backup");
+            if (!lastBackup) return (
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:".62rem", color:"var(--red)",
+                padding:".4rem .7rem", borderRadius:6, marginBottom:".75rem",
+                background:"rgba(248,113,113,.06)", border:"1px solid rgba(248,113,113,.2)" }}>
+                ⚠️ Sin backup reciente — se recomienda exportar una copia de seguridad
+              </div>
+            );
+            const dias = Math.floor((Date.now() - new Date(lastBackup).getTime()) / 86400000);
+            const color = dias > 7 ? "var(--amber)" : "var(--green)";
+            return (
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:".62rem", color,
+                marginBottom:".75rem" }}>
+                ✓ Último backup: {dias === 0 ? "hoy" : dias === 1 ? "ayer" : `hace ${dias} días`}
+                {" · "}{new Date(lastBackup).toLocaleDateString("es-ES", { day:"2-digit", month:"short", year:"numeric" })}
+              </div>
+            );
+          })()}
           <div style={{ fontFamily:"var(--font-mono)", fontSize:".68rem", color:"var(--text-muted)", marginBottom:"1rem", lineHeight:1.6 }}>
             Exporta todos los datos de la app a un archivo JSON para hacer copias de seguridad
             o trasladar los datos a otro dispositivo. También puedes exportar listas concretas a CSV.
@@ -409,6 +451,50 @@ export default function Configuracion() {
             padding:".5rem .65rem", background:"var(--surface2)", borderRadius:6,
             border:"1px solid var(--border)" }}>
             📎 <strong style={{color:"var(--text-muted)"}}>Nota:</strong> El backup incluye todos los datos de la app excepto los archivos PDF/imágenes subidos en Documentos, que se almacenan en Vercel Blob y no se pueden exportar desde aquí. Para hacer copia de esos archivos, descárgalos individualmente desde el bloque Documentos.
+          </div>
+        </div>
+
+        {/* ── Formulario de voluntarios ── */}
+        <div className="card cfg-section">
+          <div className="cfg-section-title">👥 Formulario de voluntarios</div>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:".68rem", color:"var(--text-muted)", marginBottom:".75rem", lineHeight:1.6 }}>
+            Comparte este enlace con los voluntarios para que puedan registrarse.
+          </div>
+          <div style={{ display:"flex", gap:".5rem", alignItems:"stretch" }}>
+            <input
+              className="cfg-input"
+              readOnly
+              value={`${typeof window !== "undefined" ? window.location.origin : "https://appcarrera.vercel.app"}/voluntarios/registro`}
+              style={{ flex:1, fontFamily:"var(--font-mono)", fontSize:".68rem", color:"var(--cyan)", cursor:"text" }}
+            />
+            <button className="backup-btn export" style={{ flexShrink:0, padding:".45rem .85rem" }}
+              onClick={() => {
+                const url = `${window.location.origin}/voluntarios/registro`;
+                navigator.clipboard?.writeText(url).then(() => {
+                  const btn = document.activeElement;
+                  const prev = btn.textContent;
+                  btn.textContent = "✓ Copiado";
+                  setTimeout(() => { btn.textContent = prev; }, 1500);
+                });
+              }}>
+              📋 Copiar
+            </button>
+          </div>
+        </div>
+
+        {/* ── Seguridad de acceso ── */}
+        <div className="card cfg-section">
+          <div className="cfg-section-title">🔐 Seguridad de acceso</div>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:".68rem", color:"var(--text-muted)", marginBottom:".75rem", lineHeight:1.6 }}>
+            El panel de gestión está protegido por un PIN numérico.
+            Cámbialo regularmente y no lo compartas con personas ajenas al equipo organizador.
+          </div>
+          <button className="backup-btn export" style={{ padding:".45rem .9rem" }}
+            onClick={() => window.dispatchEvent(new CustomEvent("teg-open-changepin"))}>
+            🔑 Cambiar PIN de acceso
+          </button>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:".56rem", color:"var(--text-dim)", marginTop:".6rem", lineHeight:1.6 }}>
+            ⚠️ El hash del PIN se almacena en este dispositivo. Para acceder desde otro dispositivo necesitarás el PIN actual o restaurar un backup.
           </div>
         </div>
 

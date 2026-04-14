@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from "react";
 import ReadmeModal  from "../components/blocks/ReadmeModal";
 import ErrorBoundary from "../components/ErrorBoundary";
-import DiaCarrera   from "../components/blocks/DiaCarrera";
+const DiaCarrera = lazy(() => import("../components/blocks/DiaCarrera"));
 import OnboardingModal from "../components/blocks/OnboardingModal";
 import { ThemeToggle } from "../components/ui/ThemeToggle";
 import { LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
@@ -17,17 +17,14 @@ const Documentos = lazy(() => import("../components/blocks/Documentos"));
 const Camisetas = lazy(() => import("../components/blocks/Camisetas"));
 const Configuracion = lazy(() => import("../components/blocks/Configuracion"));
 
-const BLOCKS_NAV = [
-  // Solo bloques visibles en la nav — Configuración se accede desde el header
-];
 const BLOCKS = [
   { id: "dashboard",      icon: "📊", label: "Dashboard",      shortLabel: "Dash",   component: Dashboard },
-  { id: "proyecto",       icon: "🏔️", label: "Proyecto",       shortLabel: "Proy.",  component: Proyecto },
-  { id: "presupuesto",    icon: "💰", label: "Presupuesto",    shortLabel: "Presu.", component: Presupuesto },
-  { id: "voluntarios",    icon: "👥", label: "Voluntarios",    shortLabel: "Volun.", component: Voluntarios },
-  { id: "logistica",      icon: "📦", label: "Logística",      shortLabel: "Log.",   component: Logistica },
-  { id: "patrocinadores", icon: "🤝", label: "Patrocinadores", shortLabel: "Pat.",   component: Patrocinadores },
-  { id: "camisetas",      icon: "👕", label: "Camisetas",      shortLabel: "Cam.",   component: Camisetas },
+  { id: "proyecto",       icon: "🏔️", label: "Proyecto",       shortLabel: "Proy",  component: Proyecto },
+  { id: "presupuesto",    icon: "💰", label: "Presupuesto",    shortLabel: "Pres", component: Presupuesto },
+  { id: "voluntarios",    icon: "👥", label: "Voluntarios",    shortLabel: "Vols", component: Voluntarios },
+  { id: "logistica",      icon: "📦", label: "Logística",      shortLabel: "Log",   component: Logistica },
+  { id: "patrocinadores", icon: "🤝", label: "Patrocinadores", shortLabel: "Pat",   component: Patrocinadores },
+  { id: "camisetas",      icon: "👕", label: "Camisetas",      shortLabel: "Cam",   component: Camisetas },
   { id: "documentos",     icon: "📁", label: "Docs",           shortLabel: "Docs",   component: Documentos },
 ];
 
@@ -249,7 +246,7 @@ function PinScreen({ onUnlock }) {
 
         <div style={{ marginTop: "2rem", fontFamily: "var(--font-mono)",
           fontSize: "0.54rem", color: "var(--teg-text-muted)", lineHeight: 1.7 }}>
-          PIN por defecto: <span style={{ color: "var(--teg-text-secondary)" }}>2026</span><br />
+          PIN inicial configurado en ⚙️ Configuración<br />
           Cámbialo desde el icono 🔐 en el panel
         </div>
       </div>
@@ -396,6 +393,13 @@ export default function Index() {
     return () => window.removeEventListener("teg-navigate", h);
   }, [handleBlockChange]);
 
+  // Abrir modal de cambio de PIN desde Configuración
+  useEffect(() => {
+    const h = () => setShowChangePin(true);
+    window.addEventListener("teg-open-changepin", h);
+    return () => window.removeEventListener("teg-open-changepin", h);
+  }, []);
+
   // Keyboard shortcuts: 1-7 cambian de bloque, Esc cierra modales
   useEffect(() => {
     if (!authed) return;
@@ -485,7 +489,8 @@ export default function Index() {
 
   const NAV_H = isMobile ? 68 : 66;
   const diasCarrera = Math.ceil((eventFecha - new Date()) / 86400000);
-  const mostrarBtnDiaD = diasCarrera <= 7 && diasCarrera >= 0;
+  const mostrarBtnDiaDProminente = diasCarrera >= 0 && diasCarrera <= 7;
+  const mostrarBtnDiaD = diasCarrera >= -1 && diasCarrera <= 30; // accesible 30 días antes
 
   // Nav: en mobile mostramos 5 principales + "Más" para los extra
   const NAV_MAIN_IDS = ["dashboard", "proyecto", "presupuesto", "voluntarios", "logistica"];
@@ -565,7 +570,7 @@ export default function Index() {
               onMouseLeave={e => { if(activeBlock!=="configuracion") e.currentTarget.style.color="var(--teg-text-muted)"; }}
             >⚙️</button>
 
-            {mostrarBtnDiaD && (
+            {(mostrarBtnDiaD || mostrarBtnDiaDProminente) && (
               <button onClick={() => setShowDiaCarrera(true)} style={{
                 background:"rgba(248,113,113,0.15)", color:"#f87171",
                 border:"1px solid rgba(248,113,113,0.35)", borderRadius:6,

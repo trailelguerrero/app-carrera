@@ -1871,7 +1871,6 @@ function FichaProyecto({ ficha, equipo, documentos, tareas, onClose, onEditar, o
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap');
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--text);font-family:var(--font-display);min-height:100vh;
     background-image:radial-gradient(ellipse 80% 35% at 15% -5%,var(--cyan-dim) 0%,transparent 55%),

@@ -1781,7 +1781,6 @@ function TabDocumentos({ pats, addDoc, deleteDoc }) {
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap');
   /* Layout dos columnas */
   .twocol { display: grid; grid-template-columns: 1fr 1fr; gap: .85rem; }
   @media(max-width:700px) { .twocol { grid-template-columns: 1fr; } }

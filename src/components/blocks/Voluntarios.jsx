@@ -82,7 +82,7 @@ function estadoBg(e) {
 // ─── PUBLIC REGISTRATION FORM ──────────────────────────────────────────────────
 export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: imgF, imgBack: imgB, imgGuiaTallas, opcionPuesto, opcionVehiculo, config: cfgProp }) {
   const config = cfgProp || EVENT_CONFIG_DEFAULT;
-  const [form, setForm] = useState({ nombre: "", apellidos: "", telefono: "", email: "", talla: "", puestoId: "", coche: false });
+  const [form, setForm] = useState({ nombre: "", apellidos: "", telefono: "", email: "", talla: "", puestoId: "", coche: false, contactoEmergencia: "" });
   const [enviado, setEnviado] = useState(false);
   const [errores, setErrores] = useState({});
   const [lightbox, setLightbox] = useState(null); // null | "front" | "back"
@@ -471,9 +471,9 @@ export default function App() {
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const guardar = () => {
+    window.dispatchEvent(new CustomEvent("teg-sync"));
     setSaveStatus("saved");
     setTimeout(() => setSaveStatus("idle"), 2500);
-    // useData ya se encarga de persistir y notificar.
   };
 
   const addVoluntario = (data) => {
@@ -523,7 +523,7 @@ export default function App() {
   ];
   // En semana de carrera, Día de Carrera sube a primera posición
   const TABS_VOL = esSemanaCarrera
-    ? [TABS_BASE[4], ...TABS_BASE.slice(0, 4)]
+    ? [TABS_BASE[3], ...TABS_BASE.slice(0, 3)]
     : TABS_BASE;
 
   return (
@@ -760,7 +760,6 @@ function AppShell({ children }) {
     <>
       <style>{BLOCK_CSS}</style>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
@@ -1357,6 +1356,34 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
           })}
         </div>
       )}
+
+      {/* ── Resumen de tallas — para coordinación con Camisetas ── */}
+      {Object.values(stats.tallasCount || {}).some(n => n > 0) && (
+        <div className="card" style={{ marginTop:".85rem" }}>
+          <div className="card-title" style={{ marginBottom:".6rem" }}>
+            👕 Tallas de voluntarios
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:".58rem",
+              color:"var(--text-dim)", fontWeight:400, marginLeft:".5rem" }}>
+              (excluye cancelados)
+            </span>
+          </div>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:".35rem" }}>
+            {Object.entries(stats.tallasCount || {})
+              .filter(([, n]) => n > 0)
+              .map(([talla, n]) => (
+                <div key={talla} style={{
+                  fontFamily:"var(--font-mono)", fontSize:".68rem",
+                  padding:".2rem .6rem", borderRadius:6,
+                  background:"var(--surface2)", border:"1px solid var(--border)",
+                  display:"flex", gap:".4rem", alignItems:"center",
+                }}>
+                  <span style={{ color:"var(--text-muted)" }}>{talla}</span>
+                  <span style={{ fontWeight:800, color:"var(--cyan)" }}>{n}</span>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -1560,18 +1587,19 @@ function TabTallas({ stats, voluntarios }) {
 function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
   const [puestoSeleccionado, setPuestoSeleccionado] = useState("todos");
 
+  // Incluir confirmados Y pendientes — pendientes aparecen con distinción visual
   const volsFiltrados = puestoSeleccionado === "todos"
-    ? voluntarios.filter(v => v.estado === "confirmado")
-    : voluntarios.filter(v => String(v.puestoId) === puestoSeleccionado && v.estado === "confirmado");
+    ? voluntarios.filter(v => v.estado === "confirmado" || v.estado === "pendiente")
+    : voluntarios.filter(v => String(v.puestoId) === puestoSeleccionado && (v.estado === "confirmado" || v.estado === "pendiente"));
 
-  const presentes = voluntarios.filter(v => v.presente).length;
+  const presentes = voluntarios.filter(v => v.presente && v.estado === "confirmado").length;
 
   return (
     <>
       <div className="page-header">
         <div>
           <div className="page-title">🏁 Día de Carrera</div>
-          <div className="page-desc">Checklist de asistencia — 29 agosto 2026</div>
+          <div className="page-desc">Checklist de asistencia · {diasHastaEvento >= 0 ? `${diasHastaEvento} días para el evento` : "¡Día de carrera!"}</div>
         </div>
         <div className="mono text-xs" style={{ color: "var(--green)", background: "var(--green-dim)", border: "1px solid rgba(52,211,153,0.2)", borderRadius: 6, padding: "0.4rem 0.75rem" }}>
           ✓ {presentes} / {voluntarios.filter(v => v.estado === "confirmado").length} presentes
@@ -2086,6 +2114,13 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
             <button className="toggle-pill" style={{ background: form.coche ? "var(--green)" : "var(--surface3)" }} onClick={() => upd("coche", !form.coche)}>
               <span className="toggle-pill-dot" style={{ left: form.coche ? 23 : 3 }} />
             </button>
+          </div>
+
+          <div>
+            <label className="field-label">🚨 Contacto de emergencia</label>
+            <input className="inp" type="text"
+              value={form.contactoEmergencia||""} onChange={e => upd("contactoEmergencia", e.target.value)}
+              placeholder="Nombre y teléfono (ej. Ana García · 612 345 678)" />
           </div>
 
           <div>

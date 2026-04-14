@@ -163,14 +163,27 @@ export const BLOCK_CSS = `
     content: "";
     position: absolute;
     right: 0; top: 0; bottom: 4px;
-    width: 40px;
-    background: linear-gradient(to right, transparent, var(--surface));
+    width: 48px;
+    background: linear-gradient(to right, transparent, var(--bg));
     pointer-events: none;
     z-index: 1;
   }
+  /* Fade izquierdo cuando hay scroll previo */
+  .tabs-wrap::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 4px;
+    width: 24px;
+    background: linear-gradient(to left, transparent, var(--bg));
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity .15s;
+  }
+  .tabs-wrap.scrolled::before { opacity: 1; }
   .tab-btn {
-    padding: 0.55rem 1.1rem;
-    border-radius: var(--r-sm);
+    padding: 0.45rem 1rem;
+    border-radius: 20px;
     background: var(--surface2);
     color: var(--text-muted);
     border: 1px solid var(--border);
@@ -186,10 +199,10 @@ export const BLOCK_CSS = `
   .tab-btn:hover { color: var(--text); border-color: var(--border-light); }
   .tab-btn:active { transform: scale(0.97); }
   .tab-btn.active {
-    background: var(--primary-dim);
-    color: #c4c6ff;
-    border-color: rgba(99,102,241,0.45);
-    box-shadow: 0 0 0 1px rgba(99,102,241,0.2) inset;
+    background: rgba(34,211,238,0.1);
+    color: var(--cyan);
+    border-color: rgba(34,211,238,0.35);
+    box-shadow: 0 0 0 1px rgba(34,211,238,0.15) inset;
   }
 
   /* ── Cards ──────────────────────────────────────────────────────────────── */

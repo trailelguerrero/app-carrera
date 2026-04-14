@@ -2,8 +2,9 @@
  * PublicVolunteerForm — componente AUTÓNOMO para /voluntarios/registro
  * No depende de ningún otro bloque. Tiene todo lo necesario inline.
  */
-import { useState } from "react";
-import { useData } from "@/lib/dataService";
+import { useState, useEffect } from "react";
+// Sin useData — este formulario usa el endpoint público /api/data/public
+// que NO requiere la clave privada del panel de gestión.
 
 const LS_KEY = "teg_voluntarios_v1";
 
@@ -36,8 +37,6 @@ const SHIRT_BACK = "data:image/svg+xml," + encodeURIComponent(
 
 // ── CSS autónomo ──────────────────────────────────────────────────────────────
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Space+Mono:wght@400;700&display=swap');
-
   :root {
     --bg:#080c18; --surface:#0f1629; --surface2:#151e35; --surface3:#1a2540;
     --border:#1e2d50; --border-light:#2a3f6a;
@@ -68,34 +67,122 @@ const CSS = `
 `;
 
 // ── Componente principal ──────────────────────────────────────────────────────
+// Usa /api/data/public — endpoint SIN clave privada con lista blanca estricta.
+// No usa useData ni la VITE_API_KEY del panel de gestión.
+const PUBLIC_API = "/api/data/public";
+
+async function fetchPublic(collection) {
+  try {
+    const res = await fetch(`${PUBLIC_API}?collection=${collection}`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch { return null; }
+}
+
 export default function PublicVolunteerForm() {
-  const [rawPuestos]          = useData(LS_KEY + "_puestos",        []);
-  const [rawVoluntarios, setVoluntarios] = useData(LS_KEY + "_voluntarios", []);
-  const [imgFront]            = useData(LS_KEY + "_imgFront",       null);
-  const [imgBack]             = useData(LS_KEY + "_imgBack",        null);
-  const [imgGuiaTallas]       = useData(LS_KEY + "_imgGuiaTallas",  null);
-  const [opcionPuesto]        = useData(LS_KEY + "_opcionPuesto",   true);
-  const [opcionVehiculo]      = useData(LS_KEY + "_opcionVehiculo", true);
+  const [puestos,       setPuestos]       = useState([]);
+  const [imgFront,      setImgFront]      = useState(null);
+  const [imgBack,       setImgBack]       = useState(null);
+  const [imgGuiaTallas, setImgGuiaTallas] = useState(null);
+  const [opcionPuesto,  setOpcionPuesto]  = useState(true);
+  const [opcionVehiculo,setOpcionVehiculo]= useState(true);
+  const [loading,       setLoading]       = useState(true);
+  const [enviando,      setEnviando]      = useState(false);
+  const [registroOk,    setRegistroOk]    = useState(false);
+  const [errorEnvio,    setErrorEnvio]    = useState(null);
 
-  const puestos     = Array.isArray(rawPuestos)     ? rawPuestos     : [];
-  const voluntarios = Array.isArray(rawVoluntarios) ? rawVoluntarios : [];
+  // Cargar configuración del formulario desde el endpoint público
+  useEffect(() => {
+    Promise.all([
+      fetchPublic(LS_KEY + "_puestos"),
+      fetchPublic(LS_KEY + "_imgFront"),
+      fetchPublic(LS_KEY + "_imgBack"),
+      fetchPublic(LS_KEY + "_imgGuiaTallas"),
+      fetchPublic(LS_KEY + "_opcionPuesto"),
+      fetchPublic(LS_KEY + "_opcionVehiculo"),
+    ]).then(([psts, front, back, guia, opPuesto, opVehiculo]) => {
+      if (Array.isArray(psts))        setPuestos(psts);
+      if (front)                      setImgFront(front);
+      if (back)                       setImgBack(back);
+      if (guia)                       setImgGuiaTallas(guia);
+      if (opPuesto  !== null)         setOpcionPuesto(Boolean(opPuesto));
+      if (opVehiculo !== null)        setOpcionVehiculo(Boolean(opVehiculo));
+      setLoading(false);
+    });
+  }, []);
 
-  const addVoluntario = (data) => {
-    const nextId = voluntarios.length
-      ? Math.max(...voluntarios.map(v => v.id)) + 1
-      : 1;
-    setVoluntarios([...voluntarios, {
-      id: nextId, ...data,
-      rol: "apoyo", estado: "pendiente",
-      fechaRegistro: new Date().toISOString().split("T")[0],
-    }]);
+  const addVoluntario = async (data) => {
+    setEnviando(true);
+    setErrorEnvio(null);
+    try {
+      const res = await fetch(`${PUBLIC_API}?collection=${LS_KEY + "_voluntarios"}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, estado: "pendiente" }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setErrorEnvio(json.error || "Error al enviar el registro. Inténtalo de nuevo.");
+        setEnviando(false);
+        return;
+      }
+      setRegistroOk(true);
+    } catch {
+      setErrorEnvio("Sin conexión. Comprueba tu red e inténtalo de nuevo.");
+    }
+    setEnviando(false);
   };
+
+  if (loading) return (
+    <>
+      <style>{CSS}</style>
+      <div style={{ minHeight:"100vh", background:"var(--bg)", display:"flex",
+        alignItems:"center", justifyContent:"center" }}>
+        <div style={{ fontFamily:"var(--font-mono)", color:"var(--cyan)", fontSize:".8rem" }}>
+          Cargando formulario…
+        </div>
+      </div>
+    </>
+  );
+
+  if (registroOk) return (
+    <>
+      <style>{CSS}</style>
+      <div style={{ minHeight:"100vh", background:"var(--bg)", display:"flex",
+        alignItems:"center", justifyContent:"center", padding:"2rem" }}>
+        <div style={{ textAlign:"center", maxWidth:400 }}>
+          <div style={{ fontSize:"3rem", marginBottom:"1rem" }}>✅</div>
+          <div style={{ fontWeight:800, fontSize:"1.2rem", color:"var(--green)", marginBottom:".5rem" }}>
+            ¡Registro completado!
+          </div>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:".72rem", color:"var(--text-muted)", lineHeight:1.6 }}>
+            Hemos recibido tu solicitud. El equipo organizador la revisará y te confirmará por teléfono o email.
+          </div>
+          <div style={{ marginTop:"1.5rem" }}>
+            <a href="/" style={{ fontFamily:"var(--font-mono)", fontSize:".68rem",
+              color:"var(--cyan)", textDecoration:"none" }}>
+              ← Volver al inicio
+            </a>
+          </div>
+        </div>
+      </div>
+    </>
+  );
 
   return (
     <>
       <style>{CSS}</style>
       <div style={{ minHeight:"100vh", background:"var(--bg)",
         backgroundImage:"radial-gradient(ellipse 70% 50% at 50% 0%, rgba(34,211,238,0.07) 0%, transparent 60%)" }}>
+        {errorEnvio && (
+          <div style={{ position:"fixed", top:16, left:"50%", transform:"translateX(-50%)",
+            background:"rgba(248,113,113,.15)", border:"1px solid rgba(248,113,113,.4)",
+            borderRadius:8, padding:".6rem 1.2rem", fontFamily:"var(--font-mono)",
+            fontSize:".7rem", color:"var(--red)", zIndex:999, maxWidth:"90vw",
+            textAlign:"center" }}>
+            ⚠️ {errorEnvio}
+          </div>
+        )}
         <Formulario
           puestos={puestos}
           imgFront={imgFront || SHIRT_FRONT}
@@ -103,6 +190,7 @@ export default function PublicVolunteerForm() {
           imgGuiaTallas={imgGuiaTallas}
           opcionPuesto={opcionPuesto}
           opcionVehiculo={opcionVehiculo}
+          enviando={enviando}
           onRegistrar={addVoluntario}
           onVolver={() => { window.location.href = "/"; }}
         />
@@ -112,7 +200,7 @@ export default function PublicVolunteerForm() {
 }
 
 // ── Formulario (self-contained) ───────────────────────────────────────────────
-function Formulario({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, opcionVehiculo, onRegistrar, onVolver }) {
+function Formulario({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, opcionVehiculo, onRegistrar, onVolver, enviando }) {
   const [form, setForm]       = useState({ nombre:"", apellidos:"", telefono:"", talla:"", puestoId:"", coche:false });
   const [errores, setErrores] = useState({});
   const [enviado, setEnviado] = useState(false);

@@ -5,9 +5,9 @@ import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 
 import dataService from "@/lib/dataService";
 import {
-  RadialBarChart, RadialBar, ResponsiveContainer,
-  BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTip, Cell,
-  PieChart, Pie,
+  ResponsiveContainer,
+  PieChart, Pie, Cell,
+  Tooltip as RechartsTip,
 } from "recharts";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 
@@ -33,6 +33,7 @@ const ALL_KEYS = {
   "teg_documentos_v1":                [],
   "teg_documentos_v1_gestiones":       [],
   [LS_KEY_CONFIG]:                      EVENT_CONFIG_DEFAULT,
+  "teg_scenario_active_name":            null,
 };
 
 const fmt   = (n) => new Intl.NumberFormat("es-ES", { style:"currency", currency:"EUR", maximumFractionDigits:0 }).format(n ?? 0);
@@ -45,8 +46,10 @@ export default function Dashboard() {
   const [loading,     setLoading]     = useState(true);
   const [refreshing,  setRefreshing]  = useState(false);  // refresco silencioso
   const [lastUpdated, setLastUpdated] = useState(null);
-  const [alertasExpandidas, setAlertasExpandidas] = useState(false); // avisos colapsables
-  const [saludExpandida, setSaludExpandida] = useState(false);     // salud colapsable
+  const [alertasExpandidas, setAlertasExpandidas] = useState(
+    () => localStorage.getItem("teg_dash_alertas_open") !== "0"
+  ); // avisos: persiste estado de colapso
+  const [saludExpandida, setSaludExpandida] = useState(true);      // salud siempre expandida por defecto
   const intervalRef = useRef(null);
 
   const loadData = useCallback(async (silent = false) => {
@@ -209,26 +212,6 @@ export default function Dashboard() {
     const progresoGlobal  = tareasTotal > 0 ? Math.round(tareasCompletadas/tareasTotal*100) : 0;
     const hitosProximos   = hitos.filter(h => !h.completado && h.fecha).sort((a,b) => a.fecha.localeCompare(b.fecha)).slice(0,5);
 
-    // ── SALUD DEL EVENTO (barra semáforo global) ───────────────────────────
-    // Cada módulo aporta un % ponderado a la "salud" total del evento
-    const saludModulos = [
-      { label:"Presupuesto",    icon:"💰", bloque:"presupuesto",
-        score: resultado >= 0 ? 100 : Math.max(0, 100 + Math.round(resultado / Math.max(totalCostesFijos+totalCostesVars,1) * 100)),
-        color: resultado >= 0 ? "var(--green)" : resultado > -(totalCostesFijos+totalCostesVars)*0.2 ? "var(--amber)" : "var(--red)" },
-      { label:"Voluntarios",   icon:"👥", bloque:"voluntarios",
-        score: coberturaVol,
-        color: coberturaVol >= 80 ? "var(--green)" : coberturaVol >= 50 ? "var(--amber)" : "var(--red)" },
-      { label:"Patrocinadores",icon:"🤝", bloque:"patrocinadores",
-        score: objetivo > 0 ? Math.min(100, Math.round(patComprometido/objetivo*100)) : 100,
-        color: patComprometido >= objetivo*0.8 ? "var(--green)" : patComprometido >= objetivo*0.5 ? "var(--amber)" : "var(--red)" },
-      { label:"Logística",     icon:"📦", bloque:"logistica",
-        score: ck.length > 0 ? Math.round(ckDone/ck.length*100) : 100,
-        color: ckDone >= ck.length*0.8 ? "var(--green)" : ckDone >= ck.length*0.5 ? "var(--amber)" : "var(--red)" },
-      { label:"Proyecto",      icon:"🏔️", bloque:"proyecto",
-        score: progresoGlobal,
-        color: progresoGlobal >= 80 ? "var(--green)" : progresoGlobal >= 50 ? "var(--amber)" : "var(--red)" },
-    ];
-    const saludGlobal = Math.round(saludModulos.reduce((s,m) => s+m.score, 0) / saludModulos.length);
 
     // ── DOCUMENTOS — vencidos y próximos ─────────────────────────────────
     const documentos     = Array.isArray(get("teg_documentos_v1", [])) ? get("teg_documentos_v1", []) : [];
@@ -253,6 +236,35 @@ export default function Dashboard() {
       const dias = diasHastaDoc(g.fechaVencimiento);
       return dias !== null && dias >= 0 && dias <= 30 && g.estado !== "aprobado";
     });
+
+    // ── SALUD DEL EVENTO (barra semáforo global) ───────────────────────────
+    // Cada módulo aporta un % ponderado a la "salud" total del evento
+    const saludModulos = [
+      { label:"Presupuesto",    icon:"💰", bloque:"presupuesto",
+        score: resultado >= 0 ? 100 : Math.max(0, 100 + Math.round(resultado / Math.max(totalCostesFijos+totalCostesVars,1) * 100)),
+        color: resultado >= 0 ? "var(--green)" : resultado > -(totalCostesFijos+totalCostesVars)*0.2 ? "var(--amber)" : "var(--red)" },
+      { label:"Voluntarios",   icon:"👥", bloque:"voluntarios",
+        score: coberturaVol,
+        color: coberturaVol >= 80 ? "var(--green)" : coberturaVol >= 50 ? "var(--amber)" : "var(--red)" },
+      { label:"Patrocinadores",icon:"🤝", bloque:"patrocinadores",
+        score: objetivo > 0 ? Math.min(100, Math.round(patComprometido/objetivo*100)) : 100,
+        color: patComprometido >= objetivo*0.8 ? "var(--green)" : patComprometido >= objetivo*0.5 ? "var(--amber)" : "var(--red)" },
+      { label:"Logística",     icon:"📦", bloque:"logistica",
+        score: ck.length > 0 ? Math.round(ckDone/ck.length*100) : 100,
+        color: ckDone >= ck.length*0.8 ? "var(--green)" : ckDone >= ck.length*0.5 ? "var(--amber)" : "var(--red)" },
+      { label:"Proyecto",      icon:"🏔️", bloque:"proyecto",
+        score: progresoGlobal,
+        color: progresoGlobal >= 80 ? "var(--green)" : progresoGlobal >= 50 ? "var(--amber)" : "var(--red)" },
+      { label:"Documentos",    icon:"📁", bloque:"documentos",
+        score: (() => {
+          const total = documentos.length + gestiones.length;
+          if (total === 0) return 100;
+          const problemas = docsVencidos.length + gestionesDenegadas.length + gestionesVencidas.length;
+          return Math.max(0, Math.round((1 - problemas / total) * 100));
+        })(),
+        color: docsVencidos.length > 0 || gestionesDenegadas.length > 0 ? "var(--red)" : docsProxVencer.length > 0 || gestionesUrgentes.length > 0 ? "var(--amber)" : "var(--green)" },
+    ];
+    const saludGlobal = Math.round(saludModulos.reduce((s,m) => s+m.score, 0) / saludModulos.length);
 
     // ── ALERTAS con prioridad ──────────────────────────────────────────────
     const alertasCriticas = [];
@@ -320,8 +332,10 @@ export default function Dashboard() {
         alertasAvisos.push({ icon:"⚡", texto:`Hito crítico en ${dias}d: ${h.nombre}`, modulo:"proyecto" });
     });
 
+    const eventoFechaStr = eventoFecha.toLocaleDateString("es-ES", { day:"2-digit", month:"long", year:"numeric" });
+
     return {
-      eventoNombre, eventoEdicion,
+      eventoNombre, eventoEdicion, eventoFechaStr,
       diasHasta, yaFue, esSemana,
       totalInscritos, inscritosPorDist, totalIngresos, totalCostesFijos, totalCostesVars,
       totalIngresosExtra, merchBeneficio, totalOtrosIngresos, resultado, roiGlobal,
@@ -380,7 +394,40 @@ export default function Dashboard() {
 
         </div>
 
-        {/* ── HERO: COUNTDOWN + SALUD ── */}
+        {/* ── Banner de escenario activo — SIEMPRE PRIMERO ── */}
+        {d.scenarioActivo && (
+          <div style={{
+            display:"flex", alignItems:"center", justifyContent:"space-between",
+            gap:".75rem", padding:".7rem 1rem", marginBottom:".85rem",
+            borderRadius:8, flexWrap:"wrap",
+            background:"rgba(251,191,36,.1)",
+            border:"2px solid rgba(251,191,36,.4)",
+            boxShadow:"0 0 0 4px rgba(251,191,36,.06)",
+          }}>
+            <div style={{display:"flex",alignItems:"center",gap:".6rem"}}>
+              <span style={{fontSize:"1.2rem"}}>🔬</span>
+              <div>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:".68rem",fontWeight:800,
+                  color:"var(--amber)",textTransform:"uppercase",letterSpacing:".06em"}}>
+                  ⚠️ MODO ESCENARIO ACTIVO
+                </div>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:".62rem",color:"var(--text-muted)"}}>
+                  Los KPIs reflejan «{d.scenarioActivo}» — NO son datos reales
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"presupuesto"}}))}
+              style={{fontFamily:"var(--font-mono)",fontSize:".62rem",padding:".28rem .65rem",
+                borderRadius:6,border:"1px solid rgba(251,191,36,.4)",
+                background:"rgba(251,191,36,.15)",color:"var(--amber)",cursor:"pointer",
+                flexShrink:0,whiteSpace:"nowrap",fontWeight:700}}>
+              Ver en Presupuesto →
+            </button>
+          </div>
+        )}
+
+                {/* ── HERO: COUNTDOWN + SALUD ── */}
         <div className={`dash-hero card mb ${d.esSemana ? "dash-hero-urgente" : ""}`}>
           <div className="dash-hero-bg" />
           <div className="dash-hero-content">
@@ -399,6 +446,10 @@ export default function Dashboard() {
                         <span className="dash-countdown-label mono muted">
                           {d.esSemana ? "⚡ días — ¡SEMANA DE CARRERA!" : "días para la carrera"}
                         </span>
+                        <div style={{ fontFamily:"var(--font-mono)", fontSize:".58rem",
+                          color:"var(--cyan)", marginTop:".4rem", letterSpacing:".02em" }}>
+                          📅 {d.eventoFechaStr}
+                        </div>
                       </>
                   }
                 </div>
@@ -645,7 +696,7 @@ export default function Dashboard() {
         {/* ── AVISOS (colapsables) ── */}
         {d.alertasAvisos.length > 0 && (
           <div className="card mb" style={{ padding:"0.75rem 1rem" }}>
-            <button className="dash-avisos-toggle" onClick={() => setAlertasExpandidas(v => !v)}>
+            <button className="dash-avisos-toggle" onClick={() => { const next = !alertasExpandidas; setAlertasExpandidas(next); localStorage.setItem("teg_dash_alertas_open", next?"1":"0"); }}>
               <span className="mono xs" style={{ color:"var(--amber)" }}>
                 ⚡ {d.alertasAvisos.length} aviso{d.alertasAvisos.length !== 1 ? "s" : ""} pendiente{d.alertasAvisos.length !== 1 ? "s" : ""}
               </span>
@@ -714,37 +765,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ── Banner de escenario activo ── */}
-        {d.scenarioActivo && (
-          <div style={{
-            display:"flex", alignItems:"center", justifyContent:"space-between",
-            gap:".75rem", padding:".6rem 1rem", marginBottom:".85rem",
-            borderRadius:8, flexWrap:"wrap",
-            background:"rgba(251,191,36,.07)",
-            border:"1px solid rgba(251,191,36,.3)",
-          }}>
-            <div style={{display:"flex",alignItems:"center",gap:".6rem"}}>
-              <span style={{fontSize:"1.1rem"}}>🔬</span>
-              <div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:".65rem",fontWeight:800,
-                  color:"var(--amber)",textTransform:"uppercase",letterSpacing:".06em"}}>
-                  Modo Escenario activo
-                </div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:".62rem",color:"var(--text-muted)"}}>
-                  Los KPIs reflejan el escenario «{d.scenarioActivo}» — no los datos reales
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"presupuesto"}}))}
-              style={{fontFamily:"var(--font-mono)",fontSize:".62rem",padding:".25rem .6rem",
-                borderRadius:6,border:"1px solid rgba(251,191,36,.35)",
-                background:"rgba(251,191,36,.12)",color:"var(--amber)",cursor:"pointer",
-                flexShrink:0,whiteSpace:"nowrap"}}>
-              Ver en Presupuesto →
-            </button>
-          </div>
-        )}
+
 
         {/* ── KPIs ── */}
         <div className="kpi-grid mb">
@@ -756,34 +777,52 @@ export default function Dashboard() {
             onClick={() => navigate("presupuesto")} />
           <KPI icon="🏃" label="Inscritos"
             tooltip="Corredores inscritos en todos los tramos y distancias.\nEl denominador es el aforo máximo configurado en Presupuesto → Inscripciones."
-            value={d.ocupacionGlobal !== null ? `${d.totalInscritos}/${d.totalMaximos}` : String(d.totalInscritos)}
-            sub={`TG7 ${d.inscritosPorDist.TG7}${d.ocupacionPorDist.TG7!==null?` (${d.ocupacionPorDist.TG7}%)`:""}  ·  TG13 ${d.inscritosPorDist.TG13}${d.ocupacionPorDist.TG13!==null?` (${d.ocupacionPorDist.TG13}%)`:""}  ·  TG25 ${d.inscritosPorDist.TG25}${d.ocupacionPorDist.TG25!==null?` (${d.ocupacionPorDist.TG25}%)`:""}`}
+            value={d.ocupacionGlobal !== null ? `${d.ocupacionGlobal}%` : (d.totalInscritos > 0 ? String(d.totalInscritos) : "—")}
+            sub={d.ocupacionGlobal !== null
+              ? `${d.totalInscritos}/${d.totalMaximos} · TG7 ${d.inscritosPorDist.TG7} · TG13 ${d.inscritosPorDist.TG13} · TG25 ${d.inscritosPorDist.TG25}`
+              : d.totalInscritos > 0 ? `TG7 ${d.inscritosPorDist.TG7} · TG13 ${d.inscritosPorDist.TG13} · TG25 ${d.inscritosPorDist.TG25}` : "Sin inscritos aún — ir a Presupuesto"
+            }
             color="var(--cyan)" colorClass="cyan"
+            progress={d.ocupacionGlobal}
             onClick={() => navigate("presupuesto", "inscritos")} />
           <KPI icon="👥" label="Voluntarios"
             tooltip="Voluntarios confirmados sobre el total de plazas necesarias definidas en los puestos.\nEl % es la cobertura global: confirmados ÷ necesarios."
-            value={`${d.volConfirmados}/${d.totalNecesarios}`}
-            sub={`${d.coberturaVol}% cobertura · ${d.volPendientes} pendientes`}
-            color={d.coberturaVol>=80?"var(--green)":d.coberturaVol>=50?"var(--amber)":"var(--red)"}
-            colorClass={d.coberturaVol>=80?"green":d.coberturaVol>=50?"amber":"red"}
+            value={d.totalNecesarios > 0 ? `${d.coberturaVol}%` : (d.volConfirmados > 0 ? String(d.volConfirmados) : "—")}
+            sub={d.totalNecesarios > 0
+              ? `${d.volConfirmados}/${d.totalNecesarios} · ${d.volPendientes} pendientes`
+              : "Sin puestos definidos — ir a Voluntarios"
+            }
+            color={d.totalNecesarios===0?"var(--text-muted)":d.coberturaVol>=80?"var(--green)":d.coberturaVol>=50?"var(--amber)":"var(--red)"}
+            colorClass={d.totalNecesarios===0?"muted":d.coberturaVol>=80?"green":d.coberturaVol>=50?"amber":"red"}
+            progress={d.totalNecesarios>0?d.coberturaVol:undefined}
             onClick={() => navigate("voluntarios")} />
           <KPI icon="🤝" label="Patrocinio"
-            tooltip="Importe comprometido (confirmado + cobrado) de todos los patrocinadores activos.\nEl % indica el avance respecto al objetivo de captación."
-            value={fmt(d.patComprometido)}
-            sub={`${Math.round(d.patComprometido/Math.max(d.objetivo,1)*100)}% de ${fmt(d.objetivo)}`}
-            color="var(--amber)" colorClass="amber"
+            tooltip="Importe comprometido (confirmado + cobrado) de todos los patrocinadores activos.\nEl % indica el avance respecto al objetivo de captación.\nEl importe cobrado es el dinero realmente recibido."
+            value={`${Math.round(d.patComprometido/Math.max(d.objetivo,1)*100)}%`}
+            sub={`${fmt(d.patCobrado)} cobrado · ${fmt(d.patComprometido)} comprometido`}
+            color={d.patComprometido>=d.objetivo*0.8?"var(--green)":d.patComprometido>=d.objetivo*0.5?"var(--amber)":"var(--red)"}
+            colorClass={d.patComprometido>=d.objetivo*0.8?"green":d.patComprometido>=d.objetivo*0.5?"amber":"red"}
+            progress={d.objetivo>0?Math.min(100,Math.round(d.patComprometido/d.objetivo*100)):undefined}
             onClick={() => navigate("patrocinadores")} />
           <KPI icon="📋" label="Tareas"
             tooltip="Tareas completadas del bloque Proyecto sobre el total.\nIncluye todas las áreas: permisos, logística, comunicación, etc."
-            value={`${d.tareasCompletadas}/${d.tareasTotal}`}
-            sub={`${d.progresoGlobal}% · ${d.tareasVencidas} vencidas`}
-            color="var(--violet)" colorClass="violet"
+            value={d.tareasTotal > 0 ? `${d.progresoGlobal}%` : "—"}
+            sub={d.tareasTotal > 0
+              ? `${d.tareasCompletadas}/${d.tareasTotal} · ${d.tareasVencidas > 0 ? `⚠ ${d.tareasVencidas} vencidas` : "sin vencidas"}`
+              : "Sin tareas definidas — ir a Proyecto"
+            }
+            color={d.tareasTotal===0?"var(--text-muted)":"var(--violet)"} colorClass={d.tareasTotal===0?"muted":"violet"}
+            progress={d.tareasTotal>0?d.progresoGlobal:undefined}
             onClick={() => navigate("proyecto")} />
           <KPI icon="✅" label="Checklist"
             tooltip="Ítems completados del checklist de Logística sobre el total.\nEl checklist se organiza por fases temporales antes del evento."
-            value={`${d.ckDone}/${d.ckTotal}`}
-            sub={`Timeline: ${d.tlDone}/${d.tlTotal} completados`}
-            color="var(--cyan)" colorClass="cyan"
+            value={d.ckTotal > 0 ? `${Math.round(d.ckDone/d.ckTotal*100)}%` : "—"}
+            sub={d.ckTotal > 0
+              ? `${d.ckDone}/${d.ckTotal} ítems · Timeline: ${d.tlDone}/${d.tlTotal}`
+              : "Sin checklist definido — ir a Logística"
+            }
+            color={d.ckTotal===0?"var(--text-muted)":"var(--cyan)"} colorClass={d.ckTotal===0?"muted":"cyan"}
+            progress={d.ckTotal>0?Math.round(d.ckDone/d.ckTotal*100):undefined}
             onClick={() => navigate("logistica")} />
         </div>
 
@@ -832,27 +871,44 @@ export default function Dashboard() {
             }
           </div>
 
-          {/* Ingresos vs Costes */}
+          {/* Ingresos vs Costes — barras horizontales legibles en mobile */}
           <div className="card dash-chart-card">
             <div className="card-title violet">💰 Ingresos vs Costes</div>
             {d.totalIngresos === 0 && d.totalCostesFijos === 0
               ? <EmptyChart mensaje="Sin datos económicos" sub="Configura costes e inscritos en Presupuesto" />
-              : <ResponsiveContainer width="100%" height={185}>
-                  <BarChart data={[
-                      { name:"Inscripciones", val: d.totalIngresos,      color:"#22d3ee" },
-                      { name:"Patrocinios",   val: d.totalIngresosExtra,  color:"#34d399" },
-                      { name:"Merch",         val: d.merchBeneficio,     color:"#a78bfa" },
-                      { name:"C. Fijos",      val:-d.totalCostesFijos,   color:"#f87171" },
-                      { name:"C. Variables",  val:-d.totalCostesVars,    color:"#fb923c" },
-                    ]} margin={{ top:4, right:4, left:-24, bottom:22 }}>
-                    <XAxis dataKey="name" tick={{ fontSize:9, fontFamily:"var(--font-mono)", fill:"var(--text-muted)" }} angle={-35} textAnchor="end" interval={0} />
-                    <YAxis tick={{ fontSize:8, fontFamily:"var(--font-mono)", fill:"var(--text-muted)" }} tickFormatter={v=>`${(v/1000).toFixed(0)}k`} />
-                    <RechartsTip contentStyle={TOOLTIP_STYLE} formatter={v=>[fmt(Math.abs(v)),""]} labelStyle={{ color:"#e8eef8" }} />
-                    <Bar dataKey="val" radius={[4,4,0,0]}>
-                      {["#22d3ee","#34d399","#a78bfa","#f87171","#fb923c"].map((c,i) => <Cell key={i} fill={c} opacity={0.85}/>)}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+              : (() => {
+                  const items = [
+                    { label:"Inscripciones", val:d.totalIngresos,      color:"#22d3ee", tipo:"+" },
+                    { label:"Patrocinios",   val:d.totalIngresosExtra,  color:"#34d399", tipo:"+" },
+                    { label:"Merch",         val:d.merchBeneficio,     color:"#a78bfa", tipo:"+" },
+                    { label:"C. Fijos",      val:d.totalCostesFijos,   color:"#f87171", tipo:"-" },
+                    { label:"C. Variables",  val:d.totalCostesVars,    color:"#fb923c", tipo:"-" },
+                  ];
+                  const maxVal = Math.max(...items.map(i => i.val), 1);
+                  return (
+                    <div style={{ display:"flex", flexDirection:"column", gap:".5rem", marginTop:".25rem" }}>
+                      {items.map(item => {
+                        const pct = Math.min(Math.round(item.val / maxVal * 100), 100);
+                        return (
+                          <div key={item.label}>
+                            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:".18rem" }}>
+                              <span style={{ fontFamily:"var(--font-mono)", fontSize:".62rem", color:"var(--text-muted)" }}>
+                                {item.tipo === "+" ? "↑" : "↓"} {item.label}
+                              </span>
+                              <span style={{ fontFamily:"var(--font-mono)", fontSize:".62rem", color:item.color, fontWeight:700 }}>
+                                {fmt(item.val)}
+                              </span>
+                            </div>
+                            <div style={{ height:5, background:"var(--surface3)", borderRadius:3, overflow:"hidden" }}>
+                              <div style={{ height:"100%", width:`${pct}%`, background:item.color,
+                                borderRadius:3, opacity:item.val <= 0 ? 0.3 : 0.85, transition:"width .5s" }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()
             }
             {/* Resultado — resumen al pie del gráfico */}
             {(d.totalIngresos > 0 || d.totalCostesFijos > 0) && (
@@ -866,7 +922,7 @@ export default function Dashboard() {
                   Resultado
                   <span className={`badge ${d.roiGlobal>=0?"badge-green":"badge-red"}`}
                     style={{fontSize:".5rem"}}>
-                    ROI {d.roiGlobal>0?"+":""}{d.roiGlobal}%
+                    Margen {d.roiGlobal>0?"+":""}{d.roiGlobal}%
                   </span>
                 </span>
                 <span style={{fontFamily:"var(--font-mono)",fontSize:".78rem",
@@ -877,36 +933,53 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Objetivos */}
+          {/* Objetivos clave — barras de progreso lineales, legibles en mobile */}
           <div className="card dash-chart-card">
             <div className="card-title amber">🎯 Objetivos clave</div>
-            {d.tareasTotal === 0 && d.totalNecesarios === 0
+            {d.tareasTotal === 0 && d.totalNecesarios === 0 && d.objetivo === 0
               ? <EmptyChart mensaje="Sin objetivos definidos" sub="Añade tareas en Proyecto y puestos en Voluntarios" />
-              : <>
-                  <ResponsiveContainer width="100%" height={140}>
-                    <RadialBarChart cx="50%" cy="50%" innerRadius={18} outerRadius={65}
-                      data={[
-                        { name:"Voluntarios", value:Math.min(d.coberturaVol,100), fill: d.coberturaVol>=80?"#34d399":d.coberturaVol>=50?"#fbbf24":"#f87171" },
-                        { name:"Patrocinio",  value:Math.min(Math.round(d.patComprometido/Math.max(d.objetivo,1)*100),100), fill:"#fbbf24" },
-                        { name:"Tareas",      value:d.progresoGlobal, fill:"#a78bfa" },
-                      ]} startAngle={90} endAngle={-270}>
-                      <RadialBar dataKey="value" background={{ fill:"#1a2540" }} cornerRadius={4} />
-                      <RechartsTip contentStyle={TOOLTIP_STYLE} formatter={(v,n)=>[`${v}%`,n]} />
-                    </RadialBarChart>
-                  </ResponsiveContainer>
-                  <div style={{ display:"flex", flexDirection:"column", gap:"0.3rem" }}>
-                    {[
-                      ["👥 Voluntarios", `${d.coberturaVol}%`,   d.coberturaVol>=80?"#34d399":d.coberturaVol>=50?"#fbbf24":"#f87171", "voluntarios"],
-                      ["🤝 Patrocinio",  `${Math.min(Math.round(d.patComprometido/Math.max(d.objetivo,1)*100),100)}%`, "#fbbf24", "patrocinadores"],
-                      ["📋 Proyecto",    `${d.progresoGlobal}%`, "#a78bfa", "proyecto"],
-                    ].map(([n,v,c,bloque])=>(
-                      <div key={n} className="flex-between dash-objetivo-row" onClick={() => navigate(bloque)}>
-                        <span className="mono xs muted">{n}</span>
-                        <span className="mono xs bold" style={{ color:c }}>{v}</span>
+              : <div style={{ display:"flex", flexDirection:"column", gap:".65rem", marginTop:".2rem" }}>
+                  {[
+                    { icon:"👥", label:"Voluntarios", bloque:"voluntarios",
+                      pct: d.coberturaVol,
+                      sub: d.totalNecesarios > 0 ? `${d.volConfirmados}/${d.totalNecesarios}` : "Sin puestos",
+                      color: d.coberturaVol>=80?"#34d399":d.coberturaVol>=50?"#fbbf24":"#f87171" },
+                    { icon:"🤝", label:"Patrocinio", bloque:"patrocinadores",
+                      pct: d.objetivo > 0 ? Math.min(100,Math.round(d.patComprometido/d.objetivo*100)) : 0,
+                      sub: d.objetivo > 0 ? `${fmt(d.patCobrado)} cobrado` : "Sin objetivo",
+                      color: d.patComprometido>=d.objetivo*0.8?"#34d399":d.patComprometido>=d.objetivo*0.5?"#fbbf24":"#f87171" },
+                    { icon:"📋", label:"Proyecto", bloque:"proyecto",
+                      pct: d.progresoGlobal,
+                      sub: d.tareasTotal > 0 ? `${d.tareasCompletadas}/${d.tareasTotal} tareas` : "Sin tareas",
+                      color: d.progresoGlobal>=80?"#34d399":d.progresoGlobal>=50?"#fbbf24":"#f87171" },
+                    { icon:"✅", label:"Checklist", bloque:"logistica",
+                      pct: d.ckTotal > 0 ? Math.round(d.ckDone/d.ckTotal*100) : 0,
+                      sub: d.ckTotal > 0 ? `${d.ckDone}/${d.ckTotal} ítems` : "Sin checklist",
+                      color: d.ckTotal>0&&d.ckDone>=d.ckTotal*0.8?"#34d399":d.ckDone>=d.ckTotal*0.5?"#fbbf24":"#f87171" },
+                    { icon:"📁", label:"Permisos", bloque:"documentos",
+                      pct: (() => { const v=d.docsVencidos?.length||0; const t=d.documentos?.length||0; return t===0?100:Math.max(0,Math.round((1-v/t)*100)); })(),
+                      sub: d.docsVencidos?.length > 0 ? `⚠ ${d.docsVencidos.length} vencido${d.docsVencidos.length!==1?"s":""}` : d.docsProxVencer?.length > 0 ? `${d.docsProxVencer.length} próximo${d.docsProxVencer.length!==1?"s":""}` : "Sin urgencias",
+                      color: d.docsVencidos?.length > 0 ? "#f87171" : d.docsProxVencer?.length > 0 ? "#fbbf24" : "#34d399" },
+                  ].map(item => (
+                    <div key={item.label} onClick={() => navigate(item.bloque)}
+                      style={{ cursor:"pointer" }}
+                      onMouseEnter={e=>e.currentTarget.style.opacity=".85"}
+                      onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:".2rem" }}>
+                        <span style={{ fontFamily:"var(--font-mono)", fontSize:".65rem", color:"var(--text-muted)", display:"flex", alignItems:"center", gap:".3rem" }}>
+                          <span>{item.icon}</span><span>{item.label}</span>
+                        </span>
+                        <div style={{ display:"flex", alignItems:"center", gap:".5rem" }}>
+                          <span style={{ fontFamily:"var(--font-mono)", fontSize:".58rem", color:"var(--text-dim)" }}>{item.sub}</span>
+                          <span style={{ fontFamily:"var(--font-mono)", fontSize:".72rem", fontWeight:800, color:item.color, minWidth:32, textAlign:"right" }}>{item.pct}%</span>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </>
+                      <div style={{ height:5, background:"var(--surface3)", borderRadius:3, overflow:"hidden" }}>
+                        <div style={{ height:"100%", width:`${item.pct}%`, background:item.color, borderRadius:3, transition:"width .5s", opacity:.85 }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
             }
           </div>
         </div>
@@ -920,7 +993,7 @@ export default function Dashboard() {
             </div>
             {d.hitosProximos.map(h => {
               const dias = Math.ceil((new Date(h.fecha) - new Date()) / 86400000);
-              const c    = dias<=0?"var(--red)":dias<=7?"var(--red)":dias<=30?"var(--amber)":"var(--green)";
+              const c    = dias<0?"#ff4444":dias===0?"var(--red)":dias<=7?"var(--orange)":dias<=30?"var(--amber)":"var(--green)";
               const label = dias < 0 ? `Vencido (${Math.abs(dias)}d)` : dias===0 ? "HOY" : `${dias}d`;
               return (
                 <div key={h.id} className="dash-hito dash-hito-clickable"
@@ -958,7 +1031,7 @@ export default function Dashboard() {
 }
 
 // ─── Sub-componentes ──────────────────────────────────────────────────────────
-function KPI({ icon, label, value, sub, color, colorClass, onClick, tooltip }) {
+function KPI({ icon, label, value, sub, color, colorClass, onClick, tooltip, progress }) {
   return (
     <div className={`kpi ${colorClass||""} ${onClick?"dash-kpi-clickable":""}`}
       onClick={onClick} title={onClick ? `Ir a ${label}` : undefined}>
@@ -968,6 +1041,12 @@ function KPI({ icon, label, value, sub, color, colorClass, onClick, tooltip }) {
       </div>
       <div className="kpi-value" style={{ color }}>{value}</div>
       <div className="kpi-sub">{sub}</div>
+      {progress !== undefined && (
+        <div className="kpi-progress">
+          <div className="kpi-progress-fill"
+            style={{ width:`${Math.min(100,Math.max(0,progress))}%`, background:color }} />
+        </div>
+      )}
       {onClick && <div className="dash-kpi-arrow">→</div>}
     </div>
   );
@@ -990,7 +1069,6 @@ const TOOLTIP_STYLE = {
 };
 
 const DASH_EXTRA_CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Space+Mono:wght@400;700&display=swap');
   @keyframes teg-spin    { to { transform:rotate(360deg); } }
   @keyframes teg-pulse   { 0%,100%{opacity:1} 50%{opacity:0.3} }
   @keyframes teg-slidein { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }

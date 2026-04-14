@@ -16,8 +16,6 @@ import { DISTANCIAS }       from "@/constants/budgetConstants";
 
 // ─── CSS específico del bloque ─────────────────────────────────────────────
 const BUDGET_CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap');
-
   .text-right  { text-align: right; }
   .overflow-x  { overflow-x: auto; }
   .total-row   { background: var(--surface2); font-weight: 700; }
@@ -116,7 +114,7 @@ const FLOW_STEPS = [
 const TABS = [
   { id: "inscripciones", label: "Inscripciones", short: "Inscripciones", icon: "🏃" },
   { id: "presupuesto", label: "Costes del Evento", short: "Costes", icon: "💰" },
-  { id: "ingresos",    label: "Ingresos Adicionales", short: "Otros ingresos", icon: "🟣" },
+  { id: "ingresos",    label: "Otros Ingresos",        short: "Otros ingresos", icon: "🟣" },
   { id: "resumen",     label: "Resumen P&L", short: "P&L Resumen", icon: "📉" },
   { id: "equilibrio",  label: "Puntos de Equilibrio", short: "Equilibrio", icon: "⚖️" },
   { id: "historial",   label: "Historial", short: "Historial", icon: "🕐" },
@@ -359,10 +357,10 @@ const Presupuesto = () => {
             <button
               className="btn btn-ghost btn-sm"
               onClick={() => createScenario()}
-              style={{ fontFamily: "var(--font-mono)", fontSize: ".62rem",
-                color: "var(--text-dim)", gap: ".3rem" }}
+              style={{ fontFamily: "var(--font-mono)", fontSize: ".58rem",
+                color: "var(--text-dim)", opacity:.6, gap: ".3rem" }}
             >
-              🔬 Crear escenario hipotético
+              + Crear escenario hipotético
             </button>
           </div>
         )}
@@ -448,6 +446,23 @@ const Presupuesto = () => {
               setSyncConfig={setSyncConfig}
             />
           )}
+          {/* Banner escenario en tabs de edición */}
+          {isScenarioMode && (tab === "inscripciones" || tab === "presupuesto") && (
+            <div style={{
+              display:"flex", alignItems:"center", gap:".6rem",
+              padding:".5rem .85rem", marginBottom:".65rem",
+              borderRadius:6, background:"rgba(251,191,36,.1)",
+              border:"1px solid rgba(251,191,36,.3)",
+              fontFamily:"var(--font-mono)", fontSize:".62rem",
+            }}>
+              <span style={{fontSize:".9rem"}}>🔬</span>
+              <span style={{color:"var(--amber)",fontWeight:700}}>
+                Modo Escenario: «{activeScenario?.nombre || "Sin nombre"}»
+              </span>
+              <span style={{color:"var(--text-muted)"}}>— Los cambios NO afectan a datos reales</span>
+            </div>
+          )}
+
           {tab === "inscripciones" && (
             <TabInscripciones
               tramos={tramos}

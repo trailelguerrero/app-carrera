@@ -202,6 +202,15 @@ export const TabInscripciones = ({
               <div key={d} style={{ minWidth: 200, flex: 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
                   <span style={{ color: DISTANCIA_COLORS[d], fontWeight: 700, fontSize: "0.85rem" }}>{DISTANCIA_LABELS[d]}</span>
+                  {pct >= 90 && maximos[d] > 0 && (
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:".58rem", fontWeight:700,
+                      padding:".1rem .45rem", borderRadius:10,
+                      background: pct >= 100 ? "rgba(248,113,113,.15)" : "rgba(251,191,36,.15)",
+                      color: pct >= 100 ? "var(--red)" : "var(--amber)",
+                      border: `1px solid ${pct >= 100 ? "rgba(248,113,113,.3)" : "rgba(251,191,36,.3)"}` }}>
+                      {pct >= 100 ? "⛔ Aforo completo" : `🔶 ${(100-pct).toFixed(0)}% libre`}
+                    </span>
+                  )}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)" }}>Máx. plazas:</span>
