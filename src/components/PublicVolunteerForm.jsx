@@ -158,9 +158,20 @@ export default function PublicVolunteerForm() {
           <div style={{ fontFamily:"var(--font-mono)", fontSize:".72rem", color:"var(--text-muted)", lineHeight:1.6 }}>
             Hemos recibido tu solicitud. El equipo organizador la revisará y te confirmará por teléfono o email.
           </div>
-          <div style={{ marginTop:"1.5rem", fontFamily:"var(--font-mono)",
-            fontSize:".62rem", color:"var(--text-dim)", lineHeight:1.6 }}>
-            Puedes cerrar esta ventana.
+          <button
+            onClick={() => window.close()}
+            style={{
+              marginTop:"1.5rem", padding:".65rem 2rem",
+              background:"var(--green-dim)", color:"var(--green)",
+              border:"1px solid rgba(52,211,153,0.3)", borderRadius:10,
+              fontFamily:"var(--font-display)", fontWeight:700, fontSize:".9rem",
+              cursor:"pointer", width:"100%",
+            }}>
+            ✕ Cerrar ventana
+          </button>
+          <div style={{ marginTop:".75rem", fontFamily:"var(--font-mono)",
+            fontSize:".58rem", color:"var(--text-dim)", lineHeight:1.6 }}>
+            Si el botón no funciona, cierra esta pestaña manualmente.
           </div>
         </div>
       </div>
