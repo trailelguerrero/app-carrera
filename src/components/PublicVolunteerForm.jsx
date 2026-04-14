@@ -158,11 +158,9 @@ export default function PublicVolunteerForm() {
           <div style={{ fontFamily:"var(--font-mono)", fontSize:".72rem", color:"var(--text-muted)", lineHeight:1.6 }}>
             Hemos recibido tu solicitud. El equipo organizador la revisará y te confirmará por teléfono o email.
           </div>
-          <div style={{ marginTop:"1.5rem" }}>
-            <a href="/" style={{ fontFamily:"var(--font-mono)", fontSize:".68rem",
-              color:"var(--cyan)", textDecoration:"none" }}>
-              ← Volver al inicio
-            </a>
+          <div style={{ marginTop:"1.5rem", fontFamily:"var(--font-mono)",
+            fontSize:".62rem", color:"var(--text-dim)", lineHeight:1.6 }}>
+            Puedes cerrar esta ventana.
           </div>
         </div>
       </div>
@@ -192,7 +190,6 @@ export default function PublicVolunteerForm() {
           opcionVehiculo={opcionVehiculo}
           enviando={enviando}
           onRegistrar={addVoluntario}
-          onVolver={() => { window.location.href = "/"; }}
         />
       </div>
     </>
@@ -200,7 +197,7 @@ export default function PublicVolunteerForm() {
 }
 
 // ── Formulario (self-contained) ───────────────────────────────────────────────
-function Formulario({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, opcionVehiculo, onRegistrar, onVolver, enviando }) {
+function Formulario({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, opcionVehiculo, onRegistrar, enviando }) {
   const [form, setForm]       = useState({ nombre:"", apellidos:"", telefono:"", talla:"", puestoId:"", coche:false });
   const [errores, setErrores] = useState({});
   const [enviado, setEnviado] = useState(false);
@@ -258,9 +255,7 @@ function Formulario({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, o
             </div>
           ))}
         </div>
-        <button onClick={() => window.location.href = "/"} style={{ background:"var(--green-dim)", color:"var(--green)", border:"1px solid rgba(52,211,153,0.3)", borderRadius:8, padding:"0.6rem 1.5rem", fontFamily:"var(--font-display)", fontWeight:700, fontSize:"0.85rem", cursor:"pointer" }}>
-          ← Volver al Inicio
-        </button>
+
       </div>
     </div>
   );
@@ -561,12 +556,7 @@ function Formulario({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, o
           Tus datos se usarán exclusivamente para la coordinación del evento.<br />
           Organiza: Club Trail El Guerrero · Candeleda, Ávila
         </div>
-        <button onClick={onVolver}
-          style={{ display:"block", margin:"1rem auto 0", background:"none", border:"none",
-            color:"var(--text-dim)", fontFamily:"var(--font-mono)", fontSize:"0.65rem",
-            cursor:"pointer", textDecoration:"underline" }}>
-          ← Volver al inicio
-        </button>
+
       </div>
     </>
   );
