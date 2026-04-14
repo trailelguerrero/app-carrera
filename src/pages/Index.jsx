@@ -31,7 +31,7 @@ const BLOCKS = [
 // ── PIN CONFIG ────────────────────────────────────────────────────────────────
 const PIN_KEY     = "teg_panel_pin_hash";
 const AUTH_KEY    = "teg_panel_authed";
-const DEFAULT_PIN = "2026";
+const DEFAULT_PIN = "1975";
 
 function hashPin(pin) {
   let h = 0;
@@ -246,7 +246,7 @@ function PinScreen({ onUnlock }) {
 
         <div style={{ marginTop: "2rem", fontFamily: "var(--font-mono)",
           fontSize: "0.54rem", color: "var(--teg-text-muted)", lineHeight: 1.7 }}>
-          PIN inicial configurado en ⚙️ Configuración<br />
+          Contacta con el organizador si no tienes el PIN<br />
           Cámbialo desde el icono 🔐 en el panel
         </div>
       </div>
