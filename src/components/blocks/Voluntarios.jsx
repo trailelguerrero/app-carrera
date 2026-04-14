@@ -1152,6 +1152,34 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
           })()}
         </div>
       </div>
+
+      {/* ── Resumen de tallas — para coordinación con Camisetas ── */}
+      {Object.values(stats.tallasCount || {}).some(n => n > 0) && (
+        <div className="card" style={{ marginTop:".85rem" }}>
+          <div className="card-title" style={{ marginBottom:".6rem" }}>
+            👕 Tallas de voluntarios
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:".58rem",
+              color:"var(--text-dim)", fontWeight:400, marginLeft:".5rem" }}>
+              (excluye cancelados)
+            </span>
+          </div>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:".35rem" }}>
+            {Object.entries(stats.tallasCount || {})
+              .filter(([, n]) => n > 0)
+              .map(([talla, n]) => (
+                <div key={talla} style={{
+                  fontFamily:"var(--font-mono)", fontSize:".68rem",
+                  padding:".2rem .6rem", borderRadius:6,
+                  background:"var(--surface2)", border:"1px solid var(--border)",
+                  display:"flex", gap:".4rem", alignItems:"center",
+                }}>
+                  <span style={{ color:"var(--text-muted)" }}>{talla}</span>
+                  <span style={{ fontWeight:800, color:"var(--cyan)" }}>{n}</span>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -1357,33 +1385,6 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
         </div>
       )}
 
-      {/* ── Resumen de tallas — para coordinación con Camisetas ── */}
-      {Object.values(stats.tallasCount || {}).some(n => n > 0) && (
-        <div className="card" style={{ marginTop:".85rem" }}>
-          <div className="card-title" style={{ marginBottom:".6rem" }}>
-            👕 Tallas de voluntarios
-            <span style={{ fontFamily:"var(--font-mono)", fontSize:".58rem",
-              color:"var(--text-dim)", fontWeight:400, marginLeft:".5rem" }}>
-              (excluye cancelados)
-            </span>
-          </div>
-          <div style={{ display:"flex", flexWrap:"wrap", gap:".35rem" }}>
-            {Object.entries(stats.tallasCount || {})
-              .filter(([, n]) => n > 0)
-              .map(([talla, n]) => (
-                <div key={talla} style={{
-                  fontFamily:"var(--font-mono)", fontSize:".68rem",
-                  padding:".2rem .6rem", borderRadius:6,
-                  background:"var(--surface2)", border:"1px solid var(--border)",
-                  display:"flex", gap:".4rem", alignItems:"center",
-                }}>
-                  <span style={{ color:"var(--text-muted)" }}>{talla}</span>
-                  <span style={{ fontWeight:800, color:"var(--cyan)" }}>{n}</span>
-                </div>
-              ))}
-          </div>
-        </div>
-      )}
     </>
   );
 }
