@@ -1169,18 +1169,29 @@ const DASH_EXTRA_CSS = `
 
   /* Hero */
   .dash-hero { position:relative; overflow:hidden; padding:1.25rem; }
-  .dash-hero-bg { position:absolute; inset:0; background:radial-gradient(ellipse 70% 50% at 50% 0%, rgba(34,211,238,0.08) 0%, transparent 60%); pointer-events:none; }
-  .dash-hero-content { position:relative; z-index:1; }
+  .dash-hero-bg {
+    position:absolute; inset:0; pointer-events:none;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% -10%, rgba(34,211,238,0.12) 0%, transparent 55%),
+      radial-gradient(ellipse 40% 30% at 85% 80%, rgba(167,139,250,0.08) 0%, transparent 50%);
+  }
+  .dash-hero-content { position:relative; z-index:1; animation: dash-hero-enter 0.45s cubic-bezier(0.34,1.2,0.64,1) both; }
+  @keyframes dash-hero-enter {
+    from { opacity:0; transform:translateY(12px) scale(0.98); }
+    to   { opacity:1; transform:translateY(0) scale(1); }
+  }
   .dash-hero-urgente { border-color:rgba(248,113,113,0.4) !important; }
   .dash-hero-urgente .dash-hero-bg { background:radial-gradient(ellipse 70% 50% at 50% 0%, rgba(248,113,113,0.1) 0%, transparent 60%) !important; }
   .dash-countdown { display:flex; align-items:baseline; gap:0.5rem; margin-bottom:0.6rem; }
   .dash-countdown-num {
-    font-family:'Syne',sans-serif; font-size:2.6rem; font-weight:800; line-height:.9;
-    background:linear-gradient(135deg,#fff 0%,#22d3ee 55%,#a78bfa 100%);
+    font-family:'Syne',sans-serif; font-size:4.5rem; font-weight:900; line-height:.85;
+    background: linear-gradient(135deg, #ffffff 0%, #22d3ee 40%, #a78bfa 80%, #f472b6 100%);
     -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    filter: drop-shadow(0 0 32px rgba(34,211,238,0.25));
+    letter-spacing: -0.04em;
   }
   .dash-countdown-label { font-family:var(--font-mono); font-size:0.72rem; color:var(--text-muted); }
-  @media(max-width:480px){ .dash-countdown-num{ font-size:2rem; } }
+  @media(max-width:480px){ .dash-countdown-num{ font-size:3rem; } }
 
   /* Salud del evento */
   .dash-salud-box {

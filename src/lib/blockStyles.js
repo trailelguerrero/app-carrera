@@ -53,6 +53,16 @@ export const BLOCK_CSS = `
     --primary:      #4f46e5;  --primary-dim:rgba(79,70,229,0.12);
   }
 
+  /* ── Scrollbar Kinetik Ops — global 4px ───────────────────────────────── */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-light);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+  ::-webkit-scrollbar-corner { background: transparent; }
+
   /* ── Block shell ────────────────────────────────────────────────────────── */
   .block-container {
     padding: 1rem;
@@ -464,9 +474,21 @@ export const BLOCK_CSS = `
     vertical-align: middle;
   }
   .tbl tr:last-child td { border-bottom: none; }
-  .tbl tbody tr { transition: background 0.1s; }
-  .tbl tbody tr:hover td { background: rgba(255,255,255,0.025); }
-  .tbl tbody tr:active td { background: rgba(255,255,255,0.04); }
+  .tbl tbody tr { transition: background 0.12s; position: relative; }
+  .tbl tbody tr td:first-child { position: relative; }
+  .tbl tbody tr td:first-child::before {
+    content: "";
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: var(--cyan);
+    transform: scaleY(0);
+    transform-origin: center;
+    transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1);
+    border-radius: 0 2px 2px 0;
+  }
+  .tbl tbody tr:hover td { background: rgba(34,211,238,0.025); }
+  .tbl tbody tr:hover td:first-child::before { transform: scaleY(1); }
+  .tbl tbody tr:active td { background: rgba(34,211,238,0.05); }
   .total-row td {
     background: var(--surface2) !important;
     font-weight: 700;

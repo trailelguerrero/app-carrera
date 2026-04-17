@@ -526,13 +526,13 @@ export default function Index() {
       `}</style>
 
       <div style={{ minHeight:"100vh", display:"flex", flexDirection:"column", background:"var(--teg-bg)",
-          backgroundImage:"radial-gradient(ellipse 70% 35% at 15% 0%, rgba(34,211,238,0.05) 0%, transparent 55%), radial-gradient(ellipse 50% 25% at 85% 100%, rgba(167,139,250,0.03) 0%, transparent 50%)" }}>
+          backgroundImage:"radial-gradient(ellipse 90% 45% at 15% -5%, rgba(34,211,238,0.065) 0%, transparent 50%), radial-gradient(ellipse 60% 30% at 85% 105%, rgba(167,139,250,0.045) 0%, transparent 48%), radial-gradient(ellipse 30% 20% at 50% 50%, rgba(34,211,238,0.02) 0%, transparent 55%)" }}>
 
         {/* TOP BAR — Kinetik Ops style */}
         <header style={{
-          background:"var(--teg-surface)", backdropFilter:"blur(16px)",
-          WebkitBackdropFilter:"blur(16px)",
-          borderBottom:"1px solid rgba(30,45,80,0.8)",
+          background:"rgba(13,17,33,0.75)", backdropFilter:"blur(20px) saturate(180%)",
+          WebkitBackdropFilter:"blur(20px) saturate(180%)",
+          borderBottom:"1px solid rgba(34,211,238,0.08)",
           padding:"0 0.75rem", display:"flex", alignItems:"center",
           justifyContent:"space-between", position:"sticky", top:0, zIndex:50,
           height:48, gap:"0.5rem",
@@ -666,8 +666,15 @@ export default function Index() {
           flex:1, overflow:"auto",
           paddingBottom: `calc(${NAV_H}px + 8px + env(safe-area-inset-bottom, 0px))`,
         }}>
+          <style>{`
+            @keyframes module-enter {
+              from { opacity:0; transform:translateY(10px); }
+              to   { opacity:1; transform:translateY(0); }
+            }
+            .module-enter { animation: module-enter 0.22s cubic-bezier(0.34,1.1,0.64,1) both; }
+          `}</style>
+          <div key={activeBlock} className="module-enter">
           <ErrorBoundary
-            key={activeBlock}
             blockName={BLOCKS.find(b => b.id === activeBlock)?.label}
             onNavigate={handleBlockChange}
           >
@@ -692,6 +699,7 @@ export default function Index() {
               {ActiveComponent && <ActiveComponent key={activeBlock} />}
             </Suspense>
           </ErrorBoundary>
+          </div>
         </main>
 
         {/* BOTTOM NAV */}
@@ -699,8 +707,9 @@ export default function Index() {
           aria-label="Navegación principal"
           style={{
             position:"fixed", bottom:0, left:0, right:0,
-            background:"var(--teg-surface)", backdropFilter:"blur(14px)",
-            WebkitBackdropFilter:"blur(14px)", borderTop:"1px solid var(--teg-border)",
+            background:"rgba(13,17,33,0.8)", backdropFilter:"blur(20px) saturate(180%)",
+            WebkitBackdropFilter:"blur(20px) saturate(180%)",
+            borderTop:"1px solid rgba(34,211,238,0.07)",
             display:"flex", justifyContent:"space-around", alignItems:"center",
             height: NAV_H,
             paddingBottom:"env(safe-area-inset-bottom,0px)",
@@ -724,22 +733,24 @@ export default function Index() {
                   padding: isMobile ? "0.35rem 0.4rem" : "0.35rem 0.6rem",
                   borderRadius:10,
                   transition:"opacity 0.2s",
-                  opacity: isActive ? 1 : 0.42,
+                  opacity: isActive ? 1 : 0.38,
                   flex: 1,
                   position:"relative", outline:"none",
                   WebkitTapHighlightColor:"transparent",
                   minHeight: NAV_H - 4,
                 }}
               >
-                {/* Kinetik: línea cian en la parte superior del tab activo */}
-                {isActive && (
-                  <div style={{
-                    position:"absolute", top:0, left:"15%", right:"15%",
-                    height:2, borderRadius:"0 0 2px 2px",
-                    background:"var(--cyan)",
-                    boxShadow:"0 0 8px rgba(34,211,238,0.6)",
-                  }} />
-                )}
+                {/* Blob activo estilo iOS/Figma con spring */}
+                <div style={{
+                  position:"absolute",
+                  top:"50%", left:"50%",
+                  transform:`translate(-50%, -50%) scale(${isActive ? 1 : 0})`,
+                  width:44, height:36, borderRadius:12,
+                  background:"rgba(34,211,238,0.1)",
+                  boxShadow: isActive ? "0 0 18px rgba(34,211,238,0.18)" : "none",
+                  transition:"transform 0.35s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease",
+                  pointerEvents:"none",
+                }} />
                 <span style={{
                   fontSize: isMobile ? "1.35rem" : "1.15rem",
                   filter: isActive ? "none" : "grayscale(0.6) opacity(0.6)",
@@ -774,14 +785,7 @@ export default function Index() {
                 }}>
                   {isMobile ? b.shortLabel : b.shortLabel}
                 </span>
-                {isActive && (
-                  <div style={{
-                      width:3, height:3, borderRadius:"50%",
-                      background:"var(--cyan)",
-                      boxShadow:"0 0 5px rgba(34,211,238,0.4)",
-                      position:"relative", zIndex:1,
-                    }} />
-                )}
+
               </button>
             );
           })}
