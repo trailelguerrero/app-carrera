@@ -250,8 +250,8 @@ export default function Dashboard() {
         score: objetivo > 0 ? Math.min(100, Math.round(patComprometido/objetivo*100)) : 100,
         color: patComprometido >= objetivo*0.8 ? "var(--green)" : patComprometido >= objetivo*0.5 ? "var(--amber)" : "var(--red)" },
       { label:"Logística",     icon:"📦", bloque:"logistica",
-        score: ck.length > 0 ? Math.round(ckDone/ck.length*100) : 100,
-        color: ckDone >= ck.length*0.8 ? "var(--green)" : ckDone >= ck.length*0.5 ? "var(--amber)" : "var(--red)" },
+        score: ck.length > 0 ? Math.round(ckDone/ck.length*100) : 0,
+        color: ck.length === 0 ? "var(--text-muted)" : ckDone >= ck.length*0.8 ? "var(--green)" : ckDone >= ck.length*0.5 ? "var(--amber)" : "var(--red)" },
       { label:"Proyecto",      icon:"🏔️", bloque:"proyecto",
         score: progresoGlobal,
         color: progresoGlobal >= 80 ? "var(--green)" : progresoGlobal >= 50 ? "var(--amber)" : "var(--red)" },
@@ -271,7 +271,15 @@ export default function Dashboard() {
     const alertasAvisos   = [];
 
     if (tareasVencidas > 0)
-      alertasCriticas.push({ icon:"🔴", texto:`${tareasVencidas} tareas vencidas sin completar`, modulo:"proyecto" });
+      alertasCriticas.push({ icon:"🔴", texto:`${tareasVencidas} tarea${tareasVencidas!==1?"s":""} vencida${tareasVencidas!==1?"s":""} sin completar`, modulo:"proyecto" });
+    // Alertas preventivas: próximas a vencer ≤7 días (no vencidas)
+    const tareasProxVencer = tareas.filter(t =>
+      t.estado !== "completado" && t.estado !== "bloqueado" && t.fechaLimite &&
+      Math.ceil((new Date(t.fechaLimite) - TODAY) / 86400000) >= 0 &&
+      Math.ceil((new Date(t.fechaLimite) - TODAY) / 86400000) <= 7
+    ).length;
+    if (tareasProxVencer > 0)
+      alertasAvisos.push({ icon:"⚡", texto:`${tareasProxVencer} tarea${tareasProxVencer!==1?"s":""} vence${tareasProxVencer===1?"":"n"} en ≤7 días`, modulo:"proyecto" });
     // ── Alertas de voluntarios — sensibles al tiempo restante ───────────────
     // La cobertura de puestos es una tarea de los últimos días antes de la carrera.
     // Alertar en rojo a 3 meses vista genera ruido sin valor operativo.

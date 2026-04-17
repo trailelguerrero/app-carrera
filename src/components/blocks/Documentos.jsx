@@ -12,7 +12,8 @@ const ALLOWED_TYPES = ["application/pdf", "image/png", "image/jpeg", "image/jpg"
 const ALLOWED_EXT   = ".pdf,.png,.jpg,.jpeg,.webp";
 
 const CATEGORIAS = [
-  { id: "presupuestos", icon: "💰", label: "Presupuestos", color: "#34d399" },
+  { id: "presupuestos", icon: "💰", label: "Presupuestos de proveedores", color: "#34d399" },
+  { id: "contratos",    icon: "📝", label: "Contratos",    color: "#f97316" },
   { id: "facturas",     icon: "🧾", label: "Facturas",     color: "#22d3ee" },
   { id: "permisos",     icon: "📋", label: "Permisos",     color: "#a78bfa" },
   { id: "seguros",      icon: "🛡️", label: "Seguros",      color: "#fbbf24" },
@@ -93,12 +94,13 @@ export default function Documentos() {
   const [uploading, setUploading] = useState(false);
   const [subcat, setSubcat]     = useState("");
   const [nota,   setNota]       = useState("");
+  const [descripcionDoc, setDescripcionDoc] = useState("");
   const [estadoNuevo, setEstadoNuevo] = useState("pendiente");
   const [vencNuevo, setVencNuevo]     = useState("");
   const [emisorNuevo, setEmisorNuevo]   = useState("");
   const [busqueda, setBusqueda] = useState("");
   const [busqGlobal, setBusqGlobal] = useState(false);
-  const [uploadOpen, setUploadOpen] = useState(false); // cerrado por defecto — se abre al querer subir
+  const [uploadOpen, setUploadOpen] = useState(true);  // abierto por defecto — acción principal del módulo
   const [editId,  setEditId]    = useState(null);
   const [delConfirm, setDelConfirm] = useState(null); // {id, nombre, esGestion}
   const [uploadError, setUploadError] = useState(null); // mensaje de error de subida
@@ -122,7 +124,15 @@ export default function Documentos() {
         if (res.ok) {
           const rows = await res.json();
           // Los docs tienen blobUrl — no necesitan data en memoria
-          setDocs(rows);
+          // Auto-marcar como "vencido" si la fecha ya pasó y no está vigente
+          const hoy = new Date();
+          setDocs(rows.map(d => {
+            if (d.fechaVencimiento && d.estado !== "vigente" && d.estado !== "vencido") {
+              if (Math.ceil((new Date(d.fechaVencimiento) - hoy) / 86400000) < 0)
+                return { ...d, estado: "vencido" };
+            }
+            return d;
+          }));
         } else {
           // Fallback a localStorage si la API no responde
           dataService.get(LS_KEY, []).then(d => setDocs(Array.isArray(d) ? d : []));
@@ -742,9 +752,14 @@ export default function Documentos() {
             <span className="card-title" style={{color:catInfo.color,margin:0}}>
               {catInfo.icon} Subir a {catInfo.label}
             </span>
-            <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-dim)"}}>
-              {uploadOpen ? "▲ ocultar" : "▼ mostrar"}
-            </span>
+            <div style={{display:"flex",alignItems:"center",gap:".75rem"}}>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-dim)"}}>
+                PDF · JPG · PNG · máx. 10 MB
+              </span>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-dim)"}}>
+                {uploadOpen ? "▲ ocultar" : "▼ mostrar"}
+              </span>
+            </div>
           </button>
           {uploadOpen && (
             <div>
@@ -753,6 +768,8 @@ export default function Documentos() {
           <div className="doc-upload-fields">
             <input value={nota} onChange={e => setNota(e.target.value)}
               placeholder="Nombre descriptivo (ej: Seguro RC Mapfre 2026)" className="doc-input" style={{flexBasis:"100%"}} />
+            <input value={descripcionDoc} onChange={e => setDescripcionDoc(e.target.value)}
+              placeholder="Notas / descripción (opcional: quién lo emite, qué cubre, observaciones…)" className="doc-input" style={{flexBasis:"100%"}} />
             <input value={emisorNuevo} onChange={e => setEmisorNuevo(e.target.value)}
               placeholder="Emisor / proveedor (ej: Mapfre, Cruz Roja…)" className="doc-input" />
             {subcats.length > 0 && (

@@ -90,6 +90,8 @@ export default function App() {
   const [rawP,setPedidos] = useData(LS+"_pedidos", PEDIDOS_DEFAULT);
   const pedidos = Array.isArray(rawP) ? rawP : [];
   const [coste,setCoste] = useData(LS+"_coste", COSTE_DEFAULT);
+  const [fechaPedido, setFechaPedido] = useData(LS+"_fecha_pedido", "");
+  const [estadoPedido, setEstadoPedido] = useData(LS+"_estado_pedido", "pendiente");
   const [modal,setModal] = useState(null);
   const [ficha,setFicha] = useState(null);
   const [delId,setDelId] = useState(null);
@@ -120,7 +122,12 @@ export default function App() {
     ? rawVols.filter(v => v?.estado === "pendiente" && v?.talla)
     : [];
   // Para el pedido al proveedor usamos confirmados + pendientes (excluye cancelados)
-  const voluntariosActivos = [...voluntariosConfirmados, ...voluntariosPendientes];
+  const [inclPendientes, setInclPendientes] = useData(LS+"_incluir_pendientes", false);
+  const [margenSeguridad, setMargenSeguridad] = useData(LS+"_margen_seguridad", 5);
+  // voluntariosActivos respeta el toggle del organizador
+  const voluntariosActivos = inclPendientes
+    ? [...voluntariosConfirmados, ...voluntariosPendientes]
+    : [...voluntariosConfirmados];
 
   const [fuentesActivas, setFuentesActivas] = useData(LS + "_fuentes", FUENTES_DEFAULT);
 
@@ -249,6 +256,8 @@ export default function App() {
         </div>
         <div key={tab}>
           {tab==="dashboard" && <TabDashboard stats={stats} pedidos={pedidos} coste={coste} setCoste={setCoste} setTab={setTab} abrirFicha={abrirFicha}
+            fechaPedido={fechaPedido} setFechaPedido={setFechaPedido}
+            estadoPedido={estadoPedido} setEstadoPedido={setEstadoPedido}
             precioCorrExt={precioCorrExt} setPrecioCorrExt={(v) => setPrecioPlatExt({ precio: v })}
             fuentesActivas={fuentesActivas} setFuentesActivas={setFuentesActivas}
             corredoresExt={corredoresExt} voluntariosActivos={voluntariosActivos}
@@ -257,6 +266,7 @@ export default function App() {
           {tab==="pedidos"   && <TabPedidos   pedidos={pedidos} coste={coste} abrirFicha={abrirFicha} abrirModal={abrirModal} />}
           {tab==="tallas"    && <TabTallas    pedidos={pedidos} corredoresExt={corredoresExt} setCorredores={setCorredores} voluntariosActivos={voluntariosActivos} fuentesActivas={fuentesActivas}
             voluntariosConfirmados={voluntariosConfirmados} voluntariosPendientes={voluntariosPendientes}
+            inclPendientes={inclPendientes} setInclPendientes={setInclPendientes}
             ninoExt={ninoExt} setNino={setNino} />}
           {tab==="checklist" && <TabChecklist pedidos={pedidos} updateLinea={updateLinea} abrirFicha={abrirFicha} />}
         </div>

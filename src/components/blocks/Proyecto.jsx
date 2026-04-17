@@ -270,7 +270,7 @@ export default function App() {
   const TABS_VISTAS = [
     {id:"tablón",    icon:"📋", label:"Tablón"},
     {id:"dashboard", icon:"📊", label:"Resumen"},
-    {id:"gantt",     icon:"📅", label:"Áreas"},
+    {id:"gantt",     icon:"📊", label:"Por Áreas"},
   ];
   const TABS_GESTION = [
     {id:"hitos",  icon:"🏁", label:"Hitos"},
@@ -894,15 +894,12 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
         </div>
       )}
 
-      {/* ── VISTA KANBAN — 3 columnas, Bloqueado como badge ── */}
+      {/* ── VISTA KANBAN — 4 columnas incluyendo Bloqueado ── */}
       {vista === "kanban" && (
-        <div className="kanban-grid">
-          {["pendiente","en curso","completado"].map(estado => {
+        <div className="kanban-grid" style={{gridTemplateColumns:"repeat(4,1fr)"}}>
+          {["pendiente","en curso","bloqueado","completado"].map(estado => {
             const col = EST_CFG[estado];
-            // Las tareas bloqueadas se muestran en "Pendiente" con badge
-            const tareasCol = estado === "pendiente"
-              ? tareas.filter(t => t.estado === "pendiente" || t.estado === "bloqueado")
-              : tareas.filter(t => t.estado === estado);
+            const tareasCol = tareas.filter(t => t.estado === estado);
             return (
               <div key={estado} className="kanban-col">
                 {/* Cabecera */}
@@ -927,7 +924,7 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
                         style={{borderLeftColor: area.color}}
                         onClick={() => setFicha("tarea", t)}>
                         {/* Badge bloqueado */}
-                        {bloq && <div className="kanban-bloq-badge">🔒 Bloqueada</div>}
+
                         <div className="kanban-card-titulo" style={{
                           textDecoration:t.estado==="completado"?"line-through":"none",
                           color:t.estado==="completado"?"var(--text-muted)":"var(--text)",
