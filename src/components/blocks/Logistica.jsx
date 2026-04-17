@@ -12,16 +12,16 @@ const genId = (arr) => arr.length ? Math.max(...arr.map(x => x.id)) + 1 : 1;
 
 const CATS_MATERIAL = ["Avituallamiento","Señalización","Seguridad","Comunicación","Médico","Organización","Infraestructura"];
 const CAT_ICONS = { Avituallamiento:"🍎", Señalización:"🚩", Seguridad:"🦺", Comunicación:"📡", Médico:"🏥", Organización:"📋", Infraestructura:"⛺" };
-const CAT_COLORS = { Avituallamiento:"#34d399", Señalización:"#fbbf24", Seguridad:"#fb923c", Comunicación:"#22d3ee", Médico:"#f87171", Organización:"#a78bfa", Infraestructura:"#60a5fa" };
+const CAT_COLORS = { Avituallamiento:"var(--green)", Señalización:"var(--amber)", Seguridad:"var(--orange)", Comunicación:"var(--cyan)", Médico:"var(--red)", Organización:"var(--violet)", Infraestructura:"var(--cyan)" };
 const ESTADO_ENTREGA = ["pendiente","en tránsito","entregado","recogido"];
 const ESTADO_TAREA = ["pendiente","en curso","completado","bloqueado"];
-const ESTADO_COLORES = { pendiente:"#fbbf24","en tránsito":"#22d3ee",entregado:"#34d399",recogido:"var(--text-muted)","en curso":"#22d3ee",completado:"#34d399",bloqueado:"#f87171" };
+const ESTADO_COLORES = { pendiente:"var(--amber)","en tránsito":"var(--cyan)",entregado:"var(--green)",recogido:"var(--text-muted)","en curso":"var(--cyan)",completado:"var(--green)",bloqueado:"var(--red)" };
 const FASES_CHECKLIST = ["3 meses antes","2 meses antes","1 mes antes","Semana antes","Día antes","Mañana carrera","Durante carrera","Post-carrera"];
 const PUESTOS_REF = ["Zona Salida/Meta","Avituallamiento KM 4","Avituallamiento KM 9","Avituallamiento KM 16","Control KM 7","Control KM 13","Seguridad Cruce 1","Seguridad Cruce 2","Señalización Ruta Alta","Parking","Zona Llegada/Trofeos","Primeros Auxilios Base"];
 
 const TIPOS_LOC = ["meta", "avituallamiento", "control", "seguridad", "señalización", "parking", "sanidad", "otro"];
 const LOC_ICONS = { meta:"🎏", avituallamiento:"🍎", control:"📍", seguridad:"🦸", señalización:"🚩", parking:"🅿️", sanidad:"🏥", otro:"📌" };
-const LOC_COLORS = { meta:"var(--green)", avituallamiento:"var(--cyan)", control:"var(--amber)", seguridad:"var(--red)", señalización:"#fbbf24", parking:"#60a5fa", sanidad:"#f87171", otro:"var(--text-muted)" };
+const LOC_COLORS = { meta:"var(--green)", avituallamiento:"var(--cyan)", control:"var(--amber)", seguridad:"var(--red)", señalización:"var(--amber)", parking:"var(--cyan)", sanidad:"var(--red)", otro:"var(--text-muted)" };
 
 // LOCS_DEFAULT importado de @/constants/localizaciones
 
@@ -546,13 +546,13 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
                     {items.map(i => (
                       <span key={i.id} style={{ fontFamily: "var(--font-mono)", fontSize: ".58rem", padding: ".1rem .35rem", borderRadius: 4,
                         background: i.recibido ? "rgba(52,211,153,.12)" : "rgba(251,191,36,.08)",
-                        color: i.recibido ? "#34d399" : "#fbbf24" }}>
+                        color: i.recibido ? "var(--green)" : "var(--amber)" }}>
                         {i.recibido ? "✓" : "⏳"} {i.nombre} ({i.cantidad} {i.unidad})
                       </span>
                     ))}
                   </div>
                 </div>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: ".62rem", color: recibidos === items.length ? "#34d399" : "#fbbf24" }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: ".62rem", color: recibidos === items.length ? "var(--green)" : "var(--amber)" }}>
                   {recibidos}/{items.length}
                 </span>
               </div>
@@ -603,7 +603,7 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
   );
 }
 
-const TLC = {logistica:"#fbbf24",organizacion:"#a78bfa",voluntarios:"#34d399",carrera:"#22d3ee",comunicacion:"#fb923c"};
+const TLC = {logistica:"var(--amber)",organizacion:"var(--violet)",voluntarios:"var(--green)",carrera:"var(--cyan)",comunicacion:"var(--orange)"};
 const TLI = {logistica:"🚚",organizacion:"📋",voluntarios:"👥",carrera:"🏃",comunicacion:"📡"};
 
 // ─── MATERIAL ─────────────────────────────────────────────────────────────────
@@ -688,7 +688,7 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
               <tr key={m.id} className={m.def>0?"ra":""} style={{cursor:"pointer"}} onClick={()=>abrirFicha("mat",m)}>
                 <td onClick={e=>e.stopPropagation()} style={{padding:"0.3rem 0.4rem"}}>
                   {/* Icono siempre visible — Kinetik Ops Fase E */}
-                  <div className="item-icon-pill-sm" style={{"--pill-color": CAT_COLORS[m.categoria]||"#22d3ee"}}>
+                  <div className="item-icon-pill-sm" style={{"--pill-color": CAT_COLORS[m.categoria]||"var(--cyan)"}}>
                     <span style={{fontSize:".78rem"}}>{CAT_ICONS[m.categoria]||"📦"}</span>
                   </div>
                 </td>
@@ -698,12 +698,15 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
                     {m.presupuestoConceptoId && (() => {
                       const c=conceptosPres.find(c=>c.id===m.presupuestoConceptoId);
                       return c ? (
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
-                          padding:".06rem .3rem",borderRadius:10,
-                          background:"var(--violet-dim)",color:"var(--violet)",
-                          border:"1px solid rgba(167,139,250,.25)"}}>
-                          💰 {c.nombre}
-                        </span>
+                        <button
+                          onClick={e => { e.stopPropagation(); window.dispatchEvent(new CustomEvent("teg-navigate", { detail:{ block:"presupuesto" } })); }}
+                          title="Ver en Presupuesto"
+                          style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+                            padding:".06rem .3rem",borderRadius:10,cursor:"pointer",
+                            background:"var(--violet-dim)",color:"var(--violet)",
+                            border:"1px solid rgba(167,139,250,.25)"}}>
+                          💰 {c.nombre} →
+                        </button>
                       ) : null;
                     })()}
                   </div>
@@ -991,15 +994,15 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
 function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,tiposContacto=[],setTiposContacto}) {
   const [filtroTipo,setFiltroTipo] = useState("todos");
   const [modalTipo,setModalTipo]   = useState(false);
-  const [nuevoTipo,setNuevoTipo]   = useState({nombre:"",icono:"🏷️",color:"#94a3b8"});
+  const [nuevoTipo,setNuevoTipo]   = useState({nombre:"",icono:"🏷️",color:"var(--text-muted)"});
 
   const TIPOS_BASE = [
-    {id:"emergencia",  nombre:"Emergencia",    icono:"🚨", color:"#f87171"},
-    {id:"medico",      nombre:"Médico",        icono:"🏥", color:"#34d399"},
-    {id:"proveedor",   nombre:"Proveedor",     icono:"🏭", color:"#fbbf24"},
-    {id:"staff",       nombre:"Staff",         icono:"👤", color:"#22d3ee"},
-    {id:"institucional",nombre:"Institucional",icono:"🏛️",color:"#a78bfa"},
-    {id:"media",       nombre:"Media/Prensa",  icono:"📸", color:"#fb923c"},
+    {id:"emergencia",  nombre:"Emergencia",    icono:"🚨", color:"var(--red)"},
+    {id:"medico",      nombre:"Médico",        icono:"🏥", color:"var(--green)"},
+    {id:"proveedor",   nombre:"Proveedor",     icono:"🏭", color:"var(--amber)"},
+    {id:"staff",       nombre:"Staff",         icono:"👤", color:"var(--cyan)"},
+    {id:"institucional",nombre:"Institucional",icono:"🏛️",color:"var(--violet)"},
+    {id:"media",       nombre:"Media/Prensa",  icono:"📸", color:"var(--orange)"},
     {id:"voluntario",  nombre:"Voluntario",    icono:"🙋", color:"#818cf8"},
   ];
   const tiposCustom   = Array.isArray(tiposContacto) ? tiposContacto : [];
@@ -1021,7 +1024,7 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
       .replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
     if (todosLosTipos.find(t=>t.id===id)) return;
     setTiposContacto(prev=>[...(Array.isArray(prev)?prev:[]),{...nuevoTipo,id}]);
-    setNuevoTipo({nombre:"",icono:"🏷️",color:"#94a3b8"});
+    setNuevoTipo({nombre:"",icono:"🏷️",color:"var(--text-muted)"});
     setModalTipo(false);
   };
 
@@ -1201,8 +1204,8 @@ function TabEmergencias({cont,inc,setInc,abrirModal,abrirFicha,tiposContacto=[]}
   const [proto,setProto] = useState(null);
 
   const TIPOS_BASE = [
-    {id:"emergencia",icono:"🚨",color:"#f87171"},
-    {id:"medico",    icono:"🏥",color:"#34d399"},
+    {id:"emergencia",icono:"🚨",color:"var(--red)"},
+    {id:"medico",    icono:"🏥",color:"var(--green)"},
   ];
   const todosLosTipos = [...TIPOS_BASE,...(Array.isArray(tiposContacto)?tiposContacto:[])];
   const getTipo = (id) => todosLosTipos.find(t=>t.id===id)||{icono:"📞",color:"var(--text-muted)"};
@@ -1375,7 +1378,7 @@ function TabEmergencias({cont,inc,setInc,abrirModal,abrirFicha,tiposContacto=[]}
 }
 
 // ─── COMUNICACIONES ───────────────────────────────────────────────────────────
-const TIC={emergencia:"#f87171",proveedor:"#fbbf24",staff:"#22d3ee",institucional:"#a78bfa"};
+const TIC={emergencia:"var(--red)",proveedor:"var(--amber)",staff:"var(--cyan)",institucional:"var(--violet)"};
 const TICI={emergencia:"🚨",proveedor:"🏭",staff:"👤",institucional:"🏛️"};
 const PROTO_PASOS=[
   {id:1,titulo:"Accidente de corredor en ruta",icon:"🏃",pasos:["Recibir aviso por walkie del puesto más cercano","Confirmar ubicación exacta (KM de ruta + puesto)","Contactar inmediatamente con Cruz Roja: 920 350 033","Notificar a Dirección de carrera","Si hay riesgo vital: llamar al 112","Enviar vehículo todoterreno si es necesario acceder","Registrar incidencia en el módulo"]},
@@ -1389,16 +1392,16 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
   const [proto,setProto]       = useState(null);
   const [filtroTipo,setFiltroTipo] = useState("todos");
   const [modalTipo,setModalTipo]   = useState(false); // modal añadir tipo personalizado
-  const [nuevoTipo,setNuevoTipo]   = useState({nombre:"",icono:"🏷️",color:"#94a3b8"});
+  const [nuevoTipo,setNuevoTipo]   = useState({nombre:"",icono:"🏷️",color:"var(--text-muted)"});
 
   // Tipos base (siempre presentes) + personalizados del usuario
   const TIPOS_BASE = [
-    {id:"emergencia",  nombre:"Emergencia",   icono:"🚨", color:"#f87171"},
-    {id:"proveedor",   nombre:"Proveedor",    icono:"🏭", color:"#fbbf24"},
-    {id:"staff",       nombre:"Staff",        icono:"👤", color:"#22d3ee"},
-    {id:"institucional",nombre:"Institucional",icono:"🏛️",color:"#a78bfa"},
-    {id:"medico",      nombre:"Médico",       icono:"🏥", color:"#34d399"},
-    {id:"media",       nombre:"Media/Prensa", icono:"📸", color:"#fb923c"},
+    {id:"emergencia",  nombre:"Emergencia",   icono:"🚨", color:"var(--red)"},
+    {id:"proveedor",   nombre:"Proveedor",    icono:"🏭", color:"var(--amber)"},
+    {id:"staff",       nombre:"Staff",        icono:"👤", color:"var(--cyan)"},
+    {id:"institucional",nombre:"Institucional",icono:"🏛️",color:"var(--violet)"},
+    {id:"medico",      nombre:"Médico",       icono:"🏥", color:"var(--green)"},
+    {id:"media",       nombre:"Media/Prensa", icono:"📸", color:"var(--orange)"},
   ];
   const tiposCustom  = Array.isArray(tiposContacto) ? tiposContacto : [];
   const todosLosTipos = [...TIPOS_BASE, ...tiposCustom];
@@ -1416,7 +1419,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
     const id = nuevoTipo.nombre.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
     if (todosLosTipos.find(t=>t.id===id)) return;
     setTiposContacto(prev=>[...(Array.isArray(prev)?prev:[]),{...nuevoTipo,id}]);
-    setNuevoTipo({nombre:"",icono:"🏷️",color:"#94a3b8"});
+    setNuevoTipo({nombre:"",icono:"🏷️",color:"var(--text-muted)"});
     setModalTipo(false);
   };
   const eliminarTipo = (id) => {
@@ -2036,7 +2039,7 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {} }) {
 // ─── FICHA LOGÍSTICA ──────────────────────────────────────────────────────────
 function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar }) {
   const { tipo, data } = ficha;
-  const accents = { tl:"#fbbf24", ck:"#34d399", mat:"var(--cyan)", veh:"#a78bfa", ruta:"var(--amber)", cont:"#22d3ee", asig:"var(--cyan)", inc:"#f87171" };
+  const accents = { tl:"var(--amber)", ck:"var(--green)", mat:"var(--cyan)", veh:"var(--violet)", ruta:"var(--amber)", cont:"var(--cyan)", asig:"var(--cyan)", inc:"var(--red)" };
   const icons   = { tl:"⏱️", ck:"✅", mat:"📦", veh:"🚐", ruta:"🗺️", cont:"📞", asig:"📍", inc:"⚠️" };
   const accent  = accents[tipo] || "var(--cyan)";
   const titulo  = data.titulo || data.tarea || data.nombre || data.descripcion || "—";
@@ -2383,7 +2386,7 @@ const CSS = `
   .tc{animation:fu .2s ease both}
   @keyframes fu{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
   .ph{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap}
-  .pt{font-size:1.3rem;font-weight:800} .pd{font-family:var(--font-mono);font-size:.62rem;color:var(--text-muted);margin-top:.25rem}
+  .pt{font-size:1.5rem;font-weight:900;letter-spacing:-0.02em} .pd{font-family:var(--font-mono);font-size:.62rem;color:var(--text-muted);margin-top:.25rem}
   .twocol{display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:.85rem}
   @media(max-width:800px){.twocol{grid-template-columns:1fr}}
   .card:hover{border-color:var(--border-light)} .card.p0{padding:0}

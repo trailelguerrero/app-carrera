@@ -1157,12 +1157,20 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
       {/* ── Resumen de tallas — para coordinación con Camisetas ── */}
       {Object.values(stats.tallasCount || {}).some(n => n > 0) && (
         <div className="card" style={{ marginTop:".85rem" }}>
-          <div className="card-title" style={{ marginBottom:".6rem" }}>
-            👕 Tallas de voluntarios
-            <span style={{ fontFamily:"var(--font-mono)", fontSize:".58rem",
-              color:"var(--text-dim)", fontWeight:400, marginLeft:".5rem" }}>
-              (excluye cancelados)
+          <div className="card-title" style={{ marginBottom:".6rem", justifyContent:"space-between" }}>
+            <span>
+              👕 Tallas de voluntarios
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:".58rem",
+                color:"var(--text-dim)", fontWeight:400, marginLeft:".5rem" }}>
+                (excluye cancelados)
+              </span>
             </span>
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{ fontSize:".6rem", padding:".2rem .5rem" }}
+              onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block:"camisetas" } }))}>
+              Ver en Camisetas →
+            </button>
           </div>
           <div style={{ display:"flex", flexWrap:"wrap", gap:".35rem" }}>
             {Object.entries(stats.tallasCount || {})

@@ -520,7 +520,17 @@ export default function Configuracion() {
         </div>
 
                 <div className="cfg-save-bar">
-          {saved && <span className="cfg-saved">✓ Guardado</span>}
+          {saved && (
+              <div style={{ display:"flex", alignItems:"center", gap:".5rem" }}>
+                <span className="cfg-saved">✓ Guardado</span>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  style={{ fontSize:".65rem" }}
+                  onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail:{ block:"dashboard" } }))}>
+                  ← Dashboard
+                </button>
+              </div>
+            )}
           <button className={cls("btn", dirty ? "btn-primary" : "btn-ghost")}
             onClick={handleSave} disabled={!dirty} style={{ opacity: dirty ? 1 : .45 }}>
             {dirty ? "Guardar cambios" : "Sin cambios pendientes"}

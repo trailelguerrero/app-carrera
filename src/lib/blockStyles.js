@@ -94,6 +94,33 @@ export const BLOCK_CSS = `
     align-items: center;
     flex-wrap: wrap;
   }
+  /* ── Aliases .ph/.pt — compatibilidad con módulos Logística/Patrocinadores ── */
+  .ph {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+  }
+  .pt {
+    font-size: 1.5rem;
+    font-weight: 900;
+    font-family: var(--font-display);
+    color: var(--text);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+  .pd {
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 0.2rem;
+  }
+  .fr { display: flex; align-items: center; }
+  .g1 { gap: 0.4rem; }
 
   /* ── KPI grid ───────────────────────────────────────────────────────────── */
   .kpi-grid {
@@ -368,6 +395,30 @@ export const BLOCK_CSS = `
   .card-title.amber  { color: var(--amber);  }
   .card-title.red    { color: var(--red);    }
   .card-title.orange { color: var(--orange); }
+
+  /* ── Section header — unifica .ph/.pt con .card-title ──────────────────── */
+  /* Uso: <div class="section-header"> <div class="section-title">...</div> */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.65rem 1rem;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .section-title {
+    font-size: 0.82rem;
+    font-weight: 800;
+    font-family: var(--font-display);
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+  .section-sub {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    margin-top: 0.1rem;
+  }
 
   /* ── Grid helpers ───────────────────────────────────────────────────────── */
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }

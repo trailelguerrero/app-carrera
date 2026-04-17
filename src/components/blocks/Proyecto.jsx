@@ -1910,7 +1910,7 @@ const CSS = `
   @keyframes fu{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
   /* PAGE HEADER */
   .ph{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap}
-  .pt{font-size:1.3rem;font-weight:800} .pd{font-family:var(--font-mono);font-size:.62rem;color:var(--text-muted);margin-top:.25rem}
+  .pt{font-size:1.5rem;font-weight:900;letter-spacing:-0.02em} .pd{font-family:var(--font-mono);font-size:.62rem;color:var(--text-muted);margin-top:.25rem}
   /* KPIs */
   .kgrid4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .75rem; margin-bottom: 1rem; }
   @media (max-width: 480px) { .kgrid4 { grid-template-columns: 1fr 1fr; gap: 0.5rem; } }

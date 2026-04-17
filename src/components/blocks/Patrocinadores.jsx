@@ -319,7 +319,7 @@ export default function App() {
               ordenAlfa={ordenPats} setOrdenAlfa={setOrdenPats}
             />
           )}
-          {tab==="pipeline" && <TabPipeline pats={pats} onEditar={openEditar} onDetalle={openDetalle} updateEstado={updateEstado} ordenAlfa={ordenPats} />}
+          {tab==="pipeline" && <TabPipeline pats={pats} onEditar={openEditar} onDetalle={openDetalle} updateEstado={updateEstado} ordenAlfa={ordenPats}  onNuevo={onNuevo} />}
           {tab==="contraprestaciones" && (
             <TabContraprestaciones pats={pats} updateContraprestacion={updateContraprestacion} addContraprestacion={addContraprestacion} deleteContraprestacion={deleteContraprestacion} onDetalle={openDetalle} ordenAlfa={ordenCont} setOrdenAlfa={setOrdenCont} />
           )}
@@ -757,7 +757,7 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
 }
 
 // ─── TAB PIPELINE ─────────────────────────────────────────────────────────────
-function TabPipeline({ pats, onEditar, onDetalle, updateEstado, ordenAlfa }) {
+function TabPipeline({ pats, onEditar, onDetalle, updateEstado, ordenAlfa, onNuevo }) {
   const patsOrdenados = ordenAlfa ? [...pats].sort((a,b) => a.nombre.localeCompare(b.nombre,"es")) : pats;
   const porEstado = ESTADOS.map(e => ({
     e, cfg: ESTADO_CFG[e],
@@ -772,7 +772,10 @@ function TabPipeline({ pats, onEditar, onDetalle, updateEstado, ordenAlfa }) {
           <div className="pt">🔀 Pipeline Comercial</div>
           <div className="pd">Vista kanban del estado · {ordenAlfa?"orden A-Z":"orden por defecto"}</div>
         </div>
-        {ordenAlfa && <span className="badge badge-amber">A-Z ✓</span>}
+        <div style={{ display:"flex", gap:".5rem", alignItems:"center" }}>
+          {ordenAlfa && <span className="badge badge-amber">A-Z ✓</span>}
+          <button className="btn btn-primary btn-sm" onClick={onNuevo}>+ Nuevo patrocinador</button>
+        </div>
       </div>
 
       <div className="kanban">
@@ -1828,7 +1831,7 @@ const CSS = `
 
   /* Page layout */
   .ph{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap}
-  .pt{font-size:1.3rem;font-weight:800} .pd{font-family:var(--font-mono);font-size:.62rem;color:var(--text-muted);margin-top:.25rem}
+  .pt{font-size:1.5rem;font-weight:900;letter-spacing:-0.02em} .pd{font-family:var(--font-mono);font-size:.62rem;color:var(--text-muted);margin-top:.25rem}
 
   /* KPIs propios (clases c-* para colores) */
 

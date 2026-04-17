@@ -726,16 +726,21 @@ export default function Documentos() {
             const active = tab === c.id;
             const cnt    = docs.filter(d => d.categoria === c.id).length;
             return (
-              <button key={c.id} className="doc-tab"
+              <button key={c.id}
+                className={`tab-btn${active ? " active" : ""}`}
                 onClick={() => { setTab(c.id); setSubcat(""); setBusqueda(""); }}
-                style={{
-                  background: active ? `${c.color}18` : "rgba(255,255,255,.03)",
-                  color: active ? c.color : "var(--text-muted)",
-                  borderColor: active ? `${c.color}55` : "var(--border)",
-                  boxShadow: active ? `0 0 12px ${c.color}28` : "none",
-                }}>
+                style={active ? {
+                  background: `${c.color}18`,
+                  color: c.color,
+                  borderColor: `${c.color}55`,
+                  boxShadow: `0 0 12px ${c.color}22`,
+                } : {}}>
                 {c.icon} {c.label}
-                <span className="doc-tab-count">{cnt}</span>
+                {cnt > 0 && <span style={{
+                  fontFamily:"var(--font-mono)", fontSize:".56rem",
+                  background:"rgba(255,255,255,.07)", borderRadius:10,
+                  padding:".05rem .4rem", marginLeft:".1rem",
+                }}>{cnt}</span>}
               </button>
             );
           })}

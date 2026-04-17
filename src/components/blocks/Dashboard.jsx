@@ -280,6 +280,10 @@ export default function Dashboard() {
     ).length;
     if (tareasProxVencer > 0)
       alertasAvisos.push({ icon:"⚡", texto:`${tareasProxVencer} tarea${tareasProxVencer!==1?"s":""} vence${tareasProxVencer===1?"":"n"} en ≤7 días`, modulo:"proyecto" });
+    // Alerta contextual DíaCarrera cuando el evento está próximo (≤7 días)
+    // diasHasta ya está calculado arriba usando eventoFecha y cfg
+    if (diasHasta >= 0 && diasHasta <= 7)
+      alertasCriticas.push({ icon:"🏁", texto:`¡El evento es en ${diasHasta === 0 ? "HOY" : diasHasta + " días"}! Revisa el módulo Día de Carrera`, modulo:"diaCarrera" });
     // ── Alertas de voluntarios — sensibles al tiempo restante ───────────────
     // La cobertura de puestos es una tarea de los últimos días antes de la carrera.
     // Alertar en rojo a 3 meses vista genera ruido sin valor operativo.
