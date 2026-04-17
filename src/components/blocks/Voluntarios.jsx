@@ -1342,11 +1342,23 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
                           onMouseEnter={e=>e.currentTarget.style.background="var(--surface2)"}
                           onMouseLeave={e=>e.currentTarget.style.background="var(--surface)"}>
                           <div style={{ display:"flex", alignItems:"center", gap:"0.65rem" }}>
-                            <div style={{ width:34, height:34, borderRadius:"50%",
-                              background:"var(--surface2)", border:"1px solid var(--border)",
-                              display:"flex", alignItems:"center", justifyContent:"center",
-                              fontSize:"0.62rem", fontWeight:700, color:"var(--cyan)", flexShrink:0 }}>
-                              {(v.nombre||"V").split(" ").map(n=>n[0]).slice(0,2).join("")}
+                            {/* Avatar Kinetik Ops — pill cuadrado redondeado con iniciales */}
+                            <div style={{ position:"relative", flexShrink:0 }}>
+                              <div style={{
+                                width:34, height:34, borderRadius:10,
+                                background: v.estado==="confirmado"
+                                  ? "rgba(52,211,153,0.1)"
+                                  : v.estado==="cancelado"
+                                  ? "rgba(248,113,113,0.1)"
+                                  : "rgba(251,191,36,0.1)",
+                                border: `1px solid ${v.estado==="confirmado" ? "rgba(52,211,153,0.3)" : v.estado==="cancelado" ? "rgba(248,113,113,0.3)" : "rgba(251,191,36,0.3)"}`,
+                                display:"flex", alignItems:"center", justifyContent:"center",
+                                fontSize:"0.62rem", fontWeight:800,
+                                color: v.estado==="confirmado" ? "var(--green)" : v.estado==="cancelado" ? "var(--red)" : "var(--amber)",
+                                fontFamily:"var(--font-mono)",
+                              }}>
+                                {(v.nombre||"V").split(" ").map(n=>n[0]).slice(0,2).join("").toUpperCase()}
+                              </div>
                             </div>
                             <div style={{ flex:1, minWidth:0 }}>
                               <div style={{ display:"flex", alignItems:"center", gap:"0.45rem",
@@ -1432,6 +1444,10 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
               onClick={() => onFichaPuesto(p)}
               title="Click para ver ficha del puesto">
               <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start" }}>
+                {/* Kinetik: icono pill de cobertura */}
+                <div className="item-icon-pill" style={{ "--pill-color": color, marginTop: ".1rem" }}>
+                  <span style={{ fontSize: ".9rem" }}>📍</span>
+                </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.3rem", flexWrap: "wrap" }}>
                     <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>{p.nombre}</span>

@@ -684,8 +684,11 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
             <thead><tr><th style={{width:22}}></th><th>Material</th><th>Categoría</th><th className="tr">Stock</th><th className="tr">Asignado</th><th className="tr">Déficit</th></tr></thead>
             <tbody>{mf.map((m,i,arr)=>(
               <tr key={m.id} className={m.def>0?"ra":""} style={{cursor:"pointer"}} onClick={()=>abrirFicha("mat",m)}>
-                <td onClick={e=>e.stopPropagation()} style={{padding:"0.3rem 0.2rem"}}>
-                  {!ordenAlfa&&<div className="log-reorder"><span onClick={()=>mover(m.id,-1)} style={{opacity:i===0?.2:1}}>▲</span><span onClick={()=>mover(m.id,+1)} style={{opacity:i===arr.length-1?.2:1}}>▼</span></div>}
+                <td onClick={e=>e.stopPropagation()} style={{padding:"0.3rem 0.4rem"}}>
+                  {/* Icono siempre visible — Kinetik Ops Fase E */}
+                  <div className="item-icon-pill-sm" style={{"--pill-color": CAT_COLORS[m.categoria]||"#22d3ee"}}>
+                    <span style={{fontSize:".78rem"}}>{CAT_ICONS[m.categoria]||"📦"}</span>
+                  </div>
                 </td>
                 <td className="f6">
                   <div style={{display:"flex",alignItems:"center",gap:".35rem",flexWrap:"wrap"}}>

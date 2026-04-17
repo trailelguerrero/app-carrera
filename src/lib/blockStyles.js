@@ -291,6 +291,33 @@ export const BLOCK_CSS = `
   }
 
 
+  /* ── Iconografía por categoría — Kinetik Ops item-icon-pill ─────────────── */
+  /* Pill circular con icono de color temático. Uso:
+     <div class="item-icon-pill" style="--pill-color: #22d3ee">🍎</div> */
+  .item-icon-pill {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--pill-color, var(--cyan)) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--pill-color, var(--cyan)) 30%, transparent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; flex-shrink: 0;
+    transition: transform .15s;
+  }
+  .item-icon-pill-sm {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--pill-color, var(--cyan)) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--pill-color, var(--cyan)) 28%, transparent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .78rem; flex-shrink: 0;
+  }
+  /* Fallback para navegadores sin color-mix */
+  @supports not (background: color-mix(in srgb, red 10%, blue)) {
+    .item-icon-pill    { background: rgba(34,211,238,0.1); border-color: rgba(34,211,238,0.25); }
+    .item-icon-pill-sm { background: rgba(34,211,238,0.1); border-color: rgba(34,211,238,0.25); }
+  }
+
+
   .tab-btn {
     padding: 0.4rem 0.9rem;
     border-radius: 20px;

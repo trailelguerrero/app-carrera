@@ -702,9 +702,22 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
           const contTotal = (p.contraprestaciones || []).length;
           return (
             <div key={p.id} className="pat-row" style={{ borderLeftColor: cfg.color, cursor:"pointer" }} onClick={()=>onDetalle(p)}>
-              <div className="pat-nivel" style={{ background: cfg.dim, border: `1px solid ${cfg.border}` }}>
-                <div style={{ fontSize: "1.3rem" }}>{cfg.icon}</div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: ".58rem", color: cfg.color, fontWeight: 700, textAlign: "center" }}>{p.nivel}</div>
+              {/* Kinetik Ops: pill de nivel con icono — mismo lenguaje que item-icon-pill */}
+              <div style={{
+                width: 44, flexShrink: 0,
+                display: "flex", flexDirection: "column", alignItems: "center",
+                gap: ".2rem",
+              }}>
+                <div className="item-icon-pill"
+                  style={{"--pill-color": cfg.color, width:38, height:38}}>
+                  <span style={{fontSize:"1.1rem"}}>{cfg.icon}</span>
+                </div>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:".52rem",
+                  color:cfg.color, fontWeight:700, textAlign:"center",
+                  letterSpacing:".04em", textTransform:"uppercase",
+                  whiteSpace:"nowrap" }}>
+                  {p.nivel}
+                </div>
               </div>
               <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: ".25rem" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: ".6rem", flexWrap: "wrap" }}>

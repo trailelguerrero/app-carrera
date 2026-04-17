@@ -835,7 +835,11 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
                 style={{borderLeftColor:area.color, cursor:"pointer"}}
                 onClick={() => setFicha("tarea", t)}
                 title="Click para ver ficha">
-                {/* Cambio de estado rápido — clic en el selector NO propaga al modal */}
+                {/* Icono de área — Kinetik Ops item-icon-pill */}
+                <div className="item-icon-pill-sm" style={{"--pill-color": area.color, flexShrink:0}}>
+                  <span style={{fontSize:".78rem"}}>{area.icon}</span>
+                </div>
+                {/* Cambio de estado rápido */}
                 <div className="tarea-estado-col" onClick={e => e.stopPropagation()}>
                   <select className="est-sel" value={t.estado}
                     onChange={e => updEstado(t.id, e.target.value)}
@@ -855,7 +859,7 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
                       <span className="badge" style={{background:"rgba(248,113,113,.1)",color:"#f87171",fontSize:".52rem"}}>🔒 espera: {dep.titulo.slice(0,25)}…</span>}
                   </div>
                   <div style={{display:"flex",gap:".75rem",flexWrap:"wrap"}}>
-                    <span className="mono xs" style={{color:area.color}}>{area.icon} {area.label}</span>
+                    <span className="mono xs" style={{color:area.color}}>{area.label}</span>
                     {resp && (
                       <span style={{display:"flex",alignItems:"center",gap:".3rem"}}>
                         <div style={{width:14,height:14,borderRadius:"50%",background:resp.color+"33",border:`1px solid ${resp.color}66`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".45rem",fontWeight:700,color:resp.color}}>{iniciales(resp.nombre)}</div>
@@ -921,7 +925,10 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
                         </div>
                         <div className="kanban-card-meta">
                           <div style={{display:"flex",gap:".35rem",alignItems:"center",flex:1,minWidth:0}}>
-                            <span style={{fontSize:".65rem",flexShrink:0}}>{area.icon}</span>
+                            <div className="item-icon-pill-sm"
+                              style={{"--pill-color": area.color, width:20, height:20, borderRadius:5, fontSize:".6rem", flexShrink:0}}>
+                              {area.icon}
+                            </div>
                             <span className="badge" style={{background:pc.bg,color:pc.color,fontSize:".48rem"}}>{t.prioridad}</span>
                             {t.documentoId && <span title="Documento vinculado" style={{fontSize:".65rem",marginLeft:"-2px"}}>📎</span>}
                             {resp && (

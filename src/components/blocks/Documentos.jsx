@@ -839,7 +839,10 @@ export default function Documentos() {
                   <div key={doc.id} className="doc-card" onClick={() => setTab(doc.categoria)} style={{cursor:"pointer"}}>
                     <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:cat.color,borderRadius:"12px 12px 0 0"}} />
                     <div style={{display:"flex",alignItems:"center",gap:8,paddingTop:4}}>
-                      <span style={{fontSize:"1.5rem"}}>{getFileIcon(doc.tipo)}</span>
+                      <div className="item-icon-pill"
+                        style={{"--pill-color": cat.color, width:38, height:38, fontSize:"1.1rem"}}>
+                        {getFileIcon(doc.tipo)}
+                      </div>
                       <div style={{flex:1,minWidth:0}}>
                         <div className="doc-card-name" style={{fontSize:".75rem"}}>{doc.nombreDisplay || doc.nombre}</div>
                         <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:cat.color,marginTop:".1rem"}}>
@@ -961,9 +964,15 @@ export default function Documentos() {
                         )}
 
                         <div style={{display:"flex",alignItems:"flex-start",gap:8,paddingTop:doc.tipo?.startsWith("image/")?"0":"4px"}}>
-                          {!doc.tipo?.startsWith("image/") && (
-                            <span style={{fontSize:"1.8rem",flexShrink:0}}>{getFileIcon(doc.tipo)}</span>
-                          )}
+                          {!doc.tipo?.startsWith("image/") && (() => {
+                            const docCat = TODAS_CATEGORIAS.find(c => c.id === doc.categoria) || CATEGORIAS[0];
+                            return (
+                              <div className="item-icon-pill"
+                                style={{"--pill-color": docCat.color, width:36, height:36, fontSize:"1.05rem", flexShrink:0}}>
+                                {getFileIcon(doc.tipo)}
+                              </div>
+                            );
+                          })()}
                           <div style={{flex:1,minWidth:0}}>
                             <div className="doc-card-name">{doc.nombreDisplay || doc.nombre}</div>
                             {doc.emisor && (
