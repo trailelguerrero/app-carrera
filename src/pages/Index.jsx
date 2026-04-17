@@ -518,7 +518,8 @@ export default function Index() {
         }
       `}</style>
 
-      <div style={{ minHeight:"100vh", display:"flex", flexDirection:"column", background:"var(--teg-bg)" }}>
+      <div style={{ minHeight:"100vh", display:"flex", flexDirection:"column", background:"var(--teg-bg)",
+          backgroundImage:"radial-gradient(ellipse 70% 35% at 15% 0%, rgba(34,211,238,0.05) 0%, transparent 55%), radial-gradient(ellipse 50% 25% at 85% 100%, rgba(167,139,250,0.03) 0%, transparent 50%)" }}>
 
         {/* TOP BAR */}
         <header style={{

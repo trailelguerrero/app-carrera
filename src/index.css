@@ -103,20 +103,20 @@ All colors MUST be HSL.
     --sidebar-border: 220 40% 18%;
     --sidebar-ring: 187 80% 53%;
 
-    /* Raw colors for inline-styled components */
-    --teg-bg: #080c18;
-    --teg-surface: #0f1629;
-    --teg-surface-2: #141e38;
+    /* Raw colors — Kinetik Ops identity */
+    --teg-bg: #08091a;
+    --teg-surface: #0d1121;
+    --teg-surface-2: #121829;
     --teg-border: #1e2d50;
-    --teg-text-primary: #e8eef8;
-    --teg-text-secondary: #8a9ab8;
-    --teg-text-muted: #5a6a8a;
+    --teg-text-primary: #f0f4ff;
+    --teg-text-secondary: #7a8fb0;
+    --teg-text-muted: #4a5e80;
     --teg-cyan: #22d3ee;
     --teg-cyan-subtle: rgba(34, 211, 238, 0.07);
-    --teg-cyan-border: rgba(34, 211, 238, 0.18);
+    --teg-cyan-border: rgba(34, 211, 238, 0.2);
     --teg-accent: #a78bfa;
     --teg-scrollbar: #1e2d50;
-    --teg-scrollbar-hover: #2a3f6a;
+    --teg-scrollbar-hover: #2a4070;
   }
 }
 

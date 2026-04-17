@@ -5,17 +5,17 @@
  */
 
 export const BLOCK_CSS = `
-  /* ── Design tokens ─────────────────────────────────────────────────────── */
+  /* ── Design tokens — Kinetik Ops identity ──────────────────────────────── */
   :root {
-    --bg:           #080c18;
-    --surface:      #0f1629;
-    --surface2:     #151e35;
-    --surface3:     #1a2540;
-    --border:       #263754;
-    --border-light: #344d7a;
-    --text:         #e8eef8;
-    --text-muted:   #8a9dba;
-    --text-dim:     #7080a0;
+    --bg:           #08091a;
+    --surface:      #0d1121;
+    --surface2:     #121829;
+    --surface3:     #18203a;
+    --border:       #1e2d50;
+    --border-light: #2a4070;
+    --text:         #f0f4ff;
+    --text-muted:   #7a8fb0;
+    --text-dim:     #4a5e80;
     --cyan:         #22d3ee;  --cyan-dim:   rgba(34,211,238,0.10);
     --violet:       #a78bfa;  --violet-dim: rgba(167,139,250,0.10);
     --green:        #34d399;  --green-dim:  rgba(52,211,153,0.10);
@@ -25,8 +25,10 @@ export const BLOCK_CSS = `
     --primary:      #6366f1;  --primary-dim:rgba(99,102,241,0.15);
     --font-display: 'Syne', sans-serif;
     --font-mono:    'DM Mono', 'Space Mono', monospace;
-    --r:            12px;
-    --r-sm:         8px;
+    --r:            14px;
+    --r-sm:         9px;
+    /* Kinetik: acento de línea en cards */
+    --card-accent-width: 3px;
   }
 
 
@@ -39,7 +41,7 @@ export const BLOCK_CSS = `
     --surface3:     #dde5f0;
     --border:       #c0cfdf;
     --border-light: #a8bdd4;
-    --text:         #0f1e36;
+    --text:         #0a0e1a;
     --text-muted:   #4a6080;
     --text-dim:     #6a80a0;
     --cyan:         #0891b2;  --cyan-dim:   rgba(8,145,178,0.10);
@@ -71,11 +73,12 @@ export const BLOCK_CSS = `
   }
   .block-title {
     margin: 0;
-    font-size: 1.4rem;
-    font-weight: 800;
+    font-size: 1.5rem;
+    font-weight: 900;
     font-family: var(--font-display);
     color: var(--text);
     line-height: 1.1;
+    letter-spacing: -0.02em;
   }
   .block-title-sub {
     font-family: var(--font-mono);
@@ -99,35 +102,42 @@ export const BLOCK_CSS = `
     gap: 0.75rem;
     margin-bottom: 1.25rem;
   }
+  /* Kinetik Ops KPI cards */
   .kpi {
-    padding: 1rem 1.1rem;
+    padding: 1rem 1.15rem 1rem;
     border-radius: var(--r);
     background: var(--surface);
     border: 1px solid var(--border);
-    border-left-width: 4px;
-    transition: transform 0.15s;
+    border-left-width: var(--card-accent-width);
+    transition: transform 0.18s, box-shadow 0.18s;
     cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
-  .kpi:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+  .kpi:hover { transform: translateY(-2px); }
   .kpi:active { transform: translateY(0); }
   .kpi-label {
-    font-size: 0.68rem;
+    font-size: 0.6rem;
     font-family: var(--font-mono);
-    color: var(--text-muted);
-    font-weight: 600;
+    color: var(--text-dim);
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 0.3rem;
+    letter-spacing: 0.12em;
+    margin-bottom: 0.5rem;
   }
+  /* Kinetik: número ultra-bold display */
   .kpi-value {
-    font-size: 1.55rem;
-    font-weight: 800;
-    font-family: var(--font-mono);
+    font-size: 2rem;
+    font-weight: 900;
+    font-family: var(--font-display);
     line-height: 1;
     margin-bottom: 0.25rem;
+    letter-spacing: -0.02em;
   }
   .kpi-sub {
-    font-size: 0.68rem;
+    font-size: 0.62rem;
     font-family: var(--font-mono);
     color: var(--text-muted);
     line-height: 1.4;
@@ -135,7 +145,21 @@ export const BLOCK_CSS = `
     text-overflow: ellipsis;
     white-space: nowrap;
     display: block;
+    margin-top: auto;
   }
+  /* Kinetik: progress bar pegada a la base */
+  .kpi-progress {
+    height: 2px;
+    background: rgba(255,255,255,0.05);
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    overflow: hidden;
+  }
+  .kpi-progress-fill {
+    height: 100%;
+    transition: width 0.7s cubic-bezier(0.4,0,0.2,1);
+  }
+  /* Color del borde izquierdo */
   .kpi.cyan   { border-left-color: var(--cyan);   }
   .kpi.violet { border-left-color: var(--violet); }
   .kpi.green  { border-left-color: var(--green);  }
@@ -143,6 +167,19 @@ export const BLOCK_CSS = `
   .kpi.red    { border-left-color: var(--red);    }
   .kpi.orange { border-left-color: var(--orange); }
   .kpi.primary{ border-left-color: var(--primary);}
+  .kpi.muted  { border-left-color: var(--border); opacity: 0.65; }
+  /* Glassmorphism sutil por categoría */
+  .kpi.cyan   { background: linear-gradient(135deg, rgba(34,211,238,0.05) 0%, var(--surface) 55%); }
+  .kpi.green  { background: linear-gradient(135deg, rgba(52,211,153,0.05) 0%, var(--surface) 55%); }
+  .kpi.amber  { background: linear-gradient(135deg, rgba(251,191,36,0.05) 0%, var(--surface) 55%); }
+  .kpi.violet { background: linear-gradient(135deg, rgba(167,139,250,0.05) 0%, var(--surface) 55%); }
+  .kpi.red    { background: linear-gradient(135deg, rgba(248,113,113,0.05) 0%, var(--surface) 55%); }
+  /* Glow en hover por color */
+  .kpi.cyan:hover   { box-shadow: 0 8px 28px rgba(34,211,238,0.13),  0 0 0 1px rgba(34,211,238,0.18); }
+  .kpi.green:hover  { box-shadow: 0 8px 28px rgba(52,211,153,0.13),  0 0 0 1px rgba(52,211,153,0.18); }
+  .kpi.amber:hover  { box-shadow: 0 8px 28px rgba(251,191,36,0.13),  0 0 0 1px rgba(251,191,36,0.18); }
+  .kpi.violet:hover { box-shadow: 0 8px 28px rgba(167,139,250,0.13), 0 0 0 1px rgba(167,139,250,0.18); }
+  .kpi.red:hover    { box-shadow: 0 8px 28px rgba(248,113,113,0.13), 0 0 0 1px rgba(248,113,113,0.18); }
 
   /* ── Tabs ───────────────────────────────────────────────────────────────── */
   .tabs {
@@ -182,27 +219,28 @@ export const BLOCK_CSS = `
   }
   .tabs-wrap.scrolled::before { opacity: 1; }
   .tab-btn {
-    padding: 0.45rem 1rem;
+    padding: 0.4rem 0.9rem;
     border-radius: 20px;
-    background: var(--surface2);
+    background: transparent;
     color: var(--text-muted);
     border: 1px solid var(--border);
     cursor: pointer;
     white-space: nowrap;
     font-weight: 700;
-    font-size: 0.78rem;
-    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-family: var(--font-mono);
+    letter-spacing: 0.04em;
     transition: all 0.18s;
     flex-shrink: 0;
-    min-height: 36px;
+    min-height: 34px;
   }
   .tab-btn:hover { color: var(--text); border-color: var(--border-light); }
   .tab-btn:active { transform: scale(0.97); }
   .tab-btn.active {
-    background: rgba(34,211,238,0.1);
+    background: rgba(34,211,238,0.12);
     color: var(--cyan);
-    border-color: rgba(34,211,238,0.35);
-    box-shadow: 0 0 0 1px rgba(34,211,238,0.15) inset;
+    border-color: rgba(34,211,238,0.5);
+    box-shadow: 0 0 14px rgba(34,211,238,0.15);
   }
 
   /* ── Cards ──────────────────────────────────────────────────────────────── */
@@ -212,6 +250,7 @@ export const BLOCK_CSS = `
     border-radius: var(--r);
     padding: 1.1rem 1.25rem;
     margin-bottom: 1rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.18);
   }
   .card-title {
     font-size: 0.88rem;
@@ -335,10 +374,10 @@ export const BLOCK_CSS = `
   /* ── Badges ─────────────────────────────────────────────────────────────── */
   .badge {
     display: inline-flex; align-items: center;
-    padding: 0.15rem 0.5rem; border-radius: 4px;
-    font-size: 0.68rem; font-weight: 700;
+    padding: 0.12rem 0.55rem; border-radius: 20px;
+    font-size: 0.6rem; font-weight: 700;
     font-family: var(--font-mono);
-    text-transform: uppercase; letter-spacing: 0.04em;
+    text-transform: uppercase; letter-spacing: 0.08em;
     white-space: nowrap;
   }
   .badge-cyan   { background: var(--cyan-dim);   color: var(--cyan);   border: 1px solid rgba(34,211,238,0.2); }
