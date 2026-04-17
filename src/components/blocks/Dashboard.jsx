@@ -684,40 +684,84 @@ export default function Dashboard() {
           );
         })()}
 
-        {/* ── ALERTAS CRÍTICAS ── */}
+        {/* ── ALERTAS CRÍTICAS — Kinetik Ops style ── */}
         {d.alertasCriticas.length > 0 && (
-          <div className="dash-alertas-criticas mb">
+          <div className="dash-alertas-criticas mb" role="alert">
+            {/* Header con contador */}
             <div className="dash-alertas-header">
-              <span>🚨 {d.alertasCriticas.length} alerta{d.alertasCriticas.length !== 1 ? "s" : ""} crítica{d.alertasCriticas.length !== 1 ? "s" : ""}</span>
+              <div style={{ display:"flex", alignItems:"center", gap:".5rem" }}>
+                <div className="dash-alert-warning-icon">⚠</div>
+                <span style={{ textTransform:"uppercase", letterSpacing:".08em" }}>
+                  {d.alertasCriticas.length} Alerta{d.alertasCriticas.length !== 1 ? "s" : ""} Crítica{d.alertasCriticas.length !== 1 ? "s" : ""}
+                </span>
+              </div>
             </div>
-            {d.alertasCriticas.map((a,i) => (
+            {/* Filas de alerta */}
+            {d.alertasCriticas.map((a, i) => (
               <div key={i} className="dash-alerta dash-alerta-danger dash-alerta-clickable"
-                onClick={() => navigate(a.modulo)} title={`Ir a ${a.modulo}`}>
-                <span>{a.icon}</span>
-                <span className="dash-alerta-text">{a.texto}</span>
-                <span className="badge badge-muted" style={{ flexShrink:0 }}>{a.modulo} →</span>
+                onClick={() => navigate(a.modulo)}>
+                {/* Icono de warning */}
+                <div className="dash-alert-icon-wrap dash-alert-icon-danger">
+                  <span style={{ fontSize:".7rem", lineHeight:1 }}>⚠</span>
+                </div>
+                {/* Texto */}
+                <div className="dash-alerta-body">
+                  <span className="dash-alerta-text">{a.texto}</span>
+                  <span className="dash-alerta-modulo">{a.modulo}</span>
+                </div>
+                {/* CTA */}
+                <button className="dash-alert-cta dash-alert-cta-danger"
+                  onClick={e => { e.stopPropagation(); navigate(a.modulo); }}>
+                  Ver →
+                </button>
               </div>
             ))}
           </div>
         )}
 
-        {/* ── AVISOS (colapsables) ── */}
+        {/* ── AVISOS — Kinetik Ops style ── */}
         {d.alertasAvisos.length > 0 && (
-          <div className="card mb" style={{ padding:"0.75rem 1rem" }}>
-            <button className="dash-avisos-toggle" onClick={() => { const next = !alertasExpandidas; setAlertasExpandidas(next); localStorage.setItem("teg_dash_alertas_open", next?"1":"0"); }}>
-              <span className="mono xs" style={{ color:"var(--amber)" }}>
-                ⚡ {d.alertasAvisos.length} aviso{d.alertasAvisos.length !== 1 ? "s" : ""} pendiente{d.alertasAvisos.length !== 1 ? "s" : ""}
+          <div className="dash-avisos-container mb">
+            <button className="dash-avisos-toggle"
+              onClick={() => {
+                const next = !alertasExpandidas;
+                setAlertasExpandidas(next);
+                localStorage.setItem("teg_dash_alertas_open", next?"1":"0");
+              }}>
+              <div style={{ display:"flex", alignItems:"center", gap:".45rem" }}>
+                <div className="dash-alert-warning-icon dash-alert-warning-icon-amber">⚡</div>
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:".68rem",
+                  fontWeight:700, color:"var(--amber)", textTransform:"uppercase",
+                  letterSpacing:".06em" }}>
+                  {d.alertasAvisos.length} Aviso{d.alertasAvisos.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+                color:"var(--text-dim)", transition:"transform .2s",
+                display:"inline-block",
+                transform: alertasExpandidas ? "rotate(180deg)" : "rotate(0deg)" }}>
+                ▼
               </span>
-              <span className="mono xs muted">{alertasExpandidas ? "▲ ocultar" : "▼ mostrar"}</span>
             </button>
             {alertasExpandidas && (
-              <div style={{ marginTop:"0.5rem", display:"flex", flexDirection:"column", gap:"0.3rem" }}>
-                {d.alertasAvisos.map((a,i) => (
-                  <div key={i} className={`dash-alerta ${a.icon==="🔵" ? "dash-alerta-info" : "dash-alerta-warning"} dash-alerta-clickable`}
-                    onClick={() => navigate(a.modulo)} title={`Ir a ${a.modulo}`}>
-                    <span>{a.icon}</span>
-                    <span className="dash-alerta-text">{a.texto}</span>
-                    <span className="badge badge-muted" style={{ flexShrink:0 }}>{a.modulo} →</span>
+              <div className="dash-avisos-list">
+                {d.alertasAvisos.map((a, i) => (
+                  <div key={i}
+                    className={`dash-alerta ${a.icon==="🔵" ? "dash-alerta-info" : "dash-alerta-warning"} dash-alerta-clickable`}
+                    onClick={() => navigate(a.modulo)}>
+                    <div className={`dash-alert-icon-wrap ${a.icon==="🔵" ? "dash-alert-icon-info" : "dash-alert-icon-warning"}`}>
+                      <span style={{ fontSize:".65rem", lineHeight:1 }}>
+                        {a.icon==="🔵" ? "ℹ" : "⚡"}
+                      </span>
+                    </div>
+                    <div className="dash-alerta-body">
+                      <span className="dash-alerta-text">{a.texto}</span>
+                      <span className="dash-alerta-modulo">{a.modulo}</span>
+                    </div>
+                    <button className={`dash-alert-cta ${a.icon==="🔵" ? "dash-alert-cta-info" : "dash-alert-cta-warning"}`}
+                      onClick={e => { e.stopPropagation(); navigate(a.modulo); }}>
+                      Ver →
+                    </button>
                   </div>
                 ))}
               </div>
@@ -726,20 +770,28 @@ export default function Dashboard() {
         )}
 
 
-        {/* Estado OK — resumen positivo con datos reales */}
+        {/* Estado OK — Kinetik Ops style */}
         {d.alertasCriticas.length === 0 && d.alertasAvisos.length === 0 && (
           <div className="card mb" style={{
-            padding:".75rem 1rem",
-            background:"var(--green-dim)",
+            padding:".7rem 1rem",
+            background:"rgba(52,211,153,0.05)",
             border:"1px solid rgba(52,211,153,0.2)",
+            borderLeft:"3px solid var(--green)",
           }}>
-            <div style={{ display:"flex", alignItems:"center", gap:".5rem", marginBottom:".5rem" }}>
-              <span style={{ fontSize:".9rem" }}>✅</span>
-              <span style={{ fontWeight:800, fontSize:".82rem", color:"var(--green)" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:".65rem", marginBottom:".5rem" }}>
+              <div style={{
+                width:26, height:26, borderRadius:6, flexShrink:0,
+                background:"rgba(52,211,153,0.15)", border:"1px solid rgba(52,211,153,0.3)",
+                display:"flex", alignItems:"center", justifyContent:"center",
+                fontSize:".72rem", color:"var(--green)",
+              }}>✓</div>
+              <span style={{ fontFamily:"var(--font-mono)", fontWeight:800,
+                fontSize:".72rem", color:"var(--green)", textTransform:"uppercase",
+                letterSpacing:".08em" }}>
                 Todo en orden
               </span>
               <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
-                color:"var(--text-muted)", marginLeft:"auto" }}>
+                color:"var(--text-dim)", marginLeft:"auto" }}>
                 sin alertas activas
               </span>
             </div>
@@ -1142,45 +1194,120 @@ const DASH_EXTRA_CSS = `
   .dash-salud-bar-track { flex:1; height:4px; background:var(--surface3); border-radius:2px; overflow:hidden; }
   .dash-salud-bar-fill  { height:100%; border-radius:2px; transition:width .5s; }
 
-  /* Alertas críticas */
+  /* ── Alertas — Kinetik Ops style ── */
+  /* Contenedor alertas críticas */
   .dash-alertas-criticas {
-    background:rgba(248,113,113,0.06); border:1px solid rgba(248,113,113,0.3);
-    border-radius:var(--r); overflow:hidden;
-    animation:teg-slidein 0.2s ease;
+    border-radius: var(--r);
+    overflow: hidden;
+    border: 1px solid rgba(248,113,113,0.25);
+    background: rgba(248,113,113,0.04);
+    animation: teg-slidein 0.25s ease;
+    margin-bottom: 1rem;
   }
   .dash-alertas-header {
-    padding:0.55rem 1rem; background:rgba(248,113,113,0.1);
-    font-family:var(--font-mono); font-size:0.68rem;
-    font-weight:700; color:#f87171; letter-spacing:0.05em;
-    border-bottom:1px solid rgba(248,113,113,0.2);
+    padding: 0.55rem 1rem;
+    background: rgba(248,113,113,0.09);
+    border-bottom: 1px solid rgba(248,113,113,0.15);
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--red);
+    letter-spacing: 0.08em;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
-  .dash-alertas-criticas .dash-alerta { margin:0; border-radius:0; border:none; border-bottom:1px solid rgba(248,113,113,0.1); }
-  .dash-alertas-criticas .dash-alerta:last-child { border-bottom:none; }
+  .dash-alertas-criticas .dash-alerta {
+    margin: 0; border-radius: 0; border: none;
+    border-bottom: 1px solid rgba(248,113,113,0.08);
+  }
+  .dash-alertas-criticas .dash-alerta:last-child { border-bottom: none; }
 
-  /* Toggle avisos */
+  /* Icono de warning estilo Kinetik — triángulo */
+  .dash-alert-warning-icon {
+    width: 26px; height: 26px; border-radius: 6px; flex-shrink: 0;
+    background: rgba(248,113,113,0.15);
+    border: 1px solid rgba(248,113,113,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .7rem; color: var(--red); font-weight: 900;
+  }
+  .dash-alert-warning-icon-amber {
+    background: rgba(251,191,36,0.12);
+    border-color: rgba(251,191,36,0.25);
+    color: var(--amber);
+  }
+
+  /* Icono inline por fila de alerta */
+  .dash-alert-icon-wrap {
+    width: 22px; height: 22px; border-radius: 5px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .dash-alert-icon-danger  { background: rgba(248,113,113,0.15); color: var(--red);    border: 1px solid rgba(248,113,113,0.25); }
+  .dash-alert-icon-warning { background: rgba(251,191,36,0.12);  color: var(--amber);  border: 1px solid rgba(251,191,36,0.22); }
+  .dash-alert-icon-info    { background: rgba(34,211,238,0.1);   color: var(--cyan);   border: 1px solid rgba(34,211,238,0.2); }
+
+  /* Cuerpo del texto */
+  .dash-alerta-body {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; gap: .1rem;
+  }
+  .dash-alerta-text {
+    font-family: var(--font-mono); font-size: 0.68rem;
+    line-height: 1.4; color: inherit;
+  }
+  .dash-alerta-modulo {
+    font-family: var(--font-mono); font-size: 0.58rem;
+    color: var(--text-dim); text-transform: uppercase; letter-spacing: .06em;
+  }
+
+  /* Botón CTA inline */
+  .dash-alert-cta {
+    flex-shrink: 0;
+    padding: .2rem .6rem; border-radius: 20px;
+    font-family: var(--font-mono); font-size: .6rem; font-weight: 700;
+    letter-spacing: .04em; cursor: pointer; border: 1px solid;
+    transition: all .15s; white-space: nowrap;
+  }
+  .dash-alert-cta-danger  { color: var(--red);   border-color: rgba(248,113,113,0.3); background: rgba(248,113,113,0.08); }
+  .dash-alert-cta-danger:hover  { background: rgba(248,113,113,0.18); }
+  .dash-alert-cta-warning { color: var(--amber); border-color: rgba(251,191,36,0.3);  background: rgba(251,191,36,0.08); }
+  .dash-alert-cta-warning:hover { background: rgba(251,191,36,0.18); }
+  .dash-alert-cta-info    { color: var(--cyan);  border-color: rgba(34,211,238,0.3);  background: rgba(34,211,238,0.08); }
+  .dash-alert-cta-info:hover    { background: rgba(34,211,238,0.18); }
+
+  /* Contenedor de avisos */
+  .dash-avisos-container {
+    background: var(--surface);
+    border: 1px solid rgba(251,191,36,0.2);
+    border-left: 3px solid var(--amber);
+    border-radius: var(--r);
+    overflow: hidden;
+  }
   .dash-avisos-toggle {
-    display:flex; justify-content:space-between; align-items:center;
-    width:100%; background:none; border:none; cursor:pointer; padding:0;
+    display: flex; justify-content: space-between; align-items: center;
+    width: 100%; background: none; border: none; cursor: pointer;
+    padding: .65rem 1rem;
+    transition: background .15s;
   }
-  .dash-avisos-toggle:hover .mono { color:var(--text) !important; }
+  .dash-avisos-toggle:hover { background: rgba(251,191,36,0.04); }
+  .dash-avisos-list {
+    border-top: 1px solid rgba(251,191,36,0.12);
+    display: flex; flex-direction: column;
+  }
 
-  /* Alertas base */
+  /* Fila base de alerta */
   .dash-alerta {
-    display:flex; align-items:center; gap:0.6rem; padding:0.55rem 0.85rem;
-    font-family:var(--font-mono); font-size:0.68rem;
+    display: flex; align-items: center; gap: .65rem;
+    padding: .55rem 1rem;
   }
-  .dash-alerta-text { flex:1; line-height:1.4; }
-  .dash-alerta-danger  { background:rgba(248,113,113,0.06); color:#f87171; }
-  .dash-alerta-warning { background:rgba(251,191,36,0.05);  color:#fbbf24; }
-  .dash-alerta-info    { background:rgba(34,211,238,0.05);  color:#22d3ee; }
-  .dash-alerta-clickable { cursor:pointer; transition:filter .15s; }
-  .dash-alerta-clickable:hover { filter:brightness(1.15); }
+  .dash-alerta-danger  { color: var(--red);   }
+  .dash-alerta-warning { color: var(--amber); }
+  .dash-alerta-info    { color: var(--cyan);  }
+  .dash-alerta-clickable { cursor: pointer; transition: background .12s; }
+  .dash-alerta-clickable:hover { background: rgba(255,255,255,0.03); }
 
-  /* KPIs clickables — indicador visual de tocable */
   /* Kinetik: KPIs clickables */
-  .dash-kpi-clickable {
-    cursor: pointer;
-  }
+  .dash-kpi-clickable { cursor: pointer; }
 
   /* Charts */
   .dash-charts-row {
