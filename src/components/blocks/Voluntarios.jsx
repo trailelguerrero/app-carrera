@@ -1632,6 +1632,13 @@ function TabTallas({ stats, voluntarios }) {
 // ─── TAB DÍA D ────────────────────────────────────────────────────────────────
 function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
   const [puestoSeleccionado, setPuestoSeleccionado] = useState("todos");
+  const [ultimoGuardado, setUltimoGuardado] = useState(null);
+
+  const marcarPresencia = (id, presente) => {
+    onUpdateVol(id, { presente });
+    setUltimoGuardado(id);
+    setTimeout(() => setUltimoGuardado(null), 1200);
+  };
 
   // Incluir confirmados Y pendientes — pendientes aparecen con distinción visual
   const volsFiltrados = puestoSeleccionado === "todos"
@@ -1652,13 +1659,16 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1rem" }}>
-        <button className={cls("btn", puestoSeleccionado === "todos" ? "btn-cyan" : "btn-ghost")} onClick={() => setPuestoSeleccionado("todos")}>
-          Todos los confirmados
+      <div className="filter-pill-group" style={{ marginBottom: "1rem" }}>
+        <button
+          className={"filter-pill" + (puestoSeleccionado === "todos" ? " active" : "")}
+          onClick={() => setPuestoSeleccionado("todos")}>
+          Todos
         </button>
         {puestosConStats.map(p => (
-          <button key={p.id} className={cls("btn", puestoSeleccionado === String(p.id) ? "btn-cyan" : "btn-ghost")}
-            style={{ fontSize: "0.68rem" }} onClick={() => setPuestoSeleccionado(String(p.id))}>
+          <button key={p.id}
+            className={"filter-pill" + (puestoSeleccionado === String(p.id) ? " active" : "")}
+            onClick={() => setPuestoSeleccionado(String(p.id))}>
             {p.nombre}
           </button>
         ))}
@@ -1674,8 +1684,13 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
           const puesto = puestosConStats.find(p => p.id === v.puestoId);
           return (
             <div key={v.id} className={cls("checklist-row", v.presente ? "presente" : v.presente === false ? "ausente" : "")}>
-              <button onClick={() => onUpdateVol(v.id, { presente: !v.presente })}
-                style={{ width: 24, height: 24, borderRadius: 5, border: `2px solid ${v.presente ? "var(--green)" : "var(--border)"}`, background: v.presente ? "var(--green)" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.15s" }}>
+              <button onClick={() => marcarPresencia(v.id, !v.presente)}
+                style={{ width: 24, height: 24, borderRadius: 5,
+                  border: `2px solid ${v.presente ? "var(--green)" : ultimoGuardado===v.id ? "var(--cyan)" : "var(--border)"}`,
+                  background: v.presente ? "var(--green)" : "transparent",
+                  cursor: "pointer", display: "flex", alignItems: "center",
+                  justifyContent: "center", flexShrink: 0, transition: "all 0.15s",
+                  boxShadow: ultimoGuardado===v.id ? "0 0 8px rgba(34,211,238,0.4)" : "none" }}>
                 {v.presente && <span style={{ color: "#000", fontSize: "0.75rem", fontWeight: 700 }}>✓</span>}
               </button>
               <div style={{ flex: 1, minWidth: 0 }}>

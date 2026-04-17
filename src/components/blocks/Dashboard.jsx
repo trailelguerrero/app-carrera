@@ -240,21 +240,16 @@ export default function Dashboard() {
     // ── SALUD DEL EVENTO (barra semáforo global) ───────────────────────────
     // Cada módulo aporta un % ponderado a la "salud" total del evento
     const saludModulos = [
-      { label:"Presupuesto",    icon:"💰", bloque:"presupuesto",
-        score: resultado >= 0 ? 100 : Math.max(0, 100 + Math.round(resultado / Math.max(totalCostesFijos+totalCostesVars,1) * 100)),
-        color: resultado >= 0 ? "var(--green)" : resultado > -(totalCostesFijos+totalCostesVars)*0.2 ? "var(--amber)" : "var(--red)" },
-      { label:"Voluntarios",   icon:"👥", bloque:"voluntarios",
-        score: coberturaVol,
-        color: coberturaVol >= 80 ? "var(--green)" : coberturaVol >= 50 ? "var(--amber)" : "var(--red)" },
-      { label:"Patrocinadores",icon:"🤝", bloque:"patrocinadores",
-        score: objetivo > 0 ? Math.min(100, Math.round(patComprometido/objetivo*100)) : 100,
-        color: patComprometido >= objetivo*0.8 ? "var(--green)" : patComprometido >= objetivo*0.5 ? "var(--amber)" : "var(--red)" },
-      { label:"Logística",     icon:"📦", bloque:"logistica",
-        score: ck.length > 0 ? Math.round(ckDone/ck.length*100) : 0,
-        color: ck.length === 0 ? "var(--text-muted)" : ckDone >= ck.length*0.8 ? "var(--green)" : ckDone >= ck.length*0.5 ? "var(--amber)" : "var(--red)" },
+      // ── Módulos principales (en orden de criticidad operativa) ───────────
       { label:"Proyecto",      icon:"🏔️", bloque:"proyecto",
         score: progresoGlobal,
         color: progresoGlobal >= 80 ? "var(--green)" : progresoGlobal >= 50 ? "var(--amber)" : "var(--red)" },
+      { label:"Voluntarios",   icon:"👥", bloque:"voluntarios",
+        score: coberturaVol,
+        color: coberturaVol >= 80 ? "var(--green)" : coberturaVol >= 50 ? "var(--amber)" : "var(--red)" },
+      { label:"Logística",     icon:"📦", bloque:"logistica",
+        score: ck.length > 0 ? Math.round(ckDone/ck.length*100) : 0,
+        color: ck.length === 0 ? "var(--text-muted)" : ckDone >= ck.length*0.8 ? "var(--green)" : ckDone >= ck.length*0.5 ? "var(--amber)" : "var(--red)" },
       { label:"Documentos",    icon:"📁", bloque:"documentos",
         score: (() => {
           const total = documentos.length + gestiones.length;
@@ -263,6 +258,13 @@ export default function Dashboard() {
           return Math.max(0, Math.round((1 - problemas / total) * 100));
         })(),
         color: docsVencidos.length > 0 || gestionesDenegadas.length > 0 ? "var(--red)" : docsProxVencer.length > 0 || gestionesUrgentes.length > 0 ? "var(--amber)" : "var(--green)" },
+      // ── Indicadores financieros ──────────────────────────────────────────
+      { label:"Presupuesto",   icon:"💰", bloque:"presupuesto",
+        score: resultado >= 0 ? 100 : Math.max(0, 100 + Math.round(resultado / Math.max(totalCostesFijos+totalCostesVars,1) * 100)),
+        color: resultado >= 0 ? "var(--green)" : resultado > -(totalCostesFijos+totalCostesVars)*0.2 ? "var(--amber)" : "var(--red)" },
+      { label:"Patrocinadores",icon:"🤝", bloque:"patrocinadores",
+        score: objetivo > 0 ? Math.min(100, Math.round(patComprometido/objetivo*100)) : 100,
+        color: patComprometido >= objetivo*0.8 ? "var(--green)" : patComprometido >= objetivo*0.5 ? "var(--amber)" : "var(--red)" },
     ];
     const saludGlobal = Math.round(saludModulos.reduce((s,m) => s+m.score, 0) / saludModulos.length);
 
