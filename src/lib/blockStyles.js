@@ -98,26 +98,47 @@ export const BLOCK_CSS = `
   /* ── KPI grid ───────────────────────────────────────────────────────────── */
   .kpi-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
     gap: 0.75rem;
     margin-bottom: 1.25rem;
   }
-  /* Kinetik Ops KPI cards */
+  /* Kinetik: animación de entrada escalonada para las cards */
+  @keyframes kpi-fade-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .kpi-grid .kpi:nth-child(1) { animation: kpi-fade-in 0.35s ease both 0.00s; }
+  .kpi-grid .kpi:nth-child(2) { animation: kpi-fade-in 0.35s ease both 0.06s; }
+  .kpi-grid .kpi:nth-child(3) { animation: kpi-fade-in 0.35s ease both 0.12s; }
+  .kpi-grid .kpi:nth-child(4) { animation: kpi-fade-in 0.35s ease both 0.18s; }
+  .kpi-grid .kpi:nth-child(5) { animation: kpi-fade-in 0.35s ease both 0.24s; }
+  .kpi-grid .kpi:nth-child(6) { animation: kpi-fade-in 0.35s ease both 0.30s; }
+  /* Kinetik Ops KPI cards — Fase B */
   .kpi {
     padding: 1rem 1.15rem 1rem;
     border-radius: var(--r);
     background: var(--surface);
     border: 1px solid var(--border);
     border-left-width: var(--card-accent-width);
-    transition: transform 0.18s, box-shadow 0.18s;
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s ease;
     cursor: pointer;
     position: relative;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    gap: 0;
   }
-  .kpi:hover { transform: translateY(-2px); }
-  .kpi:active { transform: translateY(0); }
+  /* Kinetik: línea decorativa en la esquina superior derecha */
+  .kpi::before {
+    content: "";
+    position: absolute;
+    top: 0; right: 0;
+    width: 40px; height: 40px;
+    background: radial-gradient(circle at top right, rgba(255,255,255,0.03) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .kpi:hover { transform: translateY(-3px); }
+  .kpi:active { transform: translateY(-1px); }
   .kpi-label {
     font-size: 0.6rem;
     font-family: var(--font-mono);
@@ -571,8 +592,9 @@ export const BLOCK_CSS = `
     .block-header { margin-bottom: 0.75rem; gap: 0.5rem; }
     /* KPI grid 2 columnas en mobile */
     .kpi-grid { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-    .kpi { padding: 0.75rem 0.85rem; }
-    .kpi-label { font-size: 0.72rem; }
+    .kpi { padding: 0.7rem 0.8rem; }
+    .kpi-value { font-size: 1.65rem; letter-spacing: -0.01em; }
+    .kpi-label { font-size: 0.58rem; }
     /* En mobile el sub va en multilínea para que no se corte feo */
     .kpi-sub {
       white-space: normal;

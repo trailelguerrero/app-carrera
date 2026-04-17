@@ -782,6 +782,9 @@ export default function Dashboard() {
             value={fmt(d.resultado)}
             sub={`Ingresos: ${fmt(d.totalIngresos + d.totalOtrosIngresos)}`}
             color={resColor} colorClass={d.resultado >= 0 ? "green" : "red"}
+            progress={d.resultado >= 0 && (d.totalCostesFijos+d.totalCostesVars) > 0
+              ? Math.min(100, Math.round(d.resultado / (d.totalCostesFijos+d.totalCostesVars) * 100))
+              : undefined}
             onClick={() => navigate("presupuesto")} />
           <KPI icon="🏃" label="Inscritos"
             tooltip="Corredores inscritos en todos los tramos y distancias.\nEl denominador es el aforo máximo configurado en Presupuesto → Inscripciones."
@@ -1041,21 +1044,38 @@ export default function Dashboard() {
 // ─── Sub-componentes ──────────────────────────────────────────────────────────
 function KPI({ icon, label, value, sub, color, colorClass, onClick, tooltip, progress }) {
   return (
-    <div className={`kpi ${colorClass||""} ${onClick?"dash-kpi-clickable":""}`}
-      onClick={onClick} title={onClick ? `Ir a ${label}` : undefined}>
-      <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>
-        {icon} {label}
-        {tooltip && <Tooltip text={tooltip}><TooltipIcon size={11}/></Tooltip>}
+    <div
+      className={`kpi ${colorClass||""}`}
+      onClick={onClick}
+      style={{ cursor: onClick ? "pointer" : "default", paddingBottom: progress !== undefined ? "0.85rem" : "1rem" }}
+      title={onClick ? `Ir a ${label}` : undefined}
+    >
+      {/* Label uppercase con icono y tooltip */}
+      <div className="kpi-label" style={{ display:"flex", alignItems:"center", gap:5 }}>
+        <span style={{ opacity:0.7 }}>{icon}</span>
+        <span>{label}</span>
+        {tooltip && <Tooltip text={tooltip}><TooltipIcon size={10}/></Tooltip>}
       </div>
+
+      {/* Valor principal — número ultra-bold Kinetik */}
       <div className="kpi-value" style={{ color }}>{value}</div>
+
+      {/* Subtexto secundario */}
       <div className="kpi-sub">{sub}</div>
+
+      {/* Progress bar siempre visible en la base si se pasa progress */}
       {progress !== undefined && (
         <div className="kpi-progress">
-          <div className="kpi-progress-fill"
-            style={{ width:`${Math.min(100,Math.max(0,progress))}%`, background:color }} />
+          <div
+            className="kpi-progress-fill"
+            style={{
+              width: `${Math.min(100, Math.max(0, progress))}%`,
+              background: color,
+              boxShadow: `0 0 6px ${color}80`,
+            }}
+          />
         </div>
       )}
-      {onClick && <div className="dash-kpi-arrow">→</div>}
     </div>
   );
 }
@@ -1157,33 +1177,10 @@ const DASH_EXTRA_CSS = `
   .dash-alerta-clickable:hover { filter:brightness(1.15); }
 
   /* KPIs clickables — indicador visual de tocable */
+  /* Kinetik: KPIs clickables */
   .dash-kpi-clickable {
     cursor: pointer;
-    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
   }
-  .dash-kpi-clickable:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-  }
-  .dash-kpi-clickable:active { transform: translateY(0); }
-  /* Flecha sutil en esquina indicando que es navegable */
-  .dash-kpi-clickable::after {
-    content: "→";
-    position: absolute;
-    bottom: 0.4rem;
-    right: 0.5rem;
-    font-size: 0.55rem;
-    color: var(--text-dim);
-    opacity: 0;
-    transition: opacity 0.15s;
-  }
-  .dash-kpi-clickable:hover::after { opacity: 1; }
-  .dash-kpi-clickable:hover { transform:translateY(-2px); border-color:var(--border-light) !important; }
-  .dash-kpi-arrow {
-    font-family:var(--font-mono); font-size:0.6rem;
-    color:var(--text-dim); margin-top:0.35rem; transition:color .15s;
-  }
-  .dash-kpi-clickable:hover .dash-kpi-arrow { color:var(--cyan); }
 
   /* Charts */
   .dash-charts-row {
