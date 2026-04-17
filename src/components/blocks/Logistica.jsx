@@ -656,6 +656,9 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
         </div>
       </div>
       {!vistaAsig?(<>
+        {material.length === 0 && (
+          <div style={{ padding:"0 0 .85rem" }}><SkeletonRows n={5} /></div>
+        )}
         <div className="chips">
           <button className={cls("chip",cat==="todas"&&"ca")} onClick={()=>setCat("todas")}>Todas</button>
           {CATS_MATERIAL.map(c=><button key={c} className={cls("chip",cat===c&&"ca")} onClick={()=>setCat(c)} style={cat===c?{borderColor:CAT_COLORS[c],color:CAT_COLORS[c],background:`${CAT_COLORS[c]}18`}:{}}>{CAT_ICONS[c]} {c}</button>)}
@@ -1449,22 +1452,17 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
         </div>
       </div>
 
-      {/* Sub-tabs */}
-      <div style={{display:"flex",gap:".3rem",marginBottom:".85rem",
-        borderBottom:"1px solid var(--border)",paddingBottom:".5rem",flexWrap:"wrap"}}>
+      {/* Sub-tabs — Kinetik filter-pills */}
+      <div className="filter-pill-group" style={{marginBottom:".85rem"}}>
         {[
           {id:"directorio",  label:"📋 Directorio",  badge:cont.length},
           {id:"protocolo",   label:"📘 Protocolos",  badge:null},
           {id:"incidencias", label:"⚠️ Incidencias", badge:incAbiertas||null, badgeColor:"var(--red)"},
         ].map(t=>(
           <button key={t.id}
+            className={"filter-pill" + (sub===t.id?" active":"")}
             onClick={()=>setSub(t.id)}
-            style={{padding:".35rem .8rem",borderRadius:6,border:"none",cursor:"pointer",
-              fontFamily:"var(--font-mono)",fontSize:".68rem",fontWeight:700,
-              background:sub===t.id?"rgba(34,211,238,.12)":"transparent",
-              color:sub===t.id?"var(--cyan)":"var(--text-muted)",
-              borderBottom:sub===t.id?"2px solid var(--cyan)":"2px solid transparent",
-              display:"flex",alignItems:"center",gap:".3rem"}}>
+            style={sub===t.id&&t.badgeColor?{color:t.badgeColor,borderColor:t.badgeColor+"66",background:t.badgeColor+"18"}:{}}>
             {t.label}
             {t.badge!=null && t.badge>0 && (
               <span style={{fontFamily:"var(--font-mono)",fontSize:".55rem",

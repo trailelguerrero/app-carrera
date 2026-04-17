@@ -324,6 +324,17 @@ const Presupuesto = () => {
             <button className={saveCls} onClick={saveData} disabled={saveStatus === "saving"}>
               {saveLabel}
             </button>
+            {saveStatus === "error" && (
+              <span style={{
+                fontFamily:"var(--font-mono)", fontSize:".6rem",
+                color:"var(--red)", padding:".3rem .6rem",
+                background:"rgba(248,113,113,.1)", borderRadius:20,
+                border:"1px solid rgba(248,113,113,.25)",
+                animation:"fadeIn .2s ease",
+              }}>
+                Sin conexión — revisa tu red
+              </span>
+            )}
           </div>
         </div>
 

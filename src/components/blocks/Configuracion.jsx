@@ -38,7 +38,17 @@ const CFG_CSS = `
     border-top: 1px solid var(--border); padding: .85rem 0;
     margin-top: 1rem; display: flex; justify-content: flex-end; align-items: center; gap: .75rem;
   }
-  .cfg-saved { font-family: var(--font-mono); font-size: .65rem; color: var(--green); }
+  .cfg-saved {
+    font-family: var(--font-mono); font-size: .65rem; color: var(--green);
+    display: flex; align-items: center; gap: .35rem;
+    padding: .3rem .65rem; border-radius: 20px;
+    background: rgba(52,211,153,.1); border: 1px solid rgba(52,211,153,.3);
+    animation: cfg-saved-in .2s ease;
+  }
+  @keyframes cfg-saved-in {
+    from { opacity:0; transform:translateX(8px); }
+    to   { opacity:1; transform:translateX(0); }
+  }
   .backup-btn {
     display: flex; align-items: center; gap: .5rem;
     padding: .55rem 1rem; border-radius: var(--r-sm);
@@ -522,7 +532,7 @@ export default function Configuracion() {
                 <div className="cfg-save-bar">
           {saved && (
               <div style={{ display:"flex", alignItems:"center", gap:".5rem" }}>
-                <span className="cfg-saved">✓ Guardado</span>
+                <span className="cfg-saved">✓ Cambios guardados</span>
                 <button
                   className="btn btn-ghost btn-sm"
                   style={{ fontSize:".65rem" }}
