@@ -1113,8 +1113,13 @@ function TabGantt({ tareas, hitos, equipo, setModal, setFicha, setFiltroArea, se
 function TabEquipo({ equipo, setEquipo, tareas, setModal, setDelConf, setFicha }) {
   const [vistaEquipo, setVistaEquipo]  = useState("cards");
   const [ordenAlfa, setOrdenAlfa]      = useState(false);
-  const [areasColapsadas, setAreasCol] = useState({});
+  // Inicializar todas las áreas colapsadas por defecto
+  const [areasColapsadas, setAreasCol] = useState(
+    () => Object.fromEntries(AREAS.map(a => [a.id, true]))
+  );
   const toggleArea = (areaId) => setAreasCol(p => ({...p, [areaId]: !p[areaId]}));
+  const expandirTodo  = () => setAreasCol(Object.fromEntries(AREAS.map(a => [a.id, false])));
+  const colapsarTodo  = () => setAreasCol(Object.fromEntries(AREAS.map(a => [a.id, true])));
 
   // Mover persona dentro del array global de equipo (solo cuando no hay A-Z)
   const moverPersona = (id, dir) => {
@@ -1140,17 +1145,18 @@ function TabEquipo({ equipo, setEquipo, tareas, setModal, setDelConf, setFicha }
           <div className="pt">👥 Equipo Organizador</div>
           <div className="pd">{equipo.length} personas · Trail El Guerrero 2026</div>
         </div>
-        <div style={{display:"flex",gap:".5rem",alignItems:"center"}}>
-          <div style={{display:"flex",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:"var(--r-sm)",overflow:"hidden"}}>
-            {[["cards","☰ Cards"],["kanban","⬛ Áreas"]].map(([v,ic])=>(
-              <button key={v} onClick={()=>setVistaEquipo(v)}
-                style={{padding:".3rem .65rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,
-                  background: vistaEquipo===v ? "rgba(167,139,250,.2)" : "transparent",
-                  color: vistaEquipo===v ? "var(--violet)" : "var(--text-muted)",
-                  transition:"all .15s"}}>
-                {ic}
-              </button>
-            ))}
+        <div style={{display:"flex",gap:".5rem",alignItems:"center",flexWrap:"wrap"}}>
+          {vistaEquipo === "cards" && (
+            <div className="filter-pill-group">
+              <button className="filter-pill" onClick={expandirTodo} title="Expandir todas las áreas">⊞</button>
+              <button className="filter-pill" onClick={colapsarTodo} title="Colapsar todas las áreas">⊟</button>
+            </div>
+          )}
+          <div className="filter-pill-group">
+            <button className={`filter-pill${vistaEquipo==="cards" ? " active" : ""}`}
+              onClick={() => setVistaEquipo("cards")}>☰ Cards</button>
+            <button className={`filter-pill${vistaEquipo==="kanban" ? " active" : ""}`}
+              onClick={() => setVistaEquipo("kanban")}>⬛ Áreas</button>
           </div>
           <button className={`btn btn-sm ${ordenAlfa?"btn-primary":"btn-ghost"}`} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
           <button className="btn btn-primary" onClick={() => setModal({tipo:"persona",data:null})}>+ Añadir persona</button>

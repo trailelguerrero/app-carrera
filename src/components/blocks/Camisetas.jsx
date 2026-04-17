@@ -524,7 +524,7 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal }) {
   const [fPago, setFPago]    = useState("todos");
   const [fEnt,  setFEnt]     = useState("todos");
   const [bus,   setBus]      = useState("");
-  const [pedGrupos, setPedGrupos] = useState({}); // grupos colapsados por estado
+  const [pedGrupos, setPedGrupos] = useState({ pendiente:true, preparado:true, entregado:true, cancelado:true }); // todos colapsados por defecto
   const filtrados = useMemo(()=>{
     let list = pedidos.filter(p=>{
       const q  = bus.toLowerCase();
@@ -682,7 +682,7 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
   const [editCorredores, setEditCorredores] = useState(false);
   const [tmpCor, setTmpCor] = useState({ ...corredoresExt });
   const [editNino, setEditNino] = useState(false);
-  const [secColapsadas, setSecCol] = useState({}); // { corredor, voluntario, nino, total }
+  const [secColapsadas, setSecCol] = useState({ corredor:true, voluntario:true, nino:true, tabla:true, fuentes:true }); // todas colapsadas por defecto
   const toggleSec = (k) => setSecCol(p => ({...p,[k]:!p[k]}));
   const [tmpNino, setTmpNino] = useState({ ...ninoExt });
 

@@ -100,7 +100,7 @@ export default function Documentos() {
   const [emisorNuevo, setEmisorNuevo]   = useState("");
   const [busqueda, setBusqueda] = useState("");
   const [busqGlobal, setBusqGlobal] = useState(false);
-  const [uploadOpen, setUploadOpen] = useState(true);  // abierto por defecto — acción principal del módulo
+  const [uploadOpen, setUploadOpen] = useState(false); // colapsado por defecto (mandato UX)
   const [editId,  setEditId]    = useState(null);
   const [delConfirm, setDelConfirm] = useState(null); // {id, nombre, esGestion}
   const [uploadError, setUploadError] = useState(null); // mensaje de error de subida

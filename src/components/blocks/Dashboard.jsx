@@ -47,9 +47,9 @@ export default function Dashboard() {
   const [refreshing,  setRefreshing]  = useState(false);  // refresco silencioso
   const [lastUpdated, setLastUpdated] = useState(null);
   const [alertasExpandidas, setAlertasExpandidas] = useState(
-    () => localStorage.getItem("teg_dash_alertas_open") !== "0"
-  ); // avisos: persiste estado de colapso
-  const [saludExpandida, setSaludExpandida] = useState(true);      // salud siempre expandida por defecto
+    () => localStorage.getItem("teg_dash_alertas_open") === "1"
+  ); // avisos: colapsados por defecto, persiste si el usuario los abre
+  const [saludExpandida, setSaludExpandida] = useState(false); // colapsada por defecto
   const intervalRef = useRef(null);
 
   const loadData = useCallback(async (silent = false) => {

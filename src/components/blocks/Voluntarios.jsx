@@ -1188,7 +1188,7 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
 // ─── TAB VOLUNTARIOS ──────────────────────────────────────────────────────────
 function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda, filtroEstado, setFiltroEstado, filtroPuesto, setFiltroPuesto, onUpdate, onDelete, onNuevo, onEditar, onFicha }) {
   const [orden, setOrden]           = useState("nombre");
-  const [colapsados, setColapsados] = useState({});
+  const [colapsados, setColapsados] = useState({ confirmado:true, cancelado:true }); // pendientes abiertos, resto colapsados
 
   const toggleGrupo = (key) => setColapsados(p => ({...p, [key]: !p[key]}));
 
