@@ -358,14 +358,21 @@ export default function Index() {
     return false;
   });
 
-  // Leer fecha del evento desde config para el botón Día D
-  const eventFecha = (() => {
+  // Leer config completo para header Kinetik Ops
+  const headerCfg = (() => {
     try {
       const raw = localStorage.getItem("teg_event_config_v1");
-      const cfg = raw ? JSON.parse(raw) : null;
-      return cfg?.fecha ? new Date(cfg.fecha) : new Date(EVENT_CONFIG_DEFAULT.fecha);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  })();
+  const eventFecha = (() => {
+    try {
+      return headerCfg?.fecha ? new Date(headerCfg.fecha) : new Date(EVENT_CONFIG_DEFAULT.fecha);
     } catch { return new Date(EVENT_CONFIG_DEFAULT.fecha); }
   })();
+  // Iniciales del organizador para el avatar
+  const orgNombre = headerCfg?.organizador || EVENT_CONFIG_DEFAULT.organizador || "Trail El Guerrero";
+  const orgIniciales = orgNombre.split(" ").filter(Boolean).slice(0,2).map(w => w[0].toUpperCase()).join("");
   const [showChangePin, setShowChangePin]   = useState(false);
   const [showMoreNav, setShowMoreNav]       = useState(false);
   const [activeBlock, setActiveBlock]       = useState("dashboard");
@@ -521,95 +528,136 @@ export default function Index() {
       <div style={{ minHeight:"100vh", display:"flex", flexDirection:"column", background:"var(--teg-bg)",
           backgroundImage:"radial-gradient(ellipse 70% 35% at 15% 0%, rgba(34,211,238,0.05) 0%, transparent 55%), radial-gradient(ellipse 50% 25% at 85% 100%, rgba(167,139,250,0.03) 0%, transparent 50%)" }}>
 
-        {/* TOP BAR */}
+        {/* TOP BAR — Kinetik Ops style */}
         <header style={{
-          background:"var(--teg-surface)", backdropFilter:"blur(12px)",
-          WebkitBackdropFilter:"blur(12px)", borderBottom:"1px solid var(--teg-border)",
-          padding:"0.4rem 0.9rem", display:"flex", alignItems:"center",
-          justifyContent:"space-between", position:"sticky", top:0, zIndex:50, minHeight:44,
+          background:"var(--teg-surface)", backdropFilter:"blur(16px)",
+          WebkitBackdropFilter:"blur(16px)",
+          borderBottom:"1px solid rgba(30,45,80,0.8)",
+          padding:"0 0.75rem", display:"flex", alignItems:"center",
+          justifyContent:"space-between", position:"sticky", top:0, zIndex:50,
+          height:48, gap:"0.5rem",
         }}>
-          {/* Brand */}
-          <div style={{ display:"flex", alignItems:"center", gap:"0.45rem" }}>
-            <span style={{ fontSize:"1rem" }}>🏔️</span>
-            <div>
-              <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800,
-                fontSize: isMobile ? "0.76rem" : "0.86rem", color:"var(--teg-text-primary)", lineHeight:1.1 }}>
-                Trail El Guerrero
-              </div>
-              {!isMobile && (
-                <div style={{ fontFamily:"'DM Mono', 'Space Mono', monospace,monospace", fontSize:"0.5rem", color:"var(--teg-text-muted)" }}>
-                  Panel de gestión · 2026
-                </div>
-              )}
+
+          {/* LEFT — Avatar + Brand */}
+          <div style={{ display:"flex", alignItems:"center", gap:"0.55rem", flexShrink:0 }}>
+            {/* Avatar con iniciales del organizador */}
+            <div
+              title={orgNombre}
+              onClick={() => handleBlockChange("configuracion")}
+              style={{
+                width:30, height:30, borderRadius:9,
+                background:"linear-gradient(135deg, rgba(34,211,238,0.2) 0%, rgba(167,139,250,0.15) 100%)",
+                border:"1px solid rgba(34,211,238,0.3)",
+                display:"flex", alignItems:"center", justifyContent:"center",
+                fontFamily:"'Syne',sans-serif", fontWeight:900, fontSize:"0.6rem",
+                color:"var(--cyan)", cursor:"pointer", flexShrink:0,
+                transition:"all 0.18s", userSelect:"none",
+                boxShadow:"0 0 10px rgba(34,211,238,0.1)",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow="0 0 16px rgba(34,211,238,0.2)"; e.currentTarget.style.borderColor="rgba(34,211,238,0.5)"; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow="0 0 10px rgba(34,211,238,0.1)"; e.currentTarget.style.borderColor="rgba(34,211,238,0.3)"; }}
+            >
+              {orgIniciales}
             </div>
+
+            {/* Brand text */}
+            {!isMobile && (
+              <div>
+                <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800,
+                  fontSize:"0.78rem", color:"var(--teg-text-primary)", lineHeight:1.1,
+                  letterSpacing:"-0.01em" }}>
+                  Kinetik Ops
+                </div>
+                <div style={{ fontFamily:"'DM Mono', 'Space Mono', monospace,monospace",
+                  fontSize:"0.46rem", color:"var(--teg-text-muted)",
+                  letterSpacing:"0.08em", textTransform:"uppercase" }}>
+                  Trail El Guerrero 2026
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Autosave indicator — centro */}
-          <div style={{ flex:1, display:"flex", justifyContent:"center" }}>
+          {/* CENTER — Autosave + buscador */}
+          <div style={{ flex:1, display:"flex", justifyContent:"center", alignItems:"center", gap:"0.5rem", minWidth:0 }}>
             <AutosaveIndicator status={saveStatus} />
           </div>
 
-          {/* Actions */}
-          <div style={{ display:"flex", gap:"0.35rem", alignItems:"center" }}>
-            <ThemeToggle size={30} />
+          {/* RIGHT — Actions */}
+          <div style={{ display:"flex", gap:"0.25rem", alignItems:"center", flexShrink:0 }}>
 
+            {/* Búsqueda rápida — navega entre módulos */}
             <button
-              onClick={() => setShowChangePin(true)}
-              title="Cambiar PIN de acceso"
-              aria-label="Cambiar PIN"
-              style={{ background:"transparent", border:"none", color:"var(--teg-text-muted)",
-                cursor:"pointer", fontSize:"0.8rem", padding:"0.45rem",
-                borderRadius:6, lineHeight:1, transition:"color 0.2s",
-                minWidth:34, minHeight:34, display:"flex", alignItems:"center", justifyContent:"center" }}
-              onMouseEnter={e => e.currentTarget.style.color="var(--teg-text-secondary)"}
-              onMouseLeave={e => e.currentTarget.style.color="var(--teg-text-muted)"}
-            >🔐</button>
+              title="Buscar módulo (próximamente)"
+              style={{
+                background:"transparent", border:"1px solid var(--teg-border)",
+                color:"var(--teg-text-muted)", cursor:"pointer",
+                width:30, height:30, borderRadius:8,
+                display:"flex", alignItems:"center", justifyContent:"center",
+                fontSize:"0.75rem", transition:"all 0.15s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor="rgba(34,211,238,0.35)"; e.currentTarget.style.color="var(--cyan)"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor="var(--teg-border)"; e.currentTarget.style.color="var(--teg-text-muted)"; }}
+            >🔍</button>
 
-            <button
-              onClick={() => handleBlockChange("configuracion")}
-              title="Configuración"
-              aria-label="Configuración"
-              aria-current={activeBlock==="configuracion" ? "page" : undefined}
-              style={{ background: activeBlock==="configuracion" ? "rgba(167,139,250,0.12)" : "transparent",
-                border: activeBlock==="configuracion" ? "1px solid rgba(167,139,250,0.3)" : "none",
-                color: activeBlock==="configuracion" ? "var(--teg-accent)" : "var(--teg-text-muted)",
-                cursor:"pointer", fontSize:"0.85rem", padding:"0.45rem",
-                borderRadius:6, lineHeight:1, transition:"all 0.2s",
-                minWidth:34, minHeight:34, display:"flex", alignItems:"center", justifyContent:"center" }}
-              onMouseEnter={e => { if(activeBlock!=="configuracion") e.currentTarget.style.color="var(--teg-text-secondary)"; }}
-              onMouseLeave={e => { if(activeBlock!=="configuracion") e.currentTarget.style.color="var(--teg-text-muted)"; }}
-            >⚙️</button>
+            <ThemeToggle size={28} />
 
             {(mostrarBtnDiaD || mostrarBtnDiaDProminente) && (
               <button onClick={() => setShowDiaCarrera(true)} style={{
-                background:"rgba(248,113,113,0.15)", color:"#f87171",
-                border:"1px solid rgba(248,113,113,0.35)", borderRadius:6,
-                padding: isMobile ? "0.22rem 0.38rem" : "0.26rem 0.55rem",
-                fontFamily:"var(--font-mono)", fontSize: isMobile ? "0.5rem" : "0.58rem",
-                fontWeight:700, cursor:"pointer",
-              }}>🏁{!isMobile && " Día D"}</button>
+                background:"rgba(248,113,113,0.12)", color:"#f87171",
+                border:"1px solid rgba(248,113,113,0.3)", borderRadius:8,
+                padding:"0.2rem 0.45rem",
+                fontFamily:"var(--font-mono)", fontSize:"0.55rem",
+                fontWeight:700, cursor:"pointer", height:28,
+                display:"flex", alignItems:"center", gap:"0.25rem",
+              }}>🏁{!isMobile && <span style={{letterSpacing:".04em"}}>DÍA D</span>}</button>
             )}
+
             {activeBlock !== "dashboard" && (
               <>
                 <button onClick={() => setReadmeBlock(activeBlock)} style={{
-                  background:"rgba(167,139,250,0.1)", color:"var(--teg-accent)",
-                  border:"1px solid rgba(167,139,250,0.22)", borderRadius:6,
-                  padding: isMobile ? "0.22rem 0.38rem" : "0.26rem 0.55rem",
-                  fontFamily:"'DM Mono', 'Space Mono', monospace,monospace",
-                  fontSize: isMobile ? "0.5rem" : "0.58rem", fontWeight:700, cursor:"pointer",
-                }}>📖{!isMobile && " README"}</button>
+                  background:"transparent", border:"1px solid var(--teg-border)",
+                  color:"var(--teg-text-muted)", borderRadius:8,
+                  padding:"0.2rem 0.45rem", cursor:"pointer", height:28,
+                  fontFamily:"var(--font-mono)", fontSize:"0.52rem", fontWeight:700,
+                  display:"flex", alignItems:"center", gap:"0.2rem", transition:"all .15s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor="rgba(167,139,250,0.4)"; e.currentTarget.style.color="var(--violet)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor="var(--teg-border)"; e.currentTarget.style.color="var(--teg-text-muted)"; }}
+                >📖{!isMobile && " DOC"}</button>
+
                 <button onClick={async () => {
                   const { exportBlockToPdf } = await import("../components/blocks/PdfExport");
                   exportBlockToPdf(activeBlock);
                 }} style={{
-                  background:"rgba(52,211,153,0.1)", color:"#059669",
-                  border:"1px solid rgba(52,211,153,0.22)", borderRadius:6,
-                  padding: isMobile ? "0.22rem 0.38rem" : "0.26rem 0.55rem",
-                  fontFamily:"'DM Mono', 'Space Mono', monospace,monospace",
-                  fontSize: isMobile ? "0.5rem" : "0.58rem", fontWeight:700, cursor:"pointer",
-                }}>📄{!isMobile && " PDF"}</button>
+                  background:"transparent", border:"1px solid var(--teg-border)",
+                  color:"var(--teg-text-muted)", borderRadius:8,
+                  padding:"0.2rem 0.45rem", cursor:"pointer", height:28,
+                  fontFamily:"var(--font-mono)", fontSize:"0.52rem", fontWeight:700,
+                  display:"flex", alignItems:"center", gap:"0.2rem", transition:"all .15s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor="rgba(52,211,153,0.4)"; e.currentTarget.style.color="var(--green)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor="var(--teg-border)"; e.currentTarget.style.color="var(--teg-text-muted)"; }}
+                >📄{!isMobile && " PDF"}</button>
               </>
             )}
+
+            {/* Settings pill */}
+            <button
+              onClick={() => handleBlockChange("configuracion")}
+              title="Configuración"
+              aria-label="Configuración"
+              style={{
+                background: activeBlock==="configuracion" ? "rgba(167,139,250,0.12)" : "transparent",
+                border: `1px solid ${activeBlock==="configuracion" ? "rgba(167,139,250,0.4)" : "var(--teg-border)"}`,
+                color: activeBlock==="configuracion" ? "var(--violet)" : "var(--teg-text-muted)",
+                cursor:"pointer", width:30, height:30, borderRadius:8,
+                display:"flex", alignItems:"center", justifyContent:"center",
+                fontSize:"0.78rem", transition:"all 0.15s",
+                boxShadow: activeBlock==="configuracion" ? "0 0 10px rgba(167,139,250,0.15)" : "none",
+              }}
+              onMouseEnter={e => { if(activeBlock!=="configuracion") { e.currentTarget.style.borderColor="rgba(167,139,250,0.35)"; e.currentTarget.style.color="var(--violet)"; }}}
+              onMouseLeave={e => { if(activeBlock!=="configuracion") { e.currentTarget.style.borderColor="var(--teg-border)"; e.currentTarget.style.color="var(--teg-text-muted)"; }}}
+            >⚙️</button>
           </div>
         </header>
 
@@ -683,17 +731,19 @@ export default function Index() {
                   minHeight: NAV_H - 4,
                 }}
               >
+                {/* Kinetik: línea cian en la parte superior del tab activo */}
                 {isActive && (
                   <div style={{
-                      position:"absolute", inset:0, borderRadius:10,
-                      background:"rgba(34,211,238,0.07)",
-                      border:"1px solid rgba(34,211,238,0.18)",
-                    }} />
+                    position:"absolute", top:0, left:"15%", right:"15%",
+                    height:2, borderRadius:"0 0 2px 2px",
+                    background:"var(--cyan)",
+                    boxShadow:"0 0 8px rgba(34,211,238,0.6)",
+                  }} />
                 )}
                 <span style={{
-                  fontSize: isMobile ? "1.45rem" : "1.18rem",
-                  filter: isActive ? "none" : "grayscale(0.55)",
-                  transform: isActive ? "scale(1.1)" : "scale(1)",
+                  fontSize: isMobile ? "1.35rem" : "1.15rem",
+                  filter: isActive ? "none" : "grayscale(0.6) opacity(0.6)",
+                  transform: isActive ? "scale(1.05)" : "scale(1)",
                   transition:"all 0.2s",
                   pointerEvents:"none", position:"relative", zIndex:1,
                 }}>
@@ -715,20 +765,20 @@ export default function Index() {
                 </span>
                 <span style={{
                   fontFamily:"'DM Mono', 'Space Mono', monospace,monospace",
-                  fontSize: isMobile ? "0.52rem" : "0.49rem",
-                  fontWeight:700, letterSpacing:"0.01em",
-                  color: isActive ? "var(--teg-cyan)" : "var(--teg-text-muted)",
+                  fontSize:"0.48rem",
+                  fontWeight:700, letterSpacing:"0.07em", textTransform:"uppercase",
+                  color: isActive ? "var(--cyan)" : "var(--teg-text-muted)",
                   transition:"color 0.2s",
                   pointerEvents:"none", whiteSpace:"nowrap",
                   position:"relative", zIndex:1,
                 }}>
-                  {isMobile ? b.shortLabel : b.label}
+                  {isMobile ? b.shortLabel : b.shortLabel}
                 </span>
                 {isActive && (
                   <div style={{
                       width:3, height:3, borderRadius:"50%",
-                      background:"var(--teg-cyan)",
-                      boxShadow:"0 0 5px var(--teg-cyan-subtle)",
+                      background:"var(--cyan)",
+                      boxShadow:"0 0 5px rgba(34,211,238,0.4)",
                       position:"relative", zIndex:1,
                     }} />
                 )}
