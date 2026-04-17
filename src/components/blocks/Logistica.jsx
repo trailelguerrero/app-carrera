@@ -101,9 +101,9 @@ const CONT0 = [
   {id:4,nombre:"112 Emergencias",rol:"Emergencias generales",telefono:"112",email:"",tipo:"emergencia",notas:""},
   {id:5,nombre:"Empresa Cronometraje",rol:"Proveedor cronometraje",telefono:"915 000 111",email:"info@crono.es",tipo:"proveedor",notas:"Contacto: Marcos García. Llegar a las 05:00"},
   {id:6,nombre:"Proveedor Avituallamiento",rol:"Suministro agua e isotónico",telefono:"900 111 222",email:"pedidos@avitu.es",tipo:"proveedor",notas:"Entrega 28 agosto antes de las 18:00"},
-  {id:7,nombre:"Miguel Torres",rol:"Delegado TG25",telefono:"611 222 333",email:"miguel@email.com",tipo:"staff",notas:"Responsable seguimiento corredor TG25"},
-  {id:8,nombre:"Sofía Ruiz",rol:"Delegada TG13",telefono:"611 333 444",email:"sofia@email.com",tipo:"staff",notas:"Responsable seguimiento corredor TG13"},
-  {id:9,nombre:"Rubén Castro",rol:"Delegado TG7",telefono:"611 444 555",email:"ruben@email.com",tipo:"staff",notas:"Responsable seguimiento corredor TG7"},
+  {id:7,nombre:"Miguel Torres",rol:"Delegado TG25",telefono:"611 222 333",email:"miguel@trailelguerrero.es",tipo:"staff",notas:"Responsable seguimiento corredor TG25"},
+  {id:8,nombre:"Sofía Ruiz",rol:"Delegada TG13",telefono:"611 333 444",email:"sofia@trailelguerrero.es",tipo:"staff",notas:"Responsable seguimiento corredor TG13"},
+  {id:9,nombre:"Rubén Castro",rol:"Delegado TG7",telefono:"611 444 555",email:"ruben@trailelguerrero.es",tipo:"staff",notas:"Responsable seguimiento corredor TG7"},
 ];
 const INC0 = [];
 const CK0 = [

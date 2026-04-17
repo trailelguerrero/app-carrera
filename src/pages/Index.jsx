@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from "react";
-import ReadmeModal  from "../components/blocks/ReadmeModal";
 import ErrorBoundary from "../components/ErrorBoundary";
 const DiaCarrera = lazy(() => import("../components/blocks/DiaCarrera"));
 import OnboardingModal from "../components/blocks/OnboardingModal";
@@ -376,7 +375,6 @@ export default function Index() {
   const [showChangePin, setShowChangePin]   = useState(false);
   const [showMoreNav, setShowMoreNav]       = useState(false);
   const [activeBlock, setActiveBlock]       = useState("dashboard");
-  const [readmeBlock, setReadmeBlock]     = useState(null);
   const [showDiaCarrera, setShowDiaCarrera] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(
     () => !localStorage.getItem("teg_onboarding_done")
@@ -612,34 +610,7 @@ export default function Index() {
               }}>🏁{!isMobile && <span style={{letterSpacing:".04em"}}>DÍA D</span>}</button>
             )}
 
-            {activeBlock !== "dashboard" && (
-              <>
-                <button onClick={() => setReadmeBlock(activeBlock)} style={{
-                  background:"transparent", border:"1px solid var(--teg-border)",
-                  color:"var(--teg-text-muted)", borderRadius:8,
-                  padding:"0.2rem 0.45rem", cursor:"pointer", height:28,
-                  fontFamily:"var(--font-mono)", fontSize:"0.52rem", fontWeight:700,
-                  display:"flex", alignItems:"center", gap:"0.2rem", transition:"all .15s",
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor="rgba(167,139,250,0.4)"; e.currentTarget.style.color="var(--violet)"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor="var(--teg-border)"; e.currentTarget.style.color="var(--teg-text-muted)"; }}
-                >📖{!isMobile && " DOC"}</button>
 
-                <button onClick={async () => {
-                  const { exportBlockToPdf } = await import("../components/blocks/PdfExport");
-                  exportBlockToPdf(activeBlock);
-                }} style={{
-                  background:"transparent", border:"1px solid var(--teg-border)",
-                  color:"var(--teg-text-muted)", borderRadius:8,
-                  padding:"0.2rem 0.45rem", cursor:"pointer", height:28,
-                  fontFamily:"var(--font-mono)", fontSize:"0.52rem", fontWeight:700,
-                  display:"flex", alignItems:"center", gap:"0.2rem", transition:"all .15s",
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor="rgba(52,211,153,0.4)"; e.currentTarget.style.color="var(--green)"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor="var(--teg-border)"; e.currentTarget.style.color="var(--teg-text-muted)"; }}
-                >📄{!isMobile && " PDF"}</button>
-              </>
-            )}
 
             {/* Settings pill */}
             <button
@@ -900,8 +871,7 @@ export default function Index() {
         )}
 
         {/* MODALS */}
-        {readmeBlock && <ReadmeModal block={readmeBlock} onClose={() => setReadmeBlock(null)} />}
-        {showDiaCarrera && <DiaCarrera onClose={() => setShowDiaCarrera(false)} />}
+          {showDiaCarrera && <DiaCarrera onClose={() => setShowDiaCarrera(false)} />}
         {showOnboarding && <OnboardingModal onClose={cerrarOnboarding} onNavigate={(id) => { handleBlockChange(id); cerrarOnboarding(); }} />}
         {showChangePin && <ChangePinModal onClose={() => setShowChangePin(false)} />}
       </div>

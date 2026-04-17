@@ -84,8 +84,15 @@ export default function DiaCarrera({ onClose }) {
         <div>
           <div className="dc-title">🏔️ Día de Carrera</div>
           <div className="dc-sub">
-            {config.nombre} · {hora} ·{" "}
-            <span style={{color:"var(--green)"}}>{presentes}/{confirmados.length} presentes</span>
+            {config.nombre} ·{" "}
+            <span style={{color:"var(--cyan)"}}>
+              {(() => {
+                const ev = getEventDate(config);
+                const dias = Math.ceil((ev - new Date()) / 86400000);
+                return dias === 0 ? "¡HOY!" : dias > 0 ? `${dias}d para el evento` : ev.toLocaleDateString("es-ES",{day:"numeric",month:"long"});
+              })()}
+            </span>
+            {" "}· {hora} · <span style={{color:"var(--green)"}}>{presentes}/{confirmados.length} presentes</span>
           </div>
         </div>
         <button onClick={onClose} style={{

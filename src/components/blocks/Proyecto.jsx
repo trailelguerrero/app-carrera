@@ -134,7 +134,13 @@ const iniciales = (nombre) => nombre.split(" ").map(n => n[0]).slice(0,2).join("
 // ─── APP ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const [tab, setTab]         = useState("dashboard");
-  const [rawTareas, setTareas]   = useData(LS+"_tareas", TAREAS0);
+  // Guard de inicialización: solo insertar tareas por defecto la primera vez
+  const tareasDefault = (() => {
+    if (typeof window !== "undefined" && localStorage.getItem("teg_proyecto_initialized")) return [];
+    if (typeof window !== "undefined") localStorage.setItem("teg_proyecto_initialized", "1");
+    return TAREAS0;
+  })();
+  const [rawTareas, setTareas]   = useData(LS+"_tareas", tareasDefault);
   const [rawHitos, setHitos]     = useData(LS+"_hitos", HITOS0);
   const [rawEquipo, setEquipo]   = useData(LS+"_equipo", EQUIPO0);
   const [eventCfg]               = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);

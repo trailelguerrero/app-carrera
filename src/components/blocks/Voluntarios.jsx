@@ -64,9 +64,9 @@ const PUESTOS_DEFAULT = [
 ];
 
 const VOLUNTARIOS_DEFAULT = [
-  { id: 1, nombre: "María García López", telefono: "612345678", email: "maria@email.com", talla: "S", puestoId: 1, rol: "responsable", estado: "confirmado", coche: true, notas: "Experiencia 3 ediciones anteriores", fechaRegistro: "2026-02-15" },
-  { id: 2, nombre: "Carlos Martínez", telefono: "623456789", email: "carlos@email.com", talla: "L", puestoId: 2, rol: "apoyo", estado: "confirmado", coche: false, notas: "", fechaRegistro: "2026-02-20" },
-  { id: 3, nombre: "Ana Rodríguez", telefono: "634567890", email: "ana@email.com", talla: "M", puestoId: 3, rol: "responsable", estado: "pendiente", coche: true, notas: "Habla inglés", fechaRegistro: "2026-03-01" },
+  { id: 1, nombre: "María García López", telefono: "612345678", email: "maria@trailelguerrero.es", talla: "S", puestoId: 1, rol: "responsable", estado: "confirmado", coche: true, notas: "Experiencia 3 ediciones anteriores", fechaRegistro: "2026-02-15" },
+  { id: 2, nombre: "Carlos Martínez", telefono: "623456789", email: "carlos@trailelguerrero.es", talla: "L", puestoId: 2, rol: "apoyo", estado: "confirmado", coche: false, notas: "", fechaRegistro: "2026-02-20" },
+  { id: 3, nombre: "Ana Rodríguez", telefono: "634567890", email: "ana@trailelguerrero.es", talla: "M", puestoId: 3, rol: "responsable", estado: "pendiente", coche: true, notas: "Habla inglés", fechaRegistro: "2026-03-01" },
 ];
 
 // useData maneja la persistencia automáticamente
@@ -490,7 +490,8 @@ export default function App() {
   const deletePuesto = (id) => { setPuestos(prev => prev.filter(p => p.id !== id)); setVoluntarios(prev => prev.map(v => v.puestoId === id ? { ...v, puestoId: null } : v)); };
 
   const volsFiltrados = useMemo(() => voluntarios.filter(v => {
-    const matchBusqueda = !busqueda || v.nombre.toLowerCase().includes(busqueda.toLowerCase()) || v.telefono.includes(busqueda);
+    const nombreCompleto = (v.nombre + " " + (v.apellidos||"")).toLowerCase();
+    const matchBusqueda = !busqueda || nombreCompleto.includes(busqueda.toLowerCase()) || (v.telefono||"").includes(busqueda);
     const matchEstado = filtroEstado === "todos" || v.estado === filtroEstado;
     const matchPuesto = filtroPuesto === "todos" || String(v.puestoId) === filtroPuesto || (filtroPuesto === "sin-asignar" && !v.puestoId);
     return matchBusqueda && matchEstado && matchPuesto;
@@ -1138,7 +1139,7 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ fontSize:"0.74rem", fontWeight:600,
                           whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
-                          {v.nombre||"Sin nombre"}
+                          {v.nombre||"Sin nombre"}{v.apellidos ? (" "+v.apellidos) : ""}
                         </div>
                         <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.56rem",
                           color:"var(--text-muted)" }}>{v.telefono||"—"}</div>
@@ -1634,6 +1635,7 @@ function TabTallas({ stats, voluntarios }) {
 function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
   const [puestoSeleccionado, setPuestoSeleccionado] = useState("todos");
   const [ultimoGuardado, setUltimoGuardado] = useState(null);
+  const [busquedaDiaD, setBusquedaDiaD] = useState("");
 
   const marcarPresencia = (id, presente) => {
     onUpdateVol(id, { presente });
@@ -1642,9 +1644,14 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
   };
 
   // Incluir confirmados Y pendientes — pendientes aparecen con distinción visual
-  const volsFiltrados = puestoSeleccionado === "todos"
-    ? voluntarios.filter(v => v.estado === "confirmado" || v.estado === "pendiente")
-    : voluntarios.filter(v => String(v.puestoId) === puestoSeleccionado && (v.estado === "confirmado" || v.estado === "pendiente"));
+  const volsFiltrados = (() => {
+    const base = puestoSeleccionado === "todos"
+      ? voluntarios.filter(v => v.estado === "confirmado" || v.estado === "pendiente")
+      : voluntarios.filter(v => String(v.puestoId) === puestoSeleccionado && (v.estado === "confirmado" || v.estado === "pendiente"));
+    if (!busquedaDiaD.trim()) return base;
+    const q = busquedaDiaD.toLowerCase();
+    return base.filter(v => (v.nombre + " " + (v.apellidos||"")).toLowerCase().includes(q) || (v.telefono||"").includes(q));
+  })();
 
   const presentes = voluntarios.filter(v => v.presente && v.estado === "confirmado").length;
 
@@ -1660,6 +1667,19 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
         </div>
       </div>
 
+      <div style={{ marginBottom:".6rem" }}>
+        <input
+          value={busquedaDiaD}
+          onChange={e => setBusquedaDiaD(e.target.value)}
+          placeholder="Buscar voluntario por nombre o teléfono…"
+          style={{
+            width:"100%", padding:".45rem .75rem", borderRadius:8,
+            border:"1px solid var(--border)", background:"var(--surface2)",
+            color:"var(--text)", fontFamily:"var(--font-mono)", fontSize:".72rem",
+            outline:"none",
+          }}
+        />
+      </div>
       <div className="filter-pill-group" style={{ marginBottom: "1rem" }}>
         <button
           className={"filter-pill" + (puestoSeleccionado === "todos" ? " active" : "")}
@@ -1695,7 +1715,7 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
                 {v.presente && <span style={{ color: "#000", fontSize: "0.75rem", fontWeight: 700 }}>✓</span>}
               </button>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: "0.82rem", color: v.presente ? "var(--green)" : "var(--text)" }}>{v.nombre}</div>
+                <div style={{ fontWeight: 600, fontSize: "0.82rem", color: v.presente ? "var(--green)" : "var(--text)" }}>{v.nombre}{v.apellidos ? (" "+v.apellidos) : ""}</div>
                 <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-muted)" }}>
                   {puesto?.nombre || "Sin puesto"} · {v.telefono}
                 </div>
