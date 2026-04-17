@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { usePaginacion } from "@/lib/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { eventDateStr } from "@/lib/eventUtils";
@@ -622,6 +623,7 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
   ];
   const ms=useMemo(()=>material.map(m=>{const a=asigs.filter(x=>x.materialId===m.id);const asig=a.reduce((s,x)=>s+x.cantidad,0);const ent=a.filter(x=>x.estado==="entregado").reduce((s,x)=>s+x.cantidad,0);return{...m,asig,ent,def:Math.max(asig-m.stock,0)}}),[material,asigs]);
   const mf=useMemo(()=>{
+  const { items: mfPag, total: totalMat, PaginadorUI: PagMat } = usePaginacion(mf, 20);
     let list=cat==="todas"?ms:ms.filter(m=>m.categoria===cat);
     if(ordenAlfa) list=[...list].sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es"));
     return list;
@@ -679,10 +681,10 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
               </div>);
             })}
           </div>
-        ):(
+        ):(<>
           <div className="card p0"><div className="ox"><table className="tbl">
             <thead><tr><th style={{width:22}}></th><th>Material</th><th>Categoría</th><th className="tr">Stock</th><th className="tr">Asignado</th><th className="tr">Déficit</th></tr></thead>
-            <tbody>{mf.map((m,i,arr)=>(
+            <tbody>{mfPag.map((m,i,arr)=>(
               <tr key={m.id} className={m.def>0?"ra":""} style={{cursor:"pointer"}} onClick={()=>abrirFicha("mat",m)}>
                 <td onClick={e=>e.stopPropagation()} style={{padding:"0.3rem 0.4rem"}}>
                   {/* Icono siempre visible — Kinetik Ops Fase E */}
@@ -713,7 +715,8 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
               </tr>
             ))}</tbody>
           </table></div></div>
-        )}
+          <PagMat />
+        </>)}
       </>):(
         <div className="card p0"><div className="ox"><table className="tbl">
           <thead><tr><th>Material</th><th>Puesto destino</th><th className="tr">Cantidad</th><th>Estado</th></tr></thead>

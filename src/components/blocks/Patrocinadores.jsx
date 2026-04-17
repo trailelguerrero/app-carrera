@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { usePaginacion } from "@/lib/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { useData } from "@/lib/dataService";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
@@ -595,6 +596,7 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
 function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, setFiltroNivel, filtroEstado, setFiltroEstado, onEditar, onDetalle, onDelete, onNuevo, updateEstado, ordenAlfa, setOrdenAlfa }) {
   const [vistaKanban, setVistaKanban] = useState(false);
   const patsOrdenados = ordenAlfa ? [...pats].sort((a,b) => a.nombre.localeCompare(b.nombre,"es")) : pats;
+  const { items: patsPaginados, total: totalPats, PaginadorUI } = usePaginacion(patsOrdenados, 12);
   return (
     <>
       <div className="ph">
@@ -694,7 +696,7 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
       {!vistaKanban && (
       <div style={{ display: "flex", flexDirection: "column", gap: ".55rem" }}>
         {patsOrdenados.length === 0 && <div className="empty">No hay patrocinadores con estos filtros</div>}
-        {patsOrdenados.map(p => {
+        {patsPaginados.map(p => {
           if (!p) return null;
           const cfg = getCfg(p.nivel) || NIVEL_CFG.Especie;
           const ecfg = ESTADO_CFG[p.estado] || ESTADO_CFG.prospecto;
@@ -747,6 +749,7 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
             </div>
           );
         })}
+        <PaginadorUI />
       </div>
       )}
     </>

@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { usePaginacion } from "@/lib/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import dataService, { useData } from "@/lib/dataService";
 
@@ -239,6 +240,9 @@ export default function App() {
       return true;
     }).sort((a,b) => (a.fechaLimite||"").localeCompare(b.fechaLimite||""));
   }, [tareas, filtroArea, filtroResponsable, filtroEstado, filtroPrioridad, busqueda]);
+
+  // Fase F — Paginación Kinetik Ops (vista lista)
+  const { items: tareasPag, total: totalTareas, PaginadorUI } = usePaginacion(tareasFiltradas, 15);
 
   // ── CRUD ───────────────────────────────────────────────────────────────────
   const saveTarea = (t) => {
@@ -822,7 +826,7 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
       {/* ── VISTA LISTA ── */}
       {vista === "lista" && (
         <div style={{display:"flex",flexDirection:"column",gap:".4rem"}}>
-          {tareas.map(t => {
+          {tareasPag.map(t => {
             const area = getArea(t.area);
             const resp = equipo.find(e => e.id===t.responsableId);
             const dias = t.fechaLimite ? diasHasta(t.fechaLimite) : null;
@@ -883,6 +887,7 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
               </div>
             );
           })}
+          <PaginadorUI />
         </div>
       )}
 

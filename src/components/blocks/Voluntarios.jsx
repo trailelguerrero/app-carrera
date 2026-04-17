@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { usePaginacion } from "@/lib/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { getEventDate } from "@/lib/eventUtils";
@@ -1201,6 +1202,9 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
     return 0;
   });
 
+  // Fase F — Paginación Kinetik Ops
+  const { items: volsPaginados, total: totalVols, PaginadorUI } = usePaginacion(volsOrdenados, 20);
+
   // Grupos para la vista agrupada por estado
   const GRUPOS_ESTADO = [
     { id:"confirmado", label:"Confirmados", color:"var(--green)",  bg:"rgba(52,211,153,.08)"  },
@@ -1268,7 +1272,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
       </div>
 
       {/* Listado agrupado por estado — cada grupo colapsable */}
-      {volsOrdenados.length === 0 ? (
+      {volsPaginados.length === 0 && volsOrdenados.length === 0 ? (
         <div style={{ textAlign:"center", color:"var(--text-muted)", padding:"2rem",
           fontFamily:"var(--font-mono)", fontSize:"0.75rem",
           background:"var(--surface)", border:"1px solid var(--border)",
@@ -1278,7 +1282,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
       ) : (
         <div style={{ display:"flex", flexDirection:"column", gap:".6rem" }}>
           {GRUPOS_ESTADO.map(grupo => {
-            const items = volsOrdenados.filter(v => v.estado === grupo.id);
+            const items = volsPaginados.filter(v => v.estado === grupo.id);
             if (items.length === 0) return null;
             const collapsed = colapsados[grupo.id];
             return (
@@ -1410,7 +1414,8 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
               </div>
             );
           })}
-        </div>
+            <PaginadorUI />
+      </div>
       )}
 
     </>
