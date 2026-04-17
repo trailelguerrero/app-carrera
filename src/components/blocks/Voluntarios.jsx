@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import EmptyState from "@/components/EmptyState";
 import { usePaginacion } from "@/lib/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
@@ -1281,12 +1282,12 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
 
       {/* Listado agrupado por estado — cada grupo colapsable */}
       {volsPaginados.length === 0 && volsOrdenados.length === 0 ? (
-        <div style={{ textAlign:"center", color:"var(--text-muted)", padding:"2rem",
-          fontFamily:"var(--font-mono)", fontSize:"0.75rem",
-          background:"var(--surface)", border:"1px solid var(--border)",
-          borderRadius:"var(--radius-sm)" }}>
-          No hay voluntarios con estos filtros
-        </div>
+        <EmptyState
+          svg="people" color="var(--cyan)"
+          title="Sin voluntarios"
+          sub="No hay voluntarios que coincidan con los filtros activos"
+          action={<button className="btn btn-ghost btn-sm" onClick={onNuevo}>+ Añadir voluntario</button>}
+        />
       ) : (
         <div style={{ display:"flex", flexDirection:"column", gap:".6rem" }}>
           {GRUPOS_ESTADO.map(grupo => {

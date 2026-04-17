@@ -63,6 +63,43 @@ export const BLOCK_CSS = `
   ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
   ::-webkit-scrollbar-corner { background: transparent; }
 
+  /* ── Empty states — SVG ilustrado ──────────────────────────────────────── */
+  .empty {
+    text-align: center;
+    padding: 2.5rem 1.5rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: .72rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .5rem;
+  }
+  .empty-icon-wrap {
+    width: 56px; height: 56px;
+    border-radius: 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: .25rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  }
+  .empty-title {
+    font-family: var(--font-display);
+    font-size: .82rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin: 0;
+  }
+  .empty-sub {
+    font-family: var(--font-mono);
+    font-size: .62rem;
+    color: var(--text-dim);
+    max-width: 220px;
+    line-height: 1.5;
+    text-align: center;
+  }
+
   /* ── Block shell ────────────────────────────────────────────────────────── */
   .block-container {
     padding: 1rem;

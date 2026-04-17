@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import EmptyState from "@/components/EmptyState";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { createPortal } from "react-dom";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
@@ -888,14 +889,21 @@ export default function Documentos() {
 
         {/* ── Document list ── */}
         {isGestion ? null : (!busqGlobal && catDocs.length === 0) ? (
-          <div className="doc-empty">
-            <div className="doc-empty-icon">{busqueda ? "🔍" : catInfo.icon}</div>
-            <div className="doc-empty-text">
-              {busqueda
-                ? `Sin resultados para "${busqueda}"`
-                : `No hay documentos en ${catInfo.label}`}
-            </div>
-          </div>
+          <EmptyState
+            svg={busqueda ? "search" : "docs"}
+            color={catInfo.color}
+            title={busqueda ? `Sin resultados` : `Sin documentos`}
+            sub={busqueda
+              ? `No se encontró "${busqueda}" en ${catInfo.label}`
+              : `Sube el primer documento a ${catInfo.label}`}
+            action={!busqueda && (
+              <button className="btn btn-ghost btn-sm"
+                style={{ fontSize:".65rem" }}
+                onClick={() => setUploadOpen(true)}>
+                + Subir documento
+              </button>
+            )}
+          />
         ) : busqGlobal ? null : (
           <>
             {busqueda && (

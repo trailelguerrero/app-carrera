@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import EmptyState from "@/components/EmptyState";
 import { usePaginacion } from "@/lib/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import dataService, { useData } from "@/lib/dataService";
@@ -821,7 +822,14 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
       </div>
 
       {/* Vistas */}
-      {tareas.length === 0 && <div className="empty">No hay tareas con estos filtros</div>}
+      {tareas.length === 0 && (
+        <EmptyState
+          svg="tasks" color="var(--violet)"
+          title="Sin tareas"
+          sub="No hay tareas que coincidan con los filtros activos"
+          action={<button className="btn btn-ghost btn-sm" onClick={() => setModal({tipo:"tarea",data:null})}>+ Nueva tarea</button>}
+        />
+      )}
 
       {/* ── VISTA LISTA ── */}
       {vista === "lista" && (

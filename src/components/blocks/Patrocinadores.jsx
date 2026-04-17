@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import EmptyState from "@/components/EmptyState";
 import { usePaginacion } from "@/lib/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { useData } from "@/lib/dataService";
@@ -695,7 +696,14 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
       {/* ── LISTA ── */}
       {!vistaKanban && (
       <div style={{ display: "flex", flexDirection: "column", gap: ".55rem" }}>
-        {patsOrdenados.length === 0 && <div className="empty">No hay patrocinadores con estos filtros</div>}
+        {patsOrdenados.length === 0 && (
+          <EmptyState
+            svg="handshake" color="var(--amber)"
+            title="Sin patrocinadores"
+            sub="Añade el primer patrocinador o ajusta los filtros"
+            action={<button className="btn btn-primary btn-sm" onClick={onNuevo}>+ Nuevo patrocinador</button>}
+          />
+        )}
         {patsPaginados.map(p => {
           if (!p) return null;
           const cfg = getCfg(p.nivel) || NIVEL_CFG.Especie;
