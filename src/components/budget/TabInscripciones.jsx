@@ -124,7 +124,7 @@ export const TabInscripciones = ({
   const [delCodigo,  setDelCodigo]    = useState(null);
   const [importOpen, setImportOpen]   = useState(false);
   // Secciones por distancia colapsadas
-  const [colapsadas, setColapsadas]   = useState({});
+  const [colapsadas, setColapsadas]   = useState({ TG7: true, TG13: true, TG25: true }); // todas colapsadas por defecto
   const toggleDistancia = (d) => setColapsadas(p => ({...p, [d]: !p[d]}));
 
   // Cargar códigos iniciales si está vacío

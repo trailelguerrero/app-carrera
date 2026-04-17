@@ -1154,7 +1154,7 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
 // ─── TAB CHECKLIST ────────────────────────────────────────────────────────────
 function TabChecklist({ pedidos, updateLinea, abrirFicha }) {
   const [filtro,setFiltro]   = useState("todos");
-  const [pedColaps, setPedCo] = useState({}); // pedidos colapsados por id
+  const [pedColaps, setPedCo] = useState({}); // {} = todos colapsados (collapsed = !pedColaps[id])
   const todas = useMemo(()=>pedidos.flatMap(p=>p.lineas.map(l=>({...l,pedNombre:p.nombre,pedId:p.id,ped:p}))),[pedidos]);
   const filtradas = useMemo(()=>todas.filter(l=>{
     const ep=l.estadoPago||"pendiente"; const ee=l.estadoEntrega||"pendiente";
@@ -1206,7 +1206,7 @@ function TabChecklist({ pedidos, updateLinea, abrirFicha }) {
             {porPedido.map(({ ped, lineas }) => {
               const pendEnt = lineas.filter(l=>(l.estadoEntrega||"pendiente")==="pendiente").length;
               const pendPago = lineas.filter(l=>(l.estadoPago||"pendiente")==="pendiente" && l.estadoPago!=="regalo").length;
-              const collapsed = pedColaps[ped.id];
+              const collapsed = !pedColaps[ped.id]; // por defecto colapsado (undefined=false→!false=true)
               const allEntregado = pendEnt === 0;
 
               return (

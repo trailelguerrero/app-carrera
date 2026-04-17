@@ -738,9 +738,9 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
 // ─── VEHÍCULOS ────────────────────────────────────────────────────────────────
 function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,voluntariosConCoche=[]}) {
   const [vistaKanban,setVistaKanban]=useState(false);
-  const [vehColapsado,setVehCol]=useState(false);
-  const [rutasColapsadas,setRutasCol]=useState(false);
-  const [poolColapsado,setPoolCol]=useState(false);
+  const [vehColapsado,setVehCol]=useState(true); // colapsado por defecto
+  const [rutasColapsadas,setRutasCol]=useState(true); // colapsado por defecto
+  const [poolColapsado,setPoolCol]=useState(true); // colapsado por defecto
   const moverVeh=(id,dir)=>{
     if(ordenAlfa) return;
     setVeh(prev=>{const arr=[...prev];const i=arr.findIndex(x=>x.id===id);const j=i+dir;if(j<0||j>=arr.length)return arr;[arr[i],arr[j]]=[arr[j],arr[i]];return arr;});
@@ -3084,7 +3084,7 @@ function SugerenciasSimples({ inscritos, totalInscritos, conceptoDorsal, precioD
 function SugerenciasMedallas({ inscritos, totalInscritos, precioMedalla, conceptoMedalla, pedidos, onCrear, onEliminar }) {
   const [margen, setMargen]       = useState(20);
   const [modo,   setModo]         = useState("fijo");
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true); // colapsado por defecto
 
   const baseTotal       = totalInscritos || 0;
   const extra           = modo === "pct" ? Math.ceil(baseTotal * margen / 100) : margen;

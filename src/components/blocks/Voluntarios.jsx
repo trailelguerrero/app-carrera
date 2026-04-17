@@ -975,7 +975,7 @@ function AppShell({ children }) {
 
 // ─── TAB DASHBOARD ────────────────────────────────────────────────────────────
 function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol, onEditarPuesto }) {
-  const [alertasColapsadas, setAlertasColapsadas] = useState(false);
+  const [alertasColapsadas, setAlertasColapsadas] = useState(true); // colapsado por defecto
   const alertas = puestosConStats.filter(p => p.cobertura < 50);
   const cobColor = stats.coberturaGlobal >= 80 ? "c-green" : stats.coberturaGlobal >= 50 ? "c-amber" : "c-red";
 
