@@ -642,8 +642,11 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
           <button className={cls("btn",!vistaAsig?"btn-cyan":"btn-ghost")} onClick={()=>setVistaAsig(false)}>Catálogo<span style={{marginLeft:"0.3rem",fontFamily:"var(--font-mono)",fontSize:"0.6rem",background:!vistaAsig?"rgba(0,0,0,0.15)":"var(--surface3)",padding:"0.05rem 0.35rem",borderRadius:3}}>{material.length}</span></button>
           <button className={cls("btn",vistaAsig?"btn-cyan":"btn-ghost")} onClick={()=>setVistaAsig(true)}>Asignaciones<span style={{marginLeft:"0.3rem",fontFamily:"var(--font-mono)",fontSize:"0.6rem",background:vistaAsig?"rgba(0,0,0,0.15)":"var(--surface3)",padding:"0.05rem 0.35rem",borderRadius:3}}>{asigs.length}</span></button>
           {!vistaAsig && (<>
-            <div className="log-vista-toggle">
-              {[["lista","☰"],["kanban","⬛"]].map(([v,ic])=>(<button key={v} onClick={()=>setVistaKanban(v==="kanban")} style={{padding:".3rem .55rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,background:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"rgba(34,211,238,.2)":"transparent",color:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"var(--cyan)":"var(--text-muted)"}}>{ic}</button>))}
+            <div className="filter-pill-group">
+              <button className={`filter-pill${!vistaKanban ? " active" : ""}`}
+                onClick={() => setVistaKanban(false)}>☰ Lista</button>
+              <button className={`filter-pill${vistaKanban ? " active" : ""}`}
+                onClick={() => setVistaKanban(true)}>⬛ Kanban</button>
             </div>
             <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
           </>)}
@@ -742,9 +745,12 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
       <div className="ph">
         <div><div className="pt">🚗 Vehículos y Rutas</div><div className="pd">{veh.length} vehículos · {rutas.length} rutas</div></div>
         <div className="fr g1">
-          <div className="log-vista-toggle">
-            {[["lista","☰"],["kanban","⬛"]].map(([v,ic])=>(<button key={v} onClick={()=>setVistaKanban(v==="kanban")} style={{padding:".3rem .55rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,background:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"rgba(34,211,238,.2)":"transparent",color:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"var(--cyan)":"var(--text-muted)"}}>{ic}</button>))}
-          </div>
+          <div className="filter-pill-group">
+              <button className={`filter-pill${!vistaKanban ? " active" : ""}`}
+                onClick={() => setVistaKanban(false)}>☰ Lista</button>
+              <button className={`filter-pill${vistaKanban ? " active" : ""}`}
+                onClick={() => setVistaKanban(true)}>⬛ Kanban</button>
+            </div>
           <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
           <button className="btn btn-primary" onClick={()=>abrirModal({tipo:"veh"})}>+ Vehículo</button>
           <button className="btn btn-amber" onClick={()=>abrirModal({tipo:"ruta"})}>+ Ruta</button>
@@ -909,9 +915,12 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
       <div className="ph">
         <div><div className="pt">⏱️ Timeline del Día</div><div className="pd">{tl.filter(t=>t.estado==="completado").length}/{tl.length} completadas · {config?.fecha ? new Date(config.fecha).toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"}) : eventDateStr(config)}</div></div>
         <div className="fr g1">
-          <div className="log-vista-toggle">
-            {[["lista","☰"],["kanban","⬛"]].map(([v,ic])=>(<button key={v} onClick={()=>setVistaKanban(v==="kanban")} style={{padding:".3rem .55rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,background:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"rgba(34,211,238,.2)":"transparent",color:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"var(--cyan)":"var(--text-muted)"}}>{ic}</button>))}
-          </div>
+          <div className="filter-pill-group">
+              <button className={`filter-pill${!vistaKanban ? " active" : ""}`}
+                onClick={() => setVistaKanban(false)}>☰ Lista</button>
+              <button className={`filter-pill${vistaKanban ? " active" : ""}`}
+                onClick={() => setVistaKanban(true)}>⬛ Kanban</button>
+            </div>
           <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
           <button className="btn btn-primary" onClick={()=>abrirModal({tipo:"tl"})}>+ Tarea</button>
         </div>
@@ -2392,9 +2401,10 @@ const CSS = `
   .ox{overflow-x:auto} .fr{display:flex;align-items:center;flex-wrap:wrap} .fb{display:flex;align-items:center;justify-content:space-between}
   .g1{gap:.5rem} .f6{font-weight:600} .tr{text-align:right} .mono{font-family:var(--font-mono)} .muted{color:var(--text-muted)} .xs{font-size:.62rem}
   .sl{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--text-dim);margin-bottom:.5rem;font-family:var(--font-mono)}
-  .chips{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.85rem}
-  .chip{padding:.3rem .7rem;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);font-family:var(--font-mono);font-size:.62rem;font-weight:700;cursor:pointer;transition:all .15s}
-  .chip:hover{border-color:var(--border-light);color:var(--text)} .chip.ca{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-dim)}
+  .chips{display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.85rem}
+  .chip{padding:.28rem .7rem;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-family:var(--font-mono);font-size:.62rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;transition:all .15s;min-height:28px;display:inline-flex;align-items:center;gap:.3rem}
+  .chip:hover{border-color:var(--border-light);color:var(--text)}
+  .chip.ca{border-color:rgba(34,211,238,.45);color:var(--cyan);background:rgba(34,211,238,.1);box-shadow:0 0 10px rgba(34,211,238,.1)}
   .pbadge{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:.12rem .4rem;font-family:var(--font-mono);font-size:.6rem;color:var(--text-muted)}
   .vcard{padding:.85rem;margin-bottom:.5rem} .vh{display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem}
   .vi{font-size:1.5rem;flex-shrink:0} .vn{font-weight:700;font-size:.88rem} .vm{font-size:.62rem;color:var(--text-muted)}

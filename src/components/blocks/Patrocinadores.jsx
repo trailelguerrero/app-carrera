@@ -603,36 +603,56 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
           <div className="pd">{todosLen} registrados · {pats.length} mostrados</div>
         </div>
         <div style={{display:"flex",gap:".5rem",alignItems:"center"}}>
-          <div style={{display:"flex",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:"var(--r-sm)",overflow:"hidden"}}>
-            {[["lista","☰ Lista"],["kanban","⬛ Kanban"]].map(([v,ic])=>(
-              <button key={v} onClick={()=>setVistaKanban(v==="kanban")}
-                style={{padding:".3rem .65rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,
-                  background:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"rgba(245,158,11,.2)":"transparent",
-                  color:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"#f59e0b":"var(--text-muted)"}}>
-                {ic}
-              </button>
-            ))}
+          <div className="filter-pill-group">
+            <button className={`filter-pill${!vistaKanban ? " active" : ""}`}
+              onClick={() => setVistaKanban(false)}>☰ Lista</button>
+            <button className={`filter-pill${vistaKanban ? " active" : ""}`}
+              onClick={() => setVistaKanban(true)}>⬛ Kanban</button>
           </div>
           <button className={`btn btn-sm ${ordenAlfa?"btn-gold":"btn-ghost"}`} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
           <button className="btn btn-primary" onClick={onNuevo}>+ Nuevo patrocinador</button>
         </div>
       </div>
 
-      {/* Filtros */}
-      <div className="card" style={{ marginBottom: ".75rem" }}>
-        <div style={{ display: "flex", gap: ".6rem", flexWrap: "wrap", alignItems: "center" }}>
-          <input className="inp" placeholder="🔍 Buscar por nombre, contacto o sector..." value={search}
-            onChange={e => setSearch(e.target.value)} style={{ maxWidth: 300 }} />
-          <select className="inp" value={filtroNivel} onChange={e => setFiltroNivel(e.target.value)} style={{ width: "auto" }}>
-            <option value="todos">Todos los niveles</option>
-            {NIVELES.map(n => <option key={n} value={n}>{NIVEL_CFG[n].icon} {n}</option>)}
-          </select>
-          <select className="inp" value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)} style={{ width: "auto" }}>
-            <option value="todos">Todos los estados</option>
-            {ESTADOS.map(e => <option key={e} value={e}>{ESTADO_CFG[e].label}</option>)}
-          </select>
+      {/* Filtros — Kinetik Ops quick-filter pills */}
+      <div style={{ marginBottom:".75rem", display:"flex", flexDirection:"column", gap:"0.45rem" }}>
+        <input className="inp" placeholder="Buscar por nombre, contacto o sector…" value={search}
+          onChange={e => setSearch(e.target.value)} style={{ maxWidth:320, fontSize:"0.8rem" }} />
+        <div className="filter-pill-group">
+          {/* Estado */}
+          {[
+            { id:"todos",      label:"Todos" },
+            { id:"prospecto",  label:"Prospecto" },
+            { id:"negociando", label:"Negociando" },
+            { id:"confirmado", label:"Confirmado" },
+            { id:"cobrado",    label:"Cobrado" },
+          ].map(({ id, label }) => (
+            <button key={id}
+              className={`filter-pill${filtroEstado === id ? " active" : ""}`}
+              onClick={() => setFiltroEstado(id)}>
+              {label}
+            </button>
+          ))}
+          <div className="filter-pill-sep" />
+          {/* Nivel */}
+          <button className={`filter-pill${filtroNivel === "todos" ? " active" : ""}`}
+            onClick={() => setFiltroNivel("todos")}>Todos</button>
+          {NIVELES.map(n => (
+            <button key={n}
+              className={`filter-pill${filtroNivel === n ? " active" : ""}`}
+              onClick={() => setFiltroNivel(n)}>
+              {NIVEL_CFG[n].icon} {n}
+            </button>
+          ))}
           {(search || filtroNivel !== "todos" || filtroEstado !== "todos") && (
-            <button className="btn btn-ghost" onClick={() => { setSearch(""); setFiltroNivel("todos"); setFiltroEstado("todos"); }}>✕ Limpiar</button>
+            <>
+              <div className="filter-pill-sep" />
+              <button className="filter-pill"
+                onClick={() => { setSearch(""); setFiltroNivel("todos"); setFiltroEstado("todos"); }}
+                style={{ color:"var(--red)", borderColor:"rgba(248,113,113,0.3)" }}>
+                ✕ Limpiar
+              </button>
+            </>
           )}
         </div>
       </div>

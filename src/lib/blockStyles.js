@@ -239,6 +239,58 @@ export const BLOCK_CSS = `
     transition: opacity .15s;
   }
   .tabs-wrap.scrolled::before { opacity: 1; }
+  /* ── Quick Filters — Kinetik Ops pill-outline style ─────────────────────── */
+  /* Uso: <div class="filter-pill-group"> <button class="filter-pill [active]"> */
+  .filter-pill-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    align-items: center;
+  }
+  .filter-pill {
+    padding: 0.3rem 0.75rem;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+    min-height: 30px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .filter-pill:hover {
+    border-color: var(--border-light);
+    color: var(--text);
+  }
+  .filter-pill.active {
+    background: rgba(34,211,238,0.1);
+    border-color: rgba(34,211,238,0.45);
+    color: var(--cyan);
+    box-shadow: 0 0 10px rgba(34,211,238,0.12);
+  }
+  /* Variantes de color activo */
+  .filter-pill.active-amber  { background: rgba(251,191,36,0.1);  border-color: rgba(251,191,36,0.45);  color: var(--amber);  box-shadow: 0 0 10px rgba(251,191,36,0.12); }
+  .filter-pill.active-green  { background: rgba(52,211,153,0.1);  border-color: rgba(52,211,153,0.45);  color: var(--green);  box-shadow: 0 0 10px rgba(52,211,153,0.12); }
+  .filter-pill.active-red    { background: rgba(248,113,113,0.1); border-color: rgba(248,113,113,0.45); color: var(--red);    box-shadow: 0 0 10px rgba(248,113,113,0.12); }
+  .filter-pill.active-violet { background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.45); color: var(--violet); box-shadow: 0 0 10px rgba(167,139,250,0.12); }
+  /* Separador visual entre grupos de pills */
+  .filter-pill-sep {
+    width: 1px; height: 18px;
+    background: var(--border);
+    flex-shrink: 0;
+    margin: 0 0.15rem;
+  }
+
+
   .tab-btn {
     padding: 0.4rem 0.9rem;
     border-radius: 20px;

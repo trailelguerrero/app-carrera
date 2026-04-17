@@ -662,16 +662,11 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
           <div className="pd">{tareas.length} de {todasTareas.length} tareas · click para ver ficha</div>
         </div>
         <div style={{display:"flex",gap:".5rem",alignItems:"center"}}>
-          <div style={{display:"flex",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:"var(--r-sm)",overflow:"hidden"}}>
-            {[["lista","☰ Lista"],["kanban","⬛ Kanban"]].map(([v,ic])=>(
-              <button key={v} onClick={()=>setVista(v)}
-                style={{padding:".3rem .65rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,
-                  background: vista===v ? "rgba(167,139,250,.2)" : "transparent",
-                  color: vista===v ? "var(--violet)" : "var(--text-muted)",
-                  transition:"all .15s", whiteSpace:"nowrap"}}>
-                {ic}
-              </button>
-            ))}
+          <div className="filter-pill-group">
+            <button className={`filter-pill${vista==="lista"   ? " active" : ""}`}
+              onClick={() => setVista("lista")}>☰ Lista</button>
+            <button className={`filter-pill${vista==="kanban"  ? " active" : ""}`}
+              onClick={() => setVista("kanban")}>⬛ Kanban</button>
           </div>
           <button className="btn btn-primary" onClick={() => setModal({tipo:"tarea",data:null})}>+ Nueva tarea</button>
         </div>
@@ -700,17 +695,10 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
           {/* Botón de filtros — muestra resumen de activos */}
           <button
             onClick={() => setFiltrosAbiertos(v=>!v)}
-            style={{
-              display:"flex",alignItems:"center",gap:".4rem",
-              background: hayFiltros ? "rgba(167,139,250,.12)" : "var(--surface2)",
-              border: hayFiltros ? "1px solid rgba(167,139,250,.35)" : "1px solid var(--border)",
-              borderRadius:6, padding:".32rem .65rem",
-              fontFamily:"var(--font-mono)",fontSize:".65rem",fontWeight:700,
-              color: hayFiltros ? "var(--violet)" : "var(--text-muted)",
-              cursor:"pointer",transition:"all .15s",flexShrink:0,whiteSpace:"nowrap",
-            }}>
+            className={`filter-pill${hayFiltros ? " active-violet" : ""}`}
+            style={{ flexShrink:0 }}>
             🎛 {hayFiltros ? `${resumenFiltros.length} filtro${resumenFiltros.length!==1?"s":""}` : "Filtrar"}
-            <span style={{fontSize:".55rem",opacity:.7}}>{filtrosAbiertos?"▲":"▼"}</span>
+            <span style={{fontSize:".55rem",opacity:.7,marginLeft:2}}>{filtrosAbiertos?"▲":"▼"}</span>
           </button>
 
           {/* Limpiar — solo si hay filtros activos */}

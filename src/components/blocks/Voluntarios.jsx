@@ -1218,35 +1218,51 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
         <button className="btn btn-primary" onClick={onNuevo}>+ Nuevo voluntario</button>
       </div>
 
-      {/* Filtros + ordenación */}
-      <div className="card" style={{ marginBottom: "0.85rem" }}>
-        <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", alignItems: "center" }}>
-          <input className="inp" placeholder="🔍 Buscar por nombre o teléfono..." value={busqueda}
-            onChange={e => setBusqueda(e.target.value)} style={{ maxWidth: 240 }} />
-          <select className="inp" value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)} style={{ width: "auto" }}>
-            <option value="todos">Todos los estados</option>
-            {Object.entries(ESTADOS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
-          <select className="inp" value={filtroPuesto} onChange={e => setFiltroPuesto(e.target.value)} style={{ width: "auto" }}>
-            <option value="todos">Todos los puestos</option>
-            <option value="sin-asignar">Sin asignar</option>
-            {puestos.map(p => <option key={p.id} value={String(p.id)}>{p.nombre}</option>)}
-          </select>
+      {/* Filtros + ordenación — Kinetik Ops quick-filter pills */}
+      <div style={{ marginBottom:"0.85rem", display:"flex", flexDirection:"column", gap:"0.5rem" }}>
+        {/* Búsqueda */}
+        <input className="inp" placeholder="Buscar por nombre o teléfono…" value={busqueda}
+          onChange={e => setBusqueda(e.target.value)}
+          style={{ maxWidth: 320, fontSize:"0.8rem" }} />
+        {/* Pills de estado */}
+        <div style={{ display:"flex", flexWrap:"wrap", gap:"0.35rem", alignItems:"center" }}>
+          {[
+            { id:"todos",      label:"Todos" },
+            { id:"confirmado", label:"Confirmados" },
+            { id:"pendiente",  label:"Pendientes" },
+            { id:"cancelado",  label:"Cancelados" },
+          ].map(({ id, label }) => (
+            <button key={id}
+              className={`filter-pill${filtroEstado === id ? " active" : ""}`}
+              onClick={() => setFiltroEstado(id)}>
+              {label}
+              {id !== "todos" && (
+                <span style={{ fontWeight:400, opacity:0.7 }}>
+                  {id === "confirmado" && `·${voluntarios.filter(v=>v.estado==="confirmado").length}`}
+                  {id === "pendiente"  && `·${voluntarios.filter(v=>v.estado==="pendiente").length}`}
+                  {id === "cancelado"  && `·${voluntarios.filter(v=>v.estado==="cancelado").length}`}
+                </span>
+              )}
+            </button>
+          ))}
+          <div className="filter-pill-sep" />
+          {/* Pills de puesto */}
+          <button className={`filter-pill${filtroPuesto === "todos" ? " active" : ""}`}
+            onClick={() => setFiltroPuesto("todos")}>Todos los puestos</button>
+          <button className={`filter-pill${filtroPuesto === "sin-asignar" ? " active" : ""}`}
+            onClick={() => setFiltroPuesto("sin-asignar")}>Sin asignar</button>
+          <div className="filter-pill-sep" />
           {/* Ordenación */}
-          <div style={{ display: "flex", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", overflow: "hidden", marginLeft: "auto" }}>
-            {[["nombre", "A–Z Nombre"], ["puesto", "Por puesto"]].map(([v, label]) => (
-              <button key={v} onClick={() => setOrden(v)}
-                style={{ padding: "0.28rem 0.65rem", border: "none", cursor: "pointer",
-                  fontFamily: "var(--font-mono)", fontSize: "0.62rem", fontWeight: 700,
-                  background: orden === v ? "rgba(34,211,238,0.15)" : "transparent",
-                  color: orden === v ? "var(--cyan)" : "var(--text-muted)",
-                  transition: "all .15s", whiteSpace: "nowrap" }}>
-                {label}
-              </button>
-            ))}
-          </div>
+          <button className={`filter-pill${orden === "nombre" ? " active" : ""}`}
+            onClick={() => setOrden("nombre")}>A–Z</button>
+          <button className={`filter-pill${orden === "puesto" ? " active" : ""}`}
+            onClick={() => setOrden("puesto")}>Por puesto</button>
           {(busqueda || filtroEstado !== "todos" || filtroPuesto !== "todos") && (
-            <button className="btn btn-ghost" onClick={() => { setBusqueda(""); setFiltroEstado("todos"); setFiltroPuesto("todos"); }}>✕ Limpiar</button>
+            <button className="filter-pill"
+              onClick={() => { setBusqueda(""); setFiltroEstado("todos"); setFiltroPuesto("todos"); }}
+              style={{ color:"var(--red)", borderColor:"rgba(248,113,113,0.3)" }}>
+              ✕ Limpiar
+            </button>
           )}
         </div>
       </div>
