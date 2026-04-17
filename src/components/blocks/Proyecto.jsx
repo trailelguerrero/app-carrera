@@ -398,7 +398,7 @@ export default function App() {
 
 // ─── TAB DASHBOARD ────────────────────────────────────────────────────────────
 function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, updEstado, isMobile, setFiltroArea, setFiltroResponsable, gestiones }) {
-  const [cargaColapsada, setCargaColapsada] = useState(false);
+  const [cargaColapsada, setCargaColapsada] = useState(true); // colapsado por defecto
   return (
     <>
       {/* Semáforo por área */}
