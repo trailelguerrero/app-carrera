@@ -71,16 +71,15 @@ export default function Dashboard() {
     loadData();
 
     // Refresco silencioso cada 60 segundos
-    intervalRef.current = setInterval(() => loadData(true), 60000);
+    // Sin intervalo — app monousuario, refresca al navegar (teg-sync)
 
-    const handler     = () => loadData(true);
-    const saveHandler = (e) => { if (e.detail?.status === "saved") loadData(true); };
+    const handler = () => loadData(true);
     window.addEventListener("teg-sync", handler);
-    window.addEventListener("teg-save-status", saveHandler);
+    // No escuchar teg-save-status: cada guardado dispararía una recarga completa
+    // El refresco cada 5min + teg-sync al navegar entre módulos es suficiente
     return () => {
       clearInterval(intervalRef.current);
       window.removeEventListener("teg-sync", handler);
-      window.removeEventListener("teg-save-status", saveHandler);
     };
   }, [loadData]);
 
