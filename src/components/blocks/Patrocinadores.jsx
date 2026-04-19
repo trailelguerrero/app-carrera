@@ -320,7 +320,7 @@ export default function App() {
               ordenAlfa={ordenPats} setOrdenAlfa={setOrdenPats}
             />
           )}
-          {tab==="pipeline" && <TabPipeline pats={pats} onEditar={openEditar} onDetalle={openDetalle} updateEstado={updateEstado} ordenAlfa={ordenPats}  onNuevo={onNuevo} />}
+          {tab==="pipeline" && <TabPipeline pats={pats} onEditar={openEditar} onDetalle={openDetalle} updateEstado={updateEstado} ordenAlfa={ordenPats} onNuevo={openNuevo} />}
           {tab==="contraprestaciones" && (
             <TabContraprestaciones pats={pats} updateContraprestacion={updateContraprestacion} addContraprestacion={addContraprestacion} deleteContraprestacion={deleteContraprestacion} onDetalle={openDetalle} ordenAlfa={ordenCont} setOrdenAlfa={setOrdenCont} />
           )}
@@ -1854,13 +1854,10 @@ const CSS = `
   @media(max-width:700px) { .twocol { grid-template-columns: 1fr; } }
 
   /* Estado vacío */
-  .empty { text-align: center; padding: .85rem; color: var(--text-dim); font-family: var(--font-mono); font-size: .68rem; }
 
   /* Patrocinadores — solo estilos específicos de este bloque */
 
   /* Page layout */
-  .ph{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap}
-  .pt{font-size:1.5rem;font-weight:900;letter-spacing:-0.02em} .pd{font-family:var(--font-mono);font-size:.62rem;color:var(--text-muted);margin-top:.25rem}
 
   /* KPIs propios (clases c-* para colores) */
 
@@ -1889,9 +1886,8 @@ const CSS = `
   /* Pipeline — scroll horizontal, 3 col principales visibles */
   .kanban{display:flex;gap:.6rem;overflow-x:auto;padding-bottom:.5rem;align-items:flex-start}
   .kanban::-webkit-scrollbar{height:4px}.kanban::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-  .kancol{min-width:220px;flex:0 0 220px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);display:flex;flex-direction:column}
+  .kancol{min-width:220px;flex:0 0 220px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);display:flex;flex-direction:column;min-height:300px}
   @media(min-width:900px){.kancol{min-width:240px;flex:1 1 240px}}
-  .kancol{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);display:flex;flex-direction:column;min-height:300px}
   .kancol-header{padding:.75rem;border-top:3px solid transparent;border-bottom:1px solid var(--border)}
   .kancol-body{flex:1;padding:.4rem;display:flex;flex-direction:column;gap:.4rem}
   .kancard{background:var(--surface);border:1px solid var(--border);border-top:2px solid transparent;border-radius:var(--r-sm);padding:.65rem;transition:all .15s;cursor:pointer}
@@ -1915,7 +1911,6 @@ const CSS = `
   .btn-gold{background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3)} .btn-gold:hover{background:rgba(245,158,11,.25)}
 
   /* Utils propios */
-  .fr{display:flex;align-items:center;flex-wrap:wrap}
   .mt1{margin-top:.5rem} .mb1{margin-bottom:.5rem}
   .f6{font-weight:600}
   ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:var(--surface)}::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:2px}
