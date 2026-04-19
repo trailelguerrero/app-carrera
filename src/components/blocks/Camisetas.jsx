@@ -800,15 +800,15 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",
         gap:".5rem", marginBottom:".85rem" }}>
         {[
-          { key:"corredoresPlat", icon:"🏃", label:"Corredores", sub:"Plataforma externa",
+          { key:"corredoresPlat", icon:"🏃", label:"Corredores", sub:"Datos de corredores importados desde la plataforma de inscripción",
             color:TC.corredor.color, dim:TC.corredor.dim,
             total: fuentesActivas.corredoresPlat ? TALLAS.reduce((s,t)=>s+(corredoresExt[t]||0),0) : 0 },
-          { key:"extrasCorredor", icon:"👕", label:"Extras corredor", sub:"Pedidos manuales",
+          { key:"extrasCorredor", icon:"👕", label:"Extras corredor", sub:"Pedidos creados manualmente en esta app",
             color:TC.corredor.color, dim:TC.corredor.dim,
             total: fuentesActivas.extrasCorredor
               ? pedidos.filter(p=>p.lineas?.some(l=>l.tipo==="corredor")).reduce((s,p)=>s+p.lineas.filter(l=>l.tipo==="corredor").reduce((ss,l)=>ss+l.cantidad,0),0)
               : 0 },
-          { key:"voluntariosAuto", icon:"👥", label:"Voluntarios", sub:"Sincronizado auto",
+          { key:"voluntariosAuto", icon:"👥", label:"Voluntarios", sub:"Voluntarios con talla asignada en el módulo de Voluntarios",
             color:TC.voluntario.color, dim:TC.voluntario.dim,
             total: fuentesActivas.voluntariosAuto ? voluntariosActivos.length : 0 },
           { key:"extrasVoluntario", icon:"👥+", label:"Extras voluntario", sub:"Pedidos manuales",
@@ -816,7 +816,7 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
             total: fuentesActivas.extrasVoluntario
               ? pedidos.filter(p=>p.lineas?.some(l=>l.tipo==="voluntario")).reduce((s,p)=>s+p.lineas.filter(l=>l.tipo==="voluntario").reduce((ss,l)=>ss+l.cantidad,0),0)
               : 0 },
-          { key:"ninoManual", icon:"👶", label:"Niño/a", sub:"Entrada manual",
+          { key:"ninoManual", icon:"👶", label:"Niño/a", sub:"Tallas introducidas manualmente por categoría",
             color:TC.nino.color, dim:TC.nino.dim,
             total: fuentesActivas.ninoManual ? TALLAS_NINO.reduce((s,t)=>s+(ninoExt[t]||0),0) : 0 },
           { key:"extrasNino", icon:"👶+", label:"Extras niño/a", sub:"Pedidos manuales",
@@ -1005,8 +1005,15 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
             padding:".6rem .9rem",background:"var(--surface2)",
             border:"none",cursor:"pointer",textAlign:"left",
             borderBottom:secColapsadas.fuentes?"none":"1px solid var(--border)"}}>
-          <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:".72rem",flex:1}}>
+          <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:".72rem",flex:1,
+            display:"flex",alignItems:"center",gap:".5rem"}}>
             📋 Desglose por fuente
+            <span style={{fontSize:".58rem",fontWeight:500,
+              color:Object.values(fuentesActivas).filter(Boolean).length===6?"var(--green)":"var(--amber)",
+              padding:".06rem .35rem",borderRadius:10,
+              background:Object.values(fuentesActivas).filter(Boolean).length===6?"var(--green-dim)":"var(--amber-dim)"}}>
+              {Object.values(fuentesActivas).filter(Boolean).length}/6 activas
+            </span>
           </span>
           <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-dim)",
             transform:secColapsadas.fuentes?"rotate(-90deg)":"rotate(0deg)",

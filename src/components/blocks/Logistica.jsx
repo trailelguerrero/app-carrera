@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import EmptyState from "@/components/EmptyState";
 import { usePaginacion } from "@/lib/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
@@ -905,6 +905,12 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
 // ─── TIMELINE ─────────────────────────────────────────────────────────────────
 function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,config}) {
   const [vistaKanban,setVistaKanban]=useState(false);
+  const [ahora,setAhora] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setAhora(new Date()), 30000);
+    return () => clearInterval(t);
+  }, []);
+  const horaActual = ahora.toTimeString().slice(0,5); // "HH:MM"
   const sorted=useMemo(()=>{
     let arr=[...tl];
     if(ordenAlfa) arr.sort((a,b)=>(a.titulo||"").localeCompare(b.titulo||"","es"));
@@ -960,8 +966,24 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
       ):(
       <div className="tlcon">{sorted.map((t,i)=>{
         const color=TLC[t.categoria]||"var(--text-muted)";const ec=ESTADO_COLORES[t.estado];
+        // Insertar línea "AHORA" entre la tarea anterior y la actual
+        const esPrimeroFuturo = !ordenAlfa && t.hora >= horaActual &&
+          (i === 0 || sorted[i-1].hora < horaActual);
         return(
-          <div key={t.id} className={cls("tlrow",t.estado==="completado"&&"tldone",t.estado==="bloqueado"&&"tlblk")}>
+          <div key={t.id} style={{display:"contents"}}>
+          {esPrimeroFuturo && (
+            <div style={{display:"flex",alignItems:"center",gap:".6rem",margin:".3rem 0",padding:"0 .5rem"}}>
+              <div style={{flex:1,height:1,background:"rgba(34,211,238,0.35)"}}/>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
+                color:"var(--cyan)",padding:".12rem .5rem",borderRadius:20,
+                background:"rgba(34,211,238,0.1)",border:"1px solid rgba(34,211,238,0.3)",
+                whiteSpace:"nowrap"}}>
+                ● AHORA {horaActual}
+              </span>
+              <div style={{flex:1,height:1,background:"rgba(34,211,238,0.35)"}}/>
+            </div>
+          )}
+          <div className={cls("tlrow",t.estado==="completado"&&"tldone",t.estado==="bloqueado"&&"tlblk")}>
             <div className="tlleft">
               <div className="tltime">{t.hora}</div>
               <div className="tlconn">
@@ -985,6 +1007,7 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
                 <span className="tlresp">👤 {t.responsable}</span>
               </div>
             </div>
+          </div>
           </div>
         );
       })}</div>

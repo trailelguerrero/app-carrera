@@ -300,7 +300,37 @@ const Presupuesto = () => {
         <div className="block-header">
           <div>
             <h1 className="block-title">💰 Presupuesto</h1>
-            <div className="block-title-sub">{config.nombre} {config.edicion} · Gestión económica</div>
+            <div className="block-title-sub">
+              {config.nombre} {config.edicion} · Gestión económica
+              {conceptos.length > 0 && (
+                <span style={{
+                  marginLeft:".6rem", padding:".08rem .45rem",
+                  borderRadius:10, fontFamily:"var(--font-mono)", fontSize:".55rem",
+                  background: (() => {
+                    const c = conceptos.filter(c => c.activo !== false);
+                    const conReal = c.filter(c => c.costeTotal > 0).length;
+                    return conReal === c.length ? "var(--green-dim)" : "var(--amber-dim)";
+                  })(),
+                  color: (() => {
+                    const c = conceptos.filter(c => c.activo !== false);
+                    const conReal = c.filter(c => c.costeTotal > 0).length;
+                    return conReal === c.length ? "var(--green)" : "var(--amber)";
+                  })(),
+                  border: "1px solid",
+                  borderColor: (() => {
+                    const c = conceptos.filter(c => c.activo !== false);
+                    const conReal = c.filter(c => c.costeTotal > 0).length;
+                    return conReal === c.length ? "rgba(52,211,153,.3)" : "rgba(251,191,36,.3)";
+                  })(),
+                }}>
+                  {(() => {
+                    const c = conceptos.filter(c => c.activo !== false);
+                    const conReal = c.filter(c => c.costeTotal > 0).length;
+                    return `${conReal}/${c.length} conceptos con coste`;
+                  })()}
+                </span>
+              )}
+            </div>
           </div>
           <div className="block-actions">
             <button

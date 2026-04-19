@@ -1006,6 +1006,7 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
 
 // ─── TAB GANTT ────────────────────────────────────────────────────────────────
 function TabGantt({ tareas, hitos, equipo, setModal, setFicha, setFiltroArea, setTabParent }) {
+  const [filtroGantt, setFiltroGantt] = useState("todas");
   // Simplified visual calendar: months from today to event + 1
   const months = [];
   let d = new Date(TODAY);
@@ -1018,15 +1019,24 @@ function TabGantt({ tareas, hitos, equipo, setModal, setFicha, setFiltroArea, se
   const pct = (date) => Math.max(0, Math.min(100, (new Date(date) - new Date("2026-03-01")) / 86400000 / totalDays * 100));
 
   // Group tasks by area, take earliest fechaLimite and latest fechaLimite per area
-  const areaRanges = AREAS.map(a => {
+  const TODAY_g = new Date();
+  const areaRanges_all = AREAS.map(a => {
     const at = tareas.filter(t => t.area===a.id && t.fechaLimite);
     if (!at.length) return null;
     const sorted = [...at].sort((x,y) => x.fechaLimite.localeCompare(y.fechaLimite));
+    const tieneVencidas = at.some(t => t.estado !== "completado" && new Date(t.fechaLimite) < TODAY_g);
+    const tienePendientes = at.some(t => t.estado === "pendiente" || t.estado === "en curso");
+    const todasCompletadas = at.every(t => t.estado === "completado");
     const start = sorted[0].fechaLimite;
     const end = sorted[sorted.length-1].fechaLimite;
     const done = at.filter(t => t.estado==="completado").length;
     return { ...a, start, end, total:at.length, done, pctDone: Math.round(done/at.length*100) };
   }).filter(Boolean);
+  const areaRanges = filtroGantt === "todas" ? areaRanges_all
+    : filtroGantt === "vencidas" ? areaRanges_all.filter(a => a.tieneVencidas)
+    : filtroGantt === "pendientes" ? areaRanges_all.filter(a => a.tienePendientes)
+    : filtroGantt === "completadas" ? areaRanges_all.filter(a => a.todasCompletadas)
+    : areaRanges_all;
 
   const todayPct = pct(TODAY.toISOString().split("T")[0]);
 
@@ -1037,7 +1047,17 @@ function TabGantt({ tareas, hitos, equipo, setModal, setFicha, setFiltroArea, se
           <div className="pt">📅 Calendario del Proyecto</div>
           <div className="pd">Marzo — Septiembre 2026 · Vista por área</div>
         </div>
-        <div style={{display:"flex",gap:".5rem"}}>
+        <div style={{display:"flex",gap:".5rem",flexWrap:"wrap",alignItems:"center"}}>
+          <div className="filter-pill-group">
+            <button className={"filter-pill"+(filtroGantt==="todas"?" active":"")} onClick={()=>setFiltroGantt("todas")}>Todas</button>
+            <button className={"filter-pill"+(filtroGantt==="vencidas"?" active":"")}
+              style={filtroGantt==="vencidas"?{color:"var(--red)",borderColor:"rgba(248,113,113,.5)",background:"var(--red-dim)"}:{}}
+              onClick={()=>setFiltroGantt("vencidas")}>Vencidas</button>
+            <button className={"filter-pill"+(filtroGantt==="pendientes"?" active":"")} onClick={()=>setFiltroGantt("pendientes")}>Pendientes</button>
+            <button className={"filter-pill"+(filtroGantt==="completadas"?" active":"")}
+              style={filtroGantt==="completadas"?{color:"var(--green)",borderColor:"rgba(52,211,153,.5)",background:"var(--green-dim)"}:{}}
+              onClick={()=>setFiltroGantt("completadas")}>Completadas</button>
+          </div>
           <button className="btn btn-ghost" onClick={() => setModal({tipo:"hito",data:null})}>+ Hito</button>
           <button className="btn btn-primary" onClick={() => setModal({tipo:"tarea",data:null})}>+ Tarea</button>
         </div>
