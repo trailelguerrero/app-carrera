@@ -2283,9 +2283,21 @@ function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setV
 
 function MF({title,fields,init,onSave,onClose}) {
   const [form,setForm]=useState({...init});
-  const upd=(k,v)=>setForm(p=>({...p,[k]:v}));
-  const req=fields.find(f=>f.l.includes("*"));
-  // Bloquear scroll del fondo y desplazar al top al abrir el modal
+  const [errs,setErrs]=useState({});
+  const upd=(k,v)=>{ setForm(p=>({...p,[k]:v})); if(errs[k]) setErrs(p=>({...p,[k]:null})); };
+
+  const validar=()=>{
+    const e={};
+    fields.forEach(f=>{
+      if(!f.l.includes("*")) return;
+      const v=form[f.k];
+      if(f.t==="num"){ if(!v && v!==0) e[f.k]="Requerido"; }
+      else if(!v || (typeof v==="string" && !v.trim())) e[f.k]="Requerido";
+    });
+    setErrs(e);
+    return Object.keys(e).length===0;
+  };
+
   // sin scroll-lock — causa freeze en Android
   useEffect(() => {
     const m = document.querySelector("main");
@@ -2299,20 +2311,25 @@ function MF({title,fields,init,onSave,onClose}) {
         <div className="modal-body">
           {fields.map(f=>(
             <div key={f.k}>
-              <label className="fl">{f.l}</label>
+              <label className="fl" style={errs[f.k]?{color:"var(--red)"}:{}}>{f.l}</label>
               {f.t==="sel"?(
-                <select className="inp" value={form[f.k]} onChange={e=>upd(f.k,f.num?parseInt(e.target.value):e.target.value)}>
+                <select className="inp" value={form[f.k]} onChange={e=>upd(f.k,f.num?parseInt(e.target.value):e.target.value)}
+                  style={errs[f.k]?{borderColor:"var(--red)"}:{}}>
                   {(f.o||[]).map((o,i)=><option key={o} value={o}>{f.lb?.[i]||o}</option>)}
                 </select>
               ):(
-                <input className="inp" type={f.t==="num"?"number":f.t||"text"} value={form[f.k]||""} onChange={e=>upd(f.k,f.t==="num"?parseFloat(e.target.value)||0:e.target.value)} placeholder={f.l.replace(" *","")} />
+                <input className="inp" type={f.t==="num"?"number":f.t||"text"} value={form[f.k]||""}
+                  onChange={e=>upd(f.k,f.t==="num"?parseFloat(e.target.value)||0:e.target.value)}
+                  placeholder={f.l.replace(" *","")}
+                  style={errs[f.k]?{borderColor:"var(--red)"}:{}} />
               )}
+              {errs[f.k] && <div className="xs mono" style={{color:"var(--red)",marginTop:".2rem"}}>⚠ {errs[f.k]}</div>}
             </div>
           ))}
         </div>
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
-          <button className="btn btn-cyan" onClick={()=>{if(!req||form[req.k])onSave(form);}}>
+          <button className="btn btn-cyan" onClick={()=>{ if(validar()) onSave(form); }}>
             {init?.id?"💾 Guardar":"➕ Añadir"}
           </button>
         </div>
@@ -2327,12 +2344,13 @@ function ModalRuta({data,veh,rutas,setRutas,onClose,locs}) {
     const base = data || {nombre:"",vehiculoId:veh[0]?.id||1,horaInicio:"05:00",paradas:[]};
     return { ...base, paradas: Array.isArray(base.paradas) ? base.paradas : [] };
   });
+  const [formErr,setFormErr]=useState(false);
   const upd=(k,v)=>setForm(p=>({...p,[k]:v}));
   const addP=()=>setForm(p=>({...p,paradas:[...p.paradas,{puesto:locNames[0],hora:"06:00",material:""}]}));
   const updP=(i,k,v)=>setForm(p=>({...p,paradas:p.paradas.map((x,j)=>j===i?{...x,[k]:v}:x)}));
   const delP=(i)=>setForm(p=>({...p,paradas:p.paradas.filter((_,j)=>j!==i)}));
   const save=()=>{
-    if(!form.nombre)return;
+    if(!form.nombre){ setFormErr(true); return; }
     const item={...form,vehiculoId:parseInt(form.vehiculoId)};
     if(item.id)setRutas(p=>p.map(r=>r.id===item.id?item:r));
     else setRutas(p=>[...p,{...item,id:genId(rutas)}]);
@@ -2345,7 +2363,13 @@ function ModalRuta({data,veh,rutas,setRutas,onClose,locs}) {
         <div className="modal-header"><span className="mtit">{data?"✏️ Editar ruta":"🗺️ Nueva ruta"}</span><button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button></div>
         <div className="modal-body">
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem"}}>
-            <div><label className="fl">Nombre *</label><input className="inp" value={form.nombre} onChange={e=>upd("nombre",e.target.value)} placeholder="Nombre de la ruta"/></div>
+            <div>
+              <label className="fl" style={{color:!form.nombre&&formErr?"var(--red)":undefined}}>Nombre *</label>
+              <input className="inp" value={form.nombre} onChange={e=>{upd("nombre",e.target.value);setFormErr(false);}}
+                placeholder="Nombre de la ruta"
+                style={{borderColor:!form.nombre&&formErr?"var(--red)":undefined}}/>
+              {!form.nombre&&formErr&&<div className="xs mono" style={{color:"var(--red)",marginTop:".2rem"}}>⚠ El nombre es obligatorio</div>}
+            </div>
             <div><label className="fl">Hora de salida</label><input className="inp" type="time" value={form.horaInicio} onChange={e=>upd("horaInicio",e.target.value)}/></div>
           </div>
           <div><label className="fl">Vehículo</label>

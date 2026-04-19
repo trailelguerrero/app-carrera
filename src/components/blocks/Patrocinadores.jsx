@@ -1297,7 +1297,16 @@ function ModalPat({ data, onSave, onClose }) {
   };
   const validar = () => {
     const e = {};
-    if (!form.nombre.trim()) e.nombre = "Requerido";
+    if (!form.nombre.trim())
+      e.nombre = "El nombre de la empresa es obligatorio";
+    if (!form.contacto.trim() && (form.estado === "confirmado" || form.estado === "cobrado"))
+      e.contacto = "Añade un contacto para patrocinadores confirmados";
+    if (form.importe < 0)
+      e.importe = "El importe no puede ser negativo";
+    if (form.importeCobrado > form.importe && form.importe > 0)
+      e.importeCobrado = "Lo cobrado no puede superar el importe acordado";
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
+      e.email = "Formato de email inválido";
     setErr(e);
     return Object.keys(e).length === 0;
   };
@@ -1333,8 +1342,12 @@ function ModalPat({ data, onSave, onClose }) {
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: ".75rem" }}>
             <div>
-              <label className="fl">Persona de contacto</label>
-              <input className="inp" value={form.contacto} onChange={e => upd("contacto", e.target.value)} placeholder="Nombre y apellidos" />
+              <label className="fl" style={{ color: err.contacto ? "var(--red)" : undefined }}>
+                Persona de contacto
+              </label>
+              <input className="inp" value={form.contacto} onChange={e => upd("contacto", e.target.value)} placeholder="Nombre y apellidos"
+                style={{ borderColor: err.contacto ? "var(--red)" : undefined }} />
+              {err.contacto && <div className="xs mono" style={{ color:"var(--red)", marginTop:".2rem" }}>⚠ {err.contacto}</div>}
             </div>
             <div>
               <label className="fl">Teléfono</label>
@@ -1343,18 +1356,26 @@ function ModalPat({ data, onSave, onClose }) {
           </div>
 
           <div>
-            <label className="fl">Email</label>
-            <input className="inp" value={form.email} onChange={e => upd("email", e.target.value)} placeholder="contacto@empresa.com" />
+            <label className="fl" style={{ color: err.email ? "var(--red)" : undefined }}>Email</label>
+            <input className="inp" value={form.email} onChange={e => upd("email", e.target.value)} placeholder="contacto@empresa.com"
+              style={{ borderColor: err.email ? "var(--red)" : undefined }} />
+            {err.email && <div className="xs mono" style={{ color:"var(--red)", marginTop:".2rem" }}>⚠ {err.email}</div>}
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: ".75rem" }}>
             <div>
-              <label className="fl">Importe (€)</label>
-              <input className="inp" type="number" value={form.importe} onChange={e => upd("importe", parseFloat(e.target.value) || 0)} />
+              <label className="fl" style={{ color: err.importe ? "var(--red)" : undefined }}>Importe (€)</label>
+              <input className="inp" type="number" min="0" value={form.importe}
+                onChange={e => upd("importe", parseFloat(e.target.value) || 0)}
+                style={{ borderColor: err.importe ? "var(--red)" : undefined }} />
+              {err.importe && <div className="xs mono" style={{ color:"var(--red)", marginTop:".2rem" }}>⚠ {err.importe}</div>}
             </div>
             <div>
-              <label className="fl">Cobrado (€)</label>
-              <input className="inp" type="number" value={form.importeCobrado} onChange={e => upd("importeCobrado", parseFloat(e.target.value) || 0)} />
+              <label className="fl" style={{ color: err.importeCobrado ? "var(--red)" : undefined }}>Cobrado (€)</label>
+              <input className="inp" type="number" min="0" value={form.importeCobrado}
+                onChange={e => upd("importeCobrado", parseFloat(e.target.value) || 0)}
+                style={{ borderColor: err.importeCobrado ? "var(--red)" : undefined }} />
+              {err.importeCobrado && <div className="xs mono" style={{ color:"var(--red)", marginTop:".2rem" }}>⚠ {err.importeCobrado}</div>}
             </div>
             <div>
               <label className="fl">

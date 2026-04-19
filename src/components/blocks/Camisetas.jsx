@@ -1410,6 +1410,7 @@ function ModalPedido({ data, coste, onSave, onClose }) {
   const addL     = ()      => setForm(p=>({...p,lineas:[...p.lineas,{id:genId(p.lineas),tipo:"corredor",talla:"M",cantidad:1,precioVenta:0,estadoPago:"pendiente",estadoEntrega:"pendiente"}]}));
   const delL     = (i)     => setForm(p=>({...p,lineas:p.lineas.filter((_,j)=>j!==i)}));
   const {totalVenta,totalCoste,beneficio,benRealizado,benPotencial,costeRegalos} = calcPedido(form,coste);
+  const [intentoGuardar, setIntentoGuardar] = useState(false);
   const valido = form.nombre.trim()&&form.lineas.length>0;
   return (
     <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose()}>
@@ -1417,7 +1418,16 @@ function ModalPedido({ data, coste, onSave, onClose }) {
         <div className="modal-header"><span className="modal-title">{esEdit?"✏️ Editar pedido":"👕 Nuevo pedido de camiseta"}</span><button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button></div>
         <div className="modal-body" style={{gap:".75rem"}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
-            <div style={{gridColumn:"1/-1"}}><label className="fl">Nombre *</label><input className="inp" value={form.nombre} onChange={e=>upd("nombre",e.target.value)} placeholder="Nombre completo" /></div>
+            <div style={{gridColumn:"1/-1"}}>
+              <label className="fl" style={{color:intentoGuardar&&!form.nombre.trim()?"var(--red)":undefined}}>Nombre *</label>
+              <input className="inp" value={form.nombre}
+                onChange={e=>{upd("nombre",e.target.value);setIntentoGuardar(false);}}
+                placeholder="Nombre completo"
+                style={{borderColor:intentoGuardar&&!form.nombre.trim()?"var(--red)":undefined}}/>
+              {intentoGuardar&&!form.nombre.trim()&&(
+                <div className="xs mono" style={{color:"var(--red)",marginTop:".2rem"}}>⚠ El nombre es obligatorio</div>
+              )}
+            </div>
             <div><label className="fl">Teléfono</label><input className="inp" value={form.telefono} onChange={e=>upd("telefono",e.target.value)} placeholder="6XX XXX XXX" /></div>
             <div><label className="fl">Email</label><input className="inp" value={form.email} onChange={e=>upd("email",e.target.value)} placeholder="email@ejemplo.com" /></div>
           </div>
@@ -1468,7 +1478,7 @@ function ModalPedido({ data, coste, onSave, onClose }) {
           </div>
           <div><label className="fl">Notas</label><input className="inp" value={form.notas} onChange={e=>upd("notas",e.target.value)} placeholder="Observaciones opcionales…" /></div>
         </div>
-        <div className="modal-footer"><button className="btn btn-ghost" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={()=>valido&&onSave(form)} disabled={!valido} style={{opacity:valido?1:.5}}>{esEdit?"Guardar cambios":"Crear pedido"}</button></div>
+        <div className="modal-footer"><button className="btn btn-ghost" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={()=>{ if(valido) onSave(form); else setIntentoGuardar(true); }} style={{opacity:valido?1:.65}}>{esEdit?"Guardar cambios":"Crear pedido"}</button></div>
       </div>
     </div>
   );
