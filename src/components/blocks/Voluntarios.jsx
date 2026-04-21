@@ -100,6 +100,7 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
     if (!form.telefono.trim() || !/^\d{9}$/.test(form.telefono.replace(/\s/g, ""))) e.telefono = "Teléfono de 9 dígitos";
     if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) e.email = "Email no válido";
     if (!form.talla) e.talla = "Selecciona talla";
+    if (!form.telefonoEmergencia.trim()) e.telefonoEmergencia = "Requerido para la seguridad del evento";
     setErrores(e);
     return Object.keys(e).length === 0;
   };
@@ -114,6 +115,8 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
       puestoId: form.puestoId ? parseInt(form.puestoId) : null,
       rol: "apoyo", estado: "pendiente", coche: form.coche,
       notas: "", fechaRegistro: new Date().toISOString().split("T")[0],
+      telefonoEmergencia: form.telefonoEmergencia.trim(),
+      contactoEmergencia: form.telefonoEmergencia.trim(),
     });
     setEnviado(true);
   };
@@ -373,6 +376,16 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
                 </button>
               </div>
             )}
+
+            <FormField label="🚨 Teléfono de emergencia *" error={errores.telefonoEmergencia}
+              hint="Persona a avisar en caso de incidente el día del evento">
+              <input className="pub-input" type="tel"
+                placeholder="612 345 678"
+                value={form.telefonoEmergencia}
+                onChange={e => update("telefonoEmergencia", e.target.value)}
+                inputMode="tel"
+                style={{ borderColor: errores.telefonoEmergencia ? "var(--red)" : undefined }} />
+            </FormField>
 
             <button onClick={handleSubmit}
               style={{ width: "100%", padding: "0.85rem", background: "linear-gradient(135deg, rgba(34,211,238,0.2), rgba(167,139,250,0.15))", border: "1px solid rgba(34,211,238,0.35)", borderRadius: 10, color: "var(--text)", fontFamily: "var(--font-display)", fontSize: "0.9rem", fontWeight: 800, cursor: "pointer", letterSpacing: "0.03em", transition: "all 0.18s", marginTop: "0.25rem" }}
@@ -1716,6 +1729,11 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
           <div style={{ fontFamily: "var(--font-mono)", fontSize: ".6rem", color: "var(--text-muted)" }}>
             {mostrarPuesto && puesto ? `${puesto.nombre} · ` : ""}{v.telefono || "Sin teléfono"}
           </div>
+          {(v.telefonoEmergencia || v.contactoEmergencia) && (
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:".55rem", color:"var(--red)" }}>
+              🚨 {v.telefonoEmergencia || v.contactoEmergencia}
+            </div>
+          )}
         </div>
         {v.talla && <span className="badge badge-cyan">{v.talla}</span>}
         {v.coche && <span style={{ fontSize: ".75rem" }} title="Tiene coche">🚗</span>}
@@ -1896,6 +1914,11 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
             ["📍 Puesto",     puesto?.nombre || "Sin asignar"],
             ["🗓 Registrado", v.fechaRegistro],
             ["🚗 Vehículo",   v.coche ? "Sí, tiene coche" : "No"],
+            ["🎂 Nacimiento", v.fechaNacimiento ? (() => {
+              const años = Math.floor((new Date() - new Date(v.fechaNacimiento)) / (365.25 * 86400000));
+              return `${v.fechaNacimiento} (${años} años)`;
+            })() : null],
+            ["🚨 Emergencia", v.telefonoEmergencia || v.contactoEmergencia],
           ].filter(([,val]) => val).map(([label, val]) => (
             <div key={label} style={{ display:"flex", justifyContent:"space-between",
               padding:"0.4rem 0", borderBottom:"1px solid rgba(30,45,80,0.3)" }}>
@@ -2230,6 +2253,8 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
     coche: voluntario?.coche ?? false,
     notas: voluntario?.notas || "",
     fechaRegistro: voluntario?.fechaRegistro || new Date().toISOString().split("T")[0],
+    fechaNacimiento: voluntario?.fechaNacimiento || "",
+    telefonoEmergencia: voluntario?.telefonoEmergencia || voluntario?.contactoEmergencia || "",
   });
   const [errores, setErrores] = useState({});
   const upd = (k, v) => setForm(p => ({ ...p, [k]: v }));
@@ -2239,13 +2264,14 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
     if (!form.nombre.trim()) e.nombre = "Requerido";
     if (!form.telefono.trim()) e.telefono = "Requerido";
     if (!form.talla) e.talla = "Requerido";
+    if (!form.telefonoEmergencia?.trim()) e.telefonoEmergencia = "Requerido — evento deportivo";
     setErrores(e);
     return Object.keys(e).length === 0;
   };
 
   const handleSave = () => {
     if (!validar()) return;
-    onSave({ ...form, puestoId: form.puestoId ? parseInt(form.puestoId) : null });
+    onSave({ ...form, puestoId: form.puestoId ? parseInt(form.puestoId) : null, contactoEmergencia: form.telefonoEmergencia });
   };
 
   return (
@@ -2327,11 +2353,33 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
             </button>
           </div>
 
-          <div>
-            <label className="field-label">🚨 Contacto de emergencia</label>
-            <input className="inp" type="text"
-              value={form.contactoEmergencia||""} onChange={e => upd("contactoEmergencia", e.target.value)}
-              placeholder="Nombre y teléfono (ej. Ana García · 612 345 678)" />
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:".75rem" }}>
+            <div>
+              <label className="field-label">🎂 Fecha de nacimiento</label>
+              <input className="inp" type="date"
+                value={form.fechaNacimiento || ""}
+                onChange={e => upd("fechaNacimiento", e.target.value)} />
+              {form.fechaNacimiento && (() => {
+                const años = Math.floor((new Date() - new Date(form.fechaNacimiento)) / (365.25 * 86400000));
+                return <div style={{ fontFamily:"var(--font-mono)", fontSize:".58rem",
+                  color:"var(--text-dim)", marginTop:".2rem" }}>{años} años</div>;
+              })()}
+            </div>
+            <div>
+              <label className="field-label" style={{ color: errores.telefonoEmergencia ? "var(--red)" : undefined }}>
+                🚨 Tel. emergencia *
+              </label>
+              <input className="inp" type="tel"
+                value={form.telefonoEmergencia || ""}
+                onChange={e => upd("telefonoEmergencia", e.target.value)}
+                placeholder="612 345 678"
+                inputMode="tel"
+                style={{ borderColor: errores.telefonoEmergencia ? "var(--red)" : undefined }} />
+              {errores.telefonoEmergencia && (
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:".62rem",
+                  color:"var(--red)", marginTop:".2rem" }}>⚠ {errores.telefonoEmergencia}</div>
+              )}
+            </div>
           </div>
 
           <div>
