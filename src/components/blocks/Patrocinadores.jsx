@@ -1619,17 +1619,24 @@ function DocManager({ pat, addDoc, deleteDoc, cfg }) {
               </div>
             </div>
             <div style={{ flex:1, overflow:"auto", minHeight:0 }}>
-              {preview.mime==="application/pdf" ? (
-                <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
-                  height:"60vh", gap:"1rem", color:"var(--text-muted)" }}>
-                  <span style={{ fontSize:"3rem" }}>📄</span>
-                  <div style={{ fontFamily:"var(--font-mono)", fontSize:".78rem" }}>{preview.nombre}</div>
-                  <button onClick={() => window.open(preview.blob_url || preview.data, "_blank")} style={{
-                    background:"var(--cyan)", color:"var(--bg)", border:"none", borderRadius:10,
-                    padding:".65rem 1.75rem", fontWeight:800, fontSize:".9rem", cursor:"pointer"
-                  }}>📄 Abrir PDF</button>
-                </div>
-              ) : (
+              {preview.mime==="application/pdf" ? (() => {
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                const pdfSrc = preview.blob_url || preview.data;
+                return isIOS ? (
+                  <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+                    height:"60vh", gap:"1rem", color:"var(--text-muted)" }}>
+                    <span style={{ fontSize:"3rem" }}>📄</span>
+                    <div style={{ fontFamily:"var(--font-mono)", fontSize:".78rem" }}>{preview.nombre}</div>
+                    <a href={pdfSrc} download={preview.nombre} style={{
+                      background:"var(--cyan)", color:"var(--bg)", border:"none", borderRadius:10,
+                      padding:".65rem 1.75rem", fontWeight:800, fontSize:".9rem", cursor:"pointer",
+                      textDecoration:"none", display:"inline-block",
+                    }}>⬇ Descargar PDF</a>
+                  </div>
+                ) : (
+                  <iframe src={pdfSrc} style={{ width:"100%", height:"68vh", border:"none" }} title={preview.nombre} />
+                );
+              })() : (
                 <img src={preview.blob_url || preview.data} alt={preview.nombre}
                   style={{ maxWidth:"100%", display:"block", margin:"0 auto" }} />
               )}

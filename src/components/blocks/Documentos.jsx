@@ -276,12 +276,18 @@ export default function Documentos() {
 
     // CASO 1: doc tiene blobUrl (nuevo sistema — Vercel Blob)
     if (doc.blobUrl) {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       if (esImg) {
-        // Imágenes: mostrar en modal con la URL directa
         setVisorDoc({ ...doc, _loading: false });
+      } else if (isIOS) {
+        // iOS no soporta iframe embebido — descarga directa
+        const a = document.createElement("a");
+        a.href = doc.blobUrl;
+        a.download = doc.nombre || "documento.pdf";
+        a.click();
       } else {
-        // PDFs y otros: abrir en nueva pestaña — el navegador/SO lo gestiona
-        window.open(doc.blobUrl, "_blank");
+        // Desktop y Android: mostrar en modal con iframe
+        setVisorDoc({ ...doc, _loading: false, _esPdf: true });
       }
       return;
     }
@@ -292,15 +298,25 @@ export default function Documentos() {
         || doc.nombre?.toLowerCase().endsWith(".pdf")
         || doc.data.startsWith("data:application/pdf");
       if (esPdf) {
-        try {
-          const b64 = doc.data.includes(",") ? doc.data.split(",")[1] : doc.data;
-          const bin = atob(b64);
-          const buf = new Uint8Array(bin.length);
-          for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
-          const url = URL.createObjectURL(new Blob([buf], { type: "application/pdf" }));
-          window.open(url, "_blank");
-          setTimeout(() => URL.revokeObjectURL(url), 10000);
-        } catch { window.open(doc.data, "_blank"); }
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        if (isIOS) {
+          // iOS: descarga directa
+          const a = document.createElement("a");
+          a.href = doc.data;
+          a.download = doc.nombre || "documento.pdf";
+          a.click();
+        } else {
+          try {
+            const b64 = doc.data.includes(",") ? doc.data.split(",")[1] : doc.data;
+            const bin = atob(b64);
+            const buf = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+            const url = URL.createObjectURL(new Blob([buf], { type: "application/pdf" }));
+            setVisorDoc({ ...doc, _loading: false, _esPdf: true, _objectUrl: url });
+          } catch {
+            setVisorDoc({ ...doc, _loading: false, _esPdf: true });
+          }
+        }
         return;
       }
       if (esImg) {
@@ -1109,6 +1125,12 @@ export default function Documentos() {
                   padding:".6rem 1.5rem",fontWeight:800,fontSize:".85rem",cursor:"pointer",
                 }}>⬇ Descargar</button>
               </div>
+            ) : visorDoc._esPdf ? (
+              <iframe
+                src={visorDoc._objectUrl || visorDoc.blobUrl || visorDoc.data}
+                style={{ width: "100%", height: "100%", border: "none", minHeight: "60vh" }}
+                title={visorDoc.nombre}
+              />
             ) : (visorDoc.blobUrl || visorDoc.data) ? (
               <img
                 src={visorDoc.blobUrl || visorDoc.data}
