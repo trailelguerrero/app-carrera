@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
+import { useModalClose } from "@/hooks/useModalClose";
 import EmptyState from "@/components/EmptyState";
 import { usePaginacion } from "@/lib/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
@@ -2282,6 +2283,7 @@ function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setV
 }
 
 function MF({title,fields,init,onSave,onClose}) {
+  const { closing: mfClosing, handleClose: mfHandleClose } = useModalClose(onClose);
   const [form,setForm]=useState({...init});
   const [errs,setErrs]=useState({});
   const upd=(k,v)=>{ setForm(p=>({...p,[k]:v})); if(errs[k]) setErrs(p=>({...p,[k]:null})); };
@@ -2305,9 +2307,9 @@ function MF({title,fields,init,onSave,onClose}) {
   }, []);
 
   return(
-    <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="modal">
-        <div className="modal-header"><span className="mtit">{title}</span><button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button></div>
+    <div className={`modal-backdrop${mfClosing ? " modal-backdrop-closing" : ""}`} onClick={e=>e.target===e.currentTarget&&mfHandleClose()}>
+      <div className={`modal${mfClosing ? " modal-closing" : ""}`}>
+        <div className="modal-header"><span className="mtit">{title}</span><button className="btn btn-sm btn-ghost" onClick={mfHandleClose}>✕</button></div>
         <div className="modal-body">
           {fields.map(f=>(
             <div key={f.k}>
@@ -2328,7 +2330,7 @@ function MF({title,fields,init,onSave,onClose}) {
           ))}
         </div>
         <div className="modal-footer">
-          <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-ghost" onClick={mfHandleClose}>Cancelar</button>
           <button className="btn btn-cyan" onClick={()=>{ if(validar()) onSave(form); }}>
             {init?.id?"💾 Guardar":"➕ Añadir"}
           </button>
@@ -2344,6 +2346,7 @@ function ModalRuta({data,veh,rutas,setRutas,onClose,locs}) {
     const base = data || {nombre:"",vehiculoId:veh[0]?.id||1,horaInicio:"05:00",paradas:[]};
     return { ...base, paradas: Array.isArray(base.paradas) ? base.paradas : [] };
   });
+  const { closing: rutaClosing, handleClose: rutaHandleClose } = useModalClose(onClose);
   const [formErr,setFormErr]=useState(false);
   const upd=(k,v)=>setForm(p=>({...p,[k]:v}));
   const addP=()=>setForm(p=>({...p,paradas:[...p.paradas,{puesto:locNames[0],hora:"06:00",material:""}]}));
@@ -2358,9 +2361,9 @@ function ModalRuta({data,veh,rutas,setRutas,onClose,locs}) {
   };
   // sin scroll-lock — causa freeze en Android
   return(
-    <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="modal" style={{maxWidth:560}}>
-        <div className="modal-header"><span className="mtit">{data?"✏️ Editar ruta":"🗺️ Nueva ruta"}</span><button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button></div>
+    <div className={`modal-backdrop${rutaClosing ? " modal-backdrop-closing" : ""}`} onClick={e=>e.target===e.currentTarget&&rutaHandleClose()}>
+      <div className={`modal${rutaClosing ? " modal-closing" : ""}`} style={{maxWidth:560}}>
+        <div className="modal-header"><span className="mtit">{data?"✏️ Editar ruta":"🗺️ Nueva ruta"}</span><button className="btn btn-sm btn-ghost" onClick={rutaHandleClose}>✕</button></div>
         <div className="modal-body">
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem"}}>
             <div>

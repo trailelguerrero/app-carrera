@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useModalClose } from "@/hooks/useModalClose";
 import EmptyState from "@/components/EmptyState";
 import { usePaginacion } from "@/lib/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
@@ -1069,6 +1070,7 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
 
 // ─── MODAL DETALLE ────────────────────────────────────────────────────────────
 function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContraprestacion, deleteContraprestacion, updateEstado, addDoc, deleteDoc, addEspecieItem, updateEspecieItem, deleteEspecieItem }) {
+  const { closing: detClosing, handleClose: detHandleClose } = useModalClose(onClose);
   const cfg = getCfg(pat.nivel);
   const ecfg = ESTADO_CFG[pat.estado];
   const [subTab, setSubTab] = useState("info");
@@ -1084,8 +1086,8 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
   const esPatEspecie = pat.nivel === "Especie" || pat.especie > 0;
 
   return (
-    <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal" style={{ maxWidth: 560 }}>
+    <div className={`modal-backdrop${detClosing ? " modal-backdrop-closing" : ""}`} onClick={e => e.target === e.currentTarget && detHandleClose()}>
+      <div className={`modal${detClosing ? " modal-closing" : ""}`} style={{ maxWidth: 560 }}>
         <div style={{ borderBottom: `2px solid ${cfg.color}33` }}>
           <div className="modal-header" style={{ borderBottom: "none", paddingBottom: ".5rem" }}>
             <div style={{ display: "flex", alignItems: "center", gap: ".75rem" }}>
@@ -1097,7 +1099,7 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
             </div>
             <div style={{ display: "flex", gap: ".4rem" }}>
               {subTab === "info" && <button className="btn btn-sm btn-ghost" onClick={onEditar}>✏️ Editar patrocinador</button>}
-              <button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button>
+              <button className="btn btn-sm btn-ghost" onClick={detHandleClose}>✕</button>
             </div>
           </div>
           <div style={{ display: "flex", gap: "0", padding: "0 1.4rem" }}>
@@ -1285,6 +1287,7 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
 
 // ─── MODAL PAT (crear / editar) ───────────────────────────────────────────────
 function ModalPat({ data, onSave, onClose }) {
+  const { closing: mpClosing, handleClose: mpHandleClose } = useModalClose(onClose);
   const [form, setForm] = useState(data ? { ...data } : {
     nombre: "", sector: SECTORES[0], nivel: "Plata", contacto: "", telefono: "", email: "",
     importe: 0, importeCobrado: 0, especie: 0, estado: "prospecto",
@@ -1312,11 +1315,11 @@ function ModalPat({ data, onSave, onClose }) {
   };
 
   return (
-    <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal">
+    <div className={`modal-backdrop${mpClosing ? " modal-backdrop-closing" : ""}`} onClick={e => e.target === e.currentTarget && mpHandleClose()}>
+      <div className={`modal${mpClosing ? " modal-closing" : ""}`}>
         <div className="modal-header">
           <span className="mtit">{data ? "✏️ Editar patrocinador" : "🤝 Nuevo patrocinador"}</span>
-          <button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button>
+          <button className="btn btn-sm btn-ghost" onClick={mpHandleClose}>✕</button>
         </div>
         <div className="modal-body">
           <div>
@@ -1460,7 +1463,7 @@ function ModalPat({ data, onSave, onClose }) {
           </div>
         </div>
         <div className="modal-footer">
-          <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-ghost" onClick={mpHandleClose}>Cancelar</button>
           <button className="btn btn-gold" onClick={() => { if (validar()) onSave(form); }}>
             {data ? "💾 Guardar cambios" : "🤝 Crear patrocinador"}
           </button>

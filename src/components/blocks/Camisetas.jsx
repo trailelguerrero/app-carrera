@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useModalClose } from "@/hooks/useModalClose";
 import { useData } from "@/lib/dataService";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
@@ -1400,6 +1401,7 @@ function FichaPedido({ pedido:p, coste, onClose, onEditar, onEliminar, updateLin
 
 // ─── MODAL CREAR/EDITAR ───────────────────────────────────────────────────────
 function ModalPedido({ data, coste, onSave, onClose }) {
+  const { closing: mpedClosing, handleClose: mpedHandleClose } = useModalClose(onClose);
   const esEdit = !!data?.id;
   const [form,setForm] = useState(()=>data?{...data,lineas:data.lineas.map(l=>({...l}))}:{
     nombre:"",telefono:"",email:"",notas:"",
@@ -1413,9 +1415,9 @@ function ModalPedido({ data, coste, onSave, onClose }) {
   const [intentoGuardar, setIntentoGuardar] = useState(false);
   const valido = form.nombre.trim()&&form.lineas.length>0;
   return (
-    <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="modal" style={{maxWidth:540}}>
-        <div className="modal-header"><span className="modal-title">{esEdit?"✏️ Editar pedido":"👕 Nuevo pedido de camiseta"}</span><button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button></div>
+    <div className={`modal-backdrop${mpedClosing ? " modal-backdrop-closing" : ""}`} onClick={e=>e.target===e.currentTarget&&mpedHandleClose()}>
+      <div className={`modal${mpedClosing ? " modal-closing" : ""}`} style={{maxWidth:540}}>
+        <div className="modal-header"><span className="modal-title">{esEdit?"✏️ Editar pedido":"👕 Nuevo pedido de camiseta"}</span><button className="btn btn-ghost btn-sm" onClick={mpedHandleClose}>✕</button></div>
         <div className="modal-body" style={{gap:".75rem"}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
             <div style={{gridColumn:"1/-1"}}>
@@ -1478,7 +1480,7 @@ function ModalPedido({ data, coste, onSave, onClose }) {
           </div>
           <div><label className="fl">Notas</label><input className="inp" value={form.notas} onChange={e=>upd("notas",e.target.value)} placeholder="Observaciones opcionales…" /></div>
         </div>
-        <div className="modal-footer"><button className="btn btn-ghost" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={()=>{ if(valido) onSave(form); else setIntentoGuardar(true); }} style={{opacity:valido?1:.65}}>{esEdit?"Guardar cambios":"Crear pedido"}</button></div>
+        <div className="modal-footer"><button className="btn btn-ghost" onClick={mpedHandleClose}>Cancelar</button><button className="btn btn-primary" onClick={()=>{ if(valido) onSave(form); else setIntentoGuardar(true); }} style={{opacity:valido?1:.65}}>{esEdit?"Guardar cambios":"Crear pedido"}</button></div>
       </div>
     </div>
   );

@@ -770,8 +770,14 @@ export const BLOCK_CSS = `
   }
 
   /* ── Animations ─────────────────────────────────────────────────────────── */
-  @keyframes fadeIn  { from { opacity:0 }  to { opacity:1 } }
-  @keyframes slideUp { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
+  @keyframes fadeIn   { from { opacity:0 }  to { opacity:1 } }
+  @keyframes slideUp  { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
+  @keyframes slideDown { from { opacity:1; transform:translateY(0) } to { opacity:0; transform:translateY(20px) } }
+  @keyframes fadeOut  { from { opacity:1 } to { opacity:0 } }
+
+  /* Modal closing — aplicado vía hook useModalClose */
+  .modal-closing         { animation: slideDown 0.18s cubic-bezier(0.4, 0, 1, 1) forwards !important; }
+  .modal-backdrop-closing { animation: fadeOut  0.18s ease forwards !important; }
 
   /* ── Responsive ─────────────────────────────────────────────────────────── */
   @media (max-width: 640px) {

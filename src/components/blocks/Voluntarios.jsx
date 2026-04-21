@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useModalClose } from "@/hooks/useModalClose";
 import EmptyState from "@/components/EmptyState";
 import { usePaginacion } from "@/lib/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
@@ -1732,6 +1733,7 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
 
 // ─── FICHA VOLUNTARIO ─────────────────────────────────────────────────────────
 function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClose, onEditar, onEliminar, onUpdate }) {
+  const { closing: fvClosing, handleClose: fvHandleClose } = useModalClose(onClose);
   const puesto = puestos.find(p => p.id === v.puestoId);
   const estadoColor = v.estado === "confirmado" ? "var(--green)" : v.estado === "cancelado" ? "var(--red)" : "var(--amber)";
   const iniciales = (n) => (n||"V").split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
@@ -1740,8 +1742,8 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
   const materialEnLoc = loc ? (matPorLoc[loc.nombre] || []) : [];
 
   return (
-    <div className="modal-backdrop" onClick={e => e.target===e.currentTarget && onClose()}>
-      <div className="modal" style={{ maxWidth: 460 }}>
+    <div className={`modal-backdrop${fvClosing ? " modal-backdrop-closing" : ""}`} onClick={e => e.target===e.currentTarget && fvHandleClose()}>
+      <div className={`modal${fvClosing ? " modal-closing" : ""}`} style={{ maxWidth: 460 }}>
         <div style={{ borderTop: "3px solid var(--cyan)", borderRadius: "16px 16px 0 0" }}>
           <div className="modal-header">
             <div style={{ display:"flex", alignItems:"center", gap:"0.75rem" }}>
@@ -1758,7 +1760,7 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
                 </div>
               </div>
             </div>
-            <button className="btn btn-ghost" style={{ padding:"0.2rem 0.5rem", fontSize:"1rem" }} onClick={onClose}>✕</button>
+            <button className="btn btn-ghost" style={{ padding:"0.2rem 0.5rem", fontSize:"1rem" }} onClick={fpuHandleClose}>✕</button>
           </div>
         </div>
         <div className="modal-body">
@@ -1869,6 +1871,7 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
 
 // ─── FICHA PUESTO ─────────────────────────────────────────────────────────────
 function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], onClose, onEditar, onEliminar }) {
+  const { closing: fpuClosing, handleClose: fpuHandleClose } = useModalClose(onClose);
   const asignados = voluntarios.filter(v => v.puestoId === p.id && v.estado !== "cancelado");
   const confirmados = asignados.filter(v => v.estado === "confirmado").length;
   const cobertura = p.necesarios > 0 ? Math.round(asignados.length / p.necesarios * 100) : 0;
@@ -1887,8 +1890,8 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
   );
 
   return (
-    <div className="modal-backdrop" onClick={e => e.target===e.currentTarget && onClose()}>
-      <div className="modal" style={{ maxWidth: 460 }}>
+    <div className={`modal-backdrop${fpuClosing ? " modal-backdrop-closing" : ""}`} onClick={e => e.target===e.currentTarget && fpuHandleClose()}>
+      <div className={`modal${fpuClosing ? " modal-closing" : ""}`} style={{ maxWidth: 460 }}>
         <div style={{ borderTop: "3px solid var(--violet)", borderRadius: "16px 16px 0 0" }}>
           <div className="modal-header">
             <div>
@@ -1897,7 +1900,7 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
                 {p.tipo} · {p.horaInicio} – {p.horaFin}
               </div>
             </div>
-            <button className="btn btn-ghost" style={{ padding:"0.2rem 0.5rem", fontSize:"1rem" }} onClick={onClose}>✕</button>
+            <button className="btn btn-ghost" style={{ padding:"0.2rem 0.5rem", fontSize:"1rem" }} onClick={fpuHandleClose}>✕</button>
           </div>
         </div>
         <div className="modal-body">
@@ -2085,6 +2088,7 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
 
 // ─── MODAL VOLUNTARIO ─────────────────────────────────────────────────────────
 function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
+  const { closing: mvClosing, handleClose: mvHandleClose } = useModalClose(onClose);
   // Split nombre into nombre/apellidos for display if needed
   const partes = (voluntario && voluntario.nombre) ? voluntario.nombre.split(" ") : [];
   const nombreInicial = partes[0] || "";
@@ -2120,11 +2124,11 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
   };
 
   return (
-    <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal">
+    <div className={`modal-backdrop${mvClosing ? " modal-backdrop-closing" : ""}`} onClick={e => e.target === e.currentTarget && mvHandleClose()}>
+      <div className={`modal${mvClosing ? " modal-closing" : ""}`}>
         <div className="modal-header">
           <span className="modal-title">{voluntario ? "✏️ Editar voluntario" : "➕ Nuevo voluntario"}</span>
-          <button className="btn btn-ghost" style={{ padding: "0.2rem 0.5rem" }} onClick={onClose}>✕</button>
+          <button className="btn btn-ghost" style={{ padding: "0.2rem 0.5rem" }} onClick={mvHandleClose}>✕</button>
         </div>
         <div className="modal-body">
           <div>
@@ -2229,6 +2233,7 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
 
 // ─── MODAL PUESTO ─────────────────────────────────────────────────────────────
 function ModalPuesto({ puesto, locs, onSave, onClose }) {
+  const { closing: mpuClosing, handleClose: mpuHandleClose } = useModalClose(onClose);
   const [form, setForm] = useState(puesto || {
     nombre: "", tipo: "Avituallamiento", distancias: ["Todas"],
     horaInicio: "08:00", horaFin: "15:00", necesarios: 3, responsableId: null, tiempoLimite: "", notas: ""
@@ -2239,11 +2244,11 @@ function ModalPuesto({ puesto, locs, onSave, onClose }) {
   }));
 
   return (
-    <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal">
+    <div className={`modal-backdrop${mpuClosing ? " modal-backdrop-closing" : ""}`} onClick={e => e.target === e.currentTarget && mpuHandleClose()}>
+      <div className={`modal${mpuClosing ? " modal-closing" : ""}`}>
         <div className="modal-header">
           <span className="modal-title">{puesto ? "✏️ Editar puesto" : "📍 Nuevo puesto"}</span>
-          <button className="btn btn-ghost" style={{ padding: "0.2rem 0.5rem" }} onClick={onClose}>✕</button>
+          <button className="btn btn-ghost" style={{ padding: "0.2rem 0.5rem" }} onClick={mpuHandleClose}>✕</button>
         </div>
         <div className="modal-body">
           <div style={{ marginBottom: "0.5rem" }}>

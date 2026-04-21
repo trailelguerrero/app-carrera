@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { useModalClose } from "@/hooks/useModalClose";
 import EmptyState from "@/components/EmptyState";
 import { usePaginacion } from "@/lib/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
@@ -1725,6 +1726,7 @@ function FichaRow({ label, value, color }) {
 }
 
 function FichaProyecto({ ficha, equipo, documentos, tareas, onClose, onEditar, onEliminar }) {
+  const { closing: fpClosing, handleClose: fpHandleClose } = useModalClose(onClose);
   const { tipo, data } = ficha;
   const accent = tipo === "tarea" ? "var(--violet)" : tipo === "hito" ? "var(--cyan)" : "var(--green)";
   const icon   = tipo === "tarea" ? "📋" : tipo === "hito" ? "🏁" : "👤";
@@ -1735,8 +1737,8 @@ function FichaProyecto({ ficha, equipo, documentos, tareas, onClose, onEditar, o
     <>
       <style>{`
       `}</style>
-      <div className="modal-backdrop" onClick={e => e.target===e.currentTarget && onClose()}>
-        <div className="modal">
+      <div className={`modal-backdrop${fpClosing ? " modal-backdrop-closing" : ""}`} onClick={e => e.target===e.currentTarget && fpHandleClose()}>
+        <div className={`modal${fpClosing ? " modal-closing" : ""}`}>
           <div style={{ borderTop:`3px solid ${accent}`, borderRadius:"16px 16px 0 0" }}>
             <div className="modal-header">
               <div style={{ display:"flex", alignItems:"center", gap:".6rem" }}>
@@ -1750,7 +1752,7 @@ function FichaProyecto({ ficha, equipo, documentos, tareas, onClose, onEditar, o
                   </div>
                 </div>
               </div>
-              <button className="btn btn-ghost" style={{ padding:".2rem .5rem" }} onClick={onClose}>✕</button>
+              <button className="btn btn-ghost" style={{ padding:".2rem .5rem" }} onClick={fpHandleClose}>✕</button>
             </div>
           </div>
 
