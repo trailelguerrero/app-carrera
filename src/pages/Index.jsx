@@ -346,6 +346,45 @@ function ChangePinModal({ onClose }) {
 }
 
 // ── MAIN EXPORT ────────────────────────────────────────────────────────────────
+// ─── ScrollToTop — aparece al hacer scroll hacia abajo ───────────────────────
+function ScrollToTop() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const main = document.querySelector("main");
+    if (!main) return;
+    const handler = () => setVisible(main.scrollTop > 350);
+    main.addEventListener("scroll", handler, { passive: true });
+    return () => main.removeEventListener("scroll", handler);
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <button
+      onClick={() => document.querySelector("main")?.scrollTo({ top: 0, behavior: "smooth" })}
+      aria-label="Volver arriba"
+      style={{
+        position: "fixed",
+        bottom: "calc(72px + env(safe-area-inset-bottom) + 8px)",
+        right: 16,
+        width: 34, height: 34,
+        borderRadius: "50%",
+        background: "rgba(13,17,33,0.85)",
+        border: "1px solid rgba(34,211,238,0.25)",
+        color: "var(--cyan)",
+        cursor: "pointer",
+        fontSize: ".75rem",
+        zIndex: 45,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        backdropFilter: "blur(8px)",
+        boxShadow: "0 2px 12px rgba(0,0,0,0.35)",
+        transition: "opacity .2s, transform .2s",
+      }}
+    >▲</button>
+  );
+}
+
 export default function Index() {
   const [authed, setAuthed] = useState(() => {
     const exp = Number(localStorage.getItem(AUTH_KEY) || 0);
@@ -697,6 +736,9 @@ export default function Index() {
           </ErrorBoundary>
           </div>
         </main>
+
+        {/* SCROLL TO TOP */}
+        <ScrollToTop />
 
         {/* BOTTOM NAV */}
         <nav
