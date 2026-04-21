@@ -349,6 +349,7 @@ export default function Dashboard() {
 
     return {
       eventoNombre, eventoEdicion, eventoFechaStr,
+      eventoFecha,
       diasHasta, yaFue, esSemana,
       totalInscritos, inscritosPorDist, totalIngresos, totalCostesFijos, totalCostesVars,
       totalIngresosExtra, merchBeneficio, totalOtrosIngresos, resultado, roiGlobal,
@@ -1001,55 +1002,15 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Objetivos clave — barras de progreso lineales, legibles en mobile */}
-          <div className="card dash-chart-card">
-            <div className="card-title amber">🎯 Objetivos clave</div>
-            {d.tareasTotal === 0 && d.totalNecesarios === 0 && d.objetivo === 0
-              ? <EmptyChart mensaje="Sin objetivos definidos" sub="Añade tareas en Proyecto y puestos en Voluntarios" />
-              : <div style={{ display:"flex", flexDirection:"column", gap:".65rem", marginTop:".2rem" }}>
-                  {[
-                    { icon:"👥", label:"Voluntarios", bloque:"voluntarios",
-                      pct: d.coberturaVol,
-                      sub: d.totalNecesarios > 0 ? `${d.volConfirmados}/${d.totalNecesarios}` : "Sin puestos",
-                      color: d.coberturaVol>=80?"#34d399":d.coberturaVol>=50?"#fbbf24":"#f87171" },
-                    { icon:"🤝", label:"Patrocinio", bloque:"patrocinadores",
-                      pct: d.objetivo > 0 ? Math.min(100,Math.round(d.patComprometido/d.objetivo*100)) : 0,
-                      sub: d.objetivo > 0 ? `${fmt(d.patCobrado)} cobrado` : "Sin objetivo",
-                      color: d.patComprometido>=d.objetivo*0.8?"#34d399":d.patComprometido>=d.objetivo*0.5?"#fbbf24":"#f87171" },
-                    { icon:"📋", label:"Proyecto", bloque:"proyecto",
-                      pct: d.progresoGlobal,
-                      sub: d.tareasTotal > 0 ? `${d.tareasCompletadas}/${d.tareasTotal} tareas` : "Sin tareas",
-                      color: d.progresoGlobal>=80?"#34d399":d.progresoGlobal>=50?"#fbbf24":"#f87171" },
-                    { icon:"✅", label:"Checklist", bloque:"logistica",
-                      pct: d.ckTotal > 0 ? Math.round(d.ckDone/d.ckTotal*100) : 0,
-                      sub: d.ckTotal > 0 ? `${d.ckDone}/${d.ckTotal} ítems` : "Sin checklist",
-                      color: d.ckTotal>0&&d.ckDone>=d.ckTotal*0.8?"#34d399":d.ckDone>=d.ckTotal*0.5?"#fbbf24":"#f87171" },
-                    { icon:"📁", label:"Permisos", bloque:"documentos",
-                      pct: (() => { const v=d.docsVencidos?.length||0; const t=d.documentos?.length||0; return t===0?100:Math.max(0,Math.round((1-v/t)*100)); })(),
-                      sub: d.docsVencidos?.length > 0 ? `⚠ ${d.docsVencidos.length} vencido${d.docsVencidos.length!==1?"s":""}` : d.docsProxVencer?.length > 0 ? `${d.docsProxVencer.length} próximo${d.docsProxVencer.length!==1?"s":""}` : "Sin urgencias",
-                      color: d.docsVencidos?.length > 0 ? "#f87171" : d.docsProxVencer?.length > 0 ? "#fbbf24" : "#34d399" },
-                  ].map(item => (
-                    <div key={item.label} onClick={() => navigate(item.bloque)}
-                      style={{ cursor:"pointer" }}
-                      onMouseEnter={e=>e.currentTarget.style.opacity=".85"}
-                      onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
-                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:".2rem" }}>
-                        <span style={{ fontFamily:"var(--font-mono)", fontSize:".65rem", color:"var(--text-muted)", display:"flex", alignItems:"center", gap:".3rem" }}>
-                          <span>{item.icon}</span><span>{item.label}</span>
-                        </span>
-                        <div style={{ display:"flex", alignItems:"center", gap:".5rem" }}>
-                          <span style={{ fontFamily:"var(--font-mono)", fontSize:".58rem", color:"var(--text-dim)" }}>{item.sub}</span>
-                          <span style={{ fontFamily:"var(--font-mono)", fontSize:".72rem", fontWeight:800, color:item.color, minWidth:32, textAlign:"right" }}>{item.pct}%</span>
-                        </div>
-                      </div>
-                      <div style={{ height:5, background:"var(--surface3)", borderRadius:3, overflow:"hidden" }}>
-                        <div style={{ height:"100%", width:`${item.pct}%`, background:item.color, borderRadius:3, transition:"width .5s", opacity:.85 }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-            }
-          </div>
+          {/* Arco temporal del evento — reemplaza "Objetivos clave" */}
+          <MiniTimeline
+            hitos={d.hitosProximos}
+            tramos={d.tramos}
+            eventoFecha={d.eventoFecha}
+            diasHasta={d.diasHasta}
+            yaFue={d.yaFue}
+            navigate={navigate}
+          />
         </div>
 
         {/* ── PRÓXIMOS HITOS ── */}
@@ -1131,6 +1092,152 @@ function KPI({ icon, label, value, sub, color, colorClass, onClick, tooltip, pro
               boxShadow: `0 0 6px ${color}80`,
             }}
           />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── MiniTimeline — arco temporal del evento ─────────────────────────────────
+function MiniTimeline({ hitos, tramos, eventoFecha, diasHasta, yaFue, navigate }) {
+  const hoy = new Date();
+
+  // Rango: inicio = hoy - 90d (o primer fechaFin de tramo si es antes), fin = evento + 14d
+  const primerTramo = tramos?.length > 0
+    ? new Date(Math.min(...tramos.map(t => new Date(t.fechaFin).getTime())))
+    : null;
+  const inicio = primerTramo && primerTramo < hoy
+    ? new Date(primerTramo.getTime() - 7 * 86400000)
+    : new Date(hoy.getTime() - 60 * 86400000);
+  const fin = eventoFecha
+    ? new Date(new Date(eventoFecha).getTime() + 14 * 86400000)
+    : new Date(hoy.getTime() + 30 * 86400000);
+  const totalMs = fin - inicio;
+
+  const pct = (fecha) => {
+    if (!fecha) return null;
+    const p = (new Date(fecha) - inicio) / totalMs * 100;
+    return Math.max(2, Math.min(98, p));
+  };
+
+  const hoyPct    = pct(hoy);
+  const eventoPct = eventoFecha ? pct(eventoFecha) : null;
+
+  // Hitos críticos con fecha válida dentro del rango
+  const hitosMarcados = (hitos || [])
+    .filter(h => h.fecha && !h.completado)
+    .map(h => ({ ...h, p: pct(h.fecha) }))
+    .filter(h => h.p !== null)
+    .slice(0, 6);
+
+  // Tramos: barras de apertura
+  const tramosValidos = (tramos || [])
+    .filter(t => t.fechaFin)
+    .map(t => ({ ...t, p: pct(t.fechaFin) }))
+    .filter(t => t.p !== null);
+
+  const fmtFecha = (d) => new Date(d).toLocaleDateString("es-ES", { day:"2-digit", month:"short" });
+
+  return (
+    <div className="card dash-chart-card" style={{ padding:"0.85rem" }}>
+      <div className="card-title amber" style={{ marginBottom:".85rem" }}>📅 Arco temporal</div>
+
+      {/* Barra principal del timeline */}
+      <div style={{ position:"relative", height:56, margin:"0.4rem 0 0.6rem" }}>
+
+        {/* Track fondo */}
+        <div style={{ position:"absolute", top:24, left:0, right:0, height:4,
+          background:"var(--surface3)", borderRadius:2 }} />
+
+        {/* Relleno hasta el evento */}
+        {eventoPct !== null && (
+          <div style={{ position:"absolute", top:24, left:0, width:`${eventoPct}%`,
+            height:4, borderRadius:2, opacity:0.5,
+            background:"linear-gradient(90deg, var(--cyan), var(--violet))",
+            transition:"width .5s" }} />
+        )}
+
+        {/* Cierres de tramo — líneas verticales pequeñas */}
+        {tramosValidos.map(t => (
+          <div key={t.id} title={`Cierre tramo: ${t.nombre}`}
+            style={{ position:"absolute", top:18, left:`${t.p}%`,
+              width:2, height:12, background:"rgba(34,211,238,0.35)",
+              transform:"translateX(-50%)", borderRadius:1 }} />
+        ))}
+
+        {/* Hitos críticos — diamantes */}
+        {hitosMarcados.map(h => (
+          <div key={h.id}
+            title={`${h.nombre} — ${fmtFecha(h.fecha)}`}
+            onClick={() => navigate("proyecto")}
+            style={{ position:"absolute", top:h.critico ? 14 : 17,
+              left:`${h.p}%`, transform:"translateX(-50%) rotate(45deg)",
+              width: h.critico ? 10 : 7, height: h.critico ? 10 : 7,
+              background: h.critico ? "var(--amber)" : "var(--violet)",
+              border:"1.5px solid var(--surface)",
+              cursor:"pointer", borderRadius:1,
+              boxShadow: h.critico ? "0 0 6px rgba(251,191,36,0.5)" : "none" }} />
+        ))}
+
+        {/* Marcador HOY */}
+        <div style={{ position:"absolute", top:8, left:`${hoyPct}%`,
+          transform:"translateX(-50%)", display:"flex", flexDirection:"column",
+          alignItems:"center", gap:0 }}>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:".5rem",
+            color:"var(--cyan)", fontWeight:800, letterSpacing:".04em",
+            lineHeight:1, marginBottom:2 }}>HOY</div>
+          <div style={{ width:2, height:24, background:"var(--cyan)",
+            borderRadius:1, boxShadow:"0 0 8px rgba(34,211,238,0.5)" }} />
+        </div>
+
+        {/* Marcador del evento */}
+        {eventoPct !== null && (
+          <div title={yaFue ? "Evento completado" : "Día del evento"}
+            style={{ position:"absolute", top:6, left:`${eventoPct}%`,
+              transform:"translateX(-50%)", fontSize:"1.1rem",
+              cursor:"default", lineHeight:1 }}>
+            {yaFue ? "✅" : "🏁"}
+          </div>
+        )}
+      </div>
+
+      {/* Leyenda inferior */}
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
+        fontFamily:"var(--font-mono)", fontSize:".58rem", color:"var(--text-dim)" }}>
+        <span>{fmtFecha(inicio)}</span>
+        <span style={{
+          color: yaFue ? "var(--green)" : diasHasta <= 7 ? "var(--red)" : diasHasta <= 30 ? "var(--amber)" : "var(--cyan)",
+          fontWeight:700, fontSize:".65rem",
+        }}>
+          {yaFue ? "¡Evento completado!" : diasHasta === 0 ? "¡HOY es el evento!" : `${diasHasta}d para el evento`}
+        </span>
+        {eventoFecha && <span>{fmtFecha(eventoFecha)}</span>}
+      </div>
+
+      {/* Mini-lista de próximos hitos críticos */}
+      {hitosMarcados.filter(h => h.critico).length > 0 && (
+        <div style={{ marginTop:".65rem", paddingTop:".5rem",
+          borderTop:"1px solid var(--border)", display:"flex", flexDirection:"column", gap:".25rem" }}>
+          {hitosMarcados.filter(h => h.critico).slice(0, 3).map(h => {
+            const dias = Math.ceil((new Date(h.fecha) - hoy) / 86400000);
+            const col  = dias < 0 ? "var(--red)" : dias <= 7 ? "var(--amber)" : "var(--text-muted)";
+            return (
+              <div key={h.id} onClick={() => navigate("proyecto")}
+                style={{ display:"flex", justifyContent:"space-between", cursor:"pointer",
+                  padding:".15rem .1rem", borderRadius:3 }}
+                onMouseEnter={e => e.currentTarget.style.background = "var(--surface2)"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                <span style={{ fontSize:".62rem", color:"var(--text-muted)",
+                  overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1 }}>
+                  ⚡ {h.nombre}
+                </span>
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+                  color:col, fontWeight:700, flexShrink:0, marginLeft:".5rem" }}>
+                  {dias < 0 ? `${Math.abs(dias)}d atrás` : dias === 0 ? "HOY" : `${dias}d`}
+                </span>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
