@@ -1647,9 +1647,10 @@ function TabTallas({ stats, voluntarios }) {
 
 // ─── TAB DÍA D ────────────────────────────────────────────────────────────────
 function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
+  const [vista, setVista]                   = useState("puesto"); // "puesto" | "nombre"
   const [puestoSeleccionado, setPuestoSeleccionado] = useState("todos");
   const [ultimoGuardado, setUltimoGuardado] = useState(null);
-  const [busquedaDiaD, setBusquedaDiaD] = useState("");
+  const [busquedaDiaD, setBusquedaDiaD]     = useState("");
 
   const marcarPresencia = (id, presente) => {
     onUpdateVol(id, { presente });
@@ -1657,17 +1658,75 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
     setTimeout(() => setUltimoGuardado(null), 1200);
   };
 
-  // Incluir confirmados Y pendientes — pendientes aparecen con distinción visual
+  const volsBase = voluntarios.filter(v => v.estado === "confirmado" || v.estado === "pendiente");
+
+  // Voluntarios filtrados por búsqueda y puesto (para vista por nombre)
   const volsFiltrados = (() => {
     const base = puestoSeleccionado === "todos"
-      ? voluntarios.filter(v => v.estado === "confirmado" || v.estado === "pendiente")
-      : voluntarios.filter(v => String(v.puestoId) === puestoSeleccionado && (v.estado === "confirmado" || v.estado === "pendiente"));
+      ? volsBase
+      : volsBase.filter(v => String(v.puestoId) === puestoSeleccionado);
     if (!busquedaDiaD.trim()) return base;
     const q = busquedaDiaD.toLowerCase();
-    return base.filter(v => (v.nombre + " " + (v.apellidos||"")).toLowerCase().includes(q) || (v.telefono||"").includes(q));
+    return base.filter(v =>
+      (v.nombre + " " + (v.apellidos || "")).toLowerCase().includes(q) ||
+      (v.telefono || "").includes(q)
+    );
   })();
 
+  // Datos agrupados por puesto (para vista por puesto)
+  const puestosAgrupados = puestosConStats.map(p => {
+    const vols = volsBase.filter(v => String(v.puestoId) === String(p.id));
+    const presentes   = vols.filter(v => v.presente).length;
+    const confirmados = vols.filter(v => v.estado === "confirmado").length;
+    return { puesto: p, vols, presentes, confirmados };
+  }).filter(g => g.vols.length > 0)
+    .sort((a, b) => (a.puesto.horaInicio || "").localeCompare(b.puesto.horaInicio || ""));
+
+  // Sin puesto asignado
+  const sinPuesto = volsBase.filter(v => !v.puestoId ||
+    !puestosConStats.find(p => String(p.id) === String(v.puestoId)));
+
   const presentes = voluntarios.filter(v => v.presente && v.estado === "confirmado").length;
+  const totalConf = voluntarios.filter(v => v.estado === "confirmado").length;
+
+  // Fila individual de voluntario reutilizable
+  const FilaVol = ({ v, mostrarPuesto = false }) => {
+    const puesto = puestosConStats.find(p => p.id === v.puestoId);
+    return (
+      <div className={cls("checklist-row", v.presente ? "presente" : "")}
+        style={{ borderLeft: v.estado === "pendiente" ? "3px solid var(--amber)" : undefined }}>
+        <button onClick={() => marcarPresencia(v.id, !v.presente)}
+          style={{ width: 24, height: 24, borderRadius: 5, flexShrink: 0,
+            border: `2px solid ${v.presente ? "var(--green)" : ultimoGuardado===v.id ? "var(--cyan)" : "var(--border)"}`,
+            background: v.presente ? "var(--green)" : "transparent",
+            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+            transition: "all 0.15s",
+            boxShadow: ultimoGuardado===v.id ? "0 0 8px rgba(34,211,238,0.4)" : "none" }}>
+          {v.presente && <span style={{ color: "#000", fontSize: ".75rem", fontWeight: 700 }}>✓</span>}
+        </button>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 600, fontSize: ".82rem",
+            color: v.presente ? "var(--green)" : v.estado === "pendiente" ? "var(--amber)" : "var(--text)" }}>
+            {v.nombre}{v.apellidos ? (" " + v.apellidos) : ""}
+            {v.estado === "pendiente" && (
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:".55rem",
+                color:"var(--amber)", marginLeft:".4rem" }}>PENDIENTE</span>
+            )}
+          </div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: ".6rem", color: "var(--text-muted)" }}>
+            {mostrarPuesto && puesto ? `${puesto.nombre} · ` : ""}{v.telefono || "Sin teléfono"}
+          </div>
+        </div>
+        {v.talla && <span className="badge badge-cyan">{v.talla}</span>}
+        {v.coche && <span style={{ fontSize: ".75rem" }} title="Tiene coche">🚗</span>}
+        {v.telefono && (
+          <a href={`tel:${v.telefono}`}
+            style={{ fontSize: ".8rem", color: "var(--cyan)", textDecoration: "none", flexShrink: 0 }}
+            title={`Llamar a ${v.nombre}`}>📞</a>
+        )}
+      </div>
+    );
+  };
 
   return (
     <>
@@ -1676,70 +1735,123 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
           <div className="page-title">🏁 Día de Carrera</div>
           <div className="page-desc">Checklist de asistencia · {diasHastaEvento >= 0 ? `${diasHastaEvento} días para el evento` : "¡Día de carrera!"}</div>
         </div>
-        <div className="mono text-xs" style={{ color: "var(--green)", background: "var(--green-dim)", border: "1px solid rgba(52,211,153,0.2)", borderRadius: 6, padding: "0.4rem 0.75rem" }}>
-          ✓ {presentes} / {voluntarios.filter(v => v.estado === "confirmado").length} presentes
+        <div className="mono text-xs" style={{ color: "var(--green)", background: "var(--green-dim)",
+          border: "1px solid rgba(52,211,153,0.2)", borderRadius: 6, padding: "0.4rem 0.75rem" }}>
+          ✓ {presentes} / {totalConf} presentes
         </div>
       </div>
 
-      <div style={{ marginBottom:".6rem" }}>
+      {/* Toggle vista + búsqueda */}
+      <div style={{ display: "flex", gap: ".5rem", marginBottom: ".6rem", alignItems: "center" }}>
         <input
           value={busquedaDiaD}
           onChange={e => setBusquedaDiaD(e.target.value)}
-          placeholder="Buscar voluntario por nombre o teléfono…"
-          style={{
-            width:"100%", padding:".45rem .75rem", borderRadius:8,
-            border:"1px solid var(--border)", background:"var(--surface2)",
-            color:"var(--text)", fontFamily:"var(--font-mono)", fontSize:".72rem",
-            outline:"none",
-          }}
+          placeholder="Buscar por nombre o teléfono…"
+          style={{ flex: 1, padding: ".45rem .75rem", borderRadius: 8,
+            border: "1px solid var(--border)", background: "var(--surface2)",
+            color: "var(--text)", fontFamily: "var(--font-mono)", fontSize: ".72rem", outline: "none" }}
         />
-      </div>
-      <div className="filter-pill-group" style={{ marginBottom: "1rem" }}>
-        <button
-          className={"filter-pill" + (puestoSeleccionado === "todos" ? " active" : "")}
-          onClick={() => setPuestoSeleccionado("todos")}>
-          Todos
-        </button>
-        {puestosConStats.map(p => (
-          <button key={p.id}
-            className={"filter-pill" + (puestoSeleccionado === String(p.id) ? " active" : "")}
-            onClick={() => setPuestoSeleccionado(String(p.id))}>
-            {p.nombre}
+        <div style={{ display: "flex", gap: ".3rem", flexShrink: 0 }}>
+          <button
+            onClick={() => setVista("puesto")}
+            className={"filter-pill" + (vista === "puesto" ? " active" : "")}
+            style={{ whiteSpace: "nowrap" }}>
+            📍 Por puesto
           </button>
-        ))}
+          <button
+            onClick={() => setVista("nombre")}
+            className={"filter-pill" + (vista === "nombre" ? " active" : "")}
+            style={{ whiteSpace: "nowrap" }}>
+            👤 Por nombre
+          </button>
+        </div>
       </div>
 
-      <div className="card">
-        {volsFiltrados.length === 0 && (
-          <div style={{ textAlign: "center", padding: "2rem", color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: "0.75rem" }}>
-            No hay voluntarios confirmados en este puesto
-          </div>
-        )}
-        {volsFiltrados.map(v => {
-          const puesto = puestosConStats.find(p => p.id === v.puestoId);
-          return (
-            <div key={v.id} className={cls("checklist-row", v.presente ? "presente" : v.presente === false ? "ausente" : "")}>
-              <button onClick={() => marcarPresencia(v.id, !v.presente)}
-                style={{ width: 24, height: 24, borderRadius: 5,
-                  border: `2px solid ${v.presente ? "var(--green)" : ultimoGuardado===v.id ? "var(--cyan)" : "var(--border)"}`,
-                  background: v.presente ? "var(--green)" : "transparent",
-                  cursor: "pointer", display: "flex", alignItems: "center",
-                  justifyContent: "center", flexShrink: 0, transition: "all 0.15s",
-                  boxShadow: ultimoGuardado===v.id ? "0 0 8px rgba(34,211,238,0.4)" : "none" }}>
-                {v.presente && <span style={{ color: "#000", fontSize: "0.75rem", fontWeight: 700 }}>✓</span>}
-              </button>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: "0.82rem", color: v.presente ? "var(--green)" : "var(--text)" }}>{v.nombre}{v.apellidos ? (" "+v.apellidos) : ""}</div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-muted)" }}>
-                  {puesto?.nombre || "Sin puesto"} · {v.telefono}
+      {/* ── VISTA POR PUESTO ──────────────────────────────────────────────── */}
+      {vista === "puesto" && (
+        <>
+          {puestosAgrupados.map(({ puesto: p, vols, presentes: pres, confirmados: conf }) => {
+            const colorBorde = pres >= conf && conf > 0 ? "var(--green)" : pres > 0 ? "var(--amber)" : "var(--red)";
+            const volsFiltPuesto = busquedaDiaD.trim()
+              ? vols.filter(v => {
+                  const q = busquedaDiaD.toLowerCase();
+                  return (v.nombre + " " + (v.apellidos || "")).toLowerCase().includes(q) ||
+                    (v.telefono || "").includes(q);
+                })
+              : vols;
+            if (busquedaDiaD.trim() && volsFiltPuesto.length === 0) return null;
+            return (
+              <div key={p.id} className="card" style={{ marginBottom: ".6rem", padding: 0, overflow: "hidden" }}>
+                {/* Cabecera del puesto */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
+                  padding: ".6rem .85rem", borderBottom: "1px solid var(--border)",
+                  borderLeft: `3px solid ${colorBorde}` }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: ".82rem" }}>{p.nombre}</div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: ".58rem", color: "var(--text-muted)" }}>
+                      {p.horaInicio}–{p.horaFin}
+                      {p.necesarios ? ` · ${p.necesarios} necesarios` : ""}
+                    </div>
+                  </div>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: ".8rem", fontWeight: 800,
+                    color: colorBorde, flexShrink: 0 }}>
+                    {pres}/{conf}
+                  </span>
+                </div>
+                {/* Voluntarios del puesto */}
+                <div style={{ padding: "0 .1rem" }}>
+                  {volsFiltPuesto.map(v => <FilaVol key={v.id} v={v} mostrarPuesto={false} />)}
                 </div>
               </div>
-              <span className="badge badge-cyan">{v.talla}</span>
-              {v.coche && <span style={{ fontSize: "0.75rem" }} title="Tiene coche">🚗</span>}
+            );
+          })}
+          {/* Voluntarios sin puesto asignado */}
+          {sinPuesto.length > 0 && !busquedaDiaD.trim() && (
+            <div className="card" style={{ marginBottom: ".6rem", padding: 0, overflow: "hidden" }}>
+              <div style={{ padding: ".6rem .85rem", borderBottom: "1px solid var(--border)",
+                borderLeft: "3px solid var(--text-muted)" }}>
+                <div style={{ fontWeight: 700, fontSize: ".82rem", color: "var(--text-muted)" }}>Sin puesto asignado</div>
+              </div>
+              <div style={{ padding: "0 .1rem" }}>
+                {sinPuesto.map(v => <FilaVol key={v.id} v={v} mostrarPuesto={false} />)}
+              </div>
             </div>
-          );
-        })}
-      </div>
+          )}
+          {puestosAgrupados.length === 0 && sinPuesto.length === 0 && (
+            <div style={{ textAlign: "center", padding: "2rem", color: "var(--text-muted)",
+              fontFamily: "var(--font-mono)", fontSize: ".75rem" }}>
+              Sin voluntarios confirmados ni pendientes
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── VISTA POR NOMBRE ─────────────────────────────────────────────── */}
+      {vista === "nombre" && (
+        <>
+          {/* Filtro por puesto en vista nombre */}
+          <div className="filter-pill-group" style={{ marginBottom: "1rem" }}>
+            <button className={"filter-pill" + (puestoSeleccionado === "todos" ? " active" : "")}
+              onClick={() => setPuestoSeleccionado("todos")}>Todos</button>
+            {puestosConStats.map(p => (
+              <button key={p.id}
+                className={"filter-pill" + (puestoSeleccionado === String(p.id) ? " active" : "")}
+                onClick={() => setPuestoSeleccionado(String(p.id))}>
+                {p.nombre}
+              </button>
+            ))}
+          </div>
+          <div className="card">
+            {volsFiltrados.length === 0 && (
+              <div style={{ textAlign: "center", padding: "2rem", color: "var(--text-muted)",
+                fontFamily: "var(--font-mono)", fontSize: ".75rem" }}>
+                No hay voluntarios para este filtro
+              </div>
+            )}
+            {volsFiltrados.map(v => <FilaVol key={v.id} v={v} mostrarPuesto={true} />)}
+          </div>
+        </>
+      )}
     </>
   );
 }
