@@ -83,6 +83,7 @@ export default function Configuracion() {
   const [saved, setSaved] = useState(false);
   const [exportando, setExportando] = useState(false);
   const [importMsg, setImportMsg] = useState(null); // {tipo:'ok'|'error', texto}
+  const [importPreview, setImportPreview] = useState(null); // {datos, resumen} — preview antes de aplicar
 
   const form = draft ?? config;
   const upd  = (k, v) => setDraft(p => ({ ...(p ?? config), [k]: v }));
@@ -228,38 +229,73 @@ export default function Configuracion() {
   };
 
   // ── Importar backup JSON ──────────────────────────────────────────────────
+  const MODULO_LABELS = {
+    teg_event_config: "Configuración del evento",
+    teg_presupuesto: "Presupuesto",
+    teg_voluntarios: "Voluntarios",
+    teg_patrocinadores: "Patrocinadores",
+    teg_logistica: "Logística",
+    teg_localizaciones: "Localizaciones",
+    teg_proyecto: "Proyecto",
+    teg_documentos: "Documentos",
+    teg_camisetas: "Camisetas",
+  };
+
+  const claveAModulo = (clave) => {
+    const match = Object.keys(MODULO_LABELS).find(k => clave.startsWith(k));
+    return match ? MODULO_LABELS[match] : clave;
+  };
+
   const handleImport = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = async (ev) => {
+    reader.onload = (ev) => {
       try {
         const backup = JSON.parse(ev.target.result);
-        // Validar estructura del backup antes de restaurar
         if (!backup || typeof backup !== "object" || !backup.datos || typeof backup.datos !== "object") {
           setImportMsg({ tipo: "error", texto: "Formato de backup inválido. El archivo no tiene la estructura esperada." });
           return;
         }
-        if (!backup.version) {
-          setImportMsg({ tipo: "error", texto: "Backup sin versión detectada. Puede ser de una versión anterior incompatible. Procede con cautela." });
-        }
-        if (!backup.datos || typeof backup.datos !== "object")
-          throw new Error("Formato de backup no reconocido");
-        let count = 0;
+        // Construir resumen por módulo
+        const modulosMap = {};
         for (const [key, value] of Object.entries(backup.datos)) {
-          if (ALL_DATA_KEYS.includes(key)) {
-            localStorage.setItem(key, JSON.stringify(value));
-            count++;
-          }
+          if (!ALL_DATA_KEYS.includes(key)) continue;
+          const modulo = claveAModulo(key);
+          if (!modulosMap[modulo]) modulosMap[modulo] = { claves: [], items: 0 };
+          modulosMap[modulo].claves.push(key);
+          modulosMap[modulo].items += Array.isArray(value) ? value.length : 1;
         }
-        setImportMsg({ tipo: "ok", texto: `✓ Backup restaurado — ${count} colecciones importadas. Recarga la app para ver los cambios.` });
-        window.dispatchEvent(new Event("teg-sync"));
+        const resumen = Object.entries(modulosMap).map(([modulo, { claves, items }]) => ({
+          modulo, claves: claves.length, items,
+        }));
+        const meta = {
+          version: backup.version || "desconocida",
+          fecha: backup.fecha ? new Date(backup.fecha).toLocaleDateString("es-ES") : "desconocida",
+          evento: backup.evento || "—",
+        };
+        setImportPreview({ datos: backup.datos, resumen, meta, totalClaves: resumen.reduce((s, r) => s + r.claves, 0) });
+        setImportMsg(null);
       } catch (err) {
-        setImportMsg({ tipo: "error", texto: `Error al importar: ${err.message}` });
+        setImportMsg({ tipo: "error", texto: `Error al leer el archivo: ${err.message}` });
       }
     };
     reader.readAsText(file);
     e.target.value = "";
+  };
+
+  const aplicarImport = () => {
+    if (!importPreview) return;
+    let count = 0;
+    for (const [key, value] of Object.entries(importPreview.datos)) {
+      if (ALL_DATA_KEYS.includes(key)) {
+        localStorage.setItem(key, JSON.stringify(value));
+        count++;
+      }
+    }
+    setImportPreview(null);
+    setImportMsg({ tipo: "ok", texto: `✓ Backup restaurado — ${count} colecciones importadas. Recarga la app para ver los cambios.` });
+    window.dispatchEvent(new Event("teg-sync"));
   };
 
   const fechaEvento   = form.fecha ? new Date(form.fecha) : null;
@@ -548,6 +584,73 @@ export default function Configuracion() {
         </div>
 
       </div>
+
+      {/* ── MODAL PREVIEW IMPORT ─────────────────────────────────────────── */}
+      {importPreview && (
+        <div className="modal-backdrop" onClick={e => e.target===e.currentTarget && setImportPreview(null)}>
+          <div className="modal" style={{ maxWidth: 440 }}>
+            <div className="modal-header">
+              <span className="mtit">⬆️ Confirmar restauración</span>
+              <button className="btn btn-ghost btn-sm" onClick={() => setImportPreview(null)}>✕</button>
+            </div>
+            <div className="modal-body" style={{ gap: ".65rem" }}>
+              {/* Meta del backup */}
+              <div style={{
+                background: "var(--surface2)", borderRadius: 8,
+                padding: ".65rem .85rem", fontSize: ".72rem",
+                fontFamily: "var(--font-mono)", lineHeight: 1.7,
+                border: "1px solid var(--border)",
+              }}>
+                <div><span style={{ color:"var(--text-muted)" }}>Versión backup:</span> <strong>{importPreview.meta.version}</strong></div>
+                <div><span style={{ color:"var(--text-muted)" }}>Fecha de creación:</span> <strong>{importPreview.meta.fecha}</strong></div>
+                <div><span style={{ color:"var(--text-muted)" }}>Evento:</span> <strong>{importPreview.meta.evento}</strong></div>
+              </div>
+
+              {/* Aviso */}
+              <div style={{
+                background: "var(--amber-dim)", borderRadius: 6,
+                padding: ".55rem .75rem", fontSize: ".7rem",
+                fontFamily: "var(--font-mono)", color: "var(--amber)",
+                border: "1px solid rgba(251,191,36,.25)",
+                display: "flex", alignItems: "flex-start", gap: ".5rem",
+              }}>
+                <span style={{ flexShrink: 0, fontSize: ".85rem" }}>⚠️</span>
+                <span>Se sobreescribirán los datos actuales con los del backup. Esta acción <strong>no se puede deshacer</strong>.</span>
+              </div>
+
+              {/* Resumen por módulo */}
+              <div>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:".65rem", fontWeight:700,
+                  textTransform:"uppercase", letterSpacing:".06em", color:"var(--text-muted)",
+                  marginBottom:".4rem" }}>
+                  Colecciones a restaurar ({importPreview.totalClaves})
+                </div>
+                <div style={{ display:"flex", flexDirection:"column", gap:".2rem" }}>
+                  {importPreview.resumen.map(r => (
+                    <div key={r.modulo} style={{
+                      display:"flex", justifyContent:"space-between", alignItems:"center",
+                      padding:".3rem .5rem", borderRadius:4,
+                      background:"var(--surface2)", border:"1px solid var(--border)",
+                      fontFamily:"var(--font-mono)", fontSize:".68rem",
+                    }}>
+                      <span style={{ color:"var(--text)" }}>{r.modulo}</span>
+                      <span style={{ color:"var(--text-muted)" }}>
+                        {r.claves} colecc. · {r.items} registros
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setImportPreview(null)}>Cancelar</button>
+              <button className="btn btn-red" onClick={aplicarImport}>
+                🔄 Restaurar y sobreescribir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
