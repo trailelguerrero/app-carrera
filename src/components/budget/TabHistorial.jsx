@@ -42,11 +42,36 @@ const fmtTs = (ts) => {
 
 const TIPO_COLOR = { fijo: "var(--cyan)", variable: "var(--green)" };
 
+// ─── Helper: calcular delta por período ──────────────────────────────────────
+function calcularDeltaPorDia(entries) {
+  // Agrupar entries de campos numéricos por día
+  const dias = {};
+  entries.forEach(e => {
+    if (!e.ts) return;
+    const dia = new Date(e.ts).toISOString().slice(0, 10);
+    if (!dias[dia]) dias[dia] = { dia, sumAntes: 0, sumDespues: 0, count: 0 };
+    const isNumeric = e.campo === "costeTotal" || e.campo === "costeUnitarioReal" ||
+      e.campo.startsWith("precio");
+    if (isNumeric) {
+      const antes  = parseFloat(e.valor_antes) || 0;
+      const nuevo  = parseFloat(e.valor_nuevo) || 0;
+      dias[dia].sumAntes   += antes;
+      dias[dia].sumDespues += nuevo;
+      dias[dia].count++;
+    }
+  });
+  // Calcular delta acumulado neto para cada día
+  return Object.values(dias)
+    .sort((a, b) => a.dia.localeCompare(b.dia))
+    .map(d => ({ ...d, delta: d.sumDespues - d.sumAntes }));
+}
+
 export function TabHistorial() {
   const [log,     setLog]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
   const [confirm, setConfirm] = useState(false);
+  const [mostrarDelta, setMostrarDelta] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -110,6 +135,70 @@ export function TabHistorial() {
           )}
         </div>
       </div>
+
+      {/* ── Panel de delta por período ──────────────────────────────────── */}
+      {log.length > 0 && (() => {
+        const deltas = calcularDeltaPorDia(log).filter(d => d.count > 0);
+        if (deltas.length === 0) return null;
+        const totalDelta = deltas.reduce((s, d) => s + d.delta, 0);
+        const fmtEur = (n) => {
+          const abs = Math.abs(n).toFixed(0);
+          return `${n >= 0 ? "+" : "-"}${abs} €`;
+        };
+        return (
+          <div style={{ marginBottom: ".85rem", padding: ".65rem .85rem",
+            borderRadius: 10, background: "var(--surface2)",
+            border: "1px solid var(--border)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between",
+              alignItems: "center", marginBottom: mostrarDelta ? ".6rem" : 0 }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem",
+                fontWeight: 700, color: "var(--text-muted)",
+                textTransform: "uppercase", letterSpacing: ".06em" }}>
+                📊 Evolución de costes / precios
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: ".75rem" }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: ".68rem",
+                  fontWeight: 800,
+                  color: totalDelta <= 0 ? "var(--green)" : "var(--red)" }}>
+                  {totalDelta <= 0 ? "↓" : "↑"} Neto: {fmtEur(totalDelta)}
+                </span>
+                <button className="btn btn-ghost btn-sm"
+                  onClick={() => setMostrarDelta(v => !v)}
+                  style={{ fontSize: ".58rem", padding: ".15rem .45rem" }}>
+                  {mostrarDelta ? "▲ Ocultar" : "▼ Ver"}
+                </button>
+              </div>
+            </div>
+            {mostrarDelta && (
+              <div style={{ display: "flex", gap: ".35rem", flexWrap: "wrap" }}>
+                {deltas.map(d => {
+                  const color = d.delta < 0 ? "var(--green)" : d.delta > 0 ? "var(--red)" : "var(--text-muted)";
+                  const icon  = d.delta < 0 ? "↓" : d.delta > 0 ? "↑" : "=";
+                  return (
+                    <div key={d.dia} style={{ display: "flex", flexDirection: "column",
+                      alignItems: "center", padding: ".35rem .6rem", borderRadius: 7,
+                      background: "var(--surface)", border: "1px solid var(--border)",
+                      minWidth: 72 }}>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: ".55rem",
+                        color: "var(--text-dim)" }}>
+                        {new Date(d.dia).toLocaleDateString("es-ES", { day:"2-digit", month:"short" })}
+                      </span>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: ".72rem",
+                        fontWeight: 800, color }}>
+                        {icon} {Math.abs(d.delta).toFixed(0)} €
+                      </span>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: ".52rem",
+                        color: "var(--text-dim)" }}>
+                        {d.count} cambio{d.count !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Lista de cambios */}
       {log.length === 0 ? (
