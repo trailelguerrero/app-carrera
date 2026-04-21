@@ -188,6 +188,11 @@ export default function Dashboard() {
     const patCobrado      = pats.filter(p => p.estado==="cobrado").reduce((s,p) => s+(p.importe||0), 0);
     const patPipeline     = pats.filter(p => p.estado==="negociando"||p.estado==="prospecto").reduce((s,p) => s+(p.importe||0), 0);
     const contPendientes  = pats.reduce((s,p) => s+(p.contraprestaciones||[]).filter(c=>c.estado==="pendiente").length, 0);
+    const patsSinSeguimiento = pats.filter(p =>
+      p.estado === "negociando" &&
+      p.proximoContacto &&
+      new Date(p.proximoContacto) < TODAY
+    );
 
     // LOGÍSTICA
     const material   = get("teg_logistica_v1_mat", []);
@@ -337,6 +342,8 @@ export default function Dashboard() {
       alertasAvisos.push({ icon:"🟡", texto:`Patrocinio al ${Math.round(patComprometido/objetivo*100)}% del objetivo`, modulo:"patrocinadores" });
     if (contPendientes > 0)
       alertasAvisos.push({ icon:"🔵", texto:`${contPendientes} contraprestaciones pendientes`, modulo:"patrocinadores" });
+    if (patsSinSeguimiento.length > 0)
+      alertasAvisos.push({ icon:"📞", texto:`${patsSinSeguimiento.length} patrocinador${patsSinSeguimiento.length!==1?"es":""} con seguimiento vencido: ${patsSinSeguimiento.slice(0,2).map(p=>p.nombre).join(", ")}${patsSinSeguimiento.length>2?"...":""}`, modulo:"patrocinadores" });
     if (stockAlerts.length > 0)
       alertasAvisos.push({ icon:"🟡", texto:`${stockAlerts.length} materiales con sobreasignación de stock`, modulo:"logistica" });
     hitosProximos.forEach(h => {
@@ -355,7 +362,7 @@ export default function Dashboard() {
       totalIngresosExtra, merchBeneficio, totalOtrosIngresos, resultado, roiGlobal,
       maximosPorDist, ocupacionPorDist, ocupacionGlobal, totalMaximos,
       voluntarios: voluntarios.length, volConfirmados, volPendientes, totalNecesarios, coberturaVol, puestosAlerta,
-      pats: pats.length, patComprometido, patCobrado, patPipeline, objetivo, contPendientes,
+      pats: pats.length, patComprometido, patCobrado, patPipeline, objetivo, contPendientes, patsSinSeguimiento,
       material: material.length, stockAlerts, tlDone, tlTotal: tl.length, ckDone, ckTotal: ck.length,
       tareasTotal, tareasCompletadas, tareasBloqueadas, tareasVencidas, progresoGlobal, hitosProximos,
       saludModulos, saludGlobal,

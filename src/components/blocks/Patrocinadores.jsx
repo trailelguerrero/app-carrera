@@ -684,6 +684,19 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                         <span style={{fontFamily:"var(--font-mono)",fontSize:".76rem",fontWeight:700,color:cfg.color}}>{fmt(p.importe)}</span>
                         <span className="badge" style={{background:ecfg.bg,color:ecfg.color,fontSize:".52rem"}}>{ecfg.label}</span>
+                      {p.proximoContacto && p.estado === "negociando" && (() => {
+                        const dias = Math.ceil((new Date(p.proximoContacto) - new Date()) / 86400000);
+                        if (dias > 3) return null;
+                        return (
+                          <span style={{ padding:".1rem .4rem", borderRadius:4, fontSize:".57rem",
+                            fontFamily:"var(--font-mono)", fontWeight:700,
+                            background: dias < 0 ? "var(--red-dim)" : "var(--amber-dim)",
+                            color: dias < 0 ? "var(--red)" : "var(--amber)",
+                            marginLeft:".2rem" }}>
+                            {dias < 0 ? `📞 ${Math.abs(dias)}d sin contacto` : dias === 0 ? "📞 HOY" : `📞 ${dias}d`}
+                          </span>
+                        );
+                      })()}
                       </div>
                     </div>
                   );
@@ -1125,6 +1138,10 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
               ["Contacto", pat.contacto], ["Teléfono", pat.telefono || "—"],
               ["Email", pat.email || "—"], ["Importe", pat.especie > 0 ? `${fmt(pat.especie)} (especie)` : fmt(pat.importe)],
               ["Fecha acuerdo", pat.fechaAcuerdo || "—"], ["Vencimiento", pat.fechaVencimiento || "—"],
+              ["Próx. seguimiento", pat.proximoContacto ? (() => {
+                const dias = Math.ceil((new Date(pat.proximoContacto) - new Date()) / 86400000);
+                return `${pat.proximoContacto}${dias < 0 ? " ⚠ vencido" : dias === 0 ? " — HOY" : dias <= 7 ? ` — ${dias}d` : ""}`;
+              })() : "—"],
             ].map(([k, v]) => (
               <div key={k}>
                 <div className="fl">{k}</div>
@@ -1291,7 +1308,7 @@ function ModalPat({ data, onSave, onClose }) {
   const [form, setForm] = useState(data ? { ...data } : {
     nombre: "", sector: SECTORES[0], nivel: "Plata", contacto: "", telefono: "", email: "",
     importe: 0, importeCobrado: 0, especie: 0, estado: "prospecto",
-    fechaAcuerdo: "", fechaVencimiento: "", notas: "", docs: [],
+    fechaAcuerdo: "", fechaVencimiento: "", proximoContacto: "", notas: "", docs: [],
   });
   const [err, setErr] = useState({});
   const upd = (k, v) => {
@@ -1454,6 +1471,30 @@ function ModalPat({ data, onSave, onClose }) {
           <div>
             <label className="fl">Fecha vencimiento pago</label>
             <input className="inp" type="date" value={form.fechaVencimiento} onChange={e => upd("fechaVencimiento", e.target.value)} />
+          </div>
+
+          <div>
+            <label className="fl" style={{ display:"flex", alignItems:"center", gap:".35rem" }}>
+              📞 Próximo seguimiento
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:".58rem",
+                color:"var(--text-dim)", fontWeight:400 }}>
+                (solo en negociando)
+              </span>
+            </label>
+            <input className="inp" type="date" value={form.proximoContacto || ""}
+              onChange={e => upd("proximoContacto", e.target.value)}
+              style={{ borderColor: (() => {
+                if (!form.proximoContacto) return undefined;
+                const dias = Math.ceil((new Date(form.proximoContacto) - new Date()) / 86400000);
+                return dias < 0 ? "var(--red)" : dias <= 3 ? "var(--amber)" : undefined;
+              })() }} />
+            {form.proximoContacto && (() => {
+              const dias = Math.ceil((new Date(form.proximoContacto) - new Date()) / 86400000);
+              if (dias < 0) return <div className="xs mono" style={{ color:"var(--red)", marginTop:".2rem" }}>⚠ Seguimiento vencido hace {Math.abs(dias)} día{Math.abs(dias)!==1?"s":""}</div>;
+              if (dias === 0) return <div className="xs mono" style={{ color:"var(--amber)", marginTop:".2rem" }}>⚡ Seguimiento hoy</div>;
+              if (dias <= 3) return <div className="xs mono" style={{ color:"var(--amber)", marginTop:".2rem" }}>📞 En {dias} día{dias!==1?"s":""}</div>;
+              return null;
+            })()}
           </div>
 
           <div>
