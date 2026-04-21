@@ -38,6 +38,20 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
+// ── Rate limiting en memoria por IP ──────────────────────────────────────────
+// Se resetea en cada redeploy — suficiente para el volumen de un evento hobby
+const ipRegistry = new Map();
+const RL_MAX_REQUESTS = 3;    // máx 3 registros por IP
+const RL_WINDOW_MS    = 5 * 60 * 1000; // en una ventana de 5 minutos
+
+function isRateLimited(ip) {
+  const now  = Date.now();
+  const hist = (ipRegistry.get(ip) || []).filter(t => now - t < RL_WINDOW_MS);
+  if (hist.length >= RL_MAX_REQUESTS) return true;
+  ipRegistry.set(ip, [...hist, now]);
+  return false;
+}
+
 export default async function handler(req, res) {
   // CORS preflight
   if (req.method === 'OPTIONS') {
@@ -79,7 +93,18 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'Forbidden: escritura no permitida en esta colección' });
     }
 
+    // Rate limiting por IP
+    const clientIp = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+    if (isRateLimited(clientIp)) {
+      return res.status(429).json({ error: 'Demasiadas solicitudes. Inténtalo en unos minutos.' });
+    }
+
     const newVoluntario = req.body;
+
+    // Honeypot: si el campo oculto 'website' viene relleno, es un bot — respuesta silenciosa
+    if (newVoluntario && newVoluntario.website) {
+      return res.status(200).json({ success: true, id: `bot_${Date.now()}` });
+    }
 
     // Validación mínima del voluntario
     if (!newVoluntario || typeof newVoluntario !== 'object') {

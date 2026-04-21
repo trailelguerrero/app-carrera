@@ -85,7 +85,7 @@ function estadoBg(e) {
 // ─── PUBLIC REGISTRATION FORM ──────────────────────────────────────────────────
 export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: imgF, imgBack: imgB, imgGuiaTallas, opcionPuesto, opcionVehiculo, config: cfgProp }) {
   const config = cfgProp || EVENT_CONFIG_DEFAULT;
-  const [form, setForm] = useState({ nombre: "", apellidos: "", telefono: "", email: "", talla: "", puestoId: "", coche: false, contactoEmergencia: "" });
+  const [form, setForm] = useState({ nombre: "", apellidos: "", telefono: "", email: "", talla: "", puestoId: "", coche: false, contactoEmergencia: "", website: "" });
   const [enviado, setEnviado] = useState(false);
   const [errores, setErrores] = useState({});
   const [lightbox, setLightbox] = useState(null); // null | "front" | "back"
@@ -298,6 +298,19 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
 
           <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.1rem" }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+              {/* ── Honeypot anti-spam: oculto para humanos, trampa para bots ── */}
+              <div style={{ position: "absolute", opacity: 0, height: 0, overflow: "hidden", pointerEvents: "none" }} aria-hidden="true">
+                <label>No rellenar este campo</label>
+                <input
+                  type="text"
+                  name="website"
+                  value={form.website}
+                  onChange={e => update("website", e.target.value)}
+                  tabIndex={-1}
+                  autoComplete="off"
+                />
+              </div>
+
               <FormField label="Nombre *" error={errores.nombre}>
                 <input className="pub-input" placeholder="Ej: María" value={form.nombre} onChange={e => update("nombre", e.target.value)} />
               </FormField>
