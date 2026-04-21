@@ -851,11 +851,11 @@ function TabPipeline({ pats, onEditar, onDetalle, updateEstado, ordenAlfa, onNue
 // ─── TAB CONTRAPRESTACIONES ───────────────────────────────────────────────────
 function TabContraprestaciones({ pats, updateContraprestacion, addContraprestacion, deleteContraprestacion, onDetalle, ordenAlfa, setOrdenAlfa }) {
   const [addingTo, setAddingTo] = useState(null);
-  const [newCont, setNewCont] = useState({ tipo: CONTRAPRESTACIONES_TIPO[0], detalle: "", estado: "pendiente" });
+  const [newCont, setNewCont] = useState({ tipo: CONTRAPRESTACIONES_TIPO[0], detalle: "", fechaEntrega: "", estado: "pendiente" });
   const [filtroPatId, setFiltroPatId] = useState("todos");
   const [vistaKanban, setVistaKanban] = useState(false);
   const [editingCont, setEditingCont] = useState(null);
-  const [editC, setEditC] = useState({ tipo: CONTRAPRESTACIONES_TIPO[0], detalle: "" });
+  const [editC, setEditC] = useState({ tipo: CONTRAPRESTACIONES_TIPO[0], detalle: "", fechaEntrega: "" });
 
   const activos = pats.filter(p => p.estado !== "cancelado");
   const allConts = activos.flatMap(p => (p.contraprestaciones || []).map(c => ({ ...c, patNombre: p.nombre, patId: p.id, patNivel: p.nivel })));
@@ -931,7 +931,7 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
                         {col.id==="pendiente"?"✓ Entregar":"↩ Reabrir"}
                       </button>
                       <div style={{display:"flex", gap:".3rem"}}>
-                        <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(`${c.patId}-${c.id}`); setEditC({ tipo: c.tipo, detalle: c.detalle||"" }); }}>✏️</button>
+                        <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(`${c.patId}-${c.id}`); setEditC({ tipo: c.tipo, detalle: c.detalle||"", fechaEntrega: c.fechaEntrega||"" }); }}>✏️</button>
                         <button className="btn btn-sm btn-red" onClick={() => deleteContraprestacion(c.patId, c.id)}>✕</button>
                       </div>
                     </div>
@@ -971,7 +971,7 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
               <div style={{display:"flex", gap:".25rem", flexShrink:0}}>
                 <button className="btn btn-sm" style={{ background: "var(--green-dim)", color: "var(--green)", border: "1px solid rgba(52,211,153,.2)" }}
                   onClick={() => updateContraprestacion(c.patId, c.id, "estado", "entregado")}>Entregar</button>
-                <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(`${c.patId}-${c.id}`); setEditC({ tipo: c.tipo, detalle: c.detalle||"" }); }}>✏️</button>
+                <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(`${c.patId}-${c.id}`); setEditC({ tipo: c.tipo, detalle: c.detalle||"", fechaEntrega: c.fechaEntrega||"" }); }}>✏️</button>
                 <button className="btn btn-sm btn-red" onClick={() => deleteContraprestacion(c.patId, c.id)}>✕</button>
               </div>
             </div>
@@ -1000,7 +1000,7 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
               <div style={{display:"flex", gap:".25rem", flexShrink:0}}>
                 <button className="btn btn-sm" style={{ background: "var(--surface2)", color: "var(--text)", border: "1px solid var(--border)" }}
                   onClick={() => updateContraprestacion(c.patId, c.id, "estado", "pendiente")}>↩ Reabrir</button>
-                <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(`${c.patId}-${c.id}`); setEditC({ tipo: c.tipo, detalle: c.detalle||"" }); }}>✏️</button>
+                <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(`${c.patId}-${c.id}`); setEditC({ tipo: c.tipo, detalle: c.detalle||"", fechaEntrega: c.fechaEntrega||"" }); }}>✏️</button>
                 <button className="btn btn-sm btn-red" onClick={() => deleteContraprestacion(c.patId, c.id)}>✕</button>
               </div>
             </div>
@@ -1037,6 +1037,10 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
                 <div key={"edit"+c.id} style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 8, padding: ".65rem", marginTop: ".4rem", display: "flex", flexDirection: "column", gap: ".45rem" }} onClick={e=>e.stopPropagation()}>
                   <input list="cont-options" className="inp" placeholder="Escribe un tipo o elige..." value={editC.tipo} onChange={e => setEditC(x => ({ ...x, tipo: e.target.value }))} />
                   <input className="inp" placeholder="Detalle (tamaño logo, nº posts, etc.)" value={editC.detalle} onChange={e => setEditC(x => ({ ...x, detalle: e.target.value }))} />
+                  <div>
+                    <label className="fl">Fecha límite entrega <span className="muted" style={{fontWeight:400}}>(opcional)</span></label>
+                    <input className="inp" type="date" value={editC.fechaEntrega || ""} onChange={e => setEditC(x => ({ ...x, fechaEntrega: e.target.value }))} />
+                  </div>
                   <div style={{ display: "flex", gap: ".4rem", justifyContent: "flex-end" }}>
                     <button className="btn btn-sm btn-ghost" onClick={() => setEditingCont(null)}>Cancelar</button>
                     <button className="btn btn-sm btn-gold" onClick={() => { updateContraprestacion(p.id, c.id, editC); setEditingCont(null); }}>Guardar</button>
@@ -1052,8 +1056,16 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
                   <div style={{ fontSize: ".76rem", fontWeight: 600, color: c.estado === "entregado" ? "var(--text-muted)" : "var(--text)", textDecoration: c.estado === "entregado" ? "line-through" : "none" }}>{c.tipo}</div>
                   {c.detalle && <div className="mono xs muted">{c.detalle}</div>}
                 </div>
+                {c.estado !== "entregado" && (() => {
+                  if (!c.fechaEntrega) return null;
+                  const dias = Math.ceil((new Date(c.fechaEntrega) - new Date()) / 86400000);
+                  if (dias < 0)  return <span key="urg" style={{fontFamily:"var(--font-mono)",fontSize:".55rem",padding:".1rem .35rem",borderRadius:4,background:"var(--red-dim)",color:"var(--red)",fontWeight:700,flexShrink:0}}>⚠ {Math.abs(dias)}d vencida</span>;
+                  if (dias === 0) return <span key="urg" style={{fontFamily:"var(--font-mono)",fontSize:".55rem",padding:".1rem .35rem",borderRadius:4,background:"var(--amber-dim)",color:"var(--amber)",fontWeight:700,flexShrink:0}}>🔔 HOY</span>;
+                  if (dias <= 7) return <span key="urg" style={{fontFamily:"var(--font-mono)",fontSize:".55rem",padding:".1rem .35rem",borderRadius:4,background:"var(--amber-dim)",color:"var(--amber)",fontWeight:700,flexShrink:0}}>📅 {dias}d</span>;
+                  return <span key="urg" style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-dim)",flexShrink:0}}>📅 {c.fechaEntrega}</span>;
+                })()}
                 <div style={{display:"flex",gap:".3rem",flexShrink:0}}>
-                  <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(`${p.id}-${c.id}`); setEditC({ tipo: c.tipo, detalle: c.detalle||"" }); }}>✏️</button>
+                  <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(`${p.id}-${c.id}`); setEditC({ tipo: c.tipo, detalle: c.detalle||"", fechaEntrega: c.fechaEntrega||"" }); }}>✏️</button>
                   <button className="btn btn-sm btn-red" onClick={() => deleteContraprestacion(p.id, c.id)}>✕</button>
                 </div>
               </div>
@@ -1063,11 +1075,15 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
               <div style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 8, padding: ".75rem", marginTop: ".5rem", display: "flex", flexDirection: "column", gap: ".5rem" }}>
                 <input list="cont-options" className="inp" placeholder="Escribe un tipo o elige..." value={newCont.tipo} onChange={e => setNewCont(x => ({ ...x, tipo: e.target.value }))} />
                 <input className="inp" placeholder="Detalle (opcional)..." value={newCont.detalle} onChange={e => setNewCont(x => ({ ...x, detalle: e.target.value }))} />
+                <div>
+                  <label className="fl">Fecha límite entrega <span className="muted" style={{fontWeight:400}}>(opcional)</span></label>
+                  <input className="inp" type="date" value={newCont.fechaEntrega} onChange={e => setNewCont(x => ({ ...x, fechaEntrega: e.target.value }))} />
+                </div>
                 <div style={{ display: "flex", gap: ".5rem", justifyContent: "flex-end" }}>
                   <button className="btn btn-ghost" onClick={() => setAddingTo(null)}>Cancelar</button>
                   <button className="btn btn-gold" onClick={() => {
                     addContraprestacion(p.id, { ...newCont, estado: "pendiente" });
-                    setNewCont({ tipo: CONTRAPRESTACIONES_TIPO[0], detalle: "", estado: "pendiente" });
+                    setNewCont({ tipo: CONTRAPRESTACIONES_TIPO[0], detalle: "", fechaEntrega: "", estado: "pendiente" });
                     setAddingTo(null);
                   }}>Añadir</button>
                 </div>
@@ -1088,11 +1104,11 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
   const ecfg = ESTADO_CFG[pat.estado];
   const [subTab, setSubTab] = useState("info");
   const [addingCont, setAddingCont] = useState(false);
-  const [newC, setNewC] = useState({ tipo: CONTRAPRESTACIONES_TIPO[0], detalle: "" });
+  const [newC, setNewC] = useState({ tipo: CONTRAPRESTACIONES_TIPO[0], detalle: "", fechaEntrega: "" });
   const [addingEspecie, setAddingEspecie] = useState(false);
   const [newEsp, setNewEsp] = useState({ nombre: "", cantidad: 0, unidad: "unidades" });
   const [editingCont, setEditingCont] = useState(null);
-  const [editC, setEditC] = useState({ tipo: CONTRAPRESTACIONES_TIPO[0], detalle: "" });
+  const [editC, setEditC] = useState({ tipo: CONTRAPRESTACIONES_TIPO[0], detalle: "", fechaEntrega: "" });
   const [editingEspecie, setEditingEspecie] = useState(null);
   const [editEsp, setEditEsp] = useState({ nombre: "", cantidad: 0, unidad: "unidades" });
   const especieItems = pat.especieItems || [];
@@ -1204,7 +1220,15 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
                   {c.detalle && <div className="mono xs muted">{c.detalle}</div>}
                 </div>
                 <div style={{display:"flex",gap:".3rem",flexShrink:0}}>
-                  <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(c.id); setEditC({ tipo: c.tipo, detalle: c.detalle||"" }); }}>✏️</button>
+                  {c.estado !== "entregado" && (() => {
+                    if (!c.fechaEntrega) return null;
+                    const dias = Math.ceil((new Date(c.fechaEntrega) - new Date()) / 86400000);
+                    if (dias < 0)  return <span key="urg" style={{fontFamily:"var(--font-mono)",fontSize:".55rem",padding:".1rem .35rem",borderRadius:4,background:"var(--red-dim)",color:"var(--red)",fontWeight:700}}>⚠ {Math.abs(dias)}d</span>;
+                    if (dias === 0) return <span key="urg" style={{fontFamily:"var(--font-mono)",fontSize:".55rem",padding:".1rem .35rem",borderRadius:4,background:"var(--amber-dim)",color:"var(--amber)",fontWeight:700}}>🔔 HOY</span>;
+                    if (dias <= 7) return <span key="urg" style={{fontFamily:"var(--font-mono)",fontSize:".55rem",padding:".1rem .35rem",borderRadius:4,background:"var(--amber-dim)",color:"var(--amber)",fontWeight:700}}>📅 {dias}d</span>;
+                    return null;
+                  })()}
+                  <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(c.id); setEditC({ tipo: c.tipo, detalle: c.detalle||"", fechaEntrega: c.fechaEntrega||"" }); }}>✏️</button>
                   <button className="btn btn-sm btn-red" onClick={() => deleteContraprestacion(pat.id, c.id)}>✕</button>
                 </div>
               </div>
@@ -1216,6 +1240,10 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
               <div style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 8, padding: ".65rem", marginTop: ".4rem", display: "flex", flexDirection: "column", gap: ".45rem" }}>
                 <input list="cont-options" className="inp" placeholder="Escribe un tipo o elige..." value={newC.tipo} onChange={e => setNewC(x => ({ ...x, tipo: e.target.value }))} />
                 <input className="inp" placeholder="Detalle (tamaño logo, nº posts, etc.)" value={newC.detalle} onChange={e => setNewC(x => ({ ...x, detalle: e.target.value }))} />
+                <div>
+                  <label className="fl">Fecha límite entrega <span className="muted" style={{fontWeight:400}}>(opcional)</span></label>
+                  <input className="inp" type="date" value={newC.fechaEntrega} onChange={e => setNewC(x => ({ ...x, fechaEntrega: e.target.value }))} />
+                </div>
                 <div style={{ display: "flex", gap: ".4rem", justifyContent: "flex-end" }}>
                   <button className="btn btn-ghost" onClick={() => setAddingCont(false)}>Cancelar</button>
                   <button className="btn btn-gold" onClick={() => { addContraprestacion(pat.id, { ...newC, estado: "pendiente" }); setAddingCont(false); }}>Añadir</button>
