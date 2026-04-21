@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useData } from "@/lib/dataService";
+import dataService from "@/lib/dataService";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { getEventDate } from "@/lib/eventUtils";
 
@@ -29,11 +30,20 @@ const CSS = `
 .dc-chk.on{background:var(--green);border-color:var(--green);}
 .dc-sect{font-family:'DM Mono',monospace;font-size:.6rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin:.75rem 0 .35rem;}
 .dc-tel{display:inline-flex;align-items:center;gap:.3rem;padding:.3rem .6rem;border-radius:8px;font-family:'DM Mono',monospace;font-size:.7rem;font-weight:800;text-decoration:none;transition:all .15s;}
+.dc-fab{position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));right:20px;width:52px;height:52px;border-radius:50%;background:rgba(248,113,113,0.92);border:2px solid rgba(248,113,113,0.5);font-size:1.35rem;cursor:pointer;box-shadow:0 4px 24px rgba(248,113,113,0.45);z-index:9100;display:flex;align-items:center;justify-content:center;transition:transform .15s;}
+.dc-fab:active{transform:scale(0.92);}
+.dc-inc-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);z-index:9200;display:flex;align-items:flex-end;justify-content:center;padding:0;}
+@media(min-width:641px){.dc-inc-backdrop{align-items:center;padding:1rem;}}
+.dc-inc-modal{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:440px;padding:1rem 1.25rem 1.5rem;border-top:3px solid rgba(248,113,113,0.5);}
+@media(min-width:641px){.dc-inc-modal{border-radius:16px;}}
 `;
 
 export default function DiaCarrera({ onClose }) {
   const [tab, setTab] = useState("timeline");
   const [ahora, setAhora] = useState(new Date());
+  const [showInc, setShowInc] = useState(false);
+  const [incForm, setIncForm] = useState({ tipo: "médica", gravedad: "media", descripcion: "" });
+  const [incGuardado, setIncGuardado] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => setAhora(new Date()), 30000);
@@ -66,6 +76,28 @@ export default function DiaCarrera({ onClose }) {
   const toggleVol = id => setVols(prev => prev.map(v => v.id===id ? {...v, presente:!v.presente} : v));
   const toggleCk  = id => setCk(prev  => prev.map(t => t.id===id
     ? {...t, estado: t.estado==="completado" ? "pendiente" : "completado"} : t));
+
+  const guardarIncidencia = async () => {
+    if (!incForm.descripcion.trim()) return;
+    const nueva = {
+      id: `inc_${Date.now()}`,
+      hora: new Date().toTimeString().slice(0, 5),
+      tipo: incForm.tipo,
+      gravedad: incForm.gravedad,
+      descripcion: incForm.descripcion.trim(),
+      responsable: "Día de Carrera",
+      estado: "abierta",
+      resolucion: "",
+    };
+    const incs = await dataService.get(LS_LOG + "_inc", []);
+    await dataService.set(LS_LOG + "_inc", [...(Array.isArray(incs) ? incs : []), nueva]);
+    setIncGuardado(true);
+    setTimeout(() => {
+      setShowInc(false);
+      setIncGuardado(false);
+      setIncForm({ tipo: "médica", gravedad: "media", descripcion: "" });
+    }, 1000);
+  };
 
   const TABS = [
     {id:"timeline",    label:"⏱ Timeline"},
@@ -343,6 +375,95 @@ export default function DiaCarrera({ onClose }) {
         )}
 
       </div>
+
+      {/* ── FAB: botón flotante de incidencia rápida ─────────────────────── */}
+      <button
+        className="dc-fab"
+        onClick={() => setShowInc(true)}
+        title="Registrar incidencia urgente"
+        aria-label="Registrar incidencia"
+      >
+        🚨
+      </button>
+
+      {/* ── Modal de incidencia rápida ───────────────────────────────────── */}
+      {showInc && (
+        <div className="dc-inc-backdrop" onClick={e => e.target===e.currentTarget && setShowInc(false)}>
+          <div className="dc-inc-modal">
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:".85rem" }}>
+              <span style={{ fontWeight:800, fontSize:".9rem" }}>🚨 Incidencia urgente</span>
+              <button onClick={() => setShowInc(false)} style={{
+                background:"none", border:"none", color:"var(--text-muted)",
+                cursor:"pointer", fontSize:"1rem", padding:".2rem",
+              }}>✕</button>
+            </div>
+
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:".65rem", marginBottom:".65rem" }}>
+              <div>
+                <label style={{ display:"block", fontFamily:"var(--font-mono)", fontSize:".62rem",
+                  fontWeight:700, color:"var(--text-muted)", marginBottom:".3rem",
+                  textTransform:"uppercase", letterSpacing:".04em" }}>Tipo</label>
+                <select
+                  value={incForm.tipo}
+                  onChange={e => setIncForm(p => ({...p, tipo: e.target.value}))}
+                  style={{ width:"100%", background:"var(--surface2)", border:"1px solid var(--border)",
+                    borderRadius:8, color:"var(--text)", padding:".45rem .6rem",
+                    fontFamily:"var(--font-mono)", fontSize:".72rem", outline:"none" }}
+                >
+                  {["médica","señalización","avituallamiento","corredor perdido","meteorológica","otra"]
+                    .map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ display:"block", fontFamily:"var(--font-mono)", fontSize:".62rem",
+                  fontWeight:700, color:"var(--text-muted)", marginBottom:".3rem",
+                  textTransform:"uppercase", letterSpacing:".04em" }}>Gravedad</label>
+                <select
+                  value={incForm.gravedad}
+                  onChange={e => setIncForm(p => ({...p, gravedad: e.target.value}))}
+                  style={{ width:"100%", background:"var(--surface2)", border:"1px solid var(--border)",
+                    borderRadius:8, color:"var(--text)", padding:".45rem .6rem",
+                    fontFamily:"var(--font-mono)", fontSize:".72rem", outline:"none" }}
+                >
+                  {[["baja","🟢"],["media","🟡"],["alta","🔴"]]
+                    .map(([g, ic]) => <option key={g} value={g}>{ic} {g}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ marginBottom:".85rem" }}>
+              <label style={{ display:"block", fontFamily:"var(--font-mono)", fontSize:".62rem",
+                fontWeight:700, color:"var(--text-muted)", marginBottom:".3rem",
+                textTransform:"uppercase", letterSpacing:".04em" }}>Descripción *</label>
+              <textarea
+                value={incForm.descripcion}
+                onChange={e => setIncForm(p => ({...p, descripcion: e.target.value}))}
+                placeholder="Qué ha pasado, dónde, quién está implicado…"
+                rows={3}
+                style={{ width:"100%", background:"var(--surface2)", border:"1px solid var(--border)",
+                  borderRadius:8, color:"var(--text)", padding:".55rem .7rem",
+                  fontFamily:"var(--font-mono)", fontSize:".75rem", outline:"none",
+                  resize:"vertical", boxSizing:"border-box",
+                  borderColor: !incForm.descripcion.trim() && incGuardado ? "var(--red)" : undefined }}
+              />
+            </div>
+
+            <button
+              onClick={guardarIncidencia}
+              disabled={incGuardado}
+              style={{
+                width:"100%", padding:".7rem", borderRadius:10,
+                background: incGuardado ? "var(--green)" : "rgba(248,113,113,0.9)",
+                border:"none", color:"#fff", fontFamily:"var(--font-mono)",
+                fontSize:".8rem", fontWeight:800, cursor: incGuardado ? "default" : "pointer",
+                transition:"background .2s",
+              }}
+            >
+              {incGuardado ? "✓ Incidencia registrada" : "🚨 Registrar incidencia"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 
