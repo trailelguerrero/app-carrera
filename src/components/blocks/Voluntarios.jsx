@@ -1539,6 +1539,50 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
                       ))}
                     </div>
                   )}
+                  {/* ── Material asignado desde Logística ─────────────── */}
+                  {(() => {
+                    const loc = locs.find(l => l.id === p.localizacionId);
+                    const items = loc ? (matPorLoc[loc.nombre] || []) : [];
+                    if (!items.length) return null;
+                    return (
+                      <div style={{ marginTop: "0.6rem", padding: "0.5rem 0.65rem",
+                        background: "var(--surface2)", borderRadius: 8,
+                        border: "1px solid rgba(34,211,238,0.15)",
+                        borderLeft: "2px solid var(--cyan)" }}
+                        onClick={e => e.stopPropagation()}>
+                        <div style={{ display: "flex", justifyContent: "space-between",
+                          alignItems: "center", marginBottom: "0.3rem" }}>
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: ".58rem",
+                            color: "var(--cyan)", fontWeight: 700,
+                            textTransform: "uppercase", letterSpacing: ".04em" }}>
+                            📦 Material asignado ({items.length})
+                          </span>
+                          <button
+                            onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate",
+                              { detail: { block: "logistica", subtab: "material" } }))}
+                            style={{ fontFamily: "var(--font-mono)", fontSize: ".52rem",
+                              padding: ".1rem .35rem", borderRadius: 3, cursor: "pointer",
+                              border: "1px solid rgba(34,211,238,.25)",
+                              background: "rgba(34,211,238,.08)", color: "var(--cyan)" }}>
+                            Ver en Logística →
+                          </button>
+                        </div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: ".3rem" }}>
+                          {items.map((item, i) => (
+                            <span key={i} style={{ fontFamily: "var(--font-mono)", fontSize: ".62rem",
+                              padding: ".15rem .45rem", borderRadius: 4,
+                              background: "var(--surface)", border: "1px solid var(--border)",
+                              color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+                              {item.nombre}
+                              <span style={{ color: "var(--cyan)", fontWeight: 700, marginLeft: ".25rem" }}>
+                                ×{item.cantidad} {item.unidad}
+                              </span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div style={{ display: "flex", gap: "0.3rem", flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                   <button className="btn btn-ghost" style={{ padding: "0.28rem 0.45rem", fontSize: "0.68rem" }} onClick={() => onEditPuesto(p)}>✏️</button>
