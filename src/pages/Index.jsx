@@ -4,6 +4,7 @@ const DiaCarrera = lazy(() => import("../components/blocks/DiaCarrera"));
 import OnboardingModal from "../components/blocks/OnboardingModal";
 import { ThemeToggle } from "../components/ui/ThemeToggle";
 import { LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 // Lazy-style imports for blocks
 const Dashboard = lazy(() => import("../components/blocks/Dashboard"));
@@ -392,7 +393,8 @@ export default function Index() {
     return () => window.removeEventListener("resize", h);
   }, []);
 
-  const saveStatus = useGlobalSaveStatus();
+  const saveStatus  = useGlobalSaveStatus();
+  const isOnline    = useOnlineStatus();
   useMobileKeyboardScroll();
 
   const handleBlockChange = useCallback((id) => {
@@ -522,6 +524,29 @@ export default function Index() {
           50%      { opacity:0.35; transform:scale(0.6); }
         }
       `}</style>
+
+      {/* ── BANNER OFFLINE ───────────────────────────────────────────────── */}
+      {!isOnline && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
+          background: "rgba(251,191,36,0.97)",
+          color: "#0d1121",
+          textAlign: "center",
+          padding: "0.45rem 1rem",
+          fontFamily: "var(--font-mono)",
+          fontSize: "0.68rem",
+          fontWeight: 700,
+          letterSpacing: ".04em",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: ".5rem",
+          boxShadow: "0 2px 12px rgba(251,191,36,0.35)",
+        }}>
+          <span>⚠️</span>
+          <span>SIN CONEXIÓN — Los cambios se guardan localmente y se sincronizarán al recuperar la conexión</span>
+        </div>
+      )}
 
       <div style={{ minHeight:"100vh", display:"flex", flexDirection:"column", background:"var(--teg-bg)",
           backgroundImage:"radial-gradient(ellipse 90% 45% at 15% -5%, rgba(34,211,238,0.065) 0%, transparent 50%), radial-gradient(ellipse 60% 30% at 85% 105%, rgba(167,139,250,0.045) 0%, transparent 48%), radial-gradient(ellipse 30% 20% at 50% 50%, rgba(34,211,238,0.02) 0%, transparent 55%)" }}>
