@@ -874,8 +874,24 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
                       textDecoration:t.estado==="completado"?"line-through":"none"}}>{t.titulo}</span>
                     <span className="badge" style={{background:pc.bg,color:pc.color,fontSize:".52rem"}}>{t.prioridad}</span>
                     {t.documentoId && <span title="Documento vinculado" style={{fontSize:".7rem",cursor:"help"}}>📎</span>}
-                    {dep && dep.estado !== "completado" &&
-                      <span className="badge" style={{background:"rgba(248,113,113,.1)",color:"#f87171",fontSize:".52rem"}}>🔒 espera: {dep.titulo.slice(0,25)}…</span>}
+                    {dep && (
+                      dep.estado === "completado" ? (
+                        <span className="badge" style={{
+                          background:"rgba(52,211,153,.1)", color:"var(--green)",
+                          fontSize:".52rem", border:"1px solid rgba(52,211,153,.25)" }}
+                          title={`Depende de: "${dep.titulo}" — completada ✓`}>
+                          ✓ dep. resuelta
+                        </span>
+                      ) : (
+                        <span className="badge" style={{
+                          background:"rgba(248,113,113,.12)", color:"#f87171",
+                          fontSize:".52rem", border:"1px solid rgba(248,113,113,.3)",
+                          cursor:"help" }}
+                          title={`Depende de: "${dep.titulo}" — estado: ${dep.estado}`}>
+                          🔒 espera: {dep.titulo.slice(0,22)}{dep.titulo.length>22?"…":""}
+                        </span>
+                      )
+                    )}
                   </div>
                   <div style={{display:"flex",gap:".75rem",flexWrap:"wrap"}}>
                     <span className="mono xs" style={{color:area.color}}>{area.label}</span>
@@ -951,6 +967,17 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
                             </div>
                             <span className="badge" style={{background:pc.bg,color:pc.color,fontSize:".48rem"}}>{t.prioridad}</span>
                             {t.documentoId && <span title="Documento vinculado" style={{fontSize:".65rem",marginLeft:"-2px"}}>📎</span>}
+                            {(() => {
+                              const depK = t.dependeDe ? todasTareas.find(x => x.id === t.dependeDe) : null;
+                              if (!depK) return null;
+                              return depK.estado === "completado" ? (
+                                <span title={`Dep.: "${depK.titulo}" ✓`}
+                                  style={{fontSize:".55rem",color:"var(--green)",flexShrink:0}}>✓</span>
+                              ) : (
+                                <span title={`Espera: "${depK.titulo}" (${depK.estado})`}
+                                  style={{fontSize:".6rem",flexShrink:0}}>🔒</span>
+                              );
+                            })()}
                             {resp && (
                               <div className="kanban-avatar" style={{background:resp.color+"33",border:`1px solid ${resp.color}66`,color:resp.color}}>
                                 {iniciales(resp.nombre)}
@@ -1826,11 +1853,24 @@ function FichaProyecto({ ficha, equipo, documentos, tareas, onClose, onEditar, o
                   <div style={{ marginTop:".75rem", display:"flex", flexDirection:"column", gap:".4rem" }}>
                     {bloqueadaPor && (
                       <div style={{ padding:".5rem .65rem", borderRadius:8,
-                        background:"rgba(248,113,113,.06)",
-                        border:"1px solid rgba(248,113,113,.2)" }}>
-                        <div style={{ fontFamily:"var(--font-mono)", fontSize:".55rem",
-                          color:"#f87171", fontWeight:700, marginBottom:".25rem",
-                          textTransform:"uppercase" }}>🔒 Bloqueada por</div>
+                        background: bloqueadaPor.estado === "completado"
+                          ? "rgba(52,211,153,.07)" : "rgba(248,113,113,.06)",
+                        border: bloqueadaPor.estado === "completado"
+                          ? "1px solid rgba(52,211,153,.25)" : "1px solid rgba(248,113,113,.2)" }}>
+                        <div style={{ display:"flex", justifyContent:"space-between",
+                          alignItems:"center", marginBottom:".25rem" }}>
+                          <div style={{ fontFamily:"var(--font-mono)", fontSize:".55rem",
+                            color: bloqueadaPor.estado === "completado" ? "var(--green)" : "#f87171",
+                            fontWeight:700, textTransform:"uppercase" }}>
+                            {bloqueadaPor.estado === "completado" ? "✓ Dependencia resuelta" : "🔒 Bloqueada por"}
+                          </div>
+                          <span style={{ fontFamily:"var(--font-mono)", fontSize:".55rem",
+                            padding:".1rem .35rem", borderRadius:4,
+                            background: EST_CFG[bloqueadaPor.estado]?.bg,
+                            color: EST_CFG[bloqueadaPor.estado]?.color }}>
+                            {EST_CFG[bloqueadaPor.estado]?.label}
+                          </span>
+                        </div>
                         <div style={{ fontSize:".75rem", fontWeight:600 }}>{bloqueadaPor.titulo}</div>
                         <div style={{ fontFamily:"var(--font-mono)", fontSize:".58rem",
                           color:"var(--text-muted)", marginTop:".1rem" }}>
