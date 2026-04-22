@@ -228,7 +228,9 @@ export const ScenarioBar = ({
   const [showNewModal, setShowNewModal] = useState(false);
   const [showDiffModal, setShowDiffModal] = useState(false);
   const [newName, setNewName] = useState("");
+  const [newNota, setNewNota] = useState("");
   const [editingName, setEditingName] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(null);
 
   const computeDiffs = () => {
     if (!activeScenario) return [];
@@ -292,8 +294,9 @@ export const ScenarioBar = ({
 
   const handleCreate = () => {
     const name = newName.trim() || "Nuevo escenario";
-    onCreateScenario(name);
+    onCreateScenario(name, newNota.trim());
     setNewName("");
+    setNewNota("");
     setShowNewModal(false);
   };
 
@@ -531,12 +534,21 @@ export const ScenarioBar = ({
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleCreate()}
               autoFocus
-              style={{ marginBottom: "1rem" }}
+              style={{ marginBottom: "0.65rem" }}
+            />
+            <textarea
+              className="inp"
+              placeholder="Notas o suposiciones de este escenario (opcional)…"
+              value={newNota}
+              onChange={(e) => setNewNota(e.target.value)}
+              rows={2}
+              style={{ resize: "vertical", marginBottom: "1rem",
+                fontFamily: "var(--font-mono)", fontSize: "0.72rem" }}
             />
             <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
               <button
                 className="btn btn-ghost"
-                onClick={() => { setShowNewModal(false); setNewName(""); }}
+                onClick={() => { setShowNewModal(false); setNewName(""); setNewNota(""); }}
               >
                 Cancelar
               </button>
@@ -610,6 +622,14 @@ export const ScenarioBar = ({
                             sc.conceptosExcluidos.length !== 1 ? "s" : ""
                           } excluido${sc.conceptosExcluidos.length !== 1 ? "s" : ""}`}
                       </div>
+                      {sc.nota && (
+                        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.58rem",
+                          color: "var(--text-dim)", marginTop: "0.2rem",
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                          title={sc.nota}>
+                          📝 {sc.nota}
+                        </div>
+                      )}
                     </div>
                     <div className="sc-list-actions">
                       <button
@@ -710,6 +730,31 @@ export const ScenarioBar = ({
                   </div>
                 ));
               })()}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── Modal: Confirmar borrado ── */}
+      {confirmDel && (
+        <div className="sc-list-overlay" onClick={() => setConfirmDel(null)}>
+          <div className="sc-new-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 340 }}>
+            <div style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>🗑</div>
+            <div style={{ fontWeight: 800, fontSize: "0.95rem", marginBottom: "0.3rem" }}>
+              ¿Eliminar escenario?
+            </div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.68rem",
+              color: "var(--text-muted)", lineHeight: 1.6, marginBottom: "1.25rem" }}>
+              Se eliminará <strong style={{ color: "var(--text)" }}>{confirmDel.nombre}</strong>.
+              {confirmDel.nota && (
+                <div style={{ marginTop: "0.4rem", opacity: 0.7 }}>📝 {confirmDel.nota}</div>
+              )}
+            </div>
+            <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+              <button className="btn btn-ghost" onClick={() => setConfirmDel(null)}>Cancelar</button>
+              <button className="btn btn-red" onClick={() => {
+                onDeleteScenario(confirmDel.id);
+                setConfirmDel(null);
+              }}>Eliminar</button>
             </div>
           </div>
         </div>

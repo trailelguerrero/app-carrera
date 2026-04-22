@@ -56,10 +56,11 @@ export const useScenario = (realInscritos, realConceptos, realIngresosExtra, rea
 
   /** Crea un nuevo escenario a partir del estado real actual. */
   const createScenario = useCallback(
-    (nombre = "Nuevo escenario") => {
+    (nombre = "Nuevo escenario", nota = "") => {
       setActiveScenario({
         id: null, // null = no guardado aún
         nombre,
+        nota,
         inscritos: JSON.parse(JSON.stringify(realInscritos)), // deep clone
         conceptosExcluidos: realConceptos
           .filter((c) => !c.activo)
