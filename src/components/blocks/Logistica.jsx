@@ -913,17 +913,22 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
 function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,config}) {
   const [vistaKanban,setVistaKanban]=useState(false);
   const [ahora,setAhora] = useState(new Date());
+  const [filtroResp,setFiltroResp] = useState("todos");
   useEffect(() => {
     const t = setInterval(() => setAhora(new Date()), 30000);
     return () => clearInterval(t);
   }, []);
   const horaActual = ahora.toTimeString().slice(0,5); // "HH:MM"
+  const responsables = useMemo(() =>
+    [...new Set(tl.map(t => t.responsable).filter(Boolean))].sort()
+  , [tl]);
   const sorted=useMemo(()=>{
     let arr=[...tl];
+    if(filtroResp !== "todos") arr = arr.filter(t => t.responsable === filtroResp);
     if(ordenAlfa) arr.sort((a,b)=>(a.titulo||"").localeCompare(b.titulo||"","es"));
     else arr.sort((a,b)=>a.hora.localeCompare(b.hora));
     return arr;
-  },[tl,ordenAlfa]);
+  },[tl,ordenAlfa,filtroResp]);
   const mover=(id,dir)=>{
     if(ordenAlfa) return;
     setTl(prev=>{
@@ -947,6 +952,21 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
               <button className={`filter-pill${vistaKanban ? " active" : ""}`}
                 onClick={() => setVistaKanban(true)}>⬛ Kanban</button>
             </div>
+          {responsables.length > 0 && (
+            <select
+              value={filtroResp}
+              onChange={e => setFiltroResp(e.target.value)}
+              style={{ fontFamily:"var(--font-mono)", fontSize:".65rem", padding:".3rem .6rem",
+                borderRadius:6, border:"1px solid var(--border)", background:"var(--surface2)",
+                color: filtroResp !== "todos" ? "var(--cyan)" : "var(--text-muted)",
+                cursor:"pointer", maxWidth:150 }}
+            >
+              <option value="todos">👤 Todos</option>
+              {responsables.map(r => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+          )}
           <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
           <button className="btn btn-primary" onClick={()=>abrirModal({tipo:"tl"})}>+ Tarea</button>
         </div>
