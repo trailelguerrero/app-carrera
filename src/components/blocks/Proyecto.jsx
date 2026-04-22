@@ -249,9 +249,6 @@ export default function App() {
     }).sort((a,b) => (a.fechaLimite||"").localeCompare(b.fechaLimite||""));
   }, [tareas, filtroArea, filtroResponsable, filtroEstado, filtroPrioridad, busqueda]);
 
-  // Fase F — Paginación Kinetik Ops (vista lista)
-  const { items: tareasPag, total: totalTareas, PaginadorUI } = usePaginacion(tareasFiltradas, 15);
-
   // ── CRUD ───────────────────────────────────────────────────────────────────
   const saveTarea = (t) => {
     if (t.id) setTareas(p => p.map(x => x.id===t.id ? t : x));
@@ -643,6 +640,7 @@ function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, upd
 
 // ─── TAB TABLÓN ───────────────────────────────────────────────────────────────
 function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, filtroResponsable, setFiltroResponsable, filtroEstado, setFiltroEstado, filtroPrioridad, setFiltroPrioridad, busqueda, setBusqueda, updEstado, setModal, setDelConf, setFicha, vista, setVista }) {
+  const { items: tareasPag, PaginadorUI } = usePaginacion(tareas, 15);
   const hayFiltros = filtroArea!=="todas"||filtroResponsable!=="todos"||filtroEstado!=="todos"||filtroPrioridad!=="todas"||busqueda;
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
   const limpiar = () => { setFiltroArea("todas"); setFiltroResponsable("todos"); setFiltroEstado("todos"); setFiltroPrioridad("todas"); setBusqueda(""); };
