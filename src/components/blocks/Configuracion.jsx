@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import QRCode from "qrcode";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 import { useData } from "@/lib/dataService";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
@@ -84,6 +85,8 @@ export default function Configuracion() {
   const [exportando, setExportando] = useState(false);
   const [importMsg, setImportMsg] = useState(null); // {tipo:'ok'|'error', texto}
   const [importPreview, setImportPreview] = useState(null); // {datos, resumen} — preview antes de aplicar
+  const [qrDataUrl, setQrDataUrl] = useState(null);
+  const [qrGenerando, setQrGenerando] = useState(false);
 
   const form = draft ?? config;
   const upd  = (k, v) => setDraft(p => ({ ...(p ?? config), [k]: v }));
@@ -299,6 +302,33 @@ export default function Configuracion() {
   };
 
   const fechaEvento   = form.fecha ? new Date(form.fecha) : null;
+
+  const urlFormulario = typeof window !== "undefined"
+    ? `${window.location.origin}/voluntarios/registro`
+    : "https://appcarrera.vercel.app/voluntarios/registro";
+
+  const generarQR = async () => {
+    setQrGenerando(true);
+    try {
+      // Usar la API de QR de Google Charts — sin dependencia npm, funciona en cualquier entorno
+      const size = 256;
+      const encoded = encodeURIComponent(urlFormulario);
+      const url = `https://chart.googleapis.com/chart?cht=qr&chs=${size}x${size}&chl=${encoded}&chld=M|2`;
+      // Cargar la imagen y convertir a dataURL para poder descargarla
+      const resp = await fetch(url);
+      const blob = await resp.blob();
+      const reader = new FileReader();
+      reader.onloadend = () => { setQrDataUrl(reader.result); };
+      reader.readAsDataURL(blob);
+    } catch {
+      // Fallback: usar la URL directamente como src del img
+      const size = 256;
+      const encoded = encodeURIComponent(urlFormulario);
+      setQrDataUrl(`https://chart.googleapis.com/chart?cht=qr&chs=${size}x${size}&chl=${encoded}&chld=M|2`);
+    } finally {
+      setQrGenerando(false);
+    }
+  };
   const diasRestantes = fechaEvento ? Math.ceil((fechaEvento - new Date()) / 86400000) : null;
 
   return (
@@ -504,28 +534,64 @@ export default function Configuracion() {
         <div className="card cfg-section">
           <div className="cfg-section-title">👥 Formulario de voluntarios</div>
           <div style={{ fontFamily:"var(--font-mono)", fontSize:".68rem", color:"var(--text-muted)", marginBottom:".75rem", lineHeight:1.6 }}>
-            Comparte este enlace con los voluntarios para que puedan registrarse.
+            Comparte este enlace o QR con los voluntarios para que puedan registrarse.
           </div>
-          <div style={{ display:"flex", gap:".5rem", alignItems:"stretch" }}>
+          <div style={{ display:"flex", gap:".5rem", alignItems:"stretch", marginBottom:".75rem" }}>
             <input
               className="cfg-input"
               readOnly
-              value={`${typeof window !== "undefined" ? window.location.origin : "https://appcarrera.vercel.app"}/voluntarios/registro`}
+              value={urlFormulario}
               style={{ flex:1, fontFamily:"var(--font-mono)", fontSize:".68rem", color:"var(--cyan)", cursor:"text" }}
             />
             <button className="backup-btn export" style={{ flexShrink:0, padding:".45rem .85rem" }}
               onClick={() => {
-                const url = `${window.location.origin}/voluntarios/registro`;
-                navigator.clipboard?.writeText(url).then(() => {
+                navigator.clipboard?.writeText(urlFormulario).then(() => {
                   const btn = document.activeElement;
                   const prev = btn.textContent;
                   btn.textContent = "✓ Copiado";
                   setTimeout(() => { btn.textContent = prev; }, 1500);
                 });
               }}>
-              📋 Copiar
+              📋 Copiar enlace
+            </button>
+            <button className="backup-btn export" style={{ flexShrink:0, padding:".45rem .85rem" }}
+              onClick={generarQR} disabled={qrGenerando}>
+              {qrGenerando ? "⏳" : "🔲 QR"}
             </button>
           </div>
+
+          {/* QR generado */}
+          {qrDataUrl && (
+            <div style={{ display:"flex", flexDirection:"column", alignItems:"center",
+              gap:".65rem", padding:".85rem", background:"var(--surface2)",
+              borderRadius:10, border:"1px solid var(--border)" }}>
+              <img
+                src={qrDataUrl}
+                alt="QR formulario voluntarios"
+                style={{ width:200, height:200, borderRadius:8,
+                  border:"4px solid #fff", display:"block" }}
+              />
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+                color:"var(--text-muted)", textAlign:"center" }}>
+                Escanea para acceder al formulario de registro
+              </div>
+              <div style={{ display:"flex", gap:".5rem" }}>
+                <a
+                  href={qrDataUrl}
+                  download="qr-voluntarios-trail-guerrero.png"
+                  className="backup-btn export"
+                  style={{ textDecoration:"none", padding:".38rem .75rem", fontSize:".68rem" }}>
+                  ⬇ Descargar imagen
+                </a>
+                <button className="backup-btn" style={{ padding:".38rem .75rem", fontSize:".68rem",
+                  background:"var(--surface3)", color:"var(--text-muted)",
+                  border:"1px solid var(--border)" }}
+                  onClick={() => setQrDataUrl(null)}>
+                  ✕ Cerrar QR
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── Seguridad de acceso ── */}

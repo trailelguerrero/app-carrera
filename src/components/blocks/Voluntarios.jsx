@@ -463,6 +463,8 @@ export default function App() {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmDeletePuesto, setConfirmDeletePuesto] = useState(null);
   const [urlCopiada, setUrlCopiada] = useState(false);
+  const [qrDataUrl, setQrDataUrl]   = useState(null);
+  const [qrLoading, setQrLoading]   = useState(false);
   const [ficha, setFicha] = useState(null); // {tipo:'vol'|'puesto', data}
   const abrirFicha = (tipo, data) => {
     const main = document.querySelector("main");
@@ -596,6 +598,25 @@ export default function App() {
               style={{ fontFamily:"var(--font-mono)", fontSize:".68rem" }}>
               {urlCopiada ? "✓ Enlace copiado" : "🔗 Formulario registro"}
             </button>
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{ fontFamily:"var(--font-mono)", fontSize:".68rem" }}
+              onClick={async () => {
+                if (qrDataUrl) { setQrDataUrl(null); return; }
+                setQrLoading(true);
+                try {
+                  const url = window.location.origin + "/voluntarios/registro";
+                  const QRCode = (await import("qrcode")).default;
+                  const dataUrl = await QRCode.toDataURL(url, {
+                    width: 256, margin: 2,
+                    color: { dark: "#0d1121", light: "#ffffff" },
+                  });
+                  setQrDataUrl(dataUrl);
+                } catch { /* qrcode no instalado — silenciar */ }
+                finally { setQrLoading(false); }
+              }}>
+              {qrLoading ? "⏳" : qrDataUrl ? "✕ Cerrar QR" : "🔲 QR"}
+            </button>
             <button className="btn btn-ghost btn-sm" onClick={() => setVista("formulario")}
               title="Previsualizar el formulario público de registro de voluntarios">
               ↗ Previsualizar
@@ -606,6 +627,36 @@ export default function App() {
 
 
 
+
+        {/* ── Panel QR del formulario público ──────────────────────────────── */}
+        {qrDataUrl && (
+          <div className="card mb" style={{ padding:"1rem", display:"flex", flexDirection:"column",
+            alignItems:"center", gap:".65rem", background:"var(--surface2)" }}>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:".62rem", fontWeight:700,
+              color:"var(--cyan)", textTransform:"uppercase", letterSpacing:".06em" }}>
+              🔲 QR — Formulario de voluntarios
+            </div>
+            <img src={qrDataUrl} alt="QR formulario voluntarios"
+              style={{ borderRadius:8, border:"4px solid #fff", width:200, height:200 }} />
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:".58rem", color:"var(--text-muted)",
+              textAlign:"center", wordBreak:"break-all", maxWidth:280 }}>
+              {window.location.origin + "/voluntarios/registro"}
+            </div>
+            <div style={{ display:"flex", gap:".5rem" }}>
+              <a href={qrDataUrl} download="qr-voluntarios-teg.png"
+                className="btn btn-ghost btn-sm"
+                style={{ fontFamily:"var(--font-mono)", fontSize:".68rem" }}>
+                ⬇ Descargar PNG
+              </a>
+              <button
+                className="btn btn-ghost btn-sm"
+                style={{ fontFamily:"var(--font-mono)", fontSize:".68rem" }}
+                onClick={() => navigator.clipboard.writeText(window.location.origin + "/voluntarios/registro")}>
+                📋 Copiar enlace
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* OPCIONES FORMULARIO + IMÁGENES — colapsable */}
         <div className="card mb" style={{padding:"0.65rem 1rem"}}>
