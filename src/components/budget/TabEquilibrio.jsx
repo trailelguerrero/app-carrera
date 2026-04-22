@@ -193,6 +193,108 @@ export const TabEquilibrio = ({
         </div>
       )}
 
+      {/* ── Franja de seguridad visual ── */}
+      {peG !== null && peG > 0 && p.aforoTotal > 0 && (
+        <div style={{ marginBottom:"1rem", padding:"0.85rem 1rem",
+          background:"var(--surface2)", borderRadius:10, border:"1px solid var(--border)" }}>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem",
+            color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em",
+            marginBottom:"0.75rem" }}>
+            📐 Franja de seguridad · {dif >= 0 ? `+${dif} corredores sobre el PE` : `Faltan ${Math.abs(dif)} para el PE`}
+          </div>
+          {/* Barra dividida en zonas */}
+          <div style={{ position:"relative", height:32, borderRadius:8, overflow:"hidden",
+            background:"var(--surface3)" }}>
+            {/* Zona PE alcanzado (inscritos actuales) */}
+            {(() => {
+              const pctActual = Math.min((totalN / p.aforoTotal) * 100, 100);
+              const pctPE     = Math.min((peG   / p.aforoTotal) * 100, 100);
+              return (
+                <>
+                  {/* Zona roja: inscripciones actuales (si no se alcanzó el PE) */}
+                  {dif < 0 && (
+                    <div style={{ position:"absolute", left:0, top:0, height:"100%",
+                      width:`${pctActual}%`,
+                      background:"linear-gradient(90deg,rgba(248,113,113,0.5),rgba(248,113,113,0.35))",
+                      borderRight:"2px dashed rgba(248,113,113,0.6)" }} />
+                  )}
+                  {/* Zona verde: inscripciones actuales (si ya se superó el PE) */}
+                  {dif >= 0 && (
+                    <div style={{ position:"absolute", left:0, top:0, height:"100%",
+                      width:`${pctActual}%`,
+                      background:"linear-gradient(90deg,rgba(52,211,153,0.45),rgba(52,211,153,0.3))" }} />
+                  )}
+                  {/* Zona ámbar: desde inscritos actuales hasta el PE (si no se alcanzó) */}
+                  {dif < 0 && (
+                    <div style={{ position:"absolute", left:`${pctActual}%`, top:0, height:"100%",
+                      width:`${pctPE - pctActual}%`,
+                      background:"rgba(251,191,36,0.18)",
+                      borderRight:"2px solid rgba(251,191,36,0.6)" }} />
+                  )}
+                  {/* Zona verde claro: margen de seguridad (PE → aforo máx) */}
+                  {dif >= 0 && pctPE < 100 && (
+                    <div style={{ position:"absolute", left:`${pctPE}%`, top:0, height:"100%",
+                      width:`${100 - pctPE}%`,
+                      background:"rgba(52,211,153,0.12)",
+                      borderLeft:"2px dashed rgba(52,211,153,0.4)" }}>
+                      {/* Label de margen */}
+                      {(100 - pctPE) > 12 && (
+                        <div style={{ position:"absolute", top:"50%", left:"50%",
+                          transform:"translate(-50%,-50%)",
+                          fontFamily:"var(--font-mono)", fontSize:"0.52rem",
+                          color:"var(--green)", fontWeight:700, whiteSpace:"nowrap" }}>
+                          +{p.aforoTotal - peG} margen
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {/* Marcador PE */}
+                  {pctPE > 0 && pctPE < 100 && (
+                    <div style={{ position:"absolute", top:0, left:`${pctPE}%`,
+                      width:2, height:"100%",
+                      background:"rgba(251,191,36,0.8)",
+                      transform:"translateX(-50%)" }}>
+                      <div style={{ position:"absolute", top:-18, left:"50%",
+                        transform:"translateX(-50%)",
+                        fontFamily:"var(--font-mono)", fontSize:"0.5rem",
+                        color:"var(--amber)", fontWeight:800, whiteSpace:"nowrap" }}>
+                        PE: {peG}
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+          {/* Leyenda */}
+          <div style={{ display:"flex", justifyContent:"space-between", marginTop:"0.5rem",
+            flexWrap:"wrap", gap:"0.4rem" }}>
+            <div style={{ display:"flex", gap:"0.85rem", flexWrap:"wrap" }}>
+              <span style={{ display:"flex", alignItems:"center", gap:"0.3rem",
+                fontFamily:"var(--font-mono)", fontSize:"0.58rem", color:"var(--text-dim)" }}>
+                <span style={{ width:10, height:10, borderRadius:2,
+                  background: dif >= 0 ? "rgba(52,211,153,0.5)" : "rgba(248,113,113,0.5)",
+                  display:"inline-block" }} />
+                Actuales ({totalN})
+              </span>
+              {dif >= 0 && p.aforoTotal > peG && (
+                <span style={{ display:"flex", alignItems:"center", gap:"0.3rem",
+                  fontFamily:"var(--font-mono)", fontSize:"0.58rem", color:"var(--text-dim)" }}>
+                  <span style={{ width:10, height:10, borderRadius:2,
+                    background:"rgba(52,211,153,0.15)", border:"1px dashed rgba(52,211,153,0.4)",
+                    display:"inline-block" }} />
+                  Margen seg. (+{p.aforoTotal - peG})
+                </span>
+              )}
+            </div>
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.58rem",
+              color:"var(--text-dim)" }}>
+              Aforo máx: {p.aforoTotal}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* ── Tabla por distancia ── */}
       <div className="card">
         <div className="card-title mb-2" style={{ color:"var(--amber)" }}>
