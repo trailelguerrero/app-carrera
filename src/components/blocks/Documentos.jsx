@@ -109,7 +109,9 @@ export default function Documentos() {
   // Modal nueva gestión
   const [gModal, setGModal] = useState(false);
   const [gForm, setGForm]   = useState({ nombre:"", subcategoria:"Ayuntamiento", estado:"pendiente", fechaVencimiento:"", nota:"", url:"" });
-  const [gEditId, setGEditId] = useState(null);
+  const [gEditId, setGEditId]     = useState(null);
+  const [logGestionId, setLogGestionId] = useState(null); // ID de gestión con log abierto
+  const [nuevoLog, setNuevoLog]         = useState("");    // texto del nuevo log entry
   const fileRef = useRef(null);
   const [visorDoc, setVisorDoc] = useState(null); // doc a visualizar en modal
 
@@ -376,6 +378,23 @@ export default function Documentos() {
   // ─── DERIVED ─────────────────────────────────────────────────────────────
   const catInfo   = CATEGORIAS.find(c => c.id === tab);
   const isGestion = tab === "gestiones"; // gestiones es sección separada, no categoría
+
+  const addLogEntry = (gestionId) => {
+    const texto = nuevoLog.trim();
+    if (!texto) return;
+    const entrada = {
+      id: Date.now(),
+      fecha: new Date().toISOString(),
+      texto,
+      autor: "Organización",
+    };
+    saveGestiones(gestiones.map(g =>
+      g.id === gestionId
+        ? { ...g, log: [...(g.log || []), entrada] }
+        : g
+    ));
+    setNuevoLog("");
+  };
   const subcats   = SUBCATEGORIAS[tab] || [];
   const totalSize = docs.reduce((s, d) => s + (d.size || 0), 0);
   const storagePct = Math.min((totalSize / (100*1024*1024)) * 100, 100);
@@ -1243,6 +1262,72 @@ export default function Documentos() {
                         {g.url && <a href={g.url} target="_blank" rel="noreferrer" style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"#38bdf8"}} onClick={e=>e.stopPropagation()}>🔗 Ver enlace</a>}
                       </div>
                       {g.nota && <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",marginTop:".25rem",lineHeight:1.5}}>{g.nota}</div>}
+
+                      {/* Log de comunicaciones — expandible */}
+                      {((g.log||[]).length > 0 || logGestionId === g.id) && (
+                        <div style={{marginTop:".5rem",paddingTop:".5rem",borderTop:"1px solid var(--border)"}}>
+                          <button
+                            onClick={() => setLogGestionId(logGestionId === g.id ? null : g.id)}
+                            style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",
+                              background:"none",border:"none",cursor:"pointer",padding:0,marginBottom:".35rem",
+                              display:"flex",alignItems:"center",gap:".3rem"}}>
+                            {logGestionId === g.id ? "▲" : "▼"}
+                            📋 Comunicaciones ({(g.log||[]).length})
+                          </button>
+                          {logGestionId === g.id && (
+                            <div>
+                              {(g.log||[]).length === 0 && (
+                                <div style={{fontFamily:"var(--font-mono)",fontSize:".62rem",
+                                  color:"var(--text-dim)",marginBottom:".4rem"}}>
+                                  Sin comunicaciones registradas aún
+                                </div>
+                              )}
+                              {[...(g.log||[])].reverse().map(entry => (
+                                <div key={entry.id} style={{display:"flex",gap:".5rem",
+                                  padding:".35rem .5rem",borderRadius:6,
+                                  background:"var(--surface)",marginBottom:".25rem",
+                                  border:"1px solid var(--border)"}}>
+                                  <div style={{flex:1,minWidth:0}}>
+                                    <div style={{fontSize:".73rem",lineHeight:1.5}}>{entry.texto}</div>
+                                    <div style={{fontFamily:"var(--font-mono)",fontSize:".56rem",
+                                      color:"var(--text-dim)",marginTop:".15rem"}}>
+                                      {entry.autor} · {new Date(entry.fecha).toLocaleDateString("es-ES",{day:"2-digit",month:"short",year:"2-digit"})} {new Date(entry.fecha).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                              {/* Formulario añadir entrada */}
+                              <div style={{display:"flex",gap:".35rem",marginTop:".4rem"}}>
+                                <input
+                                  className="inp inp-sm"
+                                  placeholder="Añadir comunicación…"
+                                  value={nuevoLog}
+                                  onChange={e => setNuevoLog(e.target.value)}
+                                  onKeyDown={e => e.key === "Enter" && !e.shiftKey && addLogEntry(g.id)}
+                                  style={{flex:1,fontFamily:"var(--font-mono)",fontSize:".68rem"}}
+                                />
+                                <button
+                                  className="btn btn-primary btn-sm"
+                                  onClick={() => addLogEntry(g.id)}
+                                  disabled={!nuevoLog.trim()}>
+                                  + Añadir
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Botón para abrir log si está vacío */}
+                      {(g.log||[]).length === 0 && logGestionId !== g.id && (
+                        <button
+                          onClick={() => setLogGestionId(g.id)}
+                          style={{marginTop:".35rem",fontFamily:"var(--font-mono)",fontSize:".58rem",
+                            color:"var(--text-dim)",background:"none",border:"none",
+                            cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:".25rem"}}>
+                          + Registrar comunicación
+                        </button>
+                      )}
                     </div>
                     <div style={{display:"flex",gap:".3rem",flexShrink:0}}>
                       <button
