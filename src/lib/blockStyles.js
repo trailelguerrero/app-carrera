@@ -721,6 +721,10 @@ export const BLOCK_CSS = `
     animation: fadeIn 0.15s ease;
   }
   /* En pantallas mayores de 640px — centrado clásico */
+  /* .modal-ficha — fichas de detalle: min-height para que el sheet suba al top en mobile */
+  .modal-ficha {
+    min-height: 80dvh;
+  }
   @media (min-width: 641px) {
     .modal-backdrop {
       align-items: center;
@@ -728,6 +732,9 @@ export const BLOCK_CSS = `
     }
     .modal {
       border-radius: 16px;
+    }
+    .modal-ficha {
+      min-height: 0;
     }
   }
   .modal {

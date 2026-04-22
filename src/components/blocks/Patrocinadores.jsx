@@ -1123,7 +1123,7 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
 
   return (
     <div className={`modal-backdrop${detClosing ? " modal-backdrop-closing" : ""}`} onClick={e => e.target === e.currentTarget && detHandleClose()}>
-      <div className={`modal${detClosing ? " modal-closing" : ""}`} style={{ maxWidth: 560 }}>
+      <div className={`modal modal-ficha${detClosing ? " modal-closing" : ""}`} style={{ maxWidth: 560 }}>
         <div style={{ borderBottom: `2px solid ${cfg.color}33` }}>
           <div className="modal-header" style={{ borderBottom: "none", paddingBottom: ".5rem" }}>
             <div style={{ display: "flex", alignItems: "center", gap: ".75rem" }}>

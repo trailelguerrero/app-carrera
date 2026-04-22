@@ -1987,7 +1987,7 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
 
   return (
     <div className={`modal-backdrop${fvClosing ? " modal-backdrop-closing" : ""}`} onClick={e => e.target===e.currentTarget && fvHandleClose()}>
-      <div className={`modal${fvClosing ? " modal-closing" : ""}`} style={{ maxWidth: 460 }}>
+      <div className={`modal modal-ficha${fvClosing ? " modal-closing" : ""}`} style={{ maxWidth: 460 }}>
         <div style={{ borderTop: "3px solid var(--cyan)", borderRadius: "16px 16px 0 0" }}>
           <div className="modal-header">
             <div style={{ display:"flex", alignItems:"center", gap:"0.75rem" }}>
@@ -2140,7 +2140,7 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
 
   return (
     <div className={`modal-backdrop${fpuClosing ? " modal-backdrop-closing" : ""}`} onClick={e => e.target===e.currentTarget && fpuHandleClose()}>
-      <div className={`modal${fpuClosing ? " modal-closing" : ""}`} style={{ maxWidth: 460 }}>
+      <div className={`modal modal-ficha${fpuClosing ? " modal-closing" : ""}`} style={{ maxWidth: 460 }}>
         <div style={{ borderTop: "3px solid var(--violet)", borderRadius: "16px 16px 0 0" }}>
           <div className="modal-header">
             <div>

@@ -2125,7 +2125,7 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar })
     <>
       <style>{``}</style>
       <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose()}>
-        <div className="modal">
+        <div className="modal modal-ficha">
           <div style={{borderTop:`3px solid ${accent}`,borderRadius:"16px 16px 0 0"}}>
             <div style={{padding:"1.1rem 1.4rem .9rem",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
               <div style={{display:"flex",alignItems:"center",gap:".6rem"}}>

@@ -1763,7 +1763,7 @@ function FichaProyecto({ ficha, equipo, documentos, tareas, onClose, onEditar, o
       <style>{`
       `}</style>
       <div className={`modal-backdrop${fpClosing ? " modal-backdrop-closing" : ""}`} onClick={e => e.target===e.currentTarget && fpHandleClose()}>
-        <div className={`modal${fpClosing ? " modal-closing" : ""}`}>
+        <div className={`modal modal-ficha${fpClosing ? " modal-closing" : ""}`}>
           <div style={{ borderTop:`3px solid ${accent}`, borderRadius:"16px 16px 0 0" }}>
             <div className="modal-header">
               <div style={{ display:"flex", alignItems:"center", gap:".6rem" }}>
