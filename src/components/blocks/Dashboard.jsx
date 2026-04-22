@@ -205,6 +205,7 @@ export default function Dashboard() {
       const asig = asigs.filter(a => a.materialId===m.id).reduce((s,a) => s+a.cantidad, 0);
       return asig > m.stock;
     });
+    const materialesBajoMinimo = material.filter(m => m.stockMinimo > 0 && m.stock < m.stockMinimo);
 
     // PROYECTO
     const tareas          = get("teg_proyecto_v1_tareas", []);
@@ -346,6 +347,8 @@ export default function Dashboard() {
       alertasAvisos.push({ icon:"📞", texto:`${patsSinSeguimiento.length} patrocinador${patsSinSeguimiento.length!==1?"es":""} con seguimiento vencido: ${patsSinSeguimiento.slice(0,2).map(p=>p.nombre).join(", ")}${patsSinSeguimiento.length>2?"...":""}`, modulo:"patrocinadores" });
     if (stockAlerts.length > 0)
       alertasAvisos.push({ icon:"🟡", texto:`${stockAlerts.length} materiales con sobreasignación de stock`, modulo:"logistica" });
+    if (materialesBajoMinimo.length > 0)
+      alertasAvisos.push({ icon:"📦", texto:`${materialesBajoMinimo.length} material${materialesBajoMinimo.length!==1?"es":""} por debajo del stock mínimo: ${materialesBajoMinimo.slice(0,2).map(m=>m.nombre).join(", ")}${materialesBajoMinimo.length>2?"...":""}`, modulo:"logistica" });
     hitosProximos.forEach(h => {
       const dias = Math.ceil((new Date(h.fecha) - TODAY) / 86400000);
       if (dias <= 14 && dias >= 0 && h.critico)
@@ -363,7 +366,7 @@ export default function Dashboard() {
       maximosPorDist, ocupacionPorDist, ocupacionGlobal, totalMaximos,
       voluntarios: voluntarios.length, volConfirmados, volPendientes, totalNecesarios, coberturaVol, puestosAlerta,
       pats: pats.length, patComprometido, patCobrado, patPipeline, objetivo, contPendientes, patsSinSeguimiento,
-      material: material.length, stockAlerts, tlDone, tlTotal: tl.length, ckDone, ckTotal: ck.length,
+      material: material.length, stockAlerts, materialesBajoMinimo, tlDone, tlTotal: tl.length, ckDone, ckTotal: ck.length,
       tareasTotal, tareasCompletadas, tareasBloqueadas, tareasVencidas, progresoGlobal, hitosProximos,
       saludModulos, saludGlobal,
       alertasCriticas, alertasAvisos,

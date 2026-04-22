@@ -251,8 +251,9 @@ export default function App() {
     const tlDone = tl.filter(t => t.estado==="completado").length;
     const ckDone = ck.filter(c => c.estado==="completado").length;
     const stockErr = material.filter(m => asigs.filter(a=>a.materialId===m.id).reduce((s,a)=>s+a.cantidad,0) > m.stock).length;
+    const stockBajoMinimo = material.filter(m => m.stockMinimo > 0 && m.stock < m.stockMinimo).length;
     const incOpen = inc.filter(i => i.estado==="abierta").length;
-    return { tlDone, tlTotal:tl.length, ckDone, ckTotal:ck.length, stockErr, incOpen };
+    return { tlDone, tlTotal:tl.length, ckDone, ckTotal:ck.length, stockErr, stockBajoMinimo, incOpen };
   }, [tl, ck, material, asigs, inc]);
 
   // Operativas: las que se usan en el día a día
@@ -298,6 +299,13 @@ export default function App() {
             {stats.stockErr > 0 && (
               <span className="badge badge-red" style={{cursor:"pointer"}}
                 onClick={()=>setTab("material")}>⚠ {stats.stockErr} stock</span>
+            )}
+            {stats.stockBajoMinimo > 0 && (
+              <span className="badge badge-amber" style={{cursor:"pointer"}}
+                onClick={()=>setTab("material")}
+                title="Materiales por debajo del stock mínimo">
+                📦 {stats.stockBajoMinimo} bajo mín.
+              </span>
             )}
             {stats.incOpen > 0 && (
               <span className="badge badge-amber" style={{cursor:"pointer"}}
@@ -414,7 +422,7 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
       color: stats.ckDone===stats.ckTotal && stats.ckTotal>0 ? "green" : "cyan",
       tab:"checklist",
       tip:"Porcentaje de ítems completados del checklist pre-carrera.\nEl checklist se organiza por fases temporales: 3 meses antes, 1 mes antes, semana antes, etc." },
-    { l:"📦 Stock",      v:stats.stockErr,
+    { l:"📦 Stock",      v:stats.stockErr > 0 ? stats.stockErr : stats.stockBajoMinimo > 0 ? `${stats.stockBajoMinimo}⚠` : 0,
       s:"materiales en déficit",
       color: stats.stockErr>0 ? "red" : "green",
       tab:"material",
@@ -723,7 +731,16 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
                   </div>
                 </td>
                 <td><span className="badge" style={{background:`${CAT_COLORS[m.categoria]}18`,color:CAT_COLORS[m.categoria],border:`1px solid ${CAT_COLORS[m.categoria]}33`}}>{CAT_ICONS[m.categoria]} {m.categoria}</span></td>
-                <td className="tr mono">{m.stock} {m.unidad}</td>
+                <td className="tr mono">
+                  {m.stock} {m.unidad}
+                  {m.stockMinimo > 0 && m.stock < m.stockMinimo && (
+                    <span style={{marginLeft:".35rem",fontFamily:"var(--font-mono)",fontSize:".55rem",
+                      padding:".1rem .35rem",borderRadius:4,
+                      background:"var(--red-dim)",color:"var(--red)",fontWeight:700}}>
+                      ⚠ bajo mín.
+                    </span>
+                  )}
+                </td>
                 <td className="tr mono" style={{color:m.asig>0?"var(--cyan)":"var(--text-muted)"}}>{m.asig} {m.unidad}</td>
                 <td className="tr mono">{m.def>0?<span style={{color:"var(--red)",fontWeight:700}}>-{m.def}</span>:<span style={{color:"var(--text-dim)"}}>—</span>}</td>
               </tr>
@@ -2232,10 +2249,11 @@ function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setV
         {k:"categoria",l:"Categoría",t:"sel",o:CATS_MATERIAL},
         {k:"cantidad",l:"Cantidad disponible",t:"num"},
         {k:"stock",l:"Stock total",t:"num"},
+        {k:"stockMinimo",l:"Stock mínimo (alerta)",t:"num"},
         {k:"unidad",l:"Unidad (ud/kg/rollos...)",t:"text"},
         ...camposConcepto,
       ]}
-      init={data||{nombre:"",categoria:"Avituallamiento",cantidad:0,stock:0,unidad:"ud",presupuestoConceptoId:null}}
+      init={data||{nombre:"",categoria:"Avituallamiento",cantidad:0,stock:0,stockMinimo:0,unidad:"ud",presupuestoConceptoId:null}}
       onSave={v=>sv(setMaterial,material,{...v,presupuestoConceptoId:v.presupuestoConceptoId?parseInt(v.presupuestoConceptoId):null})} />;
   }
 
