@@ -350,6 +350,7 @@ export default function App() {
           deleteContraprestacion={deleteContraprestacion} updateEstado={updateEstado}
           addDoc={addDoc} deleteDoc={deleteDoc}
           addEspecieItem={addEspecieItem} updateEspecieItem={updateEspecieItem} deleteEspecieItem={deleteEspecieItem}
+          config={config}
         />
       )}
       {delId && (
@@ -1104,7 +1105,7 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
 }
 
 // ─── MODAL DETALLE ────────────────────────────────────────────────────────────
-function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContraprestacion, deleteContraprestacion, updateEstado, addDoc, deleteDoc, addEspecieItem, updateEspecieItem, deleteEspecieItem }) {
+function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContraprestacion, deleteContraprestacion, updateEstado, addDoc, deleteDoc, addEspecieItem, updateEspecieItem, deleteEspecieItem, config = {} }) {
   const { closing: detClosing, handleClose: detHandleClose } = useModalClose(onClose);
   const cfg = getCfg(pat.nivel);
   const ecfg = ESTADO_CFG[pat.estado];
@@ -1134,11 +1135,14 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
             </div>
             <div style={{ display: "flex", gap: ".4rem" }}>
               {subTab === "info" && <button className="btn btn-sm btn-ghost" onClick={onEditar}>✏️ Editar patrocinador</button>}
+              {subTab === "informe" && <button className="btn btn-sm btn-ghost" onClick={() => generarInformePDF(pat, config)}>
+                ⬇ Descargar PDF
+              </button>}
               <button className="btn btn-sm btn-ghost" onClick={detHandleClose}>✕</button>
             </div>
           </div>
           <div style={{ display: "flex", gap: "0", padding: "0 1.4rem" }}>
-            {[["info","ℹ️ Info"],["cont","🎁 Compromisos"],["especie","📦 En especie"],["docs","📁 Documentos"]].map(([id,label]) => (
+            {[["info","ℹ️ Info"],["cont","🎁 Compromisos"],["especie","📦 En especie"],["docs","📁 Documentos"],["informe","📄 Informe"]].map(([id,label]) => (
               <button key={id} onClick={() => setSubTab(id)}
                 style={{ background:"none", border:"none", borderBottom: subTab===id ? `2px solid ${cfg.color}` : "2px solid transparent", color: subTab===id ? cfg.color : "var(--text-muted)", fontFamily:"Syne,sans-serif", fontSize:".72rem", fontWeight: subTab===id?700:500, padding:".4rem .75rem .5rem", cursor:"pointer", transition:"all .15s" }}>
                 {label}
@@ -1327,10 +1331,207 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
 
           {/* ── DOCUMENTOS TAB ── */}
           {subTab === "docs" && <DocManager pat={pat} addDoc={addDoc} deleteDoc={deleteDoc} cfg={cfg} />}
+
+          {/* ── INFORME TAB ── */}
+          {subTab === "informe" && <InformePatrocinador pat={pat} cfg={cfg} config={config} />}
         </div>
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Cerrar</button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── INFORME PATROCINADOR ─────────────────────────────────────────────────────
+
+function generarInformePDF(pat, config = {}) {
+  const evento = config.nombre || "Trail El Guerrero 2026";
+  const fecha  = config.fecha  || "2026-08-29";
+  const lugar  = config.lugar  || "Candeleda, Ávila";
+  const org    = config.organizador || "Organización Trail El Guerrero";
+
+  const contEntregadas = (pat.contraprestaciones || []).filter(c => c.estado === "entregado");
+  const contPendientes = (pat.contraprestaciones || []).filter(c => c.estado === "pendiente");
+
+  const html = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Informe patrocinador — ${pat.nombre}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; background: #fff; padding: 40px; max-width: 750px; margin: 0 auto; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 3px solid #22d3ee; }
+    .evento-nombre { font-size: 22px; font-weight: 800; color: #0d1121; }
+    .evento-meta { font-size: 12px; color: #666; margin-top: 4px; font-family: monospace; }
+    .pat-block { background: #f8faff; border-radius: 10px; padding: 20px 24px; margin-bottom: 24px; border-left: 4px solid #22d3ee; }
+    .pat-nombre { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    .pat-nivel { display: inline-block; background: #22d3ee22; color: #0d9aaa; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 20px; font-family: monospace; border: 1px solid #22d3ee44; }
+    .seccion-titulo { font-size: 13px; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 0.08em; margin: 20px 0 10px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .dato { background: #f0f4ff; border-radius: 8px; padding: 10px 14px; }
+    .dato-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.06em; font-family: monospace; margin-bottom: 3px; }
+    .dato-valor { font-size: 15px; font-weight: 700; color: #1a1a2e; }
+    .cont-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; font-size: 13px; }
+    .cont-done { background: #f0fdf4; border: 1px solid #bbf7d0; }
+    .cont-pend { background: #fffbeb; border: 1px solid #fde68a; }
+    .ck { display: inline-block; width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0; }
+    .ck-done { background: #22c55e; }
+    .ck-pend { background: #d1d5db; }
+    .footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 11px; color: #9ca3af; font-family: monospace; display: flex; justify-content: space-between; }
+    @media print { body { padding: 20px; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="evento-nombre">🏔️ ${evento}</div>
+      <div class="evento-meta">${fecha} · ${lugar}</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:13px;font-weight:700;color:#22d3ee">INFORME DE PATROCINIO</div>
+      <div style="font-size:11px;color:#999;font-family:monospace">${new Date().toLocaleDateString("es-ES")}</div>
+    </div>
+  </div>
+
+  <div class="pat-block">
+    <div class="pat-nombre">${pat.nombre}</div>
+    <span class="pat-nivel">${pat.nivel || "Patrocinador"}</span>
+    ${pat.contacto ? `<div style="margin-top:8px;font-size:12px;color:#555">👤 ${pat.contacto}${pat.email ? ` · ${pat.email}` : ""}${pat.telefono ? ` · ${pat.telefono}` : ""}</div>` : ""}
+  </div>
+
+  <div class="seccion-titulo">Acuerdo económico</div>
+  <div class="grid-2">
+    <div class="dato">
+      <div class="dato-label">Importe acordado</div>
+      <div class="dato-valor">${(pat.importe || 0).toLocaleString("es-ES")} €</div>
+    </div>
+    <div class="dato">
+      <div class="dato-label">Cobrado</div>
+      <div class="dato-valor">${(pat.importeCobrado || 0).toLocaleString("es-ES")} €</div>
+    </div>
+    ${pat.fechaAcuerdo ? `<div class="dato"><div class="dato-label">Fecha acuerdo</div><div class="dato-valor">${pat.fechaAcuerdo}</div></div>` : ""}
+    <div class="dato">
+      <div class="dato-label">Estado</div>
+      <div class="dato-valor">${pat.estado || "—"}</div>
+    </div>
+  </div>
+
+  ${(pat.contraprestaciones || []).length > 0 ? `
+  <div class="seccion-titulo">Contraprestaciones (${contEntregadas.length}/${(pat.contraprestaciones||[]).length} entregadas)</div>
+  ${contEntregadas.map(c => `
+    <div class="cont-row cont-done">
+      <span class="ck ck-done"></span>
+      <span><strong>${c.tipo}</strong>${c.detalle ? ` — ${c.detalle}` : ""}</span>
+      <span style="margin-left:auto;font-size:11px;color:#16a34a;font-family:monospace">✓ Entregado</span>
+    </div>`).join("")}
+  ${contPendientes.map(c => `
+    <div class="cont-row cont-pend">
+      <span class="ck ck-pend"></span>
+      <span><strong>${c.tipo}</strong>${c.detalle ? ` — ${c.detalle}` : ""}${c.fechaEntrega ? ` · límite ${c.fechaEntrega}` : ""}</span>
+      <span style="margin-left:auto;font-size:11px;color:#d97706;font-family:monospace">Pendiente</span>
+    </div>`).join("")}
+  ` : "<p style='font-size:13px;color:#999'>Sin contraprestaciones registradas.</p>"}
+
+  ${pat.notas ? `<div class="seccion-titulo">Notas</div><div style="background:#f8faff;border-radius:8px;padding:12px 16px;font-size:13px;line-height:1.6;color:#555">${pat.notas}</div>` : ""}
+
+  <div class="footer">
+    <span>${org}</span>
+    <span>Generado el ${new Date().toLocaleDateString("es-ES", {day:"2-digit",month:"long",year:"numeric"})}</span>
+  </div>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = `informe-${(pat.nombre||"patrocinador").toLowerCase().replace(/\s+/g,"-")}.html`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+function InformePatrocinador({ pat, cfg, config = {} }) {
+  const contEntregadas = (pat.contraprestaciones || []).filter(c => c.estado === "entregado");
+  const contPendientes = (pat.contraprestaciones || []).filter(c => c.estado === "pendiente");
+  const evento = config.nombre || "Trail El Guerrero 2026";
+  const fecha  = config.fecha  || "2026-08-29";
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: ".75rem" }}>
+      {/* Cabecera del informe */}
+      <div style={{ padding: ".75rem 1rem", background: `${cfg.color}10`,
+        borderRadius: 10, border: `1px solid ${cfg.color}30` }}>
+        <div style={{ fontWeight: 700, fontSize: ".88rem" }}>{pat.nombre}</div>
+        <div className="mono xs muted">{pat.nivel} · {pat.sector}</div>
+      </div>
+
+      {/* Acuerdo económico */}
+      <div>
+        <div className="ct" style={{ marginBottom: ".5rem" }}>Acuerdo económico</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: ".5rem" }}>
+          {[
+            ["Importe", `${(pat.importe||0).toLocaleString("es-ES")} €`],
+            ["Cobrado", `${(pat.importeCobrado||0).toLocaleString("es-ES")} €`],
+            ["Estado", pat.estado || "—"],
+            ["Fecha acuerdo", pat.fechaAcuerdo || "—"],
+          ].map(([k,v]) => (
+            <div key={k} style={{ background:"var(--surface2)", borderRadius:8, padding:".5rem .75rem" }}>
+              <div className="mono xs muted">{k}</div>
+              <div style={{ fontSize:".8rem", fontWeight:700, marginTop:".15rem" }}>{v}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Contraprestaciones */}
+      {(pat.contraprestaciones||[]).length > 0 && (
+        <div>
+          <div className="ct" style={{ marginBottom: ".5rem" }}>
+            Contraprestaciones · {contEntregadas.length}/{(pat.contraprestaciones||[]).length} entregadas
+          </div>
+          {[...contEntregadas, ...contPendientes].map(c => (
+            <div key={c.id||c.tipo} style={{ display:"flex", alignItems:"center", gap:".5rem",
+              padding:".4rem .65rem", borderRadius:6, marginBottom:".3rem",
+              background: c.estado==="entregado" ? "rgba(52,211,153,.08)" : "rgba(251,191,36,.07)",
+              border: `1px solid ${c.estado==="entregado" ? "rgba(52,211,153,.25)" : "rgba(251,191,36,.25)"}` }}>
+              <span style={{ fontSize:".7rem" }}>{c.estado==="entregado" ? "✅" : "⏳"}</span>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:".75rem", fontWeight:600 }}>{c.tipo}</div>
+                {c.detalle && <div className="mono xs muted">{c.detalle}</div>}
+              </div>
+              {c.fechaEntrega && c.estado !== "entregado" && (
+                <span className="mono" style={{ fontSize:".6rem", color:"var(--amber)", flexShrink:0 }}>
+                  📅 {c.fechaEntrega}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Notas */}
+      {pat.notas && (
+        <div>
+          <div className="ct" style={{ marginBottom: ".5rem" }}>Notas internas</div>
+          <div style={{ background:"var(--surface2)", borderRadius:8, padding:".65rem .85rem",
+            fontSize:".75rem", lineHeight:1.6, color:"var(--text-muted)" }}>
+            {pat.notas}
+          </div>
+        </div>
+      )}
+
+      {/* Acción de descarga */}
+      <div style={{ paddingTop:".5rem", borderTop:"1px solid var(--border)" }}>
+        <div className="mono xs muted" style={{ marginBottom:".5rem" }}>
+          Descarga el informe en HTML — imprimible desde el navegador como PDF
+        </div>
+        <button className="btn btn-ghost btn-sm"
+          onClick={() => generarInformePDF(pat, config)}>
+          ⬇ Descargar informe HTML
+        </button>
       </div>
     </div>
   );
