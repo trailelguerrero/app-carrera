@@ -1062,6 +1062,27 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
 
 // ─── DIRECTORIO DE CONTACTOS ─────────────────────────────────────────────────
 // Todos los contactos del evento, con tipos personalizables
+// Helpers extraídos del scope de TabDirectorio para evitar conflictos
+// de minimización de nombres (TDZ) con Rollup en producción.
+// Al estar en un scope de módulo separado, Rollup les asigna nombres
+// distintos a los de las lambdas internas del componente.
+function crearIdTipoContacto(nombre) {
+  return nombre.toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g,"")
+    .replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
+}
+function filtrarContactosDir(lista, excluidos) {
+  return lista.filter(function(contacto) { return !excluidos.includes(contacto.tipo); });
+}
+function ordenarContactosAlfa(lista) {
+  return [...lista].sort(function(ca, cb) {
+    return (ca.nombre||"").localeCompare(cb.nombre||"","es");
+  });
+}
+function filtrarContactosPorTipo(lista, tipo) {
+  return lista.filter(function(contacto) { return contacto.tipo === tipo; });
+}
+
 function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,tiposContacto=[],setTiposContacto}) {
   const [filtroTipo,setFiltroTipo] = useState("todos");
   const [modalTipo,setModalTipo]   = useState(false);
@@ -1078,24 +1099,19 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
   ];
   const tiposCustom   = Array.isArray(tiposContacto) ? tiposContacto : [];
   const todosLosTipos = [...TIPOS_BASE, ...tiposCustom];
-  const getTipo = (tipoKeyId) => todosLosTipos.find(tx=>tx.id===tipoKeyId) || {nombre:tipoKeyId,icono:"🏷️",color:"var(--text-muted)"};
+  const getTipo = (tkid) => todosLosTipos.find(tt=>tt.id===tkid) || {nombre:tkid,icono:"🏷️",color:"var(--text-muted)"};
 
   // Excluir emergencia y médico del directorio (están en la pestaña Emergencias)
   const TIPOS_EXCLUIDOS_DIR = ["emergencia","medico"];
-  const contDir = cont.filter(ct => !TIPOS_EXCLUIDOS_DIR.includes(ct.tipo));
-  const contOrdenado = ordenAlfa
-    ? [...contDir].sort((ca,cb)=>(ca.nombre||"").localeCompare(cb.nombre||"","es"))
-    : contDir;
-  const contFiltrado = filtroTipo==="todos" ? contOrdenado : contOrdenado.filter(cf=>cf.tipo===filtroTipo);
+  const contDir      = filtrarContactosDir(cont, TIPOS_EXCLUIDOS_DIR);
+  const contOrdenado = ordenAlfa ? ordenarContactosAlfa(contDir) : contDir;
+  const contFiltrado = filtroTipo==="todos" ? contOrdenado : filtrarContactosPorTipo(contOrdenado, filtroTipo);
 
   const guardarTipo = () => {
     if (!nuevoTipo.nombre.trim()) return;
-    // eslint-disable-next-line no-var
-    var tipoNuevoId = nuevoTipo.nombre.toLowerCase()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
-      .replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
-    if (todosLosTipos.find(t=>t.id===tipoNuevoId)) return;
-    setTiposContacto(prev=>[...(Array.isArray(prev)?prev:[]),{...nuevoTipo,id:tipoNuevoId}]);
+    const nuevoId = crearIdTipoContacto(nuevoTipo.nombre);
+    if (todosLosTipos.find(t=>t.id===nuevoId)) return;
+    setTiposContacto(prev=>[...(Array.isArray(prev)?prev:[]),{...nuevoTipo,id:nuevoId}]);
     setNuevoTipo({nombre:"",icono:"🏷️",color:"var(--text-muted)"});
     setModalTipo(false);
   };
@@ -1477,7 +1493,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
   ];
   const tiposCustom  = Array.isArray(tiposContacto) ? tiposContacto : [];
   const todosLosTipos = [...TIPOS_BASE, ...tiposCustom];
-  const getTipo = (tipoKeyId) => todosLosTipos.find(tx=>tx.id===tipoKeyId) || {nombre:tipoKeyId,icono:"🏷️",color:"var(--text-muted)"};
+  const getTipo = (tkid) => todosLosTipos.find(tt=>tt.id===tkid) || {nombre:tkid,icono:"🏷️",color:"var(--text-muted)"};
 
   const contOrdenado = ordenAlfa
     ? [...cont].sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es"))
