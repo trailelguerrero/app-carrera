@@ -32,6 +32,9 @@ const CSS = `
 .dc-tel{display:inline-flex;align-items:center;gap:.3rem;padding:.3rem .6rem;border-radius:8px;font-family:'DM Mono',monospace;font-size:.7rem;font-weight:800;text-decoration:none;transition:all .15s;}
 .dc-fab{position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));right:20px;width:52px;height:52px;border-radius:50%;background:rgba(248,113,113,0.92);border:2px solid rgba(248,113,113,0.5);font-size:1.35rem;cursor:pointer;box-shadow:0 4px 24px rgba(248,113,113,0.45);z-index:9100;display:flex;align-items:center;justify-content:center;transition:transform .15s;}
 .dc-fab:active{transform:scale(0.92);}
+.dc-prog{padding:.35rem 1rem;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;}
+.dc-prog-bar{height:3px;background:var(--surface3);border-radius:2px;overflow:hidden;margin-top:.25rem;}
+.dc-prog-fill{height:100%;background:var(--cyan);border-radius:2px;transition:width .5s;}
 .dc-inc-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);z-index:9200;display:flex;align-items:flex-end;justify-content:center;padding:0;}
 @media(min-width:641px){.dc-inc-backdrop{align-items:center;padding:1rem;}}
 .dc-inc-modal{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:440px;padding:1rem 1.25rem 1.5rem;border-top:3px solid rgba(248,113,113,0.5);}
@@ -99,6 +102,10 @@ export default function DiaCarrera({ onClose }) {
     }, 1000);
   };
 
+  const tlCompletadas = tl.filter(t => t.done).length;
+  const progresoDia   = tl.length > 0 ? Math.round(tlCompletadas / tl.length * 100) : 0;
+  const proximaSig    = tl.find(t => !t.done);
+
   const TABS = [
     {id:"timeline",    label:"⏱ Timeline"},
     {id:"voluntarios", label:"👥 Voluntarios"},
@@ -144,6 +151,31 @@ export default function DiaCarrera({ onClose }) {
             {proxima.titulo}
           </span>
           <span>{CAT_ICON[proxima.categoria] || "📌"}</span>
+        </div>
+      )}
+
+      {/* Barra de progreso del día */}
+      {tl.length > 0 && (
+        <div className="dc-prog">
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{fontFamily:"'DM Mono',monospace",fontSize:".58rem",color:"var(--text-muted)"}}>
+              {tlCompletadas}/{tl.length} tareas
+            </span>
+            {proximaSig ? (
+              <span style={{fontFamily:"'DM Mono',monospace",fontSize:".58rem",
+                color:"var(--cyan)",overflow:"hidden",textOverflow:"ellipsis",
+                whiteSpace:"nowrap",maxWidth:"60%",textAlign:"right"}}>
+                ▶ {proximaSig.hora} {proximaSig.titulo}
+              </span>
+            ) : (
+              <span style={{fontFamily:"'DM Mono',monospace",fontSize:".58rem",color:"var(--green)",fontWeight:700}}>
+                ✓ Completado
+              </span>
+            )}
+          </div>
+          <div className="dc-prog-bar">
+            <div className="dc-prog-fill" style={{width:`${progresoDia}%`}} />
+          </div>
         </div>
       )}
 
