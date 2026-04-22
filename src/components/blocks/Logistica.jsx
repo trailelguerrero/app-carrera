@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useModalClose } from "@/hooks/useModalClose";
+import { exportarMaterial } from "@/lib/exportUtils";
 import EmptyState from "@/components/EmptyState";
 import { usePaginacion } from "@/lib/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
@@ -307,6 +308,11 @@ export default function App() {
               title="Ir al checklist">
               ✅ {stats.ckDone}/{stats.ckTotal}
             </span>
+            <button className="btn btn-ghost btn-sm"
+              onClick={() => exportarMaterial(material, asigs, locs)}
+              title="Exportar material a Excel">
+              📊 Excel
+            </button>
           </div>
         </div>
 

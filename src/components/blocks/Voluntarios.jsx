@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { exportarVoluntarios } from "@/lib/exportUtils";
 import { useModalClose } from "@/hooks/useModalClose";
 import EmptyState from "@/components/EmptyState";
 import { usePaginacion } from "@/lib/usePaginacion.jsx";
@@ -585,6 +586,11 @@ export default function App() {
               🎯 {stats.coberturaGlobal}% cobertura
             </span>
             <button className="btn btn-primary" onClick={() => setModalVol("nuevo")}>+ Voluntario</button>
+            <button className="btn btn-ghost btn-sm"
+              onClick={() => exportarVoluntarios(voluntarios, puestos)}
+              title="Exportar lista de voluntarios a Excel">
+              📊 Excel
+            </button>
             <button
               onClick={() => {
                 const url = window.location.origin + "/voluntarios/registro";

@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useModalClose } from "@/hooks/useModalClose";
+import { exportarPatrocinadores } from "@/lib/exportUtils";
 import EmptyState from "@/components/EmptyState";
 import { usePaginacion } from "@/lib/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
@@ -290,6 +291,11 @@ export default function App() {
             {stats.contPend > 0 && <span className="badge badge-amber">🎁 {stats.contPend} compromisos</span>}
             <span className="badge badge-amber">{fmt(stats.comprometido)} / {fmt(objetivo)}</span>
             <span className={`badge ${stats.pctObj>=80?"badge-green":stats.pctObj>=50?"badge-amber":"badge-red"}`}>{stats.pctObj}%</span>
+            <button className="btn btn-ghost btn-sm"
+              onClick={() => exportarPatrocinadores(pats)}
+              title="Exportar patrocinadores a Excel">
+              📊 Excel
+            </button>
             <button className="btn btn-primary" onClick={openNuevo}>+ Nuevo</button>
           </div>
         </div>
