@@ -2004,7 +2004,7 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
                 </div>
               </div>
             </div>
-            <button className="btn btn-ghost" style={{ padding:"0.2rem 0.5rem", fontSize:"1rem" }} onClick={fpuHandleClose}>✕</button>
+            <button className="btn btn-ghost" style={{ padding:"0.2rem 0.5rem", fontSize:"1rem" }} onClick={fvHandleClose}>✕</button>
           </div>
         </div>
         <div className="modal-body">
