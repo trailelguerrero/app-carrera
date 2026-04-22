@@ -40,6 +40,19 @@ beforeAll(() => {
     })),
     writable: true,
   });
+
+  // fetch mock — evita que Dashboard/Presupuesto/etc. hagan llamadas reales
+  // a la API de Neon en el entorno de test (jsdom no tiene red real).
+  // Sin este mock, los tests que renderizan componentes con useEffect+fetch
+  // cuelgan hasta el timeout porque la Promise nunca resuelve.
+  global.fetch = vi.fn(() =>
+    Promise.resolve({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({}),
+      text: () => Promise.resolve(''),
+    })
+  );
 });
 
 // ── Bloques a verificar ────────────────────────────────────────────────────
