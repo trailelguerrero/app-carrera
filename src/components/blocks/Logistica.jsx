@@ -172,8 +172,8 @@ export default function App() {
     const tramos = Array.isArray(rawTramos) ? rawTramos : [];
     let total = 0;
     tramos.forEach(t => {
-      ["TG7","TG13","TG25"].forEach(d => {
-        total += rawInscritos?.tramos?.[t.id]?.[d] || 0;
+      ["TG7","TG13","TG25"].forEach(dist => {
+        total += rawInscritos?.tramos?.[t.id]?.[dist] || 0;
       });
     });
     return total;
@@ -360,8 +360,8 @@ export default function App() {
             inscritos={(() => {
               const tramos = Array.isArray(rawTramos) ? rawTramos : [];
               const ins = {};
-              ["TG7","TG13","TG25"].forEach(d => {
-                ins[d] = tramos.reduce((s,t) => s + (rawInscritos?.tramos?.[t.id]?.[d]||0), 0);
+              ["TG7","TG13","TG25"].forEach(dist => {
+                ins[dist] = tramos.reduce((s,t) => s + (rawInscritos?.tramos?.[t.id]?.[dist]||0), 0);
               });
               return ins;
             })()}
@@ -1061,23 +1061,24 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
   ];
   const tiposCustom   = Array.isArray(tiposContacto) ? tiposContacto : [];
   const todosLosTipos = [...TIPOS_BASE, ...tiposCustom];
-  const getTipo = (id) => todosLosTipos.find(t=>t.id===id) || {nombre:id,icono:"🏷️",color:"var(--text-muted)"};
+  const getTipo = (tipoKeyId) => todosLosTipos.find(tx=>tx.id===tipoKeyId) || {nombre:tipoKeyId,icono:"🏷️",color:"var(--text-muted)"};
 
   // Excluir emergencia y médico del directorio (están en la pestaña Emergencias)
   const TIPOS_EXCLUIDOS_DIR = ["emergencia","medico"];
-  const contDir = cont.filter(c => !TIPOS_EXCLUIDOS_DIR.includes(c.tipo));
+  const contDir = cont.filter(ct => !TIPOS_EXCLUIDOS_DIR.includes(ct.tipo));
   const contOrdenado = ordenAlfa
-    ? [...contDir].sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es"))
+    ? [...contDir].sort((ca,cb)=>(ca.nombre||"").localeCompare(cb.nombre||"","es"))
     : contDir;
-  const contFiltrado = filtroTipo==="todos" ? contOrdenado : contOrdenado.filter(c=>c.tipo===filtroTipo);
+  const contFiltrado = filtroTipo==="todos" ? contOrdenado : contOrdenado.filter(cf=>cf.tipo===filtroTipo);
 
   const guardarTipo = () => {
     if (!nuevoTipo.nombre.trim()) return;
-    const id = nuevoTipo.nombre.toLowerCase()
+    // eslint-disable-next-line no-var
+    var tipoNuevoId = nuevoTipo.nombre.toLowerCase()
       .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
       .replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
-    if (todosLosTipos.find(t=>t.id===id)) return;
-    setTiposContacto(prev=>[...(Array.isArray(prev)?prev:[]),{...nuevoTipo,id}]);
+    if (todosLosTipos.find(t=>t.id===tipoNuevoId)) return;
+    setTiposContacto(prev=>[...(Array.isArray(prev)?prev:[]),{...nuevoTipo,id:tipoNuevoId}]);
     setNuevoTipo({nombre:"",icono:"🏷️",color:"var(--text-muted)"});
     setModalTipo(false);
   };
@@ -1157,17 +1158,17 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
         </div>
       ) : (
         <div className="cgrid">
-          {contFiltrado.map(c=>{
-            const t = getTipo(c.tipo);
+          {contFiltrado.map(citem=>{
+            const t = getTipo(citem.tipo);
             return (
-              <div key={c.id} className="ccard"
+              <div key={citem.id} className="ccard"
                 style={{borderTopColor:t.color,cursor:"pointer"}}
-                onClick={()=>abrirFicha("cont",c)}>
+                onClick={()=>abrirFicha("cont",citem)}>
                 <div className="cch">
                   <div className="ccti" style={{fontSize:"1.1rem"}}>{t.icono}</div>
                   <div style={{flex:1,minWidth:0}}>
-                    <div className="ccn">{c.nombre}</div>
-                    <div className="ccr">{c.rol}</div>
+                    <div className="ccn">{citem.nombre}</div>
+                    <div className="ccr">{citem.rol}</div>
                   </div>
                   <span style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
                     padding:".1rem .35rem",borderRadius:10,flexShrink:0,
@@ -1176,15 +1177,15 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
                   </span>
                 </div>
                 <div className="ccd">
-                  <a href={`tel:${c.telefono}`} className="ctel">📞 {c.telefono}</a>
-                  {c.email&&<a href={`mailto:${c.email}`} className="ceml">✉️ {c.email}</a>}
+                  <a href={`tel:${citem.telefono}`} className="ctel">📞 {citem.telefono}</a>
+                  {citem.email&&<a href={`mailto:${citem.email}`} className="ceml">✉️ {citem.email}</a>}
                 </div>
-                {c.web&&<div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",marginTop:".2rem"}}>
-                  <a href={c.web} target="_blank" rel="noreferrer"
+                {citem.web&&<div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",marginTop:".2rem"}}>
+                  <a href={citem.web} target="_blank" rel="noreferrer"
                     style={{color:"var(--cyan)",textDecoration:"none"}}
-                    onClick={e=>e.stopPropagation()}>🌐 {c.web}</a>
+                    onClick={e=>e.stopPropagation()}>🌐 {citem.web}</a>
                 </div>}
-                {c.notas&&<div className="cnota">{c.notas}</div>}
+                {citem.notas&&<div className="cnota">{citem.notas}</div>}
               </div>
             );
           })}
@@ -1343,8 +1344,8 @@ function TabEmergencias({cont,inc,setInc,abrirModal,abrirFicha,tiposContacto=[]}
                     <div className="cch">
                       <div className="ccti">{t.icono}</div>
                       <div style={{flex:1,minWidth:0}}>
-                        <div className="ccn">{c.nombre}</div>
-                        <div className="ccr">{c.rol}</div>
+                        <div className="ccn">{citem.nombre}</div>
+                        <div className="ccr">{citem.rol}</div>
                       </div>
                     </div>
                     <div className="ccd">
@@ -1357,7 +1358,7 @@ function TabEmergencias({cont,inc,setInc,abrirModal,abrirFicha,tiposContacto=[]}
                         📞 {c.telefono}
                       </a>
                     </div>
-                    {c.notas&&<div className="cnota">{c.notas}</div>}
+                    {citem.notas&&<div className="cnota">{citem.notas}</div>}
                   </div>
                 );
               })}
@@ -1459,7 +1460,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
   ];
   const tiposCustom  = Array.isArray(tiposContacto) ? tiposContacto : [];
   const todosLosTipos = [...TIPOS_BASE, ...tiposCustom];
-  const getTipo = (id) => todosLosTipos.find(t=>t.id===id) || {nombre:id,icono:"🏷️",color:"var(--text-muted)"};
+  const getTipo = (tipoKeyId) => todosLosTipos.find(tx=>tx.id===tipoKeyId) || {nombre:tipoKeyId,icono:"🏷️",color:"var(--text-muted)"};
 
   const contOrdenado = ordenAlfa
     ? [...cont].sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es"))
@@ -1613,8 +1614,8 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
                     <div className="cch">
                       <div className="ccti" style={{fontSize:"1.1rem"}}>{t.icono}</div>
                       <div style={{flex:1,minWidth:0}}>
-                        <div className="ccn">{c.nombre}</div>
-                        <div className="ccr">{c.rol}</div>
+                        <div className="ccn">{citem.nombre}</div>
+                        <div className="ccr">{citem.rol}</div>
                       </div>
                       <span style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
                         padding:".1rem .4rem",borderRadius:10,flexShrink:0,
@@ -1623,16 +1624,16 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
                       </span>
                     </div>
                     <div className="ccd">
-                      <a href={`tel:${c.telefono}`} className="ctel">📞 {c.telefono}</a>
-                      {c.email&&<a href={`mailto:${c.email}`} className="ceml">✉️ {c.email}</a>}
+                      <a href={`tel:${citem.telefono}`} className="ctel">📞 {citem.telefono}</a>
+                      {citem.email&&<a href={`mailto:${citem.email}`} className="ceml">✉️ {citem.email}</a>}
                     </div>
                     {c.web&&<div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
                       color:"var(--cyan)",marginTop:".2rem"}}>
-                      <a href={c.web} target="_blank" rel="noreferrer"
+                      <a href={citem.web} target="_blank" rel="noreferrer"
                         style={{color:"var(--cyan)",textDecoration:"none"}}
-                        onClick={e=>e.stopPropagation()}>🌐 {c.web}</a>
+                        onClick={e=>e.stopPropagation()}>🌐 {citem.web}</a>
                     </div>}
-                    {c.notas&&<div className="cnota">{c.notas}</div>}
+                    {citem.notas&&<div className="cnota">{citem.notas}</div>}
                   </div>
                 );
               })}
