@@ -28,15 +28,7 @@ import {
   calculatePEGlobal
 } from "../lib/budgetUtils";
 
-/**
- * @param {object} [scenarioOverrides] - Overrides opcionales del sistema de escenarios.
- *   Si se proporcionan, los cálculos usan estos valores en lugar de los reales.
- *   El autosave NUNCA usa estos overrides — solo actúa sobre los datos reales.
- * @param {object} [scenarioOverrides.scenarioInscritos] - Inscritos del escenario activo.
- * @param {Array}  [scenarioOverrides.scenarioConceptos] - Conceptos del escenario activo.
- */
 export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioIngresosExtra, scenarioMerchandising } = {}) => {
-  // ─── STATE ──────────────────────────────────────────────────────────────────
   const [tab, setTab] = useState("inscripciones");
   const [tramos, setTramos] = useState(TRAMOS_DEFAULT);
   const [conceptos, setConceptos] = useState(CONCEPTOS_DEFAULT);
@@ -47,12 +39,10 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   const [syncConfig, setSyncConfig] = useData("teg_presupuesto_v1_syncConfig", SYNC_CONFIG_DEFAULT);
   const [saveStatus, setSaveStatus] = useState("idle");
 
-  // ─── SINCRONIZACIÓN AUTOMÁTICA (Lectura de otros módulos) ──────────────────
   const [rawPats] = useData(LS_PATS, []);
   const [rawCamPedidos] = useData(LS_CAM_PEDIDOS, []);
   const [rawCamCoste] = useData(LS_CAM_COSTE, { corredor: 7.5, voluntario: 7.5 });
 
-  // 1. Total Patrocinios (Cash confirmado/cobrado)
   const totalPatConfirmado = useMemo(() => {
     if (!syncConfig.patrocinios) return 0;
     const pats = Array.isArray(rawPats) ? rawPats : [];
@@ -61,26 +51,18 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       .reduce((s, p) => s + (p.importe || 0), 0);
   }, [rawPats, syncConfig.patrocinios]);
 
-  // 2. Beneficio Neto Camisetas (Ventas - Coste Fab de fuentes activas)
   const totalMerchBeneficio = useMemo(() => {
     if (!syncConfig.camisetas) return 0;
     const pedidos = Array.isArray(rawCamPedidos) ? rawCamPedidos : [];
     const coste = rawCamCoste || { corredor: 7.5, voluntario: 7.5 };
-
-    // Solo contamos beneficio de lo "pagado" para ser conservadores en el presupuesto real
     const lineas = pedidos.flatMap(p => p.lineas);
     const ingresos = lineas.filter(l => l.estadoPago === "pagado")
                            .reduce((s, l) => s + (l.cantidad * (l.precioVenta || 0)), 0);
-    // Pero el coste es de todas las unidades que hay que fabricar (pagadas o pendientes de pago)
-    // Nota: Excluimos voluntarios automáticos aquí porque suelen ser "Gasto Logístico" no Merch comercial
     const costeFab = lineas.filter(l => l.estadoPago === "pagado" || l.estadoPago === "pendiente")
                            .reduce((s, l) => s + (l.cantidad * (coste[l.tipo] || 7.5)), 0);
-
     return ingresos - costeFab;
   }, [rawCamPedidos, rawCamCoste, syncConfig.camisetas]);
 
-  // Sincronizar automáticamente con las líneas de ingresosExtra
-  // ID 1: Patrocinios, ID 2: Merchandising
   useEffect(() => {
     setIngresosExtra(prev => prev.map(ie => {
       if (ie.id === 1 && syncConfig.patrocinios) return { ...ie, valor: totalPatConfirmado, synced: true };
@@ -89,17 +71,12 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     }));
   }, [totalPatConfirmado, totalMerchBeneficio, syncConfig]);
 
-  // ─── DATA PERSISTENCE ───────────────────────────────────────────────────────
   useEffect(() => {
     const loadData = async () => {
       try {
         const [
-          savedTramos, 
-          savedConceptos, 
-          savedInscritos, 
-          savedIngresos, 
-          savedMerch, 
-          savedMaximos
+          savedTramos, savedConceptos, savedInscritos,
+          savedIngresos, savedMerch, savedMaximos
         ] = await Promise.all([
           dataService.get("teg_presupuesto_v1_tramos"),
           dataService.get("teg_presupuesto_v1_conceptos"),
@@ -108,9 +85,15 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
           dataService.get("teg_presupuesto_v1_merchandising"),
           dataService.get("teg_presupuesto_v1_maximos")
         ]);
-
         if (savedTramos) setTramos(savedTramos);
-        if (savedConceptos) setConceptos(savedConceptos);
+        if (savedConceptos) {
+          setConceptos(savedConceptos.map(c => ({
+            ...c,
+            activo: c.activo !== false,
+            activoDistancias: c.activoDistancias ?? { TG7: true, TG13: true, TG25: true },
+            costePorDistancia: c.costePorDistancia ?? { TG7: 0, TG13: 0, TG25: 0 },
+          })));
+        }
         if (savedInscritos) setInscritos(savedInscritos);
         if (savedIngresos) setIngresosExtra(savedIngresos);
         if (savedMerch) setMerchandising(savedMerch);
@@ -122,7 +105,6 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     loadData();
   }, []);
 
-  // Emite evento global para el AutosaveIndicator del topbar
   const emitSaveStatus = (status) => {
     window.dispatchEvent(new CustomEvent("teg-save-status", { detail: { status } }));
   };
@@ -150,24 +132,19 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   }, [tramos, conceptos, inscritos, ingresosExtra, merchandising, maximos]);
 
   const resetAllData = useCallback(() => {
-    // Confirmación gestionada por el componente padre mediante modal propio
     setTramos(TRAMOS_DEFAULT);
     setConceptos(CONCEPTOS_DEFAULT);
     setInscritos(INSCRITOS_DEFAULT);
     setIngresosExtra(INGRESOS_EXTRA_DEFAULT);
     setMerchandising(MERCHANDISING_DEFAULT);
+    setMaximos(MAXIMOS_DEFAULT); // C1 fix: restablecer aforos máximos
   }, []);
 
-  // ─── AUTOSAVE (debounced, 2s tras el último cambio) ─────────────────────────
   const autoSaveTimer = useRef(null);
   const isFirstRender = useRef(true);
 
   useEffect(() => {
-    // Saltar el primer render (carga inicial de datos)
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     emitSaveStatus("saving");
     autoSaveTimer.current = setTimeout(async () => {
@@ -181,15 +158,12 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
           dataService.set("teg_presupuesto_v1_maximos", maximos)
         ]);
         emitSaveStatus("saved");
-      } catch {
-        emitSaveStatus("error");
-      }
+      } catch { emitSaveStatus("error"); }
     }, 2000);
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
   }, [tramos, conceptos, inscritos, ingresosExtra, merchandising, maximos]);
-  // ── Historial de cambios ──────────────────────────────────────────────────
+
   const logCambio = (concepto, campo, valorAntes, valorNuevo) => {
-    // Fire-and-forget — no bloquea la UI, fallo silencioso
     const apiKey = import.meta.env.VITE_API_KEY;
     fetch("/api/budget-log", {
       method: "POST",
@@ -202,20 +176,17 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
         valorNuevo: String(valorNuevo ?? ""),
         tipo:       concepto.tipo ?? null,
       }),
-    }).catch(() => {}); // nunca interrumpir el flujo por un error de log
+    }).catch(() => {});
   };
 
   const updateConcepto = (id, field, value) => {
     setConceptos(prev => {
       const next = prev.map(c => {
         if (c.id !== id) return c;
-        // Registrar solo cambios en campos relevantes (no reordenamientos)
         const camposLog = ["nombre","activo","costeTotal","modoUniforme",
                            "estadoPago","estadoPedido","proveedor","contacto",
                            "fechaPago","fechaEntrega","costeUnitarioReal"];
-        if (camposLog.includes(field) && c[field] !== value) {
-          logCambio(c, field, c[field], value);
-        }
+        if (camposLog.includes(field) && c[field] !== value) logCambio(c, field, c[field], value);
         return { ...c, [field]: value };
       });
       return next;
@@ -228,12 +199,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       if (c.modoUniforme) {
         const antes = c.costePorDistancia.TG7;
         if (antes !== value) logCambio(c, "precio (todas las distancias)", antes, value);
-        return {
-          ...c,
-          costePorDistancia: Object.fromEntries(
-            ["TG7","TG13","TG25"].map(d => [d, value])
-          )
-        };
+        return { ...c, costePorDistancia: Object.fromEntries(["TG7","TG13","TG25"].map(d => [d, value])) };
       }
       const antes = c.costePorDistancia[dist];
       if (antes !== value) logCambio(c, `precio ${dist}`, antes, value);
@@ -244,27 +210,19 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   const updateActivoDistancia = (id, dist, value) => {
     setConceptos(prev => prev.map(c => {
       if (c.id !== id) return c;
-      if (c.activoDistancias[dist] !== value) {
-        logCambio(c, `${dist} activo`, c.activoDistancias[dist], value);
-      }
+      if (c.activoDistancias[dist] !== value) logCambio(c, `${dist} activo`, c.activoDistancias[dist], value);
       return { ...c, activoDistancias: { ...c.activoDistancias, [dist]: value } };
     }));
   };
 
   const addConcepto = (tipo) => {
     const id = conceptos.length > 0 ? Math.max(...conceptos.map(c => c.id)) + 1 : 1;
-    const nuevo = {
-      id,
-      tipo,
-      nombre: `Nuevo concepto ${tipo}`,
-      costeTotal: 0,
-      costePorDistancia: { TG7: 0, TG13: 0, TG25: 0 },
+    setConceptos(prev => [...prev, {
+      id, tipo, nombre: `Nuevo concepto ${tipo}`,
+      costeTotal: 0, costePorDistancia: { TG7: 0, TG13: 0, TG25: 0 },
       activoDistancias: { TG7: true, TG13: true, TG25: true },
-      activo: true,
-      modoUniforme: tipo === "variable" ? true : undefined,
-      orden: conceptos.length
-    };
-    setConceptos(prev => [...prev, nuevo]);
+      activo: true, modoUniforme: tipo === "variable" ? true : undefined, orden: conceptos.length
+    }]);
   };
 
   const removeConcepto = (id) => setConceptos(prev => prev.filter(c => c.id !== id));
@@ -282,35 +240,18 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   };
 
   const updateTramoPrecio = (tramoId, dist, value) => {
-    setTramos(prev => prev.map(t => t.id === tramoId ? {
-      ...t,
-      precios: { ...t.precios, [dist]: value }
-    } : t));
+    setTramos(prev => prev.map(t => t.id === tramoId ? { ...t, precios: { ...t.precios, [dist]: value } } : t));
   };
 
   const addTramo = () => {
     const id = tramos.length > 0 ? Math.max(...tramos.map(t => t.id)) + 1 : 1;
-    setTramos(prev => [...prev, {
-      id,
-      nombre: `Nuevo Tramo ${id}`,
-      fechaFin: new Date().toISOString().split("T")[0],
-      precios: { TG7: 30, TG13: 45, TG25: 65 }
-    }]);
+    setTramos(prev => [...prev, { id, nombre: `Nuevo Tramo ${id}`, fechaFin: new Date().toISOString().split("T")[0], precios: { TG7: 30, TG13: 45, TG25: 65 } }]);
   };
 
   const updateInscritos = (tramoId, dist, value) => {
-    setInscritos(prev => ({
-      ...prev,
-      tramos: {
-        ...prev.tramos,
-        [tramoId]: { ...prev.tramos[tramoId], [dist]: value }
-      }
-    }));
+    setInscritos(prev => ({ ...prev, tramos: { ...prev.tramos, [tramoId]: { ...prev.tramos[tramoId], [dist]: value } } }));
   };
 
-  // ─── DERIVED STATE ──────────────────────────────────────────────────────────
-  // Si hay un escenario activo, los cálculos usan sus overrides en lugar de los datos reales.
-  // El autosave (arriba) siempre usa `inscritos` y `conceptos` reales — sin contaminar.
   const _inscritos = scenarioInscritos ?? inscritos;
   const _conceptos = scenarioConceptos ?? conceptos;
   const _ingresosExtra = scenarioIngresosExtra ?? ingresosExtra;
@@ -327,76 +268,48 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   const ingresosDesglosados = useMemo(() => calculateIngresosDesglosados(tramos, _inscritos), [tramos, _inscritos]);
 
   const totalIngresosExtra = useMemo(() =>
-    _ingresosExtra.filter(i => i.activo).reduce((s, i) => s + i.valor, 0),
-    [_ingresosExtra]
-  );
+    _ingresosExtra.filter(i => i.activo).reduce((s, i) => s + i.valor, 0), [_ingresosExtra]);
 
   const totalIngresosConMerch = useMemo(() => totalIngresosExtra + merchTotales.beneficio, [totalIngresosExtra, merchTotales]);
 
   const resultado = useMemo(() =>
     calculateResultado(totalInscritos, ingresosPorDistancia, costesFijos, costesVariables, totalIngresosConMerch),
-    [totalInscritos, ingresosPorDistancia, costesFijos, costesVariables, totalIngresosConMerch]
-  );
+    [totalInscritos, ingresosPorDistancia, costesFijos, costesVariables, totalIngresosConMerch]);
 
   const puntoEquilibrio = useMemo(() =>
     calculatePuntoEquilibrio(totalInscritos, precioMedioDistancia, costesVarPorCorredor, costesFijos, totalIngresosConMerch, maximos),
-    [totalInscritos, precioMedioDistancia, costesVarPorCorredor, costesFijos, totalIngresosConMerch, maximos]
-  );
+    [totalInscritos, precioMedioDistancia, costesVarPorCorredor, costesFijos, totalIngresosConMerch, maximos]);
 
   const peGlobal = useMemo(() =>
     calculatePEGlobal(totalInscritos, precioMedioDistancia, costesVarPorCorredor, costesFijos, totalIngresosConMerch, maximos),
-    [totalInscritos, precioMedioDistancia, costesVarPorCorredor, costesFijos, totalIngresosConMerch, maximos]
-  );
+    [totalInscritos, precioMedioDistancia, costesVarPorCorredor, costesFijos, totalIngresosConMerch, maximos]);
 
-  // ─── ESTADO REAL (para comparación de deltas en ScenarioBar) ────────────────
-  // Siempre calculados sobre los datos reales, independientemente del escenario.
   const realTotalInscritos = useMemo(() => calculateTotalInscritos(tramos, inscritos), [tramos, inscritos]);
   const realIngresosPorDistancia = useMemo(() => calculateIngresosPorDistancia(tramos, inscritos), [tramos, inscritos]);
   const realCostesFijos = useMemo(() => calculateCostesFijos(conceptos, realTotalInscritos), [conceptos, realTotalInscritos]);
   const realCostesVariables = useMemo(() => calculateCostesVariables(conceptos, realTotalInscritos), [conceptos, realTotalInscritos]);
   const realResultado = useMemo(() =>
     calculateResultado(realTotalInscritos, realIngresosPorDistancia, realCostesFijos, realCostesVariables, totalIngresosConMerch),
-    [realTotalInscritos, realIngresosPorDistancia, realCostesFijos, realCostesVariables, totalIngresosConMerch]
-  );
+    [realTotalInscritos, realIngresosPorDistancia, realCostesFijos, realCostesVariables, totalIngresosConMerch]);
 
   return {
-    tab, setTab,
-    tramos, setTramos,
-    totalPatConfirmado,
-    totalMerchBeneficio,
+    tab, setTab, tramos, setTramos,
+    totalPatConfirmado, totalMerchBeneficio,
     syncConfig, setSyncConfig,
     conceptos, setConceptos,
     inscritos, setInscritos,
     ingresosExtra, setIngresosExtra,
     merchandising, setMerchandising,
     maximos, setMaximos,
-    saveStatus,
-    saveData,
-    resetAllData,
-    updateConcepto,
-    updateCostePorDistancia,
-    updateActivoDistancia,
-    addConcepto,
-    removeConcepto,
-    reorderConceptos,
-    updateTramoPrecio,
-    addTramo,
-    updateInscritos,
-    totalInscritos,
-    ingresosPorDistancia,
-    precioMedioDistancia,
-    costesFijos,
-    costesVariables,
-    costesVarPorCorredor,
-    costesFijoPorCorredor,
-    merchTotales,
-    totalIngresosExtra,
-    totalIngresosConMerch,
-    resultado,
-    puntoEquilibrio,
-    peGlobal,
-    // Para comparación de deltas en ScenarioBar
-    realTotalInscritos,
-    realResultado
+    saveStatus, saveData, resetAllData,
+    updateConcepto, updateCostePorDistancia, updateActivoDistancia,
+    addConcepto, removeConcepto, reorderConceptos,
+    updateTramoPrecio, addTramo, updateInscritos,
+    totalInscritos, ingresosPorDistancia, precioMedioDistancia,
+    costesFijos, costesVariables, costesVarPorCorredor, costesFijoPorCorredor,
+    merchTotales, totalIngresosExtra, totalIngresosConMerch,
+    resultado, puntoEquilibrio, peGlobal,
+    ingresosDesglosados, // C2 fix
+    realTotalInscritos, realResultado
   };
 };
