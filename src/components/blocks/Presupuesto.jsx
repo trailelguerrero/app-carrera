@@ -14,26 +14,22 @@ import { TabEquilibrio }  from "../budget/TabEquilibrio";
 import { TabHistorial }   from "../budget/TabHistorial";
 import { DISTANCIAS }       from "@/constants/budgetConstants";
 
-// ─── CSS específico del bloque ─────────────────────────────────────────────
 const BUDGET_CSS = `
   .text-right  { text-align: right; }
   .overflow-x  { overflow-x: auto; }
   .total-row   { background: var(--surface2); font-weight: 700; }
   .total-row td { border-top: 2px solid var(--border); padding: 0.75rem 0.6rem; }
   .ra td { background: var(--red-dim); }
-
   .card-title.fijo     { color: var(--cyan);   }
   .card-title.variable { color: var(--green);  }
   .card-title.ingresos { color: var(--violet); }
   .card-title.resumen  { color: var(--amber);  }
   .card-title.tramos   { color: var(--amber);  }
-
   .eq-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
   .eq-table th { text-align: left; padding: 0.75rem; border-bottom: 2px solid var(--border); color: var(--text-muted); font-weight: 600; white-space: nowrap; }
   .eq-table td { padding: 0.65rem 0.75rem; border-bottom: 1px solid var(--border); }
   .resumen-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; }
   @media (max-width: 768px) { .resumen-grid { grid-template-columns: 1fr; } }
-
   .num-input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 0.3rem 0.5rem; width: 80px; text-align: right; font-family: var(--font-mono); font-size: 0.85rem; outline: none; }
   .num-input:focus { border-color: var(--cyan); }
   .num-input-sm { font-size: 0.75rem; padding: 0.2rem 0.4rem; width: 65px; }
@@ -41,68 +37,37 @@ const BUDGET_CSS = `
   .text-input:focus { background: var(--surface2); border-color: var(--border); }
   .date-input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 0.25rem 0.45rem; font-size: 0.72rem; font-family: var(--font-mono); cursor: pointer; outline: none; }
   .date-input:focus { border-color: var(--cyan); }
-
   .dist-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
   .badge-fijo     { background: var(--cyan-dim);  color: var(--cyan);  border: 1px solid rgba(34,211,238,0.2); }
   .badge-variable { background: var(--green-dim); color: var(--green); border: 1px solid rgba(52,211,153,0.2); }
-
   .modo-toggle { padding: 0.2rem 0.5rem; border-radius: 5px; font-size: 0.7rem; font-weight: 700; cursor: pointer; border: 1px solid var(--border); background: var(--surface3); color: var(--text-muted); font-family: var(--font-mono); transition: all 0.15s; white-space: nowrap; }
   .modo-toggle.uniforme { background: var(--violet-dim); border-color: rgba(167,139,250,0.3); color: var(--violet); }
-
   .drag-over td:first-child { border-left: 3px solid var(--primary); }
-
   .mono { font-family: var(--font-mono); }
   .text-xs    { font-size: 0.72rem; }
   .text-muted { color: var(--text-muted); }
   .f6   { font-weight: 600; }
   .mb-2 { margin-bottom: 1rem; }
-
-  /* Labels responsive en tabs */
   .tab-label-short { display: none; }
   @media (max-width: 640px) {
     .tab-label-full  { display: none; }
     .tab-label-short { display: inline; }
   }
-
-  /* ── Breadcrumb de flujo ─────────────────────────────────────────────── */
-  .budget-flow {
-    display: flex; align-items: center;
-    gap: 0; margin-bottom: 1.1rem;
-    overflow-x: auto; padding-bottom: 2px;
-  }
+  .budget-flow { display: flex; align-items: center; gap: 0; margin-bottom: 1.1rem; overflow-x: auto; padding-bottom: 2px; }
   .budget-flow::-webkit-scrollbar { height: 2px; }
   .budget-flow::-webkit-scrollbar-thumb { background: var(--border); border-radius: 1px; }
-  .bflow-step {
-    display: flex; align-items: center; gap: 0.35rem;
-    padding: 0.3rem 0.65rem; border-radius: 20px;
-    font-family: var(--font-mono); font-size: 0.6rem; font-weight: 700;
-    white-space: nowrap; cursor: pointer; transition: all 0.15s;
-    border: 1px solid transparent;
-  }
+  .bflow-step { display: flex; align-items: center; gap: 0.35rem; padding: 0.3rem 0.65rem; border-radius: 20px; font-family: var(--font-mono); font-size: 0.6rem; font-weight: 700; white-space: nowrap; cursor: pointer; transition: all 0.15s; border: 1px solid transparent; }
   .bflow-step.done  { color: var(--green); background: var(--green-dim); border-color: rgba(52,211,153,0.2); }
   .bflow-step.active { color: var(--primary); background: var(--primary-dim); border-color: rgba(99,102,241,0.4); box-shadow: 0 0 8px rgba(99,102,241,0.2); }
   .bflow-step.pending { color: var(--text-dim); background: transparent; border-color: var(--border); }
   .bflow-step:hover { opacity: 0.85; transform: translateY(-1px); }
   .bflow-arrow { color: var(--text-dim); font-size: 0.55rem; padding: 0 0.1rem; flex-shrink: 0; }
-
-  /* ── Modal Restablecer ───────────────────────────────────────────────── */
-  .reset-overlay {
-    position: fixed; inset: 0; z-index: 200;
-    background: rgba(0,0,0,0.8); backdrop-filter: blur(6px);
-    display: flex; align-items: center; justify-content: center; padding: 1rem;
-    animation: fadeIn 0.15s ease;
-  }
-  .reset-modal {
-    background: var(--surface); border: 1px solid rgba(248,113,113,0.3);
-    border-radius: 16px; padding: 2rem 1.75rem; max-width: 380px; width: 100%;
-    text-align: center; box-shadow: 0 24px 64px rgba(0,0,0,0.5);
-    animation: slideUp 0.2s ease;
-  }
+  .reset-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.8); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 1rem; animation: fadeIn 0.15s ease; }
+  .reset-modal { background: var(--surface); border: 1px solid rgba(248,113,113,0.3); border-radius: 16px; padding: 2rem 1.75rem; max-width: 380px; width: 100%; text-align: center; box-shadow: 0 24px 64px rgba(0,0,0,0.5); animation: slideUp 0.2s ease; }
   @keyframes fadeIn  { from { opacity: 0 } to { opacity: 1 } }
   @keyframes slideUp { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: translateY(0) } }
 `;
 
-// ─── Pasos del flujo ─────────────────────────────────────────────────────────
 const FLOW_STEPS = [
   { id: "inscripciones",n: 1, icon: "🏃", label: "Inscripciones" },
   { id: "presupuesto",  n: 2, icon: "💰", label: "Costes"    },
@@ -120,16 +85,11 @@ const TABS = [
   { id: "historial",   label: "Historial", short: "Historial", icon: "🕐" },
 ];
 
-// ─── Componente principal ─────────────────────────────────────────────────────
 const Presupuesto = () => {
   const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
   const [confirmReset, setConfirmReset] = useState(false);
 
-  // ── Lógica de presupuesto real ──────────────────────────────────────────────
-  // Se instancia primero con scenarioInscritos / scenarioConceptos siendo null
-  // hasta que el hook de escenario tenga estado. React garantiza consistencia
-  // porque el flujo siempre sigue el mismo orden de hooks.
   const [scenarioOverrides, setScenarioOverrides] = useState({
     scenarioInscritos: null,
     scenarioConceptos: null,
@@ -174,13 +134,10 @@ const Presupuesto = () => {
     totalMerchBeneficio,
     syncConfig, setSyncConfig,
     ingresosDesglosados,
-    // Datos reales para comparación de deltas (nunca cambian por el escenario)
     realTotalInscritos,
     realResultado,
   } = useBudgetLogic(scenarioOverrides);
 
-  // ── Sistema de escenarios ───────────────────────────────────────────────────
-  // Pasa los datos reales cargados para que "Nuevo escenario" parta del estado real.
   const {
     savedScenarios,
     activeScenario,
@@ -204,8 +161,6 @@ const Presupuesto = () => {
     setScenarioMerchandising,
   } = useScenario(inscritos, conceptos, ingresosExtra, merchandising);
 
-  // Sincronizar los overrides del escenario con useBudgetLogic
-  // Esto es el puente que hace que los cálculos reflejen el escenario activo.
   useEffect(() => {
     setScenarioOverrides({ 
       scenarioInscritos, 
@@ -215,13 +170,11 @@ const Presupuesto = () => {
     });
   }, [scenarioInscritos, scenarioConceptos, scenarioIngresosExtra, scenarioMerchandising]);
 
-  // Salir del escenario también limpia los overrides
   const exitScenario = () => {
     _exitScenario();
     setScenarioOverrides({ scenarioInscritos: null, scenarioConceptos: null, scenarioIngresosExtra: null, scenarioMerchandising: null });
   };
 
-  // Interceptores para TabPresupuesto
   const handleUpdateConcepto = (id, field, value) => {
     if (isScenarioMode) {
       if (field === "activo") toggleScenarioConcepto(id);
@@ -233,7 +186,6 @@ const Presupuesto = () => {
 
   const handleUpdateCostePorDistancia = (id, dist, value) => {
     if (isScenarioMode) {
-      // Leer desde el activeScenario directamente para evitar estado stale del memo
       overrideScenarioConceptoCosteDist(id, dist, value);
     } else {
       updateCostePorDistancia(id, dist, value);
@@ -262,25 +214,11 @@ const Presupuesto = () => {
                   : saveStatus === "error"  ? "✗ Error"
                   : "Guardar";
 
-  // Detectar qué pasos tienen datos para el breadcrumb
-  const stepStatus = (id) => {
-    if (id === tab) return "active";
-    const orden = FLOW_STEPS.findIndex(s => s.id === id);
-    const actual = FLOW_STEPS.findIndex(s => s.id === tab);
-    if (orden < actual) return "done";
-    // Heurística: consideramos "done" si hay datos relevantes
-    if (id === "inscripciones" && (totalInscritos?.total ?? 0) > 0) return "done";
-    if (id === "presupuesto" && conceptos.length > 0)           return "done";
-    if (id === "ingresos"    && ingresosExtra.length > 0)       return "done";
-    return "pending";
-  };
-
   const handleReset = () => {
-    resetAllData(true); // sinConfirm=true — modal ya fue mostrado
+    resetAllData(true);
     setConfirmReset(false);
   };
 
-  // Escuchar navegación con subtab desde Dashboard
   useEffect(() => {
     const handler = (e) => {
       if (e.detail?.subtab && TABS.some(t => t.id === e.detail.subtab)) {
@@ -296,7 +234,6 @@ const Presupuesto = () => {
       <style>{BLOCK_CSS + BUDGET_CSS}</style>
       <div className="block-container">
 
-        {/* ── HEADER ── */}
         <div className="block-header">
           <div>
             <h1 className="block-title">💰 Presupuesto</h1>
@@ -308,24 +245,37 @@ const Presupuesto = () => {
                   borderRadius:10, fontFamily:"var(--font-mono)", fontSize:".55rem",
                   background: (() => {
                     const c = conceptos.filter(c => c.activo !== false);
-                    const conReal = c.filter(c => c.costeTotal > 0).length;
+                    // A2 fix: los conceptos variables no tienen costeTotal, usan costePorDistancia
+                    const tieneCoste = (c) => c.tipo === 'fijo'
+                      ? c.costeTotal > 0
+                      : Object.values(c.costePorDistancia || {}).some(v => v > 0);
+                    const conReal = c.filter(tieneCoste).length;
                     return conReal === c.length ? "var(--green-dim)" : "var(--amber-dim)";
                   })(),
                   color: (() => {
                     const c = conceptos.filter(c => c.activo !== false);
-                    const conReal = c.filter(c => c.costeTotal > 0).length;
+                    const tieneCoste = (c) => c.tipo === 'fijo'
+                      ? c.costeTotal > 0
+                      : Object.values(c.costePorDistancia || {}).some(v => v > 0);
+                    const conReal = c.filter(tieneCoste).length;
                     return conReal === c.length ? "var(--green)" : "var(--amber)";
                   })(),
                   border: "1px solid",
                   borderColor: (() => {
                     const c = conceptos.filter(c => c.activo !== false);
-                    const conReal = c.filter(c => c.costeTotal > 0).length;
+                    const tieneCoste = (c) => c.tipo === 'fijo'
+                      ? c.costeTotal > 0
+                      : Object.values(c.costePorDistancia || {}).some(v => v > 0);
+                    const conReal = c.filter(tieneCoste).length;
                     return conReal === c.length ? "rgba(52,211,153,.3)" : "rgba(251,191,36,.3)";
                   })(),
                 }}>
                   {(() => {
                     const c = conceptos.filter(c => c.activo !== false);
-                    const conReal = c.filter(c => c.costeTotal > 0).length;
+                    const tieneCoste = (c) => c.tipo === 'fijo'
+                      ? c.costeTotal > 0
+                      : Object.values(c.costePorDistancia || {}).some(v => v > 0);
+                    const conReal = c.filter(tieneCoste).length;
                     return `${conReal}/${c.length} conceptos con coste`;
                   })()}
                 </span>
@@ -368,7 +318,6 @@ const Presupuesto = () => {
           </div>
         </div>
 
-        {/* ── SCENARIO BAR ── colapsada cuando no hay escenarios ni modo activo */}
         {(isScenarioMode || savedScenarios.length > 0) ? (
           <ScenarioBar
             isScenarioMode={isScenarioMode}
@@ -406,7 +355,6 @@ const Presupuesto = () => {
           </div>
         )}
 
-        {/* ── KPIs GLOBALES — solo en pestañas operativas, no en Equilibrio ni Historial ── */}
         {tab !== "equilibrio" && tab !== "historial" && (
           <KpiGlobal
             totalInscritos={totalInscritos}
@@ -421,13 +369,11 @@ const Presupuesto = () => {
           />
         )}
 
-        {/* ── TABS — con indicador de completado integrado ── */}
         <div className="tabs">
           {TABS.map(t => {
-            // Reutilizar la heurística de stepStatus para las tabs operativas
             const isDone = (() => {
-              if (t.id === "historial") return false; // nunca "done"
-              if (t.id === tab) return false;         // activa no muestra tick
+              if (t.id === "historial") return false;
+              if (t.id === tab) return false;
               if (t.id === "inscripciones" && (totalInscritos?.total ?? 0) > 0) return true;
               if (t.id === "presupuesto"   && conceptos.length > 0)            return true;
               if (t.id === "ingresos"      && ingresosExtra.length > 0)        return true;
@@ -454,7 +400,6 @@ const Presupuesto = () => {
           })}
         </div>
 
-        {/* ── CONTENIDO ── */}
         <div key={tab}>
           {tab === "presupuesto" && (
             <TabPresupuesto
@@ -487,7 +432,6 @@ const Presupuesto = () => {
               setSyncConfig={setSyncConfig}
             />
           )}
-          {/* Banner escenario en tabs de edición */}
           {isScenarioMode && (tab === "inscripciones" || tab === "presupuesto") && (
             <div style={{
               display:"flex", alignItems:"center", gap:".6rem",
@@ -519,7 +463,7 @@ const Presupuesto = () => {
             />
           )}
           {tab === "resumen" && (
-            <TabResumen
+          <TabResumen
               totalInscritos={totalInscritos}
               ingresosPorDistancia={ingresosPorDistancia}
               costesFijos={costesFijos}
@@ -528,7 +472,7 @@ const Presupuesto = () => {
               totalIngresosExtra={totalIngresosExtra}
               merchTotales={merchTotales}
               resultado={resultado}
-              conceptos={conceptos}
+              conceptos={isScenarioMode ? (scenarioConceptos ?? conceptos) : conceptos}
               precioMedioDistancia={precioMedioDistancia}
               costesVarPorCorredor={costesVarPorCorredor}
               costesFijoPorCorredor={costesFijoPorCorredor}
@@ -554,7 +498,6 @@ const Presupuesto = () => {
 
       </div>
 
-      {/* ── MODAL CONFIRMACIÓN RESTABLECER ── */}
       {confirmReset && (
         <div className="reset-overlay" onClick={() => setConfirmReset(false)}>
           <div className="reset-modal" onClick={e => e.stopPropagation()}>
