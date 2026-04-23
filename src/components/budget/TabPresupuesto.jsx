@@ -93,7 +93,6 @@ export const TabPresupuesto = ({
   const conceptosFijos = sort(conceptos.filter(c => c.tipo === "fijo"),     ordenAlfaFijo);
   const conceptosVar   = sort(conceptos.filter(c => c.tipo === "variable"), ordenAlfaVar);
 
-  // Mover un ítem una posición arriba o abajo dentro del array de su tipo
   const moverFijo = (id, dir) => {
     const arr = conceptosFijos;
     const idx = arr.findIndex(c => c.id === id);
@@ -110,7 +109,6 @@ export const TabPresupuesto = ({
     reorderConceptos("variable", arr[idx].id, arr[nuevoIdx].id);
   };
 
-  // ── Fila FIJO ─────────────────────────────────────────────────────────────
   const renderFilaFija = (c, idx, arr) => {
     const distActivas  = DISTANCIAS.filter(d => c.activoDistancias[d] && c.activo);
     const totalActivos = distActivas.reduce((s, d) => s + totalInscritos[d], 0);
@@ -126,7 +124,6 @@ export const TabPresupuesto = ({
 
     return (
       <tr key={c.id}>
-        {/* Botones ▲▼ */}
         <td style={{ width: 22, padding: "0.3rem 0.2rem" }}>
           {!ordenAlfaFijo && (
             <button className="reorder-btn" title="Mover arriba / abajo">
@@ -175,16 +172,14 @@ export const TabPresupuesto = ({
     );
   };
 
-  // ── Fila VARIABLE ─────────────────────────────────────────────────────────
   const renderFilaVariable = (c, idx, arr) => {
-    const total = DISTANCIAS.reduce((s, d) => {
+    const total = !c.activo ? 0 : DISTANCIAS.reduce((s, d) => {
       if (c.activoDistancias && c.activoDistancias[d] === false) return s;
       return s + (c.costePorDistancia[d] || 0) * totalInscritos[d];
     }, 0);
 
     return (
       <tr key={c.id}>
-        {/* Botones ▲▼ */}
         <td style={{ width: 22, padding: "0.3rem 0.2rem" }}>
           {!ordenAlfaVar && (
             <button className="reorder-btn" title="Mover arriba / abajo">
