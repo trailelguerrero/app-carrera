@@ -45,9 +45,9 @@ function hashPin(pin) {
 
 // ── TOAST SYSTEM ──────────────────────────────────────────────────────────────
 function useToastSystem() {
-  const [toasts, setToasts] = React.useState([]);
+  const [toasts, setToasts] = useState([]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handler = (e) => {
       const { id, type, message, duration = 3500 } = e.detail;
       setToasts(prev => [...prev, { id, type, message, duration, leaving: false }]);
@@ -461,6 +461,7 @@ export default function Index() {
   const [showMoreNav, setShowMoreNav]       = useState(false);
   const [activeBlock, setActiveBlock]       = useState("dashboard");
   const [showDiaCarrera, setShowDiaCarrera] = useState(false);
+  const [readmeBlock, setReadmeBlock] = useState(null);
   const [showOnboarding, setShowOnboarding] = useState(
     () => !localStorage.getItem("teg_onboarding_done")
   );
@@ -478,6 +479,7 @@ export default function Index() {
   }, []);
 
   const saveStatus  = useGlobalSaveStatus();
+  const { toasts, dismiss } = useToastSystem();
   const isOnline    = useOnlineStatus();
   useMobileKeyboardScroll();
 
