@@ -2383,115 +2383,131 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
           <button className="btn btn-ghost" style={{ padding: "0.2rem 0.5rem" }} onClick={mvHandleClose}>✕</button>
         </div>
         <div className="modal-body">
-          <div>
-            <label className="field-label" style={{ color: errores.nombre ? "var(--red)" : undefined }}>Nombre completo *</label>
-            <input className="inp" value={form.nombre} onChange={e => upd("nombre", e.target.value)} placeholder="Nombre y apellidos" />
-            {errores.nombre && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--red)", marginTop: "0.2rem" }}>⚠ {errores.nombre}</div>}
-          </div>
-          <div className="field-row">
-            <div>
-              <label className="field-label" style={{ color: errores.telefono ? "var(--red)" : undefined }}>Teléfono *</label>
-              <input className="inp" value={form.telefono} onChange={e => upd("telefono", e.target.value)} placeholder="612345678" inputMode="tel" />
-              {errores.telefono && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--red)", marginTop: "0.2rem" }}>⚠ {errores.telefono}</div>}
-            </div>
-            <div>
-              <label className="field-label">Email</label>
-              <input className="inp" value={form.email} onChange={e => upd("email", e.target.value)} placeholder="correo@email.com" />
+
+          {/* ── SECCIÓN 1: Datos personales ───────────────────────────── */}
+          <div className="form-section">
+            <div className="form-section-label">👤 Datos personales</div>
+            <div style={{display:"flex",flexDirection:"column",gap:".65rem"}}>
+              <div>
+                <label className="field-label" style={{ color: errores.nombre ? "var(--red)" : undefined }}>Nombre completo *</label>
+                <input className="inp" value={form.nombre} onChange={e => upd("nombre", e.target.value)} placeholder="Nombre y apellidos" />
+                {errores.nombre && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--red)", marginTop: "0.2rem" }}>⚠ {errores.nombre}</div>}
+              </div>
+              <div className="field-row">
+                <div>
+                  <label className="field-label" style={{ color: errores.telefono ? "var(--red)" : undefined }}>Teléfono *</label>
+                  <input className="inp" value={form.telefono} onChange={e => upd("telefono", e.target.value)} placeholder="612345678" inputMode="tel" />
+                  {errores.telefono && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--red)", marginTop: "0.2rem" }}>⚠ {errores.telefono}</div>}
+                </div>
+                <div>
+                  <label className="field-label">Email</label>
+                  <input className="inp" value={form.email} onChange={e => upd("email", e.target.value)} placeholder="correo@email.com" />
+                </div>
+              </div>
             </div>
           </div>
 
-          <div>
-            <label className="field-label" style={{ color: errores.talla ? "var(--red)" : undefined }}>Talla camiseta *</label>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", marginTop: "0.3rem" }}>
-              {TALLAS.map(t => (
-                <button key={t} onClick={() => upd("talla", t)}
-                  style={{ padding: "0.35rem 0.6rem", borderRadius: 6, border: `1px solid ${form.talla === t ? "var(--cyan)" : "var(--border)"}`, background: form.talla === t ? "var(--cyan-dim)" : "var(--surface2)", color: form.talla === t ? "var(--cyan)" : "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 700, cursor: "pointer", transition: "all 0.12s", transform: form.talla === t ? "scale(1.05)" : "scale(1)" }}>
-                  {t}
+          {/* ── SECCIÓN 2: Datos operativos ───────────────────────────── */}
+          <div className="form-section">
+            <div className="form-section-label">🏃 Datos operativos</div>
+            <div style={{display:"flex",flexDirection:"column",gap:".65rem"}}>
+              <div>
+                <label className="field-label" style={{ color: errores.talla ? "var(--red)" : undefined }}>Talla camiseta *</label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", marginTop: "0.3rem" }}>
+                  {TALLAS.map(t => (
+                    <button key={t} onClick={() => upd("talla", t)}
+                      style={{ padding: "0.35rem 0.6rem", borderRadius: 6, border: `1px solid ${form.talla === t ? "var(--cyan)" : "var(--border)"}`, background: form.talla === t ? "var(--cyan-dim)" : "var(--surface2)", color: form.talla === t ? "var(--cyan)" : "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 700, cursor: "pointer", transition: "all 0.12s", transform: form.talla === t ? "scale(1.05)" : "scale(1)" }}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+                {errores.talla && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--red)", marginTop: "0.2rem" }}>⚠ {errores.talla}</div>}
+              </div>
+              <div className="field-row">
+                <div>
+                  <label className="field-label">Puesto asignado</label>
+                  <select className="inp" value={form.puestoId ?? ""} onChange={e => upd("puestoId", e.target.value || null)}>
+                    <option value="">Sin asignar</option>
+                    {puestos.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="field-label">Rol</label>
+                  <select className="inp" value={form.rol} onChange={e => upd("rol", e.target.value)}>
+                    <option value="apoyo">Apoyo</option>
+                    <option value="responsable">Responsable</option>
+                  </select>
+                </div>
+              </div>
+              <div className="field-row">
+                <div>
+                  <label className="field-label">Estado</label>
+                  <select className="inp" value={form.estado} onChange={e => upd("estado", e.target.value)}
+                    style={{ color: estadoColor(form.estado), background: estadoBg(form.estado) }}>
+                    {Object.entries(ESTADOS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="field-label">Fecha de registro</label>
+                  <input className="inp" type="date" value={form.fechaRegistro} onChange={e => upd("fechaRegistro", e.target.value)} />
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: "var(--r-sm)", padding: "0.65rem 0.85rem" }}>
+                <div>
+                  <div style={{ fontSize: "var(--fs-base)", fontWeight: 600 }}>Vehículo propio</div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>Facilita traslado a puestos</div>
+                </div>
+                <button className="toggle-pill" style={{ background: form.coche ? "var(--green)" : "var(--surface3)" }} onClick={() => upd("coche", !form.coche)}>
+                  <span className="toggle-pill-dot" style={{ left: form.coche ? 23 : 3 }} />
                 </button>
-              ))}
-            </div>
-            {errores.talla && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--red)", marginTop: "0.2rem" }}>⚠ {errores.talla}</div>}
-          </div>
-
-          <div className="field-row">
-            <div>
-              <label className="field-label">Puesto asignado</label>
-              <select className="inp" value={form.puestoId ?? ""} onChange={e => upd("puestoId", e.target.value || null)}>
-                <option value="">Sin asignar</option>
-                {puestos.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="field-label">Rol</label>
-              <select className="inp" value={form.rol} onChange={e => upd("rol", e.target.value)}>
-                <option value="apoyo">Apoyo</option>
-                <option value="responsable">Responsable</option>
-              </select>
+              </div>
             </div>
           </div>
 
-          <div className="field-row">
-            <div>
-              <label className="field-label">Estado</label>
-              <select className="inp" value={form.estado} onChange={e => upd("estado", e.target.value)}
-                style={{ color: estadoColor(form.estado), background: estadoBg(form.estado) }}>
-                {Object.entries(ESTADOS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="field-label">Fecha de registro</label>
-              <input className="inp" type="date" value={form.fechaRegistro} onChange={e => upd("fechaRegistro", e.target.value)} />
-            </div>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "0.65rem 0.85rem" }}>
-            <div>
-              <div style={{ fontSize: "var(--fs-base)", fontWeight: 600 }}>Vehículo propio</div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>Facilita traslado a puestos</div>
-            </div>
-            <button className="toggle-pill" style={{ background: form.coche ? "var(--green)" : "var(--surface3)" }} onClick={() => upd("coche", !form.coche)}>
-              <span className="toggle-pill-dot" style={{ left: form.coche ? 23 : 3 }} />
-            </button>
-          </div>
-
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:".75rem" }}>
-            <div>
-              <label className="field-label">🎂 Fecha de nacimiento</label>
-              <input className="inp" type="date"
-                value={form.fechaNacimiento || ""}
-                onChange={e => upd("fechaNacimiento", e.target.value)} />
-              {form.fechaNacimiento && (() => {
-                const años = Math.floor((new Date() - new Date(form.fechaNacimiento)) / (365.25 * 86400000));
-                return <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                  color:"var(--text-dim)", marginTop:".2rem" }}>{años} años</div>;
-              })()}
-            </div>
-            <div>
-              <label className="field-label" style={{ color: errores.telefonoEmergencia ? "var(--red)" : undefined }}>
-                🚨 Tel. emergencia *
-              </label>
-              <input className="inp" type="tel"
-                value={form.telefonoEmergencia || ""}
-                onChange={e => upd("telefonoEmergencia", e.target.value)}
-                placeholder="612 345 678"
-                inputMode="tel"
-                style={{ borderColor: errores.telefonoEmergencia ? "var(--red)" : undefined }} />
-              {errores.telefonoEmergencia && (
-                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                  color:"var(--red)", marginTop:".2rem" }}>⚠ {errores.telefonoEmergencia}</div>
-              )}
+          {/* ── SECCIÓN 3: Seguridad ───────────────────────────────────── */}
+          <div className="form-section">
+            <div className="form-section-label">🔒 Seguridad</div>
+            <div style={{display:"flex",flexDirection:"column",gap:".65rem"}}>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:".75rem" }}>
+                <div>
+                  <label className="field-label">🎂 Fecha de nacimiento</label>
+                  <input className="inp" type="date"
+                    value={form.fechaNacimiento || ""}
+                    onChange={e => upd("fechaNacimiento", e.target.value)} />
+                  {form.fechaNacimiento && (() => {
+                    const años = Math.floor((new Date() - new Date(form.fechaNacimiento)) / (365.25 * 86400000));
+                    return <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                      color:"var(--text-dim)", marginTop:".2rem" }}>{años} años</div>;
+                  })()}
+                </div>
+                <div>
+                  <label className="field-label" style={{ color: errores.telefonoEmergencia ? "var(--red)" : undefined }}>
+                    🚨 Tel. emergencia *
+                  </label>
+                  <input className="inp" type="tel"
+                    value={form.telefonoEmergencia || ""}
+                    onChange={e => upd("telefonoEmergencia", e.target.value)}
+                    placeholder="612 345 678"
+                    inputMode="tel"
+                    style={{ borderColor: errores.telefonoEmergencia ? "var(--red)" : undefined }} />
+                  {errores.telefonoEmergencia && (
+                    <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                      color:"var(--red)", marginTop:".2rem" }}>⚠ {errores.telefonoEmergencia}</div>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="field-label" style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <span>📝 Notas / Observaciones</span>
+                  {form.notas && <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--cyan)",fontWeight:400}}>{form.notas.length} car.</span>}
+                </label>
+                <textarea className="inp" rows={3} value={form.notas} onChange={e => upd("notas", e.target.value)}
+                  placeholder="Experiencia previa, idiomas, titulaciones especiales, restricciones, observaciones del organizador…"
+                  style={{ resize: "vertical", fontFamily: "var(--font-display)" }} />
+              </div>
             </div>
           </div>
 
-          <div>
-            <label className="field-label" style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-              <span>📝 Notas / Observaciones</span>
-              {form.notas && <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--cyan)",fontWeight:400}}>{form.notas.length} car.</span>}
-            </label>
-            <textarea className="inp" rows={3} value={form.notas} onChange={e => upd("notas", e.target.value)}
-              placeholder="Experiencia previa, idiomas, titulaciones especiales, restricciones, observaciones del organizador…"
-              style={{ resize: "vertical", fontFamily: "var(--font-display)" }} />
-          </div>
         </div>
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>

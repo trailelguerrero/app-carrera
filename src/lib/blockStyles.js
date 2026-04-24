@@ -679,6 +679,26 @@ export const BLOCK_CSS = `
   .flex-between { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
   .flex-center  { display: flex; align-items: center; gap: 0.5rem; }
 
+  /* ── Secciones de formulario ─────────────────────────────────────────────── */
+  .form-section {
+    padding-top: .85rem;
+    border-top: 1px solid var(--border);
+    margin-top: .25rem;
+  }
+  .form-section:first-child { border-top: none; padding-top: 0; margin-top: 0; }
+  .form-section-label {
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .09em;
+    margin-bottom: .6rem;
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+  }
+
   /* ── Toast notifications ─────────────────────────────────────────────────── */
   .teg-toast-stack {
     position: fixed;
