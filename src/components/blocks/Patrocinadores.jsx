@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useModalClose } from "@/hooks/useModalClose";
 import { exportarPatrocinadores } from "@/lib/exportUtils";
+import { genIdNum, fmtEur, scrollMainToTop } from "@/lib/utils";
 import EmptyState from "@/components/EmptyState";
 import { usePaginacion } from "@/lib/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
@@ -9,8 +10,6 @@ import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const LS = "teg_patrocinadores_v1";
-const genId = (arr) => arr.length ? Math.max(...arr.map(x => x.id)) + 1 : 1;
-const fmt = (n) => new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
 
 const NIVELES = ["Oro", "Plata", "Bronce", "Colaborador", "Especie"];
 const NIVEL_CFG = {
@@ -142,12 +141,6 @@ const PAT0 = [
 
 
 // ─── APP ──────────────────────────────────────────────────────────────────────
-// Helper standalone — evita TDZ de minimización Rollup
-function scrollToMainPat() {
-  const mainElPat = document.querySelector("main");
-  if (mainElPat) mainElPat.scrollTo({ top: 0, behavior: "instant" });
-}
-
 export default function App() {
   const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
@@ -200,7 +193,7 @@ export default function App() {
     { id: "documentos", icon: "📁", label: "Documentos" },
   ];
 
-  const scrollTop = () => { scrollToMainPat(); };
+  const scrollTop = () => { scrollMainToTop(); };
   const openNuevo   = () => { scrollTop(); setModal({ tipo: "pat",     data: null }); };
   const openEditar  = (p) => { scrollTop(); setModal({ tipo: "pat",    data: p    }); };
   const openDetalle = (p) => { scrollTop(); setModal({ tipo: "detalle",data: p    }); };
@@ -213,7 +206,7 @@ export default function App() {
         : p
       ));
     } else {
-      setPats(prev => [...prev, { ...pat, id: genId(pats), contraprestaciones: [], docs: [], especieItems: [] }]);
+      setPats(prev => [...prev, { ...pat, id: genIdNum(pats), contraprestaciones: [], docs: [], especieItems: [] }]);
     }
     setModal(null);
   };
@@ -226,7 +219,7 @@ export default function App() {
   const updateEstado = (id, estado) => setPats(prev => prev.map(p => p.id === id ? { ...p, estado } : p));
 
   const addDoc = (patId, doc) => {
-    setPats(prev => prev.map(p => p.id === patId ? { ...p, docs: [...(p.docs||[]), { ...doc, id: genId(p.docs||[]) }] } : p));
+    setPats(prev => prev.map(p => p.id === patId ? { ...p, docs: [...(p.docs||[]), { ...doc, id: genIdNum(p.docs||[]) }] } : p));
   };
   const deleteDoc = (patId, docId) => {
     setPats(prev => prev.map(p => p.id === patId ? { ...p, docs: (p.docs||[]).filter(d => d.id !== docId) } : p));
@@ -242,7 +235,7 @@ export default function App() {
   const addContraprestacion = (patId, item) => {
     setPats(prev => prev.map(p => p.id === patId ? {
       ...p,
-      contraprestaciones: [...(p.contraprestaciones || []), { ...item, id: genId(p.contraprestaciones || []) }]
+      contraprestaciones: [...(p.contraprestaciones || []), { ...item, id: genIdNum(p.contraprestaciones || []) }]
     } : p));
   };
 
@@ -257,7 +250,7 @@ export default function App() {
   const addEspecieItem = (patId, item) => {
     setPats(prev => prev.map(p => p.id === patId ? {
       ...p,
-      especieItems: [...(p.especieItems || []), { ...item, id: genId(p.especieItems || []) }]
+      especieItems: [...(p.especieItems || []), { ...item, id: genIdNum(p.especieItems || []) }]
     } : p));
   };
   const updateEspecieItem = (patId, itemId, campo, valor) => {
@@ -295,7 +288,7 @@ export default function App() {
           </div>
           <div className="block-actions">
             {stats.contPend > 0 && <span className="badge badge-amber">🎁 {stats.contPend} compromisos</span>}
-            <span className="badge badge-amber">{fmt(stats.comprometido)} / {fmt(objetivo)}</span>
+            <span className="badge badge-amber">{fmtEur(stats.comprometido)} / {fmtEur(objetivo)}</span>
             <span className={`badge ${stats.pctObj>=80?"badge-green":stats.pctObj>=50?"badge-amber":"badge-red"}`}>{stats.pctObj}%</span>
             <button className="btn btn-ghost btn-sm"
               onClick={() => exportarPatrocinadores(pats)}
@@ -430,22 +423,22 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
       <div className="kpi-grid mb">
         <div className="kpi amber" style={{cursor:"pointer"}} onClick={()=>setTab("patrocinadores")} title="Ver patrocinadores">
           <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>💰 Captado<Tooltip text={"Importe comprometido: suma de patrocinadores en estado 'confirmado' o 'cobrado'.\nNo incluye los que están en negociación o prospecto."}><TooltipIcon size={11}/></Tooltip></div>
-          <div className="kpi-value" style={{color:"#f59e0b"}}>{fmt(stats.comprometido)}</div>
+          <div className="kpi-value" style={{color:"#f59e0b"}}>{fmtEur(stats.comprometido)}</div>
           <div className="kpi-sub">comprometido / confirmado</div>
         </div>
         <div className="kpi green" style={{cursor:"pointer"}} onClick={()=>setTab("patrocinadores")} title="Ver cobrados">
           <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>✅ Cobrado<Tooltip text={"Importe efectivamente recibido en cuenta: solo patrocinadores en estado 'cobrado'.\nEs el dinero real disponible, a diferencia del comprometido que puede no haberse transferido aún."}><TooltipIcon size={11}/></Tooltip></div>
-          <div className="kpi-value" style={{color:"var(--green)"}}>{fmt(stats.cobrado)}</div>
+          <div className="kpi-value" style={{color:"var(--green)"}}>{fmtEur(stats.cobrado)}</div>
           <div className="kpi-sub">{stats.pctCobrado}% del objetivo</div>
         </div>
         <div className="kpi violet" style={{cursor:"pointer"}} onClick={()=>setTab("patrocinadores")} title="Ver en especie">
           <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>📦 En especie<Tooltip text={"Valor estimado de las aportaciones no monetarias: material, servicios, productos.\nNo entra en la cuenta bancaria pero reduce costes del evento."}><TooltipIcon size={11}/></Tooltip></div>
-          <div className="kpi-value" style={{color:"var(--violet)"}}>{fmt(stats.especie)}</div>
+          <div className="kpi-value" style={{color:"var(--violet)"}}>{fmtEur(stats.especie)}</div>
           <div className="kpi-sub">valor estimado</div>
         </div>
         <div className="kpi cyan" style={{cursor:"pointer"}} onClick={()=>setTab("pipeline")} title="Ver pipeline">
           <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>🔀 Pipeline<Tooltip text={"Importe potencial de los patrocinadores en estado 'negociando' o 'prospecto'.\nNo está garantizado — es el máximo que podría captarse si todos confirman."}><TooltipIcon size={11}/></Tooltip></div>
-          <div className="kpi-value" style={{color:"var(--cyan)"}}>{fmt(stats.pipeline)}</div>
+          <div className="kpi-value" style={{color:"var(--cyan)"}}>{fmtEur(stats.pipeline)}</div>
           <div className="kpi-sub">en negociación/prospecto</div>
         </div>
       </div>
@@ -474,7 +467,7 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
         ) : (
           <>
             <span style={{ fontFamily:"var(--font-mono)", fontSize:".82rem",
-              fontWeight:800, color:"#f59e0b" }}>{fmt(objetivo)}</span>
+              fontWeight:800, color:"#f59e0b" }}>{fmtEur(objetivo)}</span>
             <div style={{ flex:1, height:4, background:"var(--surface3)",
               borderRadius:2, overflow:"hidden", maxWidth:160 }}>
               <div style={{ height:"100%", borderRadius:2, transition:"width .5s",
@@ -510,7 +503,7 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
                 <div className="pbar">
                   <div className="pfill" style={{ width: x.cfg.objetivo > 0 ? `${Math.min(x.total / x.cfg.objetivo * 100, 100)}%` : "0%", background: x.cfg.color }} />
                 </div>
-                <div style={{ marginTop: ".15rem", fontFamily: "var(--font-mono)", fontSize: ".65rem", color: x.cfg.color }}>{fmt(x.total)}</div>
+                <div style={{ marginTop: ".15rem", fontFamily: "var(--font-mono)", fontSize: ".65rem", color: x.cfg.color }}>{fmtEur(x.total)}</div>
               </div>
             </div>
           ))}
@@ -528,7 +521,7 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
                 <div style={{ width: 8, height: 8, borderRadius: "50%", background: getCfg(p.nivel).color, flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: ".76rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nombre}</div>
-                  <div className="mono xs muted">{p.fechaVencimiento} · {fmt(p.importe)}</div>
+                  <div className="mono xs muted">{p.fechaVencimiento} · {fmtEur(p.importe)}</div>
                 </div>
                 <div style={{ fontFamily: "var(--font-mono)", fontSize: ".62rem", fontWeight: 700, color: urgente ? "#f87171" : "#fbbf24", background: urgente ? "rgba(248,113,113,.1)" : "rgba(251,191,36,.1)", padding: ".12rem .4rem", borderRadius: 4, flexShrink: 0 }}>
                   {dias < 0 ? "VENCIDO" : `${dias}d`}
@@ -590,7 +583,7 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
                     </span>
                     <span style={{ fontFamily:"var(--font-mono)", fontSize:".62rem",
                       color:"var(--text-muted)" }}>
-                      {p.especie > 0 ? `${fmt(p.especie)} especie` : fmt(p.importe)}
+                      {p.especie > 0 ? `${fmtEur(p.especie)} especie` : fmtEur(p.importe)}
                     </span>
                   </div>
                 </div>
@@ -695,7 +688,7 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
                       <div style={{fontWeight:700,fontSize:".78rem",marginBottom:".2rem"}}>{p.nombre}</div>
                       <div className="mono xs muted" style={{marginBottom:".3rem"}}>{p.sector}</div>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:".76rem",fontWeight:700,color:cfg.color}}>{fmt(p.importe)}</span>
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:".76rem",fontWeight:700,color:cfg.color}}>{fmtEur(p.importe)}</span>
                         <span className="badge" style={{background:ecfg.bg,color:ecfg.color,fontSize:".52rem"}}>{ecfg.label}</span>
                       {p.proximoContacto && p.estado === "negociando" && (() => {
                         const dias = Math.ceil((new Date(p.proximoContacto) - new Date()) / 86400000);
@@ -771,7 +764,7 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
               </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: ".35rem", flexShrink: 0 }}>
                 <div style={{ fontFamily: "var(--font-mono)", fontSize: ".9rem", fontWeight: 800, color: cfg.color }}>
-                  {p.especie > 0 ? fmt(p.especie) : fmt(p.importe)}
+                  {p.especie > 0 ? fmtEur(p.especie) : fmtEur(p.importe)}
                   {p.especie > 0 && <span className="mono xs muted" style={{ marginLeft: ".3rem" }}>especie</span>}
                 </div>
                 {p.fechaVencimiento && (
@@ -821,7 +814,7 @@ function TabPipeline({ pats, onEditar, onDetalle, updateEstado, ordenAlfa, onNue
                 <span style={{ fontWeight: 700, fontSize: ".78rem", color: col.cfg.color }}>{col.cfg.label}</span>
                 <span className="badge" style={{ background: col.cfg.bg, color: col.cfg.color }}>{col.pats.length}</span>
               </div>
-              {col.total > 0 && <div className="mono xs" style={{ color: col.cfg.color, marginTop: ".2rem" }}>{fmt(col.total)}</div>}
+              {col.total > 0 && <div className="mono xs" style={{ color: col.cfg.color, marginTop: ".2rem" }}>{fmtEur(col.total)}</div>}
             </div>
             <div className="kancol-body">
               {col.pats.length === 0 && (
@@ -838,7 +831,7 @@ function TabPipeline({ pats, onEditar, onDetalle, updateEstado, ordenAlfa, onNue
                     <div className="mono xs muted" style={{ marginBottom: ".5rem" }}>{p.sector}</div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <span style={{ fontFamily: "var(--font-mono)", fontSize: ".78rem", fontWeight: 700, color: ncfg.color }}>
-                        {p.especie > 0 ? fmt(p.especie) : fmt(p.importe)}
+                        {p.especie > 0 ? fmtEur(p.especie) : fmtEur(p.importe)}
                       </span>
                     </div>
                     {/* Mover de estado */}
@@ -1168,7 +1161,7 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
           {subTab === "info" && <><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: ".75rem" }}>
             {[
               ["Contacto", pat.contacto], ["Teléfono", pat.telefono || "—"],
-              ["Email", pat.email || "—"], ["Importe", pat.especie > 0 ? `${fmt(pat.especie)} (especie)` : fmt(pat.importe)],
+              ["Email", pat.email || "—"], ["Importe", pat.especie > 0 ? `${fmtEur(pat.especie)} (especie)` : fmtEur(pat.importe)],
               ["Fecha acuerdo", pat.fechaAcuerdo || "—"], ["Vencimiento", pat.fechaVencimiento || "—"],
               ["Próx. seguimiento", pat.proximoContacto ? (() => {
                 const dias = Math.ceil((new Date(pat.proximoContacto) - new Date()) / 86400000);

@@ -4,6 +4,7 @@ import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { createPortal } from "react-dom";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import dataService, { useData } from "@/lib/dataService";
+import { genIdStr } from "@/lib/utils";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
@@ -68,7 +69,6 @@ const FILE_ICONS = {
 };
 const getFileIcon = (mime) => FILE_ICONS[mime] || "📎";
 
-const genId      = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const formatSize = (bytes) => {
   if (!bytes) return "0 B";
   if (bytes < 1024)       return bytes + " B";
@@ -172,7 +172,7 @@ export default function Documentos() {
     for (const file of validFiles) {
       const base64 = await fileToBase64(file);
       newDocs.push({
-        id: genId(),
+        id: genIdStr(),
         nombre: file.name,
         nombreDisplay: nota ? nota.trim() : file.name.replace(/\.[^.]+$/, ""),
         emisor: emisorNuevo || null,

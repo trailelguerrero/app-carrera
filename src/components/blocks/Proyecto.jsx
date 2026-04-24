@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { useModalClose } from "@/hooks/useModalClose";
 import EmptyState from "@/components/EmptyState";
 import { usePaginacion } from "@/lib/usePaginacion.jsx";
+import { genIdNum } from "@/lib/utils";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import dataService, { useData } from "@/lib/dataService";
 
@@ -10,7 +11,6 @@ import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const LS = "teg_proyecto_v1";
 const TODAY = new Date();
-const genId = (arr) => arr.length ? Math.max(...arr.map(x => x.id)) + 1 : 1;
 const diasHasta = (fecha) => Math.ceil((new Date(fecha) - TODAY) / 86400000);
 const fmt = (d) => d ? new Date(d).toLocaleDateString("es-ES", { day:"2-digit", month:"short" }) : "—";
 
@@ -252,17 +252,17 @@ export default function App() {
   // ── CRUD ───────────────────────────────────────────────────────────────────
   const saveTarea = (t) => {
     if (t.id) setTareas(p => p.map(x => x.id===t.id ? t : x));
-    else setTareas(p => [...p, {...t, id:genId(p)}]);
+    else setTareas(p => [...p, {...t, id:genIdNum(p)}]);
     setModal(null);
   };
   const saveHito = (h) => {
     if (h.id) setHitos(p => p.map(x => x.id===h.id ? h : x));
-    else setHitos(p => [...p, {...h, id:genId(p)}]);
+    else setHitos(p => [...p, {...h, id:genIdNum(p)}]);
     setModal(null);
   };
   const savePersona = (p) => {
     if (p.id) setEquipo(prev => prev.map(x => x.id===p.id ? p : x));
-    else setEquipo(prev => [...prev, {...p, id:genId(prev)}]);
+    else setEquipo(prev => [...prev, {...p, id:genIdNum(prev)}]);
     setModal(null);
   };
   const doDelete = () => {

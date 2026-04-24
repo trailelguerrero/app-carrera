@@ -1,15 +1,13 @@
 import { useState, useMemo } from "react";
 import { useModalClose } from "@/hooks/useModalClose";
 import { useData } from "@/lib/dataService";
+import { genIdNum, fmtEur2, fmtNum2, scrollMainToTop } from "@/lib/utils";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const LS    = "teg_camisetas_v1";
-const genId = (arr) => arr.length ? Math.max(...arr.map(x => x.id)) + 1 : 1;
-const fmt   = (n) => new Intl.NumberFormat("es-ES", { style:"currency", currency:"EUR", minimumFractionDigits:2, maximumFractionDigits:2 }).format(n||0);
-const fmtN  = (n) => new Intl.NumberFormat("es-ES", { minimumFractionDigits:2, maximumFractionDigits:2 }).format(n||0);
 
 const TALLAS       = ["XXS","XS","S","M","L","XL","XXL","3XL","4XL"];
 const TALLAS_NINO  = ["4-6","6-8","8-10","10-12"];
@@ -84,13 +82,6 @@ const FUENTES_DEFAULT = {
   extrasNino: true,
 };
 
-// Función de utilidad standalone — evita TDZ en bundle de producción
-// (Rollup no puede colapsar su variable local con las del componente App)
-function scrollToMain() {
-  const mainElCamisetas = document.querySelector("main");
-  if (mainElCamisetas) mainElCamisetas.scrollTo({ top: 0, behavior: "instant" });
-}
-
 export default function App() {
   const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
@@ -139,10 +130,10 @@ export default function App() {
 
   const [fuentesActivas, setFuentesActivas] = useData(LS + "_fuentes", FUENTES_DEFAULT);
 
-  const scrollTop   = () => { scrollToMain(); };
-  const abrirFicha  = (p) => { scrollToMain(); setFicha(p); };
-  const abrirModal  = (pd) => { scrollToMain(); setModal({data:pd||null}); };
-  const abrirEditar = (p) => { scrollToMain(); setFicha(null); setModal({data:p}); };
+  const scrollTop   = () => { scrollMainToTop(); };
+  const abrirFicha  = (p) => { scrollMainToTop(); setFicha(p); };
+  const abrirModal  = (pd) => { scrollMainToTop(); setModal({data:pd||null}); };
+  const abrirEditar = (p) => { scrollMainToTop(); setFicha(null); setModal({data:p}); };
 
   const savePedido = (p) => {
     if (p.id) setPedidos(prev => prev.map(x => x.id===p.id ? p : x));
@@ -254,7 +245,7 @@ export default function App() {
             </div>
           </div>
           <div className="block-actions">
-            {stats.cPendCobro>0 && <span className="badge badge-amber">⏳ {fmt(stats.cPendCobro)} pendiente</span>}
+            {stats.cPendCobro>0 && <span className="badge badge-amber">⏳ {fmtEur2(stats.cPendCobro)} pendiente</span>}
             {stats.pendEnt  >0 && <span className="badge badge-cyan">📦 {stats.pendEnt} ud por entregar</span>}
             <button className="btn btn-primary" onClick={()=>abrirModal(null)}>+ Nuevo pedido</button>
           </div>
@@ -314,22 +305,22 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
             <div>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: ".1em" }}>Beneficio Neto Proyectado</div>
-              <div style={{ fontSize: "2.2rem", fontWeight: 800, color: "var(--green)", marginTop: ".25rem" }}>{fmt(stats.beneficioNetoProyectado)}</div>
+              <div style={{ fontSize: "2.2rem", fontWeight: 800, color: "var(--green)", marginTop: ".25rem" }}>{fmtEur2(stats.beneficioNetoProyectado)}</div>
             </div>
             <div style={{ textAlign: "right" }}>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Realizado</div>
-              <div style={{ fontSize: "1.1rem", fontWeight: 700, color: stats.beneficioNetoReal >= 0 ? "var(--text)" : "var(--red)" }}>{fmt(stats.beneficioNetoReal)}</div>
+              <div style={{ fontSize: "1.1rem", fontWeight: 700, color: stats.beneficioNetoReal >= 0 ? "var(--text)" : "var(--red)" }}>{fmtEur2(stats.beneficioNetoReal)}</div>
             </div>
           </div>
           <div style={{ display: "flex", gap: "1.5rem", borderTop: "1px solid var(--border)", paddingTop: "1rem" }}>
             <div>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: ".55rem", color: "var(--text-dim)", textTransform: "uppercase" }}>Ingresos Totales</div>
-              <div style={{ fontSize: ".9rem", fontWeight: 700, color: "var(--cyan)" }}>{fmt(stats.totalIngresosProyectado)}</div>
+              <div style={{ fontSize: ".9rem", fontWeight: 700, color: "var(--cyan)" }}>{fmtEur2(stats.totalIngresosProyectado)}</div>
             </div>
             <div>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: ".55rem", color: "var(--text-dim)", textTransform: "uppercase" }}>Gastos Fabricación</div>
-              <div style={{ fontSize: ".9rem", fontWeight: 700, color: "var(--amber)" }}>{fmt(stats.totalGastos)}</div>
-              {stats.gRegalos > 0 && <div style={{ fontSize: ".55rem", color: "var(--violet)", fontWeight: 600 }}>inc. {fmt(stats.gRegalos)} en regalos</div>}
+              <div style={{ fontSize: ".9rem", fontWeight: 700, color: "var(--amber)" }}>{fmtEur2(stats.totalGastos)}</div>
+              {stats.gRegalos > 0 && <div style={{ fontSize: ".55rem", color: "var(--violet)", fontWeight: 600 }}>inc. {fmtEur2(stats.gRegalos)} en regalos</div>}
             </div>
             <div style={{ marginLeft: "auto", textAlign: "right" }}>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: ".55rem", color: "var(--text-dim)", textTransform: "uppercase" }}>ROI</div>
@@ -379,7 +370,7 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
         </div>
         <div className={`kpi ${stats.cPendCobro > 0 ? "amber" : "green"}`} style={{cursor:"pointer"}} onClick={() => setTab("pedidos")}>
           <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>⏳ Pendiente cobro<Tooltip text={"Importe total de pedidos manuales que aún no han sido cobrados."}><TooltipIcon size={11}/></Tooltip></div>
-          <div className="kpi-value">{fmt(stats.cPendCobro)}</div>
+          <div className="kpi-value">{fmtEur2(stats.cPendCobro)}</div>
           <div className="kpi-sub">{stats.cPendCobro > 0 ? "por cobrar" : "todo cobrado ✓"}</div>
         </div>
         <div className={`kpi ${stats.pendEnt > 0 ? "cyan" : "green"}`} style={{cursor:"pointer"}} onClick={() => setTab("checklist")}>
@@ -412,7 +403,7 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
               </div>
             ) : (
               <div style={{ display: "flex", gap: ".6rem" }}>
-{["corredor","voluntario","nino"].map(tipo => <span key={tipo} className="mono xs">{TC[tipo].icon} {fmtN(coste[tipo])}€</span>)}
+{["corredor","voluntario","nino"].map(tipo => <span key={tipo} className="mono xs">{TC[tipo].icon} {fmtNum2(coste[tipo])}€</span>)}
                 <button className="btn btn-ghost btn-sm" onClick={() => setEditCoste(true)}>✏️</button>
               </div>
             )}
@@ -432,7 +423,7 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
               </div>
             ) : (
               <div style={{ display: "flex", gap: ".6rem", alignItems: "center" }}>
-                <span className="mono">{fmtN(precioCorrExt)}€</span>
+                <span className="mono">{fmtNum2(precioCorrExt)}€</span>
                 <button className="btn btn-ghost btn-sm" onClick={() => setEditPrecioPlat(true)}>✏️</button>
               </div>
             )}
@@ -501,7 +492,7 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
                           background:"var(--amber-dim)",
                           border:"1px solid rgba(251,191,36,.25)",
                           borderRadius:3, padding:".1rem .4rem" }}>
-                          ⏳ {fmt(pendCobro)}
+                          ⏳ {fmtEur2(pendCobro)}
                         </span>
                       )}
                       {pendEnt > 0 && (
@@ -602,7 +593,7 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal }) {
                         ))}
                       </div>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                        <span className="mono xs muted">{totalUnid} ud · {fmt(totalVenta)}</span>
+                        <span className="mono xs muted">{totalUnid} ud · {fmtEur2(totalVenta)}</span>
                         <span className="badge" style={{background:be.bg,color:be.color,fontSize:".5rem"}}>{be.icon}</span>
                       </div>
                     </div>
@@ -668,7 +659,7 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal }) {
                             </div>
                           </div>
                           <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:".3rem",flexShrink:0}}>
-                            <div style={{fontFamily:"var(--font-mono)",fontSize:".88rem",fontWeight:800}}>{fmt(totalVenta)}</div>
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:".88rem",fontWeight:800}}>{fmtEur2(totalVenta)}</div>
                             <span className="badge" style={{background:be.bg,color:be.color,fontSize:".52rem"}}>{be.icon}</span>
                           </div>
                         </div>
@@ -1367,18 +1358,18 @@ function FichaPedido({ pedido:p, coste, onClose, onEditar, onEliminar, updateLin
                       <span style={{fontSize:".9rem"}}>{cfg?.icon}</span>
                       <div>
                         <div style={{fontSize:".75rem",fontWeight:700}}>{cfg?.label} — {l.talla}</div>
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-muted)"}}>{l.cantidad} ud · coste {fmt(costeU)}/ud</div>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-muted)"}}>{l.cantidad} ud · coste {fmtEur2(costeU)}/ud</div>
                       </div>
                     </div>
                     <div style={{textAlign:"right"}}>
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:".78rem",fontWeight:700,color:ep==="regalo"?"var(--violet)":cfg?.color}}>{ep==="regalo"?"🎁 Regalo":fmt(subV)}</div>
-                      {ep!=="regalo"&&<div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-muted)"}}>{fmt(l.precioVenta||0)}/ud</div>}
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:".78rem",fontWeight:700,color:ep==="regalo"?"var(--violet)":cfg?.color}}>{ep==="regalo"?"🎁 Regalo":fmtEur2(subV)}</div>
+                      {ep!=="regalo"&&<div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-muted)"}}>{fmtEur2(l.precioVenta||0)}/ud</div>}
                     </div>
                   </div>
                   <div style={{display:"flex",gap:".35rem"}} onClick={e=>e.stopPropagation()}>
                     <button onClick={()=>updateLinea(p.id,l.id,"estadoPago",ep==="pagado"?"pendiente":"pagado")} disabled={ep==="regalo"} style={{fontFamily:"var(--font-mono)",fontSize:".58rem",fontWeight:700,padding:".2rem .5rem",borderRadius:4,border:`1px solid ${epCfg.color}44`,background:epCfg.bg,color:epCfg.color,cursor:ep==="regalo"?"default":"pointer",transition:"all .15s"}}>{epCfg.icon} {epCfg.label}</button>
                     <button onClick={()=>updateLinea(p.id,l.id,"estadoEntrega",ee==="entregado"?"pendiente":"entregado")} style={{fontFamily:"var(--font-mono)",fontSize:".58rem",fontWeight:700,padding:".2rem .5rem",borderRadius:4,border:`1px solid ${eeCfg.color}44`,background:eeCfg.bg,color:eeCfg.color,cursor:"pointer",transition:"all .15s"}}>{eeCfg.icon} {eeCfg.label}</button>
-                    <span className="mono xs muted" style={{marginLeft:"auto",alignSelf:"center"}}>margen {fmt((ep==="regalo"?-costeU:(l.precioVenta||0)-costeU)*l.cantidad)}</span>
+                    <span className="mono xs muted" style={{marginLeft:"auto",alignSelf:"center"}}>margen {fmtEur2((ep==="regalo"?-costeU:(l.precioVenta||0)-costeU)*l.cantidad)}</span>
                   </div>
                 </div>
               );
@@ -1386,11 +1377,11 @@ function FichaPedido({ pedido:p, coste, onClose, onEditar, onEliminar, updateLin
           </div>
           <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",display:"flex",justifyContent:"space-around",gap:".6rem",flexWrap:"wrap"}}>
             {[
-              {l:"Coste total",    v:fmt(totalCoste),   c:"var(--red)"},
-              {l:"Venta total",    v:fmt(totalVenta),   c:"var(--green)"},
-              {l:"Ben. realizado", v:fmt(benRealizado), c:benRealizado>=0?"var(--green)":"var(--red)"},
-              {l:"Ben. potencial", v:fmt(benPotencial), c:benPotencial>=0?"var(--cyan)":"var(--amber)"},
-              {l:"Coste regalos",  v:fmt(costeRegalos), c:"var(--violet)"},
+              {l:"Coste total",    v:fmtEur2(totalCoste),   c:"var(--red)"},
+              {l:"Venta total",    v:fmtEur2(totalVenta),   c:"var(--green)"},
+              {l:"Ben. realizado", v:fmtEur2(benRealizado), c:benRealizado>=0?"var(--green)":"var(--red)"},
+              {l:"Ben. potencial", v:fmtEur2(benPotencial), c:benPotencial>=0?"var(--cyan)":"var(--amber)"},
+              {l:"Coste regalos",  v:fmtEur2(costeRegalos), c:"var(--violet)"},
             ].map(({l,v,c})=>(
               <div key={l} style={{textAlign:"center"}}><div style={{fontFamily:"var(--font-mono)",fontSize:".5rem",color:"var(--text-muted)",marginBottom:".1rem",textTransform:"uppercase"}}>{l}</div><div style={{fontFamily:"var(--font-mono)",fontSize:".8rem",fontWeight:800,color:c}}>{v}</div></div>
             ))}
@@ -1461,8 +1452,8 @@ function ModalPedido({ data, coste, onSave, onClose }) {
                       <div><label className="fl">Estado de entrega</label><select className="inp inp-sm" value={l.estadoEntrega||"pendiente"} onChange={e=>updL(i,"estadoEntrega",e.target.value)}>{ESTADOS_ENTREGA.map(s=><option key={s} value={s}>{EE[s].icon} {EE[s].label}</option>)}</select></div>
                     </div>
                     <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-muted)",display:"flex",gap:".75rem",flexWrap:"wrap"}}>
-                      <span>Coste: {fmt(subC)}</span><span>Venta: {esR?"🎁 Regalo":fmt(subV)}</span>
-                      <span style={{color:margen>=0?"var(--green)":"var(--red)"}}>Margen: {fmt(margen)}</span>
+                      <span>Coste: {fmtEur2(subC)}</span><span>Venta: {esR?"🎁 Regalo":fmtEur2(subV)}</span>
+                      <span style={{color:margen>=0?"var(--green)":"var(--red)"}}>Margen: {fmtEur2(margen)}</span>
                     </div>
                     {!esR && (l.precioVenta||0)===0 && (
                       <div style={{marginTop:".3rem",fontFamily:"var(--font-mono)",fontSize:".58rem",padding:".2rem .5rem",borderRadius:4,background:"var(--violet-dim)",color:"var(--violet)",display:"inline-flex",alignItems:"center",gap:".3rem"}}>
@@ -1476,11 +1467,11 @@ function ModalPedido({ data, coste, onSave, onClose }) {
           </div>
           <div style={{background:"var(--surface2)",borderRadius:8,padding:".65rem .85rem",display:"flex",justifyContent:"space-around",gap:".75rem",flexWrap:"wrap"}}>
             {[
-              {l:"Total coste",      v:fmt(totalCoste),      c:"var(--red)"},
-              {l:"Total venta",      v:fmt(totalVenta),      c:"var(--green)"},
-              {l:"Ben. realizado",   v:fmt(benRealizado),    c:benRealizado>=0?"var(--green)":"var(--red)"},
-              {l:"Ben. potencial",   v:fmt(benPotencial),    c:benPotencial>=0?"var(--cyan)":"var(--amber)"},
-              {l:"Coste regalos",    v:fmt(costeRegalos),    c:"var(--violet)"},
+              {l:"Total coste",      v:fmtEur2(totalCoste),      c:"var(--red)"},
+              {l:"Total venta",      v:fmtEur2(totalVenta),      c:"var(--green)"},
+              {l:"Ben. realizado",   v:fmtEur2(benRealizado),    c:benRealizado>=0?"var(--green)":"var(--red)"},
+              {l:"Ben. potencial",   v:fmtEur2(benPotencial),    c:benPotencial>=0?"var(--cyan)":"var(--amber)"},
+              {l:"Coste regalos",    v:fmtEur2(costeRegalos),    c:"var(--violet)"},
             ].map(({l,v,c})=>(
               <div key={l} style={{textAlign:"center"}}><div style={{fontFamily:"var(--font-mono)",fontSize:".52rem",color:"var(--text-muted)",marginBottom:".15rem",textTransform:"uppercase"}}>{l}</div><div style={{fontFamily:"var(--font-mono)",fontSize:".82rem",fontWeight:800,color:c}}>{v}</div></div>
             ))}

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useModalClose } from "@/hooks/useModalClose";
 import { exportarMaterial } from "@/lib/exportUtils";
+import { genIdNum } from "@/lib/utils";
 import EmptyState from "@/components/EmptyState";
 import { usePaginacion } from "@/lib/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
@@ -11,7 +12,6 @@ import { useData } from "@/lib/dataService";
 
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";// ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const LS = "teg_logistica_v1";
-const genId = (arr) => arr.length ? Math.max(...arr.map(x => x.id)) + 1 : 1;
 
 const CATS_MATERIAL = ["Avituallamiento","Señalización","Seguridad","Comunicación","Médico","Organización","Infraestructura"];
 const CAT_ICONS = { Avituallamiento:"🍎", Señalización:"🚩", Seguridad:"🦺", Comunicación:"📡", Médico:"🏥", Organización:"📋", Infraestructura:"⛺" };
@@ -1940,8 +1940,7 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
 
 // ─── LOCALIZACIONES MAESTRAS ─────────────────────────────────────────────────
 function TabLocalizaciones({ locs, setLocs, volsPorLoc = {} }) {
-  const genId = (arr) => arr.length ? Math.max(...arr.map(x => x.id)) + 1 : 1;
-  const [modal, setModal] = useState(null); // null | {data: loc|null}
+    const [modal, setModal] = useState(null); // null | {data: loc|null}
   const [del, setDel] = useState(null);
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [form, setForm] = useState({ nombre: "", tipo: "otro", descripcion: "" });
@@ -1955,7 +1954,7 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {} }) {
     if (modal.data) {
       setLocs(prev => prev.map(l => l.id === modal.data.id ? { ...l, ...form } : l));
     } else {
-      setLocs(prev => [...prev, { id: genId(prev), ...form }]);
+      setLocs(prev => [...prev, { id: genIdNum(prev), ...form }]);
     }
     setModal(null);
   };
@@ -2248,7 +2247,7 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar })
 function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setVeh,rutas,setRutas,tl,setTl,cont,setCont,inc,setInc,ck,setCk,locs,tiposContacto=[],conceptosPres=[]}) {
   const {tipo,data}=modal;
   const locNames = locs && locs.length > 0 ? locs.map(l => l.nombre) : PUESTOS_REF;
-  const sv=(setter,arr,item)=>{ if(item.id) setter(p=>p.map(x=>x.id===item.id?item:x)); else setter(p=>[...p,{...item,id:genId(arr)}]); onClose(); };
+  const sv=(setter,arr,item)=>{ if(item.id) setter(p=>p.map(x=>x.id===item.id?item:x)); else setter(p=>[...p,{...item,id:genIdNum(arr)}]); onClose(); };
 
   if(tipo==="mat") {
     const conceptosP = modal.conceptosPres || [];
@@ -2263,13 +2262,12 @@ function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setV
       fields={[
         {k:"nombre",l:"Nombre *",t:"text"},
         {k:"categoria",l:"Categoría",t:"sel",o:CATS_MATERIAL},
-        {k:"cantidad",l:"Cantidad disponible",t:"num"},
-        {k:"stock",l:"Stock total",t:"num"},
+        {k:"stock",l:"Stock total (unidades en almacén)",t:"num"},
         {k:"stockMinimo",l:"Stock mínimo (alerta)",t:"num"},
         {k:"unidad",l:"Unidad (ud/kg/rollos...)",t:"text"},
         ...camposConcepto,
       ]}
-      init={data||{nombre:"",categoria:"Avituallamiento",cantidad:0,stock:0,stockMinimo:0,unidad:"ud",presupuestoConceptoId:null}}
+      init={data||{nombre:"",categoria:"Avituallamiento",stock:0,stockMinimo:0,unidad:"ud",presupuestoConceptoId:null}}
       onSave={v=>sv(setMaterial,material,{...v,presupuestoConceptoId:v.presupuestoConceptoId?parseInt(v.presupuestoConceptoId):null})} />;
   }
 
@@ -2417,7 +2415,7 @@ function ModalRuta({data,veh,rutas,setRutas,onClose,locs}) {
     if(!form.nombre){ setFormErr(true); return; }
     const item={...form,vehiculoId:parseInt(form.vehiculoId)};
     if(item.id)setRutas(p=>p.map(r=>r.id===item.id?item:r));
-    else setRutas(p=>[...p,{...item,id:genId(rutas)}]);
+    else setRutas(p=>[...p,{...item,id:genIdNum(rutas)}]);
     onClose();
   };
   // sin scroll-lock — causa freeze en Android

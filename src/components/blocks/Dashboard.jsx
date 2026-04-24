@@ -1,5 +1,12 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { BLOCK_CSS, blockCls } from "@/lib/blockStyles";
+import { fmtEur } from "@/lib/utils";
+import {
+  calculateTotalInscritos,
+  calculateIngresosPorDistancia,
+  calculateCostesFijos,
+  calculateCostesVariables,
+} from "@/lib/budgetUtils";
 import { EVENT_DATE } from "@/constants/budgetConstants";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 
@@ -36,7 +43,6 @@ const ALL_KEYS = {
   "teg_scenario_active_name":            null,
 };
 
-const fmt   = (n) => new Intl.NumberFormat("es-ES", { style:"currency", currency:"EUR", maximumFractionDigits:0 }).format(n ?? 0);
 const fmtD  = (iso) => new Date(iso).toLocaleDateString("es-ES", { day:"2-digit", month:"short" });
 const navigate = (block, subtab) => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block, subtab } }));
 
@@ -116,18 +122,18 @@ export default function Dashboard() {
     const merchandising  = get("teg_presupuesto_v1_merchandising", []);
     const maximos        = get("teg_presupuesto_v1_maximos", {});
 
-    const DISTANCIAS = ["TG7", "TG13", "TG25"];
-    let totalInscritos = 0;
-    const inscritosPorDist = { TG7:0, TG13:0, TG25:0 };
-    let totalIngresos = 0;
-    tramos.forEach(t => {
-      DISTANCIAS.forEach(dist => {
-        const n = inscritos.tramos?.[t.id]?.[dist] || 0;
-        inscritosPorDist[dist] += n;
-        totalInscritos += n;
-        totalIngresos  += n * (t.precios?.[dist] || 0);
-      });
-    });
+    // ── Cálculos financieros — usando budgetUtils (fuente única de verdad)
+    // Misma lógica que useBudgetLogic.js para garantizar consistencia con Presupuesto
+    const inscritosBU    = calculateTotalInscritos(tramos, inscritos);
+    const ingresosBU     = calculateIngresosPorDistancia(tramos, inscritos);
+    const costesFijosBU  = calculateCostesFijos(conceptos, inscritosBU);
+    const costesVarsBU   = calculateCostesVariables(conceptos, inscritosBU);
+
+    const totalInscritos   = inscritosBU.total;
+    const inscritosPorDist = { TG7: inscritosBU.TG7, TG13: inscritosBU.TG13, TG25: inscritosBU.TG25 };
+    const totalIngresos    = ingresosBU.total;
+    const totalCostesFijos = costesFijosBU.total;
+    const totalCostesVars  = costesVarsBU.total;
 
     const maximosPorDist   = { TG7: maximos?.TG7||0, TG13: maximos?.TG13||0, TG25: maximos?.TG25||0 };
     const totalMaximos     = maximosPorDist.TG7 + maximosPorDist.TG13 + maximosPorDist.TG25;
@@ -138,30 +144,25 @@ export default function Dashboard() {
     };
     const ocupacionGlobal  = totalMaximos > 0 ? Math.round(totalInscritos / totalMaximos * 100) : null;
 
-    const totalCostesFijos = conceptos.filter(c => c.tipo==="fijo" && c.activo).reduce((s,c) => s+(c.costeTotal||0), 0);
-    const totalCostesVars  = conceptos.filter(c => c.tipo==="variable" && c.activo).reduce((s,c) =>
-      s + DISTANCIAS.reduce((ss,dist) => {
-        if (c.activoDistancias && !c.activoDistancias[dist]) return ss;
-        return ss + (c.costePorDistancia?.[dist]||0)*inscritosPorDist[dist];
-      }, 0), 0);
-    
-    // PATROCINIOS: Sync vs Manual
-    const totalIngresosExtra = syncConfig.patrocinios 
-      ? pats.filter(p => p.estado==="cobrado" || p.estado === "confirmado").reduce((s,p) => s+(p.importe||0), 0)
-      : ingresosExtra.filter(i => i.activo).reduce((s,i) => s+(i.valor||0), 0);
-    
+    // PATROCINIOS: Sync vs Manual (idéntico a useBudgetLogic — usar importeCobrado si cobrado)
+    const totalIngresosExtra = syncConfig.patrocinios
+      ? pats
+          .filter(p => p.estado === "cobrado" || p.estado === "confirmado")
+          .reduce((sum, p) => sum + (p.estado === "cobrado" ? (p.importeCobrado||p.importe||0) : (p.importe||0)), 0)
+      : ingresosExtra.filter(i => i.activo).reduce((sum, i) => sum + (i.valor||0), 0);
+
     // MERCHANDISING: Sync vs Manual
-    const merchIngresos = syncConfig.camisetas 
-      ? (merchStats.totalIngresos || 0) 
-      : merchandising.filter(m => m.activo).reduce((s,m) => s+m.unidades*m.precioVenta, 0);
-    const merchCostes = syncConfig.camisetas 
-      ? (merchStats.totalCostes || 0) 
-      : merchandising.filter(m => m.activo).reduce((s,m) => s+m.unidades*m.costeUnitario, 0);
+    const merchIngresos = syncConfig.camisetas
+      ? (merchStats.totalIngresos || 0)
+      : merchandising.filter(m => m.activo).reduce((sum, m) => sum + m.unidades * m.precioVenta, 0);
+    const merchCostes = syncConfig.camisetas
+      ? (merchStats.totalCostes || 0)
+      : merchandising.filter(m => m.activo).reduce((sum, m) => sum + m.unidades * m.costeUnitario, 0);
     const merchBeneficio = merchIngresos - merchCostes;
 
     const totalOtrosIngresos = totalIngresosExtra + merchBeneficio;
     const resultado = totalIngresos + totalOtrosIngresos - totalCostesFijos - totalCostesVars;
-    const roiGlobal = (totalCostesFijos + totalCostesVars) > 0 
+    const roiGlobal = (totalCostesFijos + totalCostesVars) > 0
       ? Math.round(((totalIngresos + totalOtrosIngresos - (totalCostesFijos + totalCostesVars)) / (totalCostesFijos + totalCostesVars)) * 100)
       : 0;
 
@@ -321,7 +322,7 @@ export default function Dashboard() {
     }
     // > 30 días: sin alertas de voluntarios — es pronto para preocuparse
     if (resultado < 0)
-      alertasCriticas.push({ icon:"🔴", texto:`Resultado negativo: ${fmt(resultado)}`, modulo:"presupuesto" });
+      alertasCriticas.push({ icon:"🔴", texto:`Resultado negativo: ${fmtEur(resultado)}`, modulo:"presupuesto" });
     if (docsVencidos.length > 0)
       alertasCriticas.push({ icon:"🔴", texto:`${docsVencidos.length} documento${docsVencidos.length>1?"s":""} vencido${docsVencidos.length>1?"s":""}: ${docsVencidos.map(d=>d.nombre).slice(0,2).join(", ")}${docsVencidos.length>2?"...":""}`, modulo:"documentos" });
     if (docsProxVencer.length > 0)
@@ -591,7 +592,7 @@ export default function Dashboard() {
             acciones.push({
               prioridad: "alta",
               icon: "🤝",
-              accion: `Patrocinio al ${pct}% — quedan ${fmt(d.objetivo - d.patComprometido)} por conseguir`,
+              accion: `Patrocinio al ${pct}% — quedan ${fmtEur(d.objetivo - d.patComprometido)} por conseguir`,
               cta: "Ver patrocinadores",
               modulo: "patrocinadores",
             });
@@ -828,7 +829,7 @@ export default function Dashboard() {
               {d.resultado > 0 && (
                 <span style={{ fontFamily:"var(--font-mono)", fontSize:".62rem",
                   color:"var(--green)" }}>
-                  💰 {fmt(d.resultado)} resultado
+                  💰 {fmtEur(d.resultado)} resultado
                 </span>
               )}
               {d.progresoGlobal > 0 && (
@@ -847,8 +848,8 @@ export default function Dashboard() {
         <div className="kpi-grid mb">
           <KPI icon="💰" label="Resultado"
             tooltip="Ingresos totales (inscripciones + patrocinios + merch) menos costes fijos y variables.\nPositivo = superávit. Negativo = déficit."
-            value={fmt(d.resultado)}
-            sub={`Ingresos: ${fmt(d.totalIngresos + d.totalOtrosIngresos)}`}
+            value={fmtEur(d.resultado)}
+            sub={`Ingresos: ${fmtEur(d.totalIngresos + d.totalOtrosIngresos)}`}
             color={resColor} colorClass={d.resultado >= 0 ? "green" : "red"}
             progress={d.resultado >= 0 && (d.totalCostesFijos+d.totalCostesVars) > 0
               ? Math.min(100, Math.round(d.resultado / (d.totalCostesFijos+d.totalCostesVars) * 100))
@@ -878,7 +879,7 @@ export default function Dashboard() {
           <KPI icon="🤝" label="Patrocinio"
             tooltip="Importe comprometido (confirmado + cobrado) de todos los patrocinadores activos.\nEl % indica el avance respecto al objetivo de captación.\nEl importe cobrado es el dinero realmente recibido."
             value={`${Math.round(d.patComprometido/Math.max(d.objetivo,1)*100)}%`}
-            sub={`${fmt(d.patCobrado)} cobrado · ${fmt(d.patComprometido)} comprometido`}
+            sub={`${fmtEur(d.patCobrado)} cobrado · ${fmtEur(d.patComprometido)} comprometido`}
             color={d.patComprometido>=d.objetivo*0.8?"var(--green)":d.patComprometido>=d.objetivo*0.5?"var(--amber)":"var(--red)"}
             colorClass={d.patComprometido>=d.objetivo*0.8?"green":d.patComprometido>=d.objetivo*0.5?"amber":"red"}
             progress={d.objetivo>0?Math.min(100,Math.round(d.patComprometido/d.objetivo*100)):undefined}
@@ -975,7 +976,7 @@ export default function Dashboard() {
                                 {item.tipo === "+" ? "↑" : "↓"} {item.label}
                               </span>
                               <span style={{ fontFamily:"var(--font-mono)", fontSize:".62rem", color:item.color, fontWeight:700 }}>
-                                {fmt(item.val)}
+                                {fmtEur(item.val)}
                               </span>
                             </div>
                             <div style={{ height:5, background:"var(--surface3)", borderRadius:3, overflow:"hidden" }}>
@@ -1006,7 +1007,7 @@ export default function Dashboard() {
                 </span>
                 <span style={{fontFamily:"var(--font-mono)",fontSize:".78rem",
                   fontWeight:800,color:resColor}}>
-                  {fmt(d.resultado)}
+                  {fmtEur(d.resultado)}
                 </span>
               </div>
             )}

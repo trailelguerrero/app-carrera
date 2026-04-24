@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { exportarVoluntarios } from "@/lib/exportUtils";
+import { genIdNum, scrollMainToTop } from "@/lib/utils";
 import { useModalClose } from "@/hooks/useModalClose";
 import EmptyState from "@/components/EmptyState";
 import { usePaginacion } from "@/lib/usePaginacion.jsx";
@@ -74,7 +75,6 @@ const VOLUNTARIOS_DEFAULT = [
 // useData maneja la persistencia automáticamente
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
-const genId = (arr) => arr.length ? Math.max(...arr.map(x => x.id)) + 1 : 1;
 
 function estadoColor(e) {
   return e === "confirmado" ? "var(--green)" : e === "cancelado" ? "var(--red)" : "var(--amber)";
@@ -467,11 +467,7 @@ export default function App() {
   const [qrDataUrl, setQrDataUrl]   = useState(null);
   const [qrLoading, setQrLoading]   = useState(false);
   const [ficha, setFicha] = useState(null); // {tipo:'vol'|'puesto', data}
-  const abrirFicha = (tipo, data) => {
-    const mainEl = document.querySelector("main");
-    if (mainEl) mainEl.scrollTo({ top: 0, behavior: "instant" });
-    setFicha({ tipo, data });
-  };
+  const abrirFicha = (tipo, data) => { scrollMainToTop(); setFicha({ tipo, data }); };
   const [configOpen, setConfigOpen] = useState(false); // config camisetas colapsada por defecto
 
   // ── Métricas ──────────────────────────────────────────────────────────────
@@ -509,14 +505,14 @@ export default function App() {
   };
 
   const addVoluntario = (data) => {
-    const nuevo = { id: genId(voluntarios), ...data };
+    const nuevo = { id: genIdNum(voluntarios), ...data };
     setVoluntarios(prev => [...prev, nuevo]);
   };
 
   const updateVoluntario = (id, data) => setVoluntarios(prev => prev.map(v => v.id === id ? { ...v, ...data } : v));
   const deleteVoluntario = (id) => { setVoluntarios(prev => prev.filter(v => v.id !== id)); setConfirmDelete(null); };
   const updatePuesto = (id, data) => setPuestos(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
-  const addPuesto = (data) => setPuestos(prev => [...prev, { id: genId(puestos), ...data }]);
+  const addPuesto = (data) => setPuestos(prev => [...prev, { id: genIdNum(puestos), ...data }]);
   const deletePuesto = (id) => { setPuestos(prev => prev.filter(p => p.id !== id)); setVoluntarios(prev => prev.map(v => v.puestoId === id ? { ...v, puestoId: null } : v)); };
 
   const volsFiltrados = useMemo(() => voluntarios.filter(v => {
