@@ -628,6 +628,7 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
   const [vistaAsig,setVistaAsig]=useState(false);
   const [vistaKanban,setVistaKanban]=useState(false);
   const [cat,setCat]=useState("todas");
+  const [busqMat,setBusqMat]=useState("");
 
   // (rawTramos, rawInscritos, totalInscritos, totalMaximos vienen del componente padre vía props)
 
@@ -641,10 +642,11 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
   const ms=useMemo(()=>material.map(m=>{const a=asigs.filter(x=>x.materialId===m.id);const asig=a.reduce((s,x)=>s+x.cantidad,0);const ent=a.filter(x=>x.estado==="entregado").reduce((s,x)=>s+x.cantidad,0);return{...m,asig,ent,def:Math.max(asig-m.stock,0)}}),[material,asigs]);
   const mf=useMemo(()=>{
   const { items: mfPag, total: totalMat, PaginadorUI: PagMat } = usePaginacion(mf, 20);
-    let list=cat==="todas"?ms:ms.filter(m=>m.categoria===cat);
-    if(ordenAlfa) list=[...list].sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es"));
+    let list = filtrarMaterialPorCategoria(ms, cat);
+    if(busqMat.trim()) list = filtrarMaterialPorBusqueda(list, busqMat);
+    if(ordenAlfa) list=[...list].sort((sa,sb)=>(sa.nombre||"").localeCompare(sb.nombre||"","es"));
     return list;
-  },[ms,cat,ordenAlfa]);
+  },[ms,cat,ordenAlfa,busqMat]);
   const mover=(id,dir)=>{
     if(ordenAlfa) return;
     setMaterial(prev=>{
@@ -669,6 +671,13 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
             </div>
             <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
           </>)}
+          {!vistaAsig && (
+            <input type="search" className="inp inp-sm"
+              placeholder="Buscar material…"
+              value={busqMat} onChange={e=>setBusqMat(e.target.value)}
+              style={{maxWidth:160,fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)"}}
+            />
+          )}
           <button className="btn btn-primary" onClick={()=>abrirModal({tipo:vistaAsig?"asig":"mat",conceptosPres:conceptosPres})}>+ Añadir</button>
         </div>
       </div>
@@ -773,11 +782,12 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
   const [vehColapsado,setVehCol]=useState(true); // colapsado por defecto
   const [rutasColapsadas,setRutasCol]=useState(true); // colapsado por defecto
   const [poolColapsado,setPoolCol]=useState(true); // colapsado por defecto
+  const [busqVeh,setBusqVeh]=useState("");
   const moverVeh=(id,dir)=>{
     if(ordenAlfa) return;
     setVeh(prev=>{const arr=[...prev];const i=arr.findIndex(x=>x.id===id);const j=i+dir;if(j<0||j>=arr.length)return arr;[arr[i],arr[j]]=[arr[j],arr[i]];return arr;});
   };
-  const vehOrdenado=useMemo(()=>ordenAlfa?[...veh].sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es")):veh,[veh,ordenAlfa]);
+  const vehOrdenado=useMemo(()=>{let list=ordenAlfa?[...veh].sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es")):veh;if(busqVeh.trim()){const q=busqVeh.toLowerCase();list=list.filter(v=>(v.nombre||"").toLowerCase().includes(q)||(v.matricula||"").toLowerCase().includes(q)||(v.conductor||"").toLowerCase().includes(q));}return list;},[veh,ordenAlfa,busqVeh]);
   return(
     <>
       <div className="ph">
@@ -790,6 +800,11 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
                 onClick={() => setVistaKanban(true)}>⬛ Kanban</button>
             </div>
           <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
+          <input type="search" className="inp inp-sm"
+            placeholder="Buscar vehículo…"
+            value={busqVeh} onChange={e=>setBusqVeh(e.target.value)}
+            style={{maxWidth:150,fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)"}}
+          />
           <button className="btn btn-primary" onClick={()=>abrirModal({tipo:"veh"})}>+ Vehículo</button>
           <button className="btn btn-amber" onClick={()=>abrirModal({tipo:"ruta"})}>+ Ruta</button>
         </div>
@@ -1088,6 +1103,7 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
   const [filtroTipo,setFiltroTipo] = useState("todos");
   const [modalTipo,setModalTipo]   = useState(false);
   const [nuevoTipo,setNuevoTipo]   = useState({nombre:"",icono:"🏷️",color:"var(--text-muted)"});
+  const [busqCont,setBusqCont]     = useState("");
 
   const TIPOS_BASE = [
     {id:"emergencia",  nombre:"Emergencia",    icono:"🚨", color:"var(--red)"},
@@ -1106,7 +1122,16 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
   const TIPOS_EXCLUIDOS_DIR = ["emergencia","medico"];
   const contDir      = filtrarContactosDir(cont, TIPOS_EXCLUIDOS_DIR);
   const contOrdenado = ordenAlfa ? ordenarContactosAlfa(contDir) : contDir;
-  const contFiltrado = filtroTipo==="todos" ? contOrdenado : filtrarContactosPorTipo(contOrdenado, filtroTipo);
+  const contFiltradoPorTipo = filtroTipo==="todos" ? contOrdenado : filtrarContactosPorTipo(contOrdenado, filtroTipo);
+  const contFiltrado = busqCont.trim()
+    ? contFiltradoPorTipo.filter(ct => {
+        const q = busqCont.toLowerCase();
+        return (ct.nombre||"").toLowerCase().includes(q)
+          || (ct.rol||"").toLowerCase().includes(q)
+          || (ct.telefono||"").toLowerCase().includes(q)
+          || (ct.email||"").toLowerCase().includes(q);
+      })
+    : contFiltradoPorTipo;
 
   const guardarTipo = () => {
     if (!nuevoTipo.nombre.trim()) return;
@@ -1529,8 +1554,13 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
         </div>
         <div className="fr g1">
           {sub==="directorio" && (
-            <button className="btn btn-primary" onClick={()=>abrirModal({tipo:"cont"})}>+ Contacto</button>
+            <input type="search" className="inp inp-sm"
+              placeholder="Buscar contacto…"
+              value={busqCont} onChange={e=>setBusqCont(e.target.value)}
+              style={{maxWidth:150,fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)"}}
+            />
           )}
+          <button className="btn btn-primary" onClick={()=>abrirModal({tipo:"cont"})}>+ Contacto</button>
           {sub==="incidencias" && (
             <button className="btn btn-sm" style={{background:"var(--red-dim)",color:"var(--red)",border:"1px solid rgba(248,113,113,0.2)"}}
               onClick={()=>abrirModal({tipo:"inc"})}>+ Incidencia</button>
