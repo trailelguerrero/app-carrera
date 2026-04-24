@@ -257,25 +257,26 @@ export default function App() {
     return { tlDone, tlTotal:tl.length, ckDone, ckTotal:ck.length, stockErr, stockBajoMinimo, incOpen };
   }, [tl, ck, material, asigs, inc]);
 
-  // Operativas: las que se usan en el día a día
-  const TABS_OPERATIVAS = [
-    {id:"dashboard",  icon:"📊", label:"Dashboard"},
-    {id:"material",   icon:"📦", label:"Material"},
-    {id:"vehiculos",  icon:"🚗", label:"Vehículos"},
-    {id:"timeline",   icon:"⏱️", label:"Timeline"},
-    {id:"pedidos",    icon:"🛒", label:"Pedidos"},
-    {id:"checklist",  icon:"✅", label:"Checklist"},
+  // RECURSOS: inventario y planificación
+  const TABS_RECURSOS = [
+    {id:"dashboard",     icon:"📊", label:"Dashboard"},
+    {id:"material",      icon:"📦", label:"Material"},
+    {id:"vehiculos",     icon:"🚗", label:"Vehículos"},
+    {id:"localizaciones",icon:"📍", label:"Ubicaciones"},
   ];
-  // Personas: contactos y emergencias
-  const TABS_PERSONAS = [
-    {id:"contactos",   icon:"📋", label:"Contactos"},
-    {id:"emergencias", icon:"🚨", label:"Emergencias"},
+  // OPERACIONES: ejecución, día de la carrera
+  const TABS_OPERACIONES = [
+    {id:"timeline",   icon:"⏱️",  label:"Timeline"},
+    {id:"pedidos",    icon:"🛒",  label:"Pedidos"},
+    {id:"checklist",  icon:"✅",  label:"Checklist"},
+    {id:"contactos",  icon:"📋",  label:"Directorio"},
+    {id:"emergencias",icon:"🚨",  label:"Emergencias"},
   ];
-  // Configuración
-  const TABS_CONFIG = [
-    {id:"localizaciones", icon:"📍", label:"Localizaciones"},
-  ];
-  const TABS = [...TABS_OPERATIVAS, ...TABS_PERSONAS, ...TABS_CONFIG];
+  // Alias para compatibilidad con código existente
+  const TABS_OPERATIVAS = TABS_RECURSOS;
+  const TABS_PERSONAS   = [];
+  const TABS_CONFIG     = [];
+  const TABS = [...TABS_RECURSOS, ...TABS_OPERACIONES];
 
   const doDelete = () => {
     if (!del) return;
@@ -325,27 +326,28 @@ export default function App() {
           </div>
         </div>
 
-        {/* TABS — operativas + configuración separadas */}
+        {/* TABS — dos grupos semánticos con separador */}
         <div className="tabs">
-          {TABS_OPERATIVAS.map(t => (
+          {/* Grupo 1: RECURSOS */}
+          {TABS_RECURSOS.map(t => (
             <button key={t.id} className={cls("tab-btn", tab===t.id && "active")} onClick={() => setTab(t.id)}>
               {t.icon} {t.label}
-              {t.id==="checklist" && <span className="badge badge-cyan" style={{marginLeft:"0.3rem"}}>{stats.ckDone}/{stats.ckTotal}</span>}
               {t.id==="material" && stats.stockErr>0 && <span className="badge badge-red" style={{marginLeft:"0.3rem"}}>⚠{stats.stockErr}</span>}
-              {t.id==="emergencias" && stats.incOpen>0 && <span className="badge badge-amber" style={{marginLeft:"0.3rem"}}>{stats.incOpen}</span>}
+              {t.id==="material" && !stats.stockErr && stats.stockBajoMinimo>0 && <span className="badge badge-amber" style={{marginLeft:"0.3rem"}}>📦{stats.stockBajoMinimo}</span>}
             </button>
           ))}
-          {/* Separador visual — Localizaciones es configuración, no operación */}
-          <span style={{
-            display:"inline-flex", alignItems:"center",
-            padding:"0 .25rem", color:"var(--border)",
-            fontSize:"var(--fs-md)", userSelect:"none", flexShrink:0,
-          }}>│</span>
-          {TABS_CONFIG.map(t => (
-            <button key={t.id} className={cls("tab-btn", tab===t.id && "active")}
-              onClick={() => setTab(t.id)}
-              style={{ opacity: tab === t.id ? 1 : 0.65 }}>
+          {/* Separador semántico RECURSOS ↔ OPERACIONES */}
+          <span aria-hidden="true" style={{
+            display:"inline-flex", alignItems:"center", alignSelf:"center",
+            height:18, width:1, margin:"0 .2rem", flexShrink:0,
+            background:"var(--border-light)", borderRadius:1, opacity:.7,
+          }} />
+          {/* Grupo 2: OPERACIONES */}
+          {TABS_OPERACIONES.map(t => (
+            <button key={t.id} className={cls("tab-btn", tab===t.id && "active")} onClick={() => setTab(t.id)}>
               {t.icon} {t.label}
+              {t.id==="checklist"  && <span className="badge badge-cyan"  style={{marginLeft:"0.3rem"}}>{stats.ckDone}/{stats.ckTotal}</span>}
+              {t.id==="emergencias"&& stats.incOpen>0 && <span className="badge badge-amber" style={{marginLeft:"0.3rem"}}>{stats.incOpen}</span>}
             </button>
           ))}
         </div>
