@@ -110,11 +110,11 @@ export default function DiaCarrera({ onClose }) {
   const proximaSig    = tl.find(t => !t.done);
 
   const TABS = [
-    {id:"timeline",    label:"⏱ Timeline"},
+    {id:"timeline",    label:"⏱ Runbook"},
     {id:"voluntarios", label:"👥 Voluntarios"},
     {id:"puestos",     label:"📍 Puestos"},
     {id:"contactos",   label:"🚨 Contactos"},
-    {id:"checklist",   label:"✅ Checklist"},
+    {id:"checklist",   label:"✅ Pre-operativo"},
   ];
 
   const modal = (
@@ -197,7 +197,7 @@ export default function DiaCarrera({ onClose }) {
         {tab === "timeline" && (
           <>
             {tl.length === 0 ? (
-              <EmptyState icon="⏱" title="Sin tareas en el timeline" sub="Añade tareas en Logística → Timeline para verlas aquí el día del evento." />
+              <EmptyState icon="⏱" title="Sin entradas en el Runbook" sub="El Runbook es el guión hora a hora del día del evento. Añade entradas en Logística → Runbook." />
             ) : (
             <>
             <div style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginBottom:".5rem"}}>
@@ -362,7 +362,7 @@ export default function DiaCarrera({ onClose }) {
               const fasesAMostrar = fasesPresentes.filter(f => FASES_DIA_D.includes(f));
               const fasesOrdenadas = FASES_ORDEN.filter(f => fasesAMostrar.includes(f));
               if (fasesOrdenadas.length === 0) return (
-                <Empty msg="Sin tareas para esta fase. Añade en Logística → Checklist." />
+                <Empty msg="Sin ítems para esta fase. Añade en Logística → Pre-operativo." />
               );
               return fasesOrdenadas.map(fase => {
               const items = ck.filter(t=>t.fase===fase);
@@ -410,7 +410,7 @@ export default function DiaCarrera({ onClose }) {
               );
             }); // fin map fases
             })()}
-            {ck.length===0 && <Empty msg="Sin checklist. Añade tareas en Logística → Checklist." />}
+            {ck.length===0 && <Empty msg="Sin ítems pre-operativos. Añade en Logística → Pre-operativo." />}
           </>
         )}
 

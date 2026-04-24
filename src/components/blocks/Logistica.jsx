@@ -266,9 +266,9 @@ export default function App() {
   ];
   // OPERACIONES: ejecución, día de la carrera
   const TABS_OPERACIONES = [
-    {id:"timeline",   icon:"⏱️",  label:"Timeline"},
+    {id:"timeline",   icon:"⏱️",  label:"Runbook"},
     {id:"pedidos",    icon:"🛒",  label:"Pedidos"},
-    {id:"checklist",  icon:"✅",  label:"Checklist"},
+    {id:"checklist",  icon:"✅",  label:"Pre-operativo"},
     {id:"contactos",  icon:"📋",  label:"Directorio"},
     {id:"emergencias",icon:"🚨",  label:"Emergencias"},
   ];
@@ -344,7 +344,12 @@ export default function App() {
           }} />
           {/* Grupo 2: OPERACIONES */}
           {TABS_OPERACIONES.map(t => (
-            <button key={t.id} className={cls("tab-btn", tab===t.id && "active")} onClick={() => setTab(t.id)}>
+            <button key={t.id} className={cls("tab-btn", tab===t.id && "active")} onClick={() => setTab(t.id)}
+              title={
+                t.id==="timeline"   ? "Runbook del evento · Ejecución hora a hora el día 29 agosto" :
+                t.id==="checklist"  ? "Pre-operativo · Ítems de verificación semanas/días antes del evento" :
+                undefined
+              }>
               {t.icon} {t.label}
               {t.id==="checklist"  && <span className="badge badge-cyan"  style={{marginLeft:"0.3rem"}}>{stats.ckDone}/{stats.ckTotal}</span>}
               {t.id==="emergencias"&& stats.incOpen>0 && <span className="badge badge-amber" style={{marginLeft:"0.3rem"}}>{stats.incOpen}</span>}
@@ -979,7 +984,7 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
   return(
     <>
       <div className="ph">
-        <div><div className="pt">⏱️ Timeline del Día</div><div className="pd">{tl.filter(t=>t.estado==="completado").length}/{tl.length} completadas · {config?.fecha ? new Date(config.fecha).toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"}) : eventDateStr(config)}</div></div>
+        <div><div className="pt">⏱️ Runbook del Evento</div><div className="pd" style={{display:"flex",alignItems:"center",gap:".5rem",flexWrap:"wrap"}}><span style={{background:"rgba(251,191,36,.12)",color:"var(--amber)",border:"1px solid rgba(251,191,36,.25)",borderRadius:99,padding:".1rem .5rem",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700}}>📅 Día del evento</span>{tl.filter(t=>t.estado==="completado").length}/{tl.length} completadas · {config?.fecha ? new Date(config.fecha).toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"}) : eventDateStr(config)}</div></div>
         <div className="fr g1">
           <div className="filter-pill-group">
               <button className={`filter-pill${!vistaKanban ? " active" : ""}`}
@@ -1859,7 +1864,7 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
   return(
     <>
       <div className="ph">
-        <div><div className="pt">✅ Checklist Pre-Carrera</div><div className="pd">{ck.filter(c=>c.estado==="completado").length}/{ck.length} completados</div></div>
+        <div><div className="pt">✅ Pre-operativo</div><div className="pd" style={{display:"flex",alignItems:"center",gap:".5rem",flexWrap:"wrap"}}><span style={{background:"rgba(167,139,250,.12)",color:"var(--violet)",border:"1px solid rgba(167,139,250,.25)",borderRadius:99,padding:".1rem .5rem",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700}}>📋 Semanas/días antes</span>{ck.filter(c=>c.estado==="completado").length}/{ck.length} completados</div></div>
         <div className="fr g1">
           <div style={{display:"flex",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:"var(--r-sm)",overflow:"hidden"}}>
             {[["lista","☰"],["kanban","⬛"]].map(([v,ic])=>(
@@ -1921,7 +1926,7 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
                       return(
                         <div key={item.id} style={{background:"var(--surface2)",border:"1px solid var(--border)",borderLeft:`3px solid ${ec}`,borderRadius:7,padding:".5rem .6rem",cursor:"pointer",opacity:item.estado==="completado"?.55:1}}
                           onClick={()=>abrirFicha("ck",item)}>
-                          <div style={{fontSize:"var(--fs-sm)",fontWeight:600,marginBottom:".2rem",textDecoration:item.estado==="completado"?"line-through":"none",color:item.estado==="completado"?"var(--text-muted)":"var(--text)"}}>{item.tarea}</div>
+                          <div style={{fontSize:"var(--fs-sm)",fontWeight:600,marginBottom:".2rem",textDecoration:item.estado==="completado"?"line-through":"none",color:item.estado==="completado"?"var(--text-muted)":"var(--text)"}}>{item.tarea}{item.proyectoTareaId && <span title="Vinculada a tarea de Planificación" style={{marginLeft:".35rem",fontSize:"var(--fs-xs)",color:"var(--green)",fontFamily:"var(--font-mono)",verticalAlign:"middle"}}>↗ Proyecto</span>}</div>
                           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                             <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>👤 {item.responsable}</span>
                             <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".08rem .3rem",borderRadius:3,background:item.prioridad==="alta"?"var(--red-dim)":"var(--amber-dim)",color:item.prioridad==="alta"?"var(--red)":"var(--amber)"}}>{item.prioridad}</span>
@@ -2197,7 +2202,7 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar })
                 <div>
                   <div style={{fontWeight:800,fontSize:"var(--fs-md)",lineHeight:1.2}}>{titulo}</div>
                   <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginTop:".1rem",textTransform:"uppercase"}}>
-                    {tipo==="tl"?"Tarea timeline":tipo==="ck"?"Tarea checklist":tipo==="mat"?"Material":tipo==="veh"?"Vehículo":tipo==="ruta"?"Ruta":tipo==="cont"?"Contacto":tipo==="asig"?"Asignación":"Incidencia"}
+                    {tipo==="tl"?"Entrada Runbook":tipo==="ck"?"Pre-operativo":tipo==="mat"?"Material":tipo==="veh"?"Vehículo":tipo==="ruta"?"Ruta":tipo==="cont"?"Contacto":tipo==="asig"?"Asignación":"Incidencia"}
                   </div>
                 </div>
               </div>
@@ -2339,7 +2344,7 @@ function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setV
 
   if(tipo==="ruta") return <ModalRuta data={data} veh={veh} rutas={rutas} setRutas={setRutas} onClose={onClose} locs={locs} />;
 
-  if(tipo==="tl") return <MF title={data?"✏️ Editar tarea":"⏱️ Nueva tarea"} onClose={onClose}
+  if(tipo==="tl") return <MF title={data?"✏️ Editar entrada":"⏱️ Nueva entrada del Runbook"} onClose={onClose}
     fields={[{k:"hora",l:"Hora",t:"time"},{k:"titulo",l:"Título *",t:"text"},{k:"descripcion",l:"Descripción",t:"text"},{k:"responsable",l:"Responsable",t:"text"},{k:"categoria",l:"Categoría",t:"sel",o:["logistica","organizacion","voluntarios","carrera","comunicacion"]},{k:"estado",l:"Estado",t:"sel",o:ESTADO_TAREA}]}
     init={data||{hora:"08:00",titulo:"",descripcion:"",responsable:"",categoria:"organizacion",estado:"pendiente"}}
     onSave={v=>sv(setTl,tl,v)} />;
@@ -2380,7 +2385,7 @@ function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setV
       lb:["— Sin vínculo",...tareasProy.map(t=>`[${t.area||""}] ${(t.titulo||"").slice(0,40)}`)],
       num:true, nullable:true
     }] : [];
-    return <MF title={data?"✏️ Editar tarea":"✅ Nueva tarea checklist"} onClose={onClose}
+    return <MF title={data?"✏️ Editar ítem":"✅ Nuevo ítem pre-operativo"} onClose={onClose}
       fields={[
         {k:"tarea",l:"Tarea *",t:"text"},
         {k:"fase",l:"Fase",t:"sel",o:FASES_CHECKLIST},

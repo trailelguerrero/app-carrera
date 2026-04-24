@@ -670,6 +670,11 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
               : "📋 Tablón de Tareas"
             }
           </div>
+          <div style={{marginTop:".25rem"}}>
+            <span style={{background:"rgba(52,211,153,.12)",color:"var(--green)",border:"1px solid rgba(52,211,153,.25)",borderRadius:99,padding:".1rem .5rem",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700}}>
+              📆 Planificación · meses antes del evento
+            </span>
+          </div>
           <div className="pd">{tareas.length} de {todasTareas.length} tareas · click para ver ficha</div>
         </div>
         <div style={{display:"flex",gap:".5rem",alignItems:"center"}}>
@@ -1458,7 +1463,7 @@ function TabHitos({ hitos, updHito, setModal, setDelConf, setFicha }) {
       <div className="ph">
         <div>
           <div className="pt">🏁 Hitos del Proyecto</div>
-          <div className="pd">{hitosPendientes} pendientes · {hitosCompletados} completados</div>
+          <div className="pd" style={{display:"flex",alignItems:"center",gap:".5rem",flexWrap:"wrap"}}><span style={{background:"rgba(52,211,153,.12)",color:"var(--green)",border:"1px solid rgba(52,211,153,.25)",borderRadius:99,padding:".1rem .5rem",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700}}>📅 Fechas clave</span>{hitosPendientes} pendientes · {hitosCompletados} completados</div>
         </div>
         <div style={{display:"flex",gap:".4rem",alignItems:"center"}}>
           <button className={`btn btn-sm ${ordenAlfa?"btn-primary":"btn-ghost"}`} onClick={()=>setOrdenAlfa(ov=>!ov)} title={ordenAlfa?"Ordenar por fecha":"Ordenar A-Z"}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
@@ -1823,6 +1828,21 @@ function FichaProyecto({ ficha, equipo, documentos, tareas, onClose, onEditar, o
                      onClick={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "documentos" } })); }}>
                     📎 {docVinculado.nombre} →
                   </a>
+                </div>
+              )}
+              {/* Crosslink → Pre-operativo en Logística */}
+              {ficha.tipo === "tarea" && (
+                <div style={{ marginTop: ".6rem", padding: ".5rem .65rem", borderRadius:8,
+                  background:"rgba(167,139,250,.08)", border:"1px solid rgba(167,139,250,.2)",
+                  display:"flex", alignItems:"center", justifyContent:"space-between", gap:".5rem" }}>
+                  <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--violet)" }}>
+                    ✅ Ver ítems Pre-operativo vinculados
+                  </div>
+                  <button className="btn btn-ghost btn-sm"
+                    style={{fontSize:"var(--fs-xs)",padding:".2rem .5rem"}}
+                    onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "logistica" } }))}>
+                    Logística →
+                  </button>
                 </div>
               )}
               {/* Gestión legal relacionada — para tareas del área permisos */}
