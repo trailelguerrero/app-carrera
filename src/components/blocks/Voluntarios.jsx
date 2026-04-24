@@ -468,8 +468,8 @@ export default function App() {
   const [qrLoading, setQrLoading]   = useState(false);
   const [ficha, setFicha] = useState(null); // {tipo:'vol'|'puesto', data}
   const abrirFicha = (tipo, data) => {
-    const main = document.querySelector("main");
-    if (main) main.scrollTo({ top: 0, behavior: "instant" });
+    const mainEl = document.querySelector("main");
+    if (mainEl) mainEl.scrollTo({ top: 0, behavior: "instant" });
     setFicha({ tipo, data });
   };
   const [configOpen, setConfigOpen] = useState(false); // config camisetas colapsada por defecto
@@ -2377,7 +2377,7 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
 
   return (
     <div className={`modal-backdrop${mvClosing ? " modal-backdrop-closing" : ""}`} onClick={e => e.target === e.currentTarget && mvHandleClose()}>
-      <div className={`modal${mvClosing ? " modal-closing" : ""}`}>
+      <div className={`modal modal-ficha${mvClosing ? " modal-closing" : ""}`}>
         <div className="modal-header">
           <span className="modal-title">{voluntario ? "✏️ Editar voluntario" : "➕ Nuevo voluntario"}</span>
           <button className="btn btn-ghost" style={{ padding: "0.2rem 0.5rem" }} onClick={mvHandleClose}>✕</button>
@@ -2519,7 +2519,7 @@ function ModalPuesto({ puesto, locs, onSave, onClose }) {
 
   return (
     <div className={`modal-backdrop${mpuClosing ? " modal-backdrop-closing" : ""}`} onClick={e => e.target === e.currentTarget && mpuHandleClose()}>
-      <div className={`modal${mpuClosing ? " modal-closing" : ""}`}>
+      <div className={`modal modal-ficha${mpuClosing ? " modal-closing" : ""}`}>
         <div className="modal-header">
           <span className="modal-title">{puesto ? "✏️ Editar puesto" : "📍 Nuevo puesto"}</span>
           <button className="btn btn-ghost" style={{ padding: "0.2rem 0.5rem" }} onClick={mpuHandleClose}>✕</button>

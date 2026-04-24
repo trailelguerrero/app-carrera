@@ -401,25 +401,25 @@ export default function Documentos() {
   const storageColor = storagePct > 80 ? "#f87171" : storagePct > 50 ? "#fbbf24" : "#34d399";
 
   // Gestiones con vencimiento próximo o vencidas
-  const gestionesProxVencer = gestiones.filter(g => {
-    const dias = diasHasta(g.fechaVencimiento);
-    return dias !== null && dias >= 0 && dias <= 30 && g.estado !== "aprobado";
+  const gestionesProxVencer = gestiones.filter(gst => {
+    const ndias = diasHasta(gst.fechaVencimiento);
+    return ndias !== null && ndias >= 0 && ndias <= 30 && gst.estado !== "aprobado";
   });
-  const gestionesVencidas = gestiones.filter(g => {
-    const dias = diasHasta(g.fechaVencimiento);
-    return dias !== null && dias < 0 && g.estado !== "aprobado" && g.estado !== "denegado";
+  const gestionesVencidas = gestiones.filter(gst => {
+    const ndias = diasHasta(gst.fechaVencimiento);
+    return ndias !== null && ndias < 0 && gst.estado !== "aprobado" && gst.estado !== "denegado";
   });
   const gestionesCriticas = gestiones.filter(g => g.estado === "denegado");
 
   // Documentos por vencer en <30 días (para alertas)
-  const proxVencer = docs.filter(d => {
-    const dias = diasHasta(d.fechaVencimiento);
-    return dias !== null && dias >= 0 && dias <= 30 && d.estado !== "aprobado";
-  }).sort((a,b) => new Date(a.fechaVencimiento) - new Date(b.fechaVencimiento));
+  const proxVencer = docs.filter(doc => {
+    const ndias = diasHasta(doc.fechaVencimiento);
+    return ndias !== null && ndias >= 0 && ndias <= 30 && doc.estado !== "aprobado";
+  }).sort((sa,sb) => new Date(sa.fechaVencimiento) - new Date(sb.fechaVencimiento));
 
-  const vencidos = docs.filter(d => {
-    const dias = diasHasta(d.fechaVencimiento);
-    return dias !== null && dias < 0 && d.estado !== "aprobado";
+  const vencidos = docs.filter(doc => {
+    const ndias = diasHasta(doc.fechaVencimiento);
+    return ndias !== null && ndias < 0 && doc.estado !== "aprobado";
   });
 
   // Búsqueda global (todas las categorías)
@@ -430,7 +430,7 @@ export default function Documentos() {
           || (d.emisor||"").toLowerCase().includes(q)
           || (d.nota||"").toLowerCase().includes(q)
           || (d.subcategoria||"").toLowerCase().includes(q);
-      }).sort((a,b) => new Date(b.fechaSubida) - new Date(a.fechaSubida))
+      }).sort((sa,sb) => new Date(sb.fechaSubida) - new Date(sa.fechaSubida))
     : null;
 
   // Filtrado: categoría + búsqueda
@@ -445,7 +445,7 @@ export default function Documentos() {
         || (d.subcategoria||"").toLowerCase().includes(q)
         || (d.estado||"").toLowerCase().includes(q);
     })
-    .sort((a, b) => new Date(b.fechaSubida) - new Date(a.fechaSubida));
+    .sort((sa, sb) => new Date(sb.fechaSubida) - new Date(sa.fechaSubida));
 
   // ─── CSS ──────────────────────────────────────────────────────────────────
   const DOC_CSS = `
@@ -1419,7 +1419,7 @@ export default function Documentos() {
       {/* ── Modal nueva gestión ── */}
       {gModal && createPortal(
         <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setGModal(false)}>
-          <div className="modal" style={{maxWidth:480}}>
+          <div className="modal modal-ficha" style={{maxWidth:480}}>
             <div className="modal-header">
               <span className="modal-title">🏛️ Nueva gestión legal</span>
               <button className="btn btn-ghost btn-sm" onClick={()=>setGModal(false)}>✕</button>

@@ -376,9 +376,9 @@ export default function App() {
         </div>
       </div>
 
-      {ficha?.tipo==="tarea"   && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} documentos={documentos} tareas={tareas} onClose={()=>setFicha(null)} onEditar={()=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
-      {ficha?.tipo==="hito"    && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} documentos={documentos} tareas={tareas} onClose={()=>setFicha(null)} onEditar={()=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
-      {ficha?.tipo==="persona" && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} documentos={documentos} tareas={tareas} onClose={()=>setFicha(null)} onEditar={()=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
+      {ficha?.tipo==="tarea"   && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} documentos={documentos} tareas={tareas} onClose={()=>setFicha(null)} onEditar={()=>{const mainEl=document.querySelector("main");if(mainEl)mainEl.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
+      {ficha?.tipo==="hito"    && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} documentos={documentos} tareas={tareas} onClose={()=>setFicha(null)} onEditar={()=>{const mainEl=document.querySelector("main");if(mainEl)mainEl.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
+      {ficha?.tipo==="persona" && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} documentos={documentos} tareas={tareas} onClose={()=>setFicha(null)} onEditar={()=>{const mainEl=document.querySelector("main");if(mainEl)mainEl.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
       {modal?.tipo==="tarea"   && <ModalTarea   key={modal.data?.id||"new"} data={modal.data} prefill={modal.prefill} equipo={equipo} tareas={tareas} documentos={documentos} onSave={saveTarea}   onClose={() => setModal(null)} />}
       {modal?.tipo==="hito"    && <ModalHito    key={modal.data?.id||"new"} data={modal.data}                                  onSave={saveHito}    onClose={() => setModal(null)} />}
       {modal?.tipo==="persona" && <ModalPersona key={modal.data?.id||"new"} data={modal.data}                                  onSave={savePersona} onClose={() => setModal(null)} />}
@@ -1528,6 +1528,12 @@ function TabHitos({ hitos, updHito, setModal, setDelConf, setFicha }) {
 }
 
 // ─── MODAL TAREA ──────────────────────────────────────────────────────────────
+function validarTarea(formData) {
+  const validation = {};
+  if (!formData.titulo.trim()) validation.titulo = "Requerido";
+  return validation;
+}
+
 function ModalTarea({ data, prefill={}, equipo, tareas, documentos, onSave, onClose }) {
   const [form, setForm] = useState(data || {
     area: prefill.area || "permisos",
@@ -1539,14 +1545,13 @@ function ModalTarea({ data, prefill={}, equipo, tareas, documentos, onSave, onCl
     dependeDe: null, documentoId: null,
   });
   const [err, setErr] = useState({});
-  const upd = (k,v) => setForm(p => ({...p,[k]:v}));
-  const posiblesDeps = tareas.filter(t => t.id !== form.id && t.area === form.area);
+  const upd = (fkey, fval) => setForm(prev => ({...prev,[fkey]:fval}));
+  const posiblesDeps = tareas.filter(td => td.id !== form.id && td.area === form.area);
 
   const submit = () => {
-    const e = {};
-    if (!form.titulo.trim()) e.titulo = "Requerido";
-    setErr(e);
-    if (!Object.keys(e).length) onSave({...form, responsableId:parseInt(form.responsableId), dependeDe:form.dependeDe?parseInt(form.dependeDe):null, documentoId:form.documentoId||null});
+    const validation = validarTarea(form);
+    setErr(validation);
+    if (!Object.keys(validation).length) onSave({...form, responsableId:parseInt(form.responsableId), dependeDe:form.dependeDe?parseInt(form.dependeDe):null, documentoId:form.documentoId||null});
   };
 
   return (
@@ -1629,13 +1634,13 @@ function ModalTarea({ data, prefill={}, equipo, tareas, documentos, onSave, onCl
 function ModalHito({ data, onSave, onClose }) {
   const [form, setForm] = useState(data || {nombre:"", fecha:"", critico:false, completado:false});
   const [err, setErr] = useState({});
-  const upd = (k,v) => setForm(p=>({...p,[k]:v}));
+  const upd = (fkey, fval) => setForm(prev=>({...prev,[fkey]:fval}));
   const submit = () => {
-    const e = {};
-    if (!form.nombre.trim()) e.nombre="Requerido";
-    if (!form.fecha) e.fecha="Requerido";
-    setErr(e);
-    if (!Object.keys(e).length) onSave(form);
+    const errs = {};
+    if (!form.nombre.trim()) errs.nombre="Requerido";
+    if (!form.fecha) errs.fecha="Requerido";
+    setErr(errs);
+    if (!Object.keys(errs).length) onSave(form);
   };
   return (
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
@@ -1676,13 +1681,13 @@ const PERSONA_COLORS = ["#22d3ee","#f472b6","#fb923c","#a78bfa","#34d399","#fbbf
 function ModalPersona({ data, onSave, onClose }) {
   const [form, setForm] = useState(data || {nombre:"", rol:"", area:"diaD", color:PERSONA_COLORS[0], email:"", telefono:""});
   const [err, setErr] = useState({});
-  const upd = (k,v) => setForm(p=>({...p,[k]:v}));
+  const upd = (fkey, fval) => setForm(prev=>({...prev,[fkey]:fval}));
   const submit = () => {
-    const e = {};
-    if (!form.nombre.trim()) e.nombre="Requerido";
-    if (!form.rol.trim()) e.rol="Requerido";
-    setErr(e);
-    if (!Object.keys(e).length) onSave(form);
+    const errs = {};
+    if (!form.nombre.trim()) errs.nombre="Requerido";
+    if (!form.rol.trim()) errs.rol="Requerido";
+    setErr(errs);
+    if (!Object.keys(errs).length) onSave(form);
   };
   return (
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>

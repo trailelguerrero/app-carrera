@@ -84,6 +84,13 @@ const FUENTES_DEFAULT = {
   extrasNino: true,
 };
 
+// Función de utilidad standalone — evita TDZ en bundle de producción
+// (Rollup no puede colapsar su variable local con las del componente App)
+function scrollToMain() {
+  const mainElCamisetas = document.querySelector("main");
+  if (mainElCamisetas) mainElCamisetas.scrollTo({ top: 0, behavior: "instant" });
+}
+
 export default function App() {
   const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
@@ -117,10 +124,10 @@ export default function App() {
   // Tallas de voluntarios: lectura automática (solo confirmados/pendientes, excluye cancelados)
   const [rawVols] = useData("teg_voluntarios_v1_voluntarios", []);
   const voluntariosConfirmados = Array.isArray(rawVols)
-    ? rawVols.filter(v => v?.estado === "confirmado" && v?.talla)
+    ? rawVols.filter(vol => vol?.estado === "confirmado" && vol?.talla)
     : [];
   const voluntariosPendientes = Array.isArray(rawVols)
-    ? rawVols.filter(v => v?.estado === "pendiente" && v?.talla)
+    ? rawVols.filter(vol => vol?.estado === "pendiente" && vol?.talla)
     : [];
   // Para el pedido al proveedor usamos confirmados + pendientes (excluye cancelados)
   const [inclPendientes, setInclPendientes] = useData(LS+"_incluir_pendientes", false);
@@ -132,10 +139,10 @@ export default function App() {
 
   const [fuentesActivas, setFuentesActivas] = useData(LS + "_fuentes", FUENTES_DEFAULT);
 
-  const scrollTop   = () => { const m=document.querySelector("main"); if(m) m.scrollTo({top:0,behavior:"instant"}); };
-  const abrirFicha  = (p) => { scrollTop(); setFicha(p); };
-  const abrirModal  = (d) => { scrollTop(); setModal({data:d||null}); };
-  const abrirEditar = (p) => { scrollTop(); setFicha(null); setModal({data:p}); };
+  const scrollTop   = () => { scrollToMain(); };
+  const abrirFicha  = (p) => { scrollToMain(); setFicha(p); };
+  const abrirModal  = (pd) => { scrollToMain(); setModal({data:pd||null}); };
+  const abrirEditar = (p) => { scrollToMain(); setFicha(null); setModal({data:p}); };
 
   const savePedido = (p) => {
     if (p.id) setPedidos(prev => prev.map(x => x.id===p.id ? p : x));
@@ -534,7 +541,7 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal }) {
       const mE = fEnt==="todos" ||p.lineas.some(l=>(l.estadoEntrega||"pendiente")===fEnt);
       return mQ&&mP&&mE;
     });
-    if (alfa) list=[...list].sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+    if (alfa) list=[...list].sort((sa,sb)=>sa.nombre.localeCompare(sb.nombre,"es"));
     return list;
   },[pedidos,bus,fPago,fEnt,alfa]);
   return (
@@ -556,11 +563,11 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal }) {
           <input className="inp" placeholder="🔍 Nombre, teléfono o email…" value={bus} onChange={e=>setBus(e.target.value)} style={{maxWidth:240}} />
           <select className="inp" value={fPago} onChange={e=>setFPago(e.target.value)} style={{width:"auto"}}>
             <option value="todos">Pago: todos</option>
-            {ESTADOS_PAGO.map(e=><option key={e} value={e}>{EP[e].icon} {EP[e].label}</option>)}
+            {ESTADOS_PAGO.map(ep=><option key={ep} value={ep}>{EP[ep].icon} {EP[ep].label}</option>)}
           </select>
           <select className="inp" value={fEnt} onChange={e=>setFEnt(e.target.value)} style={{width:"auto"}}>
             <option value="todos">Entrega: todos</option>
-            {ESTADOS_ENTREGA.map(e=><option key={e} value={e}>{EE[e].icon} {EE[e].label}</option>)}
+            {ESTADOS_ENTREGA.map(ee=><option key={ee} value={ee}>{EE[ee].icon} {EE[ee].label}</option>)}
           </select>
           {(bus||fPago!=="todos"||fEnt!=="todos")&&<button className="btn btn-ghost btn-sm" onClick={()=>{setBus("");setFPago("todos");setFEnt("todos");}}>✕ Limpiar</button>}
         </div>
@@ -573,7 +580,7 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal }) {
             const items=filtrados.filter(p=>{
               const counts={};
               p.lineas.forEach(l=>{counts[l.estadoPago||"pendiente"]=(counts[l.estadoPago||"pendiente"]||0)+l.cantidad;});
-              return Object.entries(counts).sort((a,b)=>b[1]-a[1])[0]?.[0]===estado;
+              return Object.entries(counts).sort((sa,sb)=>sb[1]-sa[1])[0]?.[0]===estado;
             });
             return (
               <div key={estado} style={{background:"var(--surface)",border:"1px solid var(--border)",borderTop:`2px solid ${cfg.color}`,borderRadius:"var(--r)",overflow:"hidden"}}>
@@ -615,7 +622,7 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal }) {
             const items = filtrados.filter(p => {
               const counts = {};
               p.lineas.forEach(l=>{counts[l.estadoPago||"pendiente"]=(counts[l.estadoPago||"pendiente"]||0)+l.cantidad;});
-              return Object.entries(counts).sort((a,b)=>b[1]-a[1])[0]?.[0]===estado;
+              return Object.entries(counts).sort((sa,sb)=>sb[1]-sa[1])[0]?.[0]===estado;
             });
             if (!items.length) return null;
             const collapsed = pedGrupos[estado];
@@ -1330,7 +1337,7 @@ function FichaPedido({ pedido:p, coste, onClose, onEditar, onEliminar, updateLin
   );
   return (
     <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="modal" style={{maxWidth:500}}>
+      <div className="modal modal-ficha" style={{maxWidth:500}}>
         <div style={{borderTop:"3px solid var(--primary)",borderRadius:"16px 16px 0 0"}}>
           <div className="modal-header">
             <div style={{display:"flex",alignItems:"center",gap:".6rem"}}>
@@ -1416,7 +1423,7 @@ function ModalPedido({ data, coste, onSave, onClose }) {
   const valido = form.nombre.trim()&&form.lineas.length>0;
   return (
     <div className={`modal-backdrop${mpedClosing ? " modal-backdrop-closing" : ""}`} onClick={e=>e.target===e.currentTarget&&mpedHandleClose()}>
-      <div className={`modal${mpedClosing ? " modal-closing" : ""}`} style={{maxWidth:540}}>
+      <div className={`modal modal-ficha${mpedClosing ? " modal-closing" : ""}`} style={{maxWidth:540}}>
         <div className="modal-header"><span className="modal-title">{esEdit?"✏️ Editar pedido":"👕 Nuevo pedido de camiseta"}</span><button className="btn btn-ghost btn-sm" onClick={mpedHandleClose}>✕</button></div>
         <div className="modal-body" style={{gap:".75rem"}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>

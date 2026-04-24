@@ -142,6 +142,12 @@ const OBJETIVO_TOTAL = 8000;
 
 
 // ─── APP ──────────────────────────────────────────────────────────────────────
+// Helper standalone — evita TDZ de minimización Rollup
+function scrollToMainPat() {
+  const mainElPat = document.querySelector("main");
+  if (mainElPat) mainElPat.scrollTo({ top: 0, behavior: "instant" });
+}
+
 export default function App() {
   const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
@@ -177,11 +183,11 @@ export default function App() {
   }, [pats, objetivo]);
 
   const patsFiltrados = useMemo(() => {
-    return pats.filter(p => {
-      const q = search.toLowerCase();
-      const matchQ = !q || p.nombre.toLowerCase().includes(q) || p.contacto.toLowerCase().includes(q) || p.sector.toLowerCase().includes(q);
-      const matchN = filtroNivel === "todos" || p.nivel === filtroNivel;
-      const matchE = filtroEstado === "todos" || p.estado === filtroEstado;
+    return pats.filter(pat => {
+      const query = search.toLowerCase();
+      const matchQ = !query || pat.nombre.toLowerCase().includes(query) || pat.contacto.toLowerCase().includes(query) || pat.sector.toLowerCase().includes(query);
+      const matchN = filtroNivel === "todos" || pat.nivel === filtroNivel;
+      const matchE = filtroEstado === "todos" || pat.estado === filtroEstado;
       return matchQ && matchN && matchE;
     });
   }, [pats, search, filtroNivel, filtroEstado]);
@@ -194,7 +200,7 @@ export default function App() {
     { id: "documentos", icon: "📁", label: "Documentos" },
   ];
 
-  const scrollTop = () => { const m = document.querySelector("main"); if (m) m.scrollTo({ top:0, behavior:"instant" }); };
+  const scrollTop = () => { scrollToMainPat(); };
   const openNuevo   = () => { scrollTop(); setModal({ tipo: "pat",     data: null }); };
   const openEditar  = (p) => { scrollTop(); setModal({ tipo: "pat",    data: p    }); };
   const openDetalle = (p) => { scrollTop(); setModal({ tipo: "detalle",data: p    }); };
@@ -1568,7 +1574,7 @@ function ModalPat({ data, onSave, onClose }) {
 
   return (
     <div className={`modal-backdrop${mpClosing ? " modal-backdrop-closing" : ""}`} onClick={e => e.target === e.currentTarget && mpHandleClose()}>
-      <div className={`modal${mpClosing ? " modal-closing" : ""}`}>
+      <div className={`modal modal-ficha${mpClosing ? " modal-closing" : ""}`}>
         <div className="modal-header">
           <span className="mtit">{data ? "✏️ Editar patrocinador" : "🤝 Nuevo patrocinador"}</span>
           <button className="btn btn-sm btn-ghost" onClick={mpHandleClose}>✕</button>

@@ -2369,7 +2369,7 @@ function MF({title,fields,init,onSave,onClose}) {
 
   return(
     <div className={`modal-backdrop${mfClosing ? " modal-backdrop-closing" : ""}`} onClick={e=>e.target===e.currentTarget&&mfHandleClose()}>
-      <div className={`modal${mfClosing ? " modal-closing" : ""}`}>
+      <div className={`modal modal-ficha${mfClosing ? " modal-closing" : ""}`}>
         <div className="modal-header"><span className="mtit">{title}</span><button className="btn btn-sm btn-ghost" onClick={mfHandleClose}>✕</button></div>
         <div className="modal-body">
           {fields.map(f=>(
@@ -2423,7 +2423,7 @@ function ModalRuta({data,veh,rutas,setRutas,onClose,locs}) {
   // sin scroll-lock — causa freeze en Android
   return(
     <div className={`modal-backdrop${rutaClosing ? " modal-backdrop-closing" : ""}`} onClick={e=>e.target===e.currentTarget&&rutaHandleClose()}>
-      <div className={`modal${rutaClosing ? " modal-closing" : ""}`} style={{maxWidth:560}}>
+      <div className={`modal modal-ficha${rutaClosing ? " modal-closing" : ""}`} style={{maxWidth:560}}>
         <div className="modal-header"><span className="mtit">{data?"✏️ Editar ruta":"🗺️ Nueva ruta"}</span><button className="btn btn-sm btn-ghost" onClick={rutaHandleClose}>✕</button></div>
         <div className="modal-body">
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem"}}>
@@ -3490,7 +3490,7 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
 
   return (
     <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="modal" style={{maxWidth:520}}>
+      <div className="modal modal-ficha" style={{maxWidth:520}}>
         <div className="modal-header">
           <span className="modal-title">{esEdit?"✏️ Editar pedido":"🛒 Nuevo pedido"}</span>
           <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
