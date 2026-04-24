@@ -1,10 +1,9 @@
 /**
  * PublicVolunteerForm — componente AUTÓNOMO para /voluntarios/registro
  * No depende de ningún otro bloque. Tiene todo lo necesario inline.
+ * B2: formulario en 3 pasos con barra de progreso.
  */
-import { useState, useEffect } from "react";
-// Sin useData — este formulario usa el endpoint público /api/data/public
-// que NO requiere la clave privada del panel de gestión.
+import { useState, useEffect, useRef } from "react";
 
 const LS_KEY = "teg_voluntarios_v1";
 
@@ -35,6 +34,12 @@ const SHIRT_BACK = "data:image/svg+xml," + encodeURIComponent(
   <text x="200" y="270" text-anchor="middle" fill="#5a6a8a" font-size="12" font-family="monospace">PARTE TRASERA</text></svg>`
 );
 
+const STEPS = [
+  { n: 1, label: "¿Quién eres?",     icon: "👤" },
+  { n: 2, label: "Tu participación", icon: "🏃" },
+  { n: 3, label: "Confirmar",        icon: "✅" },
+];
+
 // ── CSS autónomo ──────────────────────────────────────────────────────────────
 const CSS = `
   :root {
@@ -61,14 +66,74 @@ const CSS = `
   }
   .pub-input:focus { border-color:var(--cyan); box-shadow:0 0 0 3px rgba(34,211,238,0.1); }
   .pub-input::placeholder { color:var(--text-dim); }
+  .pub-input.error { border-color:var(--red); }
+
+  /* Stepper */
+  .step-bar { display:flex; gap:6px; margin-bottom:1.75rem; }
+  .step-seg {
+    flex:1; height:4px; border-radius:99px;
+    background:var(--border);
+    transition:background 0.35s ease;
+  }
+  .step-seg.done    { background:var(--cyan); }
+  .step-seg.active  { background:var(--cyan); opacity:.55; }
+
+  .step-header {
+    display:flex; align-items:center; gap:.55rem;
+    margin-bottom:1.35rem;
+  }
+  .step-icon {
+    width:34px; height:34px; border-radius:50%; flex-shrink:0;
+    background:var(--cyan-dim); border:1.5px solid rgba(34,211,238,.3);
+    display:flex; align-items:center; justify-content:center;
+    font-size:1rem;
+  }
+  .step-title  { font-family:var(--font-display); font-weight:800; font-size:1.05rem; }
+  .step-sub    { font-family:var(--font-mono); font-size:.62rem; color:var(--text-muted); margin-top:.1rem; }
+
+  /* Buttons */
+  .pub-btn-primary {
+    width:100%; padding:.85rem;
+    background:linear-gradient(135deg,rgba(34,211,238,0.2),rgba(167,139,250,0.15));
+    border:1px solid rgba(34,211,238,0.35); border-radius:10;
+    color:var(--text); font-family:var(--font-display);
+    font-size:.9rem; font-weight:800; cursor:pointer;
+    letter-spacing:.03em; transition:all 0.18s;
+    border-radius:10px;
+  }
+  .pub-btn-primary:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(34,211,238,0.15); }
+  .pub-btn-primary:active { transform:scale(.98); }
+
+  .pub-btn-ghost {
+    padding:.55rem 1.1rem; background:var(--surface2);
+    border:1px solid var(--border); border-radius:8px;
+    color:var(--text-muted); font-family:var(--font-display);
+    font-size:.82rem; font-weight:600; cursor:pointer;
+    transition:all 0.15s;
+  }
+  .pub-btn-ghost:hover { border-color:var(--border-light); color:var(--text); }
+
+  /* Step nav */
+  .step-nav { display:flex; gap:.6rem; margin-top:1rem; }
+  .step-nav .pub-btn-primary { flex:1; }
+
+  /* Summary card */
+  .summary-row {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:.45rem 0; border-bottom:1px solid rgba(30,45,80,.35);
+    font-size:.82rem;
+  }
+  .summary-row:last-child { border-bottom:none; }
+  .summary-key { color:var(--text-muted); font-family:var(--font-mono); font-size:.68rem; }
+  .summary-val { font-family:var(--font-mono); font-weight:700; }
 
   @keyframes fadeUp  { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
   @keyframes slideUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes stepIn  { from{opacity:0;transform:translateX(22px)} to{opacity:1;transform:translateX(0)} }
+  @keyframes stepInBack { from{opacity:0;transform:translateX(-22px)} to{opacity:1;transform:translateX(0)} }
 `;
 
-// ── Componente principal ──────────────────────────────────────────────────────
-// Usa /api/data/public — endpoint SIN clave privada con lista blanca estricta.
-// No usa useData ni la VITE_API_KEY del panel de gestión.
+// ── API ────────────────────────────────────────────────────────────────────────
 const PUBLIC_API = "/api/data/public";
 
 async function fetchPublic(collection) {
@@ -79,19 +144,19 @@ async function fetchPublic(collection) {
   } catch { return null; }
 }
 
+// ── Componente raíz ───────────────────────────────────────────────────────────
 export default function PublicVolunteerForm() {
-  const [puestos,       setPuestos]       = useState([]);
-  const [imgFront,      setImgFront]      = useState(null);
-  const [imgBack,       setImgBack]       = useState(null);
-  const [imgGuiaTallas, setImgGuiaTallas] = useState(null);
-  const [opcionPuesto,  setOpcionPuesto]  = useState(true);
-  const [opcionVehiculo,setOpcionVehiculo]= useState(true);
-  const [loading,       setLoading]       = useState(true);
-  const [enviando,      setEnviando]      = useState(false);
-  const [registroOk,    setRegistroOk]    = useState(false);
-  const [errorEnvio,    setErrorEnvio]    = useState(null);
+  const [puestos,        setPuestos]        = useState([]);
+  const [imgFront,       setImgFront]       = useState(null);
+  const [imgBack,        setImgBack]        = useState(null);
+  const [imgGuiaTallas,  setImgGuiaTallas]  = useState(null);
+  const [opcionPuesto,   setOpcionPuesto]   = useState(true);
+  const [opcionVehiculo, setOpcionVehiculo] = useState(true);
+  const [loading,        setLoading]        = useState(true);
+  const [enviando,       setEnviando]       = useState(false);
+  const [registroOk,     setRegistroOk]     = useState(false);
+  const [errorEnvio,     setErrorEnvio]     = useState(null);
 
-  // Cargar configuración del formulario desde el endpoint público
   useEffect(() => {
     Promise.all([
       fetchPublic(LS_KEY + "_puestos"),
@@ -101,12 +166,12 @@ export default function PublicVolunteerForm() {
       fetchPublic(LS_KEY + "_opcionPuesto"),
       fetchPublic(LS_KEY + "_opcionVehiculo"),
     ]).then(([psts, front, back, guia, opPuesto, opVehiculo]) => {
-      if (Array.isArray(psts))        setPuestos(psts);
-      if (front)                      setImgFront(front);
-      if (back)                       setImgBack(back);
-      if (guia)                       setImgGuiaTallas(guia);
-      if (opPuesto  !== null)         setOpcionPuesto(Boolean(opPuesto));
-      if (opVehiculo !== null)        setOpcionVehiculo(Boolean(opVehiculo));
+      if (Array.isArray(psts))   setPuestos(psts);
+      if (front)                 setImgFront(front);
+      if (back)                  setImgBack(back);
+      if (guia)                  setImgGuiaTallas(guia);
+      if (opPuesto  !== null)    setOpcionPuesto(Boolean(opPuesto));
+      if (opVehiculo !== null)   setOpcionVehiculo(Boolean(opVehiculo));
       setLoading(false);
     });
   }, []);
@@ -150,23 +215,15 @@ export default function PublicVolunteerForm() {
       <style>{CSS}</style>
       <div style={{ minHeight:"100vh", background:"var(--bg)", display:"flex",
         alignItems:"center", justifyContent:"center", padding:"2rem" }}>
-        <div style={{ textAlign:"center", maxWidth:400 }}>
-          <div style={{ fontSize:"3rem", marginBottom:"1rem" }}>✅</div>
-          <div style={{ fontWeight:800, fontSize:"1.2rem", color:"var(--green)", marginBottom:".5rem" }}>
+        <div style={{ textAlign:"center", maxWidth:400, animation:"fadeUp .5s ease both" }}>
+          <div style={{ fontSize:"3.5rem", marginBottom:"1rem" }}>🎉</div>
+          <div style={{ fontWeight:800, fontSize:"1.3rem", color:"var(--green)", marginBottom:".5rem" }}>
             ¡Registro completado!
           </div>
-          <div style={{ fontFamily:"var(--font-mono)", fontSize:".72rem", color:"var(--text-muted)", lineHeight:1.6 }}>
-            Hemos recibido tu solicitud. El equipo organizador la revisará y te confirmará por teléfono o email.
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:".72rem", color:"var(--text-muted)", lineHeight:1.7 }}>
+            Hemos recibido tu solicitud.<br/>El equipo organizador la revisará y te confirmará por teléfono o email.
           </div>
-          <button
-            onClick={() => window.close()}
-            style={{
-              marginTop:"1.5rem", padding:".65rem 2rem",
-              background:"var(--green-dim)", color:"var(--green)",
-              border:"1px solid rgba(52,211,153,0.3)", borderRadius:10,
-              fontFamily:"var(--font-display)", fontWeight:700, fontSize:".9rem",
-              cursor:"pointer", width:"100%",
-            }}>
+          <button onClick={() => window.close()} className="pub-btn-primary" style={{ marginTop:"1.5rem" }}>
             ✕ Cerrar ventana
           </button>
           <div style={{ marginTop:".75rem", fontFamily:"var(--font-mono)",
@@ -192,10 +249,10 @@ export default function PublicVolunteerForm() {
             ⚠️ {errorEnvio}
           </div>
         )}
-        <Formulario
+        <StepperForm
           puestos={puestos}
-          imgFront={imgFront || SHIRT_FRONT}
-          imgBack={imgBack   || SHIRT_BACK}
+          imgFront={imgFront   || SHIRT_FRONT}
+          imgBack={imgBack     || SHIRT_BACK}
           imgGuiaTallas={imgGuiaTallas}
           opcionPuesto={opcionPuesto}
           opcionVehiculo={opcionVehiculo}
@@ -207,29 +264,63 @@ export default function PublicVolunteerForm() {
   );
 }
 
-// ── Formulario (self-contained) ───────────────────────────────────────────────
-function Formulario({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, opcionVehiculo, onRegistrar, enviando }) {
-  const [form, setForm]       = useState({ nombre:"", apellidos:"", telefono:"", talla:"", puestoId:"", coche:false });
+// ── StepperForm — 3 pasos ─────────────────────────────────────────────────────
+function StepperForm({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, opcionVehiculo, onRegistrar, enviando }) {
+  const [paso, setPaso]       = useState(1);
+  const [dir,  setDir]        = useState(1);   // 1 = adelante, -1 = atrás
+  const [form, setForm]       = useState({
+    nombre:"", apellidos:"", telefono:"",
+    talla:"", puestoId:"", coche:false,
+  });
   const [errores, setErrores] = useState({});
-  const [enviado, setEnviado] = useState(false);
-  const [lightbox, setLightbox]   = useState(null);   // null | "front" | "back"
+  const [lightbox, setLightbox]     = useState(null);
   const [guiaTallas, setGuiaTallas] = useState(false);
+  const stepRef = useRef(null);
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
-  const validar = () => {
+  // Focus al inicio del paso al cambiar
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const firstInput = stepRef.current?.querySelector("input, select");
+      if (firstInput) firstInput.focus();
+    }, 120);
+    return () => clearTimeout(t);
+  }, [paso]);
+
+  // ── Validación por paso ──────────────────────────────────────────────────
+  const validarPaso1 = () => {
     const e = {};
     if (!form.nombre.trim())    e.nombre    = "Requerido";
     if (!form.apellidos.trim()) e.apellidos = "Requerido";
     if (!form.telefono.trim() || !/^\d{9}$/.test(form.telefono.replace(/\s/g,"")))
       e.telefono = "Teléfono de 9 dígitos";
-    if (!form.talla) e.talla = "Selecciona talla";
     setErrores(e);
     return Object.keys(e).length === 0;
   };
 
+  const validarPaso2 = () => {
+    const e = {};
+    if (!form.talla) e.talla = "Selecciona una talla";
+    setErrores(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const irA = (n) => {
+    setDir(n > paso ? 1 : -1);
+    setErrores({});
+    setPaso(n);
+  };
+
+  const siguiente = () => {
+    if (paso === 1 && !validarPaso1()) return;
+    if (paso === 2 && !validarPaso2()) return;
+    irA(paso + 1);
+  };
+
+  const anterior = () => irA(paso - 1);
+
   const handleSubmit = () => {
-    if (!validar()) return;
     onRegistrar({
       nombre:   `${form.nombre.trim()} ${form.apellidos.trim()}`,
       telefono: form.telefono.trim(),
@@ -239,37 +330,7 @@ function Formulario({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, o
       coche:    form.coche,
       notas:    "",
     });
-    setEnviado(true);
   };
-
-  // ── Pantalla de éxito ────────────────────────────────────────────────────
-  if (enviado) return (
-    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", padding:"2rem" }}>
-      <div style={{ maxWidth:480, textAlign:"center", animation:"fadeUp 0.5s ease both" }}>
-        <div style={{ fontSize:"4rem", marginBottom:"1rem" }}>🎉</div>
-        <h2 style={{ fontFamily:"var(--font-display)", fontSize:"1.8rem", fontWeight:800, color:"var(--green)", marginBottom:"0.75rem" }}>
-          ¡Registro completado!
-        </h2>
-        <p style={{ color:"var(--text-muted)", fontFamily:"var(--font-mono)", fontSize:"0.85rem", lineHeight:1.7, marginBottom:"1.5rem" }}>
-          Gracias por apuntarte como voluntario del{" "}
-          <strong style={{ color:"var(--text)" }}>Trail El Guerrero 2026</strong>.<br />
-          El equipo organizador se pondrá en contacto contigo próximamente por WhatsApp o teléfono.
-        </p>
-        <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:12, padding:"1rem 1.5rem", marginBottom:"1.5rem", textAlign:"left" }}>
-          <div style={{ fontSize:"0.65rem", fontFamily:"var(--font-mono)", color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:"0.75rem" }}>
-            Tu registro
-          </div>
-          {[["Nombre",`${form.nombre} ${form.apellidos}`],["Teléfono",form.telefono],["Talla",form.talla]].map(([k,v]) => (
-            <div key={k} style={{ display:"flex", justifyContent:"space-between", fontSize:"0.82rem", marginBottom:"0.3rem" }}>
-              <span style={{ color:"var(--text-muted)" }}>{k}</span>
-              <span style={{ fontFamily:"var(--font-mono)", fontWeight:700 }}>{v}</span>
-            </div>
-          ))}
-        </div>
-
-      </div>
-    </div>
-  );
 
   // ── Lightbox camiseta ────────────────────────────────────────────────────
   const renderLightbox = () => (
@@ -279,7 +340,7 @@ function Formulario({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, o
         padding:"1rem", backdropFilter:"blur(8px)", animation:"fadeUp 0.15s ease" }}>
       <div onClick={e => e.stopPropagation()}
         style={{ position:"relative", maxWidth:480, width:"100%", animation:"slideUp 0.2s ease" }}>
-        <button onClick={() => setLightbox(null)}
+        <button onClick={() => setLightbox(null)} aria-label="Cerrar"
           style={{ position:"absolute", top:-14, right:-14, zIndex:10, width:32, height:32,
             borderRadius:"50%", background:"var(--surface)", border:"1px solid var(--border)",
             color:"var(--text)", cursor:"pointer", fontSize:"0.9rem",
@@ -327,7 +388,7 @@ function Formulario({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, o
               Medidas en cm — mide sobre la camiseta plana
             </div>
           </div>
-          <button onClick={() => setGuiaTallas(false)}
+          <button onClick={() => setGuiaTallas(false)} aria-label="Cerrar guía de tallas"
             style={{ background:"none", border:"none", color:"var(--text-muted)", cursor:"pointer", fontSize:"1.1rem" }}>✕</button>
         </div>
         {imgGuiaTallas && (
@@ -410,155 +471,240 @@ function Formulario({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, o
           </div>
         </div>
 
-        {/* Fotos camiseta */}
-        <div style={{ marginBottom:"1.25rem" }}>
-          <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem", color:"var(--text-muted)",
-            textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:"0.6rem" }}>
-            👕 Camiseta técnica de voluntario
-          </div>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0.75rem" }}>
-            {[
-              { side:"front", label:"Vista delantera", src:imgFront, accent:"var(--cyan)" },
-              { side:"back",  label:"Vista trasera",   src:imgBack,  accent:"var(--violet)" },
-            ].map(({ side, label, src, accent }) => (
-              <div key={side} onClick={() => setLightbox(side)}
-                style={{ cursor:"pointer", borderRadius:12, overflow:"hidden",
-                  border:`1px solid ${accent}33`, background:"var(--surface)",
-                  transition:"all 0.18s" }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor=accent; e.currentTarget.style.transform="translateY(-2px)"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor=`${accent}33`; e.currentTarget.style.transform=""; }}>
-                <img src={src} alt={label}
-                  style={{ width:"100%", height:160, objectFit:"cover", display:"block" }} />
-                <div style={{ padding:"0.45rem 0.65rem", display:"flex", alignItems:"center",
-                  justifyContent:"space-between", borderTop:`1px solid ${accent}22` }}>
-                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem", color:"var(--text-muted)" }}>{label}</span>
-                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.6rem", color:accent }}>🔍 Ver</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Tarjeta del formulario */}
+        {/* Tarjeta del stepper */}
         <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:16,
           overflow:"hidden", animation:"fadeUp 0.5s 0.1s ease both" }}>
+
+          {/* Cabecera con barra de progreso */}
           <div style={{ background:"linear-gradient(135deg,rgba(34,211,238,0.1),rgba(167,139,250,0.08))",
             borderBottom:"1px solid var(--border)", padding:"1rem 1.5rem" }}>
-            <div style={{ fontFamily:"var(--font-display)", fontWeight:700, fontSize:"0.9rem" }}>Datos del voluntario</div>
-            <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem", color:"var(--text-muted)", marginTop:"0.2rem" }}>
-              Todos los campos con * son obligatorios
+            {/* Barra de 3 segmentos */}
+            <div className="step-bar">
+              {STEPS.map(s => (
+                <div key={s.n} className={
+                  `step-seg ${s.n < paso ? "done" : s.n === paso ? "active" : ""}`
+                } />
+              ))}
+            </div>
+            {/* Etiqueta del paso actual */}
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:".62rem", color:"var(--text-muted)" }}>
+                Paso {paso} de {STEPS.length}
+              </div>
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:".62rem", color:"var(--cyan)", fontWeight:700 }}>
+                {STEPS[paso-1].icon} {STEPS[paso-1].label}
+              </div>
             </div>
           </div>
 
-          <div style={{ padding:"1.5rem", display:"flex", flexDirection:"column", gap:"1.1rem" }}>
+          {/* Contenido del paso */}
+          <div ref={stepRef} style={{ padding:"1.5rem",
+            animation: dir >= 0 ? "stepIn .25s ease both" : "stepInBack .25s ease both" }}>
 
-            {/* Nombre + Apellidos */}
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0.75rem" }}>
-              <Field label="Nombre *" error={errores.nombre}>
-                <input className="pub-input" placeholder="Ej: María"
-                  value={form.nombre} onChange={e => set("nombre", e.target.value)} />
-              </Field>
-              <Field label="Apellidos *" error={errores.apellidos}>
-                <input className="pub-input" placeholder="Ej: García López"
-                  value={form.apellidos} onChange={e => set("apellidos", e.target.value)} />
-              </Field>
-            </div>
-
-            {/* Teléfono */}
-            <Field label="Teléfono *" error={errores.telefono} hint="Se usará para coordinación el día de carrera">
-              <input className="pub-input" placeholder="612 345 678" inputMode="tel"
-                value={form.telefono} onChange={e => set("telefono", e.target.value)} />
-            </Field>
-
-            {/* Talla */}
-            <div>
-              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"0.4rem" }}>
-                <label style={{ fontFamily:"var(--font-display)", fontSize:"0.78rem", fontWeight:600,
-                  color: errores.talla ? "var(--red)" : "var(--text)" }}>
-                  Talla de camiseta *
-                </label>
-                <button onClick={() => setGuiaTallas(true)}
-                  style={{ background:"var(--cyan-dim)", color:"var(--cyan)",
-                    border:"1px solid rgba(34,211,238,0.2)", borderRadius:5,
-                    padding:"0.18rem 0.55rem", fontFamily:"var(--font-mono)",
-                    fontSize:"0.6rem", fontWeight:700, cursor:"pointer" }}>
-                  📐 Guía de tallas
-                </button>
-              </div>
-              <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.6rem", color:"var(--text-muted)", marginBottom:"0.5rem" }}>
-                Recibirás una camiseta técnica · Consulta la guía si tienes dudas
-              </div>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:"0.4rem" }}>
-                {TALLAS.map(t => (
-                  <button key={t} onClick={() => set("talla", t)}
-                    style={{ padding:"0.45rem 0.7rem", borderRadius:7,
-                      border:`1px solid ${form.talla===t ? "var(--cyan)" : "var(--border)"}`,
-                      background: form.talla===t ? "var(--cyan-dim)" : "var(--surface2)",
-                      color: form.talla===t ? "var(--cyan)" : "var(--text-muted)",
-                      fontFamily:"var(--font-mono)", fontSize:"0.72rem", fontWeight:700,
-                      cursor:"pointer", transition:"all 0.15s",
-                      transform: form.talla===t ? "scale(1.08)" : "scale(1)" }}>
-                    {t}
+            {/* ── PASO 1: ¿Quién eres? ───────────────────────────────────── */}
+            {paso === 1 && (
+              <div style={{ display:"flex", flexDirection:"column", gap:"1.1rem" }}>
+                <div className="step-header">
+                  <div className="step-icon">👤</div>
+                  <div>
+                    <div className="step-title">¿Quién eres?</div>
+                    <div className="step-sub">Datos personales básicos para contactarte</div>
+                  </div>
+                </div>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:".75rem" }}>
+                  <Field label="Nombre *" error={errores.nombre}>
+                    <input className={`pub-input${errores.nombre?" error":""}`}
+                      placeholder="Ej: María"
+                      value={form.nombre} onChange={e => set("nombre", e.target.value)} />
+                  </Field>
+                  <Field label="Apellidos *" error={errores.apellidos}>
+                    <input className={`pub-input${errores.apellidos?" error":""}`}
+                      placeholder="Ej: García López"
+                      value={form.apellidos} onChange={e => set("apellidos", e.target.value)} />
+                  </Field>
+                </div>
+                <Field label="Teléfono *" error={errores.telefono}
+                  hint="Se usará para coordinación el día de carrera">
+                  <input className={`pub-input${errores.telefono?" error":""}`}
+                    placeholder="612 345 678" inputMode="tel"
+                    value={form.telefono} onChange={e => set("telefono", e.target.value)} />
+                </Field>
+                <div className="step-nav">
+                  <button className="pub-btn-primary" onClick={siguiente}>
+                    Continuar →
                   </button>
-                ))}
-              </div>
-              {errores.talla && (
-                <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem", color:"var(--red)", marginTop:"0.3rem" }}>
-                  ⚠ {errores.talla}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
-            {/* Puesto (opcional) */}
-            {opcionPuesto && (
-              <Field label="Puesto preferido" hint="Opcional — el organizador hará la asignación final">
-                <select className="pub-input" value={form.puestoId}
-                  onChange={e => set("puestoId", e.target.value)}
-                  style={{ appearance:"none" }}>
-                  <option value="">Sin preferencia</option>
-                  {puestos.map(p => (
-                    <option key={p.id} value={p.id}>{p.nombre} ({p.tipo})</option>
+            {/* ── PASO 2: Tu participación ───────────────────────────────── */}
+            {paso === 2 && (
+              <div style={{ display:"flex", flexDirection:"column", gap:"1.1rem" }}>
+                <div className="step-header">
+                  <div className="step-icon">🏃</div>
+                  <div>
+                    <div className="step-title">Tu participación</div>
+                    <div className="step-sub">Talla de camiseta y preferencias operativas</div>
+                  </div>
+                </div>
+
+                {/* Camiseta + selector talla */}
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:".75rem" }}>
+                  {[
+                    { side:"front", label:"Delantera", src:imgFront, accent:"var(--cyan)" },
+                    { side:"back",  label:"Trasera",   src:imgBack,  accent:"var(--violet)" },
+                  ].map(({ side, label, src, accent }) => (
+                    <div key={side} onClick={() => setLightbox(side)}
+                      style={{ cursor:"pointer", borderRadius:10, overflow:"hidden",
+                        border:`1px solid ${accent}33`, background:"var(--surface2)",
+                        transition:"all 0.18s" }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor=accent; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor=`${accent}33`; }}>
+                      <img src={src} alt={label}
+                        style={{ width:"100%", height:120, objectFit:"cover", display:"block" }} />
+                      <div style={{ padding:".35rem .6rem", display:"flex", alignItems:"center",
+                        justifyContent:"space-between", borderTop:`1px solid ${accent}22` }}>
+                        <span style={{ fontFamily:"var(--font-mono)", fontSize:".58rem", color:"var(--text-muted)" }}>{label}</span>
+                        <span style={{ fontFamily:"var(--font-mono)", fontSize:".58rem", color:accent }}>🔍</span>
+                      </div>
+                    </div>
                   ))}
-                </select>
-              </Field>
-            )}
-
-            {/* Vehículo (opcional) */}
-            {opcionVehiculo && (
-              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
-                background:"var(--surface2)", border:"1px solid var(--border)",
-                borderRadius:10, padding:"0.85rem 1rem" }}>
-                <div>
-                  <div style={{ fontFamily:"var(--font-display)", fontSize:"0.82rem", fontWeight:600 }}>
-                    ¿Dispones de vehículo propio?
-                  </div>
-                  <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.6rem", color:"var(--text-muted)", marginTop:"0.15rem" }}>
-                    Puede facilitar el traslado a puestos remotos
-                  </div>
                 </div>
-                <button onClick={() => set("coche", !form.coche)}
-                  style={{ width:48, height:26, borderRadius:13, flexShrink:0,
-                    background: form.coche ? "var(--green)" : "var(--surface3)",
-                    border:"none", cursor:"pointer", position:"relative", transition:"background 0.2s" }}>
-                  <span style={{ position:"absolute", top:3, width:20, height:20, borderRadius:"50%",
-                    background:"#fff", transition:"left 0.2s", boxShadow:"0 1px 4px rgba(0,0,0,0.3)",
-                    left: form.coche ? 25 : 3 }} />
-                </button>
+
+                <div>
+                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:".4rem" }}>
+                    <label style={{ fontFamily:"var(--font-display)", fontSize:".78rem", fontWeight:600,
+                      color: errores.talla ? "var(--red)" : "var(--text)" }}>
+                      Talla de camiseta *
+                    </label>
+                    <button onClick={() => setGuiaTallas(true)}
+                      style={{ background:"var(--cyan-dim)", color:"var(--cyan)",
+                        border:"1px solid rgba(34,211,238,0.2)", borderRadius:5,
+                        padding:".18rem .55rem", fontFamily:"var(--font-mono)",
+                        fontSize:".6rem", fontWeight:700, cursor:"pointer" }}>
+                      📐 Guía de tallas
+                    </button>
+                  </div>
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:".4rem" }}>
+                    {TALLAS.map(t => (
+                      <button key={t} onClick={() => set("talla", t)}
+                        style={{ padding:".45rem .7rem", borderRadius:7,
+                          border:`1px solid ${form.talla===t ? "var(--cyan)" : "var(--border)"}`,
+                          background: form.talla===t ? "var(--cyan-dim)" : "var(--surface2)",
+                          color: form.talla===t ? "var(--cyan)" : "var(--text-muted)",
+                          fontFamily:"var(--font-mono)", fontSize:".72rem", fontWeight:700,
+                          cursor:"pointer", transition:"all 0.15s",
+                          transform: form.talla===t ? "scale(1.08)" : "scale(1)" }}>
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                  {errores.talla && (
+                    <div style={{ fontFamily:"var(--font-mono)", fontSize:".62rem", color:"var(--red)", marginTop:".3rem" }}>
+                      ⚠ {errores.talla}
+                    </div>
+                  )}
+                </div>
+
+                {opcionPuesto && (
+                  <Field label="Puesto preferido" hint="Opcional — el organizador hará la asignación final">
+                    <select className="pub-input" value={form.puestoId}
+                      onChange={e => set("puestoId", e.target.value)}
+                      style={{ appearance:"none" }}>
+                      <option value="">Sin preferencia</option>
+                      {puestos.map(p => (
+                        <option key={p.id} value={p.id}>{p.nombre} ({p.tipo})</option>
+                      ))}
+                    </select>
+                  </Field>
+                )}
+
+                {opcionVehiculo && (
+                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+                    background:"var(--surface2)", border:"1px solid var(--border)",
+                    borderRadius:10, padding:".85rem 1rem" }}>
+                    <div>
+                      <div style={{ fontFamily:"var(--font-display)", fontSize:".82rem", fontWeight:600 }}>
+                        ¿Dispones de vehículo propio?
+                      </div>
+                      <div style={{ fontFamily:"var(--font-mono)", fontSize:".6rem", color:"var(--text-muted)", marginTop:".15rem" }}>
+                        Puede facilitar el traslado a puestos remotos
+                      </div>
+                    </div>
+                    <button onClick={() => set("coche", !form.coche)}
+                      aria-label={form.coche ? "Desactivar vehículo propio" : "Activar vehículo propio"}
+                      style={{ width:48, height:26, borderRadius:13, flexShrink:0,
+                        background: form.coche ? "var(--green)" : "var(--surface3)",
+                        border:"none", cursor:"pointer", position:"relative", transition:"background 0.2s" }}>
+                      <span style={{ position:"absolute", top:3, width:20, height:20, borderRadius:"50%",
+                        background:"#fff", transition:"left 0.2s", boxShadow:"0 1px 4px rgba(0,0,0,0.3)",
+                        left: form.coche ? 25 : 3 }} />
+                    </button>
+                  </div>
+                )}
+
+                <div className="step-nav">
+                  <button className="pub-btn-ghost" onClick={anterior}>← Atrás</button>
+                  <button className="pub-btn-primary" onClick={siguiente}>
+                    Revisar registro →
+                  </button>
+                </div>
               </div>
             )}
 
-            {/* Botón envío */}
-            <button onClick={handleSubmit}
-              style={{ width:"100%", padding:"0.85rem",
-                background:"linear-gradient(135deg,rgba(34,211,238,0.2),rgba(167,139,250,0.15))",
-                border:"1px solid rgba(34,211,238,0.35)", borderRadius:10,
-                color:"var(--text)", fontFamily:"var(--font-display)",
-                fontSize:"0.9rem", fontWeight:800, cursor:"pointer",
-                letterSpacing:"0.03em", transition:"all 0.18s", marginTop:"0.25rem" }}
-              onMouseEnter={e => { e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 6px 20px rgba(34,211,238,0.15)"; }}
-              onMouseLeave={e => { e.currentTarget.style.transform=""; e.currentTarget.style.boxShadow=""; }}>
-              ✓ Registrarme como voluntario
-            </button>
+            {/* ── PASO 3: Confirmación ───────────────────────────────────── */}
+            {paso === 3 && (
+              <div style={{ display:"flex", flexDirection:"column", gap:"1.1rem" }}>
+                <div className="step-header">
+                  <div className="step-icon">✅</div>
+                  <div>
+                    <div className="step-title">Revisa y confirma</div>
+                    <div className="step-sub">Comprueba tus datos antes de enviar</div>
+                  </div>
+                </div>
+
+                <div style={{ background:"var(--surface2)", border:"1px solid var(--border)",
+                  borderRadius:12, padding:"1rem 1.25rem" }}>
+                  <div style={{ fontFamily:"var(--font-mono)", fontSize:".6rem", color:"var(--text-muted)",
+                    textTransform:"uppercase", letterSpacing:".09em", marginBottom:".75rem" }}>
+                    Tus datos
+                  </div>
+                  {[
+                    ["Nombre",   `${form.nombre} ${form.apellidos}`],
+                    ["Teléfono", form.telefono],
+                    ["Talla",    form.talla],
+                    ...(opcionPuesto && form.puestoId
+                      ? [["Puesto", puestos.find(p=>String(p.id)===String(form.puestoId))?.nombre || form.puestoId]]
+                      : []),
+                    ...(opcionVehiculo
+                      ? [["Vehículo propio", form.coche ? "Sí ✓" : "No"]]
+                      : []),
+                  ].map(([k,v]) => (
+                    <div key={k} className="summary-row">
+                      <span className="summary-key">{k}</span>
+                      <span className="summary-val">{v}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:".62rem", color:"var(--text-muted)",
+                  lineHeight:1.65, background:"var(--surface2)", borderRadius:8, padding:".75rem 1rem",
+                  borderLeft:"3px solid rgba(34,211,238,.3)" }}>
+                  Al registrarte aceptas que tus datos se usen exclusivamente para la coordinación
+                  del Trail El Guerrero 2026 · Candeleda, Ávila.
+                </div>
+
+                <div className="step-nav">
+                  <button className="pub-btn-ghost" onClick={anterior}>← Atrás</button>
+                  <button className="pub-btn-primary" onClick={handleSubmit}
+                    disabled={enviando}
+                    style={{ opacity: enviando ? .65 : 1, cursor: enviando ? "not-allowed" : "pointer" }}>
+                    {enviando ? "Enviando…" : "✓ Registrarme como voluntario"}
+                  </button>
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
 
