@@ -1259,7 +1259,7 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
           <div className="modal" style={{maxWidth:360}}>
             <div className="modal-header">
               <span className="modal-title">🏷️ Nuevo tipo de contacto</span>
-              <button className="btn btn-ghost btn-sm" onClick={()=>setModalTipo(false)}>✕</button>
+              <button className="btn btn-ghost btn-sm" onClick={()=>setModalTipo(false)} aria-label="Cerrar">✕</button>
             </div>
             <div className="modal-body" style={{gap:".5rem"}}>
               <div>
@@ -1775,7 +1775,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
           <div className="modal" style={{maxWidth:360}}>
             <div className="modal-header">
               <span className="modal-title">🏷️ Nuevo tipo de contacto</span>
-              <button className="btn btn-ghost btn-sm" onClick={()=>setModalTipo(false)}>✕</button>
+              <button className="btn btn-ghost btn-sm" onClick={()=>setModalTipo(false)} aria-label="Cerrar">✕</button>
             </div>
             <div className="modal-body" style={{gap:".5rem"}}>
               <div>
@@ -2121,7 +2121,7 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {} }) {
           <div className="modal" style={{ maxWidth: 420 }}>
             <div className="modal-header">
               <div style={{ fontWeight: 700 }}>{modal.data ? "✏️ Editar localización" : "📍 Nueva localización"}</div>
-              <button className="btn btn-ghost btn-sm" onClick={() => setModal(null)}>✕</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setModal(null)} aria-label="Cerrar">✕</button>
             </div>
             <div className="modal-body" style={{ display: "flex", flexDirection: "column", gap: ".6rem" }}>
               <label style={{ display: "flex", flexDirection: "column", gap: ".2rem" }}>
@@ -2201,7 +2201,7 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar })
                   </div>
                 </div>
               </div>
-              <button className="btn btn-ghost" style={{padding:".2rem .5rem"}} onClick={onClose}>✕</button>
+              <button className="btn btn-ghost" style={{padding:".2rem .5rem"}} onClick={onClose} aria-label="Cerrar">✕</button>
             </div>
           </div>
           <div style={{padding:"1.1rem 1.4rem",display:"flex",flexDirection:"column",gap:".4rem"}}>
@@ -2417,7 +2417,7 @@ function MF({title,fields,init,onSave,onClose}) {
   return(
     <div className={`modal-backdrop${mfClosing ? " modal-backdrop-closing" : ""}`} onClick={e=>e.target===e.currentTarget&&mfHandleClose()}>
       <div className={`modal modal-ficha${mfClosing ? " modal-closing" : ""}`}>
-        <div className="modal-header"><span className="mtit">{title}</span><button className="btn btn-sm btn-ghost" onClick={mfHandleClose}>✕</button></div>
+        <div className="modal-header"><span className="mtit">{title}</span><button className="btn btn-sm btn-ghost" aria-label="Cerrar formulario" onClick={mfHandleClose}><span aria-hidden="true">✕</span></button></div>
         <div className="modal-body">
           {fields.map(f=>(
             <div key={f.k}>
@@ -2471,7 +2471,7 @@ function ModalRuta({data,veh,rutas,setRutas,onClose,locs}) {
   return(
     <div className={`modal-backdrop${rutaClosing ? " modal-backdrop-closing" : ""}`} onClick={e=>e.target===e.currentTarget&&rutaHandleClose()}>
       <div className={`modal modal-ficha${rutaClosing ? " modal-closing" : ""}`} style={{maxWidth:560}}>
-        <div className="modal-header"><span className="mtit">{data?"✏️ Editar ruta":"🗺️ Nueva ruta"}</span><button className="btn btn-sm btn-ghost" onClick={rutaHandleClose}>✕</button></div>
+        <div className="modal-header"><span className="mtit">{data?"✏️ Editar ruta":"🗺️ Nueva ruta"}</span><button className="btn btn-sm btn-ghost" onClick={rutaHandleClose}><span aria-hidden="true">✕</span></button></div>
         <div className="modal-body">
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem"}}>
             <div>
@@ -2501,7 +2501,7 @@ function ModalRuta({data,veh,rutas,setRutas,onClose,locs}) {
                   </select>
                   <div style={{display:"flex",gap:"0.3rem",alignItems:"center"}}>
                     <input className="inp isml" type="time" value={p.hora} onChange={e=>updP(i,"hora",e.target.value)} style={{width:80}}/>
-                    <button className="btn btn-sm btn-red" onClick={()=>delP(i)}>✕</button>
+                    <button className="btn btn-sm btn-red" onClick={()=>delP(i)} aria-label="Cerrar">✕</button>
                   </div>
                 </div>
                 <input className="inp isml" value={p.material} onChange={e=>updP(i,"material",e.target.value)} placeholder="Material a entregar..." style={{width:"100%",fontSize:"var(--fs-sm)"}}/>
@@ -3540,7 +3540,7 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
       <div className="modal modal-ficha" style={{maxWidth:520}}>
         <div className="modal-header">
           <span className="modal-title">{esEdit?"✏️ Editar pedido":"🛒 Nuevo pedido"}</span>
-          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}><span aria-hidden="true">✕</span></button>
         </div>
         <div className="modal-body" style={{gap:".65rem"}}>
 

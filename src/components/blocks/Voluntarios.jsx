@@ -186,7 +186,7 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
                 <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "var(--fs-md)" }}>📐 Guía de tallas</div>
                 <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: "0.2rem" }}>Medidas en centímetros — mide sobre la camiseta plana</div>
               </div>
-              <button onClick={() => setGuiaTallas(false)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "var(--fs-lg)" }}>✕</button>
+              <button onClick={() => setGuiaTallas(false)} aria-label="Cerrar guía de tallas" style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "var(--fs-lg)" }}>✕</button>
             </div>
             {/* If custom guía image uploaded, show it prominently */}
             {imgGuiaTallas && (
@@ -1640,8 +1640,8 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
                   })()}
                 </div>
                 <div style={{ display: "flex", gap: "0.3rem", flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-                  <button className="btn btn-ghost" style={{ padding: "0.28rem 0.45rem", fontSize: "var(--fs-sm)" }} onClick={() => onEditPuesto(p)}>✏️</button>
-                  <button className="btn btn-red" style={{ padding: "0.28rem 0.45rem", fontSize: "var(--fs-sm)" }} onClick={() => onDeletePuesto(p.id)}>✕</button>
+                  <button className="btn btn-ghost" style={{ padding: "0.28rem 0.45rem", fontSize: "var(--fs-sm)" }} onClick={() => onEditPuesto(p)} aria-label="Editar">✏️</button>
+                  <button className="btn btn-red" style={{ padding: "0.28rem 0.45rem", fontSize: "var(--fs-sm)" }} onClick={() => onDeletePuesto(p.id)} aria-label="Cerrar">✕</button>
                 </div>
               </div>
             </div>
@@ -2004,7 +2004,7 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
                 </div>
               </div>
             </div>
-            <button className="btn btn-ghost" style={{ padding:"0.2rem 0.5rem", fontSize:"var(--fs-md)" }} onClick={fvHandleClose}>✕</button>
+            <button className="btn btn-ghost" style={{ padding:"0.2rem 0.5rem", fontSize:"var(--fs-md)" }} onClick={fvHandleClose} aria-label="Cerrar">✕</button>
           </div>
         </div>
         <div className="modal-body">
@@ -2149,7 +2149,7 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
                 {p.tipo} · {p.horaInicio} – {p.horaFin}
               </div>
             </div>
-            <button className="btn btn-ghost" style={{ padding:"0.2rem 0.5rem", fontSize:"var(--fs-md)" }} onClick={fpuHandleClose}>✕</button>
+            <button className="btn btn-ghost" style={{ padding:"0.2rem 0.5rem", fontSize:"var(--fs-md)" }} onClick={fpuHandleClose} aria-label="Cerrar">✕</button>
           </div>
         </div>
         <div className="modal-body">
@@ -2380,7 +2380,7 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
       <div className={`modal modal-ficha${mvClosing ? " modal-closing" : ""}`}>
         <div className="modal-header">
           <span className="modal-title">{voluntario ? "✏️ Editar voluntario" : "➕ Nuevo voluntario"}</span>
-          <button className="btn btn-ghost" style={{ padding: "0.2rem 0.5rem" }} onClick={mvHandleClose}>✕</button>
+          <button className="btn btn-ghost" style={{ padding: "0.2rem 0.5rem" }} onClick={mvHandleClose} aria-label="Cerrar">✕</button>
         </div>
         <div className="modal-body">
 
@@ -2538,7 +2538,7 @@ function ModalPuesto({ puesto, locs, onSave, onClose }) {
       <div className={`modal modal-ficha${mpuClosing ? " modal-closing" : ""}`}>
         <div className="modal-header">
           <span className="modal-title">{puesto ? "✏️ Editar puesto" : "📍 Nuevo puesto"}</span>
-          <button className="btn btn-ghost" style={{ padding: "0.2rem 0.5rem" }} onClick={mpuHandleClose}>✕</button>
+          <button className="btn btn-ghost" style={{ padding: "0.2rem 0.5rem" }} onClick={mpuHandleClose} aria-label="Cerrar">✕</button>
         </div>
         <div className="modal-body">
           <div style={{ marginBottom: "0.5rem" }}>

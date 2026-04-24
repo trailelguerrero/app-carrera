@@ -311,7 +311,7 @@ export default function App() {
                 placeholder="Buscar en todo el proyecto…"
                 style={{background:"none",border:"none",color:"var(--text)",fontFamily:"var(--font-display)",fontSize:"var(--fs-base)",outline:"none",width: isMobile ? 120 : 200}}
               />
-              {busquedaGlobal && <button onClick={()=>setBusquedaGlobal("")} style={{background:"none",border:"none",color:"var(--text-muted)",cursor:"pointer",fontSize:"var(--fs-base)",padding:0}}>✕</button>}
+              {busquedaGlobal && <button onClick={()=>setBusquedaGlobal("")} style={{background:"none",border:"none",color:"var(--text-muted)",cursor:"pointer",fontSize:"var(--fs-base)",padding:0}} aria-label="Cerrar">✕</button>}
             </div>
             {busquedaGlobal && tareasFiltradas && (
               <span className="badge badge-violet" style={{whiteSpace:"nowrap"}}>
@@ -717,7 +717,7 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
             <button onClick={limpiar}
               style={{background:"none",border:"none",color:"var(--text-muted)",
                 cursor:"pointer",fontSize:"var(--fs-base)",padding:".3rem",flexShrink:0}}
-              title="Limpiar filtros">✕</button>
+              title="Limpiar filtros"><span aria-hidden="true">✕</span></button>
           )}
         </div>
 
@@ -1568,7 +1568,7 @@ function ModalTarea({ data, prefill={}, equipo, tareas, documentos, onSave, onCl
       <div className="modal">
         <div className="modal-header">
           <span className="mtit">{data?"✏️ Editar tarea":"➕ Nueva tarea"}</span>
-          <button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button>
+          <button className="btn btn-sm btn-ghost" aria-label="Cerrar formulario de tarea" onClick={onClose}><span aria-hidden="true">✕</span></button>
         </div>
         <div className="modal-body">
           <div>
@@ -1665,7 +1665,7 @@ function ModalHito({ data, onSave, onClose }) {
   return (
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal" style={{maxWidth:420}}>
-        <div className="modal-header"><span className="mtit">{data?"✏️ Editar hito":"🏁 Nuevo hito"}</span><button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button></div>
+        <div className="modal-header"><span className="mtit">{data?"✏️ Editar hito":"🏁 Nuevo hito"}</span><button className="btn btn-sm btn-ghost" aria-label="Cerrar formulario de tarea" onClick={onClose}><span aria-hidden="true">✕</span></button></div>
         <div className="modal-body">
           <div>
             <label className="fl" style={{color:err.nombre?"#f87171":undefined}}>Nombre del hito *</label>
@@ -1712,7 +1712,7 @@ function ModalPersona({ data, onSave, onClose }) {
   return (
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal">
-        <div className="modal-header"><span className="mtit">{data?"✏️ Editar persona":"👤 Nueva persona"}</span><button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button></div>
+        <div className="modal-header"><span className="mtit">{data?"✏️ Editar persona":"👤 Nueva persona"}</span><button className="btn btn-sm btn-ghost" aria-label="Cerrar formulario de tarea" onClick={onClose}><span aria-hidden="true">✕</span></button></div>
         <div className="modal-body">
           <div style={{display:"flex",alignItems:"center",gap:"1rem",padding:".75rem",background:"var(--surface2)",borderRadius:10}}>
             <div className="avatar-lg" style={{background:form.color+"22",border:`2px solid ${form.color}66`,color:form.color,flexShrink:0}}>{iniciales(form.nombre||"??")}</div>
@@ -1802,7 +1802,7 @@ function FichaProyecto({ ficha, equipo, documentos, tareas, onClose, onEditar, o
                   </div>
                 </div>
               </div>
-              <button className="btn btn-ghost" style={{ padding:".2rem .5rem" }} onClick={fpHandleClose}>✕</button>
+              <button className="btn btn-ghost" style={{ padding:".2rem .5rem" }} onClick={fpHandleClose} aria-label="Cerrar">✕</button>
             </div>
           </div>
 

@@ -938,8 +938,8 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
                         {col.id==="pendiente"?"✓ Entregar":"↩ Reabrir"}
                       </button>
                       <div style={{display:"flex", gap:".3rem"}}>
-                        <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(`${c.patId}-${c.id}`); setEditC({ tipo: c.tipo, detalle: c.detalle||"", fechaEntrega: c.fechaEntrega||"" }); }}>✏️</button>
-                        <button className="btn btn-sm btn-red" onClick={() => deleteContraprestacion(c.patId, c.id)}>✕</button>
+                        <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(`${c.patId}-${c.id}`); setEditC({ tipo: c.tipo, detalle: c.detalle||"", fechaEntrega: c.fechaEntrega||"" }); }} aria-label="Editar">✏️</button>
+                        <button className="btn btn-sm btn-red" onClick={() => deleteContraprestacion(c.patId, c.id)} aria-label="Cerrar">✕</button>
                       </div>
                     </div>
                   </div>
@@ -978,8 +978,8 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
               <div style={{display:"flex", gap:".25rem", flexShrink:0}}>
                 <button className="btn btn-sm" style={{ background: "var(--green-dim)", color: "var(--green)", border: "1px solid rgba(52,211,153,.2)" }}
                   onClick={() => updateContraprestacion(c.patId, c.id, "estado", "entregado")}>Entregar</button>
-                <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(`${c.patId}-${c.id}`); setEditC({ tipo: c.tipo, detalle: c.detalle||"", fechaEntrega: c.fechaEntrega||"" }); }}>✏️</button>
-                <button className="btn btn-sm btn-red" onClick={() => deleteContraprestacion(c.patId, c.id)}>✕</button>
+                <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(`${c.patId}-${c.id}`); setEditC({ tipo: c.tipo, detalle: c.detalle||"", fechaEntrega: c.fechaEntrega||"" }); }} aria-label="Editar">✏️</button>
+                <button className="btn btn-sm btn-red" onClick={() => deleteContraprestacion(c.patId, c.id)} aria-label="Cerrar">✕</button>
               </div>
             </div>
           ))}
@@ -1007,8 +1007,8 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
               <div style={{display:"flex", gap:".25rem", flexShrink:0}}>
                 <button className="btn btn-sm" style={{ background: "var(--surface2)", color: "var(--text)", border: "1px solid var(--border)" }}
                   onClick={() => updateContraprestacion(c.patId, c.id, "estado", "pendiente")}>↩ Reabrir</button>
-                <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(`${c.patId}-${c.id}`); setEditC({ tipo: c.tipo, detalle: c.detalle||"", fechaEntrega: c.fechaEntrega||"" }); }}>✏️</button>
-                <button className="btn btn-sm btn-red" onClick={() => deleteContraprestacion(c.patId, c.id)}>✕</button>
+                <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(`${c.patId}-${c.id}`); setEditC({ tipo: c.tipo, detalle: c.detalle||"", fechaEntrega: c.fechaEntrega||"" }); }} aria-label="Editar">✏️</button>
+                <button className="btn btn-sm btn-red" onClick={() => deleteContraprestacion(c.patId, c.id)} aria-label="Cerrar">✕</button>
               </div>
             </div>
           ))}
@@ -1072,8 +1072,8 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
                   return <span key="urg" style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-dim)",flexShrink:0}}>📅 {c.fechaEntrega}</span>;
                 })()}
                 <div style={{display:"flex",gap:".3rem",flexShrink:0}}>
-                  <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(`${p.id}-${c.id}`); setEditC({ tipo: c.tipo, detalle: c.detalle||"", fechaEntrega: c.fechaEntrega||"" }); }}>✏️</button>
-                  <button className="btn btn-sm btn-red" onClick={() => deleteContraprestacion(p.id, c.id)}>✕</button>
+                  <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(`${p.id}-${c.id}`); setEditC({ tipo: c.tipo, detalle: c.detalle||"", fechaEntrega: c.fechaEntrega||"" }); }} aria-label="Editar">✏️</button>
+                  <button className="btn btn-sm btn-red" onClick={() => deleteContraprestacion(p.id, c.id)} aria-label="Cerrar">✕</button>
                 </div>
               </div>
             ))}
@@ -1138,7 +1138,7 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
               {subTab === "informe" && <button className="btn btn-sm btn-ghost" onClick={() => generarInformePDF(pat, config)}>
                 ⬇ Descargar PDF
               </button>}
-              <button className="btn btn-sm btn-ghost" onClick={detHandleClose}>✕</button>
+              <button className="btn btn-sm btn-ghost" onClick={detHandleClose}><span aria-hidden="true">✕</span></button>
             </div>
           </div>
           <div style={{ display: "flex", gap: "0", padding: "0 1.4rem" }}>
@@ -1238,8 +1238,8 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
                     if (dias <= 7) return <span key="urg" style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".1rem .35rem",borderRadius:4,background:"var(--amber-dim)",color:"var(--amber)",fontWeight:700}}>📅 {dias}d</span>;
                     return null;
                   })()}
-                  <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(c.id); setEditC({ tipo: c.tipo, detalle: c.detalle||"", fechaEntrega: c.fechaEntrega||"" }); }}>✏️</button>
-                  <button className="btn btn-sm btn-red" onClick={() => deleteContraprestacion(pat.id, c.id)}>✕</button>
+                  <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(c.id); setEditC({ tipo: c.tipo, detalle: c.detalle||"", fechaEntrega: c.fechaEntrega||"" }); }} aria-label="Editar">✏️</button>
+                  <button className="btn btn-sm btn-red" onClick={() => deleteContraprestacion(pat.id, c.id)} aria-label="Cerrar">✕</button>
                 </div>
               </div>
             ))}
@@ -1307,8 +1307,8 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
                   {item.recibido ? "✓ Recibido" : "⏳ Pendiente"}
                 </span>
                 <div style={{display:"flex",gap:".3rem",flexShrink:0}}>
-                  <button className="btn btn-sm btn-ghost" onClick={() => { setEditingEspecie(item.id); setEditEsp({ nombre: item.nombre, cantidad: item.cantidad, unidad: item.unidad }); }}>✏️</button>
-                  <button className="btn btn-sm btn-red" onClick={() => deleteEspecieItem(pat.id, item.id)}>✕</button>
+                  <button className="btn btn-sm btn-ghost" onClick={() => { setEditingEspecie(item.id); setEditEsp({ nombre: item.nombre, cantidad: item.cantidad, unidad: item.unidad }); }} aria-label="Editar">✏️</button>
+                  <button className="btn btn-sm btn-red" onClick={() => deleteEspecieItem(pat.id, item.id)} aria-label="Cerrar">✕</button>
                 </div>
               </div>
             ))}
@@ -1572,7 +1572,7 @@ function ModalPat({ data, onSave, onClose }) {
       <div className={`modal modal-ficha${mpClosing ? " modal-closing" : ""}`}>
         <div className="modal-header">
           <span className="mtit">{data ? "✏️ Editar patrocinador" : "🤝 Nuevo patrocinador"}</span>
-          <button className="btn btn-sm btn-ghost" onClick={mpHandleClose}>✕</button>
+          <button className="btn btn-sm btn-ghost" onClick={mpHandleClose}><span aria-hidden="true">✕</span></button>
         </div>
         <div className="modal-body">
           <div>
@@ -1873,7 +1873,7 @@ function DocManager({ pat, addDoc, deleteDoc, cfg }) {
               {(d.blob_url || d.data) && (
                 <a href={d.blob_url || d.data} download={d.nombre} target="_blank" rel="noreferrer" className="btn btn-sm btn-ghost" style={{ textDecoration:"none" }}>⬇</a>
               )}
-              <button className="btn btn-sm btn-red" onClick={() => handleDelete(d.id)}>✕</button>
+              <button className="btn btn-sm btn-red" onClick={() => handleDelete(d.id)} aria-label="Cerrar">✕</button>
             </div>
           </div>
         ))}
@@ -1892,7 +1892,7 @@ function DocManager({ pat, addDoc, deleteDoc, cfg }) {
               <div><div style={{ fontWeight:700, fontSize:"var(--fs-base)" }}>{preview.nombre}</div><div className="mono xs muted">{preview.tipo}</div></div>
               <div style={{ display:"flex", gap:".4rem" }}>
                 {(preview.blob_url || preview.data) && <a href={preview.blob_url || preview.data} download={preview.nombre} target="_blank" rel="noreferrer" className="btn btn-sm btn-ghost" style={{ textDecoration:"none" }}>⬇ Descargar</a>}
-                <button className="btn btn-sm btn-ghost" onClick={() => setPreview(null)}>✕</button>
+                <button className="btn btn-sm btn-ghost" onClick={() => setPreview(null)} aria-label="Cerrar">✕</button>
               </div>
             </div>
             <div style={{ flex:1, overflow:"auto", minHeight:0 }}>
@@ -2097,7 +2097,7 @@ function TabDocumentos({ pats, addDoc, deleteDoc }) {
                       onClick={() => setPreview(d)}>👁 Ver</button>
                   )}
                   <a href={d.data} download={d.nombre} className="btn btn-sm btn-ghost" style={{ textDecoration: "none" }}>⬇ Bajar</a>
-                  <button className="btn btn-sm btn-red" onClick={() => deleteDoc(d.patId, d.id)}>✕</button>
+                  <button className="btn btn-sm btn-red" onClick={() => deleteDoc(d.patId, d.id)} aria-label="Cerrar">✕</button>
                 </div>
               </div>
             );
@@ -2117,7 +2117,7 @@ function TabDocumentos({ pats, addDoc, deleteDoc }) {
               </div>
               <div style={{ display: "flex", gap: ".4rem" }}>
                 <a href={preview.data} download={preview.nombre} className="btn btn-sm btn-ghost" style={{ textDecoration: "none" }}>⬇ Descargar</a>
-                <button className="btn btn-sm btn-ghost" onClick={() => setPreview(null)}>✕</button>
+                <button className="btn btn-sm btn-ghost" onClick={() => setPreview(null)} aria-label="Cerrar">✕</button>
               </div>
             </div>
             <div style={{ flex: 1, overflow: "auto", minHeight: 0 }}>

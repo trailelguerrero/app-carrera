@@ -405,7 +405,7 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
             ) : (
               <div style={{ display: "flex", gap: ".6rem" }}>
 {["corredor","voluntario","nino"].map(tipo => <span key={tipo} className="mono xs">{TC[tipo].icon} {fmtNum2(coste[tipo])}€</span>)}
-                <button className="btn btn-ghost btn-sm" onClick={() => setEditCoste(true)}>✏️</button>
+                <button className="btn btn-ghost btn-sm" aria-label="Editar coste de camiseta" onClick={() => setEditCoste(true)}>✏️</button>
               </div>
             )}
           </div>
@@ -425,7 +425,7 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
             ) : (
               <div style={{ display: "flex", gap: ".6rem", alignItems: "center" }}>
                 <span className="mono">{fmtNum2(precioCorrExt)}€</span>
-                <button className="btn btn-ghost btn-sm" onClick={() => setEditPrecioPlat(true)}>✏️</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => setEditPrecioPlat(true)} aria-label="Editar">✏️</button>
               </div>
             )}
           </div>
@@ -1033,7 +1033,7 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
                 ? <button className="btn btn-ghost btn-sm" onClick={abrirEdicion}>✏️ Editar</button>
                 : <div style={{ display: 'flex', gap: '.35rem' }}>
                     <button className="btn btn-primary btn-sm" onClick={guardarCorredores}>✓ Guardar</button>
-                    <button className="btn btn-ghost btn-sm" onClick={() => setEditCorredores(false)}>✕</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => setEditCorredores(false)} aria-label="Cerrar">✕</button>
                   </div>
             }
           />
@@ -1103,7 +1103,7 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
                 ? <button className="btn btn-ghost btn-sm" onClick={abrirEdicionNino}>✏️ Editar</button>
                 : <div style={{ display: 'flex', gap: '.35rem' }}>
                     <button className="btn btn-primary btn-sm" onClick={guardarNino}>✓ Guardar</button>
-                    <button className="btn btn-ghost btn-sm" onClick={() => setEditNino(false)}>✕</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => setEditNino(false)} aria-label="Cerrar">✕</button>
                   </div>
             }
           />
@@ -1339,7 +1339,7 @@ function FichaPedido({ pedido:p, coste, onClose, onEditar, onEliminar, updateLin
                 <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginTop:".1rem",textTransform:"uppercase"}}>{totalUnid} unidades · {p.lineas.length} línea{p.lineas.length!==1?"s":""}</div>
               </div>
             </div>
-            <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+            <button className="btn btn-ghost btn-sm" onClick={onClose}><span aria-hidden="true">✕</span></button>
           </div>
         </div>
         <div className="modal-body" style={{gap:".4rem"}}>
@@ -1416,7 +1416,7 @@ function ModalPedido({ data, coste, onSave, onClose }) {
   return (
     <div className={`modal-backdrop${mpedClosing ? " modal-backdrop-closing" : ""}`} onClick={e=>e.target===e.currentTarget&&mpedHandleClose()}>
       <div className={`modal modal-ficha${mpedClosing ? " modal-closing" : ""}`} style={{maxWidth:540}}>
-        <div className="modal-header"><span className="modal-title">{esEdit?"✏️ Editar pedido":"👕 Nuevo pedido de camiseta"}</span><button className="btn btn-ghost btn-sm" onClick={mpedHandleClose}>✕</button></div>
+        <div className="modal-header"><span className="modal-title">{esEdit?"✏️ Editar pedido":"👕 Nuevo pedido de camiseta"}</span><button className="btn btn-ghost btn-sm" onClick={mpedHandleClose} aria-label="Cerrar">✕</button></div>
         <div className="modal-body" style={{gap:".75rem"}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
             <div style={{gridColumn:"1/-1"}}>
@@ -1446,7 +1446,7 @@ function ModalPedido({ data, coste, onSave, onClose }) {
                       <div><label className="fl">Talla</label><select className="inp inp-sm" value={l.talla} onChange={e=>updL(i,"talla",e.target.value)}>{(l.tipo==="nino"?TALLAS_NINO:TALLAS).map(t=><option key={t} value={t}>{t}</option>)}</select></div>
                       <div><label className="fl">Cant.</label><input type="number" min="1" className="inp inp-sm inp-mono" value={l.cantidad} onChange={e=>updL(i,"cantidad",Math.max(1,parseInt(e.target.value)||1))} /></div>
                       <div><label className="fl">€ Venta</label><input type="number" min="0" step="0.5" className="inp inp-sm inp-mono" value={l.precioVenta||0} onChange={e=>updL(i,"precioVenta",parseFloat(e.target.value)||0)} disabled={esR} style={{opacity:esR?.45:1}} /></div>
-                      <button className="btn btn-red btn-sm" onClick={()=>delL(i)} disabled={form.lineas.length<=1} style={{marginBottom:1}}>✕</button>
+                      <button className="btn btn-red btn-sm" onClick={()=>delL(i)} disabled={form.lineas.length<=1} style={{marginBottom:1}} aria-label="Cerrar">✕</button>
                     </div>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem",marginBottom:".35rem"}}>
                       <div><label className="fl">Estado de pago</label><select className="inp inp-sm" value={ep} onChange={e=>updL(i,"estadoPago",e.target.value)}>{ESTADOS_PAGO.map(s=><option key={s} value={s}>{EP[s].icon} {EP[s].label}</option>)}</select></div>

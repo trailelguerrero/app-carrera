@@ -137,7 +137,7 @@ export default function DiaCarrera({ onClose }) {
             {" "}· {hora} · <span style={{color:"var(--green)"}}>{presentes}/{confirmados.length} presentes</span>
           </div>
         </div>
-        <button onClick={onClose} style={{
+        <button onClick={onClose} aria-label="Cerrar vista Día de la Carrera" style={{
           background:"var(--surface2)", border:"1px solid var(--border)",
           borderRadius:8, color:"var(--text-muted)", cursor:"pointer",
           padding:".35rem .7rem", fontFamily:"'DM Mono',monospace",

@@ -909,7 +909,7 @@ export default function Documentos() {
                     </div>
                     <div className="doc-card-actions">
                       <button onClick={e=>{e.stopPropagation();viewDoc(doc);}} className="doc-btn doc-btn-view">👁 Ver</button>
-                      <button onClick={e=>{e.stopPropagation();downloadDoc(doc);}} className="doc-btn doc-btn-dl">⬇</button>
+                      <button onClick={e=>{e.stopPropagation();downloadDoc(doc);}} aria-label="Descargar documento" className="doc-btn doc-btn-dl">⬇</button>
                     </div>
                   </div>
                 );
@@ -1071,7 +1071,7 @@ export default function Documentos() {
                           <button onClick={() => viewDoc(doc)} className="doc-btn doc-btn-view">👁 Ver</button>
                           <button onClick={() => downloadDoc(doc)} className="doc-btn doc-btn-dl">⬇ Guardar</button>
                           <button onClick={() => startEdit(doc)} className="doc-btn doc-btn-edit">✏️ Editar</button>
-                          <button onClick={() => deleteDoc(doc.id)} className="doc-btn doc-btn-del">🗑</button>
+                          <button onClick={() => deleteDoc(doc.id)} aria-label="Eliminar documento" className="doc-btn doc-btn-del">🗑</button>
                         </div>
                       </>
                     )}
@@ -1423,7 +1423,7 @@ export default function Documentos() {
           <div className="modal modal-ficha" style={{maxWidth:480}}>
             <div className="modal-header">
               <span className="modal-title">🏛️ Nueva gestión legal</span>
-              <button className="btn btn-ghost btn-sm" onClick={()=>setGModal(false)}>✕</button>
+              <button className="btn btn-ghost btn-sm" onClick={()=>setGModal(false)} aria-label="Cerrar">✕</button>
             </div>
             <div className="modal-body" style={{gap:".65rem"}}>
               <div>
