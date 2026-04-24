@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useModalClose } from "@/hooks/useModalClose";
 import { exportarMaterial } from "@/lib/exportUtils";
+import { toast } from "@/lib/toast";
 import { genIdNum } from "@/lib/utils";
 import EmptyState from "@/components/EmptyState";
 import { usePaginacion } from "@/lib/usePaginacion.jsx";
@@ -3013,7 +3014,7 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
                               color: p.estado===e.id ? e.color : "var(--text-dim)",
                               transition:"background .12s,color .12s",
                             }}
-                            onClick={()=>setPedidos(prev=>prev.map(x=>x.id===p.id?{...x,estado:e.id}:x))}>
+                            onClick={()=>{ setPedidos(prev=>prev.map(x=>x.id===p.id?{...x,estado:e.id}:x)); if(e.id==="recibido") toast.success("Pedido marcado como recibido"); }}>
                             {e.label}
                           </button>
                         ))}

@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import dataService, { useData } from "@/lib/dataService";
 import { genIdStr } from "@/lib/utils";
+import { toast } from "@/lib/toast";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────

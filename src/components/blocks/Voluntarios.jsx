@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { exportarVoluntarios } from "@/lib/exportUtils";
+import { toast } from "@/lib/toast";
 import { genIdNum, scrollMainToTop } from "@/lib/utils";
 import { useModalClose } from "@/hooks/useModalClose";
 import EmptyState from "@/components/EmptyState";
@@ -509,7 +510,7 @@ export default function App() {
     setVoluntarios(prev => [...prev, nuevo]);
   };
 
-  const updateVoluntario = (id, data) => setVoluntarios(prev => prev.map(v => v.id === id ? { ...v, ...data } : v));
+  const updateVoluntario = (id, data) => { setVoluntarios(prev => prev.map(v => v.id === id ? { ...v, ...data } : v)); if(data.estado==="confirmado") toast.success("Voluntario confirmado ✓"); else if(data.estado==="cancelado") toast.warning("Voluntario cancelado"); };
   const deleteVoluntario = (id) => { setVoluntarios(prev => prev.filter(v => v.id !== id)); setConfirmDelete(null); };
   const updatePuesto = (id, data) => setPuestos(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
   const addPuesto = (data) => setPuestos(prev => [...prev, { id: genIdNum(puestos), ...data }]);
@@ -593,6 +594,7 @@ export default function App() {
                 navigator.clipboard.writeText(url).then(() => {
                   setUrlCopiada(true);
                   setTimeout(() => setUrlCopiada(false), 2000);
+                  toast.success("URL del formulario copiada al portapapeles");
                 });
               }}
               className="btn btn-ghost btn-sm"
@@ -653,7 +655,7 @@ export default function App() {
               <button
                 className="btn btn-ghost btn-sm"
                 style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)" }}
-                onClick={() => navigator.clipboard.writeText(window.location.origin + "/voluntarios/registro")}>
+                onClick={() => navigator.clipboard.writeText(window.location.origin + "/voluntarios/registro").then(() => toast.success("URL copiada al portapapeles"))}>
                 📋 Copiar enlace
               </button>
             </div>
@@ -1675,6 +1677,7 @@ function TabTallas({ stats, voluntarios }) {
     a.download = "tallas_voluntarios_TEG2026.csv";
     a.click();
     URL.revokeObjectURL(url);
+    toast.success("CSV de tallas exportado");
   };
 
   // Exportar resumen de tallas
@@ -1692,6 +1695,7 @@ function TabTallas({ stats, voluntarios }) {
     a.download = "resumen_tallas_TEG2026.csv";
     a.click();
     URL.revokeObjectURL(url);
+    toast.success("Resumen de tallas exportado");
   };
 
   return (

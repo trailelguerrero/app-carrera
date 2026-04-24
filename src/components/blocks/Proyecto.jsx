@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { useModalClose } from "@/hooks/useModalClose";
 import EmptyState from "@/components/EmptyState";
 import { usePaginacion } from "@/lib/usePaginacion.jsx";
+import { toast } from "@/lib/toast";
 import { genIdNum } from "@/lib/utils";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import dataService, { useData } from "@/lib/dataService";
@@ -273,8 +274,8 @@ export default function App() {
     if (tipo==="persona") setEquipo(p => p.filter(x => x.id!==id));
     setDelConf(null);
   };
-  const updEstado = (id, estado) => setTareas(p => p.map(t => t.id===id ? {...t,estado} : t));
-  const updHito = (id, field, val) => setHitos(p => p.map(h => h.id===id ? {...h,[field]:val} : h));
+  const updEstado = (id, estado) => { setTareas(p => p.map(t => t.id===id ? {...t,estado} : t)); if(estado==="completado") toast.success("Tarea completada ✓"); };
+  const updHito = (id, field, val) => { setHitos(p => p.map(h => h.id===id ? {...h,[field]:val} : h)); if(field==="completado") toast.success(val ? "Hito completado ✓" : "Hito reabierto"); };
 
   const TABS_VISTAS = [
     {id:"tablón",    icon:"📋", label:"Tablón"},

@@ -679,6 +679,71 @@ export const BLOCK_CSS = `
   .flex-between { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
   .flex-center  { display: flex; align-items: center; gap: 0.5rem; }
 
+  /* ── Toast notifications ─────────────────────────────────────────────────── */
+  .teg-toast-stack {
+    position: fixed;
+    bottom: calc(var(--nav-h, 64px) + 12px);
+    right: 12px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 8px;
+    pointer-events: none;
+    max-width: min(340px, calc(100vw - 24px));
+  }
+  .teg-toast {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.55rem 0.85rem;
+    border-radius: 10px;
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    pointer-events: auto;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+    animation: toast-in 0.28s cubic-bezier(0.34,1.56,0.64,1);
+    line-height: 1.4;
+    max-width: 100%;
+    word-break: break-word;
+  }
+  .teg-toast.leaving {
+    animation: toast-out 0.2s ease forwards;
+  }
+  .teg-toast-icon { flex-shrink: 0; font-size: 1rem; }
+  .teg-toast-msg  { flex: 1; min-width: 0; }
+  .teg-toast-close {
+    flex-shrink: 0;
+    background: none; border: none; cursor: pointer;
+    color: inherit; opacity: 0.5; font-size: var(--fs-xs);
+    padding: 0 2px; line-height: 1;
+    transition: opacity 0.15s;
+  }
+  .teg-toast-close:hover { opacity: 1; }
+  .teg-toast.success {
+    background: rgba(52,211,153,0.15);
+    border: 1px solid rgba(52,211,153,0.35);
+    color: var(--green);
+  }
+  .teg-toast.error {
+    background: rgba(248,113,113,0.15);
+    border: 1px solid rgba(248,113,113,0.35);
+    color: var(--red);
+  }
+  .teg-toast.info {
+    background: rgba(34,211,238,0.12);
+    border: 1px solid rgba(34,211,238,0.3);
+    color: var(--cyan);
+  }
+  .teg-toast.warning {
+    background: rgba(251,191,36,0.12);
+    border: 1px solid rgba(251,191,36,0.3);
+    color: var(--amber);
+  }
+  @keyframes toast-in  { from { opacity:0; transform:translateX(40px) scale(0.92); } to { opacity:1; transform:translateX(0) scale(1); } }
+  @keyframes toast-out { to   { opacity:0; transform:translateX(40px) scale(0.88); } }
+
   /* ── Tema: transición suave en cambio claro/oscuro ──────────────────────── */
   *, *::before, *::after {
     transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;

@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useModalClose } from "@/hooks/useModalClose";
 import { exportarPatrocinadores } from "@/lib/exportUtils";
+import { toast } from "@/lib/toast";
 import { genIdNum, fmtEur, scrollMainToTop } from "@/lib/utils";
 import EmptyState from "@/components/EmptyState";
 import { usePaginacion } from "@/lib/usePaginacion.jsx";
@@ -216,7 +217,7 @@ export default function App() {
     setDelId(null);
   };
 
-  const updateEstado = (id, estado) => setPats(prev => prev.map(p => p.id === id ? { ...p, estado } : p));
+  const updateEstado = (id, estado) => { setPats(prev => prev.map(p => p.id === id ? { ...p, estado } : p)); if(estado==="cobrado") toast.success("Patrocinador marcado como cobrado ✓"); };
 
   const addDoc = (patId, doc) => {
     setPats(prev => prev.map(p => p.id === patId ? { ...p, docs: [...(p.docs||[]), { ...doc, id: genIdNum(p.docs||[]) }] } : p));
@@ -1450,6 +1451,7 @@ function generarInformePDF(pat, config = {}) {
   a.download = `informe-${(pat.nombre||"patrocinador").toLowerCase().replace(/\s+/g,"-")}.html`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
+  toast.success(`Informe de ${pat.nombre || "patrocinador"} descargado`);
 }
 
 function InformePatrocinador({ pat, cfg, config = {} }) {

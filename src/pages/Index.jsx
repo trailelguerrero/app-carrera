@@ -43,6 +43,51 @@ function hashPin(pin) {
   return String(h);
 }
 
+// ── TOAST SYSTEM ──────────────────────────────────────────────────────────────
+function useToastSystem() {
+  const [toasts, setToasts] = React.useState([]);
+
+  React.useEffect(() => {
+    const handler = (e) => {
+      const { id, type, message, duration = 3500 } = e.detail;
+      setToasts(prev => [...prev, { id, type, message, duration, leaving: false }]);
+      setTimeout(() => {
+        // Marcar como leaving para animar salida
+        setToasts(prev => prev.map(t => t.id === id ? { ...t, leaving: true } : t));
+        setTimeout(() => {
+          setToasts(prev => prev.filter(t => t.id !== id));
+        }, 220);
+      }, duration);
+    };
+    window.addEventListener("teg-toast", handler);
+    return () => window.removeEventListener("teg-toast", handler);
+  }, []);
+
+  const dismiss = (id) => {
+    setToasts(prev => prev.map(t => t.id === id ? { ...t, leaving: true } : t));
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 220);
+  };
+
+  return { toasts, dismiss };
+}
+
+const TOAST_ICONS = { success: "✓", error: "✕", info: "ℹ", warning: "⚠" };
+
+function ToastStack({ toasts, dismiss, navH }) {
+  if (!toasts.length) return null;
+  return (
+    <div className="teg-toast-stack" style={{ bottom: `calc(${navH}px + 12px)` }}>
+      {toasts.map(t => (
+        <div key={t.id} className={`teg-toast ${t.type}${t.leaving ? " leaving" : ""}`}>
+          <span className="teg-toast-icon">{TOAST_ICONS[t.type]}</span>
+          <span className="teg-toast-msg">{t.message}</span>
+          <button className="teg-toast-close" onClick={() => dismiss(t.id)} aria-label="Cerrar">×</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── AUTOSAVE STATUS HOOK ───────────────────────────────────────────────────────
 function useGlobalSaveStatus() {
   const [status, setStatus] = useState(null);
@@ -941,6 +986,9 @@ export default function Index() {
           {showDiaCarrera && <DiaCarrera onClose={() => setShowDiaCarrera(false)} />}
         {showOnboarding && <OnboardingModal onClose={cerrarOnboarding} onNavigate={(id) => { handleBlockChange(id); cerrarOnboarding(); }} />}
         {showChangePin && <ChangePinModal onClose={() => setShowChangePin(false)} />}
+
+        {/* TOAST STACK — renderizado encima de todo */}
+        <ToastStack toasts={toasts} dismiss={dismiss} navH={NAV_H} />
       </div>
     </>
   );

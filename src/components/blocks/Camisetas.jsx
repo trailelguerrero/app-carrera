@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useModalClose } from "@/hooks/useModalClose";
 import { useData } from "@/lib/dataService";
+import { toast } from "@/lib/toast";
 import { genIdNum, fmtEur2, fmtNum2, scrollMainToTop } from "@/lib/utils";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
@@ -136,8 +137,8 @@ export default function App() {
   const abrirEditar = (p) => { scrollMainToTop(); setFicha(null); setModal({data:p}); };
 
   const savePedido = (p) => {
-    if (p.id) setPedidos(prev => prev.map(x => x.id===p.id ? p : x));
-    else      setPedidos(prev => [...prev, {...p, id:genId(pedidos)}]);
+    if (p.id) { setPedidos(prev => prev.map(x => x.id===p.id ? p : x)); toast.success("Pedido actualizado"); }
+    else      { setPedidos(prev => [...prev, {...p, id:genId(pedidos)}]); toast.success("Pedido creado"); }
     setModal(null);
   };
   const deletePedido = () => { setPedidos(prev => prev.filter(x => x.id!==delId)); setDelId(null); setFicha(null); };

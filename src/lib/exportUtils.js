@@ -13,6 +13,7 @@ const wb = () => XLSX.utils.book_new();
 
 const writeFile = (workbook, filename) => {
   XLSX.writeFile(workbook, filename);
+  window.dispatchEvent(new CustomEvent("teg-toast", { detail: { id: Date.now(), type: "success", message: "Excel exportado correctamente", duration: 3000 } }));
 };
 
 const sheet = (data) => XLSX.utils.json_to_sheet(data);

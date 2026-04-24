@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useData, dataService } from "@/lib/dataService";
+import { toast } from "@/lib/toast";
 import EmptyState from "@/components/EmptyState";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { getEventDate } from "@/lib/eventUtils";
@@ -95,6 +96,7 @@ export default function DiaCarrera({ onClose }) {
     const incs = await dataService.get(LS_LOG + "_inc", []);
     await dataService.set(LS_LOG + "_inc", [...(Array.isArray(incs) ? incs : []), nueva]);
     dataService.notify();
+    toast.success("Incidencia registrada correctamente");
     setIncGuardado(true);
     setTimeout(() => {
       setShowInc(false);
