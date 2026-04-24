@@ -446,19 +446,19 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
     <>
       {/* ── KPIs — clases del sistema BLOCK_CSS ── */}
       <div className="kpi-grid mb">
-        {KPIS.map(k => (
-          <div key={k.l}
-            className={`kpi ${k.color} log-kpi-link`}
-            onClick={()=>setTab(k.tab)}
-            title={`Ir a ${k.l}`}>
+        {KPIS.map(function(kpiItem) { return (
+          <div key={kpiItem.l}
+            className={`kpi ${kpiItem.color} log-kpi-link`}
+            onClick={()=>setTab(kpiItem.tab)}
+            title={`Ir a ${kpiItem.l}`}>
             <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>
-              {k.l}{k.tip&&<Tooltip text={k.tip}><TooltipIcon size={11}/></Tooltip>}
+              {kpiItem.l}{kpiItem.tip&&<Tooltip text={kpiItem.tip}><TooltipIcon size={11}/></Tooltip>}
             </div>
-            <div className="kpi-value">{k.v}</div>
-            <div className="kpi-sub">{k.s}</div>
+            <div className="kpi-value">{kpiItem.v}</div>
+            <div className="kpi-sub">{kpiItem.s}</div>
             <div className="log-kpi-arrow">→ ver detalle</div>
           </div>
-        ))}
+        );})}
       </div>
 
       {/* ── Panel de déficit de stock — solo si hay problemas ── */}
@@ -1123,7 +1123,7 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
   ];
   const tiposCustom   = Array.isArray(tiposContacto) ? tiposContacto : [];
   const todosLosTipos = [...TIPOS_BASE, ...tiposCustom];
-  const getTipo = (tkid) => todosLosTipos.find(tt=>tt.id===tkid) || {nombre:tkid,icono:"🏷️",color:"var(--text-muted)"};
+  function getTipo(tkId){return todosLosTipos.find(function(ttItem){return ttItem.id===tkId;})||{nombre:tkId,icono:"🏷️",color:"var(--text-muted)"};}
 
   // Excluir emergencia y médico del directorio (están en la pestaña Emergencias)
   const TIPOS_EXCLUIDOS_DIR = ["emergencia","medico"];
@@ -1131,12 +1131,12 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
   const contOrdenado = ordenAlfa ? ordenarContactosAlfa(contDir) : contDir;
   const contFiltradoPorTipo = filtroTipo==="todos" ? contOrdenado : filtrarContactosPorTipo(contOrdenado, filtroTipo);
   const contFiltrado = busqCont.trim()
-    ? contFiltradoPorTipo.filter(ct => {
-        const q = busqCont.toLowerCase();
-        return (ct.nombre||"").toLowerCase().includes(q)
-          || (ct.rol||"").toLowerCase().includes(q)
-          || (ct.telefono||"").toLowerCase().includes(q)
-          || (ct.email||"").toLowerCase().includes(q);
+    ? contFiltradoPorTipo.filter(function(ctDir) {
+        var qDir2 = busqCont.toLowerCase();
+        return (ctDir.nombre||"").toLowerCase().includes(qDir2)
+          || (ctDir.rol||"").toLowerCase().includes(qDir2)
+          || (ctDir.telefono||"").toLowerCase().includes(qDir2)
+          || (ctDir.email||"").toLowerCase().includes(qDir2);
       })
     : contFiltradoPorTipo;
 
@@ -1208,7 +1208,7 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
               border:`1px solid ${t.color}33`,fontFamily:"var(--font-mono)",
               fontSize:"var(--fs-xs)",fontWeight:700}}>
               {t.icono} {t.nombre}
-              <button onClick={()=>setTiposContacto(prev=>(Array.isArray(prev)?prev:[]).filter(x=>x.id!==t.id))}
+              <button onClick={()=>setTiposContacto(function(tcPrev){return(Array.isArray(tcPrev)?tcPrev:[]).filter(function(tcItm){return tcItm.id!==t.id;});})}
                 style={{background:"none",border:"none",cursor:"pointer",
                   color:"var(--text-dim)",fontSize:"var(--fs-xs)",padding:0,lineHeight:1}}>✕</button>
             </span>
@@ -1544,7 +1544,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
     setModalTipo(false);
   };
   const eliminarTipo = (id) => {
-    setTiposContacto(prev=>(Array.isArray(prev)?prev:[]).filter(t=>t.id!==id));
+    setTiposContacto(function(tcPrev){return(Array.isArray(tcPrev)?tcPrev:[]).filter(function(tcItm){return tcItm.id!==id;});});
   };
 
   const incAbiertas = inc.filter(i=>i.estado==="abierta").length;
@@ -1848,16 +1848,23 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
   })();
   const [fase,setFase]=useState(faseActiva);
   const [vistaKanban,setVistaKanban]=useState(false);
-  const toggle=(id)=>setCk(p=>{
-    const next=p.map(function(ckItem){return ckItem.id===id?{...ckItem,estado:ckItem.estado==="completado"?"pendiente":"completado"}:ckItem;});
-    // Sincronizar con Proyecto si hay vínculo
-    const item=next.find(function(ckItem){return ckItem.id===id;});
-    if(item?.proyectoTareaId && setTareasProyecto) {
-      const nuevoEstado=item.estado==="completado"?"completado":"en curso";
-      setTareasProyecto(prev=>prev.map(t=>t.id===item.proyectoTareaId?{...t,estado:nuevoEstado}:t));
-    }
-    return next;
-  });
+  function toggle(ckId) {
+    setCk(function(ckPrev) {
+      var ckNext = ckPrev.map(function(ckItm) {
+        return ckItm.id===ckId ? {...ckItm, estado: ckItm.estado==="completado" ? "pendiente" : "completado"} : ckItm;
+      });
+      var ckHit = ckNext.find(function(ckItm) { return ckItm.id===ckId; });
+      if (ckHit && ckHit.proyectoTareaId && setTareasProyecto) {
+        var ckNuevoEst = ckHit.estado==="completado" ? "completado" : "en curso";
+        setTareasProyecto(function(ckTrPrev) {
+          return ckTrPrev.map(function(ckTr) {
+            return ckTr.id===ckHit.proyectoTareaId ? {...ckTr, estado: ckNuevoEst} : ckTr;
+          });
+        });
+      }
+      return ckNext;
+    });
+  }
   const upd=(id,f,v)=>setCk(p=>p.map(c=>c.id===id?{...c,[f]:v}:c));
   const pf=FASES_CHECKLIST.map(f=>{const it=ck.filter(c=>c.fase===f);const d=it.filter(c=>c.estado==="completado").length;return{f,it,d,t:it.length,pct:it.length?Math.round(d/it.length*100):0};});
   const fd=pf.find(x=>x.f===fase);
@@ -1990,9 +1997,9 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {} }) {
   const save = () => {
     if (!form.nombre.trim()) return;
     if (modal.data) {
-      setLocs(prev => prev.map(l => l.id === modal.data.id ? { ...l, ...form } : l));
+      setLocs(function(locsPrev){return locsPrev.map(function(locItm){return locItm.id===modal.data.id?{...locItm,...form}:locItm;});});
     } else {
-      setLocs(prev => [...prev, { id: genIdNum(prev), ...form }]);
+      setLocs(function(locsPrev){return [...locsPrev,{id:genIdNum(locsPrev),...form}];});
     }
     setModal(null);
   };
@@ -2163,7 +2170,7 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {} }) {
             </div>
             <div className="modal-footer">
               <button className="btn btn-ghost" onClick={() => setDel(null)}>Cancelar</button>
-              <button className="btn btn-red" onClick={() => { setLocs(prev => prev.filter(l => l.id !== del)); setDel(null); }}>Eliminar</button>
+              <button className="btn btn-red" onClick={() => { setLocs(function(locsPrev){return locsPrev.filter(function(locItm){return locItm.id!==del;});}); setDel(null); }}>Eliminar</button>
             </div>
           </div>
         </div>
@@ -2406,18 +2413,18 @@ function MF({title,fields,init,onSave,onClose}) {
   const { closing: mfClosing, handleClose: mfHandleClose } = useModalClose(onClose);
   const [form,setForm]=useState({...init});
   const [errs,setErrs]=useState({});
-  const upd=(k,v)=>{ setForm(p=>({...p,[k]:v})); if(errs[k]) setErrs(p=>({...p,[k]:null})); };
+  function upd(fldKey,fldVal){ setForm(function(fPrev){return {...fPrev,[fldKey]:fldVal};}); if(errs[fldKey]) setErrs(function(ePrev){return {...ePrev,[fldKey]:null};}); }
 
   const validar=()=>{
-    const e={};
-    fields.forEach(f=>{
-      if(!f.l.includes("*")) return;
-      const v=form[f.k];
-      if(f.t==="num"){ if(!v && v!==0) e[f.k]="Requerido"; }
-      else if(!v || (typeof v==="string" && !v.trim())) e[f.k]="Requerido";
+    const mfErrs={};
+    fields.forEach(function(mfFld){
+      if(!mfFld.l.includes("*")) return;
+      const mfVal=form[mfFld.k];
+      if(mfFld.t==="num"){ if(!mfVal && mfVal!==0) mfErrs[mfFld.k]="Requerido"; }
+      else if(!mfVal || (typeof mfVal==="string" && !mfVal.trim())) mfErrs[mfFld.k]="Requerido";
     });
-    setErrs(e);
-    return Object.keys(e).length===0;
+    setErrs(mfErrs);
+    return Object.keys(mfErrs).length===0;
   };
 
   // sin scroll-lock — causa freeze en Android
@@ -2468,15 +2475,15 @@ function ModalRuta({data,veh,rutas,setRutas,onClose,locs}) {
   });
   const { closing: rutaClosing, handleClose: rutaHandleClose } = useModalClose(onClose);
   const [formErr,setFormErr]=useState(false);
-  const upd=(k,v)=>setForm(p=>({...p,[k]:v}));
-  const addP=()=>setForm(p=>({...p,paradas:[...p.paradas,{puesto:locNames[0],hora:"06:00",material:""}]}));
-  const updP=(i,k,v)=>setForm(p=>({...p,paradas:p.paradas.map((x,j)=>j===i?{...x,[k]:v}:x)}));
-  const delP=(i)=>setForm(p=>({...p,paradas:p.paradas.filter((_,j)=>j!==i)}));
+  function upd(kUpd,vUpd){setForm(function(rpUpd2){return {...rpUpd2,[kUpd]:vUpd};});}
+  function addP(){setForm(function(rpAdd){return {...rpAdd,paradas:[...rpAdd.paradas,{puesto:locNames[0],hora:"06:00",material:""}]};});}
+  function updP(iIdx,kKey,vVal){setForm(function(rpUpd){return {...rpUpd,paradas:rpUpd.paradas.map(function(xx,jj){return jj===iIdx?{...xx,[kKey]:vVal}:xx;})};});}
+  function delP(iDel){setForm(function(rpDel){return {...rpDel,paradas:rpDel.paradas.filter(function(_,jj){return jj!==iDel;})};});}
   const save=()=>{
     if(!form.nombre){ setFormErr(true); return; }
-    const item={...form,vehiculoId:parseInt(form.vehiculoId)};
-    if(item.id)setRutas(p=>p.map(r=>r.id===item.id?item:r));
-    else setRutas(p=>[...p,{...item,id:genIdNum(rutas)}]);
+    const rutaItem={...form,vehiculoId:parseInt(form.vehiculoId)};
+    if(rutaItem.id)setRutas(function(rsPrev){return rsPrev.map(function(rsItm){return rsItm.id===rutaItem.id?rutaItem:rsItm;});});
+    else setRutas(function(rsPrev){return [...rsPrev,{...rutaItem,id:genIdNum(rutas)}];});
     onClose();
   };
   // sin scroll-lock — causa freeze en Android
