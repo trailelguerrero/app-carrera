@@ -237,7 +237,7 @@ export default function App() {
               <span>{config.nombre} {config.edicion} · Pedidos externos</span>
               <button
                 onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "presupuesto" } }))}
-                style={{ fontFamily:"var(--font-mono)", fontSize:".55rem", padding:".12rem .4rem",
+                style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", padding:".12rem .4rem",
                   borderRadius:4, border:"1px solid rgba(251,191,36,.3)",
                   background:"rgba(251,191,36,.1)", color:"var(--amber)", cursor:"pointer" }}>
                 💰 Ver en presupuesto →
@@ -276,7 +276,7 @@ export default function App() {
       {delId && (
         <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setDelId(null)}>
           <div className="modal" style={{maxWidth:340,textAlign:"center"}}>
-            <div className="modal-body" style={{paddingTop:"1.5rem"}}><div style={{fontSize:"2.5rem",marginBottom:".6rem"}}>⚠️</div><div style={{fontWeight:700,marginBottom:".4rem"}}>¿Eliminar pedido?</div><div className="mono xs muted">Esta acción no se puede deshacer.</div></div>
+            <div className="modal-body" style={{paddingTop:"1.5rem"}}><div style={{fontSize:"var(--fs-xl)",marginBottom:".6rem"}}>⚠️</div><div style={{fontWeight:700,marginBottom:".4rem"}}>¿Eliminar pedido?</div><div className="mono xs muted">Esta acción no se puede deshacer.</div></div>
             <div className="modal-footer"><button className="btn btn-ghost" onClick={()=>setDelId(null)}>Cancelar</button><button className="btn btn-red" onClick={deletePedido}>Eliminar</button></div>
           </div>
         </div>
@@ -304,34 +304,34 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
           <div style={{ position: "absolute", top: -10, right: -10, fontSize: "4rem", opacity: 0.05 }}>💰</div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
             <div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: ".1em" }}>Beneficio Neto Proyectado</div>
-              <div style={{ fontSize: "2.2rem", fontWeight: 800, color: "var(--green)", marginTop: ".25rem" }}>{fmtEur2(stats.beneficioNetoProyectado)}</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: ".1em" }}>Beneficio Neto Proyectado</div>
+              <div style={{ fontSize: "var(--fs-xl)", fontWeight: 800, color: "var(--green)", marginTop: ".25rem" }}>{fmtEur2(stats.beneficioNetoProyectado)}</div>
             </div>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Realizado</div>
-              <div style={{ fontSize: "1.1rem", fontWeight: 700, color: stats.beneficioNetoReal >= 0 ? "var(--text)" : "var(--red)" }}>{fmtEur2(stats.beneficioNetoReal)}</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Realizado</div>
+              <div style={{ fontSize: "var(--fs-lg)", fontWeight: 700, color: stats.beneficioNetoReal >= 0 ? "var(--text)" : "var(--red)" }}>{fmtEur2(stats.beneficioNetoReal)}</div>
             </div>
           </div>
           <div style={{ display: "flex", gap: "1.5rem", borderTop: "1px solid var(--border)", paddingTop: "1rem" }}>
             <div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: ".55rem", color: "var(--text-dim)", textTransform: "uppercase" }}>Ingresos Totales</div>
-              <div style={{ fontSize: ".9rem", fontWeight: 700, color: "var(--cyan)" }}>{fmtEur2(stats.totalIngresosProyectado)}</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)", textTransform: "uppercase" }}>Ingresos Totales</div>
+              <div style={{ fontSize: "var(--fs-md)", fontWeight: 700, color: "var(--cyan)" }}>{fmtEur2(stats.totalIngresosProyectado)}</div>
             </div>
             <div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: ".55rem", color: "var(--text-dim)", textTransform: "uppercase" }}>Gastos Fabricación</div>
-              <div style={{ fontSize: ".9rem", fontWeight: 700, color: "var(--amber)" }}>{fmtEur2(stats.totalGastos)}</div>
-              {stats.gRegalos > 0 && <div style={{ fontSize: ".55rem", color: "var(--violet)", fontWeight: 600 }}>inc. {fmtEur2(stats.gRegalos)} en regalos</div>}
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)", textTransform: "uppercase" }}>Gastos Fabricación</div>
+              <div style={{ fontSize: "var(--fs-md)", fontWeight: 700, color: "var(--amber)" }}>{fmtEur2(stats.totalGastos)}</div>
+              {stats.gRegalos > 0 && <div style={{ fontSize: "var(--fs-xs)", color: "var(--violet)", fontWeight: 600 }}>inc. {fmtEur2(stats.gRegalos)} en regalos</div>}
             </div>
             <div style={{ marginLeft: "auto", textAlign: "right" }}>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: ".55rem", color: "var(--text-dim)", textTransform: "uppercase" }}>ROI</div>
-              <div style={{ fontSize: ".9rem", fontWeight: 700, color: "var(--violet)" }}>{stats.totalGastos > 0 ? Math.round((stats.beneficioNetoProyectado / stats.totalGastos) * 100) : 0}%</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)", textTransform: "uppercase" }}>ROI</div>
+              <div style={{ fontSize: "var(--fs-md)", fontWeight: 700, color: "var(--violet)" }}>{stats.totalGastos > 0 ? Math.round((stats.beneficioNetoProyectado / stats.totalGastos) * 100) : 0}%</div>
             </div>
           </div>
         </div>
 
         {/* Panel de Control de Fuentes */}
         <div className="card" style={{ padding: "1rem" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: ".75rem", display: "flex", alignItems: "center", gap: ".5rem" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: ".75rem", display: "flex", alignItems: "center", gap: ".5rem" }}>
             ⚙️ Control de Fuentes de Datos
             <Tooltip text="Activa o desactiva fuentes para ver cómo impactan en el balance económico."><TooltipIcon /></Tooltip>
           </div>
@@ -344,10 +344,10 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
             ].map(f => (
               <div key={f.id} className="flex-between" style={{ padding: ".4rem .65rem", background: "var(--surface2)", borderRadius: 8, border: `1px solid ${fuentesActivas[f.id] ? f.color + "44" : "transparent"}`, transition: "all .15s" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: ".6rem" }}>
-                  <span style={{ fontSize: "1.1rem", opacity: fuentesActivas[f.id] ? 1 : 0.3 }}>{f.icon}</span>
+                  <span style={{ fontSize: "var(--fs-lg)", opacity: fuentesActivas[f.id] ? 1 : 0.3 }}>{f.icon}</span>
                   <div>
-                    <div style={{ fontSize: ".72rem", fontWeight: 700, color: fuentesActivas[f.id] ? "var(--text)" : "var(--text-dim)" }}>{f.label}</div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: ".55rem", color: "var(--text-muted)" }}>{f.sub}</div>
+                    <div style={{ fontSize: "var(--fs-sm)", fontWeight: 700, color: fuentesActivas[f.id] ? "var(--text)" : "var(--text-dim)" }}>{f.label}</div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>{f.sub}</div>
                   </div>
                 </div>
                 <button 
@@ -390,14 +390,14 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
         <div className="card" style={{ borderLeft: "3px solid var(--primary)" }}>
           <div className="flex-between">
             <div>
-              <div style={{ fontWeight: 700, fontSize: ".85rem", marginBottom: ".15rem" }}>
+              <div style={{ fontWeight: 700, fontSize: "var(--fs-base)", marginBottom: ".15rem" }}>
                 <Tooltip text="Coste unitario de fabricación."><span style={{ color: "var(--primary)" }}>⚙️ Coste producción</span><TooltipIcon /></Tooltip>
               </div>
             </div>
             {editCoste ? (
               <div style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
                 {["corredor","voluntario","nino"].map(tipo => (
-                  <input key={tipo} type="number" min="0" step="0.5" value={tmpCoste[tipo]} onChange={e => setTmpCoste(p => ({ ...p, [tipo]: parseFloat(e.target.value) || 0 }))} style={{ width: 50, background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text)", borderRadius: 4, padding: ".2rem", fontSize: ".7rem" }} />
+                  <input key={tipo} type="number" min="0" step="0.5" value={tmpCoste[tipo]} onChange={e => setTmpCoste(p => ({ ...p, [tipo]: parseFloat(e.target.value) || 0 }))} style={{ width: 50, background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text)", borderRadius: 4, padding: ".2rem", fontSize: "var(--fs-sm)" }} />
                 ))}
                 <button className="btn btn-primary btn-sm" onClick={() => { setCoste(tmpCoste); setEditCoste(false); }}>OK</button>
               </div>
@@ -412,13 +412,13 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
         <div className="card" style={{ borderLeft: "3px solid var(--cyan)" }}>
           <div className="flex-between">
             <div>
-              <div style={{ fontWeight: 700, fontSize: ".85rem", marginBottom: ".15rem" }}>
+              <div style={{ fontWeight: 700, fontSize: "var(--fs-base)", marginBottom: ".15rem" }}>
                 <Tooltip text="Precio de venta en plataforma externa."><span style={{ color: "var(--cyan)" }}>🏃 Precio plataforma</span><TooltipIcon /></Tooltip>
               </div>
             </div>
             {editPrecioPlat ? (
               <div style={{ display: "flex", gap: ".5rem" }}>
-                <input type="number" min="0" step="0.5" value={tmpPrecioPlat} onChange={e => setTmpPrecioPlat(parseFloat(e.target.value))} style={{ width: 60, background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--cyan)", borderRadius: 4, padding: ".2rem", fontSize: ".7rem" }} />
+                <input type="number" min="0" step="0.5" value={tmpPrecioPlat} onChange={e => setTmpPrecioPlat(parseFloat(e.target.value))} style={{ width: 60, background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--cyan)", borderRadius: 4, padding: ".2rem", fontSize: "var(--fs-sm)" }} />
                 <button className="btn btn-primary btn-sm" onClick={() => { setPrecioCorrExt(tmpPrecioPlat); setEditPrecioPlat(false); }}>OK</button>
               </div>
             ) : (
@@ -445,7 +445,7 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
             border:"1px solid rgba(52,211,153,.2)"
           }}>
             <span>✅</span>
-            <span style={{ fontFamily:"var(--font-mono)", fontSize:".72rem",
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
               color:"var(--green)" }}>
               Todos los pedidos cobrados y entregados
             </span>
@@ -459,7 +459,7 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
                 ⚡ Requieren atención
               </div>
               <button className="btn btn-ghost btn-sm"
-                style={{ fontSize:".6rem" }}
+                style={{ fontSize:"var(--fs-xs)" }}
                 onClick={() => setTab("pedidos")}>
                 Ver todos →
               </button>
@@ -480,14 +480,14 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
                     onMouseEnter={e=>e.currentTarget.style.borderColor="var(--border-light)"}
                     onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border)"}>
                     <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:".78rem", fontWeight:700,
+                      <div style={{ fontSize:"var(--fs-base)", fontWeight:700,
                         overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                         {p.nombre}
                       </div>
                     </div>
                     <div style={{ display:"flex", gap:".35rem", flexShrink:0 }}>
                       {pendCobro > 0 && (
-                        <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+                        <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                           fontWeight:700, color:"var(--amber)",
                           background:"var(--amber-dim)",
                           border:"1px solid rgba(251,191,36,.25)",
@@ -496,7 +496,7 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
                         </span>
                       )}
                       {pendEnt > 0 && (
-                        <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+                        <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                           fontWeight:700, color:"var(--cyan)",
                           background:"var(--cyan-dim)",
                           border:"1px solid rgba(34,211,238,.25)",
@@ -542,7 +542,7 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal }) {
         <div className="fr g1" style={{flexWrap:"wrap"}}>
           <div style={{display:"flex",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:"var(--r-sm)",overflow:"hidden"}}>
             {[["lista","☰"],["kanban","⬛"]].map(([v,ic])=>(
-              <button key={v} onClick={()=>setVistaK(v==="kanban")} style={{padding:".3rem .55rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,background:(vistaK&&v==="kanban")||(!vistaK&&v==="lista")?"rgba(99,102,241,.2)":"transparent",color:(vistaK&&v==="kanban")||(!vistaK&&v==="lista")?"#c4c6ff":"var(--text-muted)"}}>{ic}</button>
+              <button key={v} onClick={()=>setVistaK(v==="kanban")} style={{padding:".3rem .55rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,background:(vistaK&&v==="kanban")||(!vistaK&&v==="lista")?"rgba(99,102,241,.2)":"transparent",color:(vistaK&&v==="kanban")||(!vistaK&&v==="lista")?"#c4c6ff":"var(--text-muted)"}}>{ic}</button>
             ))}
           </div>
           <button className={cls("btn btn-sm",alfa?"btn-primary":"btn-ghost")} onClick={()=>setAlfa(v=>!v)}>{alfa?"A-Z ✓":"A-Z"}</button>
@@ -576,30 +576,30 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal }) {
             return (
               <div key={estado} style={{background:"var(--surface)",border:"1px solid var(--border)",borderTop:`2px solid ${cfg.color}`,borderRadius:"var(--r)",overflow:"hidden"}}>
                 <div style={{padding:".6rem .75rem",background:"var(--surface2)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <span style={{fontSize:".7rem",fontWeight:700,color:cfg.color}}>{cfg.icon} {cfg.label}</span>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",padding:".1rem .35rem",borderRadius:4,background:cfg.bg,color:cfg.color}}>{items.length}</span>
+                  <span style={{fontSize:"var(--fs-sm)",fontWeight:700,color:cfg.color}}>{cfg.icon} {cfg.label}</span>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".1rem .35rem",borderRadius:4,background:cfg.bg,color:cfg.color}}>{items.length}</span>
                 </div>
                 {items.map(p=>{
                   const {totalVenta,totalUnid}=calcPedido(p,coste); const be=badgeEnt(p);
                   return (
                     <div key={p.id} style={{margin:".4rem .4rem 0",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:8,padding:".6rem .7rem",cursor:"pointer",transition:"all .15s"}}
                       onClick={()=>abrirFicha(p)} onMouseEnter={e=>e.currentTarget.style.borderColor="var(--border-light)"} onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border)"}>
-                      <div style={{fontWeight:700,fontSize:".78rem",marginBottom:".25rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
+                      <div style={{fontWeight:700,fontSize:"var(--fs-base)",marginBottom:".25rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
                       <div style={{display:"flex",gap:".25rem",flexWrap:"wrap",marginBottom:".3rem"}}>
                         {p.lineas.map((l,i)=>(
-                          <span key={i} style={{fontFamily:"var(--font-mono)",fontSize:".55rem",padding:".06rem .3rem",borderRadius:3,background:TC[l.tipo]?.dim,color:TC[l.tipo]?.color,border:`1px solid ${TC[l.tipo]?.color}33`}}>
+                          <span key={i} style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".06rem .3rem",borderRadius:3,background:TC[l.tipo]?.dim,color:TC[l.tipo]?.color,border:`1px solid ${TC[l.tipo]?.color}33`}}>
                             {TC[l.tipo]?.icon}{l.talla}×{l.cantidad} {EP[l.estadoPago||"pendiente"]?.icon}
                           </span>
                         ))}
                       </div>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                         <span className="mono xs muted">{totalUnid} ud · {fmtEur2(totalVenta)}</span>
-                        <span className="badge" style={{background:be.bg,color:be.color,fontSize:".5rem"}}>{be.icon}</span>
+                        <span className="badge" style={{background:be.bg,color:be.color,fontSize:"var(--fs-2xs)"}}>{be.icon}</span>
                       </div>
                     </div>
                   );
                 })}
-                {items.length===0&&<div style={{padding:"1rem",textAlign:"center",fontFamily:"var(--font-mono)",fontSize:".62rem",color:"var(--text-dim)"}}>—</div>}
+                {items.length===0&&<div style={{padding:"1rem",textAlign:"center",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-dim)"}}>—</div>}
                 <div style={{height:".4rem"}}/>
               </div>
             );
@@ -626,13 +626,13 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal }) {
                     padding:".55rem .85rem",background:`${cfg.color}08`,
                     border:"none",cursor:"pointer",textAlign:"left",
                     borderBottom:collapsed?"none":`1px solid ${cfg.color}1a`}}>
-                  <span style={{fontSize:".85rem"}}>{cfg.icon}</span>
-                  <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:".72rem",
+                  <span style={{fontSize:"var(--fs-base)"}}>{cfg.icon}</span>
+                  <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:"var(--fs-sm)",
                     color:cfg.color,flex:1}}>{cfg.label}</span>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:".62rem",
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                     color:"var(--text-dim)",padding:".1rem .4rem",borderRadius:20,
                     background:"rgba(255,255,255,.05)"}}>{items.length}</span>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-dim)",
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-dim)",
                     transform:collapsed?"rotate(-90deg)":"rotate(0deg)",transition:"transform .18s"}}>▼</span>
                 </button>
                 {!collapsed && (
@@ -647,10 +647,10 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal }) {
                           onClick={()=>abrirFicha(p)}>
                           <div style={{display:"flex",alignItems:"center",gap:".6rem",flex:1,minWidth:0}}>
                             <div style={{flex:1,minWidth:0}}>
-                              <div style={{fontWeight:700,fontSize:".88rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
+                              <div style={{fontWeight:700,fontSize:"var(--fs-md)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
                               <div style={{display:"flex",gap:".3rem",flexWrap:"wrap",marginTop:".15rem"}}>
                                 {p.lineas.map((l,i)=>(
-                                  <span key={i} style={{fontFamily:"var(--font-mono)",fontSize:".6rem",padding:".08rem .35rem",borderRadius:3,background:TC[l.tipo]?.dim,color:TC[l.tipo]?.color,display:"flex",alignItems:"center",gap:".2rem"}}>
+                                  <span key={i} style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".08rem .35rem",borderRadius:3,background:TC[l.tipo]?.dim,color:TC[l.tipo]?.color,display:"flex",alignItems:"center",gap:".2rem"}}>
                                     {TC[l.tipo]?.icon} {l.talla}×{l.cantidad} {EE[l.estadoEntrega||"pendiente"]?.icon}
                                   </span>
                                 ))}
@@ -659,8 +659,8 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal }) {
                             </div>
                           </div>
                           <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:".3rem",flexShrink:0}}>
-                            <div style={{fontFamily:"var(--font-mono)",fontSize:".88rem",fontWeight:800}}>{fmtEur2(totalVenta)}</div>
-                            <span className="badge" style={{background:be.bg,color:be.color,fontSize:".52rem"}}>{be.icon}</span>
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-md)",fontWeight:800}}>{fmtEur2(totalVenta)}</div>
+                            <span className="badge" style={{background:be.bg,color:be.color,fontSize:"var(--fs-2xs)"}}>{be.icon}</span>
                           </div>
                         </div>
                       );
@@ -751,14 +751,14 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
             padding:".6rem .9rem",background:`${color}09`,
             border:"none",cursor:"pointer",textAlign:"left",
             borderBottom:col?"none":`1px solid ${color}18`}}>
-          <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:".72rem",color,flex:1}}>
+          <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:"var(--fs-sm)",color,flex:1}}>
             {icon} {title}
           </span>
           {action && <span onClick={e=>e.stopPropagation()}>{action}</span>}
-          <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",
+          <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
             color:"var(--text-dim)",padding:".1rem .4rem",borderRadius:20,
             background:"rgba(255,255,255,.05)",flexShrink:0}}>{total} ud</span>
-          <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-dim)",
+          <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-dim)",
             transform:col?"rotate(-90deg)":"rotate(0deg)",transition:"transform .18s",flexShrink:0}}>▼</span>
         </button>
         {!col && <div style={{padding:".75rem .9rem",background:"var(--surface)"}}>{children}</div>}
@@ -769,8 +769,8 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
   const SectionTitle = ({ icon, title, subtitle, color, action }) => (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '.6rem', gap: '.5rem', flexWrap: 'wrap' }}>
       <div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '.62rem', fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '.08em' }}>{icon} {title}</div>
-        {subtitle && <div style={{ fontFamily: 'var(--font-mono)', fontSize: '.58rem', color: 'var(--text-muted)', marginTop: '.1rem' }}>{subtitle}</div>}
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '.08em' }}>{icon} {title}</div>
+        {subtitle && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--text-muted)', marginTop: '.1rem' }}>{subtitle}</div>}
       </div>
       {action}
     </div>
@@ -778,11 +778,11 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
 
   const TallaBar = ({ talla, valor, total, color }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', marginBottom: '.38rem' }}>
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '.7rem', fontWeight: 700, width: 34, flexShrink: 0 }}>{talla}</span>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-sm)', fontWeight: 700, width: 34, flexShrink: 0 }}>{talla}</span>
       <div style={{ flex: 1, height: 7, background: 'var(--surface3)', borderRadius: 4, overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${total > 0 ? (valor / total) * 100 : 0}%`, background: color, borderRadius: 4, transition: 'width .4s ease' }} />
       </div>
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '.7rem', fontWeight: 700, color, width: 22, textAlign: 'right' }}>{valor}</span>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-sm)', fontWeight: 700, color, width: 22, textAlign: 'right' }}>{valor}</span>
     </div>
   );
 
@@ -830,18 +830,18 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
             border: `1px solid ${fuentesActivas[f.key] ? f.color+"33" : "var(--border)"}`,
             opacity: fuentesActivas[f.key] ? 1 : 0.5,
           }}>
-            <div style={{ fontFamily:"var(--font-mono)", fontSize:".58rem",
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
               color:"var(--text-muted)", marginBottom:".2rem" }}>
               {f.icon} {f.label}
               {!fuentesActivas[f.key] && <span style={{marginLeft:".35rem",color:"var(--red)"}}>🚫</span>}
             </div>
-            <div style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
               color:"var(--text-dim)", marginBottom:".3rem" }}>{f.sub}</div>
-            <div style={{ fontFamily:"var(--font-mono)", fontSize:"1rem",
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-md)",
               fontWeight:800, color: fuentesActivas[f.key] ? f.color : "var(--text-dim)" }}>
               {f.total}
             </div>
-            <div style={{ fontFamily:"var(--font-mono)", fontSize:".58rem",
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
               color:"var(--text-muted)" }}>unidades</div>
           </div>
         ))}
@@ -855,12 +855,12 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
             padding:".65rem .9rem",background:"rgba(99,102,241,.06)",
             border:"none",cursor:"pointer",textAlign:"left",
             borderBottom:secColapsadas.tabla?"none":"1px solid rgba(99,102,241,.15)"}}>
-          <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:".72rem",
+          <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:"var(--fs-sm)",
             color:"var(--primary)",flex:1}}>📦 Pedido Total al Proveedor — desglose por fuente</span>
-          <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",
+          <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
             color:"var(--text-dim)",padding:".1rem .4rem",borderRadius:20,
             background:"rgba(255,255,255,.05)",flexShrink:0}}>{grandTotal} ud</span>
-          <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-dim)",
+          <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-dim)",
             transform:secColapsadas.tabla?"rotate(-90deg)":"rotate(0deg)",
             transition:"transform .18s",flexShrink:0}}>▼</span>
         </button>
@@ -870,10 +870,10 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
             <thead>
               <tr>
                 <th>Talla</th>
-                <th className="text-right" style={{ color: TC.corredor.color, fontSize: '.58rem', opacity: fuentesActivas.corredoresPlat ? 1 : 0.4 }}>🏃 Corredor<br/><span style={{opacity:.65}}>Plat. ext.</span> {!fuentesActivas.corredoresPlat && "🚫"}</th>
-                <th className="text-right" style={{ color: TC.corredor.color, fontSize: '.58rem', opacity: fuentesActivas.extrasCorredor ? 1 : 0.4 }}>👕 Extras<br/><span style={{opacity:.65}}>Corredor</span> {!fuentesActivas.extrasCorredor && "🚫"}</th>
-                <th className="text-right" style={{ color: TC.voluntario.color, fontSize: '.58rem', opacity: fuentesActivas.voluntariosAuto ? 1 : 0.4 }}>👥 Voluntarios<br/><span style={{opacity:.65}}>Automático</span> {!fuentesActivas.voluntariosAuto && "🚫"}</th>
-                <th className="text-right" style={{ color: TC.voluntario.color, fontSize: '.58rem', opacity: fuentesActivas.extrasVoluntario ? 1 : 0.4 }}>👥 Extras<br/><span style={{opacity:.65}}>Voluntario</span> {!fuentesActivas.extrasVoluntario && "🚫"}</th>
+                <th className="text-right" style={{ color: TC.corredor.color, fontSize: 'var(--fs-xs)', opacity: fuentesActivas.corredoresPlat ? 1 : 0.4 }}>🏃 Corredor<br/><span style={{opacity:.65}}>Plat. ext.</span> {!fuentesActivas.corredoresPlat && "🚫"}</th>
+                <th className="text-right" style={{ color: TC.corredor.color, fontSize: 'var(--fs-xs)', opacity: fuentesActivas.extrasCorredor ? 1 : 0.4 }}>👕 Extras<br/><span style={{opacity:.65}}>Corredor</span> {!fuentesActivas.extrasCorredor && "🚫"}</th>
+                <th className="text-right" style={{ color: TC.voluntario.color, fontSize: 'var(--fs-xs)', opacity: fuentesActivas.voluntariosAuto ? 1 : 0.4 }}>👥 Voluntarios<br/><span style={{opacity:.65}}>Automático</span> {!fuentesActivas.voluntariosAuto && "🚫"}</th>
+                <th className="text-right" style={{ color: TC.voluntario.color, fontSize: 'var(--fs-xs)', opacity: fuentesActivas.extrasVoluntario ? 1 : 0.4 }}>👥 Extras<br/><span style={{opacity:.65}}>Voluntario</span> {!fuentesActivas.extrasVoluntario && "🚫"}</th>
                 <th className="text-right" style={{ fontWeight: 800 }}>TOTAL</th>
               </tr>
             </thead>
@@ -895,7 +895,7 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
                     <td className="text-right">{cell(cXtra, TC.corredor.color,   TC.corredor.dim)}</td>
                     <td className="text-right">{cell(vAuto, TC.voluntario.color, TC.voluntario.dim)}</td>
                     <td className="text-right">{cell(vXtra, TC.voluntario.color, TC.voluntario.dim)}</td>
-                    <td className="text-right"><span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '.9rem' }}>{tot}</span></td>
+                    <td className="text-right"><span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 'var(--fs-md)' }}>{tot}</span></td>
                   </tr>
                 );
               })}
@@ -907,21 +907,21 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
                 <td className="text-right" style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: TC.corredor.color }}>{TALLAS.reduce((s,t)=>s+(tallasExtras[t]?.corredor||0),0)}</td>
                 <td className="text-right" style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: TC.voluntario.color }}>{TALLAS.reduce((s,t)=>s+(tallasVol[t]||0),0)}</td>
                 <td className="text-right" style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: TC.voluntario.color }}>{TALLAS.reduce((s,t)=>s+(tallasExtras[t]?.voluntario||0),0)}</td>
-                <td className="text-right" style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '.95rem' }}>{grandTotal}</td>
+                <td className="text-right" style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 'var(--fs-md)' }}>{grandTotal}</td>
               </tr>
               <tr>
-                <td colSpan={3} style={{ fontFamily: 'var(--font-mono)', fontSize: '.58rem', color: TC.corredor.color, paddingTop: '.35rem' }}>
+                <td colSpan={3} style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: TC.corredor.color, paddingTop: '.35rem' }}>
                   🏃 Total corredor: <strong>{grandTotalCor}</strong>
                 </td>
-                <td colSpan={3} style={{ fontFamily: 'var(--font-mono)', fontSize: '.58rem', color: TC.voluntario.color, paddingTop: '.35rem' }}>
+                <td colSpan={3} style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: TC.voluntario.color, paddingTop: '.35rem' }}>
                   👥 Total voluntario: <strong>{grandTotalVol}</strong>
                 </td>
               </tr>
               <tr>
-                <td colSpan={3} style={{ fontFamily: 'var(--font-mono)', fontSize: '.58rem', color: TC.corredor.color, paddingTop: '.35rem' }}>
+                <td colSpan={3} style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: TC.corredor.color, paddingTop: '.35rem' }}>
                   🏃 Total corredor: <strong>{grandTotalCor}</strong>
                 </td>
-                <td colSpan={3} style={{ fontFamily: 'var(--font-mono)', fontSize: '.58rem', color: TC.voluntario.color, paddingTop: '.35rem' }}>
+                <td colSpan={3} style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: TC.voluntario.color, paddingTop: '.35rem' }}>
                   👥 Total voluntario: <strong>{grandTotalVol}</strong>
                 </td>
               </tr>
@@ -933,7 +933,7 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
         {grandTotalNino > 0 || fuentesActivas.ninoManual || fuentesActivas.extrasNino ? (
           <div style={{ marginTop: '.85rem', borderTop: `2px solid ${TC.nino.color}33`,
             paddingTop: '.75rem' }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '.62rem', fontWeight: 700,
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', fontWeight: 700,
               color: TC.nino.color, textTransform: 'uppercase', letterSpacing: '.08em',
               marginBottom: '.6rem' }}>
               👶 Niño/a — tallas especiales
@@ -943,10 +943,10 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
                 <thead>
                   <tr>
                     <th>Talla</th>
-                    <th className="text-right" style={{ color: TC.nino.color, fontSize: '.58rem', opacity: fuentesActivas.ninoManual ? 1 : 0.4 }}>
+                    <th className="text-right" style={{ color: TC.nino.color, fontSize: 'var(--fs-xs)', opacity: fuentesActivas.ninoManual ? 1 : 0.4 }}>
                       👶 Manual {!fuentesActivas.ninoManual && "🚫"}
                     </th>
-                    <th className="text-right" style={{ color: TC.nino.color, fontSize: '.58rem', opacity: fuentesActivas.extrasNino ? 1 : 0.4 }}>
+                    <th className="text-right" style={{ color: TC.nino.color, fontSize: 'var(--fs-xs)', opacity: fuentesActivas.extrasNino ? 1 : 0.4 }}>
                       👶+ Extras {!fuentesActivas.extrasNino && "🚫"}
                     </th>
                     <th className="text-right" style={{ fontWeight: 800 }}>TOTAL</th>
@@ -984,7 +984,7 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
                     <td className="text-right" style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: TC.nino.color }}>
                       {TALLAS_NINO.reduce((s,t)=>s+(tallasExtrasNino[t]||0),0)}
                     </td>
-                    <td className="text-right" style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '.95rem', color: TC.nino.color }}>
+                    <td className="text-right" style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 'var(--fs-md)', color: TC.nino.color }}>
                       {grandTotalNino}
                     </td>
                   </tr>
@@ -1004,17 +1004,17 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
             padding:".6rem .9rem",background:"var(--surface2)",
             border:"none",cursor:"pointer",textAlign:"left",
             borderBottom:secColapsadas.fuentes?"none":"1px solid var(--border)"}}>
-          <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:".72rem",flex:1,
+          <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:"var(--fs-sm)",flex:1,
             display:"flex",alignItems:"center",gap:".5rem"}}>
             📋 Desglose por fuente
-            <span style={{fontSize:".58rem",fontWeight:500,
+            <span style={{fontSize:"var(--fs-xs)",fontWeight:500,
               color:Object.values(fuentesActivas).filter(Boolean).length===6?"var(--green)":"var(--amber)",
               padding:".06rem .35rem",borderRadius:10,
               background:Object.values(fuentesActivas).filter(Boolean).length===6?"var(--green-dim)":"var(--amber-dim)"}}>
               {Object.values(fuentesActivas).filter(Boolean).length}/6 activas
             </span>
           </span>
-          <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-dim)",
+          <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-dim)",
             transform:secColapsadas.fuentes?"rotate(-90deg)":"rotate(0deg)",
             transition:"transform .18s",flexShrink:0}}>▼</span>
         </button>
@@ -1040,11 +1040,11 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '.4rem' }}>
               {TALLAS.map(t => (
                 <label key={t} style={{ display: 'flex', flexDirection: 'column', gap: '.2rem' }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '.65rem', fontWeight: 700, color: TC.corredor.color }}>{t}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-sm)', fontWeight: 700, color: TC.corredor.color }}>{t}</span>
                   <input
                     type="number" min="0" value={tmpCor[t] || 0}
                     onChange={e => setTmpCor(p => ({ ...p, [t]: Math.max(0, parseInt(e.target.value) || 0) }))}
-                    style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 'var(--r-sm)', padding: '.3rem .4rem', fontFamily: 'var(--font-mono)', fontSize: '.78rem', textAlign: 'right', outline: 'none', width: '100%' }}
+                    style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 'var(--r-sm)', padding: '.3rem .4rem', fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-base)', textAlign: 'right', outline: 'none', width: '100%' }}
                   />
                 </label>
               ))}
@@ -1052,14 +1052,14 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
           ) : (
             <>
               {TALLAS.filter(t => (corredoresExt[t] || 0) > 0).length === 0
-                ? <div style={{ fontFamily: 'var(--font-mono)', fontSize: '.62rem', color: 'var(--text-dim)', textAlign: 'center', padding: '1rem 0' }}>Sin datos — haz clic en ✏️ Editar para introducir tallas</div>
+                ? <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--text-dim)', textAlign: 'center', padding: '1rem 0' }}>Sin datos — haz clic en ✏️ Editar para introducir tallas</div>
                 : TALLAS.filter(t => (corredoresExt[t] || 0) > 0).map(t => (
                   <TallaBar key={t} talla={t} valor={corredoresExt[t]} total={TALLAS.reduce((s, tt) => s + (corredoresExt[tt] || 0), 0)} color={TC.corredor.color} />
                 ))
               }
               {(tallasExtras && TALLAS.some(t => (tallasExtras[t]?.corredor || 0) > 0)) && (
                 <div style={{ marginTop: '.75rem', paddingTop: '.6rem', borderTop: '1px dashed var(--border)' }}>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '.58rem', color: 'var(--text-muted)', marginBottom: '.4rem' }}>+ Extras modelo corredor (pedidos manuales):</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--text-muted)', marginBottom: '.4rem' }}>+ Extras modelo corredor (pedidos manuales):</div>
                   {TALLAS.filter(t => (tallasExtras[t]?.corredor || 0) > 0).map(t => (
                     <TallaBar key={t} talla={t} valor={tallasExtras[t].corredor} total={TALLAS.reduce((s, tt) => s + (tallasExtras[tt]?.corredor || 0), 0)} color={TC.corredor.color} />
                   ))}
@@ -1077,14 +1077,14 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
             color={TC.voluntario.color}
           />
           {TALLAS.filter(t => (tallasVol[t] || 0) > 0).length === 0
-            ? <div style={{ fontFamily: 'var(--font-mono)', fontSize: '.62rem', color: 'var(--text-dim)', textAlign: 'center', padding: '1rem 0' }}>Sin voluntarios con talla asignada aún</div>
+            ? <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--text-dim)', textAlign: 'center', padding: '1rem 0' }}>Sin voluntarios con talla asignada aún</div>
             : TALLAS.filter(t => (tallasVol[t] || 0) > 0).map(t => (
               <TallaBar key={t} talla={t} valor={tallasVol[t]} total={voluntariosActivos.length} color={TC.voluntario.color} />
             ))
           }
           {TALLAS.some(t => (tallasExtras[t]?.voluntario || 0) > 0) && (
             <div style={{ marginTop: '.75rem', paddingTop: '.6rem', borderTop: '1px dashed var(--border)' }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '.58rem', color: 'var(--text-muted)', marginBottom: '.4rem' }}>+ Extras modelo voluntario (pedidos manuales):</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--text-muted)', marginBottom: '.4rem' }}>+ Extras modelo voluntario (pedidos manuales):</div>
               {TALLAS.filter(t => (tallasExtras[t]?.voluntario || 0) > 0).map(t => (
                 <TallaBar key={t} talla={t} valor={tallasExtras[t].voluntario} total={TALLAS.reduce((s, tt) => s + (tallasExtras[tt]?.voluntario || 0), 0)} color={TC.voluntario.color} />
               ))}
@@ -1110,13 +1110,13 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: '.4rem' }}>
               {TALLAS_NINO.map(t => (
                 <label key={t} style={{ display: 'flex', flexDirection: 'column', gap: '.2rem' }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '.65rem', fontWeight: 700, color: TC.nino.color }}>{t}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-sm)', fontWeight: 700, color: TC.nino.color }}>{t}</span>
                   <input
                     type="number" min="0" value={tmpNino[t] || 0}
                     onChange={e => setTmpNino(p => ({ ...p, [t]: Math.max(0, parseInt(e.target.value) || 0) }))}
                     style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)',
                       borderRadius: 'var(--r-sm)', padding: '.3rem .4rem', fontFamily: 'var(--font-mono)',
-                      fontSize: '.78rem', textAlign: 'right', outline: 'none', width: '100%' }}
+                      fontSize: 'var(--fs-base)', textAlign: 'right', outline: 'none', width: '100%' }}
                   />
                 </label>
               ))}
@@ -1124,7 +1124,7 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
           ) : (
             <>
               {TALLAS_NINO.filter(t => (ninoExt[t] || 0) > 0).length === 0
-                ? <div style={{ fontFamily: 'var(--font-mono)', fontSize: '.62rem', color: 'var(--text-dim)',
+                ? <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--text-dim)',
                     textAlign: 'center', padding: '1rem 0' }}>
                     Sin datos — haz clic en ✏️ Editar para introducir tallas
                   </div>
@@ -1136,7 +1136,7 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
               }
               {TALLAS_NINO.some(t => (tallasExtrasNino[t] || 0) > 0) && (
                 <div style={{ marginTop: '.75rem', paddingTop: '.6rem', borderTop: '1px dashed var(--border)' }}>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '.58rem',
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)',
                     color: 'var(--text-muted)', marginBottom: '.4rem' }}>
                     + Extras niño/a (pedidos manuales):
                   </div>
@@ -1187,7 +1187,7 @@ function TabChecklist({ pedidos, updateLinea, abrirFicha }) {
       <div className="ph"><div><div className="pt">✅ Producción y entrega</div><div className="pd">{cPE} líneas por entregar · {cPP} sin cobrar</div></div></div>
       <div style={{display:"flex",gap:".4rem",flexWrap:"wrap",marginBottom:".85rem"}}>
         {FILTROS.map(f=>(
-          <button key={f.id} onClick={()=>setFiltro(f.id)} style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,padding:".28rem .6rem",borderRadius:"var(--r-sm)",border:`1px solid ${filtro===f.id?f.color:"var(--border)"}`,background:filtro===f.id?`${f.color}18`:"transparent",color:filtro===f.id?f.color:"var(--text-muted)",cursor:"pointer",transition:"all .15s"}}>{f.label}</button>
+          <button key={f.id} onClick={()=>setFiltro(f.id)} style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,padding:".28rem .6rem",borderRadius:"var(--r-sm)",border:`1px solid ${filtro===f.id?f.color:"var(--border)"}`,background:filtro===f.id?`${f.color}18`:"transparent",color:filtro===f.id?f.color:"var(--text-muted)",cursor:"pointer",transition:"all .15s"}}>{f.label}</button>
         ))}
       </div>
       {filtradas.length===0&&<div className="empty-state"><div className="empty-state-icon">✅</div>Sin líneas con estos filtros</div>}
@@ -1227,14 +1227,14 @@ function TabChecklist({ pedidos, updateLinea, abrirFicha }) {
                       padding:".6rem .85rem",background:allEntregado?"var(--surface2)":"rgba(251,191,36,.05)",
                       border:"none",cursor:"pointer",textAlign:"left",
                       borderBottom:collapsed?"none":"1px solid var(--border)"}}>
-                    <span style={{fontWeight:700,fontSize:".8rem",flex:1,minWidth:0,
+                    <span style={{fontWeight:700,fontSize:"var(--fs-base)",flex:1,minWidth:0,
                       overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
                       textAlign:"left"}}>
                       {allEntregado ? "✅ " : "📦 "}{ped.nombre}
                     </span>
                     <div style={{display:"flex",gap:".3rem",flexShrink:0}}>
                       {pendEnt > 0 && (
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
                           padding:".1rem .4rem",borderRadius:20,
                           background:"rgba(251,191,36,.15)",color:"var(--amber)",
                           border:"1px solid rgba(251,191,36,.3)"}}>
@@ -1242,14 +1242,14 @@ function TabChecklist({ pedidos, updateLinea, abrirFicha }) {
                         </span>
                       )}
                       {pendPago > 0 && (
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
                           padding:".1rem .4rem",borderRadius:20,
                           background:"rgba(248,113,113,.12)",color:"var(--red)",
                           border:"1px solid rgba(248,113,113,.25)"}}>
                           {pendPago} sin cobrar
                         </span>
                       )}
-                      <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",
+                      <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
                         color:"var(--text-dim)",
                         transform:collapsed?"rotate(-90deg)":"rotate(0deg)",
                         transition:"transform .18s"}}>▼</span>
@@ -1272,12 +1272,12 @@ function TabChecklist({ pedidos, updateLinea, abrirFicha }) {
                               alignItems:"center",gap:".75rem",flexWrap:"wrap"}}>
                             <div style={{flex:1,minWidth:0}}>
                               <div style={{display:"flex",alignItems:"center",gap:".5rem",flexWrap:"wrap"}}>
-                                <span style={{fontFamily:"var(--font-mono)",fontSize:".7rem",
+                                <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
                                   padding:".1rem .4rem",borderRadius:4,
                                   background:tcfg?.dim,color:tcfg?.color,fontWeight:700}}>
                                   {tcfg?.icon} {tcfg?.label} — {l.talla} × {l.cantidad} ud
                                 </span>
-                                <span className="badge" style={{background:epCfg.bg,color:epCfg.color,fontSize:".55rem"}}>
+                                <span className="badge" style={{background:epCfg.bg,color:epCfg.color,fontSize:"var(--fs-xs)"}}>
                                   {epCfg.icon} {epCfg.label}
                                 </span>
                               </div>
@@ -1285,7 +1285,7 @@ function TabChecklist({ pedidos, updateLinea, abrirFicha }) {
                             <div style={{display:"flex",gap:".35rem",flexShrink:0}}>
                               <button
                                 onClick={()=>updateLinea(l.pedId,l.id,"estadoEntrega",ee==="entregado"?"pendiente":"entregado")}
-                                style={{fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,
+                                style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
                                   padding:".3rem .65rem",borderRadius:"var(--r-sm)",
                                   border:`1px solid ${eeCfg.color}44`,background:eeCfg.bg,
                                   color:eeCfg.color,cursor:"pointer",whiteSpace:"nowrap"}}>
@@ -1294,7 +1294,7 @@ function TabChecklist({ pedidos, updateLinea, abrirFicha }) {
                               {ep!=="regalo" && (
                                 <button
                                   onClick={()=>updateLinea(l.pedId,l.id,"estadoPago",ep==="pagado"?"pendiente":"pagado")}
-                                  style={{fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,
+                                  style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
                                     padding:".3rem .65rem",borderRadius:"var(--r-sm)",
                                     border:`1px solid ${epCfg.color}44`,background:epCfg.bg,
                                     color:epCfg.color,cursor:"pointer",whiteSpace:"nowrap"}}>
@@ -1322,8 +1322,8 @@ function FichaPedido({ pedido:p, coste, onClose, onEditar, onEliminar, updateLin
   const {totalVenta,totalCoste,totalUnid,beneficio,benRealizado,benPotencial,costeRegalos} = calcPedido(p,coste);
   const Row = ({label,value,color}) => (!value&&value!==0)?null:(
     <div style={{display:"flex",justifyContent:"space-between",padding:".4rem 0",borderBottom:"1px solid rgba(30,45,80,.3)"}}>
-      <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",flexShrink:0,marginRight:"1rem"}}>{label}</span>
-      <span style={{fontSize:".76rem",fontWeight:600,textAlign:"right",color:color||"var(--text)"}}>{value}</span>
+      <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",flexShrink:0,marginRight:"1rem"}}>{label}</span>
+      <span style={{fontSize:"var(--fs-base)",fontWeight:600,textAlign:"right",color:color||"var(--text)"}}>{value}</span>
     </div>
   );
   return (
@@ -1332,10 +1332,10 @@ function FichaPedido({ pedido:p, coste, onClose, onEditar, onEliminar, updateLin
         <div style={{borderTop:"3px solid var(--primary)",borderRadius:"16px 16px 0 0"}}>
           <div className="modal-header">
             <div style={{display:"flex",alignItems:"center",gap:".6rem"}}>
-              <span style={{fontSize:"1.4rem"}}>👕</span>
+              <span style={{fontSize:"var(--fs-lg)"}}>👕</span>
               <div>
-                <div style={{fontWeight:800,fontSize:".95rem"}}>{p.nombre}</div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-muted)",marginTop:".1rem",textTransform:"uppercase"}}>{totalUnid} unidades · {p.lineas.length} línea{p.lineas.length!==1?"s":""}</div>
+                <div style={{fontWeight:800,fontSize:"var(--fs-md)"}}>{p.nombre}</div>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginTop:".1rem",textTransform:"uppercase"}}>{totalUnid} unidades · {p.lineas.length} línea{p.lineas.length!==1?"s":""}</div>
               </div>
             </div>
             <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
@@ -1345,7 +1345,7 @@ function FichaPedido({ pedido:p, coste, onClose, onEditar, onEliminar, updateLin
           <Row label="Teléfono" value={p.telefono} />
           <Row label="Email"    value={p.email} />
           <div style={{background:"var(--surface2)",borderRadius:8,padding:".65rem .75rem",margin:".25rem 0"}}>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-muted)",marginBottom:".5rem",textTransform:"uppercase",letterSpacing:".08em"}}>Líneas del pedido</div>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginBottom:".5rem",textTransform:"uppercase",letterSpacing:".08em"}}>Líneas del pedido</div>
             {p.lineas.map((l,i)=>{
               const costeU=coste[l.tipo]||0; const cfg=TC[l.tipo];
               const ep=l.estadoPago||"pendiente"; const ee=l.estadoEntrega||"pendiente";
@@ -1355,20 +1355,20 @@ function FichaPedido({ pedido:p, coste, onClose, onEditar, onEliminar, updateLin
                 <div key={l.id} style={{padding:".5rem 0",borderBottom:i<p.lineas.length-1?"1px solid rgba(30,45,80,.2)":"none"}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".3rem"}}>
                     <div style={{display:"flex",alignItems:"center",gap:".5rem"}}>
-                      <span style={{fontSize:".9rem"}}>{cfg?.icon}</span>
+                      <span style={{fontSize:"var(--fs-md)"}}>{cfg?.icon}</span>
                       <div>
-                        <div style={{fontSize:".75rem",fontWeight:700}}>{cfg?.label} — {l.talla}</div>
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-muted)"}}>{l.cantidad} ud · coste {fmtEur2(costeU)}/ud</div>
+                        <div style={{fontSize:"var(--fs-base)",fontWeight:700}}>{cfg?.label} — {l.talla}</div>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>{l.cantidad} ud · coste {fmtEur2(costeU)}/ud</div>
                       </div>
                     </div>
                     <div style={{textAlign:"right"}}>
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:".78rem",fontWeight:700,color:ep==="regalo"?"var(--violet)":cfg?.color}}>{ep==="regalo"?"🎁 Regalo":fmtEur2(subV)}</div>
-                      {ep!=="regalo"&&<div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-muted)"}}>{fmtEur2(l.precioVenta||0)}/ud</div>}
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-base)",fontWeight:700,color:ep==="regalo"?"var(--violet)":cfg?.color}}>{ep==="regalo"?"🎁 Regalo":fmtEur2(subV)}</div>
+                      {ep!=="regalo"&&<div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>{fmtEur2(l.precioVenta||0)}/ud</div>}
                     </div>
                   </div>
                   <div style={{display:"flex",gap:".35rem"}} onClick={e=>e.stopPropagation()}>
-                    <button onClick={()=>updateLinea(p.id,l.id,"estadoPago",ep==="pagado"?"pendiente":"pagado")} disabled={ep==="regalo"} style={{fontFamily:"var(--font-mono)",fontSize:".58rem",fontWeight:700,padding:".2rem .5rem",borderRadius:4,border:`1px solid ${epCfg.color}44`,background:epCfg.bg,color:epCfg.color,cursor:ep==="regalo"?"default":"pointer",transition:"all .15s"}}>{epCfg.icon} {epCfg.label}</button>
-                    <button onClick={()=>updateLinea(p.id,l.id,"estadoEntrega",ee==="entregado"?"pendiente":"entregado")} style={{fontFamily:"var(--font-mono)",fontSize:".58rem",fontWeight:700,padding:".2rem .5rem",borderRadius:4,border:`1px solid ${eeCfg.color}44`,background:eeCfg.bg,color:eeCfg.color,cursor:"pointer",transition:"all .15s"}}>{eeCfg.icon} {eeCfg.label}</button>
+                    <button onClick={()=>updateLinea(p.id,l.id,"estadoPago",ep==="pagado"?"pendiente":"pagado")} disabled={ep==="regalo"} style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,padding:".2rem .5rem",borderRadius:4,border:`1px solid ${epCfg.color}44`,background:epCfg.bg,color:epCfg.color,cursor:ep==="regalo"?"default":"pointer",transition:"all .15s"}}>{epCfg.icon} {epCfg.label}</button>
+                    <button onClick={()=>updateLinea(p.id,l.id,"estadoEntrega",ee==="entregado"?"pendiente":"entregado")} style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,padding:".2rem .5rem",borderRadius:4,border:`1px solid ${eeCfg.color}44`,background:eeCfg.bg,color:eeCfg.color,cursor:"pointer",transition:"all .15s"}}>{eeCfg.icon} {eeCfg.label}</button>
                     <span className="mono xs muted" style={{marginLeft:"auto",alignSelf:"center"}}>margen {fmtEur2((ep==="regalo"?-costeU:(l.precioVenta||0)-costeU)*l.cantidad)}</span>
                   </div>
                 </div>
@@ -1383,10 +1383,10 @@ function FichaPedido({ pedido:p, coste, onClose, onEditar, onEliminar, updateLin
               {l:"Ben. potencial", v:fmtEur2(benPotencial), c:benPotencial>=0?"var(--cyan)":"var(--amber)"},
               {l:"Coste regalos",  v:fmtEur2(costeRegalos), c:"var(--violet)"},
             ].map(({l,v,c})=>(
-              <div key={l} style={{textAlign:"center"}}><div style={{fontFamily:"var(--font-mono)",fontSize:".5rem",color:"var(--text-muted)",marginBottom:".1rem",textTransform:"uppercase"}}>{l}</div><div style={{fontFamily:"var(--font-mono)",fontSize:".8rem",fontWeight:800,color:c}}>{v}</div></div>
+              <div key={l} style={{textAlign:"center"}}><div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-2xs)",color:"var(--text-muted)",marginBottom:".1rem",textTransform:"uppercase"}}>{l}</div><div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-base)",fontWeight:800,color:c}}>{v}</div></div>
             ))}
           </div>
-          {p.notas&&<div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",borderLeft:"2px solid var(--primary)"}}><div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-muted)",marginBottom:".25rem",textTransform:"uppercase"}}>Notas</div><div style={{fontSize:".78rem",lineHeight:1.5}}>{p.notas}</div></div>}
+          {p.notas&&<div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",borderLeft:"2px solid var(--primary)"}}><div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginBottom:".25rem",textTransform:"uppercase"}}>Notas</div><div style={{fontSize:"var(--fs-base)",lineHeight:1.5}}>{p.notas}</div></div>}
         </div>
         <div className="modal-footer" style={{justifyContent:"space-between"}}>
           <button className="btn btn-red" onClick={onEliminar}>🗑 Eliminar</button>
@@ -1451,12 +1451,12 @@ function ModalPedido({ data, coste, onSave, onClose }) {
                       <div><label className="fl">Estado de pago</label><select className="inp inp-sm" value={ep} onChange={e=>updL(i,"estadoPago",e.target.value)}>{ESTADOS_PAGO.map(s=><option key={s} value={s}>{EP[s].icon} {EP[s].label}</option>)}</select></div>
                       <div><label className="fl">Estado de entrega</label><select className="inp inp-sm" value={l.estadoEntrega||"pendiente"} onChange={e=>updL(i,"estadoEntrega",e.target.value)}>{ESTADOS_ENTREGA.map(s=><option key={s} value={s}>{EE[s].icon} {EE[s].label}</option>)}</select></div>
                     </div>
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-muted)",display:"flex",gap:".75rem",flexWrap:"wrap"}}>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",display:"flex",gap:".75rem",flexWrap:"wrap"}}>
                       <span>Coste: {fmtEur2(subC)}</span><span>Venta: {esR?"🎁 Regalo":fmtEur2(subV)}</span>
                       <span style={{color:margen>=0?"var(--green)":"var(--red)"}}>Margen: {fmtEur2(margen)}</span>
                     </div>
                     {!esR && (l.precioVenta||0)===0 && (
-                      <div style={{marginTop:".3rem",fontFamily:"var(--font-mono)",fontSize:".58rem",padding:".2rem .5rem",borderRadius:4,background:"var(--violet-dim)",color:"var(--violet)",display:"inline-flex",alignItems:"center",gap:".3rem"}}>
+                      <div style={{marginTop:".3rem",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".2rem .5rem",borderRadius:4,background:"var(--violet-dim)",color:"var(--violet)",display:"inline-flex",alignItems:"center",gap:".3rem"}}>
                         💡 Precio 0 con estado pendiente — ¿es un regalo?
                       </div>
                     )}
@@ -1473,7 +1473,7 @@ function ModalPedido({ data, coste, onSave, onClose }) {
               {l:"Ben. potencial",   v:fmtEur2(benPotencial),    c:benPotencial>=0?"var(--cyan)":"var(--amber)"},
               {l:"Coste regalos",    v:fmtEur2(costeRegalos),    c:"var(--violet)"},
             ].map(({l,v,c})=>(
-              <div key={l} style={{textAlign:"center"}}><div style={{fontFamily:"var(--font-mono)",fontSize:".52rem",color:"var(--text-muted)",marginBottom:".15rem",textTransform:"uppercase"}}>{l}</div><div style={{fontFamily:"var(--font-mono)",fontSize:".82rem",fontWeight:800,color:c}}>{v}</div></div>
+              <div key={l} style={{textAlign:"center"}}><div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-2xs)",color:"var(--text-muted)",marginBottom:".15rem",textTransform:"uppercase"}}>{l}</div><div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-base)",fontWeight:800,color:c}}>{v}</div></div>
             ))}
           </div>
           <div><label className="fl">Notas</label><input className="inp" value={form.notas} onChange={e=>upd("notas",e.target.value)} placeholder="Observaciones opcionales…" /></div>

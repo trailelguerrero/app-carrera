@@ -68,7 +68,7 @@ export const TabIngresos = ({
             {pctPatrocinios > 0 && <div style={{ width: `${pctPatrocinios}%`, background: "var(--green)", transition: "width 0.4s" }} />}
             {pctMerch > 0 && <div style={{ width: `${pctMerch}%`, background: "var(--orange)", transition: "width 0.4s" }} />}
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: "0.4rem", fontSize: "0.58rem", fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: "0.4rem", fontSize: "var(--fs-xs)", fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
             <span>🟣 Inscripciones {pctInscripciones.toFixed(0)}%</span>
             <span>🟢 Patrocinios {pctPatrocinios.toFixed(0)}%</span>
             <span>🟠 Merch {pctMerch.toFixed(0)}%</span>
@@ -80,28 +80,28 @@ export const TabIngresos = ({
       <div className="card" style={{ border: "1px dashed var(--border)", background: "rgba(34,211,238,0.02)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <div style={{ fontSize: "0.75rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <div style={{ fontSize: "var(--fs-base)", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.4rem" }}>
               🔗 Configuración de Sincronización Automática
             </div>
-            <div style={{ fontSize: "0.62rem", color: "var(--text-muted)" }}>Simula el impacto de otras fuentes en el balance final</div>
+            <div style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>Simula el impacto de otras fuentes en el balance final</div>
           </div>
           <div style={{ display: "flex", gap: "1rem" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <span style={{ fontSize: "0.65rem", fontWeight: 600 }}>Patrocinios</span>
+              <span style={{ fontSize: "var(--fs-sm)", fontWeight: 600 }}>Patrocinios</span>
               <Toggle 
                 value={syncConfig.patrocinios} 
                 onChange={v => setSyncConfig({ ...syncConfig, patrocinios: v })} 
               />
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap:"wrap" }}>
-              <span style={{ fontSize: "0.65rem", fontWeight: 600 }}>Merchandising</span>
+              <span style={{ fontSize: "var(--fs-sm)", fontWeight: 600 }}>Merchandising</span>
               <Toggle 
                 value={syncConfig.camisetas} 
                 onChange={v => setSyncConfig({ ...syncConfig, camisetas: v })} 
               />
               <button
                 onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "camisetas" } }))}
-                style={{ fontFamily:"var(--font-mono)", fontSize:".58rem", padding:".15rem .45rem",
+                style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", padding:".15rem .45rem",
                   borderRadius:4, border:"1px solid rgba(99,102,241,.3)",
                   background:"rgba(99,102,241,.1)", color:"#c4c6ff", cursor:"pointer" }}>
                 👕 Ver camisetas →
@@ -136,7 +136,7 @@ export const TabIngresos = ({
                   <td>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                       {isSynced ? (
-                        <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--text)" }}>{ie.nombre}</div>
+                        <div style={{ fontSize: "var(--fs-base)", fontWeight: 700, color: "var(--text)" }}>{ie.nombre}</div>
                       ) : (
                         <input
                           className="text-input"
@@ -144,7 +144,7 @@ export const TabIngresos = ({
                           onChange={e => setIngresosExtra(prev => prev.map(x => x.id === ie.id ? { ...x, nombre: e.target.value } : x))}
                         />
                       )}
-                      {isSynced && <span style={{ fontSize: "0.55rem", color: "var(--cyan)", fontFamily: "var(--font-mono)", background: "var(--cyan-dim)", padding: "0.1rem 0.35rem", borderRadius: 3, whiteSpace: "nowrap" }}>🔗 auto</span>}
+                      {isSynced && <span style={{ fontSize: "var(--fs-xs)", color: "var(--cyan)", fontFamily: "var(--font-mono)", background: "var(--cyan-dim)", padding: "0.1rem 0.35rem", borderRadius: 3, whiteSpace: "nowrap" }}>🔗 auto</span>}
                     </div>
                   </td>
                   <td className="text-right">
@@ -155,7 +155,7 @@ export const TabIngresos = ({
                           text={`Valor sincronizado desde ${ie.id === 1 ? 'Patrocinadores' : 'Camisetas'}.\nPuedes desactivarlo en el panel de arriba.`}
                           position="top"
                         >
-                          <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.55rem", color:"var(--cyan)",
+                          <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--cyan)",
                             background:"var(--cyan-dim)", border:"1px solid rgba(34,211,238,0.25)",
                             padding:"0.05rem 0.35rem", borderRadius:3, cursor:"help" }}>
                             ⚡ activo

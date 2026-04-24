@@ -585,7 +585,7 @@ export default function Documentos() {
 
             {/* Buscador con alcance siempre visible */}
             <div className="doc-search">
-              <span style={{opacity:.5, fontSize:".8rem", flexShrink:0}}>🔍</span>
+              <span style={{opacity:.5, fontSize:"var(--fs-base)", flexShrink:0}}>🔍</span>
               <input
                 value={busqueda}
                 onChange={e => setBusqueda(e.target.value)}
@@ -599,7 +599,7 @@ export default function Documentos() {
                   background: busqGlobal ? "var(--cyan-dim)" : "var(--surface3)",
                   border: busqGlobal ? "1px solid rgba(34,211,238,0.3)" : "1px solid var(--border)",
                   color: busqGlobal ? "var(--cyan)" : "var(--text-muted)",
-                  cursor:"pointer", fontSize:".58rem", padding:".12rem .4rem",
+                  cursor:"pointer", fontSize:"var(--fs-xs)", padding:".12rem .4rem",
                   borderRadius:4, fontFamily:"var(--font-mono)",
                   whiteSpace:"nowrap", flexShrink:0, transition:"all .15s",
                 }}>
@@ -608,7 +608,7 @@ export default function Documentos() {
               {busqueda && (
                 <button onClick={() => { setBusqueda(""); setBusqGlobal(false); }}
                   style={{background:"none",border:"none",color:"var(--text-muted)",
-                    cursor:"pointer",fontSize:".7rem",padding:0}}>✕</button>
+                    cursor:"pointer",fontSize:"var(--fs-sm)",padding:0}}>✕</button>
               )}
             </div>
           </div>
@@ -659,7 +659,7 @@ export default function Documentos() {
           ];
           return (
             <div className="card mb" style={{padding:".7rem .9rem"}}>
-              <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
+              <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
                 color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:".08em",
                 marginBottom:".45rem"}}>
                 ⚠️ Requieren atención · {items.length} elemento{items.length!==1?"s":""}
@@ -670,17 +670,17 @@ export default function Documentos() {
                     display:"flex",alignItems:"center",gap:".5rem",
                     padding:".28rem .55rem",borderRadius:6,
                     background:item.bg,border:`1px solid ${item.border}`}}>
-                    <span style={{fontSize:".75rem",flexShrink:0}}>{item.icon}</span>
-                    <span style={{flex:1,fontFamily:"var(--font-mono)",fontSize:".63rem",
+                    <span style={{fontSize:"var(--fs-base)",flexShrink:0}}>{item.icon}</span>
+                    <span style={{flex:1,fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                       fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                       {item.nombre}
                     </span>
-                    <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                       color:item.color,fontWeight:700,flexShrink:0}}>
                       {item.etiqueta}
                     </span>
                     <button
-                      style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+                      style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                         padding:".1rem .35rem",borderRadius:4,
                         border:`1px solid ${item.color}44`,
                         background:`${item.color}15`,
@@ -710,7 +710,7 @@ export default function Documentos() {
             <div style={{ marginBottom:".85rem", padding:".6rem .85rem",
               background:"var(--surface2)", border:"1px solid var(--border)",
               borderRadius:"var(--r-sm)",
-              fontFamily:"var(--font-mono)", fontSize:".7rem",
+              fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
               color:"var(--text-muted)", textAlign:"center" }}>
               📁 Sin archivos subidos todavía — usa la zona de subida para añadir documentos
             </div>
@@ -773,7 +773,7 @@ export default function Documentos() {
                 } : {}}>
                 {c.icon} {c.label}
                 {cnt > 0 && <span style={{
-                  fontFamily:"var(--font-mono)", fontSize:".56rem",
+                  fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                   background:"rgba(255,255,255,.07)", borderRadius:10,
                   padding:".05rem .4rem", marginLeft:".1rem",
                 }}>{cnt}</span>}
@@ -794,10 +794,10 @@ export default function Documentos() {
               {catInfo.icon} Subir a {catInfo.label}
             </span>
             <div style={{display:"flex",alignItems:"center",gap:".75rem"}}>
-              <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-dim)"}}>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-dim)"}}>
                 PDF · JPG · PNG · máx. 10 MB
               </span>
-              <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-dim)"}}>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-dim)"}}>
                 {uploadOpen ? "▲ ocultar" : "▼ mostrar"}
               </span>
             </div>
@@ -866,7 +866,7 @@ export default function Documentos() {
         {/* ── Resultados búsqueda global ── */}
         {resultadosGlobales && (
           <div className="card mb" style={{padding:".75rem 1rem"}}>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:".62rem",color:"var(--cyan)",
+            <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--cyan)",
               fontWeight:700,marginBottom:".65rem"}}>
               🌐 {resultadosGlobales.length} resultado{resultadosGlobales.length!==1?"s":""} en todos los documentos para "{busqueda}"
             </div>
@@ -881,29 +881,29 @@ export default function Documentos() {
                     <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:cat.color,borderRadius:"12px 12px 0 0"}} />
                     <div style={{display:"flex",alignItems:"center",gap:8,paddingTop:4}}>
                       <div className="item-icon-pill"
-                        style={{"--pill-color": cat.color, width:38, height:38, fontSize:"1.1rem"}}>
+                        style={{"--pill-color": cat.color, width:38, height:38, fontSize:"var(--fs-lg)"}}>
                         {getFileIcon(doc.tipo)}
                       </div>
                       <div style={{flex:1,minWidth:0}}>
-                        <div className="doc-card-name" style={{fontSize:".75rem"}}>{doc.nombreDisplay || doc.nombre}</div>
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:cat.color,marginTop:".1rem"}}>
+                        <div className="doc-card-name" style={{fontSize:"var(--fs-base)"}}>{doc.nombreDisplay || doc.nombre}</div>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:cat.color,marginTop:".1rem"}}>
                           {cat.icon} {cat.label}{doc.subcategoria ? ` · ${doc.subcategoria}` : ""}
                         </div>
                       </div>
                     </div>
                     <div style={{display:"flex",gap:".4rem",flexWrap:"wrap",alignItems:"center"}}>
-                      <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",padding:".08rem .35rem",
+                      <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".08rem .35rem",
                         borderRadius:3,background:ecfg.bg,color:ecfg.color,border:`1px solid ${ecfg.color}33`}}>
                         {ecfg.label}
                       </span>
-                      {doc.emisor && <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-muted)"}}>🏢 {doc.emisor}</span>}
+                      {doc.emisor && <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>🏢 {doc.emisor}</span>}
                       {doc.fechaVencimiento && dV !== null && (
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:vc,fontWeight:700}}>
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:vc,fontWeight:700}}>
                           ⏰ {formatDate(doc.fechaVencimiento)}
                         </span>
                       )}
                     </div>
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-dim)"}}>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-dim)"}}>
                       {formatSize(doc.size)} · {formatDate(doc.fechaSubida)}
                     </div>
                     <div className="doc-card-actions">
@@ -915,7 +915,7 @@ export default function Documentos() {
               })}
             </div>
             {resultadosGlobales.length === 0 && (
-              <div style={{textAlign:"center",padding:"1.5rem",color:"var(--text-dim)",fontFamily:"var(--font-mono)",fontSize:".72rem"}}>
+              <div style={{textAlign:"center",padding:"1.5rem",color:"var(--text-dim)",fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)"}}>
                 Sin resultados para "{busqueda}"
               </div>
             )}
@@ -933,7 +933,7 @@ export default function Documentos() {
               : `Sube el primer documento a ${catInfo.label}`}
             action={!busqueda && (
               <button className="btn btn-ghost btn-sm"
-                style={{ fontSize:".65rem" }}
+                style={{ fontSize:"var(--fs-sm)" }}
                 onClick={() => setUploadOpen(true)}>
                 + Subir documento
               </button>
@@ -962,7 +962,7 @@ export default function Documentos() {
                     {editId === doc.id ? (
                       /* ── Edit mode ── */
                       <div className="doc-edit-card" style={{paddingTop:4}}>
-                        <div style={{fontSize:".7rem",fontWeight:700,color:catInfo.color,marginBottom:".25rem"}}>✏️ Editando documento</div>
+                        <div style={{fontSize:"var(--fs-sm)",fontWeight:700,color:catInfo.color,marginBottom:".25rem"}}>✏️ Editando documento</div>
                         <input value={editForm.nombreDisplay}
                           onChange={e => setEditForm(p=>({...p,nombreDisplay:e.target.value}))}
                           placeholder="Nombre descriptivo *" className="doc-input" style={{width:"100%",boxSizing:"border-box"}} />
@@ -1024,7 +1024,7 @@ export default function Documentos() {
                           <div style={{flex:1,minWidth:0}}>
                             <div className="doc-card-name">{doc.nombreDisplay || doc.nombre}</div>
                             {doc.emisor && (
-                              <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+                              <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                                 color:"var(--text-muted)",marginTop:".1rem"}}>
                                 🏢 {doc.emisor}
                               </div>
@@ -1043,7 +1043,7 @@ export default function Documentos() {
                             {ESTADOS_DOC.map(e => <option key={e.id} value={e.id}>{e.label}</option>)}
                           </select>
                           {doc.fechaVencimiento && (
-                            <span className="mono" style={{fontSize:".58rem",color:vencColor,fontWeight:700}}>
+                            <span className="mono" style={{fontSize:"var(--fs-xs)",color:vencColor,fontWeight:700}}>
                               {dVenc === null ? "" :
                                dVenc < 0    ? `⚠ Venció ${formatDate(doc.fechaVencimiento)}` :
                                dVenc === 0  ? "⏰ Vence hoy" :
@@ -1096,11 +1096,11 @@ export default function Documentos() {
             borderBottom:"1px solid rgba(255,255,255,0.1)",flexShrink:0,
           }}>
             <div>
-              <div style={{fontFamily:"var(--font-display)",fontWeight:700,fontSize:".85rem",color:"#fff"}}>
+              <div style={{fontFamily:"var(--font-display)",fontWeight:700,fontSize:"var(--fs-base)",color:"#fff"}}>
                 {getFileIcon(visorDoc.tipo)} {visorDoc.nombreDisplay || visorDoc.nombre}
               </div>
               {visorDoc.emisor && (
-                <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"rgba(255,255,255,0.5)",marginTop:".15rem"}}>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"rgba(255,255,255,0.5)",marginTop:".15rem"}}>
                   🏢 {visorDoc.emisor}
                 </div>
               )}
@@ -1110,13 +1110,13 @@ export default function Documentos() {
                 background:"rgba(52,211,153,0.15)",color:"#34d399",
                 border:"1px solid rgba(52,211,153,0.3)",borderRadius:8,
                 padding:".35rem .75rem",fontFamily:"var(--font-display)",
-                fontWeight:700,fontSize:".72rem",cursor:"pointer",
+                fontWeight:700,fontSize:"var(--fs-sm)",cursor:"pointer",
               }}>⬇ Descargar</button>
               <button onClick={() => { setVisorDoc(null); }} style={{
                 background:"rgba(255,255,255,0.1)",color:"#fff",
                 border:"1px solid rgba(255,255,255,0.2)",borderRadius:8,
                 padding:".35rem .75rem",fontFamily:"var(--font-display)",
-                fontWeight:700,fontSize:".72rem",cursor:"pointer",
+                fontWeight:700,fontSize:"var(--fs-sm)",cursor:"pointer",
               }}>✕ Cerrar</button>
             </div>
           </div>
@@ -1129,19 +1129,19 @@ export default function Documentos() {
                   border:"3px solid rgba(255,255,255,0.15)",borderTopColor:"#22d3ee",
                   animation:"teg-spin 0.7s linear infinite"}} />
                 <style>{`@keyframes teg-spin{to{transform:rotate(360deg)}}`}</style>
-                <div style={{fontFamily:"monospace",fontSize:".72rem",color:"rgba(255,255,255,0.5)"}}>
+                <div style={{fontFamily:"monospace",fontSize:"var(--fs-sm)",color:"rgba(255,255,255,0.5)"}}>
                   Cargando documento…
                 </div>
               </div>
             ) : visorDoc._error ? (
               <div style={{textAlign:"center",color:"rgba(255,255,255,0.7)"}}>
                 <div style={{fontSize:"3rem",marginBottom:".75rem"}}>⚠️</div>
-                <div style={{fontFamily:"monospace",fontSize:".78rem",marginBottom:"1rem"}}>
+                <div style={{fontFamily:"monospace",fontSize:"var(--fs-base)",marginBottom:"1rem"}}>
                   No se pudo cargar el documento
                 </div>
                 <button onClick={() => downloadDoc(visorDoc)} style={{
                   background:"#34d399",color:"var(--bg)",border:"none",borderRadius:10,
-                  padding:".6rem 1.5rem",fontWeight:800,fontSize:".85rem",cursor:"pointer",
+                  padding:".6rem 1.5rem",fontWeight:800,fontSize:"var(--fs-base)",cursor:"pointer",
                 }}>⬇ Descargar</button>
               </div>
             ) : visorDoc._esPdf ? (
@@ -1169,13 +1169,13 @@ export default function Documentos() {
         }}>
           <div>
             <div style={{
-              fontFamily:"var(--font-display)", fontWeight:800, fontSize:".9rem",
+              fontFamily:"var(--font-display)", fontWeight:800, fontSize:"var(--fs-md)",
               color:"#38bdf8", display:"flex", alignItems:"center", gap:".5rem",
             }}>
               🏛️ Gestiones legales
             </div>
             <div style={{
-              fontFamily:"var(--font-mono)", fontSize:".6rem",
+              fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
               color:"var(--text-muted)", marginTop:".15rem",
             }}>
               Trámites y autorizaciones · sin archivo adjunto
@@ -1184,7 +1184,7 @@ export default function Documentos() {
           <div style={{display:"flex",gap:".5rem",alignItems:"center"}}>
             {(gestionesVencidas.length > 0 || gestionesCriticas.length > 0) && (
               <span style={{
-                fontFamily:"var(--font-mono)", fontSize:".6rem", fontWeight:700,
+                fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
                 color:"var(--red)", background:"var(--red-dim)",
                 border:"1px solid rgba(248,113,113,0.25)",
                 borderRadius:20, padding:".15rem .55rem",
@@ -1202,7 +1202,7 @@ export default function Documentos() {
         <div style={{display:"flex",flexDirection:"column",gap:".45rem"}}>
           {gestiones.length === 0 && (
             <div style={{textAlign:"center",padding:"2rem",color:"var(--text-dim)",
-              fontFamily:"var(--font-mono)",fontSize:".72rem"}}>
+              fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)"}}>
               Sin gestiones registradas
             </div>
           )}
@@ -1226,9 +1226,9 @@ export default function Documentos() {
                       </select>
                     </div>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem"}}>
-                      <div><label style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",display:"block",marginBottom:".2rem"}}>Fecha límite</label>
+                      <div><label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",display:"block",marginBottom:".2rem"}}>Fecha límite</label>
                         <input className="inp inp-sm" type="date" value={gForm.fechaVencimiento} onChange={e=>setGForm(p=>({...p,fechaVencimiento:e.target.value}))} /></div>
-                      <div><label style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",display:"block",marginBottom:".2rem"}}>URL / Referencia</label>
+                      <div><label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",display:"block",marginBottom:".2rem"}}>URL / Referencia</label>
                         <input className="inp inp-sm" value={gForm.url||""} onChange={e=>setGForm(p=>({...p,url:e.target.value}))} placeholder="https://…" /></div>
                     </div>
                     <textarea className="inp" rows={2} value={gForm.nota||""} onChange={e=>setGForm(p=>({...p,nota:e.target.value}))} placeholder="Notas…" style={{resize:"vertical"}} />
@@ -1247,28 +1247,28 @@ export default function Documentos() {
                 ) : (
                   <div style={{display:"flex",gap:".75rem",alignItems:"flex-start"}}>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:700,fontSize:".82rem",marginBottom:".2rem"}}>{g.nombre}</div>
+                      <div style={{fontWeight:700,fontSize:"var(--fs-base)",marginBottom:".2rem"}}>{g.nombre}</div>
                       <div style={{display:"flex",gap:".4rem",flexWrap:"wrap",alignItems:"center"}}>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",padding:".08rem .35rem",
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".08rem .35rem",
                           borderRadius:3,background:`${ecfg.color}18`,color:ecfg.color,border:`1px solid ${ecfg.color}33`}}>
                           {ecfg.label}
                         </span>
-                        {g.subcategoria && <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-muted)"}}>{g.subcategoria}</span>}
+                        {g.subcategoria && <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>{g.subcategoria}</span>}
                         {g.fechaVencimiento && (
-                          <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:vcolor,fontWeight:700}}>
+                          <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:vcolor,fontWeight:700}}>
                             {dias===null?"":dias<0?`⚠ Venció ${formatDate(g.fechaVencimiento)}`:dias===0?"⏰ Hoy":`⏰ ${dias}d · ${formatDate(g.fechaVencimiento)}`}
                           </span>
                         )}
-                        {g.url && <a href={g.url} target="_blank" rel="noreferrer" style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"#38bdf8"}} onClick={e=>e.stopPropagation()}>🔗 Ver enlace</a>}
+                        {g.url && <a href={g.url} target="_blank" rel="noreferrer" style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#38bdf8"}} onClick={e=>e.stopPropagation()}>🔗 Ver enlace</a>}
                       </div>
-                      {g.nota && <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",marginTop:".25rem",lineHeight:1.5}}>{g.nota}</div>}
+                      {g.nota && <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginTop:".25rem",lineHeight:1.5}}>{g.nota}</div>}
 
                       {/* Log de comunicaciones — expandible */}
                       {((g.log||[]).length > 0 || logGestionId === g.id) && (
                         <div style={{marginTop:".5rem",paddingTop:".5rem",borderTop:"1px solid var(--border)"}}>
                           <button
                             onClick={() => setLogGestionId(logGestionId === g.id ? null : g.id)}
-                            style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",
+                            style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",
                               background:"none",border:"none",cursor:"pointer",padding:0,marginBottom:".35rem",
                               display:"flex",alignItems:"center",gap:".3rem"}}>
                             {logGestionId === g.id ? "▲" : "▼"}
@@ -1277,7 +1277,7 @@ export default function Documentos() {
                           {logGestionId === g.id && (
                             <div>
                               {(g.log||[]).length === 0 && (
-                                <div style={{fontFamily:"var(--font-mono)",fontSize:".62rem",
+                                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                                   color:"var(--text-dim)",marginBottom:".4rem"}}>
                                   Sin comunicaciones registradas aún
                                 </div>
@@ -1288,8 +1288,8 @@ export default function Documentos() {
                                   background:"var(--surface)",marginBottom:".25rem",
                                   border:"1px solid var(--border)"}}>
                                   <div style={{flex:1,minWidth:0}}>
-                                    <div style={{fontSize:".73rem",lineHeight:1.5}}>{entry.texto}</div>
-                                    <div style={{fontFamily:"var(--font-mono)",fontSize:".56rem",
+                                    <div style={{fontSize:"var(--fs-sm)",lineHeight:1.5}}>{entry.texto}</div>
+                                    <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                                       color:"var(--text-dim)",marginTop:".15rem"}}>
                                       {entry.autor} · {new Date(entry.fecha).toLocaleDateString("es-ES",{day:"2-digit",month:"short",year:"2-digit"})} {new Date(entry.fecha).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})}
                                     </div>
@@ -1304,7 +1304,7 @@ export default function Documentos() {
                                   value={nuevoLog}
                                   onChange={e => setNuevoLog(e.target.value)}
                                   onKeyDown={e => e.key === "Enter" && !e.shiftKey && addLogEntry(g.id)}
-                                  style={{flex:1,fontFamily:"var(--font-mono)",fontSize:".68rem"}}
+                                  style={{flex:1,fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)"}}
                                 />
                                 <button
                                   className="btn btn-primary btn-sm"
@@ -1322,7 +1322,7 @@ export default function Documentos() {
                       {(g.log||[]).length === 0 && logGestionId !== g.id && (
                         <button
                           onClick={() => setLogGestionId(g.id)}
-                          style={{marginTop:".35rem",fontFamily:"var(--font-mono)",fontSize:".58rem",
+                          style={{marginTop:".35rem",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                             color:"var(--text-dim)",background:"none",border:"none",
                             cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:".25rem"}}>
                           + Registrar comunicación
@@ -1343,7 +1343,7 @@ export default function Documentos() {
                           }));
                         }}
                         style={{
-                          fontFamily:"var(--font-mono)", fontSize:".58rem",
+                          fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                           padding:".2rem .45rem", borderRadius:5,
                           border:"1px solid rgba(167,139,250,.3)",
                           background:"rgba(167,139,250,.1)", color:"var(--violet)",
@@ -1371,14 +1371,14 @@ export default function Documentos() {
           left:"50%", transform:"translateX(-50%)",
           background:"var(--red-dim)", border:"1px solid rgba(248,113,113,.35)",
           borderRadius:10, padding:".65rem 1rem",
-          fontFamily:"var(--font-mono)", fontSize:".7rem", fontWeight:600,
+          fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", fontWeight:600,
           color:"var(--red)", zIndex:9998, maxWidth:340, width:"90%",
           display:"flex", alignItems:"center", gap:".6rem",
           boxShadow:"0 4px 20px rgba(0,0,0,.3)", cursor:"pointer",
         }}>
           <span style={{flexShrink:0}}>❌</span>
           <span style={{flex:1}}>{uploadError}</span>
-          <span style={{flexShrink:0, opacity:.6, fontSize:".65rem"}}>Toca para cerrar</span>
+          <span style={{flexShrink:0, opacity:.6, fontSize:"var(--fs-sm)"}}>Toca para cerrar</span>
         </div>
       )}
 
@@ -1394,11 +1394,11 @@ export default function Documentos() {
             borderRadius:14, padding:"1.5rem", maxWidth:320, width:"100%",
             textAlign:"center",
           }}>
-            <div style={{ fontSize:"2.2rem", marginBottom:".6rem" }}>🗑</div>
-            <div style={{ fontWeight:800, fontSize:".9rem", marginBottom:".35rem" }}>
+            <div style={{ fontSize:"var(--fs-xl)", marginBottom:".6rem" }}>🗑</div>
+            <div style={{ fontWeight:800, fontSize:"var(--fs-md)", marginBottom:".35rem" }}>
               ¿Eliminar este {delConfirm.esGestion ? "trámite" : "documento"}?
             </div>
-            <div style={{ fontFamily:"var(--font-mono)", fontSize:".65rem",
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
               color:"var(--text-muted)", marginBottom:"1.25rem",
               overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
               {delConfirm.nombre}
@@ -1426,18 +1426,18 @@ export default function Documentos() {
             </div>
             <div className="modal-body" style={{gap:".65rem"}}>
               <div>
-                <label style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Nombre *</label>
+                <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Nombre *</label>
                 <input className="inp" value={gForm.nombre} onChange={e=>setGForm(p=>({...p,nombre:e.target.value}))} placeholder="Ej: Autorización Ayuntamiento" />
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
                 <div>
-                  <label style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Tipo</label>
+                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Tipo</label>
                   <select className="inp" value={gForm.subcategoria} onChange={e=>setGForm(p=>({...p,subcategoria:e.target.value}))}>
                     {(SUBCATEGORIAS.gestiones||[]).map(sc=><option key={sc} value={sc}>{sc}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Estado</label>
+                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Estado</label>
                   <select className="inp" value={gForm.estado} onChange={e=>setGForm(p=>({...p,estado:e.target.value}))} style={{color:getEstadoCfg(gForm.estado).color}}>
                     {ESTADOS_DOC.map(e=><option key={e.id} value={e.id}>{e.label}</option>)}
                   </select>
@@ -1445,16 +1445,16 @@ export default function Documentos() {
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
                 <div>
-                  <label style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Fecha límite</label>
+                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Fecha límite</label>
                   <input className="inp" type="date" value={gForm.fechaVencimiento} onChange={e=>setGForm(p=>({...p,fechaVencimiento:e.target.value}))} />
                 </div>
                 <div>
-                  <label style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>URL / Referencia</label>
+                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>URL / Referencia</label>
                   <input className="inp" value={gForm.url} onChange={e=>setGForm(p=>({...p,url:e.target.value}))} placeholder="https://…" />
                 </div>
               </div>
               <div>
-                <label style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Notas</label>
+                <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Notas</label>
                 <textarea className="inp" rows={3} value={gForm.nota} onChange={e=>setGForm(p=>({...p,nota:e.target.value}))} placeholder="Instrucciones, contactos, requisitos previos…" style={{resize:"vertical"}} />
               </div>
             </div>

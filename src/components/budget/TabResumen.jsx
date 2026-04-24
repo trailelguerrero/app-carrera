@@ -108,7 +108,7 @@ export const TabResumen = ({
               </tr>
               <tr style={{ borderTop: "2px solid var(--border)", background: "var(--surface2)" }}>
                 <td style={{ fontWeight: 800, fontSize: "0.9rem" }}>🏁 RESULTADO NETO</td>
-                <td className="mono" style={{ fontWeight: 800, fontSize: "1rem", color: resultado.total >= 0 ? "var(--green)" : "var(--red)" }}>
+                <td className="mono" style={{ fontWeight: 800, fontSize: "var(--fs-md)", color: resultado.total >= 0 ? "var(--green)" : "var(--red)" }}>
                   {resultado.total >= 0 ? "+" : ""}{resultado.total.toFixed(2)} €
                 </td>
                 {DISTANCIAS.map(d => (
@@ -129,7 +129,7 @@ export const TabResumen = ({
             <div className="card-title resumen" style={{ marginBottom:0 }}>
               📊 Top Conceptos por Coste
             </div>
-            <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
               color:"var(--text-muted)" }}>Análisis de estructura de costes</span>
           </div>
           <div className="overflow-x">

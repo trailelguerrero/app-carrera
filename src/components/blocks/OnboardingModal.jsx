@@ -66,15 +66,15 @@ export default function OnboardingModal({ onClose, onNavigate }) {
           padding: "1.4rem 1.6rem 1rem",
           borderBottom: "1px solid #1e2d50",
         }}>
-          <div style={{ fontSize: "2rem", marginBottom: ".5rem" }}>👋</div>
+          <div style={{ fontSize: "var(--fs-xl)", marginBottom: ".5rem" }}>👋</div>
           <div style={{
             fontFamily: "'Syne', sans-serif", fontWeight: 800,
-            fontSize: "1.15rem", color: "#e8eef8", marginBottom: ".4rem",
+            fontSize: "var(--fs-lg)", color: "#e8eef8", marginBottom: ".4rem",
           }}>
             Bienvenido a la app de Trail El Guerrero
           </div>
           <div style={{
-            fontFamily: "var(--font-mono)", fontSize: ".7rem",
+            fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)",
             color: "#5a6a8a", lineHeight: 1.6,
           }}>
             Los datos que ves ahora son ejemplos de configuración.
@@ -86,7 +86,7 @@ export default function OnboardingModal({ onClose, onNavigate }) {
         {/* Pasos */}
         <div style={{ padding: "1rem 1.2rem", overflowY: "auto", flex: 1 }}>
           <div style={{
-            fontFamily: "var(--font-mono)", fontSize: ".62rem",
+            fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
             color: "#3a4a6a", textTransform: "uppercase", letterSpacing: ".1em",
             marginBottom: ".65rem",
           }}>
@@ -104,14 +104,14 @@ export default function OnboardingModal({ onClose, onNavigate }) {
                 width: 32, height: 32, borderRadius: 8, flexShrink: 0,
                 background: `${p.color}18`, border: `1px solid ${p.color}33`,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: "1rem",
+                fontSize: "var(--fs-md)",
               }}>
                 {p.icon}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: ".5rem", marginBottom: ".2rem" }}>
                   <span style={{
-                    fontFamily: "var(--font-mono)", fontSize: ".55rem",
+                    fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
                     fontWeight: 700, color: p.color,
                     background: `${p.color}15`, border: `1px solid ${p.color}30`,
                     padding: ".05rem .35rem", borderRadius: 3,
@@ -120,19 +120,19 @@ export default function OnboardingModal({ onClose, onNavigate }) {
                   </span>
                   <span style={{
                     fontFamily: "'Syne', sans-serif", fontWeight: 700,
-                    fontSize: ".82rem", color: "#e8eef8",
+                    fontSize: "var(--fs-base)", color: "#e8eef8",
                   }}>
                     {p.titulo}
                   </span>
                 </div>
                 <div style={{
-                  fontFamily: "var(--font-mono)", fontSize: ".65rem",
+                  fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)",
                   color: "#5a6a8a", lineHeight: 1.55,
                 }}>
                   {p.desc}
                 </div>
               </div>
-              <span style={{ color: "#3a4a6a", fontSize: ".8rem", flexShrink: 0, alignSelf: "center" }}>›</span>
+              <span style={{ color: "#3a4a6a", fontSize: "var(--fs-base)", flexShrink: 0, alignSelf: "center" }}>›</span>
             </div>
           ))}
 
@@ -140,7 +140,7 @@ export default function OnboardingModal({ onClose, onNavigate }) {
             marginTop: ".85rem", padding: ".6rem .85rem",
             background: "rgba(34,211,238,0.04)", border: "1px solid rgba(34,211,238,0.15)",
             borderRadius: 8,
-            fontFamily: "var(--font-mono)", fontSize: ".63rem",
+            fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
             color: "#5a6a8a", lineHeight: 1.6,
           }}>
             💡 En cada bloque tienes el botón <span style={{
@@ -158,7 +158,7 @@ export default function OnboardingModal({ onClose, onNavigate }) {
           gap: ".75rem",
         }}>
           <span style={{
-            fontFamily: "var(--font-mono)", fontSize: ".6rem",
+            fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
             color: "#3a4a6a",
           }}>
             Haz clic en un paso para ir directamente
@@ -170,7 +170,7 @@ export default function OnboardingModal({ onClose, onNavigate }) {
               border: "1px solid rgba(99,102,241,0.3)", borderRadius: 8,
               padding: ".5rem 1.25rem",
               fontFamily: "'Syne', sans-serif", fontWeight: 700,
-              fontSize: ".78rem", cursor: "pointer", transition: "all .15s",
+              fontSize: "var(--fs-base)", cursor: "pointer", transition: "all .15s",
               whiteSpace: "nowrap",
             }}
             onMouseEnter={e => e.currentTarget.style.background = "rgba(99,102,241,0.25)"}

@@ -303,14 +303,14 @@ export default function App() {
             <div style={{display:"flex",alignItems:"center",gap:".4rem",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:"var(--r-sm)",padding:".28rem .6rem",transition:"border-color .15s"}}
               onFocus={e=>e.currentTarget.style.borderColor="var(--violet)"}
               onBlur={e=>e.currentTarget.style.borderColor="var(--border)"}>
-              <span style={{fontSize:".8rem",opacity:.5}}>🔍</span>
+              <span style={{fontSize:"var(--fs-base)",opacity:.5}}>🔍</span>
               <input
                 value={busquedaGlobal}
                 onChange={e=>{setBusquedaGlobal(e.target.value); if(e.target.value && tab!=="tablón") setTab("tablón");}}
                 placeholder="Buscar en todo el proyecto…"
-                style={{background:"none",border:"none",color:"var(--text)",fontFamily:"var(--font-display)",fontSize:".78rem",outline:"none",width: isMobile ? 120 : 200}}
+                style={{background:"none",border:"none",color:"var(--text)",fontFamily:"var(--font-display)",fontSize:"var(--fs-base)",outline:"none",width: isMobile ? 120 : 200}}
               />
-              {busquedaGlobal && <button onClick={()=>setBusquedaGlobal("")} style={{background:"none",border:"none",color:"var(--text-muted)",cursor:"pointer",fontSize:".75rem",padding:0}}>✕</button>}
+              {busquedaGlobal && <button onClick={()=>setBusquedaGlobal("")} style={{background:"none",border:"none",color:"var(--text-muted)",cursor:"pointer",fontSize:"var(--fs-base)",padding:0}}>✕</button>}
             </div>
             {busquedaGlobal && tareasFiltradas && (
               <span className="badge badge-violet" style={{whiteSpace:"nowrap"}}>
@@ -386,8 +386,8 @@ export default function App() {
         <div className="overlay" onClick={e => e.target===e.currentTarget && setDelConf(null)}>
           <div className="modal" style={{maxWidth:340,textAlign:"center"}}>
             <div className="modal-body" style={{paddingTop:"1.5rem"}}>
-              <div style={{fontSize:"2.5rem",marginBottom:".6rem"}}>⚠️</div>
-              <div style={{fontWeight:700,fontSize:".9rem",marginBottom:".4rem"}}>¿Eliminar este elemento?</div>
+              <div style={{fontSize:"var(--fs-xl)",marginBottom:".6rem"}}>⚠️</div>
+              <div style={{fontWeight:700,fontSize:"var(--fs-md)",marginBottom:".4rem"}}>¿Eliminar este elemento?</div>
               <div className="mono xs muted">Esta acción no se puede deshacer.</div>
             </div>
             <div className="modal-footer">
@@ -418,8 +418,8 @@ function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, upd
                 title={`Ver tareas de ${a.label}`}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:".4rem"}}>
                   <div>
-                    <div style={{fontSize:"1.1rem",marginBottom:".15rem"}}>{a.icon}</div>
-                    <div style={{fontSize:".72rem",fontWeight:700,color:a.color,lineHeight:1.2}}>{a.label}</div>
+                    <div style={{fontSize:"var(--fs-lg)",marginBottom:".15rem"}}>{a.icon}</div>
+                    <div style={{fontSize:"var(--fs-sm)",fontWeight:700,color:a.color,lineHeight:1.2}}>{a.label}</div>
                   </div>
                   <div style={{width:10,height:10,borderRadius:"50%",background:sc,boxShadow:`0 0 8px ${sc}88`,flexShrink:0,marginTop:2}}/>
                 </div>
@@ -428,19 +428,19 @@ function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, upd
                     <div className="pfill" style={{width:`${a.pct}%`,background:a.color}}/>
                   </div>
                   <div className="mono xs muted">{a.done}/{a.total} · {a.pct}%</div>
-                  {a.venc > 0 && <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"#f87171",marginTop:".15rem"}}>⚠ {a.venc} vencida{a.venc!==1?"s":""}</div>}
+                  {a.venc > 0 && <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#f87171",marginTop:".15rem"}}>⚠ {a.venc} vencida{a.venc!==1?"s":""}</div>}
                 </div>
                 {{
-                  permisos:       <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"documentos"}}))}}>🏛️ Ver gestiones legales →</button>,
-                  economico:      <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"presupuesto"}}))}}>💰 Ver presupuesto →</button>,
-                  comunicacion:   <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"documentos"}}))}}>📁 Ver documentos →</button>,
-                  patrocinadores: <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"patrocinadores"}}))}}>🤝 Ver patrocinadores →</button>,
-                  voluntarios:    <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"voluntarios"}}))}}>👥 Ver voluntarios →</button>,
-                  ruta:           <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"logistica"}}))}}>🏔️ Ver logística →</button>,
-                  logistica:      <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"logistica"}}))}}>📦 Ver logística →</button>,
-                  comercial:      <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"camisetas"}}))}}>👕 Ver camisetas →</button>,
-                  sanitario:      <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"logistica"}}))}}>🏥 Ver logística →</button>,
-                  diaD:           <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:".58rem",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"diaCarrera"}}))}}>🏁 Vista día D →</button>,
+                  permisos:       <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:"var(--fs-xs)",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"documentos"}}))}}>🏛️ Ver gestiones legales →</button>,
+                  economico:      <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:"var(--fs-xs)",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"presupuesto"}}))}}>💰 Ver presupuesto →</button>,
+                  comunicacion:   <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:"var(--fs-xs)",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"documentos"}}))}}>📁 Ver documentos →</button>,
+                  patrocinadores: <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:"var(--fs-xs)",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"patrocinadores"}}))}}>🤝 Ver patrocinadores →</button>,
+                  voluntarios:    <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:"var(--fs-xs)",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"voluntarios"}}))}}>👥 Ver voluntarios →</button>,
+                  ruta:           <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:"var(--fs-xs)",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"logistica"}}))}}>🏔️ Ver logística →</button>,
+                  logistica:      <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:"var(--fs-xs)",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"logistica"}}))}}>📦 Ver logística →</button>,
+                  comercial:      <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:"var(--fs-xs)",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"camisetas"}}))}}>👕 Ver camisetas →</button>,
+                  sanitario:      <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:"var(--fs-xs)",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"logistica"}}))}}>🏥 Ver logística →</button>,
+                  diaD:           <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:"var(--fs-xs)",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"diaCarrera"}}))}}>🏁 Vista día D →</button>,
                 }[a.id] || null}
               </div>
             );
@@ -468,7 +468,7 @@ function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, upd
                   <div className="urg-titulo">{t.titulo}</div>
                   <div className="mono xs muted">{area.icon} {area.label} {p ? `· ${p.nombre.split(" ")[0]}` : ""}</div>
                 </div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,
+                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
                   color:dias<0?"#f87171":dias<=7?"#fbbf24":"#22d3ee",
                   background:dias<0?"rgba(248,113,113,.1)":dias<=7?"rgba(251,191,36,.1)":"rgba(34,211,238,.1)",
                   padding:".1rem .35rem",borderRadius:4,flexShrink:0}}>
@@ -489,14 +489,14 @@ function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, upd
               cursor:"pointer",textAlign:"left",
               borderBottom: cargaColapsada ? "none" : "1px solid var(--border)"}}>
             <div>
-              <div style={{fontWeight:700,fontSize:".82rem",marginBottom:".1rem"}}>👥 Carga del equipo</div>
-              <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)"}}>
+              <div style={{fontWeight:700,fontSize:"var(--fs-base)",marginBottom:".1rem"}}>👥 Carga del equipo</div>
+              <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>
                 {stats.porPersona.filter(p=>p.urgentes>0).length > 0
                   ? `⚡ ${stats.porPersona.filter(p=>p.urgentes>0).length} persona${stats.porPersona.filter(p=>p.urgentes>0).length!==1?"s":"" } con tareas urgentes`
                   : `${stats.porPersona.length} personas · sin urgencias`}
               </div>
             </div>
-            <span style={{fontFamily:"var(--font-mono)",fontSize:".7rem",color:"var(--text-dim)",
+            <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-dim)",
               transform:cargaColapsada?"rotate(-90deg)":"rotate(0deg)",transition:"transform .18s"}}>▼</span>
           </button>
           {!cargaColapsada && <div style={{padding:".5rem 1rem 1rem"}}>
@@ -508,7 +508,7 @@ function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, upd
                 {iniciales(p.nombre)}
               </div>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:".76rem",fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.nombre}</div>
+                <div style={{fontSize:"var(--fs-base)",fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.nombre}</div>
                 <div className="mono xs muted">{p.pendientes} pendiente{p.pendientes!==1?"s":""}{p.urgentes>0?` · ${p.urgentes} urgente${p.urgentes!==1?"s":""}`:""}</div>
                 {/* Contacto directo — sin ir a otra pestaña */}
                 <div style={{display:"flex",gap:".5rem",marginTop:".2rem"}} onClick={e=>e.stopPropagation()}>
@@ -570,11 +570,11 @@ function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, upd
                       background:ec.color,flexShrink:0,
                       boxShadow:`0 0 6px ${ec.color}66`}}/>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:".78rem",fontWeight:600,
+                      <div style={{fontSize:"var(--fs-base)",fontWeight:600,
                         overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                         {g.nombre}
                       </div>
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                         color:"var(--text-muted)"}}>
                         {g.subcategoria}
                         {g.fechaVencimiento && (
@@ -585,7 +585,7 @@ function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, upd
                       </div>
                     </div>
                     <span style={{
-                      fontFamily:"var(--font-mono)",fontSize:".58rem",fontWeight:700,
+                      fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
                       color:ec.color,background:`${ec.color}15`,
                       border:`1px solid ${ec.color}33`,
                       borderRadius:3,padding:".1rem .4rem",flexShrink:0,
@@ -594,7 +594,7 @@ function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, upd
                 );
               })}
               {urgentes.length === 0 && (
-                <div style={{fontFamily:"var(--font-mono)",fontSize:".72rem",
+                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
                   color:"var(--green)",padding:".5rem 0",textAlign:"center"}}>
                   ✅ Todas las gestiones legales están aprobadas
                 </div>
@@ -626,8 +626,8 @@ function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, upd
                   {i < stats.hitosProx.length-1 && <div className="hito-line"/>}
                 </div>
                 <div className="hito-label">
-                  <div style={{fontSize:".78rem",fontWeight:h.critico?700:500}}>{h.nombre}</div>
-                  {h.critico && <span className="badge" style={{background:"rgba(248,113,113,.1)",color:"#f87171",fontSize:".5rem"}}>CRÍTICO</span>}
+                  <div style={{fontSize:"var(--fs-base)",fontWeight:h.critico?700:500}}>{h.nombre}</div>
+                  {h.critico && <span className="badge" style={{background:"rgba(248,113,113,.1)",color:"#f87171",fontSize:"var(--fs-2xs)"}}>CRÍTICO</span>}
                 </div>
               </div>
             );
@@ -689,16 +689,16 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
           <div style={{flex:1,display:"flex",alignItems:"center",gap:".35rem",
             background:"var(--surface2)",border:"1px solid var(--border)",
             borderRadius:6,padding:".3rem .6rem",minWidth:0}}>
-            <span style={{opacity:.45,fontSize:".8rem",flexShrink:0}}>🔍</span>
+            <span style={{opacity:.45,fontSize:"var(--fs-base)",flexShrink:0}}>🔍</span>
             <input placeholder="Buscar tareas..." value={busqueda}
               onChange={e => setBusqueda(e.target.value)}
               style={{background:"none",border:"none",color:"var(--text)",
-                fontFamily:"var(--font-display)",fontSize:".78rem",
+                fontFamily:"var(--font-display)",fontSize:"var(--fs-base)",
                 outline:"none",width:"100%",minWidth:0}}/>
             {busqueda && (
               <button onClick={()=>setBusqueda("")}
                 style={{background:"none",border:"none",color:"var(--text-muted)",
-                  cursor:"pointer",fontSize:".7rem",padding:0,flexShrink:0}}>✕</button>
+                  cursor:"pointer",fontSize:"var(--fs-sm)",padding:0,flexShrink:0}}>✕</button>
             )}
           </div>
 
@@ -708,14 +708,14 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
             className={`filter-pill${hayFiltros ? " active-violet" : ""}`}
             style={{ flexShrink:0 }}>
             🎛 {hayFiltros ? `${resumenFiltros.length} filtro${resumenFiltros.length!==1?"s":""}` : "Filtrar"}
-            <span style={{fontSize:".55rem",opacity:.7,marginLeft:2}}>{filtrosAbiertos?"▲":"▼"}</span>
+            <span style={{fontSize:"var(--fs-xs)",opacity:.7,marginLeft:2}}>{filtrosAbiertos?"▲":"▼"}</span>
           </button>
 
           {/* Limpiar — solo si hay filtros activos */}
           {hayFiltros && (
             <button onClick={limpiar}
               style={{background:"none",border:"none",color:"var(--text-muted)",
-                cursor:"pointer",fontSize:".75rem",padding:".3rem",flexShrink:0}}
+                cursor:"pointer",fontSize:"var(--fs-base)",padding:".3rem",flexShrink:0}}
               title="Limpiar filtros">✕</button>
           )}
         </div>
@@ -725,49 +725,49 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
           <div style={{display:"flex",gap:".3rem",flexWrap:"wrap",marginTop:".4rem"}}>
             {filtroArea!=="todas" && (
               <span style={{display:"inline-flex",alignItems:"center",gap:".25rem",
-                fontFamily:"var(--font-mono)",fontSize:".58rem",fontWeight:700,
+                fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
                 background:"rgba(167,139,250,.1)",color:"var(--violet)",
                 border:"1px solid rgba(167,139,250,.25)",borderRadius:20,
                 padding:".1rem .5rem"}}>
                 {AREAS.find(a=>a.id===filtroArea)?.icon} {AREAS.find(a=>a.id===filtroArea)?.label}
                 <button onClick={()=>setFiltroArea("todas")}
                   style={{background:"none",border:"none",color:"inherit",cursor:"pointer",
-                    padding:0,fontSize:".6rem",opacity:.7,lineHeight:1}}>✕</button>
+                    padding:0,fontSize:"var(--fs-xs)",opacity:.7,lineHeight:1}}>✕</button>
               </span>
             )}
             {filtroEstado!=="todos" && (
               <span style={{display:"inline-flex",alignItems:"center",gap:".25rem",
-                fontFamily:"var(--font-mono)",fontSize:".58rem",fontWeight:700,
+                fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
                 background:EST_CFG[filtroEstado]?.bg,color:EST_CFG[filtroEstado]?.color,
                 border:`1px solid ${EST_CFG[filtroEstado]?.color}44`,borderRadius:20,
                 padding:".1rem .5rem"}}>
                 {EST_CFG[filtroEstado]?.label}
                 <button onClick={()=>setFiltroEstado("todos")}
                   style={{background:"none",border:"none",color:"inherit",cursor:"pointer",
-                    padding:0,fontSize:".6rem",opacity:.7,lineHeight:1}}>✕</button>
+                    padding:0,fontSize:"var(--fs-xs)",opacity:.7,lineHeight:1}}>✕</button>
               </span>
             )}
             {filtroPrioridad!=="todas" && (
               <span style={{display:"inline-flex",alignItems:"center",gap:".25rem",
-                fontFamily:"var(--font-mono)",fontSize:".58rem",fontWeight:700,
+                fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
                 background:PRI_CFG[filtroPrioridad]?.bg,color:PRI_CFG[filtroPrioridad]?.color,
                 border:`1px solid ${PRI_CFG[filtroPrioridad]?.color}44`,borderRadius:20,
                 padding:".1rem .5rem"}}>
                 {filtroPrioridad}
                 <button onClick={()=>setFiltroPrioridad("todas")}
                   style={{background:"none",border:"none",color:"inherit",cursor:"pointer",
-                    padding:0,fontSize:".6rem",opacity:.7,lineHeight:1}}>✕</button>
+                    padding:0,fontSize:"var(--fs-xs)",opacity:.7,lineHeight:1}}>✕</button>
               </span>
             )}
             {filtroResponsable!=="todos" && (
               <span style={{display:"inline-flex",alignItems:"center",gap:".25rem",
-                fontFamily:"var(--font-mono)",fontSize:".58rem",fontWeight:700,
+                fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
                 background:"var(--surface3)",color:"var(--text-muted)",
                 border:"1px solid var(--border)",borderRadius:20,padding:".1rem .5rem"}}>
                 👤 {equipo.find(p=>String(p.id)===filtroResponsable)?.nombre.split(" ")[0]}
                 <button onClick={()=>setFiltroResponsable("todos")}
                   style={{background:"none",border:"none",color:"inherit",cursor:"pointer",
-                    padding:0,fontSize:".6rem",opacity:.7,lineHeight:1}}>✕</button>
+                    padding:0,fontSize:"var(--fs-xs)",opacity:.7,lineHeight:1}}>✕</button>
               </span>
             )}
           </div>
@@ -777,7 +777,7 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
         {filtrosAbiertos && (
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem",marginTop:".5rem"}}>
             <div>
-              <label style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+              <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                 color:"var(--text-muted)",display:"block",marginBottom:".2rem",
                 textTransform:"uppercase",letterSpacing:".06em"}}>Área</label>
               <select className="inp inp-sm" value={filtroArea}
@@ -791,7 +791,7 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
               </select>
             </div>
             <div>
-              <label style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+              <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                 color:"var(--text-muted)",display:"block",marginBottom:".2rem",
                 textTransform:"uppercase",letterSpacing:".06em"}}>Estado</label>
               <select className="inp inp-sm" value={filtroEstado}
@@ -802,7 +802,7 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
               </select>
             </div>
             <div>
-              <label style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+              <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                 color:"var(--text-muted)",display:"block",marginBottom:".2rem",
                 textTransform:"uppercase",letterSpacing:".06em"}}>Prioridad</label>
               <select className="inp inp-sm" value={filtroPrioridad}
@@ -813,7 +813,7 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
               </select>
             </div>
             <div>
-              <label style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+              <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                 color:"var(--text-muted)",display:"block",marginBottom:".2rem",
                 textTransform:"uppercase",letterSpacing:".06em"}}>Responsable</label>
               <select className="inp inp-sm" value={filtroResponsable}
@@ -854,7 +854,7 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
                 title="Click para ver ficha">
                 {/* Icono de área — Kinetik Ops item-icon-pill */}
                 <div className="item-icon-pill-sm" style={{"--pill-color": area.color, flexShrink:0}}>
-                  <span style={{fontSize:".78rem"}}>{area.icon}</span>
+                  <span style={{fontSize:"var(--fs-base)"}}>{area.icon}</span>
                 </div>
                 {/* Cambio de estado rápido */}
                 <div className="tarea-estado-col" onClick={e => e.stopPropagation()}>
@@ -867,23 +867,23 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
                 {/* Contenido */}
                 <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",gap:".2rem"}}>
                   <div style={{display:"flex",alignItems:"center",gap:".5rem",flexWrap:"wrap"}}>
-                    <span style={{fontSize:".82rem",fontWeight:700,
+                    <span style={{fontSize:"var(--fs-base)",fontWeight:700,
                       color:t.estado==="completado"?"var(--text-muted)":"var(--text)",
                       textDecoration:t.estado==="completado"?"line-through":"none"}}>{t.titulo}</span>
-                    <span className="badge" style={{background:pc.bg,color:pc.color,fontSize:".52rem"}}>{t.prioridad}</span>
-                    {t.documentoId && <span title="Documento vinculado" style={{fontSize:".7rem",cursor:"help"}}>📎</span>}
+                    <span className="badge" style={{background:pc.bg,color:pc.color,fontSize:"var(--fs-2xs)"}}>{t.prioridad}</span>
+                    {t.documentoId && <span title="Documento vinculado" style={{fontSize:"var(--fs-sm)",cursor:"help"}}>📎</span>}
                     {dep && (
                       dep.estado === "completado" ? (
                         <span className="badge" style={{
                           background:"rgba(52,211,153,.1)", color:"var(--green)",
-                          fontSize:".52rem", border:"1px solid rgba(52,211,153,.25)" }}
+                          fontSize:"var(--fs-2xs)", border:"1px solid rgba(52,211,153,.25)" }}
                           title={`Depende de: "${dep.titulo}" — completada ✓`}>
                           ✓ dep. resuelta
                         </span>
                       ) : (
                         <span className="badge" style={{
                           background:"rgba(248,113,113,.12)", color:"#f87171",
-                          fontSize:".52rem", border:"1px solid rgba(248,113,113,.3)",
+                          fontSize:"var(--fs-2xs)", border:"1px solid rgba(248,113,113,.3)",
                           cursor:"help" }}
                           title={`Depende de: "${dep.titulo}" — estado: ${dep.estado}`}>
                           🔒 espera: {dep.titulo.slice(0,22)}{dep.titulo.length>22?"…":""}
@@ -899,13 +899,13 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
                         <span className="mono xs muted">{resp.nombre.split(" ")[0]}</span>
                       </span>
                     )}
-                    {t.notas && <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-dim)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:220,fontStyle:"italic"}}>{t.notas}</span>}
+                    {t.notas && <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-dim)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:220,fontStyle:"italic"}}>{t.notas}</span>}
                   </div>
                 </div>
                 {/* Fecha */}
                 <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:".3rem",flexShrink:0}}>
                   {dias !== null && (
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:".65rem",fontWeight:700,
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",fontWeight:700,
                       color:vencida?"#f87171":dias<=7?"#fbbf24":dias<=14?"#fb923c":"var(--text-muted)",
                       background:vencida?"rgba(248,113,113,.1)":dias<=14?"var(--amber-dim)":"transparent",
                       padding:".1rem .35rem",borderRadius:4}}>
@@ -930,7 +930,7 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
               <div key={estado} className="kanban-col">
                 {/* Cabecera */}
                 <div className="kanban-col-hdr" style={{borderTopColor: col.color}}>
-                  <span className="mono" style={{fontSize:".65rem",fontWeight:700,color:col.color,textTransform:"uppercase",letterSpacing:".08em"}}>{col.label}</span>
+                  <span className="mono" style={{fontSize:"var(--fs-sm)",fontWeight:700,color:col.color,textTransform:"uppercase",letterSpacing:".08em"}}>{col.label}</span>
                   <span className="kanban-cnt" style={{background:col.bg,color:col.color,border:`1px solid ${col.color}44`}}>{tareasCol.length}</span>
                 </div>
                 {/* Cuerpo */}
@@ -960,20 +960,20 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
                         <div className="kanban-card-meta">
                           <div style={{display:"flex",gap:".35rem",alignItems:"center",flex:1,minWidth:0}}>
                             <div className="item-icon-pill-sm"
-                              style={{"--pill-color": area.color, width:20, height:20, borderRadius:5, fontSize:".6rem", flexShrink:0}}>
+                              style={{"--pill-color": area.color, width:20, height:20, borderRadius:5, fontSize:"var(--fs-xs)", flexShrink:0}}>
                               {area.icon}
                             </div>
-                            <span className="badge" style={{background:pc.bg,color:pc.color,fontSize:".48rem"}}>{t.prioridad}</span>
-                            {t.documentoId && <span title="Documento vinculado" style={{fontSize:".65rem",marginLeft:"-2px"}}>📎</span>}
+                            <span className="badge" style={{background:pc.bg,color:pc.color,fontSize:"var(--fs-2xs)"}}>{t.prioridad}</span>
+                            {t.documentoId && <span title="Documento vinculado" style={{fontSize:"var(--fs-sm)",marginLeft:"-2px"}}>📎</span>}
                             {(() => {
                               const depK = t.dependeDe ? todasTareas.find(x => x.id === t.dependeDe) : null;
                               if (!depK) return null;
                               return depK.estado === "completado" ? (
                                 <span title={`Dep.: "${depK.titulo}" ✓`}
-                                  style={{fontSize:".55rem",color:"var(--green)",flexShrink:0}}>✓</span>
+                                  style={{fontSize:"var(--fs-xs)",color:"var(--green)",flexShrink:0}}>✓</span>
                               ) : (
                                 <span title={`Espera: "${depK.titulo}" (${depK.estado})`}
-                                  style={{fontSize:".6rem",flexShrink:0}}>🔒</span>
+                                  style={{fontSize:"var(--fs-xs)",flexShrink:0}}>🔒</span>
                               );
                             })()}
                             {resp && (
@@ -983,7 +983,7 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
                             )}
                           </div>
                           {dias !== null && (
-                            <span className="mono" style={{fontSize:".58rem",fontWeight:700,flexShrink:0,
+                            <span className="mono" style={{fontSize:"var(--fs-xs)",fontWeight:700,flexShrink:0,
                               color:vencida?"#f87171":dias<=7?"#fbbf24":"var(--text-muted)"}}>
                               {vencida?`-${Math.abs(dias)}d`:dias===0?"Hoy":`${dias}d`}
                             </span>
@@ -1237,7 +1237,7 @@ function TabEquipo({ equipo, setEquipo, tareas, setModal, setDelConf, setFicha }
             return (
               <div key={area.id} className="kanban-col">
                 <div className="kanban-col-hdr" style={{borderTopColor:area.color}}>
-                  <span style={{fontSize:".65rem",fontWeight:700,color:area.color}}>{area.icon} {area.label}</span>
+                  <span style={{fontSize:"var(--fs-sm)",fontWeight:700,color:area.color}}>{area.icon} {area.label}</span>
                   <span className="kanban-cnt" style={{background:area.color+"22",color:area.color,border:`1px solid ${area.color}44`}}>{personas.length}</span>
                 </div>
                 <div className="kanban-body">
@@ -1252,13 +1252,13 @@ function TabEquipo({ equipo, setEquipo, tareas, setModal, setDelConf, setFicha }
                             {iniciales(p.nombre)}
                           </div>
                           <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontSize:".76rem",fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
+                            <div style={{fontSize:"var(--fs-base)",fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
                             <div className="mono xs muted">{p.rol}</div>
                           </div>
                         </div>
                         <div style={{display:"flex",gap:".3rem",flexWrap:"wrap",marginBottom:".35rem"}}>
-                          {pt.length>0 && <span className="badge" style={{background:"rgba(148,163,184,.1)",color:"#94a3b8",fontSize:".5rem"}}>{pt.length} tarea{pt.length!==1?"s":""}</span>}
-                          {urgentes>0 && <span className="badge" style={{background:"rgba(251,191,36,.1)",color:"#fbbf24",fontSize:".5rem"}}>⚡{urgentes} urgente{urgentes!==1?"s":""}</span>}
+                          {pt.length>0 && <span className="badge" style={{background:"rgba(148,163,184,.1)",color:"#94a3b8",fontSize:"var(--fs-2xs)"}}>{pt.length} tarea{pt.length!==1?"s":""}</span>}
+                          {urgentes>0 && <span className="badge" style={{background:"rgba(251,191,36,.1)",color:"#fbbf24",fontSize:"var(--fs-2xs)"}}>⚡{urgentes} urgente{urgentes!==1?"s":""}</span>}
                         </div>
                         <div className="kanban-acciones" onClick={e=>e.stopPropagation()}>
                           <button className="kanban-btn-estado" style={{color:"var(--violet)",borderColor:"rgba(167,139,250,.3)",background:"var(--violet-dim)"}}
@@ -1296,26 +1296,26 @@ function TabEquipo({ equipo, setEquipo, tareas, setModal, setDelConf, setFicha }
                     border:"none", cursor:"pointer", textAlign:"left",
                     borderBottom: collapsed ? "none" : `1px solid ${area.color}1a`,
                   }}>
-                  <span style={{fontSize:"1rem"}}>{area.icon}</span>
+                  <span style={{fontSize:"var(--fs-md)"}}>{area.icon}</span>
                   <span style={{fontFamily:"var(--font-mono)", fontWeight:700,
-                    fontSize:".75rem", color:area.color, flex:1}}>
+                    fontSize:"var(--fs-base)", color:area.color, flex:1}}>
                     {area.label}
                   </span>
                   {urgentesArea > 0 && (
-                    <span style={{fontFamily:"var(--font-mono)", fontSize:".6rem",
+                    <span style={{fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                       fontWeight:700, padding:".1rem .4rem", borderRadius:20,
                       background:"rgba(251,191,36,.15)", color:"var(--amber)",
                       border:"1px solid rgba(251,191,36,.25)"}}>
                       ⚡ {urgentesArea} urgente{urgentesArea!==1?"s":""}
                     </span>
                   )}
-                  <span style={{fontFamily:"var(--font-mono)", fontSize:".65rem",
+                  <span style={{fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
                     color:"var(--text-dim)", padding:".1rem .4rem",
                     borderRadius:20, background:"rgba(255,255,255,.05)"}}>
                     {personas.length} persona{personas.length!==1?"s":""}
                   </span>
                   <span style={{
-                    fontFamily:"var(--font-mono)", fontSize:".7rem",
+                    fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
                     color:"var(--text-dim)", flexShrink:0,
                     transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)",
                     transition:"transform .18s",
@@ -1360,7 +1360,7 @@ function TabEquipo({ equipo, setEquipo, tareas, setModal, setDelConf, setFicha }
                                     style={{width:22,height:22,borderRadius:4,border:"1px solid var(--border)",
                                       background:"var(--surface2)",cursor:idxPersona===0?"not-allowed":"pointer",
                                       color:idxPersona===0?"var(--text-dim)":"var(--text-muted)",
-                                      fontSize:".6rem",display:"flex",alignItems:"center",justifyContent:"center",
+                                      fontSize:"var(--fs-xs)",display:"flex",alignItems:"center",justifyContent:"center",
                                       opacity:idxPersona===0?.35:1}}>▲</button>
                                   <button
                                     title="Bajar"
@@ -1369,7 +1369,7 @@ function TabEquipo({ equipo, setEquipo, tareas, setModal, setDelConf, setFicha }
                                     style={{width:22,height:22,borderRadius:4,border:"1px solid var(--border)",
                                       background:"var(--surface2)",cursor:idxPersona===equipo.length-1?"not-allowed":"pointer",
                                       color:idxPersona===equipo.length-1?"var(--text-dim)":"var(--text-muted)",
-                                      fontSize:".6rem",display:"flex",alignItems:"center",justifyContent:"center",
+                                      fontSize:"var(--fs-xs)",display:"flex",alignItems:"center",justifyContent:"center",
                                       opacity:idxPersona===equipo.length-1?.35:1}}>▼</button>
                                 </>);
                               })()}
@@ -1380,10 +1380,10 @@ function TabEquipo({ equipo, setEquipo, tareas, setModal, setDelConf, setFicha }
                   {iniciales(p.nombre)}
                 </div>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontWeight:800,fontSize:".92rem",marginBottom:".15rem"}}>{p.nombre}</div>
+                  <div style={{fontWeight:800,fontSize:"var(--fs-md)",marginBottom:".15rem"}}>{p.nombre}</div>
                   <div className="mono xs muted" style={{marginBottom:".25rem"}}>{p.rol}</div>
                   <div style={{display:"flex",alignItems:"center",gap:".3rem"}}>
-                    <span style={{fontSize:".7rem"}}>{areaP.icon}</span>
+                    <span style={{fontSize:"var(--fs-sm)"}}>{areaP.icon}</span>
                     <span className="mono xs" style={{color:areaP.color}}>{areaP.label}</span>
                   </div>
                 </div>
@@ -1420,7 +1420,7 @@ function TabEquipo({ equipo, setEquipo, tareas, setModal, setDelConf, setFicha }
                           cursor:"pointer",borderRadius:4,transition:"background .12s"}}
                         onMouseEnter={e=>e.currentTarget.style.background="var(--surface3)"}
                         onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                        <span style={{fontSize:".7rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,paddingRight:".5rem"}}>{t.titulo}</span>
+                        <span style={{fontSize:"var(--fs-sm)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,paddingRight:".5rem"}}>{t.titulo}</span>
                         <span className="mono xs" style={{color:dias<0?"#f87171":dias<=7?"#fbbf24":"var(--text-muted)",flexShrink:0}}>
                           {dias<0?`-${Math.abs(dias)}d`:`${dias}d`}
                         </span>
@@ -1474,11 +1474,11 @@ function TabHitos({ hitos, updHito, setModal, setDelConf, setFicha }) {
             border:"1px solid var(--border)"}}>
             <div style={{display:"flex",justifyContent:"space-between",
               alignItems:"center",marginBottom:".35rem"}}>
-              <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                 color:"var(--text-muted)"}}>
                 {hitosComp}/{hitos.length} hitos completados
               </span>
-              <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",
+              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
                 fontWeight:700,
                 color:pct===100?"var(--green)":pct>=60?"var(--cyan)":"var(--amber)"}}>
                 {pct}%
@@ -1504,9 +1504,9 @@ function TabHitos({ hitos, updHito, setModal, setDelConf, setFicha }) {
               <div className="hito-card-gem" style={{background:h.completado?"#34d399":h.critico?"#f87171":"#22d3ee",boxShadow:h.completado?"0 0 8px #34d39966":h.critico?"0 0 8px #f8717166":"0 0 8px #22d3ee66"}}/>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{display:"flex",alignItems:"center",gap:".5rem",marginBottom:".2rem",flexWrap:"wrap"}}>
-                  <span style={{fontSize:".86rem",fontWeight:700,textDecoration:h.completado?"line-through":"none",color:h.completado?"var(--text-muted)":"var(--text)"}}>{h.nombre}</span>
-                  {h.critico && !h.completado && <span className="badge" style={{background:"rgba(248,113,113,.1)",color:"#f87171",fontSize:".5rem"}}>CRÍTICO</span>}
-                  {h.completado && <span className="badge" style={{background:"rgba(52,211,153,.1)",color:"#34d399",fontSize:".5rem"}}>COMPLETADO</span>}
+                  <span style={{fontSize:"var(--fs-base)",fontWeight:700,textDecoration:h.completado?"line-through":"none",color:h.completado?"var(--text-muted)":"var(--text)"}}>{h.nombre}</span>
+                  {h.critico && !h.completado && <span className="badge" style={{background:"rgba(248,113,113,.1)",color:"#f87171",fontSize:"var(--fs-2xs)"}}>CRÍTICO</span>}
+                  {h.completado && <span className="badge" style={{background:"rgba(52,211,153,.1)",color:"#34d399",fontSize:"var(--fs-2xs)"}}>COMPLETADO</span>}
                 </div>
                 <div style={{display:"flex",gap:".75rem",alignItems:"center",flexWrap:"wrap"}}>
                   <span className="mono xs" style={{color:vencido?"#f87171":"var(--text-muted)"}}>{fmt(h.fecha)}</span>
@@ -1522,8 +1522,8 @@ function TabHitos({ hitos, updHito, setModal, setDelConf, setFicha }) {
                   style={{borderColor:h.completado?"#34d399":"var(--border)",background:h.completado?"var(--green-dim)":"transparent"}}
                   onClick={() => updHito(h.id,"completado",!h.completado)}>
                   {h.completado
-                    ? <span style={{color:"#34d399",fontSize:"1rem",lineHeight:1}}>✓</span>
-                    : <span style={{color:"var(--text-dim)",fontSize:".75rem",lineHeight:1}}>○</span>
+                    ? <span style={{color:"#34d399",fontSize:"var(--fs-md)",lineHeight:1}}>✓</span>
+                    : <span style={{color:"var(--text-dim)",fontSize:"var(--fs-base)",lineHeight:1}}>○</span>
                   }
                 </button>
               </div>
@@ -1678,10 +1678,10 @@ function ModalHito({ data, onSave, onClose }) {
           </div>
           <div style={{display:"flex",gap:"1rem"}}>
             {[["critico","🔴 Hito crítico"],["completado","✅ Completado"]].map(([k,l])=>(
-              <label key={k} style={{display:"flex",alignItems:"center",gap:".5rem",cursor:"pointer",fontSize:".78rem"}}>
+              <label key={k} style={{display:"flex",alignItems:"center",gap:".5rem",cursor:"pointer",fontSize:"var(--fs-base)"}}>
                 <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${form[k]?"#22d3ee":"var(--border)"}`,background:form[k]?"#22d3ee":"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",transition:"all .15s"}}
                   onClick={()=>upd(k,!form[k])}>
-                  {form[k]&&<span style={{color:"#000",fontSize:".65rem",fontWeight:800}}>✓</span>}
+                  {form[k]&&<span style={{color:"#000",fontSize:"var(--fs-sm)",fontWeight:800}}>✓</span>}
                 </div>
                 {l}
               </label>
@@ -1766,9 +1766,9 @@ function FichaRow({ label, value, color }) {
   return (
     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start",
       padding:".45rem 0", borderBottom:"1px solid rgba(30,45,80,.3)" }}>
-      <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem", color:"var(--text-muted)",
+      <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)",
         flexShrink:0, marginRight:"1rem" }}>{label}</span>
-      <span style={{ fontSize:".78rem", fontWeight:600, textAlign:"right",
+      <span style={{ fontSize:"var(--fs-base)", fontWeight:600, textAlign:"right",
         color: color || "var(--text)" }}>{value}</span>
     </div>
   );
@@ -1791,10 +1791,10 @@ function FichaProyecto({ ficha, equipo, documentos, tareas, onClose, onEditar, o
           <div style={{ borderTop:`3px solid ${accent}`, borderRadius:"16px 16px 0 0" }}>
             <div className="modal-header">
               <div style={{ display:"flex", alignItems:"center", gap:".6rem" }}>
-                <span style={{ fontSize:"1.4rem" }}>{icon}</span>
+                <span style={{ fontSize:"var(--fs-lg)" }}>{icon}</span>
                 <div>
-                  <div style={{ fontWeight:800, fontSize:".95rem", lineHeight:1.2 }}>{titulo}</div>
-                  <div style={{ fontFamily:"var(--font-mono)", fontSize:".55rem", color:"var(--text-muted)",
+                  <div style={{ fontWeight:800, fontSize:"var(--fs-md)", lineHeight:1.2 }}>{titulo}</div>
+                  <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)",
                     marginTop:".1rem", textTransform:"uppercase", letterSpacing:".08em" }}>
                     {tipo === "tarea" ? `Tarea · ${AREAS.find(a=>a.id===data.area)?.label||data.area}` :
                      tipo === "hito"  ? "Hito" : "Miembro del equipo"}
@@ -1815,8 +1815,8 @@ function FichaProyecto({ ficha, equipo, documentos, tareas, onClose, onEditar, o
                 : null} />
               {docVinculado && (
                 <div style={{ marginTop: ".8rem", padding: ".6rem 0", borderTop: "1px dashed var(--border)", display: "flex", alignItems: "center", gap: "1rem" }}>
-                  <div style={{ fontFamily:"var(--font-mono)", fontSize:".6rem", color:"var(--text-muted)", textTransform:"uppercase", fontWeight:700 }}>Doc vinculado</div>
-                  <a href="#" className="badge" style={{background:"var(--cyan-dim)",color:"var(--cyan)",textDecoration:"none",fontSize:".7rem",padding:".3rem .6rem",border:"1px solid rgba(34,211,238,.2)"}} 
+                  <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", textTransform:"uppercase", fontWeight:700 }}>Doc vinculado</div>
+                  <a href="#" className="badge" style={{background:"var(--cyan-dim)",color:"var(--cyan)",textDecoration:"none",fontSize:"var(--fs-sm)",padding:".3rem .6rem",border:"1px solid rgba(34,211,238,.2)"}} 
                      onClick={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "documentos" } })); }}>
                     📎 {docVinculado.nombre} →
                   </a>
@@ -1845,16 +1845,16 @@ function FichaProyecto({ ficha, equipo, documentos, tareas, onClose, onEditar, o
                     background:"rgba(56,189,248,.06)",
                     border:"1px solid rgba(56,189,248,.2)",
                     borderRadius:8 }}>
-                    <div style={{ fontFamily:"var(--font-mono)", fontSize:".58rem",
+                    <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                       color:"#38bdf8", textTransform:"uppercase", fontWeight:700,
                       marginBottom:".35rem" }}>🏛️ Gestión legal relacionada</div>
                     <div style={{ display:"flex", alignItems:"center", gap:".6rem" }}>
                       <div style={{width:8,height:8,borderRadius:"50%",
                         background:ec,boxShadow:`0 0 5px ${ec}66`,flexShrink:0}}/>
-                      <span style={{fontSize:".78rem",fontWeight:600,flex:1}}>
+                      <span style={{fontSize:"var(--fs-base)",fontWeight:600,flex:1}}>
                         {gestRelacionada.nombre}
                       </span>
-                      <button className="btn btn-ghost btn-sm" style={{fontSize:".58rem",padding:".15rem .45rem",flexShrink:0}}
+                      <button className="btn btn-ghost btn-sm" style={{fontSize:"var(--fs-xs)",padding:".15rem .45rem",flexShrink:0}}
                         onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"documentos"}}))}>
                         Ver →
                       </button>
@@ -1881,20 +1881,20 @@ function FichaProyecto({ ficha, equipo, documentos, tareas, onClose, onEditar, o
                           ? "1px solid rgba(52,211,153,.25)" : "1px solid rgba(248,113,113,.2)" }}>
                         <div style={{ display:"flex", justifyContent:"space-between",
                           alignItems:"center", marginBottom:".25rem" }}>
-                          <div style={{ fontFamily:"var(--font-mono)", fontSize:".55rem",
+                          <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                             color: bloqueadaPor.estado === "completado" ? "var(--green)" : "#f87171",
                             fontWeight:700, textTransform:"uppercase" }}>
                             {bloqueadaPor.estado === "completado" ? "✓ Dependencia resuelta" : "🔒 Bloqueada por"}
                           </div>
-                          <span style={{ fontFamily:"var(--font-mono)", fontSize:".55rem",
+                          <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                             padding:".1rem .35rem", borderRadius:4,
                             background: EST_CFG[bloqueadaPor.estado]?.bg,
                             color: EST_CFG[bloqueadaPor.estado]?.color }}>
                             {EST_CFG[bloqueadaPor.estado]?.label}
                           </span>
                         </div>
-                        <div style={{ fontSize:".75rem", fontWeight:600 }}>{bloqueadaPor.titulo}</div>
-                        <div style={{ fontFamily:"var(--font-mono)", fontSize:".58rem",
+                        <div style={{ fontSize:"var(--fs-base)", fontWeight:600 }}>{bloqueadaPor.titulo}</div>
+                        <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                           color:"var(--text-muted)", marginTop:".1rem" }}>
                           {EST_CFG[bloqueadaPor.estado]?.label} · {getArea(bloqueadaPor.area)?.label}
                         </div>
@@ -1904,13 +1904,13 @@ function FichaProyecto({ ficha, equipo, documentos, tareas, onClose, onEditar, o
                       <div style={{ padding:".5rem .65rem", borderRadius:8,
                         background:"rgba(251,191,36,.06)",
                         border:"1px solid rgba(251,191,36,.2)" }}>
-                        <div style={{ fontFamily:"var(--font-mono)", fontSize:".55rem",
+                        <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                           color:"var(--amber)", fontWeight:700, marginBottom:".3rem",
                           textTransform:"uppercase" }}>⏳ Desbloquea {bloqueaA.length} tarea{bloqueaA.length!==1?"s":""}</div>
                         {bloqueaA.map(t => (
-                          <div key={t.id} style={{ fontSize:".72rem", color:"var(--text-muted)",
+                          <div key={t.id} style={{ fontSize:"var(--fs-sm)", color:"var(--text-muted)",
                             padding:".15rem 0", display:"flex", alignItems:"center", gap:".4rem" }}>
-                            <span style={{ color:"var(--amber)", fontSize:".65rem" }}>→</span>
+                            <span style={{ color:"var(--amber)", fontSize:"var(--fs-sm)" }}>→</span>
                             {t.titulo}
                           </div>
                         ))}
@@ -1923,9 +1923,9 @@ function FichaProyecto({ ficha, equipo, documentos, tareas, onClose, onEditar, o
               {data.notas && (
                 <div style={{ background:"var(--surface2)", borderRadius:8,
                   padding:".65rem .75rem", borderLeft:`2px solid ${accent}`, marginTop:".5rem" }}>
-                  <div style={{ fontFamily:"var(--font-mono)", fontSize:".55rem", color:"var(--text-muted)",
+                  <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)",
                     marginBottom:".3rem", textTransform:"uppercase" }}>Notas</div>
-                  <div style={{ fontSize:".78rem", lineHeight:1.6 }}>{data.notas}</div>
+                  <div style={{ fontSize:"var(--fs-base)", lineHeight:1.6 }}>{data.notas}</div>
                 </div>
               )}
             </>)}
@@ -1946,7 +1946,7 @@ function FichaProyecto({ ficha, equipo, documentos, tareas, onClose, onEditar, o
                   background:(data.color||"#a78bfa")+"22",
                   border:`2px solid ${data.color||"#a78bfa"}66`,
                   display:"flex", alignItems:"center", justifyContent:"center",
-                  fontWeight:800, fontSize:"1.1rem", color:data.color||"#a78bfa" }}>
+                  fontWeight:800, fontSize:"var(--fs-lg)", color:data.color||"#a78bfa" }}>
                   {iniciales(data.nombre||"?")}
                 </div>
               </div>

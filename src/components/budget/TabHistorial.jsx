@@ -101,14 +101,14 @@ export function TabHistorial() {
 
   if (loading) return (
     <div style={{ textAlign: "center", padding: "3rem",
-      fontFamily: "var(--font-mono)", fontSize: ".75rem", color: "var(--text-muted)" }}>
+      fontFamily: "var(--font-mono)", fontSize: "var(--fs-base)", color: "var(--text-muted)" }}>
       Cargando historial…
     </div>
   );
 
   if (error) return (
     <div style={{ textAlign: "center", padding: "3rem",
-      fontFamily: "var(--font-mono)", fontSize: ".75rem", color: "var(--red)" }}>
+      fontFamily: "var(--font-mono)", fontSize: "var(--fs-base)", color: "var(--red)" }}>
       Error al cargar el historial: {error}
     </div>
   );
@@ -120,8 +120,8 @@ export function TabHistorial() {
         alignItems: "center", marginBottom: ".85rem" }}>
         <div>
           <div style={{ fontFamily: "var(--font-display)", fontWeight: 800,
-            fontSize: ".88rem" }}>🕐 Historial de cambios</div>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: ".6rem",
+            fontSize: "var(--fs-md)" }}>🕐 Historial de cambios</div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
             color: "var(--text-muted)", marginTop: ".1rem" }}>
             Últimos {log.length} cambios en costes e ingresos
           </div>
@@ -151,20 +151,20 @@ export function TabHistorial() {
             border: "1px solid var(--border)" }}>
             <div style={{ display: "flex", justifyContent: "space-between",
               alignItems: "center", marginBottom: mostrarDelta ? ".6rem" : 0 }}>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem",
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)",
                 fontWeight: 700, color: "var(--text-muted)",
                 textTransform: "uppercase", letterSpacing: ".06em" }}>
                 📊 Evolución de costes / precios
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: ".75rem" }}>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: ".68rem",
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)",
                   fontWeight: 800,
                   color: totalDelta <= 0 ? "var(--green)" : "var(--red)" }}>
                   {totalDelta <= 0 ? "↓" : "↑"} Neto: {fmtEur(totalDelta)}
                 </span>
                 <button className="btn btn-ghost btn-sm"
                   onClick={() => setMostrarDelta(v => !v)}
-                  style={{ fontSize: ".58rem", padding: ".15rem .45rem" }}>
+                  style={{ fontSize: "var(--fs-xs)", padding: ".15rem .45rem" }}>
                   {mostrarDelta ? "▲ Ocultar" : "▼ Ver"}
                 </button>
               </div>
@@ -179,15 +179,15 @@ export function TabHistorial() {
                       alignItems: "center", padding: ".35rem .6rem", borderRadius: 7,
                       background: "var(--surface)", border: "1px solid var(--border)",
                       minWidth: 72 }}>
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: ".55rem",
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
                         color: "var(--text-dim)" }}>
                         {new Date(d.dia).toLocaleDateString("es-ES", { day:"2-digit", month:"short" })}
                       </span>
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: ".72rem",
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)",
                         fontWeight: 800, color }}>
                         {icon} {Math.abs(d.delta).toFixed(0)} €
                       </span>
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: ".52rem",
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-2xs)",
                         color: "var(--text-dim)" }}>
                         {d.count} cambio{d.count !== 1 ? "s" : ""}
                       </span>
@@ -203,7 +203,7 @@ export function TabHistorial() {
       {/* Lista de cambios */}
       {log.length === 0 ? (
         <div style={{ textAlign: "center", padding: "3rem",
-          color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: ".75rem" }}>
+          color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-base)" }}>
           Sin cambios registrados.<br/>
           Los cambios en costes e ingresos aparecerán aquí.
         </div>
@@ -234,18 +234,18 @@ export function TabHistorial() {
                   {/* Concepto + campo */}
                   <div style={{ display: "flex", alignItems: "center",
                     gap: ".5rem", marginBottom: ".2rem", flexWrap: "wrap" }}>
-                    <span style={{ fontWeight: 700, fontSize: ".78rem" }}>
+                    <span style={{ fontWeight: 700, fontSize: "var(--fs-base)" }}>
                       {entry.concepto}
                     </span>
                     {entry.tipo && (
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: ".55rem",
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
                         color, background: `${color}15`,
                         border: `1px solid ${color}33`,
                         borderRadius: 3, padding: ".05rem .35rem" }}>
                         {entry.tipo}
                       </span>
                     )}
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: ".62rem",
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
                       color: "var(--text-muted)" }}>
                       → {campoLabel}
                     </span>
@@ -254,13 +254,13 @@ export function TabHistorial() {
                   {/* Antes → Después */}
                   <div style={{ display: "flex", alignItems: "center",
                     gap: ".5rem", flexWrap: "wrap" }}>
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem",
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)",
                       color: "var(--text-dim)",
                       textDecoration: antes !== "—" ? "line-through" : "none" }}>
                       {antes}
                     </span>
-                    <span style={{ color: "var(--text-dim)", fontSize: ".65rem" }}>→</span>
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: ".7rem",
+                    <span style={{ color: "var(--text-dim)", fontSize: "var(--fs-sm)" }}>→</span>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)",
                       fontWeight: 700,
                       color: subio ? "var(--red)" : bajo ? "var(--green)" : "var(--text)" }}>
                       {subio ? "↑ " : bajo ? "↓ " : ""}{nuevo}
@@ -269,7 +269,7 @@ export function TabHistorial() {
                 </div>
 
                 {/* Timestamp */}
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: ".57rem",
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
                   color: "var(--text-dim)", flexShrink: 0, textAlign: "right",
                   paddingTop: ".1rem" }}>
                   {fmtTs(entry.ts)}
@@ -289,9 +289,9 @@ export function TabHistorial() {
             borderRadius: 12, padding: "1.5rem", maxWidth: 320, textAlign: "center",
             margin: "1rem" }}
             onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: "2rem", marginBottom: ".5rem" }}>🗑</div>
+            <div style={{ fontSize: "var(--fs-xl)", marginBottom: ".5rem" }}>🗑</div>
             <div style={{ fontWeight: 700, marginBottom: ".4rem" }}>¿Borrar historial?</div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem",
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)",
               color: "var(--text-muted)", marginBottom: "1rem" }}>
               Se eliminarán todos los {log.length} registros. No se puede deshacer.
             </div>

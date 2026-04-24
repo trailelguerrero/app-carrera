@@ -46,8 +46,8 @@ const ModalConfirmDelete = ({ tramo, stats, onConfirm, onCancel }) => (
       animation: "slideUp 0.2s ease",
     }}>
       <style>{`@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}`}</style>
-      <div style={{ fontSize: "2.2rem", marginBottom: "0.75rem" }}>🗑️</div>
-      <div style={{ fontWeight: 800, fontSize: "1rem", marginBottom: "0.5rem" }}>
+      <div style={{ fontSize: "var(--fs-xl)", marginBottom: "0.75rem" }}>🗑️</div>
+      <div style={{ fontWeight: 800, fontSize: "var(--fs-md)", marginBottom: "0.5rem" }}>
         ¿Eliminar «{tramo.nombre}»?
       </div>
 
@@ -56,18 +56,18 @@ const ModalConfirmDelete = ({ tramo, stats, onConfirm, onCancel }) => (
           background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.25)",
           borderRadius: 10, padding: "0.75rem 1rem", marginBottom: "1.25rem",
         }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.72rem", color: "var(--red)", fontWeight: 700, marginBottom: "0.3rem" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--red)", fontWeight: 700, marginBottom: "0.3rem" }}>
             ⚠️ Este tramo tiene datos de inscritos
           </div>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.68rem", color: "var(--text-muted)", lineHeight: 1.6 }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)", lineHeight: 1.6 }}>
             {stats.total} corredor{stats.total !== 1 ? "es" : ""} · {fmt(stats.ingresos)} en ingresos
           </div>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.62rem", color: "var(--text-dim)", marginTop: "0.3rem" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)", marginTop: "0.3rem" }}>
             Al eliminar el tramo se perderán estos datos del presupuesto.
           </div>
         </div>
       ) : (
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: "1.25rem", lineHeight: 1.6 }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)", marginBottom: "1.25rem", lineHeight: 1.6 }}>
           El tramo no tiene inscritos asignados.<br />Esta acción no se puede deshacer.
         </div>
       )}
@@ -79,7 +79,7 @@ const ModalConfirmDelete = ({ tramo, stats, onConfirm, onCancel }) => (
             background: "var(--surface2)", color: "var(--text-muted)",
             border: "1px solid var(--border)", borderRadius: 8,
             padding: "0.5rem 1.2rem", fontFamily: "var(--font-display)",
-            fontWeight: 700, fontSize: "0.8rem", cursor: "pointer",
+            fontWeight: 700, fontSize: "var(--fs-base)", cursor: "pointer",
           }}
         >Cancelar</button>
         <button
@@ -88,7 +88,7 @@ const ModalConfirmDelete = ({ tramo, stats, onConfirm, onCancel }) => (
             background: "rgba(248,113,113,0.15)", color: "var(--red)",
             border: "1px solid rgba(248,113,113,0.35)", borderRadius: 8,
             padding: "0.5rem 1.2rem", fontFamily: "var(--font-display)",
-            fontWeight: 700, fontSize: "0.8rem", cursor: "pointer",
+            fontWeight: 700, fontSize: "var(--fs-base)", cursor: "pointer",
           }}
         >Sí, eliminar</button>
       </div>
@@ -203,7 +203,7 @@ export const TabInscripciones = ({
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
                   <span style={{ color: DISTANCIA_COLORS[d], fontWeight: 700, fontSize: "0.85rem" }}>{DISTANCIA_LABELS[d]}</span>
                   {pct >= 90 && maximos[d] > 0 && (
-                    <span style={{ fontFamily:"var(--font-mono)", fontSize:".58rem", fontWeight:700,
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
                       padding:".1rem .45rem", borderRadius:10,
                       background: pct >= 100 ? "rgba(248,113,113,.15)" : "rgba(251,191,36,.15)",
                       color: pct >= 100 ? "var(--red)" : "var(--amber)",
@@ -213,15 +213,15 @@ export const TabInscripciones = ({
                   )}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)" }}>Máx. plazas:</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-base)", color: "var(--text-muted)" }}>Máx. plazas:</span>
                   <NumInput value={maximos[d]} onChange={v => setMaximos(prev => ({ ...prev, [d]: Math.max(1, Math.round(v)) }))} step={10} small />
                 </div>
                 <div className="progress-bar" style={{ height: 8 }}>
                   <div className="progress-fill" style={{ width: `${pct}%`, background: color, transition: "width 0.4s" }} />
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: "0.3rem" }}>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.65rem", color }}>{totalInscritos[d]} inscritos · {pct.toFixed(0)}%</span>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.65rem", color: libre <= 10 ? "var(--red)" : "var(--text-muted)" }}>{libre} libres</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color }}>{totalInscritos[d]} inscritos · {pct.toFixed(0)}%</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: libre <= 10 ? "var(--red)" : "var(--text-muted)" }}>{libre} libres</span>
                 </div>
               </div>
             );
@@ -235,8 +235,8 @@ export const TabInscripciones = ({
             padding:".65rem .9rem", borderRadius:8, marginTop:"1rem",
             background:"rgba(251,191,36,0.06)", border:"1px solid rgba(251,191,36,0.25)"
           }}>
-            <span style={{ fontSize:"1rem", flexShrink:0 }}>⚠️</span>
-            <div style={{ fontFamily:"var(--font-mono)", fontSize:".68rem", lineHeight:1.6 }}>
+            <span style={{ fontSize:"var(--fs-md)", flexShrink:0 }}>⚠️</span>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", lineHeight:1.6 }}>
               <span style={{ color:"var(--amber)", fontWeight:700 }}>
                 {DISTANCIAS.filter(d => maximos[d] > 0 && totalInscritos[d] > maximos[d])
                   .map(d => `${DISTANCIA_LABELS[d]}: ${totalInscritos[d]}/${maximos[d]} (+${totalInscritos[d]-maximos[d]})`)
@@ -254,7 +254,7 @@ export const TabInscripciones = ({
       {/* ── Timeline bar ── */}
       {tramos.length > 0 && (
         <div className="card" style={{ padding: "1rem 1.25rem", marginBottom: "1rem" }}>
-          <div style={{ fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, marginBottom: "0.6rem", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+          <div style={{ fontSize: "var(--fs-sm)", color: "var(--text-muted)", fontWeight: 700, marginBottom: "0.6rem", textTransform: "uppercase", letterSpacing: "0.08em" }}>
             Línea temporal de tramos
           </div>
           <div style={{ display: "flex", gap: 4 }}>
@@ -269,7 +269,7 @@ export const TabInscripciones = ({
                     boxShadow: status.label !== "Cerrado" ? `0 0 8px ${status.color}80` : "none",
                   }} />
                   <div style={{
-                    fontSize: "0.58rem", color: status.color, fontFamily: "var(--font-mono)",
+                    fontSize: "var(--fs-xs)", color: status.color, fontFamily: "var(--font-mono)",
                     marginTop: 4, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                   }}>
                     {t.nombre}
@@ -287,7 +287,7 @@ export const TabInscripciones = ({
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
           <div style={{
             fontFamily: "var(--font-display)", fontWeight: 800,
-            fontSize: "1rem", color: "var(--amber)", display: "flex", alignItems: "center", gap: 8
+            fontSize: "var(--fs-md)", color: "var(--amber)", display: "flex", alignItems: "center", gap: 8
           }}>
             <span>💰</span> Gestión de Precios y Volúmenes por Tramo
           </div>
@@ -330,7 +330,7 @@ export const TabInscripciones = ({
                         value={t.nombre}
                         onChange={e => setTramos(prev => prev.map(x => x.id === t.id ? { ...x, nombre: e.target.value } : x))}
                         placeholder="Nombre tramo"
-                        style={{ fontSize: "1rem", marginBottom: 2 }}
+                        style={{ fontSize: "var(--fs-md)", marginBottom: 2 }}
                       />
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: "0.4rem" }}>
                         <span style={{
@@ -338,7 +338,7 @@ export const TabInscripciones = ({
                           background: status.bg, color: status.color,
                           border: `1px solid ${status.color}44`,
                           borderRadius: 20, padding: "0.15rem 0.5rem",
-                          fontSize: "0.6rem", fontWeight: 700, fontFamily: "var(--font-mono)", whiteSpace: "nowrap",
+                          fontSize: "var(--fs-xs)", fontWeight: 700, fontFamily: "var(--font-mono)", whiteSpace: "nowrap",
                         }}>
                           {status.glyph} {status.label}
                         </span>
@@ -358,7 +358,7 @@ export const TabInscripciones = ({
                         <td key={d} className="text-right" style={{ verticalAlign: "middle", padding: "0.9rem 0.5rem" }}>
                           <div className="cell-group">
                             <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                              <span style={{ fontSize: "0.65rem", color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>Precio:</span>
+                              <span style={{ fontSize: "var(--fs-sm)", color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>Precio:</span>
                               <NumInput
                                 value={t.precios[d]}
                                 onChange={v => updateTramoPrecio(t.id, d, v)}
@@ -367,14 +367,14 @@ export const TabInscripciones = ({
                             </div>
                             {delta !== null && delta !== 0 && (
                               <div style={{ 
-                                fontFamily: "var(--font-mono)", fontSize: "0.55rem", fontWeight: 700,
+                                fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700,
                                 color: delta > 0 ? "var(--amber)" : "var(--red)", marginTop: "-4px" 
                               }}>
                                 {delta > 0 ? `(+${Math.round(delta)}€)` : `(${Math.round(delta)}€)`}
                               </div>
                             )}
                             <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginTop: "0.3rem" }}>
-                              <span style={{ fontSize: "0.65rem", color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>Volumen:</span>
+                              <span style={{ fontSize: "var(--fs-sm)", color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>Volumen:</span>
                               <NumInput
                                 value={inscritos.tramos[t.id]?.[d] || 0}
                                 onChange={v => updateInscritos(t.id, d, Math.round(v))}
@@ -388,10 +388,10 @@ export const TabInscripciones = ({
                     })}
 
                     <td className="text-right" style={{ verticalAlign: "middle", paddingRight: 8 }}>
-                      <div className="mono" style={{ color: "var(--violet)", fontWeight: 700, fontSize: "0.95rem" }}>
+                      <div className="mono" style={{ color: "var(--violet)", fontWeight: 700, fontSize: "var(--fs-md)" }}>
                         {fmt(stats.ingresos)}
                       </div>
-                      <div className="mono" style={{ color: "var(--text-muted)", fontSize: "0.65rem", marginTop: 4 }}>
+                      <div className="mono" style={{ color: "var(--text-muted)", fontSize: "var(--fs-sm)", marginTop: 4 }}>
                         {stats.total} ctes
                       </div>
                     </td>
@@ -402,7 +402,7 @@ export const TabInscripciones = ({
                         title="Eliminar tramo"
                         style={{
                           background: "transparent", color: "var(--red-dim)", border: "none",
-                          cursor: "pointer", fontSize: "1rem", padding: "0.3rem",
+                          cursor: "pointer", fontSize: "var(--fs-md)", padding: "0.3rem",
                           transition: "color 0.2s"
                         }}
                         onMouseEnter={e => e.currentTarget.style.color = "var(--red)"}
@@ -425,17 +425,17 @@ export const TabInscripciones = ({
                   return (
                     <td key={d} className="text-right" style={{ padding: "0.9rem 0.5rem" }}>
                       <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:"0.15rem" }}>
-                        <span className="mono" style={{ color: supera ? "var(--red)" : DISTANCIA_COLORS[d], fontWeight: supera ? 800 : 700, fontSize: "0.95rem" }}>
+                        <span className="mono" style={{ color: supera ? "var(--red)" : DISTANCIA_COLORS[d], fontWeight: supera ? 800 : 700, fontSize: "var(--fs-md)" }}>
                           {totalInscritos[d]}
-                          {supera && <span style={{ fontSize:"0.65rem", marginLeft:"0.3rem" }}>⚠️</span>}
-                          {justo  && <span style={{ fontSize:"0.65rem", marginLeft:"0.3rem" }}>✅</span>}
+                          {supera && <span style={{ fontSize:"var(--fs-sm)", marginLeft:"0.3rem" }}>⚠️</span>}
+                          {justo  && <span style={{ fontSize:"var(--fs-sm)", marginLeft:"0.3rem" }}>✅</span>}
                         </span>
                         {supera && (
-                          <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.58rem", color:"var(--red)", fontWeight:700 }}>
+                          <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--red)", fontWeight:700 }}>
                             +{totalInscritos[d] - maximos[d]} max
                           </span>
                         )}
-                        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.65rem", color: "var(--violet)", marginTop: 2 }}>
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--violet)", marginTop: 2 }}>
                           {fmt((ingresosPorDistancia[d] || 0))}
                         </span>
                       </div>
@@ -443,14 +443,14 @@ export const TabInscripciones = ({
                   );
                 })}
                 <td className="text-right mono" style={{ paddingRight: 8 }}>
-                  <div style={{ color: "var(--violet)", fontWeight: 800, fontSize: "1.1rem" }}>
+                  <div style={{ color: "var(--violet)", fontWeight: 800, fontSize: "var(--fs-lg)" }}>
                     {fmt(ingresosPorDistancia.total)}
                   </div>
-                  <div style={{ color: "var(--text-muted)", fontSize: "0.75rem", marginTop: 2 }}>
+                  <div style={{ color: "var(--text-muted)", fontSize: "var(--fs-base)", marginTop: 2 }}>
                     {totalInscritos.total} ctes totales
                     {codigos.filter(c => c.estado === "usado").length > 0 && (
                       <span style={{
-                        fontFamily:"var(--font-mono)", fontSize:"0.62rem",
+                        fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                         marginLeft:"0.4rem", padding:"0.05rem 0.3rem",
                         borderRadius:3, background:"rgba(167,139,250,.15)",
                         color:"var(--violet)", border:"1px solid rgba(167,139,250,.25)",
@@ -476,10 +476,10 @@ export const TabInscripciones = ({
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
           flexWrap:"wrap",gap:".5rem",marginBottom:".85rem"}}>
           <div>
-            <div style={{fontWeight:700,fontSize:".9rem",marginBottom:".15rem"}}>
+            <div style={{fontWeight:700,fontSize:"var(--fs-md)",marginBottom:".15rem"}}>
               🎟️ Códigos promocionales
             </div>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)"}}>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>
               Inscripciones gratuitas · {codigos.filter(c=>c.estado==="disponible").length} disponibles de {codigos.length}
             </div>
           </div>
@@ -491,7 +491,7 @@ export const TabInscripciones = ({
               return (
                 <button key={d}
                   onClick={()=>setCodigosTab(codigosTab===d?"todos":d)}
-                  style={{fontFamily:"var(--font-mono)",fontSize:".68rem",fontWeight:700,
+                  style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",fontWeight:700,
                     padding:".25rem .6rem",borderRadius:20,cursor:"pointer",
                     background:codigosTab===d?color+"22":"transparent",
                     color:codigosTab===d?color:color+"99",
@@ -503,14 +503,14 @@ export const TabInscripciones = ({
             <button
               onClick={()=>setEditCodigo({id:null,codigo:"",distancia:"TG7",estado:"disponible",usadoPor:"",fechaUso:""})}
               style={{padding:".3rem .7rem",borderRadius:8,cursor:"pointer",fontWeight:700,
-                fontFamily:"var(--font-mono)",fontSize:".68rem",background:"var(--primary)",
+                fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",background:"var(--primary)",
                 color:"#fff",border:"none"}}>
               + Nuevo
             </button>
             <button
               onClick={()=>setImportOpen(v=>!v)}
               style={{padding:".3rem .6rem",borderRadius:8,cursor:"pointer",fontWeight:700,
-                fontFamily:"var(--font-mono)",fontSize:".68rem",
+                fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
                 background:importOpen?"var(--cyan-dim)":"var(--surface2)",
                 color:importOpen?"var(--cyan)":"var(--text-muted)",
                 border:`1px solid ${importOpen?"rgba(34,211,238,.35)":"var(--border)"}`}}>
@@ -523,7 +523,7 @@ export const TabInscripciones = ({
         {importOpen && (
           <div style={{padding:".75rem",borderRadius:8,marginBottom:".75rem",
             background:"var(--surface2)",border:"1px solid rgba(34,211,238,.2)"}}>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
+            <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
               color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:".06em",
               marginBottom:".5rem"}}>Pega los códigos (uno por línea o separados por espacios)</div>
             <div style={{display:"flex",gap:".5rem",alignItems:"flex-start",flexWrap:"wrap"}}>
@@ -532,15 +532,15 @@ export const TabInscripciones = ({
                 rows={4}
                 style={{flex:1,minWidth:200,background:"var(--surface)",
                   border:"1px solid var(--border)",borderRadius:6,color:"var(--text)",
-                  padding:".4rem .55rem",fontFamily:"var(--font-mono)",fontSize:".75rem",
+                  padding:".4rem .55rem",fontFamily:"var(--font-mono)",fontSize:"var(--fs-base)",
                   outline:"none",resize:"vertical"}} />
               <div style={{display:"flex",flexDirection:"column",gap:".3rem",minWidth:90}}>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                   color:"var(--text-dim)",marginBottom:".15rem"}}>Distancia</div>
                 {["TG7","TG13","TG25"].map(d=>(
                   <button key={d} onClick={()=>setImportDist(d)}
                     style={{padding:".28rem .5rem",borderRadius:6,cursor:"pointer",
-                      fontFamily:"var(--font-mono)",fontSize:".68rem",fontWeight:700,
+                      fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",fontWeight:700,
                       border:`1px solid ${importDist===d?"var(--cyan)":"var(--border)"}`,
                       background:importDist===d?"var(--cyan-dim)":"transparent",
                       color:importDist===d?"var(--cyan)":"var(--text-muted)"}}>
@@ -549,7 +549,7 @@ export const TabInscripciones = ({
                 ))}
                 <button disabled={!importText.trim()}
                   style={{marginTop:".25rem",padding:".35rem .5rem",borderRadius:6,cursor:"pointer",
-                    fontFamily:"var(--font-mono)",fontSize:".68rem",fontWeight:700,
+                    fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",fontWeight:700,
                     background:"var(--primary)",color:"#fff",border:"none",
                     opacity:importText.trim()?1:.45}}
                   onClick={()=>{
@@ -569,7 +569,7 @@ export const TabInscripciones = ({
               </div>
             </div>
             {importMsg && (
-              <div style={{fontFamily:"var(--font-mono)",fontSize:".62rem",marginTop:".4rem",
+              <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",marginTop:".4rem",
                 color:importMsg.ok?"var(--green)":"var(--red)"}}>
                 {importMsg.txt}
               </div>
@@ -584,7 +584,7 @@ export const TabInscripciones = ({
             {[["todos","Todos"],["disponible","✅ Libres"],["usado","✓ Usados"]].map(([v,l])=>(
               <button key={v} onClick={()=>setCodigosTab(v)}
                 style={{padding:".28rem .6rem",border:"none",cursor:"pointer",
-                  fontFamily:"var(--font-mono)",fontSize:".65rem",fontWeight:700,
+                  fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",fontWeight:700,
                   background:codigosTab===v?"rgba(34,211,238,.15)":"transparent",
                   color:codigosTab===v?"var(--cyan)":"var(--text-muted)",
                   whiteSpace:"nowrap"}}>
@@ -595,15 +595,15 @@ export const TabInscripciones = ({
           <div style={{flex:1,minWidth:140,display:"flex",alignItems:"center",
             background:"var(--surface2)",border:"1px solid var(--border)",
             borderRadius:8,padding:".28rem .6rem",gap:".4rem"}}>
-            <span style={{opacity:.5,fontSize:".8rem",flexShrink:0}}>🔍</span>
+            <span style={{opacity:.5,fontSize:"var(--fs-base)",flexShrink:0}}>🔍</span>
             <input placeholder="Buscar código o nombre..."
               value={busquedaCod} onChange={e=>setBusquedaCod(e.target.value)}
               style={{background:"none",border:"none",color:"var(--text)",
-                fontFamily:"var(--font-mono)",fontSize:".72rem",outline:"none",width:"100%"}} />
+                fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",outline:"none",width:"100%"}} />
             {busquedaCod && (
               <button onClick={()=>setBusquedaCod("")}
                 style={{background:"none",border:"none",cursor:"pointer",
-                  color:"var(--text-muted)",fontSize:".7rem",padding:0,flexShrink:0}}>✕</button>
+                  color:"var(--text-muted)",fontSize:"var(--fs-sm)",padding:0,flexShrink:0}}>✕</button>
             )}
           </div>
         </div>
@@ -626,7 +626,7 @@ export const TabInscripciones = ({
           if (!filtrados.length) return (
             <div style={{
               textAlign:"center", padding:"2.5rem 1rem",
-              fontFamily:"var(--font-mono)", fontSize:".75rem",
+              fontFamily:"var(--font-mono)", fontSize:"var(--fs-base)",
               color:"var(--text-dim)", background:"var(--surface2)",
               borderRadius:10, border:"1px dashed var(--border)",
             }}>
@@ -658,7 +658,7 @@ export const TabInscripciones = ({
                   gap:".5rem", padding:".75rem .85rem", minHeight:56,
                 }}>
                   <span style={{
-                    fontFamily:"var(--font-mono)", fontWeight:800, fontSize:".88rem",
+                    fontFamily:"var(--font-mono)", fontWeight:800, fontSize:"var(--fs-md)",
                     letterSpacing:".06em", flex:1, minWidth:0,
                     color: usado ? "var(--text-dim)" : "var(--text)",
                     textDecoration: usado ? "line-through" : "none",
@@ -668,7 +668,7 @@ export const TabInscripciones = ({
 
                   <div style={{flex:2, minWidth:0}}>
                     {usado ? (
-                      <div style={{fontFamily:"var(--font-mono)", fontSize:".7rem",
+                      <div style={{fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
                         color:"var(--text-muted)",
                         overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>
                         {c.usadoPor || "—"}
@@ -686,7 +686,7 @@ export const TabInscripciones = ({
                           background:"transparent", border:"none",
                           borderBottom:"1px solid rgba(52,211,153,.35)",
                           color:"var(--text)", fontFamily:"var(--font-mono)",
-                          fontSize:".72rem", outline:"none",
+                          fontSize:"var(--fs-sm)", outline:"none",
                           width:"100%", padding:".15rem 0",
                           transition:"border-color .15s",
                         }}
@@ -715,7 +715,7 @@ export const TabInscripciones = ({
                         style={{display:"flex",alignItems:"center",justifyContent:"center",
                           width:40,height:40,borderRadius:8,
                           background:"rgba(251,191,36,.12)",border:"1px solid rgba(251,191,36,.3)",
-                          color:"var(--amber)",fontSize:".85rem",cursor:"pointer"}}>
+                          color:"var(--amber)",fontSize:"var(--fs-base)",cursor:"pointer"}}>
                         ↩
                       </button>
                     )}
@@ -724,7 +724,7 @@ export const TabInscripciones = ({
                       style={{display:"flex",alignItems:"center",justifyContent:"center",
                         width:40,height:40,borderRadius:8,
                         background:"var(--surface3)",border:"1px solid var(--border)",
-                        color:"var(--text-muted)",fontSize:".8rem",cursor:"pointer"}}>
+                        color:"var(--text-muted)",fontSize:"var(--fs-base)",cursor:"pointer"}}>
                       ✏️
                     </button>
                     <button title="Eliminar" aria-label="Eliminar código"
@@ -732,7 +732,7 @@ export const TabInscripciones = ({
                       style={{display:"flex",alignItems:"center",justifyContent:"center",
                         width:40,height:40,borderRadius:8,
                         background:"rgba(248,113,113,.1)",border:"1px solid rgba(248,113,113,.25)",
-                        color:"var(--red)",fontSize:".8rem",fontWeight:700,cursor:"pointer"}}>
+                        color:"var(--red)",fontSize:"var(--fs-base)",fontWeight:700,cursor:"pointer"}}>
                       ✕
                     </button>
                   </div>
@@ -763,13 +763,13 @@ export const TabInscripciones = ({
                         borderBottom: collapsed ? "none" : `1px solid ${color}22`,
                       }}>
                       <span style={{
-                        fontFamily:"var(--font-mono)", fontWeight:800, fontSize:".8rem",
+                        fontFamily:"var(--font-mono)", fontWeight:800, fontSize:"var(--fs-base)",
                         color, letterSpacing:".04em",
                       }}>
                         {dist}
                       </span>
                       <span style={{
-                        fontFamily:"var(--font-mono)", fontSize:".65rem",
+                        fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
                         color:"var(--text-muted)", flex:1,
                       }}>
                         {items.length} código{items.length!==1?"s":""}
@@ -778,7 +778,7 @@ export const TabInscripciones = ({
                       <div style={{display:"flex", gap:".3rem"}}>
                         {libres > 0 && (
                           <span style={{
-                            fontFamily:"var(--font-mono)", fontSize:".6rem", fontWeight:700,
+                            fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
                             padding:".1rem .45rem", borderRadius:20,
                             background:"rgba(52,211,153,.12)", color:"var(--green)",
                             border:"1px solid rgba(52,211,153,.25)",
@@ -788,7 +788,7 @@ export const TabInscripciones = ({
                         )}
                         {usados > 0 && (
                           <span style={{
-                            fontFamily:"var(--font-mono)", fontSize:".6rem", fontWeight:700,
+                            fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
                             padding:".1rem .45rem", borderRadius:20,
                             background:"rgba(148,163,184,.1)", color:"var(--text-dim)",
                             border:"1px solid var(--border)",
@@ -798,7 +798,7 @@ export const TabInscripciones = ({
                         )}
                       </div>
                       <span style={{
-                        fontFamily:"var(--font-mono)", fontSize:".7rem",
+                        fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
                         color:"var(--text-dim)", flexShrink:0,
                         transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)",
                         transition:"transform .18s",
@@ -915,9 +915,9 @@ export const TabInscripciones = ({
             onClick={e=>e.target===e.currentTarget&&setDelCodigo(null)}>
             <div className="modal" style={{maxWidth:320,textAlign:"center"}}>
               <div className="modal-body" style={{paddingTop:"1.5rem"}}>
-                <div style={{fontSize:"2rem",marginBottom:".5rem"}}>🗑️</div>
+                <div style={{fontSize:"var(--fs-xl)",marginBottom:".5rem"}}>🗑️</div>
                 <div style={{fontWeight:700,marginBottom:".3rem"}}>¿Eliminar este código?</div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:".72rem",
+                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
                   color:"var(--text-muted)",marginBottom:".2rem"}}>
                   {codigos.find(c=>c.id===delCodigo)?.codigo}
                 </div>

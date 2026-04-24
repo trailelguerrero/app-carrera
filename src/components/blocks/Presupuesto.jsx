@@ -242,7 +242,7 @@ const Presupuesto = () => {
               {conceptos.length > 0 && (
                 <span style={{
                   marginLeft:".6rem", padding:".08rem .45rem",
-                  borderRadius:10, fontFamily:"var(--font-mono)", fontSize:".55rem",
+                  borderRadius:10, fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                   background: (() => {
                     const c = conceptos.filter(c => c.activo !== false);
                     // A2 fix: los conceptos variables no tienen costeTotal, usan costePorDistancia
@@ -306,7 +306,7 @@ const Presupuesto = () => {
             </button>
             {saveStatus === "error" && (
               <span style={{
-                fontFamily:"var(--font-mono)", fontSize:".6rem",
+                fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                 color:"var(--red)", padding:".3rem .6rem",
                 background:"rgba(248,113,113,.1)", borderRadius:20,
                 border:"1px solid rgba(248,113,113,.25)",
@@ -347,7 +347,7 @@ const Presupuesto = () => {
             <button
               className="btn btn-ghost btn-sm"
               onClick={() => createScenario()}
-              style={{ fontFamily: "var(--font-mono)", fontSize: ".58rem",
+              style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
                 color: "var(--text-dim)", opacity:.6, gap: ".3rem" }}
             >
               + Crear escenario hipotético
@@ -438,9 +438,9 @@ const Presupuesto = () => {
               padding:".5rem .85rem", marginBottom:".65rem",
               borderRadius:6, background:"rgba(251,191,36,.1)",
               border:"1px solid rgba(251,191,36,.3)",
-              fontFamily:"var(--font-mono)", fontSize:".62rem",
+              fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
             }}>
-              <span style={{fontSize:".9rem"}}>🔬</span>
+              <span style={{fontSize:"var(--fs-md)"}}>🔬</span>
               <span style={{color:"var(--amber)",fontWeight:700}}>
                 Modo Escenario: «{activeScenario?.nombre || "Sin nombre"}»
               </span>
@@ -501,8 +501,8 @@ const Presupuesto = () => {
       {confirmReset && (
         <div className="reset-overlay" onClick={() => setConfirmReset(false)}>
           <div className="reset-modal" onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>⚠️</div>
-            <div style={{ fontWeight: 800, fontSize: "1rem", marginBottom: "0.5rem", color: "var(--text)" }}>
+            <div style={{ fontSize: "var(--fs-xl)", marginBottom: "0.75rem" }}>⚠️</div>
+            <div style={{ fontWeight: 800, fontSize: "var(--fs-md)", marginBottom: "0.5rem", color: "var(--text)" }}>
               ¿Restablecer todos los datos?
             </div>
             <div className="mono" style={{ fontSize: "0.72rem", color: "var(--text-muted)", lineHeight: 1.6, marginBottom: "1.5rem" }}>

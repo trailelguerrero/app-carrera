@@ -148,7 +148,7 @@ export const TabPresupuesto = ({
               {c.nombre}
             </span>
             {(c.proveedor || c.notas || c.estadoPago || c.estadoPedido) && (
-              <span style={{ fontSize:"0.55rem", opacity:0.6 }}>📋</span>
+              <span style={{ fontSize:"var(--fs-xs)", opacity:0.6 }}>📋</span>
             )}
           </button>
         </td>
@@ -204,7 +204,7 @@ export const TabPresupuesto = ({
               {c.nombre}
             </span>
             {(c.proveedor || c.notas || c.estadoPago || c.estadoPedido) && (
-              <span style={{ fontSize:"0.55rem", opacity:0.6 }}>📋</span>
+              <span style={{ fontSize:"var(--fs-xs)", opacity:0.6 }}>📋</span>
             )}
           </button>
         </td>

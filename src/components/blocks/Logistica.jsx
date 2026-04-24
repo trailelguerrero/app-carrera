@@ -338,7 +338,7 @@ export default function App() {
           <span style={{
             display:"inline-flex", alignItems:"center",
             padding:"0 .25rem", color:"var(--border)",
-            fontSize:"1rem", userSelect:"none", flexShrink:0,
+            fontSize:"var(--fs-md)", userSelect:"none", flexShrink:0,
           }}>│</span>
           {TABS_CONFIG.map(t => (
             <button key={t.id} className={cls("tab-btn", tab===t.id && "active")}
@@ -390,7 +390,7 @@ export default function App() {
         <div className="modal-backdrop" style={{zIndex:200}} onClick={e => e.target===e.currentTarget && setDel(null)}>
           <div className="modal" style={{maxWidth:340,textAlign:"center"}}>
             <div className="modal-body" style={{paddingTop:"1.5rem"}}>
-              <div style={{fontSize:"2.5rem",marginBottom:"0.6rem"}}>⚠️</div>
+              <div style={{fontSize:"var(--fs-xl)",marginBottom:"0.6rem"}}>⚠️</div>
               <div style={{fontWeight:700,marginBottom:"0.4rem"}}>¿Eliminar elemento?</div>
               <div className="muted mono xs">Esta acción no se puede deshacer.</div>
             </div>
@@ -472,13 +472,13 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
           }}>
             <div style={{ display:"flex", justifyContent:"space-between",
               alignItems:"center", marginBottom:".45rem" }}>
-              <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                 fontWeight:700, color:"var(--red)", textTransform:"uppercase",
                 letterSpacing:".06em" }}>
                 ⚠ Stock insuficiente
               </span>
               <button className="btn btn-ghost btn-sm"
-                style={{ fontSize:".6rem", color:"var(--text-dim)" }}
+                style={{ fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}
                 onClick={() => setTab("material")}>
                 Ver material →
               </button>
@@ -487,9 +487,9 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
               {enDeficit.map(m => (
                 <div key={m.id} style={{
                   display:"flex", alignItems:"center", gap:".6rem",
-                  fontSize:".75rem",
+                  fontSize:"var(--fs-base)",
                 }}>
-                  <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                     fontWeight:800, color:"var(--red)",
                     background:"rgba(248,113,113,.1)", padding:".08rem .4rem",
                     borderRadius:3, flexShrink:0, minWidth:48, textAlign:"center" }}>
@@ -499,7 +499,7 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
                     overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                     {m.nombre}
                   </span>
-                  <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                     color:"var(--text-muted)", flexShrink:0 }}>
                     {m.stock} stock · {m.totalAsig} asig.
                   </span>
@@ -519,19 +519,19 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
       }}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:"0.75rem"}}>
           <div>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:"0.55rem",color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:"0.2rem"}}>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:"0.2rem"}}>
               🏔️ {config.nombre} {config.edicion} · {config.lugar}, {config.provincia}
             </div>
             <div style={{display:"flex",alignItems:"baseline",gap:"0.4rem"}}>
               {yaFue ? (
-                <span style={{fontFamily:"var(--font-mono)",fontSize:"1.4rem",fontWeight:800,color:"var(--green)"}}>¡Completado!</span>
+                <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-lg)",fontWeight:800,color:"var(--green)"}}>¡Completado!</span>
               ) : (
                 <>
                   <span style={{fontFamily:"var(--font-mono)",fontSize:"1.8rem",fontWeight:800,
                     color: esSemana ? "var(--red)" : "var(--amber)",lineHeight:1}}>
                     {diasHasta}
                   </span>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:"0.7rem",color:"var(--text-muted)"}}>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)"}}>
                     {esSemana ? "⚡ días — SEMANA DE CARRERA" : "días para el evento"}
                   </span>
                 </>
@@ -540,7 +540,7 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
           </div>
           <div style={{display:"flex",gap:"0.5rem",flexWrap:"wrap"}}>
             <button className="btn btn-ghost btn-sm" onClick={()=>setTab("checklist")}>✅ Checklist</button>
-            <button className="btn btn-sm" style={{background:"rgba(248,113,113,0.1)",color:"var(--red)",border:"1px solid rgba(248,113,113,0.25)",fontFamily:"var(--font-mono)",fontSize:"0.62rem"}}
+            <button className="btn btn-sm" style={{background:"rgba(248,113,113,0.1)",color:"var(--red)",border:"1px solid rgba(248,113,113,0.25)",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)"}}
               onClick={()=>setTab("contactos")}>🚨 Emergencias</button>
           </div>
         </div>
@@ -555,12 +555,12 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
             const recibidos = items.filter(i => i.recibido).length;
             return (
               <div key={pat.id} style={{ display: "flex", alignItems: "flex-start", gap: ".6rem", padding: ".45rem 0", borderBottom: "1px solid rgba(30,45,80,.25)" }}>
-                <span style={{ fontSize: "1rem" }}>📦</span>
+                <span style={{ fontSize: "var(--fs-md)" }}>📦</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: ".78rem", fontWeight: 700 }}>{pat.nombre}</div>
+                  <div style={{ fontSize: "var(--fs-base)", fontWeight: 700 }}>{pat.nombre}</div>
                   <div style={{ display: "flex", gap: ".4rem", flexWrap: "wrap", marginTop: ".2rem" }}>
                     {items.map(i => (
-                      <span key={i.id} style={{ fontFamily: "var(--font-mono)", fontSize: ".58rem", padding: ".1rem .35rem", borderRadius: 4,
+                      <span key={i.id} style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", padding: ".1rem .35rem", borderRadius: 4,
                         background: i.recibido ? "rgba(52,211,153,.12)" : "rgba(251,191,36,.08)",
                         color: i.recibido ? "var(--green)" : "var(--amber)" }}>
                         {i.recibido ? "✓" : "⏳"} {i.nombre} ({i.cantidad} {i.unidad})
@@ -568,7 +568,7 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
                     ))}
                   </div>
                 </div>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: ".62rem", color: recibidos === items.length ? "var(--green)" : "var(--amber)" }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: recibidos === items.length ? "var(--green)" : "var(--amber)" }}>
                   {recibidos}/{items.length}
                 </span>
               </div>
@@ -582,7 +582,7 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
         <div className="card">
           <div className="ct">⏱️ Próximas tareas pendientes</div>
           {prox.length === 0 && (
-            <div style={{textAlign:"center",padding:"1rem",color:"var(--text-muted)",fontFamily:"var(--font-mono)",fontSize:"0.7rem"}}>
+            <div style={{textAlign:"center",padding:"1rem",color:"var(--text-muted)",fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)"}}>
               ✓ Sin tareas pendientes
             </div>
           )}
@@ -603,9 +603,9 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
           <div className="ct">✅ Progreso checklist por fase</div>
           {porFase.map(f=>(
             <div key={f.f} style={{marginBottom:"0.6rem"}}>
-              <div style={{display:"flex",justifyContent:"space-between",fontSize:"0.72rem",marginBottom:"0.2rem"}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:"var(--fs-sm)",marginBottom:"0.2rem"}}>
                 <span style={{color: f.pct===100?"var(--text-muted)":"var(--text)"}}>{f.f}</span>
-                <span className="mono" style={{color:f.pct===100?"var(--green)":"var(--text-muted)",fontSize:"0.62rem"}}>{f.d}/{f.t}</span>
+                <span className="mono" style={{color:f.pct===100?"var(--green)":"var(--text-muted)",fontSize:"var(--fs-xs)"}}>{f.d}/{f.t}</span>
               </div>
               <div className="pbar">
                 <div className="pfill" style={{width:`${f.pct}%`,background:f.pct===100?"var(--green)":f.pct>50?"var(--cyan)":"var(--amber)"}}/>
@@ -657,8 +657,8 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
       <div className="ph">
         <div><div className="pt">📦 Inventario de Material</div><div className="pd">{material.length} artículos · {asigs.length} asignaciones</div></div>
         <div className="fr g1">
-          <button className={cls("btn",!vistaAsig?"btn-cyan":"btn-ghost")} onClick={()=>setVistaAsig(false)}>Catálogo<span style={{marginLeft:"0.3rem",fontFamily:"var(--font-mono)",fontSize:"0.6rem",background:!vistaAsig?"rgba(0,0,0,0.15)":"var(--surface3)",padding:"0.05rem 0.35rem",borderRadius:3}}>{material.length}</span></button>
-          <button className={cls("btn",vistaAsig?"btn-cyan":"btn-ghost")} onClick={()=>setVistaAsig(true)}>Asignaciones<span style={{marginLeft:"0.3rem",fontFamily:"var(--font-mono)",fontSize:"0.6rem",background:vistaAsig?"rgba(0,0,0,0.15)":"var(--surface3)",padding:"0.05rem 0.35rem",borderRadius:3}}>{asigs.length}</span></button>
+          <button className={cls("btn",!vistaAsig?"btn-cyan":"btn-ghost")} onClick={()=>setVistaAsig(false)}>Catálogo<span style={{marginLeft:"0.3rem",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",background:!vistaAsig?"rgba(0,0,0,0.15)":"var(--surface3)",padding:"0.05rem 0.35rem",borderRadius:3}}>{material.length}</span></button>
+          <button className={cls("btn",vistaAsig?"btn-cyan":"btn-ghost")} onClick={()=>setVistaAsig(true)}>Asignaciones<span style={{marginLeft:"0.3rem",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",background:vistaAsig?"rgba(0,0,0,0.15)":"var(--surface3)",padding:"0.05rem 0.35rem",borderRadius:3}}>{asigs.length}</span></button>
           {!vistaAsig && (<>
             <div className="filter-pill-group">
               <button className={`filter-pill${!vistaKanban ? " active" : ""}`}
@@ -687,12 +687,12 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
               const color=CAT_COLORS[catK];
               return(<div key={catK} className="log-k-col">
                 <div className="log-k-hdr" style={{borderTopColor:color}}>
-                  <span style={{fontSize:".65rem",fontWeight:700,color}}>{CAT_ICONS[catK]} {catK}</span>
+                  <span style={{fontSize:"var(--fs-sm)",fontWeight:700,color}}>{CAT_ICONS[catK]} {catK}</span>
                   <span className="log-k-cnt" style={{background:color+"22",color,border:`1px solid ${color}44`}}>{items.length}</span>
                 </div>
                 {items.map(m=>(<div key={m.id} className="log-k-card" style={{borderLeftColor:color,cursor:"pointer"}} onClick={()=>abrirFicha("mat",m)}>
-                  <div style={{fontWeight:700,fontSize:".76rem",marginBottom:".3rem"}}>{m.nombre}</div>
-                  <div style={{display:"flex",gap:".5rem",flexWrap:"wrap",fontSize:".62rem",fontFamily:"var(--font-mono)"}}>
+                  <div style={{fontWeight:700,fontSize:"var(--fs-base)",marginBottom:".3rem"}}>{m.nombre}</div>
+                  <div style={{display:"flex",gap:".5rem",flexWrap:"wrap",fontSize:"var(--fs-xs)",fontFamily:"var(--font-mono)"}}>
                     <span style={{color:"var(--text-muted)"}}>Stock: <span style={{color:"var(--text)",fontWeight:700}}>{m.stock} {m.unidad}</span></span>
                     {m.def>0&&<span style={{color:"var(--red)",fontWeight:700}}>⚠ -{m.def}</span>}
                   </div>
@@ -708,7 +708,7 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
                 <td onClick={e=>e.stopPropagation()} style={{padding:"0.3rem 0.4rem"}}>
                   {/* Icono siempre visible — Kinetik Ops Fase E */}
                   <div className="item-icon-pill-sm" style={{"--pill-color": CAT_COLORS[m.categoria]||"var(--cyan)"}}>
-                    <span style={{fontSize:".78rem"}}>{CAT_ICONS[m.categoria]||"📦"}</span>
+                    <span style={{fontSize:"var(--fs-base)"}}>{CAT_ICONS[m.categoria]||"📦"}</span>
                   </div>
                 </td>
                 <td className="f6">
@@ -720,7 +720,7 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
                         <button
                           onClick={e => { e.stopPropagation(); window.dispatchEvent(new CustomEvent("teg-navigate", { detail:{ block:"presupuesto" } })); }}
                           title="Ver en Presupuesto"
-                          style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+                          style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                             padding:".06rem .3rem",borderRadius:10,cursor:"pointer",
                             background:"var(--violet-dim)",color:"var(--violet)",
                             border:"1px solid rgba(167,139,250,.25)"}}>
@@ -734,7 +734,7 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
                 <td className="tr mono">
                   {m.stock} {m.unidad}
                   {m.stockMinimo > 0 && m.stock < m.stockMinimo && (
-                    <span style={{marginLeft:".35rem",fontFamily:"var(--font-mono)",fontSize:".55rem",
+                    <span style={{marginLeft:".35rem",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                       padding:".1rem .35rem",borderRadius:4,
                       background:"var(--red-dim)",color:"var(--red)",fontWeight:700}}>
                       ⚠ bajo mín.
@@ -797,28 +797,28 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
         <div className="log-kanban-grid" style={{gridTemplateColumns:"repeat(2,1fr)"}}>
           <div className="log-k-col">
             <div className="log-k-hdr" style={{borderTopColor:"var(--cyan)"}}>
-              <span style={{fontSize:".65rem",fontWeight:700,color:"var(--cyan)"}}>🚐 Flota</span>
+              <span style={{fontSize:"var(--fs-sm)",fontWeight:700,color:"var(--cyan)"}}>🚐 Flota</span>
               <span className="log-k-cnt" style={{background:"var(--cyan-dim)",color:"var(--cyan)",border:"1px solid rgba(34,211,238,.3)"}}>{veh.length}</span>
             </div>
             {vehOrdenado.map(v=>(<div key={v.id} className="log-k-card" style={{borderLeftColor:"var(--cyan)",cursor:"pointer"}} onClick={()=>abrirFicha("veh",v)}>
-              <div style={{fontWeight:700,fontSize:".76rem",marginBottom:".2rem"}}>{v.nombre}</div>
+              <div style={{fontWeight:700,fontSize:"var(--fs-base)",marginBottom:".2rem"}}>{v.nombre}</div>
               <div className="mono xs muted">{v.matricula} · {v.conductor}</div>
               <div className="mono xs" style={{color:"var(--text-muted)",marginTop:".15rem"}}>{v.capacidad}</div>
-              {v.notas&&<div style={{fontSize:".62rem",color:"var(--text-muted)",marginTop:".2rem",fontStyle:"italic"}}>{v.notas}</div>}
+              {v.notas&&<div style={{fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginTop:".2rem",fontStyle:"italic"}}>{v.notas}</div>}
             </div>))}
 
             {/* SECCIÓN VEHÍCULOS VOLUNTARIOS (POOL) */}
             {voluntariosConCoche.length > 0 && (
               <div style={{marginTop:"1.2rem"}}>
                 <div className="log-k-hdr" style={{borderTopColor:"var(--violet)",background:"transparent",padding:"0.6rem 0.2rem"}}>
-                  <span style={{fontSize:".65rem",fontWeight:700,color:"var(--violet)"}}>🙋‍♂️ Pool Voluntarios</span>
+                  <span style={{fontSize:"var(--fs-sm)",fontWeight:700,color:"var(--violet)"}}>🙋‍♂️ Pool Voluntarios</span>
                   <span className="log-k-cnt" style={{background:"var(--violet-dim)",color:"var(--violet)",border:"1px solid rgba(167,139,250,.3)"}}>{voluntariosConCoche.length}</span>
                 </div>
                 {voluntariosConCoche.map(vol => (
                   <div key={vol.id} className="log-k-card" style={{borderLeftColor:"var(--violet)",background:"var(--violet-dim)"}}>
-                    <div style={{fontWeight:700,fontSize:".76rem",marginBottom:".2rem"}}>{vol.nombre}</div>
+                    <div style={{fontWeight:700,fontSize:"var(--fs-base)",marginBottom:".2rem"}}>{vol.nombre}</div>
                     <div className="mono xs muted">🚙 Vehículo propio</div>
-                    <a href={`tel:${vol.telefono}`} style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--violet)",textDecoration:"none"}}>📞 {vol.telefono}</a>
+                    <a href={`tel:${vol.telefono}`} style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--violet)",textDecoration:"none"}}>📞 {vol.telefono}</a>
                   </div>
                 ))}
               </div>
@@ -826,13 +826,13 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
           </div>
           <div className="log-k-col">
             <div className="log-k-hdr" style={{borderTopColor:"var(--amber)"}}>
-              <span style={{fontSize:".65rem",fontWeight:700,color:"var(--amber)"}}>🗺️ Rutas</span>
+              <span style={{fontSize:"var(--fs-sm)",fontWeight:700,color:"var(--amber)"}}>🗺️ Rutas</span>
               <span className="log-k-cnt" style={{background:"var(--amber-dim)",color:"var(--amber)",border:"1px solid rgba(251,191,36,.3)"}}>{rutas.length}</span>
             </div>
             {rutas.map(r=>{const v=veh.find(x=>x.id===r.vehiculoId);return(<div key={r.id} className="log-k-card" style={{borderLeftColor:"var(--amber)",cursor:"pointer"}} onClick={()=>abrirFicha("ruta",r)}>
-              <div style={{fontWeight:700,fontSize:".76rem",marginBottom:".2rem"}}>{r.nombre}</div>
+              <div style={{fontWeight:700,fontSize:"var(--fs-base)",marginBottom:".2rem"}}>{r.nombre}</div>
               <div className="mono xs muted">🚐 {v?.nombre||"—"} · 🕐 {r.horaInicio}</div>
-              <div style={{fontSize:".62rem",color:"var(--text-muted)",marginTop:".2rem"}}>{(r.paradas||[]).length} paradas</div>
+              <div style={{fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginTop:".2rem"}}>{(r.paradas||[]).length} paradas</div>
             </div>);})}
           </div>
         </div>
@@ -844,10 +844,10 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
               style={{width:"100%",display:"flex",alignItems:"center",gap:".5rem",
                 padding:".45rem .65rem",marginBottom:".4rem",background:"var(--surface2)",
                 border:"1px solid var(--border)",borderRadius:"var(--r-sm)",cursor:"pointer",textAlign:"left"}}>
-              <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:".68rem",flex:1}}>🚐 Flota de vehículos</span>
-              <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--cyan)",
+              <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:"var(--fs-sm)",flex:1}}>🚐 Flota de vehículos</span>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--cyan)",
                 padding:".06rem .35rem",borderRadius:20,background:"var(--cyan-dim)"}}>{veh.length}</span>
-              <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-dim)",
+              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-dim)",
                 transform:vehColapsado?"rotate(-90deg)":"rotate(0deg)",transition:"transform .18s"}}>▼</span>
             </button>
             {!vehColapsado && vehOrdenado.map((v,i,arr)=>(
@@ -869,10 +869,10 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
                   style={{width:"100%",display:"flex",alignItems:"center",gap:".5rem",
                     padding:".45rem .65rem",marginBottom:".4rem",background:"var(--violet-dim)",
                     border:"1px solid rgba(167,139,250,.25)",borderRadius:"var(--r-sm)",cursor:"pointer",textAlign:"left"}}>
-                  <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:".68rem",color:"var(--violet)",flex:1}}>🙋‍♂️ Pool de Voluntarios</span>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--violet)",
+                  <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:"var(--fs-sm)",color:"var(--violet)",flex:1}}>🙋‍♂️ Pool de Voluntarios</span>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--violet)",
                     padding:".06rem .35rem",borderRadius:20,background:"rgba(167,139,250,.15)"}}>{voluntariosConCoche.length}</span>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"rgba(167,139,250,.5)",
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"rgba(167,139,250,.5)",
                     transform:poolColapsado?"rotate(-90deg)":"rotate(0deg)",transition:"transform .18s"}}>▼</span>
                 </button>
                 {!poolColapsado && <>
@@ -895,10 +895,10 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
               style={{width:"100%",display:"flex",alignItems:"center",gap:".5rem",
                 padding:".45rem .65rem",marginBottom:".4rem",background:"var(--surface2)",
                 border:"1px solid var(--border)",borderRadius:"var(--r-sm)",cursor:"pointer",textAlign:"left"}}>
-              <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:".68rem",flex:1}}>🗺️ Rutas de reparto</span>
-              <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--amber)",
+              <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:"var(--fs-sm)",flex:1}}>🗺️ Rutas de reparto</span>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--amber)",
                 padding:".06rem .35rem",borderRadius:20,background:"var(--amber-dim)"}}>{rutas.length}</span>
-              <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-dim)",
+              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-dim)",
                 transform:rutasColapsadas?"rotate(-90deg)":"rotate(0deg)",transition:"transform .18s"}}>▼</span>
             </button>
             {!rutasColapsadas && <>
@@ -973,7 +973,7 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
             <select
               value={filtroResp}
               onChange={e => setFiltroResp(e.target.value)}
-              style={{ fontFamily:"var(--font-mono)", fontSize:".65rem", padding:".3rem .6rem",
+              style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", padding:".3rem .6rem",
                 borderRadius:6, border:"1px solid var(--border)", background:"var(--surface2)",
                 color: filtroResp !== "todos" ? "var(--cyan)" : "var(--text-muted)",
                 cursor:"pointer", maxWidth:150 }}
@@ -996,13 +996,13 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
             const color=TLC[cat]||"var(--text-muted)";
             return(<div key={cat} className="log-k-col">
               <div className="log-k-hdr" style={{borderTopColor:color}}>
-                <span style={{fontSize:".65rem",fontWeight:700,color}}>{TLI[cat]} {cat}</span>
+                <span style={{fontSize:"var(--fs-sm)",fontWeight:700,color}}>{TLI[cat]} {cat}</span>
                 <span className="log-k-cnt" style={{background:color+"22",color,border:`1px solid ${color}44`}}>{items.length}</span>
               </div>
               {items.map(t=>{const ec=ESTADO_COLORES[t.estado];return(<div key={t.id} className="log-k-card" style={{borderLeftColor:color,cursor:"pointer",opacity:t.estado==="completado"?.55:1}} onClick={()=>abrirFicha("tl",t)}>
-                <div className="mono" style={{fontSize:".62rem",color,marginBottom:".2rem"}}>{t.hora}</div>
-                <div style={{fontWeight:700,fontSize:".76rem",marginBottom:".2rem"}}>{t.titulo}</div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:ec,background:ec+"18",padding:".1rem .35rem",borderRadius:4,display:"inline-block"}}>{t.estado}</div>
+                <div className="mono" style={{fontSize:"var(--fs-xs)",color,marginBottom:".2rem"}}>{t.hora}</div>
+                <div style={{fontWeight:700,fontSize:"var(--fs-base)",marginBottom:".2rem"}}>{t.titulo}</div>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:ec,background:ec+"18",padding:".1rem .35rem",borderRadius:4,display:"inline-block"}}>{t.estado}</div>
               </div>);})}
             </div>);
           })}
@@ -1018,7 +1018,7 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
           {esPrimeroFuturo && (
             <div style={{display:"flex",alignItems:"center",gap:".6rem",margin:".3rem 0",padding:"0 .5rem"}}>
               <div style={{flex:1,height:1,background:"rgba(34,211,238,0.35)"}}/>
-              <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
+              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
                 color:"var(--cyan)",padding:".12rem .5rem",borderRadius:20,
                 background:"rgba(34,211,238,0.1)",border:"1px solid rgba(34,211,238,0.3)",
                 whiteSpace:"nowrap"}}>
@@ -1039,7 +1039,7 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
               <div className="tlch">
                 <span className="tlct">{t.titulo}</span>
                 <div className="fr g1" onClick={e=>e.stopPropagation()}>
-                  <select className="isml" value={t.estado} onChange={e=>upd(t.id,e.target.value)} style={{color:ec,background:`${ec}18`,border:`1px solid ${ec}44`,borderRadius:5,padding:"0.18rem 0.4rem",fontSize:"0.65rem",fontFamily:"var(--font-mono)",cursor:"pointer"}}>
+                  <select className="isml" value={t.estado} onChange={e=>upd(t.id,e.target.value)} style={{color:ec,background:`${ec}18`,border:`1px solid ${ec}44`,borderRadius:5,padding:"0.18rem 0.4rem",fontSize:"var(--fs-sm)",fontFamily:"var(--font-mono)",cursor:"pointer"}}>
                     {ESTADO_TAREA.map(s=><option key={s} value={s}>{s}</option>)}
                   </select>
                   
@@ -1125,7 +1125,7 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
         </div>
         <div style={{display:"flex",gap:".4rem",flexWrap:"wrap"}}>
           <button className="btn btn-ghost btn-sm"
-            style={{fontFamily:"var(--font-mono)",fontSize:".62rem"}}
+            style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)"}}
             onClick={()=>setModalTipo(true)}>+ Tipo</button>
           <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")}
             onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
@@ -1137,7 +1137,7 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
       <div style={{display:"flex",gap:".3rem",flexWrap:"wrap",marginBottom:".65rem"}}>
         <button onClick={()=>setFiltroTipo("todos")}
           style={{padding:".2rem .55rem",borderRadius:20,cursor:"pointer",
-            fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
+            fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
             border:`1px solid ${filtroTipo==="todos"?"var(--cyan)":"var(--border)"}`,
             background:filtroTipo==="todos"?"var(--cyan-dim)":"transparent",
             color:filtroTipo==="todos"?"var(--cyan)":"var(--text-muted)"}}>
@@ -1149,7 +1149,7 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
           return (
             <button key={t.id} onClick={()=>setFiltroTipo(filtroTipo===t.id?"todos":t.id)}
               style={{padding:".2rem .55rem",borderRadius:20,cursor:"pointer",
-                fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
+                fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
                 border:`1px solid ${filtroTipo===t.id?t.color:t.color+"55"}`,
                 background:filtroTipo===t.id?t.color+"20":"transparent",
                 color:filtroTipo===t.id?t.color:t.color+"cc",
@@ -1166,18 +1166,18 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
         <div style={{display:"flex",gap:".3rem",flexWrap:"wrap",marginBottom:".5rem",
           padding:".35rem .6rem",background:"var(--surface2)",borderRadius:6,
           border:"1px solid var(--border)"}}>
-          <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+          <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
             color:"var(--text-dim)",alignSelf:"center"}}>Tipos propios:</span>
           {tiposCustom.map(t=>(
             <span key={t.id} style={{display:"inline-flex",alignItems:"center",gap:".25rem",
               padding:".12rem .45rem",borderRadius:20,
               background:t.color+"18",color:t.color,
               border:`1px solid ${t.color}33`,fontFamily:"var(--font-mono)",
-              fontSize:".6rem",fontWeight:700}}>
+              fontSize:"var(--fs-xs)",fontWeight:700}}>
               {t.icono} {t.nombre}
               <button onClick={()=>setTiposContacto(prev=>(Array.isArray(prev)?prev:[]).filter(x=>x.id!==t.id))}
                 style={{background:"none",border:"none",cursor:"pointer",
-                  color:"var(--text-dim)",fontSize:".6rem",padding:0,lineHeight:1}}>✕</button>
+                  color:"var(--text-dim)",fontSize:"var(--fs-xs)",padding:0,lineHeight:1}}>✕</button>
             </span>
           ))}
         </div>
@@ -1186,7 +1186,7 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
       {/* Grid de contactos */}
       {contFiltrado.length === 0 ? (
         <div className="card" style={{textAlign:"center",padding:"2rem",
-          color:"var(--text-dim)",fontFamily:"var(--font-mono)",fontSize:".72rem"}}>
+          color:"var(--text-dim)",fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)"}}>
           Sin contactos{filtroTipo!=="todos"?` de tipo "${getTipo(filtroTipo).nombre}"`:""}
         </div>
       ) : (
@@ -1198,12 +1198,12 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
                 style={{borderTopColor:t.color,cursor:"pointer"}}
                 onClick={()=>abrirFicha("cont",citem)}>
                 <div className="cch">
-                  <div className="ccti" style={{fontSize:"1.1rem"}}>{t.icono}</div>
+                  <div className="ccti" style={{fontSize:"var(--fs-lg)"}}>{t.icono}</div>
                   <div style={{flex:1,minWidth:0}}>
                     <div className="ccn">{citem.nombre}</div>
                     <div className="ccr">{citem.rol}</div>
                   </div>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                     padding:".1rem .35rem",borderRadius:10,flexShrink:0,
                     background:t.color+"18",color:t.color,border:`1px solid ${t.color}33`}}>
                     {t.nombre}
@@ -1213,7 +1213,7 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
                   <a href={`tel:${citem.telefono}`} className="ctel">📞 {citem.telefono}</a>
                   {citem.email&&<a href={`mailto:${citem.email}`} className="ceml">✉️ {citem.email}</a>}
                 </div>
-                {citem.web&&<div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",marginTop:".2rem"}}>
+                {citem.web&&<div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",marginTop:".2rem"}}>
                   <a href={citem.web} target="_blank" rel="noreferrer"
                     style={{color:"var(--cyan)",textDecoration:"none"}}
                     onClick={e=>e.stopPropagation()}>🌐 {citem.web}</a>
@@ -1255,16 +1255,16 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
                       onChange={e=>setNuevoTipo(p=>({...p,color:e.target.value}))}
                       style={{width:36,height:32,border:"1px solid var(--border)",
                         borderRadius:6,cursor:"pointer",background:"none",padding:2}} />
-                    <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                       color:"var(--text-muted)"}}>{nuevoTipo.color}</span>
                   </div>
                 </div>
               </div>
               <div style={{padding:".4rem .6rem",borderRadius:6,
                 background:"var(--surface2)",border:"1px solid var(--border)"}}>
-                <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+                <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                   color:"var(--text-muted)",marginRight:".4rem"}}>Vista previa:</span>
-                <span style={{fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,
+                <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
                   padding:".12rem .45rem",borderRadius:20,
                   background:nuevoTipo.color+"20",color:nuevoTipo.color,
                   border:`1px solid ${nuevoTipo.color}44`}}>
@@ -1323,7 +1323,7 @@ function TabEmergencias({cont,inc,setInc,abrirModal,abrirFicha,tiposContacto=[]}
       {/* Banner 112 siempre visible */}
       <div style={{padding:".5rem .85rem",borderRadius:8,marginBottom:".75rem",
         background:"rgba(248,113,113,.08)",border:"1px solid rgba(248,113,113,.2)",
-        fontFamily:"var(--font-mono)",fontSize:".68rem",color:"var(--red)",
+        fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--red)",
         fontWeight:700,display:"flex",alignItems:"center",gap:".6rem"}}>
         🚨 Emergencia grave → llama al <a href="tel:112" style={{color:"var(--red)",fontWeight:900,textDecoration:"underline"}}>112</a> primero
       </div>
@@ -1339,13 +1339,13 @@ function TabEmergencias({cont,inc,setInc,abrirModal,abrirFicha,tiposContacto=[]}
         ].map(t=>(
           <button key={t.id} onClick={()=>setSub(t.id)}
             style={{padding:".3rem .7rem",borderRadius:6,border:"none",cursor:"pointer",
-              fontFamily:"var(--font-mono)",fontSize:".68rem",fontWeight:700,
+              fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",fontWeight:700,
               background:sub===t.id?"rgba(248,113,113,.12)":"transparent",
               color:sub===t.id?"var(--red)":"var(--text-muted)",
               borderBottom:sub===t.id?"2px solid var(--red)":"2px solid transparent",
               display:"flex",alignItems:"center",gap:".3rem"}}>
             {t.label}
-            {t.badge&&<span style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+            {t.badge&&<span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
               padding:".05rem .35rem",borderRadius:10,fontWeight:800,
               background:t.badgeColor+"22",color:t.badgeColor}}>{t.badge}</span>}
           </button>
@@ -1355,14 +1355,14 @@ function TabEmergencias({cont,inc,setInc,abrirModal,abrirFicha,tiposContacto=[]}
       {/* Contactos urgentes */}
       {sub==="urgentes" && (
         <>
-          <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+          <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
             color:"var(--text-muted)",marginBottom:".5rem"}}>
             Solo contactos de tipo <strong>Emergencia</strong> y <strong>Médico</strong>.
             El resto están en la pestaña Contactos.
           </div>
           {contUrgentes.length===0 ? (
             <div className="card" style={{textAlign:"center",padding:"2rem",
-              color:"var(--text-dim)",fontFamily:"var(--font-mono)",fontSize:".72rem"}}>
+              color:"var(--text-dim)",fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)"}}>
               Sin contactos de emergencia. Añádelos en Contactos con tipo Emergencia o Médico.
             </div>
           ) : (
@@ -1385,7 +1385,7 @@ function TabEmergencias({cont,inc,setInc,abrirModal,abrirFicha,tiposContacto=[]}
                       <a href={`tel:${c.telefono}`} className="ctel"
                         style={{background:t.color+"18",color:t.color,
                           border:`1px solid ${t.color}33`,borderRadius:6,
-                          padding:".3rem .7rem",fontWeight:800,fontSize:".8rem",
+                          padding:".3rem .7rem",fontWeight:800,fontSize:"var(--fs-base)",
                           textDecoration:"none",display:"inline-flex",
                           alignItems:"center",gap:".35rem"}}>
                         📞 {c.telefono}
@@ -1407,7 +1407,7 @@ function TabEmergencias({cont,inc,setInc,abrirModal,abrirFicha,tiposContacto=[]}
             {PROTO_PASOS.map(p=>(
               <button key={p.id} className={cls("pbtn",proto===p.id&&"pactive")}
                 onClick={()=>setProto(proto===p.id?null:p.id)}>
-                <span style={{fontSize:"1.4rem"}}>{p.icon}</span><span>{p.titulo}</span>
+                <span style={{fontSize:"var(--fs-lg)"}}>{p.icon}</span><span>{p.titulo}</span>
               </button>
             ))}
           </div>
@@ -1434,7 +1434,7 @@ function TabEmergencias({cont,inc,setInc,abrirModal,abrirFicha,tiposContacto=[]}
                 style={{cursor:"pointer"}} onClick={()=>abrirFicha("inc",ic)}>
                 <div className="ich">
                   <div className="fr g1">
-                    <span className="mono" style={{fontSize:".72rem",color:"var(--amber)"}}>{ic.hora}</span>
+                    <span className="mono" style={{fontSize:"var(--fs-sm)",color:"var(--amber)"}}>{ic.hora}</span>
                     <span className="badge" style={{
                       background:ic.gravedad==="alta"?"var(--red-dim)":ic.gravedad==="media"?"var(--amber-dim)":"var(--green-dim)",
                       color:ic.gravedad==="alta"?"var(--red)":ic.gravedad==="media"?"var(--amber)":"var(--green)"}}>
@@ -1452,7 +1452,7 @@ function TabEmergencias({cont,inc,setInc,abrirModal,abrirFicha,tiposContacto=[]}
                     </button>
                   </div>
                 </div>
-                <div style={{fontWeight:600,fontSize:".78rem",margin:".3rem 0"}}>{ic.descripcion}</div>
+                <div style={{fontWeight:600,fontSize:"var(--fs-base)",margin:".3rem 0"}}>{ic.descripcion}</div>
                 {ic.responsable&&<div className="muted xs mono">👤 {ic.responsable}</div>}
                 {ic.resolucion&&<div className="ires-txt">✓ {ic.resolucion}</div>}
               </div>
@@ -1550,7 +1550,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
             style={sub===t.id&&t.badgeColor?{color:t.badgeColor,borderColor:t.badgeColor+"66",background:t.badgeColor+"18"}:{}}>
             {t.label}
             {t.badge!=null && t.badge>0 && (
-              <span style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                 padding:".05rem .35rem",borderRadius:10,fontWeight:800,
                 background:t.badgeColor?t.badgeColor+"22":"rgba(34,211,238,.15)",
                 color:t.badgeColor||"var(--cyan)"}}>
@@ -1573,7 +1573,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
                 style={{padding:".22rem .6rem",borderRadius:20,border:`1px solid ${filtroTipo==="todos"?"var(--cyan)":"var(--border)"}`,
                   background:filtroTipo==="todos"?"var(--cyan-dim)":"transparent",
                   color:filtroTipo==="todos"?"var(--cyan)":"var(--text-muted)",
-                  fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,cursor:"pointer"}}>
+                  fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,cursor:"pointer"}}>
                 Todos ({contDir.length})
               </button>
               {todosLosTipos.map(t=>{
@@ -1586,7 +1586,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
                       border:`1px solid ${filtroTipo===t.id?t.color:t.color+"44"}`,
                       background:filtroTipo===t.id?t.color+"20":"transparent",
                       color:filtroTipo===t.id?t.color:t.color+"bb",
-                      fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,cursor:"pointer",
+                      fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,cursor:"pointer",
                       display:"flex",alignItems:"center",gap:".25rem"}}>
                     {t.icono} {t.nombre}
                     {n>0 && <span style={{background:t.color+"33",padding:"0 .3rem",borderRadius:10}}>{n}</span>}
@@ -1599,7 +1599,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
                 onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
               <button className="btn btn-ghost btn-sm"
                 onClick={()=>setModalTipo(true)}
-                style={{fontFamily:"var(--font-mono)",fontSize:".6rem"}}>
+                style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)"}}>
                 + Tipo
               </button>
             </div>
@@ -1611,7 +1611,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
               marginBottom:".6rem",padding:".4rem .6rem",
               background:"var(--surface2)",borderRadius:6,
               border:"1px solid var(--border)"}}>
-              <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                 color:"var(--text-dim)",alignSelf:"center"}}>
                 Tipos personalizados:
               </span>
@@ -1620,11 +1620,11 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
                   padding:".15rem .5rem",borderRadius:20,
                   background:t.color+"15",color:t.color,
                   border:`1px solid ${t.color}33`,
-                  fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700}}>
+                  fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700}}>
                   {t.icono} {t.nombre}
                   <button onClick={()=>eliminarTipo(t.id)}
                     style={{background:"none",border:"none",cursor:"pointer",
-                      color:"var(--text-dim)",fontSize:".6rem",padding:0,lineHeight:1}}>✕</button>
+                      color:"var(--text-dim)",fontSize:"var(--fs-xs)",padding:0,lineHeight:1}}>✕</button>
                 </span>
               ))}
             </div>
@@ -1633,7 +1633,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
           {/* Grid de contactos */}
           {contFiltrado.length === 0 ? (
             <div className="card" style={{textAlign:"center",padding:"2rem",
-              color:"var(--text-dim)",fontFamily:"var(--font-mono)",fontSize:".72rem"}}>
+              color:"var(--text-dim)",fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)"}}>
               Sin contactos {filtroTipo!=="todos"?`de tipo "${getTipo(filtroTipo).nombre}"`:""}
             </div>
           ) : (
@@ -1645,12 +1645,12 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
                     style={{borderTopColor:t.color,cursor:"pointer"}}
                     onClick={()=>abrirFicha("cont",c)}>
                     <div className="cch">
-                      <div className="ccti" style={{fontSize:"1.1rem"}}>{t.icono}</div>
+                      <div className="ccti" style={{fontSize:"var(--fs-lg)"}}>{t.icono}</div>
                       <div style={{flex:1,minWidth:0}}>
                         <div className="ccn">{citem.nombre}</div>
                         <div className="ccr">{citem.rol}</div>
                       </div>
-                      <span style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+                      <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                         padding:".1rem .4rem",borderRadius:10,flexShrink:0,
                         background:t.color+"18",color:t.color,border:`1px solid ${t.color}33`}}>
                         {t.nombre}
@@ -1660,7 +1660,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
                       <a href={`tel:${citem.telefono}`} className="ctel">📞 {citem.telefono}</a>
                       {citem.email&&<a href={`mailto:${citem.email}`} className="ceml">✉️ {citem.email}</a>}
                     </div>
-                    {c.web&&<div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+                    {c.web&&<div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                       color:"var(--cyan)",marginTop:".2rem"}}>
                       <a href={citem.web} target="_blank" rel="noreferrer"
                         style={{color:"var(--cyan)",textDecoration:"none"}}
@@ -1679,7 +1679,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
       {sub==="protocolo" && (
         <div>
           <div className="pintro">
-            <span style={{fontSize:"1.5rem"}}>🚨</span>
+            <span style={{fontSize:"var(--fs-lg)"}}>🚨</span>
             <div>
               <div style={{fontWeight:700,marginBottom:".2rem"}}>Protocolo de emergencias</div>
               <div className="muted xs mono">Selecciona el tipo de incidencia para ver los pasos</div>
@@ -1688,7 +1688,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
           <div className="pgrid">
             {PROTO_PASOS.map(p=>(
               <button key={p.id} className={cls("pbtn",proto===p.id&&"pactive")} onClick={()=>setProto(proto===p.id?null:p.id)}>
-                <span style={{fontSize:"1.4rem"}}>{p.icon}</span><span>{p.titulo}</span>
+                <span style={{fontSize:"var(--fs-lg)"}}>{p.icon}</span><span>{p.titulo}</span>
               </button>
             ))}
           </div>
@@ -1715,7 +1715,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
               <div key={ic.id} className={cls("icard",ic.estado==="resuelta"&&"ires")} style={{cursor:"pointer"}} onClick={()=>abrirFicha("inc",ic)}>
                 <div className="ich">
                   <div className="fr g1">
-                    <span className="mono" style={{fontSize:".72rem",color:"var(--amber)"}}>{ic.hora}</span>
+                    <span className="mono" style={{fontSize:"var(--fs-sm)",color:"var(--amber)"}}>{ic.hora}</span>
                     <span className="badge" style={{background:ic.gravedad==="alta"?"var(--red-dim)":ic.gravedad==="media"?"var(--amber-dim)":"var(--green-dim)",color:ic.gravedad==="alta"?"var(--red)":ic.gravedad==="media"?"var(--amber)":"var(--green)"}}>{ic.gravedad}</span>
                     <span className="badge" style={{background:"var(--cyan-dim)",color:"var(--cyan)"}}>{ic.tipo}</span>
                   </div>
@@ -1726,7 +1726,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
                     </button>
                   </div>
                 </div>
-                <div style={{fontWeight:600,fontSize:".78rem",margin:".3rem 0"}}>{ic.descripcion}</div>
+                <div style={{fontWeight:600,fontSize:"var(--fs-base)",margin:".3rem 0"}}>{ic.descripcion}</div>
                 {ic.responsable&&<div className="muted xs mono">👤 {ic.responsable}</div>}
                 {ic.resolucion&&<div className="ires-txt">✓ {ic.resolucion}</div>}
               </div>
@@ -1764,16 +1764,16 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
                     <input type="color" value={nuevoTipo.color}
                       onChange={e=>setNuevoTipo(p=>({...p,color:e.target.value}))}
                       style={{width:36,height:32,border:"1px solid var(--border)",borderRadius:6,cursor:"pointer",background:"none",padding:2}} />
-                    <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                       color:"var(--text-muted)"}}>{nuevoTipo.color}</span>
                   </div>
                 </div>
               </div>
               <div style={{padding:".4rem .6rem",borderRadius:6,
                 background:"var(--surface2)",border:"1px solid var(--border)"}}>
-                <span style={{fontFamily:"var(--font-mono)",fontSize:".62rem",
+                <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                   color:"var(--text-muted)",marginRight:".4rem"}}>Vista previa:</span>
-                <span style={{fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,
+                <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
                   padding:".12rem .45rem",borderRadius:20,
                   background:nuevoTipo.color+"20",color:nuevoTipo.color,
                   border:`1px solid ${nuevoTipo.color}44`}}>
@@ -1831,7 +1831,7 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
           <div style={{display:"flex",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:"var(--r-sm)",overflow:"hidden"}}>
             {[["lista","☰"],["kanban","⬛"]].map(([v,ic])=>(
               <button key={v} onClick={()=>setVistaKanban(v==="kanban")}
-                style={{padding:".3rem .55rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,
+                style={{padding:".3rem .55rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
                   background:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"rgba(34,211,238,.2)":"transparent",
                   color:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"var(--cyan)":"var(--text-muted)"}}>
                 {ic}
@@ -1846,7 +1846,7 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
         {pf.map(f=>(
           <button key={f.f} className={cls("ftab",fase===f.f&&"fa",f.f===faseActiva&&"ftab-activa")} onClick={()=>setFase(f.f)}>
             <div style={{display:"flex",alignItems:"center",gap:"0.3rem",marginBottom:"0.15rem"}}>
-              <span style={{fontSize:"0.72rem",fontWeight:600}}>{f.f}</span>
+              <span style={{fontSize:"var(--fs-sm)",fontWeight:600}}>{f.f}</span>
               {f.f===faseActiva && (
                 <span style={{fontFamily:"var(--font-mono)",fontSize:"0.5rem",fontWeight:700,
                   background:"var(--cyan-dim)",color:"var(--cyan)",
@@ -1872,11 +1872,11 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
                 <div key={f.f} style={{width:220,flexShrink:0,background:"var(--surface)",border:`1px solid ${esActiva?"rgba(34,211,238,.3)":"var(--border)"}`,borderTop:`2px solid ${color}`,borderRadius:"var(--r)",overflow:"hidden"}}>
                   <div style={{padding:".6rem .75rem",background:"var(--surface2)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <div>
-                      <div style={{fontSize:".65rem",fontWeight:700,color}}>{f.f}</div>
-                      {esActiva && <div style={{fontFamily:"var(--font-mono)",fontSize:".5rem",color:"var(--cyan)",marginTop:".1rem"}}>● AHORA</div>}
+                      <div style={{fontSize:"var(--fs-sm)",fontWeight:700,color}}>{f.f}</div>
+                      {esActiva && <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-2xs)",color:"var(--cyan)",marginTop:".1rem"}}>● AHORA</div>}
                     </div>
                     <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:".15rem"}}>
-                      <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color,fontWeight:700}}>{f.d}/{f.t}</span>
+                      <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color,fontWeight:700}}>{f.d}/{f.t}</span>
                       <div style={{width:40,height:3,background:"var(--surface3)",borderRadius:2,overflow:"hidden"}}>
                         <div style={{height:"100%",width:`${f.pct}%`,background:color,borderRadius:2}}/>
                       </div>
@@ -1888,21 +1888,21 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
                       return(
                         <div key={item.id} style={{background:"var(--surface2)",border:"1px solid var(--border)",borderLeft:`3px solid ${ec}`,borderRadius:7,padding:".5rem .6rem",cursor:"pointer",opacity:item.estado==="completado"?.55:1}}
                           onClick={()=>abrirFicha("ck",item)}>
-                          <div style={{fontSize:".72rem",fontWeight:600,marginBottom:".2rem",textDecoration:item.estado==="completado"?"line-through":"none",color:item.estado==="completado"?"var(--text-muted)":"var(--text)"}}>{item.tarea}</div>
+                          <div style={{fontSize:"var(--fs-sm)",fontWeight:600,marginBottom:".2rem",textDecoration:item.estado==="completado"?"line-through":"none",color:item.estado==="completado"?"var(--text-muted)":"var(--text)"}}>{item.tarea}</div>
                           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                            <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-muted)"}}>👤 {item.responsable}</span>
-                            <span style={{fontFamily:"var(--font-mono)",fontSize:".55rem",padding:".08rem .3rem",borderRadius:3,background:item.prioridad==="alta"?"var(--red-dim)":"var(--amber-dim)",color:item.prioridad==="alta"?"var(--red)":"var(--amber)"}}>{item.prioridad}</span>
+                            <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>👤 {item.responsable}</span>
+                            <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".08rem .3rem",borderRadius:3,background:item.prioridad==="alta"?"var(--red-dim)":"var(--amber-dim)",color:item.prioridad==="alta"?"var(--red)":"var(--amber)"}}>{item.prioridad}</span>
                           </div>
                           <div style={{marginTop:".3rem"}} onClick={e=>e.stopPropagation()}>
                             <button onClick={()=>toggle(item.id)}
-                              style={{fontFamily:"var(--font-mono)",fontSize:".58rem",padding:".1rem .35rem",borderRadius:4,border:`1px solid ${item.estado==="completado"?"rgba(248,113,113,.3)":"rgba(52,211,153,.3)"}`,background:item.estado==="completado"?"var(--red-dim)":"var(--green-dim)",color:item.estado==="completado"?"var(--red)":"var(--green)",cursor:"pointer"}}>
+                              style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".1rem .35rem",borderRadius:4,border:`1px solid ${item.estado==="completado"?"rgba(248,113,113,.3)":"rgba(52,211,153,.3)"}`,background:item.estado==="completado"?"var(--red-dim)":"var(--green-dim)",color:item.estado==="completado"?"var(--red)":"var(--green)",cursor:"pointer"}}>
                               {item.estado==="completado"?"↩ Reabrir":"✓ Completar"}
                             </button>
                           </div>
                         </div>
                       );
                     })}
-                    {items.length===0 && <div style={{padding:".75rem",textAlign:"center",fontFamily:"var(--font-mono)",fontSize:".62rem",color:"var(--text-dim)"}}>—</div>}
+                    {items.length===0 && <div style={{padding:".75rem",textAlign:"center",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-dim)"}}>—</div>}
                   </div>
                 </div>
               );
@@ -1916,16 +1916,16 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
             {(ordenAlfa?[...(fd?.it||[])].sort((a,b)=>(a.tarea||"").localeCompare(b.tarea||"","es")):fd?.it||[]).map(item=>(
               <div key={item.id} className={cls("cki",item.estado==="completado"&&"ckd",item.estado==="bloqueado"&&"ckb")} style={{cursor:"pointer"}} onClick={()=>abrirFicha("ck",item)}>
                 <button className="ckbox" onClick={e=>{e.stopPropagation();toggle(item.id)}} style={{borderColor:item.estado==="completado"?"var(--green)":item.estado==="bloqueado"?"var(--red)":"var(--border)",background:item.estado==="completado"?"var(--green)":"transparent"}}>
-                  {item.estado==="completado"&&<span style={{color:"#000",fontSize:"0.75rem",fontWeight:800}}>✓</span>}
-                  {item.estado==="bloqueado"&&<span style={{color:"var(--red)",fontSize:"0.75rem"}}>!</span>}
+                  {item.estado==="completado"&&<span style={{color:"#000",fontSize:"var(--fs-base)",fontWeight:800}}>✓</span>}
+                  {item.estado==="bloqueado"&&<span style={{color:"var(--red)",fontSize:"var(--fs-base)"}}>!</span>}
                 </button>
                 <div style={{flex:1,minWidth:0}}>
                   <div className={cls("cktarea",item.estado==="completado"&&"ckdone")}>{item.tarea}</div>
                   <div className="ckmeta">👤 {item.responsable}{item.notas&&` · ${item.notas}`}</div>
                 </div>
                 <div className="fr g1" onClick={e=>e.stopPropagation()}>
-                  <span className="badge" style={{background:item.prioridad==="alta"?"var(--red-dim)":"var(--amber-dim)",color:item.prioridad==="alta"?"var(--red)":"var(--amber)",fontSize:"0.55rem"}}>{item.prioridad}</span>
-                  <select className="isml" value={item.estado} onChange={e=>upd(item.id,"estado",e.target.value)} style={{color:ESTADO_COLORES[item.estado],fontSize:"0.62rem",padding:"0.15rem 0.3rem"}}>
+                  <span className="badge" style={{background:item.prioridad==="alta"?"var(--red-dim)":"var(--amber-dim)",color:item.prioridad==="alta"?"var(--red)":"var(--amber)",fontSize:"var(--fs-xs)"}}>{item.prioridad}</span>
+                  <select className="isml" value={item.estado} onChange={e=>upd(item.id,"estado",e.target.value)} style={{color:ESTADO_COLORES[item.estado],fontSize:"var(--fs-xs)",padding:"0.15rem 0.3rem"}}>
                     {ESTADO_TAREA.map(s=><option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
@@ -1964,7 +1964,7 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {} }) {
       <div className="ph">
         <div><div className="pt">📍 Localizaciones Maestras</div><div className="pd">{locs.length} ubicaciones · Compartidas con Voluntarios · <span style={{cursor:"pointer",color:"var(--text-dim)"}} onClick={()=>window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"configuracion"}}))} title="Abrir Configuración">⚙️ Configuración</span></div></div>
         <div style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
-          <select style={{ fontFamily: "var(--font-mono)", fontSize: ".72rem", background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text)", borderRadius: "var(--r-sm)", padding: ".3rem .5rem" }}
+          <select style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text)", borderRadius: "var(--r-sm)", padding: ".3rem .5rem" }}
             value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
             <option value="todos">Todos los tipos</option>
             {TIPOS_LOC.map(t => <option key={t} value={t}>{LOC_ICONS[t]} {t}</option>)}
@@ -1981,20 +1981,20 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {} }) {
             <div key={l.id} className="card" style={{ borderLeft: `3px solid ${color}`, cursor: "pointer" }} onClick={() => openEditar(l)}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: ".4rem" }}>
                 <div style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
-                  <span style={{ fontSize: "1.2rem" }}>{icon}</span>
+                  <span style={{ fontSize: "var(--fs-lg)" }}>{icon}</span>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: ".82rem" }}>{l.nombre}</div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: ".58rem", color, textTransform: "uppercase", letterSpacing: ".06em" }}>{l.tipo}</div>
+                    <div style={{ fontWeight: 700, fontSize: "var(--fs-base)" }}>{l.nombre}</div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color, textTransform: "uppercase", letterSpacing: ".06em" }}>{l.tipo}</div>
                   </div>
                 </div>
                 <button className="btn btn-sm btn-red" onClick={e => { e.stopPropagation(); setDel(l.id); }}
-                  style={{ flexShrink: 0, padding: ".15rem .4rem", fontSize: ".65rem" }}>✕</button>
+                  style={{ flexShrink: 0, padding: ".15rem .4rem", fontSize: "var(--fs-sm)" }}>✕</button>
               </div>
-              {l.descripcion && <div style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", color: "var(--text-muted)", fontStyle: "italic", marginTop: ".2rem" }}>{l.descripcion}</div>}
+              {l.descripcion && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)", fontStyle: "italic", marginTop: ".2rem" }}>{l.descripcion}</div>}
               {(() => {
                 const asig = volsPorLoc[l.id] || [];
                 if (!asig.length) return (
-                  <div style={{ marginTop: ".45rem", fontFamily: "var(--font-mono)", fontSize: ".58rem",
+                  <div style={{ marginTop: ".45rem", fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
                     color: "var(--text-dim)", borderTop: "1px solid var(--border)", paddingTop: ".4rem" }}>
                     👥 Sin voluntarios asignados
                   </div>
@@ -2003,14 +2003,14 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {} }) {
                 const pend = asig.filter(a => a.vol.estado === "pendiente");
                 return (
                   <div style={{ marginTop: ".45rem", borderTop: "1px solid var(--border)", paddingTop: ".4rem" }}>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: ".58rem", color: "var(--text-muted)",
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)",
                       marginBottom: ".3rem", display: "flex", alignItems: "center", gap: ".4rem", flexWrap:"wrap" }}>
                       👥 <span style={{ fontWeight: 700 }}>{asig.length} voluntario{asig.length!==1?"s":""}</span>
                       {conf.length > 0 && <span style={{ color: "var(--green)", fontWeight: 700 }}>· {conf.length} ✓</span>}
                       {pend.length > 0 && <span style={{ color: "var(--amber)" }}>· {pend.length} pend.</span>}
                       <button
                         onClick={e => { e.stopPropagation(); window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"voluntarios"}})); }}
-                        style={{ fontFamily:"var(--font-mono)", fontSize:".5rem", padding:".06rem .3rem",
+                        style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", padding:".06rem .3rem",
                           borderRadius:3, border:"1px solid rgba(34,211,238,.3)",
                           background:"rgba(34,211,238,.1)", color:"var(--cyan)", cursor:"pointer",
                           marginLeft:"auto", flexShrink:0 }}>
@@ -2020,16 +2020,16 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {} }) {
                     <div style={{ display: "flex", flexDirection: "column", gap: ".18rem" }}>
                       {asig.slice(0,4).map((a, i) => (
                         <div key={i} style={{ display: "flex", alignItems: "center", gap: ".4rem",
-                          fontSize: ".62rem", fontFamily: "var(--font-mono)" }}>
+                          fontSize: "var(--fs-xs)", fontFamily: "var(--font-mono)" }}>
                           <span style={{ width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
                             background: a.vol.estado === "confirmado" ? "var(--green)" :
                               a.vol.estado === "pendiente" ? "var(--amber)" : "var(--text-dim)" }} />
                           <span style={{ color: "var(--text)", fontWeight: 600 }}>{a.vol.nombre}</span>
-                          <span style={{ color: "var(--text-dim)", fontSize: ".55rem" }}>— {a.puesto.nombre}</span>
+                          <span style={{ color: "var(--text-dim)", fontSize: "var(--fs-xs)" }}>— {a.puesto.nombre}</span>
                         </div>
                       ))}
                       {asig.length > 4 && (
-                        <div style={{ fontSize: ".58rem", color: "var(--text-dim)", fontFamily: "var(--font-mono)", paddingLeft: ".6rem" }}>
+                        <div style={{ fontSize: "var(--fs-xs)", color: "var(--text-dim)", fontFamily: "var(--font-mono)", paddingLeft: ".6rem" }}>
                           +{asig.length-4} más…
                         </div>
                       )}
@@ -2041,17 +2041,17 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {} }) {
           );
         })}
         {locsF.length === 0 && locs.length > 0 && (
-          <div className="card" style={{ textAlign: "center", color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: ".7rem", padding: "2rem" }}>
+          <div className="card" style={{ textAlign: "center", color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", padding: "2rem" }}>
             Sin localizaciones con ese filtro
           </div>
         )}
         {locs.length === 0 && (
           <div className="card" style={{ textAlign: "center", padding: "2rem" }}>
-            <div style={{ fontSize: "1.5rem", marginBottom: ".5rem" }}>📍</div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: ".75rem", fontWeight: 700, marginBottom: ".4rem" }}>
+            <div style={{ fontSize: "var(--fs-lg)", marginBottom: ".5rem" }}>📍</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-base)", fontWeight: 700, marginBottom: ".4rem" }}>
               Sin localizaciones maestras
             </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", color: "var(--text-dim)", lineHeight: 1.6, marginBottom: ".75rem" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-dim)", lineHeight: 1.6, marginBottom: ".75rem" }}>
               Las localizaciones definen dónde están los puestos de voluntarios
               y el material asignado. Puedes crearlas aquí o desde Configuración.
             </div>
@@ -2072,7 +2072,7 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {} }) {
             if (!n) return null;
             const color = LOC_COLORS[t] || "var(--text-muted)";
             return (
-              <span key={t} style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", padding: ".2rem .6rem", borderRadius: 20,
+              <span key={t} style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", padding: ".2rem .6rem", borderRadius: 20,
                 background: `${color}15`, color, border: `1px solid ${color}33`, cursor: "pointer" }}
                 onClick={() => setFiltroTipo(filtroTipo === t ? "todos" : t)}>
                 {LOC_ICONS[t]} {t} ({n})
@@ -2092,17 +2092,17 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {} }) {
             </div>
             <div className="modal-body" style={{ display: "flex", flexDirection: "column", gap: ".6rem" }}>
               <label style={{ display: "flex", flexDirection: "column", gap: ".2rem" }}>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", color: "var(--text-muted)" }}>Nombre *</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)" }}>Nombre *</span>
                 <input className="inp" placeholder="ej. Avituallamiento KM 4" value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} />
               </label>
               <label style={{ display: "flex", flexDirection: "column", gap: ".2rem" }}>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", color: "var(--text-muted)" }}>Tipo</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)" }}>Tipo</span>
                 <select className="inp" value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}>
                   {TIPOS_LOC.map(t => <option key={t} value={t}>{LOC_ICONS[t]} {t}</option>)}
                 </select>
               </label>
               <label style={{ display: "flex", flexDirection: "column", gap: ".2rem" }}>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", color: "var(--text-muted)" }}>Descripción</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)" }}>Descripción</span>
                 <textarea className="inp" rows={2} placeholder="Descripción opcional" value={form.descripcion} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} />
               </label>
             </div>
@@ -2119,7 +2119,7 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {} }) {
         <div className="modal-backdrop" style={{ zIndex: 200 }} onClick={e => e.target === e.currentTarget && setDel(null)}>
           <div className="modal" style={{ maxWidth: 320, textAlign: "center" }}>
             <div className="modal-body" style={{ paddingTop: "1.5rem" }}>
-              <div style={{ fontSize: "2rem", marginBottom: ".5rem" }}>⚠️</div>
+              <div style={{ fontSize: "var(--fs-xl)", marginBottom: ".5rem" }}>⚠️</div>
               <div style={{ fontWeight: 700 }}>¿Eliminar localización?</div>
               <div className="mono xs muted">Los puestos de voluntarios que la referenciaban quedarán sin localización maestra.</div>
             </div>
@@ -2144,8 +2144,8 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar })
 
   const Row = ({label, value, color}) => !value ? null : (
     <div style={{display:"flex",justifyContent:"space-between",padding:".4rem 0",borderBottom:"1px solid rgba(30,45,80,.3)"}}>
-      <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)",flexShrink:0,marginRight:"1rem"}}>{label}</span>
-      <span style={{fontSize:".76rem",fontWeight:600,textAlign:"right",color:color||"var(--text)"}}>{value}</span>
+      <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",flexShrink:0,marginRight:"1rem"}}>{label}</span>
+      <span style={{fontSize:"var(--fs-base)",fontWeight:600,textAlign:"right",color:color||"var(--text)"}}>{value}</span>
     </div>
   );
 
@@ -2160,10 +2160,10 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar })
           <div style={{borderTop:`3px solid ${accent}`,borderRadius:"16px 16px 0 0"}}>
             <div style={{padding:"1.1rem 1.4rem .9rem",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
               <div style={{display:"flex",alignItems:"center",gap:".6rem"}}>
-                <span style={{fontSize:"1.4rem"}}>{icons[tipo]}</span>
+                <span style={{fontSize:"var(--fs-lg)"}}>{icons[tipo]}</span>
                 <div>
-                  <div style={{fontWeight:800,fontSize:".95rem",lineHeight:1.2}}>{titulo}</div>
-                  <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-muted)",marginTop:".1rem",textTransform:"uppercase"}}>
+                  <div style={{fontWeight:800,fontSize:"var(--fs-md)",lineHeight:1.2}}>{titulo}</div>
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginTop:".1rem",textTransform:"uppercase"}}>
                     {tipo==="tl"?"Tarea timeline":tipo==="ck"?"Tarea checklist":tipo==="mat"?"Material":tipo==="veh"?"Vehículo":tipo==="ruta"?"Ruta":tipo==="cont"?"Contacto":tipo==="asig"?"Asignación":"Incidencia"}
                   </div>
                 </div>
@@ -2177,14 +2177,14 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar })
               <Row label="Estado"      value={data.estado} color={ESTADO_COLORES[data.estado]} />
               <Row label="Categoría"   value={`${TLI[data.categoria]} ${data.categoria}`} />
               <Row label="Responsable" value={data.responsable} />
-              {data.descripcion && <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",borderLeft:`2px solid ${accent}`,marginTop:".25rem"}}><div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-muted)",marginBottom:".25rem",textTransform:"uppercase"}}>Descripción</div><div style={{fontSize:".78rem",lineHeight:1.5}}>{data.descripcion}</div></div>}
+              {data.descripcion && <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",borderLeft:`2px solid ${accent}`,marginTop:".25rem"}}><div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginBottom:".25rem",textTransform:"uppercase"}}>Descripción</div><div style={{fontSize:"var(--fs-base)",lineHeight:1.5}}>{data.descripcion}</div></div>}
             </>)}
             {tipo==="ck" && (<>
               <Row label="Fase"        value={data.fase} />
               <Row label="Estado"      value={data.estado} color={ESTADO_COLORES[data.estado]} />
               <Row label="Prioridad"   value={data.prioridad} color={data.prioridad==="alta"?"var(--red)":data.prioridad==="media"?"var(--amber)":"var(--green)"} />
               <Row label="Responsable" value={data.responsable} />
-              {data.notas && <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",borderLeft:`2px solid ${accent}`,marginTop:".25rem"}}><div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-muted)",marginBottom:".25rem",textTransform:"uppercase"}}>Notas</div><div style={{fontSize:".78rem",lineHeight:1.5}}>{data.notas}</div></div>}
+              {data.notas && <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",borderLeft:`2px solid ${accent}`,marginTop:".25rem"}}><div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginBottom:".25rem",textTransform:"uppercase"}}>Notas</div><div style={{fontSize:"var(--fs-base)",lineHeight:1.5}}>{data.notas}</div></div>}
             </>)}
             {tipo==="mat" && (<>
               <Row label="Categoría"   value={`${CAT_ICONS[data.categoria]} ${data.categoria}`} />
@@ -2203,20 +2203,20 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar })
               <Row label="Conductor"   value={data.conductor} />
               <Row label="Capacidad"   value={data.capacidad} />
               <Row label="Teléfono"    value={data.telefono} />
-              {data.notas && <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",borderLeft:`2px solid ${accent}`}}><div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-muted)",marginBottom:".25rem",textTransform:"uppercase"}}>Notas</div><div style={{fontSize:".78rem",lineHeight:1.5}}>{data.notas}</div></div>}
+              {data.notas && <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",borderLeft:`2px solid ${accent}`}}><div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginBottom:".25rem",textTransform:"uppercase"}}>Notas</div><div style={{fontSize:"var(--fs-base)",lineHeight:1.5}}>{data.notas}</div></div>}
             </>)}
             {tipo==="ruta" && (<>
               <Row label="Vehículo"    value={vehNombre} />
               <Row label="Hora inicio" value={data.horaInicio} />
               <Row label="Paradas"     value={`${(data.paradas||[]).length} paradas`} />
-              {(data.paradas||[]).length>0 && <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",marginTop:".25rem"}}>{(data.paradas||[]).map((p,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",padding:".25rem 0",borderBottom:i<data.paradas.length-1?"1px solid rgba(30,45,80,.2)":"none",fontSize:".72rem"}}><span style={{fontWeight:600}}>{p.puesto}</span><span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--cyan)"}}>{p.hora}</span></div>)}</div>}
+              {(data.paradas||[]).length>0 && <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",marginTop:".25rem"}}>{(data.paradas||[]).map((p,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",padding:".25rem 0",borderBottom:i<data.paradas.length-1?"1px solid rgba(30,45,80,.2)":"none",fontSize:"var(--fs-sm)"}}><span style={{fontWeight:600}}>{p.puesto}</span><span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--cyan)"}}>{p.hora}</span></div>)}</div>}
             </>)}
             {tipo==="cont" && (<>
               <Row label="Rol"         value={data.rol} />
               <Row label="Tipo"        value={`${({"emergencia":"🚨","proveedor":"🏭","staff":"👤","institucional":"🏛️"})[data.tipo]||""} ${data.tipo}`} />
               <Row label="Teléfono"    value={data.telefono} color="var(--cyan)" />
               <Row label="Email"       value={data.email} />
-              {data.notas && <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",borderLeft:`2px solid ${accent}`}}><div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-muted)",marginBottom:".25rem",textTransform:"uppercase"}}>Notas</div><div style={{fontSize:".78rem",lineHeight:1.5}}>{data.notas}</div></div>}
+              {data.notas && <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",borderLeft:`2px solid ${accent}`}}><div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginBottom:".25rem",textTransform:"uppercase"}}>Notas</div><div style={{fontSize:"var(--fs-base)",lineHeight:1.5}}>{data.notas}</div></div>}
             </>)}
             {tipo==="inc" && (<>
               <Row label="Hora"        value={data.hora} />
@@ -2230,14 +2230,14 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar })
                 <div style={{marginTop:".5rem",padding:".6rem .75rem",borderRadius:8,
                   background:data.gravedad==="alta"?"var(--red-dim)":data.gravedad==="media"?"var(--amber-dim)":"var(--green-dim)",
                   border:`1px solid ${data.gravedad==="alta"?"rgba(248,113,113,0.25)":data.gravedad==="media"?"rgba(251,191,36,0.25)":"rgba(52,211,153,0.25)"}`}}>
-                  <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
                     color:data.gravedad==="alta"?"var(--red)":data.gravedad==="media"?"var(--amber)":"var(--green)",
                     marginBottom:".35rem",textTransform:"uppercase",letterSpacing:".06em"}}>
                     {data.gravedad==="alta"?"🔴 Protocolo ALTA — acción inmediata":
                      data.gravedad==="media"?"🟡 Protocolo MEDIA — monitorizar":
                      "🟢 Protocolo BAJA — registrar y gestionar"}
                   </div>
-                  <div style={{fontFamily:"var(--font-mono)",fontSize:".62rem",color:"var(--text-muted)",lineHeight:1.6}}>
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",lineHeight:1.6}}>
                     {data.gravedad==="alta" && "1. Notificar Dirección de carrera inmediatamente · 2. Contactar Cruz Roja / 112 si hay riesgo vital · 3. No mover al afectado sin personal sanitario · 4. Mantener línea abierta por walkie hasta resolución"}
                     {data.gravedad==="media" && "1. Informar a Coordinación en próxima comunicación · 2. Evaluar si requiere apoyo de otro puesto · 3. Registrar evolución cada 15 min · 4. Escalar a ALTA si empeora"}
                     {data.gravedad==="baja" && "1. Gestionar en el propio puesto · 2. Registrar para informe post-carrera · 3. Informar a Coordinación al finalizar la jornada"}
@@ -2458,12 +2458,12 @@ function ModalRuta({data,veh,rutas,setRutas,onClose,locs}) {
           <div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"0.4rem"}}>
               <label className="fl" style={{margin:0}}>Paradas ({form.paradas.length})</label>
-              <button className="btn btn-cyan" style={{fontSize:"0.68rem",padding:"0.2rem 0.6rem"}} onClick={addP}>+ Parada</button>
+              <button className="btn btn-cyan" style={{fontSize:"var(--fs-sm)",padding:"0.2rem 0.6rem"}} onClick={addP}>+ Parada</button>
             </div>
             {Array.isArray(form.paradas) && form.paradas.map((p,i)=>(
               <div key={i} style={{background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:8,padding:"0.6rem",marginBottom:"0.4rem"}}>
                 <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:"0.4rem",marginBottom:"0.3rem",alignItems:"start"}}>
-                  <select className="inp isml" style={{width:"100%",fontSize:"0.75rem"}} value={p.puesto} onChange={e=>updP(i,"puesto",e.target.value)}>
+                  <select className="inp isml" style={{width:"100%",fontSize:"var(--fs-base)"}} value={p.puesto} onChange={e=>updP(i,"puesto",e.target.value)}>
                     {PUESTOS_REF.map(pr=><option key={pr} value={pr}>{pr}</option>)}
                   </select>
                   <div style={{display:"flex",gap:"0.3rem",alignItems:"center"}}>
@@ -2471,7 +2471,7 @@ function ModalRuta({data,veh,rutas,setRutas,onClose,locs}) {
                     <button className="btn btn-sm btn-red" onClick={()=>delP(i)}>✕</button>
                   </div>
                 </div>
-                <input className="inp isml" value={p.material} onChange={e=>updP(i,"material",e.target.value)} placeholder="Material a entregar..." style={{width:"100%",fontSize:"0.72rem"}}/>
+                <input className="inp isml" value={p.material} onChange={e=>updP(i,"material",e.target.value)} placeholder="Material a entregar..." style={{width:"100%",fontSize:"var(--fs-sm)"}}/>
               </div>
             ))}
             {form.paradas.length===0&&<div className="empty" style={{padding:"0.75rem"}}>Sin paradas — pulsa + Parada</div>}
@@ -2778,7 +2778,7 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
           background:"rgba(251,191,36,.07)",border:"1px solid rgba(251,191,36,.25)",
           flexWrap:"wrap",
         }}>
-          <div style={{fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--amber)"}}>
+          <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--amber)"}}>
             ⚡ {pedidosConPrecioDesactualizado.length} pedido{pedidosConPrecioDesactualizado.length>1?"s tienen":"  tiene"} artículos variables con precio desactualizado
             <span style={{color:"var(--text-muted)",marginLeft:".4rem"}}>
               (los inscritos han cambiado desde que se crearon)
@@ -2787,7 +2787,7 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
           <button className="btn btn-sm"
             style={{background:"rgba(251,191,36,.15)",color:"var(--amber)",
               border:"1px solid rgba(251,191,36,.35)",fontFamily:"var(--font-mono)",
-              fontSize:".62rem",flexShrink:0}}
+              fontSize:"var(--fs-xs)",flexShrink:0}}
             onClick={actualizarPreciosVariables}>
             🔄 Actualizar precios
           </button>
@@ -2819,8 +2819,8 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
       {/* ── Lista de pedidos ── */}
       {pedidos.length === 0 ? (
         <div className="card" style={{textAlign:"center",padding:"2.5rem 1rem",
-          color:"var(--text-dim)",fontFamily:"var(--font-mono)",fontSize:".75rem"}}>
-          <div style={{fontSize:"2rem",marginBottom:".5rem",opacity:.35}}>🛒</div>
+          color:"var(--text-dim)",fontFamily:"var(--font-mono)",fontSize:"var(--fs-base)"}}>
+          <div style={{fontSize:"var(--fs-xl)",marginBottom:".5rem",opacity:.35}}>🛒</div>
           Sin pedidos aún. Usa las sugerencias de arriba o crea uno manualmente.
         </div>
       ) : (
@@ -2839,24 +2839,24 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
                   borderLeft:`3px solid ${est.color}`}}
                   onClick={()=>setExpanded(isExp?null:p.id)}>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontWeight:700,fontSize:".82rem"}}>{p.nombre}</div>
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+                    <div style={{fontWeight:700,fontSize:"var(--fs-base)"}}>{p.nombre}</div>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                       color:"var(--text-muted)",marginTop:".1rem"}}>
                       {p.proveedor||"Sin proveedor"} · {p.articulos?.length||0} artículo{p.articulos?.length!==1?"s":""}
                     </div>
                   </div>
                   <div style={{textAlign:"right",flexShrink:0}}>
                     <div style={{fontFamily:"var(--font-mono)",fontWeight:800,
-                      fontSize:".85rem",color:est.color}}>
+                      fontSize:"var(--fs-base)",color:est.color}}>
                       {fmtEur(p.importeTotal||0)}
                     </div>
-                    <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                       padding:".1rem .4rem",borderRadius:4,
                       background:est.bg,color:est.color,fontWeight:700}}>
                       {est.label}
                     </span>
                   </div>
-                  <span style={{color:"var(--text-dim)",fontSize:".7rem",flexShrink:0}}>
+                  <span style={{color:"var(--text-dim)",fontSize:"var(--fs-sm)",flexShrink:0}}>
                     {isExp?"▲":"▼"}
                   </span>
                 </div>
@@ -2869,13 +2869,13 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
                     {/* Artículos */}
                     {(p.articulos||[]).length > 0 && (
                       <div>
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                           color:"var(--text-muted)",textTransform:"uppercase",
                           letterSpacing:".06em",marginBottom:".35rem"}}>
                           Artículos
                         </div>
                         <table style={{width:"100%",borderCollapse:"collapse",
-                          fontFamily:"var(--font-mono)",fontSize:".72rem"}}>
+                          fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)"}}>
                           <thead>
                             <tr style={{borderBottom:"1px solid var(--border)"}}>
                               <th style={{textAlign:"left",padding:".2rem .4rem",
@@ -2905,7 +2905,7 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
                                     if (Math.abs((a.precioUnit||0)-actual) < 0.001) return null;
                                     return (
                                       <span style={{fontFamily:"var(--font-mono)",
-                                        fontSize:".55rem",color:"var(--amber)",
+                                        fontSize:"var(--fs-xs)",color:"var(--amber)",
                                         marginLeft:".3rem",fontWeight:700}}>
                                         → {fmtEur(actual)}
                                       </span>
@@ -2927,46 +2927,46 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
                       <div style={{padding:".55rem .7rem",borderRadius:8,
                         background:"var(--surface2)",border:"1px solid var(--border)"}}>
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                           color:"var(--text-muted)",marginBottom:".25rem"}}>
                           📅 Entrega esperada
                         </div>
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:".75rem",fontWeight:700}}>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-base)",fontWeight:700}}>
                           {p.fechaEntrega||"—"}
                         </div>
                       </div>
                       <div style={{padding:".55rem .7rem",borderRadius:8,
                         background: p.factura?.numero?"var(--green-dim)":"var(--surface2)",
                         border:`1px solid ${p.factura?.numero?"rgba(52,211,153,.25)":"var(--border)"}`}}>
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                           color:"var(--text-muted)",marginBottom:".25rem"}}>
                           🧾 Factura
                         </div>
                         {p.factura?.numero ? (
                           <div>
-                            <div style={{fontFamily:"var(--font-mono)",fontSize:".72rem",fontWeight:700}}>
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",fontWeight:700}}>
                               {p.factura.numero}
                             </div>
                             <div style={{display:"flex",alignItems:"center",gap:".4rem",marginTop:".1rem"}}>
-                              <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",
+                              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
                                 color:"var(--text-muted)"}}>
                                 {fmtEur(p.factura.importe)}
                               </span>
                               {desvPct!==null && Math.abs(desvPct)>0.5 && (
-                                <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                                <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                                   color:desvPct>0?"var(--red)":"var(--green)",fontWeight:700}}>
                                   {desvPct>0?"+":""}{desvPct.toFixed(1)}% vs estimado
                                 </span>
                               )}
                               {desvPct!==null && Math.abs(desvPct)<=0.5 && (
-                                <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                                <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                                   color:"var(--green)",fontWeight:700}}>✓ Sin desviación</span>
                               )}
                             </div>
                             <div style={{marginTop:".15rem"}}>
                               {ESTADOS_FACTURA.map(e => (
                                 <span key={e.id} style={{
-                                  fontFamily:"var(--font-mono)",fontSize:".58rem",
+                                  fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                                   padding:".08rem .35rem",borderRadius:3,marginRight:".25rem",
                                   fontWeight:700,cursor:"pointer",
                                   background: p.factura.estado===e.id ? e.color+"22" : "transparent",
@@ -2980,7 +2980,7 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
                             </div>
                           </div>
                         ) : (
-                          <div style={{fontFamily:"var(--font-mono)",fontSize:".68rem",
+                          <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
                             color:"var(--text-dim)"}}>Sin factura registrada</div>
                         )}
                       </div>
@@ -2988,7 +2988,7 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
 
                     {/* Notas */}
                     {p.notas && (
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:".65rem",
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
                         color:"var(--text-muted)",padding:".4rem .6rem",
                         background:"var(--surface2)",borderRadius:6,
                         borderLeft:"2px solid var(--border)"}}>
@@ -3008,7 +3008,7 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
                           <button key={e.id}
                             style={{flex:1,padding:".28rem .35rem",border:"none",
                               cursor:"pointer",fontFamily:"var(--font-mono)",
-                              fontSize:".58rem",fontWeight:700,whiteSpace:"nowrap",
+                              fontSize:"var(--fs-xs)",fontWeight:700,whiteSpace:"nowrap",
                               background: p.estado===e.id ? e.bg : "transparent",
                               color: p.estado===e.id ? e.color : "var(--text-dim)",
                               transition:"background .12s,color .12s",
@@ -3024,7 +3024,7 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
                           style={{display:"flex",alignItems:"center",justifyContent:"center",
                             width:36,height:36,borderRadius:7,cursor:"pointer",
                             background:"var(--surface3)",border:"1px solid var(--border)",
-                            color:"var(--text-muted)",fontSize:".78rem"}}
+                            color:"var(--text-muted)",fontSize:"var(--fs-base)"}}
                           title="Editar pedido"
                           onClick={()=>abrirEditar(p)}>✏️</button>
                         <button
@@ -3032,7 +3032,7 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
                             width:36,height:36,borderRadius:7,cursor:"pointer",
                             background:"rgba(248,113,113,.1)",
                             border:"1px solid rgba(248,113,113,.25)",
-                            color:"var(--red)",fontSize:".78rem",fontWeight:700}}
+                            color:"var(--red)",fontSize:"var(--fs-base)",fontWeight:700}}
                           title="Eliminar pedido"
                           onClick={()=>setDelId(p.id)}>✕</button>
                       </div>
@@ -3074,7 +3074,7 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
           onClick={e=>e.target===e.currentTarget&&setDelId(null)}>
           <div className="modal" style={{maxWidth:320,textAlign:"center"}}>
             <div className="modal-body" style={{paddingTop:"1.5rem"}}>
-              <div style={{fontSize:"2rem",marginBottom:".5rem"}}>⚠️</div>
+              <div style={{fontSize:"var(--fs-xl)",marginBottom:".5rem"}}>⚠️</div>
               <div style={{fontWeight:700}}>¿Eliminar pedido?</div>
               <div className="mono xs muted">Esta acción no se puede deshacer.</div>
             </div>
@@ -3133,15 +3133,15 @@ function SugerenciasSimples({ inscritos, totalInscritos, conceptoDorsal, precioD
           padding:".7rem .9rem",background:"rgba(34,211,238,.04)",
           border:"none",cursor:"pointer",textAlign:"left"}}>
         <div style={{flex:1,minWidth:0}}>
-          <div style={{fontWeight:700,fontSize:".82rem"}}>
+          <div style={{fontWeight:700,fontSize:"var(--fs-base)"}}>
             📦 Sugerencias — Dorsales y Avituallamiento
           </div>
-          <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+          <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
             color:"var(--text-muted)",marginTop:".1rem"}}>
             {sugerencias.length} concepto{sugerencias.length!==1?"s":""} · {baseTotal} corredores base
           </div>
         </div>
-        <span style={{fontFamily:"var(--font-mono)",fontSize:".7rem",
+        <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
           color:"var(--text-dim)",flexShrink:0,
           transform:colapsado?"rotate(-90deg)":"rotate(0deg)",transition:"transform .18s"}}>▼</span>
       </button>
@@ -3155,10 +3155,10 @@ function SugerenciasSimples({ inscritos, totalInscritos, conceptoDorsal, precioD
               padding:".55rem .75rem",borderRadius:8,
               background:"var(--surface2)",border:"1px solid var(--border)",
               flexWrap:"wrap"}}>
-              <span style={{fontSize:"1.2rem",flexShrink:0}}>{sg.icon}</span>
+              <span style={{fontSize:"var(--fs-lg)",flexShrink:0}}>{sg.icon}</span>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontWeight:700,fontSize:".78rem"}}>{sg.label}</div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+                <div style={{fontWeight:700,fontSize:"var(--fs-base)"}}>{sg.label}</div>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                   color:"var(--text-muted)",marginTop:".1rem"}}>
                   {sg.cantidad} ud
                   {sg.precio > 0 && ` · ${fmtEur(sg.precio)}/ud = ${fmtEur(sg.cantidad * sg.precio)}`}
@@ -3166,7 +3166,7 @@ function SugerenciasSimples({ inscritos, totalInscritos, conceptoDorsal, precioD
                 </div>
               </div>
               {sg.yaConfirmado ? (
-                <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+                <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                   padding:".1rem .4rem",borderRadius:4,fontWeight:700,
                   background:"var(--green-dim)",color:"var(--green)",
                   border:"1px solid rgba(52,211,153,.2)",flexShrink:0}}>
@@ -3176,7 +3176,7 @@ function SugerenciasSimples({ inscritos, totalInscritos, conceptoDorsal, precioD
                 <button
                   className="btn btn-sm"
                   style={{background:"rgba(34,211,238,.15)",color:"var(--cyan)",
-                    border:"1px solid rgba(34,211,238,.3)",fontSize:".6rem",
+                    border:"1px solid rgba(34,211,238,.3)",fontSize:"var(--fs-xs)",
                     flexShrink:0,whiteSpace:"nowrap"}}
                   onClick={() => onCrear({
                     _sugerido: true,
@@ -3237,11 +3237,11 @@ function SugerenciasMedallas({ inscritos, totalInscritos, precioMedalla, concept
       }} onClick={()=>setCollapsed(v=>!v)}>
         <div style={{flex:1,minWidth:0}}>
           <div style={{display:"flex",alignItems:"center",gap:".5rem",flexWrap:"wrap"}}>
-            <span style={{fontWeight:700,fontSize:".82rem"}}>
+            <span style={{fontWeight:700,fontSize:"var(--fs-base)"}}>
               🏅 Sugerencia — Medallas finisher
             </span>
             {pedidoExistente && (
-              <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                 padding:".1rem .4rem",borderRadius:4,fontWeight:700,
                 background:"var(--green-dim)",color:"var(--green)",
                 border:"1px solid rgba(52,211,153,.2)"}}>
@@ -3249,7 +3249,7 @@ function SugerenciasMedallas({ inscritos, totalInscritos, precioMedalla, concept
               </span>
             )}
           </div>
-          <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+          <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
             color:"var(--text-muted)",marginTop:".1rem"}}>
             {baseTotal} inscritos · sugerido: {cantidadSugerida} ud
             {precioMedalla > 0 && ` · ${fmtEur(costeEstimado)} estimado`}
@@ -3258,20 +3258,20 @@ function SugerenciasMedallas({ inscritos, totalInscritos, precioMedalla, concept
         <div style={{textAlign:"right",flexShrink:0}}>
           {precioMedalla > 0 ? (
             <div style={{fontFamily:"var(--font-mono)",fontWeight:800,
-              fontSize:".85rem",color:"var(--amber)"}}>
+              fontSize:"var(--fs-base)",color:"var(--amber)"}}>
               {fmtEur(costeEstimado)}
             </div>
           ) : (
-            <div style={{fontFamily:"var(--font-mono)",fontSize:".68rem",
+            <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
               color:"var(--text-dim)"}}>sin precio</div>
           )}
-          <span style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+          <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
             padding:".1rem .4rem",borderRadius:4,
             background:"rgba(251,191,36,.15)",color:"var(--amber)",fontWeight:700}}>
             Sugerido
           </span>
         </div>
-        <span style={{color:"var(--text-dim)",fontSize:".75rem",flexShrink:0,
+        <span style={{color:"var(--text-dim)",fontSize:"var(--fs-base)",flexShrink:0,
           transition:"transform .2s",transform:collapsed?"rotate(-90deg)":"rotate(0)"}}>
           ▼
         </span>
@@ -3288,11 +3288,11 @@ function SugerenciasMedallas({ inscritos, totalInscritos, precioMedalla, concept
               <div key={d} style={{padding:".45rem .6rem",borderRadius:7,
                 background:"var(--surface2)",border:"1px solid var(--border)",
                 textAlign:"center"}}>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                   color:"var(--text-muted)",marginBottom:".1rem"}}>{d}</div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:"1rem",
+                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-md)",
                   fontWeight:800,color:"var(--amber)"}}>{inscritos?.[d]||0}</div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:".55rem",
+                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                   color:"var(--text-dim)"}}>inscritos</div>
               </div>
             ))}
@@ -3300,14 +3300,14 @@ function SugerenciasMedallas({ inscritos, totalInscritos, precioMedalla, concept
 
           {/* Margen */}
           <div style={{display:"flex",alignItems:"center",gap:".5rem",flexWrap:"wrap"}}>
-            <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",
+            <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
               color:"var(--text-muted)",flexShrink:0}}>Margen extra:</span>
             <div style={{display:"flex",background:"var(--surface2)",
               border:"1px solid var(--border)",borderRadius:6,overflow:"hidden"}}>
               {[["fijo","ud"],["pct","%"]].map(([v,l])=>(
                 <button key={v} onClick={e=>{e.stopPropagation();setModo(v);}}
                   style={{padding:".22rem .55rem",border:"none",cursor:"pointer",
-                    fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,
+                    fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
                     background:modo===v?"rgba(251,191,36,.2)":"transparent",
                     color:modo===v?"var(--amber)":"var(--text-muted)"}}>
                   {l}
@@ -3319,9 +3319,9 @@ function SugerenciasMedallas({ inscritos, totalInscritos, precioMedalla, concept
               onChange={e=>setMargen(Math.max(0,parseInt(e.target.value)||0))}
               style={{width:56,background:"var(--surface2)",border:"1px solid var(--border)",
                 color:"var(--amber)",borderRadius:6,padding:".22rem .4rem",
-                fontFamily:"var(--font-mono)",fontSize:".72rem",textAlign:"right",outline:"none"}}
+                fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",textAlign:"right",outline:"none"}}
             />
-            <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",
+            <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
               color:"var(--text-muted)"}}>
               {modo==="pct" ? `% = +${extra} ud` : "ud extra"}
             </span>
@@ -3333,45 +3333,45 @@ function SugerenciasMedallas({ inscritos, totalInscritos, precioMedalla, concept
             background:"rgba(251,191,36,.06)",border:"1px solid rgba(251,191,36,.18)"}}>
             <div style={{display:"flex",gap:"1.5rem",flexWrap:"wrap"}}>
               <div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                   color:"var(--text-muted)",textTransform:"uppercase",
                   letterSpacing:".06em",marginBottom:".15rem"}}>
                   BASE INSCRITOS
                 </div>
-                <div style={{fontFamily:"var(--font-mono)",fontWeight:800,fontSize:"1rem"}}>
+                <div style={{fontFamily:"var(--font-mono)",fontWeight:800,fontSize:"var(--fs-md)"}}>
                   {baseTotal}
                 </div>
               </div>
               <div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                   color:"var(--text-muted)",textTransform:"uppercase",
                   letterSpacing:".06em",marginBottom:".15rem"}}>
                   + MARGEN
                 </div>
-                <div style={{fontFamily:"var(--font-mono)",fontWeight:800,fontSize:"1rem",
+                <div style={{fontFamily:"var(--font-mono)",fontWeight:800,fontSize:"var(--fs-md)",
                   color:"var(--amber)"}}>
                   +{extra}
                 </div>
               </div>
               <div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                   color:"var(--text-muted)",textTransform:"uppercase",
                   letterSpacing:".06em",marginBottom:".15rem"}}>
                   = PEDIR AL PROVEEDOR
                 </div>
-                <div style={{fontFamily:"var(--font-mono)",fontWeight:800,fontSize:"1rem",
+                <div style={{fontFamily:"var(--font-mono)",fontWeight:800,fontSize:"var(--fs-md)",
                   color:"var(--cyan)"}}>
                   {cantidadSugerida}
                 </div>
               </div>
               {precioMedalla > 0 && (
                 <div>
-                  <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                     color:"var(--text-muted)",textTransform:"uppercase",
                     letterSpacing:".06em",marginBottom:".15rem"}}>
                     COSTE ESTIMADO ({fmtEur(precioMedalla)}/UD)
                   </div>
-                  <div style={{fontFamily:"var(--font-mono)",fontWeight:800,fontSize:"1rem",
+                  <div style={{fontFamily:"var(--font-mono)",fontWeight:800,fontSize:"var(--fs-md)",
                     color:"var(--amber)"}}>
                     {fmtEur(costeEstimado)}
                   </div>
@@ -3384,12 +3384,12 @@ function SugerenciasMedallas({ inscritos, totalInscritos, precioMedalla, concept
           <div style={{display:"flex",gap:".4rem",justifyContent:"flex-end",
             paddingTop:".25rem",borderTop:"1px solid var(--border)",flexWrap:"wrap"}}>
             <button className="btn btn-ghost btn-sm"
-              style={{fontSize:".6rem",color:"var(--text-muted)"}}
+              style={{fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}
               onClick={e=>{e.stopPropagation();setCollapsed(true);}}>
               Colapsar
             </button>
             <button className="btn btn-sm"
-              style={{fontSize:".6rem",
+              style={{fontSize:"var(--fs-xs)",
                 background:"rgba(251,191,36,.15)",color:"var(--amber)",
                 border:"1px solid rgba(251,191,36,.3)",marginLeft:"auto"}}
               onClick={e=>{
@@ -3544,7 +3544,7 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
               <label className="fl" style={{margin:0}}>Artículos</label>
               <div style={{display:"flex",gap:".3rem"}}>
                 <button className="btn btn-ghost btn-sm"
-                  style={{fontSize:".6rem",color:"var(--cyan)"}}
+                  style={{fontSize:"var(--fs-xs)",color:"var(--cyan)"}}
                   onClick={()=>{
                     // Añadir desde inventario de Material
                     const mat=material&&material.length>0?material[0]:null;
@@ -3559,7 +3559,7 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
                   + de Inventario
                 </button>
                 <button className="btn btn-ghost btn-sm"
-                  style={{fontSize:".6rem",color:"var(--violet)"}}
+                  style={{fontSize:"var(--fs-xs)",color:"var(--violet)"}}
                   onClick={()=>{
                     const c=conceptosPres&&conceptosPres.length>0?conceptosPres[0]:null;
                     const { precio:precioC, esFijo:esFijoC, costeTotal:ct } = c
@@ -3572,7 +3572,7 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
                   + de Presupuesto
                 </button>
                 <button className="btn btn-ghost btn-sm"
-                  style={{fontSize:".6rem"}}
+                  style={{fontSize:"var(--fs-xs)"}}
                   onClick={()=>addArtDef({nombre:"",cantidad:1,precioUnit:0,fuente:"manual"})}>
                   + Manual
                 </button>
@@ -3587,8 +3587,8 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
                   <div>
                     <label className="fl" style={{display:"flex",alignItems:"center",gap:".3rem"}}>
                       Artículo
-                      {a.fuente==="material" && <span style={{fontFamily:"var(--font-mono)",fontSize:".5rem",padding:".06rem .3rem",borderRadius:10,background:"var(--cyan-dim)",color:"var(--cyan)"}}>📦 Inventario</span>}
-                      {a.fuente==="presupuesto" && <span style={{fontFamily:"var(--font-mono)",fontSize:".5rem",padding:".06rem .3rem",borderRadius:10,background:"var(--violet-dim)",color:"var(--violet)"}}>💰 Presupuesto</span>}
+                      {a.fuente==="material" && <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-2xs)",padding:".06rem .3rem",borderRadius:10,background:"var(--cyan-dim)",color:"var(--cyan)"}}>📦 Inventario</span>}
+                      {a.fuente==="presupuesto" && <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-2xs)",padding:".06rem .3rem",borderRadius:10,background:"var(--violet-dim)",color:"var(--violet)"}}>💰 Presupuesto</span>}
                     </label>
                     {a.fuente==="material" && material.length>0 ? (
                       <select className="inp inp-sm" value={a.materialId||""}
@@ -3664,11 +3664,11 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
                     onClick={()=>delArt(i)}>✕</button>
                 </div>
 
-                <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                   color:"var(--text-muted)",display:"flex",justifyContent:"space-between",
                   alignItems:"center",marginTop:".1rem"}}>
                   {a.esFijo && (
-                    <span style={{color:"var(--amber)",fontSize:".58rem"}}>
+                    <span style={{color:"var(--amber)",fontSize:"var(--fs-xs)"}}>
                       💡 Coste total fijo — €/ud se calcula automáticamente
                       ({a.cantidad>0?fmtEur((a.costeTotal||0)/a.cantidad):"—"}/ud × {a.cantidad} ud)
                     </span>
@@ -3680,14 +3680,14 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
               </div>
             ))}
             <div style={{textAlign:"right",fontFamily:"var(--font-mono)",
-              fontSize:".72rem",fontWeight:800,color:"var(--cyan)",marginTop:".35rem"}}>
+              fontSize:"var(--fs-sm)",fontWeight:800,color:"var(--cyan)",marginTop:".35rem"}}>
               Total pedido: {fmtEur(importeCalc)}
             </div>
           </div>
 
           {/* Factura */}
           <div style={{borderTop:"1px solid var(--border)",paddingTop:".6rem"}}>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",fontWeight:700,
+            <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
               color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:".06em",
               marginBottom:".4rem"}}>🧾 Factura (opcional)</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem"}}>
@@ -3724,7 +3724,7 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
             </div>
             {form.factura?.importe > 0 && importeCalc > 0 && (
               <div style={{marginTop:".4rem",fontFamily:"var(--font-mono)",
-                fontSize:".62rem",color:"var(--text-muted)"}}>
+                fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>
                 Desviación vs estimado:{" "}
                 <span style={{fontWeight:700,
                   color: Math.abs(form.factura.importe-importeCalc)<0.01

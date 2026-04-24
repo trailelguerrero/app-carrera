@@ -139,16 +139,16 @@ export default function DiaCarrera({ onClose }) {
           background:"var(--surface2)", border:"1px solid var(--border)",
           borderRadius:8, color:"var(--text-muted)", cursor:"pointer",
           padding:".35rem .7rem", fontFamily:"'DM Mono',monospace",
-          fontSize:".68rem", fontWeight:700,
+          fontSize:"var(--fs-sm)", fontWeight:700,
         }}>✕ Salir</button>
       </div>
 
       {/* Próxima tarea */}
       {proxima && (
         <div className="dc-next">
-          <span style={{fontFamily:"'DM Mono',monospace",fontSize:".6rem",color:"#22d3ee",fontWeight:700}}>PRÓXIMO</span>
-          <span style={{fontFamily:"'DM Mono',monospace",fontSize:".72rem",fontWeight:800,color:"#22d3ee"}}>{proxima.hora}</span>
-          <span style={{fontSize:".78rem",fontWeight:600,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+          <span style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",color:"#22d3ee",fontWeight:700}}>PRÓXIMO</span>
+          <span style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-sm)",fontWeight:800,color:"#22d3ee"}}>{proxima.hora}</span>
+          <span style={{fontSize:"var(--fs-base)",fontWeight:600,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
             {proxima.titulo}
           </span>
           <span>{CAT_ICON[proxima.categoria] || "📌"}</span>
@@ -159,17 +159,17 @@ export default function DiaCarrera({ onClose }) {
       {tl.length > 0 && (
         <div className="dc-prog">
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <span style={{fontFamily:"'DM Mono',monospace",fontSize:".58rem",color:"var(--text-muted)"}}>
+            <span style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>
               {tlCompletadas}/{tl.length} tareas
             </span>
             {proximaSig ? (
-              <span style={{fontFamily:"'DM Mono',monospace",fontSize:".58rem",
+              <span style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",
                 color:"var(--cyan)",overflow:"hidden",textOverflow:"ellipsis",
                 whiteSpace:"nowrap",maxWidth:"60%",textAlign:"right"}}>
                 ▶ {proximaSig.hora} {proximaSig.titulo}
               </span>
             ) : (
-              <span style={{fontFamily:"'DM Mono',monospace",fontSize:".58rem",color:"var(--green)",fontWeight:700}}>
+              <span style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",color:"var(--green)",fontWeight:700}}>
                 ✓ Completado
               </span>
             )}
@@ -198,28 +198,28 @@ export default function DiaCarrera({ onClose }) {
               <EmptyState icon="⏱" title="Sin tareas en el timeline" sub="Añade tareas en Logística → Timeline para verlas aquí el día del evento." />
             ) : (
             <>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:".6rem",color:"var(--text-muted)",marginBottom:".5rem"}}>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginBottom:".5rem"}}>
               {tl.filter(t=>t.done).length}/{tl.length} completados
             </div>
             {tl.map(item => (
               <div key={item.id} className={`dc-row${item.done?" done":""}`}>
                 <button className={`dc-chk${item.done?" on":""}`} onClick={() => toggleTl(item.id)}>
-                  {item.done && <span style={{color:"#000",fontSize:".7rem",fontWeight:700}}>✓</span>}
+                  {item.done && <span style={{color:"#000",fontSize:"var(--fs-sm)",fontWeight:700}}>✓</span>}
                 </button>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{display:"flex",alignItems:"center",gap:".4rem",marginBottom:".15rem"}}>
                     <span className="dc-hora">{item.hora}</span>
-                    <span style={{fontSize:".7rem"}}>{CAT_ICON[item.categoria]||"📌"}</span>
+                    <span style={{fontSize:"var(--fs-sm)"}}>{CAT_ICON[item.categoria]||"📌"}</span>
                   </div>
-                  <div style={{fontWeight:700,fontSize:".8rem",textDecoration:item.done?"line-through":"none",
+                  <div style={{fontWeight:700,fontSize:"var(--fs-base)",textDecoration:item.done?"line-through":"none",
                     color:item.done?"var(--text-dim)":"var(--text)"}}>{item.titulo}</div>
                   {item.descripcion && (
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:".6rem",color:"var(--text-muted)",marginTop:".15rem",lineHeight:1.5}}>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginTop:".15rem",lineHeight:1.5}}>
                       {item.descripcion}
                     </div>
                   )}
                   {item.responsable && (
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:".57rem",color:"var(--text-dim)",marginTop:".15rem"}}>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",color:"var(--text-dim)",marginTop:".15rem"}}>
                       👤 {item.responsable}
                     </div>
                   )}
@@ -233,7 +233,7 @@ export default function DiaCarrera({ onClose }) {
 
         {tab === "voluntarios" && (
           <>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:".6rem",color:"var(--text-muted)",marginBottom:".5rem"}}>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginBottom:".5rem"}}>
               {presentes} presentes · {confirmados.length - presentes} pendientes
             </div>
             {confirmados.map(v => {
@@ -241,17 +241,17 @@ export default function DiaCarrera({ onClose }) {
               return (
                 <div key={v.id} className="dc-row">
                   <button className={`dc-chk${v.presente?" on":""}`} onClick={() => toggleVol(v.id)}>
-                    {v.presente && <span style={{color:"#000",fontSize:".7rem",fontWeight:700}}>✓</span>}
+                    {v.presente && <span style={{color:"#000",fontSize:"var(--fs-sm)",fontWeight:700}}>✓</span>}
                   </button>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontWeight:700,fontSize:".82rem",color:v.presente?"var(--green)":"var(--text)"}}>
+                    <div style={{fontWeight:700,fontSize:"var(--fs-base)",color:v.presente?"var(--green)":"var(--text)"}}>
                       {v.nombre}
                     </div>
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:".58rem",color:"var(--text-muted)"}}>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>
                       {puesto?.nombre || "Sin puesto"} · {v.telefono || "—"}
                     </div>
                   </div>
-                  {v.talla && <span style={{fontFamily:"'DM Mono',monospace",fontSize:".6rem",
+                  {v.talla && <span style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",
                     background:"var(--surface2)",border:"1px solid var(--border)",
                     borderRadius:4,padding:".1rem .35rem",color:"var(--text-muted)"}}>{v.talla}</span>}
                   {v.coche && <span title="Tiene coche">🚗</span>}
@@ -274,12 +274,12 @@ export default function DiaCarrera({ onClose }) {
                   borderLeft:`3px solid ${color}`,marginBottom:".5rem"}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:".3rem"}}>
                     <div>
-                      <div style={{fontWeight:700,fontSize:".82rem"}}>{p.nombre}</div>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:".6rem",color:"var(--text-muted)"}}>
+                      <div style={{fontWeight:700,fontSize:"var(--fs-base)"}}>{p.nombre}</div>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>
                         {p.horaInicio}–{p.horaFin} · necesarios: {p.necesarios||1}
                       </div>
                     </div>
-                    <span style={{fontFamily:"'DM Mono',monospace",fontSize:".78rem",fontWeight:800,color,flexShrink:0}}>
+                    <span style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-base)",fontWeight:800,color,flexShrink:0}}>
                       {pres}/{asig.length}
                     </span>
                   </div>
@@ -288,18 +288,18 @@ export default function DiaCarrera({ onClose }) {
                       padding:".2rem 0",borderTop:"1px solid var(--border)"}}>
                       <span style={{width:7,height:7,borderRadius:"50%",flexShrink:0,
                         background:v.presente?"var(--green)":"var(--border)"}} />
-                      <span style={{fontSize:".75rem",flex:1,color:v.presente?"var(--text)":"var(--text-muted)"}}>
+                      <span style={{fontSize:"var(--fs-base)",flex:1,color:v.presente?"var(--text)":"var(--text-muted)"}}>
                         {v.nombre}
                       </span>
                       {v.telefono && (
-                        <a href={`tel:${v.telefono}`} style={{color:"var(--cyan)",fontSize:".8rem",textDecoration:"none"}}>
+                        <a href={`tel:${v.telefono}`} style={{color:"var(--cyan)",fontSize:"var(--fs-base)",textDecoration:"none"}}>
                           📞
                         </a>
                       )}
                     </div>
                   ))}
                   {asig.length===0 && (
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:".6rem",color:"var(--red)",marginTop:".25rem"}}>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",color:"var(--red)",marginTop:".25rem"}}>
                       ⚠ Sin voluntarios asignados
                     </div>
                   )}
@@ -314,7 +314,7 @@ export default function DiaCarrera({ onClose }) {
           <>
             <div style={{padding:".5rem .75rem",borderRadius:8,marginBottom:".65rem",
               background:"rgba(248,113,113,.08)",border:"1px solid rgba(248,113,113,.2)",
-              fontFamily:"'DM Mono',monospace",fontSize:".65rem",color:"var(--red)",fontWeight:700}}>
+              fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-sm)",color:"var(--red)",fontWeight:700}}>
               🚨 Emergencia grave → llama al 112 primero
             </div>
             {[...contactos]
@@ -327,8 +327,8 @@ export default function DiaCarrera({ onClose }) {
                     padding:".6rem .75rem",borderRadius:10,background:"var(--surface)",
                     border:"1px solid var(--border)",borderLeft:`3px solid ${color}`,marginBottom:".4rem"}}>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:700,fontSize:".82rem"}}>{c.nombre}</div>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:".6rem",color:"var(--text-muted)"}}>
+                      <div style={{fontWeight:700,fontSize:"var(--fs-base)"}}>{c.nombre}</div>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>
                         {c.rol}{c.notas ? ` · ${c.notas}` : ""}
                       </div>
                     </div>
@@ -382,23 +382,23 @@ export default function DiaCarrera({ onClose }) {
                         <button className={`dc-chk${hecho?" on":""}`}
                           onClick={() => toggleCk(item.id)}
                           style={{marginTop:".1rem"}}>
-                          {hecho && <span style={{color:"#000",fontSize:".65rem",fontWeight:700}}>✓</span>}
+                          {hecho && <span style={{color:"#000",fontSize:"var(--fs-sm)",fontWeight:700}}>✓</span>}
                         </button>
                         <div style={{flex:1}}>
-                          <div style={{fontSize:".78rem",fontWeight:600,
+                          <div style={{fontSize:"var(--fs-base)",fontWeight:600,
                             textDecoration:hecho?"line-through":"none",
                             color:hecho?"var(--text-dim)":"var(--text)"}}>
                             {item.tarea}
                           </div>
                           {item.responsable && (
-                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:".57rem",
+                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",
                               color:"var(--text-dim)",marginTop:".1rem"}}>
                               👤 {item.responsable}
                             </div>
                           )}
                         </div>
                         {item.prioridad==="alta" && !hecho && (
-                          <span style={{fontFamily:"'DM Mono',monospace",fontSize:".6rem",
+                          <span style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",
                             color:"var(--red)",fontWeight:700,flexShrink:0}}>ALTA</span>
                         )}
                       </div>
@@ -429,16 +429,16 @@ export default function DiaCarrera({ onClose }) {
         <div className="dc-inc-backdrop" onClick={e => e.target===e.currentTarget && setShowInc(false)}>
           <div className="dc-inc-modal">
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:".85rem" }}>
-              <span style={{ fontWeight:800, fontSize:".9rem" }}>🚨 Incidencia urgente</span>
+              <span style={{ fontWeight:800, fontSize:"var(--fs-md)" }}>🚨 Incidencia urgente</span>
               <button onClick={() => setShowInc(false)} style={{
                 background:"none", border:"none", color:"var(--text-muted)",
-                cursor:"pointer", fontSize:"1rem", padding:".2rem",
+                cursor:"pointer", fontSize:"var(--fs-md)", padding:".2rem",
               }}>✕</button>
             </div>
 
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:".65rem", marginBottom:".65rem" }}>
               <div>
-                <label style={{ display:"block", fontFamily:"var(--font-mono)", fontSize:".62rem",
+                <label style={{ display:"block", fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                   fontWeight:700, color:"var(--text-muted)", marginBottom:".3rem",
                   textTransform:"uppercase", letterSpacing:".04em" }}>Tipo</label>
                 <select
@@ -446,14 +446,14 @@ export default function DiaCarrera({ onClose }) {
                   onChange={e => setIncForm(p => ({...p, tipo: e.target.value}))}
                   style={{ width:"100%", background:"var(--surface2)", border:"1px solid var(--border)",
                     borderRadius:8, color:"var(--text)", padding:".45rem .6rem",
-                    fontFamily:"var(--font-mono)", fontSize:".72rem", outline:"none" }}
+                    fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", outline:"none" }}
                 >
                   {["médica","señalización","avituallamiento","corredor perdido","meteorológica","otra"]
                     .map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ display:"block", fontFamily:"var(--font-mono)", fontSize:".62rem",
+                <label style={{ display:"block", fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                   fontWeight:700, color:"var(--text-muted)", marginBottom:".3rem",
                   textTransform:"uppercase", letterSpacing:".04em" }}>Gravedad</label>
                 <select
@@ -461,7 +461,7 @@ export default function DiaCarrera({ onClose }) {
                   onChange={e => setIncForm(p => ({...p, gravedad: e.target.value}))}
                   style={{ width:"100%", background:"var(--surface2)", border:"1px solid var(--border)",
                     borderRadius:8, color:"var(--text)", padding:".45rem .6rem",
-                    fontFamily:"var(--font-mono)", fontSize:".72rem", outline:"none" }}
+                    fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", outline:"none" }}
                 >
                   {[["baja","🟢"],["media","🟡"],["alta","🔴"]]
                     .map(([g, ic]) => <option key={g} value={g}>{ic} {g}</option>)}
@@ -470,7 +470,7 @@ export default function DiaCarrera({ onClose }) {
             </div>
 
             <div style={{ marginBottom:".85rem" }}>
-              <label style={{ display:"block", fontFamily:"var(--font-mono)", fontSize:".62rem",
+              <label style={{ display:"block", fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                 fontWeight:700, color:"var(--text-muted)", marginBottom:".3rem",
                 textTransform:"uppercase", letterSpacing:".04em" }}>Descripción *</label>
               <textarea
@@ -480,7 +480,7 @@ export default function DiaCarrera({ onClose }) {
                 rows={3}
                 style={{ width:"100%", background:"var(--surface2)", border:"1px solid var(--border)",
                   borderRadius:8, color:"var(--text)", padding:".55rem .7rem",
-                  fontFamily:"var(--font-mono)", fontSize:".75rem", outline:"none",
+                  fontFamily:"var(--font-mono)", fontSize:"var(--fs-base)", outline:"none",
                   resize:"vertical", boxSizing:"border-box",
                   borderColor: !incForm.descripcion.trim() && incGuardado ? "var(--red)" : undefined }}
               />
@@ -493,7 +493,7 @@ export default function DiaCarrera({ onClose }) {
                 width:"100%", padding:".7rem", borderRadius:10,
                 background: incGuardado ? "var(--green)" : "rgba(248,113,113,0.9)",
                 border:"none", color:"#fff", fontFamily:"var(--font-mono)",
-                fontSize:".8rem", fontWeight:800, cursor: incGuardado ? "default" : "pointer",
+                fontSize:"var(--fs-base)", fontWeight:800, cursor: incGuardado ? "default" : "pointer",
                 transition:"background .2s",
               }}
             >
@@ -511,7 +511,7 @@ export default function DiaCarrera({ onClose }) {
 function Empty({ msg }) {
   return (
     <div style={{textAlign:"center",padding:"3rem 1rem",color:"var(--text-muted)",
-      fontFamily:"'DM Mono',monospace",fontSize:".75rem"}}>
+      fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-base)"}}>
       {msg}
     </div>
   );

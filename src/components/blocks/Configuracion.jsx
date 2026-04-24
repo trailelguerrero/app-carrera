@@ -407,7 +407,7 @@ export default function Configuracion() {
 
         <div className="card cfg-section">
           <div className="cfg-section-title">⏱️ Umbrales de alerta de voluntarios</div>
-          <div style={{ fontFamily:"var(--font-mono)", fontSize:".68rem", color:"var(--text-muted)", marginBottom:"1rem", lineHeight:1.6 }}>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", color:"var(--text-muted)", marginBottom:"1rem", lineHeight:1.6 }}>
             Define cuándo se activan las alertas de cobertura de voluntarios en el Dashboard.
             Ajústalos según tu proceso de captación.
           </div>
@@ -423,7 +423,7 @@ export default function Configuracion() {
               <input type="number" min={1} max={365} className="cfg-input cfg-input-num"
                 value={form.volDiasCritico}
                 onChange={e => upd("volDiasCritico", Math.max(1, parseInt(e.target.value)||1))} />
-              <span style={{ fontFamily:"var(--font-mono)", fontSize:".7rem", color:"var(--text-muted)" }}>días antes</span>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", color:"var(--text-muted)" }}>días antes</span>
             </div>
           </div>
 
@@ -438,13 +438,13 @@ export default function Configuracion() {
               <input type="number" min={1} max={365} className="cfg-input cfg-input-num"
                 value={form.volDiasAviso}
                 onChange={e => upd("volDiasAviso", Math.max((form.volDiasCritico||1)+1, parseInt(e.target.value)||1))} />
-              <span style={{ fontFamily:"var(--font-mono)", fontSize:".7rem", color:"var(--text-muted)" }}>días antes</span>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", color:"var(--text-muted)" }}>días antes</span>
             </div>
           </div>
 
           {fechaEvento && (
             <div style={{ marginTop:"1rem", padding:".75rem .85rem", background:"var(--surface2)", borderRadius:8, border:"1px solid var(--border)" }}>
-              <div style={{ fontFamily:"var(--font-mono)", fontSize:".6rem", color:"var(--text-muted)", marginBottom:".5rem", textTransform:"uppercase", letterSpacing:".06em" }}>
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", marginBottom:".5rem", textTransform:"uppercase", letterSpacing:".06em" }}>
                 Ventanas de alerta
               </div>
               {[
@@ -454,8 +454,8 @@ export default function Configuracion() {
               ].map(w => (
                 <div key={w.label} style={{ display:"flex", alignItems:"center", gap:".6rem", marginBottom:".3rem" }}>
                   <div style={{ width:8, height:8, borderRadius:"50%", background:w.color, flexShrink:0 }} />
-                  <span style={{ fontFamily:"var(--font-mono)", fontSize:".65rem", color:w.color, fontWeight:700, width:110 }}>{w.label}</span>
-                  <span style={{ fontFamily:"var(--font-mono)", fontSize:".62rem", color:"var(--text-dim)" }}>{w.desde} → {w.hasta}</span>
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", color:w.color, fontWeight:700, width:110 }}>{w.label}</span>
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>{w.desde} → {w.hasta}</span>
                 </div>
               ))}
             </div>
@@ -469,7 +469,7 @@ export default function Configuracion() {
           {(() => {
             const lastBackup = localStorage.getItem("teg_last_backup");
             if (!lastBackup) return (
-              <div style={{ fontFamily:"var(--font-mono)", fontSize:".62rem", color:"var(--red)",
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--red)",
                 padding:".4rem .7rem", borderRadius:6, marginBottom:".75rem",
                 background:"rgba(248,113,113,.06)", border:"1px solid rgba(248,113,113,.2)" }}>
                 ⚠️ Sin backup reciente — se recomienda exportar una copia de seguridad
@@ -478,14 +478,14 @@ export default function Configuracion() {
             const dias = Math.floor((Date.now() - new Date(lastBackup).getTime()) / 86400000);
             const color = dias > 7 ? "var(--amber)" : "var(--green)";
             return (
-              <div style={{ fontFamily:"var(--font-mono)", fontSize:".62rem", color,
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color,
                 marginBottom:".75rem" }}>
                 ✓ Último backup: {dias === 0 ? "hoy" : dias === 1 ? "ayer" : `hace ${dias} días`}
                 {" · "}{new Date(lastBackup).toLocaleDateString("es-ES", { day:"2-digit", month:"short", year:"numeric" })}
               </div>
             );
           })()}
-          <div style={{ fontFamily:"var(--font-mono)", fontSize:".68rem", color:"var(--text-muted)", marginBottom:"1rem", lineHeight:1.6 }}>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", color:"var(--text-muted)", marginBottom:"1rem", lineHeight:1.6 }}>
             Exporta todos los datos de la app a un archivo JSON para hacer copias de seguridad
             o trasladar los datos a otro dispositivo. También puedes exportar listas concretas a CSV.
           </div>
@@ -512,18 +512,18 @@ export default function Configuracion() {
               background: importMsg.tipo === "ok" ? "var(--green-dim)" : "var(--red-dim)",
               border: `1px solid ${importMsg.tipo === "ok" ? "rgba(52,211,153,.3)" : "rgba(248,113,113,.3)"}`,
               color: importMsg.tipo === "ok" ? "var(--green)" : "var(--red)",
-              fontFamily:"var(--font-mono)", fontSize:".72rem", lineHeight:1.6,
+              fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", lineHeight:1.6,
               display:"flex", justifyContent:"space-between", alignItems:"center", gap:".5rem"
             }}>
               <span>{importMsg.texto}</span>
-              <button onClick={() => setImportMsg(null)} style={{ background:"none", border:"none", cursor:"pointer", color:"inherit", fontSize:"1rem", padding:0, flexShrink:0 }}>✕</button>
+              <button onClick={() => setImportMsg(null)} style={{ background:"none", border:"none", cursor:"pointer", color:"inherit", fontSize:"var(--fs-md)", padding:0, flexShrink:0 }}>✕</button>
             </div>
           )}
 
-          <div style={{ fontFamily:"var(--font-mono)", fontSize:".58rem", color:"var(--text-dim)", lineHeight:1.7, marginTop:".75rem" }}>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)", lineHeight:1.7, marginTop:".75rem" }}>
             ⚠️ Restaurar un backup sobreescribe todos los datos actuales. Exporta primero si quieres conservar los cambios recientes.
           </div>
-          <div style={{ fontFamily:"var(--font-mono)", fontSize:".58rem", color:"var(--text-dim)", lineHeight:1.7, marginTop:".35rem",
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)", lineHeight:1.7, marginTop:".35rem",
             padding:".5rem .65rem", background:"var(--surface2)", borderRadius:6,
             border:"1px solid var(--border)" }}>
             📎 <strong style={{color:"var(--text-muted)"}}>Nota:</strong> El backup incluye todos los datos de la app excepto los archivos PDF/imágenes subidos en Documentos, que se almacenan en Vercel Blob y no se pueden exportar desde aquí. Para hacer copia de esos archivos, descárgalos individualmente desde el bloque Documentos.
@@ -533,7 +533,7 @@ export default function Configuracion() {
         {/* ── Formulario de voluntarios ── */}
         <div className="card cfg-section">
           <div className="cfg-section-title">👥 Formulario de voluntarios</div>
-          <div style={{ fontFamily:"var(--font-mono)", fontSize:".68rem", color:"var(--text-muted)", marginBottom:".75rem", lineHeight:1.6 }}>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", color:"var(--text-muted)", marginBottom:".75rem", lineHeight:1.6 }}>
             Comparte este enlace o QR con los voluntarios para que puedan registrarse.
           </div>
           <div style={{ display:"flex", gap:".5rem", alignItems:"stretch", marginBottom:".75rem" }}>
@@ -541,7 +541,7 @@ export default function Configuracion() {
               className="cfg-input"
               readOnly
               value={urlFormulario}
-              style={{ flex:1, fontFamily:"var(--font-mono)", fontSize:".68rem", color:"var(--cyan)", cursor:"text" }}
+              style={{ flex:1, fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", color:"var(--cyan)", cursor:"text" }}
             />
             <button className="backup-btn export" style={{ flexShrink:0, padding:".45rem .85rem" }}
               onClick={() => {
@@ -571,7 +571,7 @@ export default function Configuracion() {
                 style={{ width:200, height:200, borderRadius:8,
                   border:"4px solid #fff", display:"block" }}
               />
-              <div style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                 color:"var(--text-muted)", textAlign:"center" }}>
                 Escanea para acceder al formulario de registro
               </div>
@@ -580,10 +580,10 @@ export default function Configuracion() {
                   href={qrDataUrl}
                   download="qr-voluntarios-trail-guerrero.png"
                   className="backup-btn export"
-                  style={{ textDecoration:"none", padding:".38rem .75rem", fontSize:".68rem" }}>
+                  style={{ textDecoration:"none", padding:".38rem .75rem", fontSize:"var(--fs-sm)" }}>
                   ⬇ Descargar imagen
                 </a>
-                <button className="backup-btn" style={{ padding:".38rem .75rem", fontSize:".68rem",
+                <button className="backup-btn" style={{ padding:".38rem .75rem", fontSize:"var(--fs-sm)",
                   background:"var(--surface3)", color:"var(--text-muted)",
                   border:"1px solid var(--border)" }}
                   onClick={() => setQrDataUrl(null)}>
@@ -597,7 +597,7 @@ export default function Configuracion() {
         {/* ── Seguridad de acceso ── */}
         <div className="card cfg-section">
           <div className="cfg-section-title">🔐 Seguridad de acceso</div>
-          <div style={{ fontFamily:"var(--font-mono)", fontSize:".68rem", color:"var(--text-muted)", marginBottom:".75rem", lineHeight:1.6 }}>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", color:"var(--text-muted)", marginBottom:".75rem", lineHeight:1.6 }}>
             El panel de gestión está protegido por un PIN numérico.
             Cámbialo regularmente y no lo compartas con personas ajenas al equipo organizador.
           </div>
@@ -605,7 +605,7 @@ export default function Configuracion() {
             onClick={() => window.dispatchEvent(new CustomEvent("teg-open-changepin"))}>
             🔑 Cambiar PIN de acceso
           </button>
-          <div style={{ fontFamily:"var(--font-mono)", fontSize:".56rem", color:"var(--text-dim)", marginTop:".6rem", lineHeight:1.6 }}>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)", marginTop:".6rem", lineHeight:1.6 }}>
             ⚠️ El hash del PIN se almacena en este dispositivo. Para acceder desde otro dispositivo necesitarás el PIN actual o restaurar un backup.
           </div>
         </div>
@@ -625,7 +625,7 @@ export default function Configuracion() {
               🎓 Ver tutorial de inicio
             </button>
           </div>
-          <div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",
+          <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
             color:"var(--text-dim)",lineHeight:1.7,marginTop:".6rem"}}>
             Vuelve a ver el tutorial de bienvenida. Útil para nuevos colaboradores o para repasar las funciones principales.
           </div>
@@ -637,7 +637,7 @@ export default function Configuracion() {
                 <span className="cfg-saved">✓ Cambios guardados</span>
                 <button
                   className="btn btn-ghost btn-sm"
-                  style={{ fontSize:".65rem" }}
+                  style={{ fontSize:"var(--fs-sm)" }}
                   onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail:{ block:"dashboard" } }))}>
                   ← Dashboard
                 </button>
@@ -663,7 +663,7 @@ export default function Configuracion() {
               {/* Meta del backup */}
               <div style={{
                 background: "var(--surface2)", borderRadius: 8,
-                padding: ".65rem .85rem", fontSize: ".72rem",
+                padding: ".65rem .85rem", fontSize: "var(--fs-sm)",
                 fontFamily: "var(--font-mono)", lineHeight: 1.7,
                 border: "1px solid var(--border)",
               }}>
@@ -675,18 +675,18 @@ export default function Configuracion() {
               {/* Aviso */}
               <div style={{
                 background: "var(--amber-dim)", borderRadius: 6,
-                padding: ".55rem .75rem", fontSize: ".7rem",
+                padding: ".55rem .75rem", fontSize: "var(--fs-sm)",
                 fontFamily: "var(--font-mono)", color: "var(--amber)",
                 border: "1px solid rgba(251,191,36,.25)",
                 display: "flex", alignItems: "flex-start", gap: ".5rem",
               }}>
-                <span style={{ flexShrink: 0, fontSize: ".85rem" }}>⚠️</span>
+                <span style={{ flexShrink: 0, fontSize: "var(--fs-base)" }}>⚠️</span>
                 <span>Se sobreescribirán los datos actuales con los del backup. Esta acción <strong>no se puede deshacer</strong>.</span>
               </div>
 
               {/* Resumen por módulo */}
               <div>
-                <div style={{ fontFamily:"var(--font-mono)", fontSize:".65rem", fontWeight:700,
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", fontWeight:700,
                   textTransform:"uppercase", letterSpacing:".06em", color:"var(--text-muted)",
                   marginBottom:".4rem" }}>
                   Colecciones a restaurar ({importPreview.totalClaves})
@@ -697,7 +697,7 @@ export default function Configuracion() {
                       display:"flex", justifyContent:"space-between", alignItems:"center",
                       padding:".3rem .5rem", borderRadius:4,
                       background:"var(--surface2)", border:"1px solid var(--border)",
-                      fontFamily:"var(--font-mono)", fontSize:".68rem",
+                      fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
                     }}>
                       <span style={{ color:"var(--text)" }}>{r.modulo}</span>
                       <span style={{ color:"var(--text-muted)" }}>

@@ -75,7 +75,7 @@ export const TabEquilibrio = ({
                     new CustomEvent("teg-navigate", { detail: { block:"presupuesto", subtab:"inscripciones" } })
                   )}
                   style={{ background:"none", border:"none", cursor:"pointer",
-                    fontFamily:"var(--font-mono)", fontSize:".65rem",
+                    fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
                     color:"var(--amber)", fontWeight:700, padding:0,
                     textDecoration:"underline" }}>
                   faltan {Math.abs(dif)} corredores →
@@ -102,13 +102,13 @@ export const TabEquilibrio = ({
           border:"1px solid rgba(248,113,113,0.3)", borderRadius:10,
           padding:"0.85rem 1rem", marginBottom:"1rem" }}>
           <div style={{ display:"flex", gap:"0.6rem", alignItems:"flex-start" }}>
-            <span style={{ fontSize:"1.1rem", flexShrink:0 }}>⚠️</span>
+            <span style={{ fontSize:"var(--fs-lg)", flexShrink:0 }}>⚠️</span>
             <div>
-              <div style={{ fontWeight:700, fontSize:"0.82rem",
+              <div style={{ fontWeight:700, fontSize:"var(--fs-base)",
                 color:"var(--red)", marginBottom:"0.35rem" }}>
                 Equilibrio no alcanzable aunque se vendieran todas las plazas
               </div>
-              <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.68rem",
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
                 color:"var(--text-muted)", lineHeight:1.6 }}>
                 Incluso llenando los {p.aforoTotal} dorsales disponibles quedaría
                 un déficit de margen de{" "}
@@ -118,7 +118,7 @@ export const TabEquilibrio = ({
                 sin cubrir.
               </div>
               <div style={{ marginTop:"0.5rem", fontFamily:"var(--font-mono)",
-                fontSize:"0.62rem", color:"var(--text-dim)" }}>
+                fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>
                 Soluciones: subir precios de inscripción, reducir costes fijos,
                 ampliar el aforo máximo, o conseguir más patrocinios.
               </div>
@@ -133,11 +133,11 @@ export const TabEquilibrio = ({
           background:"var(--surface2)", borderRadius:10, border:"1px solid var(--border)" }}>
           <div style={{ display:"flex", justifyContent:"space-between",
             alignItems:"center", marginBottom:"0.55rem", flexWrap:"wrap", gap:"0.4rem" }}>
-            <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem",
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
               color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em" }}>
               Progreso hacia el equilibrio
             </span>
-            <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.68rem", fontWeight:700,
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", fontWeight:700,
               color: dif >= 0 ? "var(--green)" : dif >= -(peG*0.25) ? "var(--amber)" : "var(--red)" }}>
               {dif >= 0
                 ? `✓ Superávit — ${dif} corredores por encima del PE`
@@ -180,13 +180,13 @@ export const TabEquilibrio = ({
             )}
           </div>
           <div style={{ display:"flex", justifyContent:"space-between", marginTop:"0.3rem" }}>
-            <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.55rem", color:"var(--text-dim)" }}>
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>
               {totalN} actuales
             </span>
-            <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.55rem", color:"var(--amber)" }}>
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--amber)" }}>
               PE: {peG}
             </span>
-            <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.55rem", color:"var(--text-dim)" }}>
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>
               Aforo máx: {p.aforoTotal || "—"}
             </span>
           </div>
@@ -197,7 +197,7 @@ export const TabEquilibrio = ({
       {peG !== null && peG > 0 && p.aforoTotal > 0 && (
         <div style={{ marginBottom:"1rem", padding:"0.85rem 1rem",
           background:"var(--surface2)", borderRadius:10, border:"1px solid var(--border)" }}>
-          <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem",
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
             color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em",
             marginBottom:"0.75rem" }}>
             📐 Franja de seguridad · {dif >= 0 ? `+${dif} corredores sobre el PE` : `Faltan ${Math.abs(dif)} para el PE`}
@@ -271,7 +271,7 @@ export const TabEquilibrio = ({
             flexWrap:"wrap", gap:"0.4rem" }}>
             <div style={{ display:"flex", gap:"0.85rem", flexWrap:"wrap" }}>
               <span style={{ display:"flex", alignItems:"center", gap:"0.3rem",
-                fontFamily:"var(--font-mono)", fontSize:"0.58rem", color:"var(--text-dim)" }}>
+                fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>
                 <span style={{ width:10, height:10, borderRadius:2,
                   background: dif >= 0 ? "rgba(52,211,153,0.5)" : "rgba(248,113,113,0.5)",
                   display:"inline-block" }} />
@@ -279,7 +279,7 @@ export const TabEquilibrio = ({
               </span>
               {dif >= 0 && p.aforoTotal > peG && (
                 <span style={{ display:"flex", alignItems:"center", gap:"0.3rem",
-                  fontFamily:"var(--font-mono)", fontSize:"0.58rem", color:"var(--text-dim)" }}>
+                  fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>
                   <span style={{ width:10, height:10, borderRadius:2,
                     background:"rgba(52,211,153,0.15)", border:"1px dashed rgba(52,211,153,0.4)",
                     display:"inline-block" }} />
@@ -287,7 +287,7 @@ export const TabEquilibrio = ({
                 </span>
               )}
             </div>
-            <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.58rem",
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
               color:"var(--text-dim)" }}>
               Aforo máx: {p.aforoTotal}
             </span>
@@ -300,7 +300,7 @@ export const TabEquilibrio = ({
         <div className="card-title mb-2" style={{ color:"var(--amber)" }}>
           ⚖️ Equilibrio por distancia
         </div>
-        <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem",
+        <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
           color:"var(--text-dim)", padding:"0.4rem 0.75rem",
           background:"var(--surface2)", borderRadius:8,
           marginBottom:"0.85rem", borderLeft:"2px solid var(--border)" }}>
@@ -362,7 +362,7 @@ export const TabEquilibrio = ({
                       color: libres === 0 ? "var(--red)" : "var(--text-muted)" }}>
                       {maximo > 0 ? libres : "—"}
                       {libres === 0 && maximo > 0 && (
-                        <span style={{ fontSize:"0.6rem", marginLeft:"0.25rem" }}>🔴</span>
+                        <span style={{ fontSize:"var(--fs-xs)", marginLeft:"0.25rem" }}>🔴</span>
                       )}
                     </td>
                     <td style={{ fontFamily:"var(--font-mono)", fontWeight:700 }}>
@@ -372,7 +372,7 @@ export const TabEquilibrio = ({
                         <span style={{ color: necesarios > libres ? "var(--red)" : "var(--amber)" }}>
                           +{necesarios}
                           {necesarios > libres && (
-                            <span style={{ fontSize:"0.6rem", color:"var(--red)",
+                            <span style={{ fontSize:"var(--fs-xs)", color:"var(--red)",
                               marginLeft:"0.25rem" }}>⚠ sin plazas</span>
                           )}
                         </span>

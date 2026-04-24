@@ -404,7 +404,7 @@ export default function Dashboard() {
         <style>{BLOCK_CSS}</style>
         <div className="block-container" style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:"60vh", gap:"1rem" }}>
           <div style={{ width:36, height:36, borderRadius:"50%", border:"3px solid #1e2d50", borderTopColor:"#22d3ee", animation:"teg-spin 0.7s linear infinite" }} />
-          <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.6rem", color:"var(--text-dim)", letterSpacing:"0.1em" }}>Cargando datos…</div>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)", letterSpacing:"0.1em" }}>Cargando datos…</div>
           <style>{`@keyframes teg-spin { to { transform:rotate(360deg); } }`}</style>
         </div>
       </>
@@ -451,20 +451,20 @@ export default function Dashboard() {
             boxShadow:"0 0 0 4px rgba(251,191,36,.06)",
           }}>
             <div style={{display:"flex",alignItems:"center",gap:".6rem"}}>
-              <span style={{fontSize:"1.2rem"}}>🔬</span>
+              <span style={{fontSize:"var(--fs-lg)"}}>🔬</span>
               <div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:".68rem",fontWeight:800,
+                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",fontWeight:800,
                   color:"var(--amber)",textTransform:"uppercase",letterSpacing:".06em"}}>
                   ⚠️ MODO ESCENARIO ACTIVO
                 </div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:".62rem",color:"var(--text-muted)"}}>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>
                   Escenario «{d.scenarioActivo}» activo en Presupuesto. Este Dashboard siempre muestra <strong>datos reales</strong>, no del escenario.
                 </div>
               </div>
             </div>
             <button
               onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"presupuesto"}}))}
-              style={{fontFamily:"var(--font-mono)",fontSize:".62rem",padding:".28rem .65rem",
+              style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".28rem .65rem",
                 borderRadius:6,border:"1px solid rgba(251,191,36,.4)",
                 background:"rgba(251,191,36,.15)",color:"var(--amber)",cursor:"pointer",
                 flexShrink:0,whiteSpace:"nowrap",fontWeight:700}}>
@@ -486,13 +486,13 @@ export default function Dashboard() {
                 </div>
                 <div className="dash-countdown">
                   {d.yaFue
-                    ? <span className="dash-countdown-num" style={{ fontSize:"2rem" }}>¡Completado!</span>
+                    ? <span className="dash-countdown-num" style={{ fontSize:"var(--fs-xl)" }}>¡Completado!</span>
                     : <>
                         <span className="dash-countdown-num">{d.diasHasta}</span>
                         <span className="dash-countdown-label mono muted">
                           {d.esSemana ? "⚡ días — ¡SEMANA DE CARRERA!" : "días para la carrera"}
                         </span>
-                        <div style={{ fontFamily:"var(--font-mono)", fontSize:".58rem",
+                        <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                           color:"var(--cyan)", marginTop:".4rem", letterSpacing:".02em" }}>
                           📅 {d.eventoFechaStr}
                         </div>
@@ -511,14 +511,14 @@ export default function Dashboard() {
                   <div style={{ display:"flex", alignItems:"center",
                     justifyContent:"space-between", marginBottom: saludExpandida ? "0.5rem" : 0 }}>
                     <div className="mono xs muted" style={{ textTransform:"uppercase",
-                      letterSpacing:"0.08em", fontSize:"0.55rem" }}>
+                      letterSpacing:"0.08em", fontSize:"var(--fs-xs)" }}>
                       Salud del evento
                     </div>
                     <div style={{ display:"flex", alignItems:"center", gap:"0.5rem" }}>
-                      <span className="dash-salud-score" style={{ color: saludColor, fontSize:"1rem" }}>
+                      <span className="dash-salud-score" style={{ color: saludColor, fontSize:"var(--fs-md)" }}>
                         {d.saludGlobal}%
                       </span>
-                      <span className="mono" style={{ color: saludColor, fontSize:"0.65rem" }}>
+                      <span className="mono" style={{ color: saludColor, fontSize:"var(--fs-sm)" }}>
                         {saludExpandida ? "▲" : "▼"}
                       </span>
                     </div>
@@ -545,7 +545,7 @@ export default function Dashboard() {
                             <div className="dash-salud-bar-fill"
                               style={{ width:`${m.score}%`, background: m.color }} />
                           </div>
-                          <span className="mono" style={{ fontSize:"0.58rem", color: m.color,
+                          <span className="mono" style={{ fontSize:"var(--fs-xs)", color: m.color,
                             minWidth:28, textAlign:"right" }}>{m.score}%</span>
                         </div>
                       ))}
@@ -684,9 +684,9 @@ export default function Dashboard() {
             <div className="card mb" style={{ padding:0, overflow:"hidden" }}>
               <div style={{ padding:".75rem 1rem .5rem", borderBottom:"1px solid var(--border)",
                 display:"flex", alignItems:"center", gap:".5rem" }}>
-                <span style={{ fontSize:".85rem" }}>🎯</span>
-                <span style={{ fontWeight:800, fontSize:".82rem", color:"var(--text)" }}>Haz esto ahora</span>
-                <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem", color:"var(--text-muted)",
+                <span style={{ fontSize:"var(--fs-base)" }}>🎯</span>
+                <span style={{ fontWeight:800, fontSize:"var(--fs-base)", color:"var(--text)" }}>Haz esto ahora</span>
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)",
                   background:"var(--surface2)", padding:".1rem .4rem", borderRadius:4, marginLeft:"auto" }}>
                   {acciones.length} acción{acciones.length!==1?"es":""}
                 </span>
@@ -702,16 +702,16 @@ export default function Dashboard() {
                   <div style={{ width:28, height:28, borderRadius:"50%", flexShrink:0,
                     background: bgPrio[ac.prioridad],
                     display:"flex", alignItems:"center", justifyContent:"center",
-                    fontSize:".82rem" }}>
+                    fontSize:"var(--fs-base)" }}>
                     {ac.icon}
                   </div>
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:".78rem", fontWeight:600, color:"var(--text)",
+                    <div style={{ fontSize:"var(--fs-base)", fontWeight:600, color:"var(--text)",
                       whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
                       {ac.accion}
                     </div>
                   </div>
-                  <div style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+                  <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                     color: colorPrio[ac.prioridad], fontWeight:700, flexShrink:0,
                     background: bgPrio[ac.prioridad], padding:".15rem .5rem", borderRadius:4 }}>
                     {ac.cta} →
@@ -740,7 +740,7 @@ export default function Dashboard() {
                 onClick={() => navigate(a.modulo)}>
                 {/* Icono de warning */}
                 <div className="dash-alert-icon-wrap dash-alert-icon-danger">
-                  <span style={{ fontSize:".7rem", lineHeight:1 }}>⚠</span>
+                  <span style={{ fontSize:"var(--fs-sm)", lineHeight:1 }}>⚠</span>
                 </div>
                 {/* Texto */}
                 <div className="dash-alerta-body">
@@ -768,13 +768,13 @@ export default function Dashboard() {
               }}>
               <div style={{ display:"flex", alignItems:"center", gap:".45rem" }}>
                 <div className="dash-alert-warning-icon dash-alert-warning-icon-amber">⚡</div>
-                <span style={{ fontFamily:"var(--font-mono)", fontSize:".68rem",
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
                   fontWeight:700, color:"var(--amber)", textTransform:"uppercase",
                   letterSpacing:".06em" }}>
                   {d.alertasAvisos.length} Aviso{d.alertasAvisos.length !== 1 ? "s" : ""}
                 </span>
               </div>
-              <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                 color:"var(--text-dim)", transition:"transform .2s",
                 display:"inline-block",
                 transform: alertasExpandidas ? "rotate(180deg)" : "rotate(0deg)" }}>
@@ -788,7 +788,7 @@ export default function Dashboard() {
                     className={`dash-alerta ${a.icon==="🔵" ? "dash-alerta-info" : "dash-alerta-warning"} dash-alerta-clickable`}
                     onClick={() => navigate(a.modulo)}>
                     <div className={`dash-alert-icon-wrap ${a.icon==="🔵" ? "dash-alert-icon-info" : "dash-alert-icon-warning"}`}>
-                      <span style={{ fontSize:".65rem", lineHeight:1 }}>
+                      <span style={{ fontSize:"var(--fs-sm)", lineHeight:1 }}>
                         {a.icon==="🔵" ? "ℹ" : "⚡"}
                       </span>
                     </div>
@@ -821,40 +821,40 @@ export default function Dashboard() {
                 width:26, height:26, borderRadius:6, flexShrink:0,
                 background:"rgba(52,211,153,0.15)", border:"1px solid rgba(52,211,153,0.3)",
                 display:"flex", alignItems:"center", justifyContent:"center",
-                fontSize:".72rem", color:"var(--green)",
+                fontSize:"var(--fs-sm)", color:"var(--green)",
               }}>✓</div>
               <span style={{ fontFamily:"var(--font-mono)", fontWeight:800,
-                fontSize:".72rem", color:"var(--green)", textTransform:"uppercase",
+                fontSize:"var(--fs-sm)", color:"var(--green)", textTransform:"uppercase",
                 letterSpacing:".08em" }}>
                 Todo en orden
               </span>
-              <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                 color:"var(--text-dim)", marginLeft:"auto" }}>
                 sin alertas activas
               </span>
             </div>
             <div style={{ display:"flex", gap:".75rem", flexWrap:"wrap" }}>
               {d.totalInscritos > 0 && (
-                <span style={{ fontFamily:"var(--font-mono)", fontSize:".62rem",
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                   color:"var(--cyan)" }}>
                   🏃 {d.totalInscritos} inscritos
                   {d.ocupacionGlobal !== null ? ` (${d.ocupacionGlobal}%)` : ""}
                 </span>
               )}
               {d.coberturaVol > 0 && (
-                <span style={{ fontFamily:"var(--font-mono)", fontSize:".62rem",
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                   color:"var(--green)" }}>
                   👥 {d.coberturaVol}% voluntarios
                 </span>
               )}
               {d.resultado > 0 && (
-                <span style={{ fontFamily:"var(--font-mono)", fontSize:".62rem",
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                   color:"var(--green)" }}>
                   💰 {fmtEur(d.resultado)} resultado
                 </span>
               )}
               {d.progresoGlobal > 0 && (
-                <span style={{ fontFamily:"var(--font-mono)", fontSize:".62rem",
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                   color:"var(--violet)" }}>
                   📋 {d.progresoGlobal}% tareas
                 </span>
@@ -993,10 +993,10 @@ export default function Dashboard() {
                         return (
                           <div key={item.label}>
                             <div style={{ display:"flex", justifyContent:"space-between", marginBottom:".18rem" }}>
-                              <span style={{ fontFamily:"var(--font-mono)", fontSize:".62rem", color:"var(--text-muted)" }}>
+                              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>
                                 {item.tipo === "+" ? "↑" : "↓"} {item.label}
                               </span>
-                              <span style={{ fontFamily:"var(--font-mono)", fontSize:".62rem", color:item.color, fontWeight:700 }}>
+                              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:item.color, fontWeight:700 }}>
                                 {fmtEur(item.val)}
                               </span>
                             </div>
@@ -1018,15 +1018,15 @@ export default function Dashboard() {
                 marginTop:".6rem", paddingTop:".5rem",
                 borderTop:"1px solid var(--border)",
               }}>
-                <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
+                <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                   color:"var(--text-muted)",display:"flex",alignItems:"center",gap:".4rem"}}>
                   Resultado
                   <span className={`badge ${d.roiGlobal>=0?"badge-green":"badge-red"}`}
-                    style={{fontSize:".5rem"}}>
+                    style={{fontSize:"var(--fs-2xs)"}}>
                     Margen {d.roiGlobal>0?"+":""}{d.roiGlobal}%
                   </span>
                 </span>
-                <span style={{fontFamily:"var(--font-mono)",fontSize:".78rem",
+                <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-base)",
                   fontWeight:800,color:resColor}}>
                   {fmtEur(d.resultado)}
                 </span>
@@ -1215,7 +1215,7 @@ function MiniTimeline({ hitos, tramos, eventoFecha, diasHasta, yaFue, navigate }
         <div style={{ position:"absolute", top:8, left:`${hoyPct}%`,
           transform:"translateX(-50%)", display:"flex", flexDirection:"column",
           alignItems:"center", gap:0 }}>
-          <div style={{ fontFamily:"var(--font-mono)", fontSize:".5rem",
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)",
             color:"var(--cyan)", fontWeight:800, letterSpacing:".04em",
             lineHeight:1, marginBottom:2 }}>HOY</div>
           <div style={{ width:2, height:24, background:"var(--cyan)",
@@ -1226,7 +1226,7 @@ function MiniTimeline({ hitos, tramos, eventoFecha, diasHasta, yaFue, navigate }
         {eventoPct !== null && (
           <div title={yaFue ? "Evento completado" : "Día del evento"}
             style={{ position:"absolute", top:6, left:`${eventoPct}%`,
-              transform:"translateX(-50%)", fontSize:"1.1rem",
+              transform:"translateX(-50%)", fontSize:"var(--fs-lg)",
               cursor:"default", lineHeight:1 }}>
             {yaFue ? "✅" : "🏁"}
           </div>
@@ -1235,11 +1235,11 @@ function MiniTimeline({ hitos, tramos, eventoFecha, diasHasta, yaFue, navigate }
 
       {/* Leyenda inferior */}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
-        fontFamily:"var(--font-mono)", fontSize:".58rem", color:"var(--text-dim)" }}>
+        fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>
         <span>{fmtFecha(inicio)}</span>
         <span style={{
           color: yaFue ? "var(--green)" : diasHasta <= 7 ? "var(--red)" : diasHasta <= 30 ? "var(--amber)" : "var(--cyan)",
-          fontWeight:700, fontSize:".65rem",
+          fontWeight:700, fontSize:"var(--fs-sm)",
         }}>
           {yaFue ? "¡Evento completado!" : diasHasta === 0 ? "¡HOY es el evento!" : `${diasHasta}d para el evento`}
         </span>
@@ -1259,11 +1259,11 @@ function MiniTimeline({ hitos, tramos, eventoFecha, diasHasta, yaFue, navigate }
                   padding:".15rem .1rem", borderRadius:3 }}
                 onMouseEnter={e => e.currentTarget.style.background = "var(--surface2)"}
                 onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                <span style={{ fontSize:".62rem", color:"var(--text-muted)",
+                <span style={{ fontSize:"var(--fs-xs)", color:"var(--text-muted)",
                   overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1 }}>
                   ⚡ {h.nombre}
                 </span>
-                <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                   color:col, fontWeight:700, flexShrink:0, marginLeft:".5rem" }}>
                   {dias < 0 ? `${Math.abs(dias)}d atrás` : dias === 0 ? "HOY" : `${dias}d`}
                 </span>
@@ -1281,7 +1281,7 @@ function EmptyChart({ mensaje, sub }) {
     <div className="dash-empty-chart">
       <div className="dash-empty-icon">📊</div>
       <div className="mono xs bold" style={{ color:"var(--text-muted)" }}>{mensaje}</div>
-      {sub && <div className="mono" style={{ fontSize:"0.58rem", color:"var(--text-dim)", marginTop:"0.25rem", textAlign:"center", lineHeight:1.4 }}>{sub}</div>}
+      {sub && <div className="mono" style={{ fontSize:"var(--fs-xs)", color:"var(--text-dim)", marginTop:"0.25rem", textAlign:"center", lineHeight:1.4 }}>{sub}</div>}
     </div>
   );
 }
@@ -1289,7 +1289,7 @@ function EmptyChart({ mensaje, sub }) {
 // ─── Estilos ──────────────────────────────────────────────────────────────────
 const TOOLTIP_STYLE = {
   background:"var(--bg)", border:"1px solid #1e2d50",
-  borderRadius:8, fontSize:"0.65rem", fontFamily:"var(--font-mono)",
+  borderRadius:8, fontSize:"var(--fs-sm)", fontFamily:"var(--font-mono)",
 };
 
 const DASH_EXTRA_CSS = `
@@ -1541,9 +1541,9 @@ function WidgetInscritos({ tramos, inscritos, onSave }) {
         onClick={() => setOpen(!open)}
       >
         <div style={{ display:"flex", alignItems:"center", gap:"0.5rem" }}>
-          <span style={{ fontSize:"1.2rem" }}>🏃</span>
+          <span style={{ fontSize:"var(--fs-lg)" }}>🏃</span>
           <div>
-            <div style={{ fontSize:"0.82rem", fontWeight:700, color:"var(--cyan)" }}>Actualización rápida de inscritos</div>
+            <div style={{ fontSize:"var(--fs-base)", fontWeight:700, color:"var(--cyan)" }}>Actualización rápida de inscritos</div>
             <div className="mono xs muted" style={{ marginTop:2 }}>Volcar datos de la plataforma externa al presupuesto</div>
           </div>
         </div>
@@ -1555,7 +1555,7 @@ function WidgetInscritos({ tramos, inscritos, onSave }) {
           <div style={{ display:"flex", gap:"1rem", flexWrap:"wrap" }}>
             
             <div style={{ flex:1, minWidth:200 }}>
-              <label style={{ display:"block", fontSize:"0.62rem", fontFamily:"var(--font-mono)", fontWeight:700, textTransform:"uppercase", color:"var(--text-muted)", marginBottom:"0.3rem" }}>Tramo activo</label>
+              <label style={{ display:"block", fontSize:"var(--fs-xs)", fontFamily:"var(--font-mono)", fontWeight:700, textTransform:"uppercase", color:"var(--text-muted)", marginBottom:"0.3rem" }}>Tramo activo</label>
               <select 
                 value={tramoSel} 
                 onChange={e => setTramoSel(parseInt(e.target.value))}
@@ -1570,7 +1570,7 @@ function WidgetInscritos({ tramos, inscritos, onSave }) {
             <div style={{ flex:2, display:"flex", gap:"0.6rem", flexWrap:"wrap" }}>
               {["TG7", "TG13", "TG25"].map(dist => (
                 <div key={dist} style={{ flex:1, minWidth:80 }}>
-                  <label style={{ display:"block", fontSize:"0.62rem", fontFamily:"var(--font-mono)", fontWeight:700, textTransform:"uppercase", color:"var(--cyan)", marginBottom:"0.3rem" }}>{dist}</label>
+                  <label style={{ display:"block", fontSize:"var(--fs-xs)", fontFamily:"var(--font-mono)", fontWeight:700, textTransform:"uppercase", color:"var(--cyan)", marginBottom:"0.3rem" }}>{dist}</label>
                   <input 
                     type="number" min="0" 
                     value={vals[dist]} 

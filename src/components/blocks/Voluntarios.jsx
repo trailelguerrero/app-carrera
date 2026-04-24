@@ -132,10 +132,10 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
           El equipo organizador se pondrá en contacto contigo próximamente por WhatsApp o teléfono.
         </p>
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "1rem 1.5rem", marginBottom: "1.5rem", textAlign: "left" }}>
-          <div style={{ fontSize: "0.65rem", fontFamily: "var(--font-mono)", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.75rem" }}>Tu registro</div>
+          <div style={{ fontSize: "var(--fs-sm)", fontFamily: "var(--font-mono)", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.75rem" }}>Tu registro</div>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
             {[["Nombre", `${form.nombre} ${form.apellidos}`], ["Teléfono", form.telefono], ["Email", form.email || "—"], ["Talla camiseta", form.talla]].map(([k, v]) => (
-              <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem" }}>
+              <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--fs-base)" }}>
                 <span style={{ color: "var(--text-muted)" }}>{k}</span>
                 <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--text)" }}>{v}</span>
               </div>
@@ -158,18 +158,18 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
           <div onClick={e => e.stopPropagation()} style={{ position: "relative", maxWidth: 480, width: "100%", animation: "slideUp 0.2s ease" }}>
             <div style={{ position: "absolute", top: -14, right: -14, zIndex: 10 }}>
               <button onClick={() => setLightbox(null)}
-                style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", cursor: "pointer", fontSize: "0.9rem", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+                style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", cursor: "pointer", fontSize: "var(--fs-md)", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
             </div>
             <div style={{ background: "var(--surface)", border: "1px solid var(--border-light)", borderRadius: 16, overflow: "hidden" }}>
-              <div style={{ padding: "0.75rem 1rem", borderBottom: "1px solid var(--border)", fontFamily: "var(--font-mono)", fontSize: "0.7rem", color: "var(--text-muted)", display: "flex", gap: "0.75rem" }}>
-                <button onClick={() => setLightbox("front")} style={{ background: "none", border: "none", cursor: "pointer", color: lightbox === "front" ? "var(--cyan)" : "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: "0.7rem", fontWeight: 700, paddingBottom: "0.15rem", borderBottom: lightbox === "front" ? "2px solid var(--cyan)" : "2px solid transparent" }}>Vista delantera</button>
-                <button onClick={() => setLightbox("back")} style={{ background: "none", border: "none", cursor: "pointer", color: lightbox === "back" ? "var(--violet)" : "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: "0.7rem", fontWeight: 700, paddingBottom: "0.15rem", borderBottom: lightbox === "back" ? "2px solid var(--violet)" : "2px solid transparent" }}>Vista trasera</button>
+              <div style={{ padding: "0.75rem 1rem", borderBottom: "1px solid var(--border)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)", display: "flex", gap: "0.75rem" }}>
+                <button onClick={() => setLightbox("front")} style={{ background: "none", border: "none", cursor: "pointer", color: lightbox === "front" ? "var(--cyan)" : "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 700, paddingBottom: "0.15rem", borderBottom: lightbox === "front" ? "2px solid var(--cyan)" : "2px solid transparent" }}>Vista delantera</button>
+                <button onClick={() => setLightbox("back")} style={{ background: "none", border: "none", cursor: "pointer", color: lightbox === "back" ? "var(--violet)" : "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 700, paddingBottom: "0.15rem", borderBottom: lightbox === "back" ? "2px solid var(--violet)" : "2px solid transparent" }}>Vista trasera</button>
               </div>
               <img src={lightbox === "front" ? (imgF || SHIRT_PLACEHOLDER_FRONT) : (imgB || SHIRT_PLACEHOLDER_BACK)}
                 alt={lightbox === "front" ? "Camiseta delantera" : "Camiseta trasera"}
                 style={{ width: "100%", display: "block", maxHeight: "70vh", objectFit: "contain" }} />
             </div>
-            <div style={{ textAlign: "center", marginTop: "0.6rem", fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-dim)" }}>Toca fuera para cerrar</div>
+            <div style={{ textAlign: "center", marginTop: "0.6rem", fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)" }}>Toca fuera para cerrar</div>
           </div>
         </div>
       )}
@@ -182,10 +182,10 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
             style={{ background: "var(--surface)", border: "1px solid var(--border-light)", borderRadius: 16, maxWidth: 480, width: "100%", maxHeight: "85vh", overflow: "hidden", display: "flex", flexDirection: "column", animation: "slideUp 0.2s ease" }}>
             <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div>
-                <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "0.95rem" }}>📐 Guía de tallas</div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>Medidas en centímetros — mide sobre la camiseta plana</div>
+                <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "var(--fs-md)" }}>📐 Guía de tallas</div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: "0.2rem" }}>Medidas en centímetros — mide sobre la camiseta plana</div>
               </div>
-              <button onClick={() => setGuiaTallas(false)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "1.1rem" }}>✕</button>
+              <button onClick={() => setGuiaTallas(false)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "var(--fs-lg)" }}>✕</button>
             </div>
             {/* If custom guía image uploaded, show it prominently */}
             {imgGuiaTallas && (
@@ -214,21 +214,21 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
                   <div key={n} style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem" }}>
                     <div style={{ width: 8, height: 8, borderRadius: "50%", background: c, marginTop: 3, flexShrink: 0 }} />
                     <div>
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.68rem", fontWeight: 700, color: c }}>{n}: </span>
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.62rem", color: "var(--text-muted)" }}>{desc}</span>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 700, color: c }}>{n}: </span>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>{desc}</span>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
             <div style={{ overflowY: "auto", flex: 1 }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.78rem" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--fs-base)" }}>
                 <thead>
                   <tr style={{ background: "var(--surface2)" }}>
-                    <th style={{ padding: "0.5rem 1rem", textAlign: "left", fontFamily: "var(--font-mono)", fontSize: "0.65rem", color: "var(--text-muted)", borderBottom: "1px solid var(--border)" }}>TALLA</th>
-                    <th style={{ padding: "0.5rem", textAlign: "center", fontFamily: "var(--font-mono)", fontSize: "0.65rem", color: "var(--cyan)", borderBottom: "1px solid var(--border)" }}>PECHO (cm)</th>
-                    <th style={{ padding: "0.5rem", textAlign: "center", fontFamily: "var(--font-mono)", fontSize: "0.65rem", color: "var(--violet)", borderBottom: "1px solid var(--border)" }}>LARGO (cm)</th>
-                    <th style={{ padding: "0.5rem 1rem", textAlign: "center", fontFamily: "var(--font-mono)", fontSize: "0.65rem", color: "var(--green)", borderBottom: "1px solid var(--border)" }}>HOMBRO (cm)</th>
+                    <th style={{ padding: "0.5rem 1rem", textAlign: "left", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)", borderBottom: "1px solid var(--border)" }}>TALLA</th>
+                    <th style={{ padding: "0.5rem", textAlign: "center", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--cyan)", borderBottom: "1px solid var(--border)" }}>PECHO (cm)</th>
+                    <th style={{ padding: "0.5rem", textAlign: "center", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--violet)", borderBottom: "1px solid var(--border)" }}>LARGO (cm)</th>
+                    <th style={{ padding: "0.5rem 1rem", textAlign: "center", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--green)", borderBottom: "1px solid var(--border)" }}>HOMBRO (cm)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -236,7 +236,7 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
                     <tr key={row.talla} style={{ background: i % 2 === 0 ? "transparent" : "rgba(30,45,80,0.2)", cursor: "pointer" }}
                       onClick={() => { update("talla", row.talla); setGuiaTallas(false); }}>
                       <td style={{ padding: "0.5rem 1rem", fontFamily: "var(--font-mono)", fontWeight: 700, color: form.talla === row.talla ? "var(--cyan)" : "var(--text)", borderBottom: "1px solid rgba(30,45,80,0.3)" }}>
-                        {row.talla} {form.talla === row.talla && <span style={{ color: "var(--green)", fontSize: "0.7rem" }}>✓</span>}
+                        {row.talla} {form.talla === row.talla && <span style={{ color: "var(--green)", fontSize: "var(--fs-sm)" }}>✓</span>}
                       </td>
                       <td style={{ padding: "0.5rem", textAlign: "center", fontFamily: "var(--font-mono)", color: "var(--text)", borderBottom: "1px solid rgba(30,45,80,0.3)" }}>{row.pecho}</td>
                       <td style={{ padding: "0.5rem", textAlign: "center", fontFamily: "var(--font-mono)", color: "var(--text)", borderBottom: "1px solid rgba(30,45,80,0.3)" }}>{row.largo}</td>
@@ -245,7 +245,7 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
                   ))}
                 </tbody>
               </table>
-              <div style={{ padding: "0.75rem 1rem", fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-dim)" }}>
+              <div style={{ padding: "0.75rem 1rem", fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)" }}>
                 💡 Toca una fila para seleccionar esa talla directamente
               </div>
             </div>
@@ -256,7 +256,7 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
       <div style={{ maxWidth: 560, margin: "0 auto", padding: "2rem 1.25rem 4rem" }}>
         {/* Header */}
         <div style={{ textAlign: "center", marginBottom: "2rem", animation: "fadeUp 0.4s ease both" }}>
-          <div style={{ fontSize: "0.6rem", fontFamily: "var(--font-mono)", color: "var(--cyan)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "0.5rem" }}>🏔️ {config.lugar} · {config.provincia} · {new Date(config.fecha).toLocaleDateString("es-ES",{day:"2-digit",month:"short",year:"numeric"})}</div>
+          <div style={{ fontSize: "var(--fs-xs)", fontFamily: "var(--font-mono)", color: "var(--cyan)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "0.5rem" }}>🏔️ {config.lugar} · {config.provincia} · {new Date(config.fecha).toLocaleDateString("es-ES",{day:"2-digit",month:"short",year:"numeric"})}</div>
           <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.8rem, 5vw, 2.6rem)", fontWeight: 800, background: "linear-gradient(135deg, #fff 0%, var(--cyan) 60%, var(--violet) 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", lineHeight: 1, marginBottom: "0.5rem" }}>
             Trail El Guerrero
           </h1>
@@ -264,8 +264,8 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
           <div style={{ display: "inline-flex", gap: "1.5rem", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "0.6rem 1.25rem" }}>
             {[["TG7","7 km"],["TG13","13 km"],["TG25","25 km"]].map(([k,v]) => (
               <div key={k} style={{ textAlign: "center" }}>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.65rem", fontWeight: 700, color: DIST_COLORS[k] }}>{k}</div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-muted)" }}>{v}</div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 700, color: DIST_COLORS[k] }}>{k}</div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>{v}</div>
               </div>
             ))}
           </div>
@@ -273,7 +273,7 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
 
         {/* FOTOS CAMISETA */}
         <div style={{ marginBottom: "1.25rem", animation: "fadeUp 0.4s 0.05s ease both", opacity: 0, animationFillMode: "forwards" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.62rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.6rem" }}>👕 Camiseta técnica de voluntario</div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.6rem" }}>👕 Camiseta técnica de voluntario</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
             {[
               { key: "front", label: "Vista delantera", src: imgF || SHIRT_PLACEHOLDER_FRONT, accent: "var(--cyan)" },
@@ -285,8 +285,8 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
                 onMouseLeave={e => { e.currentTarget.style.borderColor = `${accent}33`; e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}>
                 <img src={src} alt={label} style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} />
                 <div style={{ padding: "0.45rem 0.65rem", display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: `1px solid ${accent}22` }}>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.62rem", color: "var(--text-muted)" }}>{label}</span>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: accent }}>🔍 Ver</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>{label}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: accent }}>🔍 Ver</span>
                 </div>
               </div>
             ))}
@@ -296,8 +296,8 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
         {/* Form card */}
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", animation: "fadeUp 0.5s 0.1s ease both", opacity: 0, animationFillMode: "forwards" }}>
           <div style={{ background: "linear-gradient(135deg, rgba(34,211,238,0.1), rgba(167,139,250,0.08))", borderBottom: "1px solid var(--border)", padding: "1rem 1.5rem" }}>
-            <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "0.9rem" }}>Datos del voluntario</div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.62rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>Todos los campos con * son obligatorios</div>
+            <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "var(--fs-md)" }}>Datos del voluntario</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: "0.2rem" }}>Todos los campos con * son obligatorios</div>
           </div>
 
           <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.1rem" }}>
@@ -334,26 +334,26 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
             {/* Talla con guía */}
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.4rem" }}>
-                <label style={{ fontFamily: "var(--font-display)", fontSize: "0.78rem", fontWeight: 600, color: errores.talla ? "var(--red)" : "var(--text)" }}>
+                <label style={{ fontFamily: "var(--font-display)", fontSize: "var(--fs-base)", fontWeight: 600, color: errores.talla ? "var(--red)" : "var(--text)" }}>
                   Talla de camiseta *
                 </label>
                 <button onClick={() => setGuiaTallas(true)}
-                  style={{ background: "var(--cyan-dim)", color: "var(--cyan)", border: "1px solid rgba(34,211,238,0.2)", borderRadius: 5, padding: "0.18rem 0.55rem", fontFamily: "var(--font-mono)", fontSize: "0.6rem", fontWeight: 700, cursor: "pointer", transition: "all 0.15s" }}>
+                  style={{ background: "var(--cyan-dim)", color: "var(--cyan)", border: "1px solid rgba(34,211,238,0.2)", borderRadius: 5, padding: "0.18rem 0.55rem", fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700, cursor: "pointer", transition: "all 0.15s" }}>
                   📐 Guía de tallas
                 </button>
               </div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-muted)", marginBottom: "0.5rem" }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginBottom: "0.5rem" }}>
                 Recibirás una camiseta técnica de voluntario · Consulta la guía si tienes dudas
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
                 {TALLAS.map(t => (
                   <button key={t} onClick={() => update("talla", t)}
-                    style={{ padding: "0.45rem 0.7rem", borderRadius: 7, border: `1px solid ${form.talla === t ? "var(--cyan)" : "var(--border)"}`, background: form.talla === t ? "var(--cyan-dim)" : "var(--surface2)", color: form.talla === t ? "var(--cyan)" : "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: "0.72rem", fontWeight: 700, cursor: "pointer", transition: "all 0.15s", transform: form.talla === t ? "scale(1.08)" : "scale(1)" }}>
+                    style={{ padding: "0.45rem 0.7rem", borderRadius: 7, border: `1px solid ${form.talla === t ? "var(--cyan)" : "var(--border)"}`, background: form.talla === t ? "var(--cyan-dim)" : "var(--surface2)", color: form.talla === t ? "var(--cyan)" : "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 700, cursor: "pointer", transition: "all 0.15s", transform: form.talla === t ? "scale(1.08)" : "scale(1)" }}>
                     {t}
                   </button>
                 ))}
               </div>
-              {errores.talla && <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.62rem", color: "var(--red)", marginTop: "0.3rem" }}>⚠ {errores.talla}</div>}
+              {errores.talla && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--red)", marginTop: "0.3rem" }}>⚠ {errores.talla}</div>}
             </div>
 
             {opcionPuesto && (
@@ -368,8 +368,8 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
             {opcionVehiculo && (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 10, padding: "0.85rem 1rem" }}>
                 <div>
-                  <div style={{ fontFamily: "var(--font-display)", fontSize: "0.82rem", fontWeight: 600 }}>¿Dispones de vehículo propio?</div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-muted)", marginTop: "0.15rem" }}>Puede facilitar el traslado a puestos remotos</div>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--fs-base)", fontWeight: 600 }}>¿Dispones de vehículo propio?</div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: "0.15rem" }}>Puede facilitar el traslado a puestos remotos</div>
                 </div>
                 <button onClick={() => update("coche", !form.coche)}
                   style={{ width: 48, height: 26, borderRadius: 13, background: form.coche ? "var(--green)" : "var(--surface3)", border: "none", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
@@ -389,7 +389,7 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
             </FormField>
 
             <button onClick={handleSubmit}
-              style={{ width: "100%", padding: "0.85rem", background: "linear-gradient(135deg, rgba(34,211,238,0.2), rgba(167,139,250,0.15))", border: "1px solid rgba(34,211,238,0.35)", borderRadius: 10, color: "var(--text)", fontFamily: "var(--font-display)", fontSize: "0.9rem", fontWeight: 800, cursor: "pointer", letterSpacing: "0.03em", transition: "all 0.18s", marginTop: "0.25rem" }}
+              style={{ width: "100%", padding: "0.85rem", background: "linear-gradient(135deg, rgba(34,211,238,0.2), rgba(167,139,250,0.15))", border: "1px solid rgba(34,211,238,0.35)", borderRadius: 10, color: "var(--text)", fontFamily: "var(--font-display)", fontSize: "var(--fs-md)", fontWeight: 800, cursor: "pointer", letterSpacing: "0.03em", transition: "all 0.18s", marginTop: "0.25rem" }}
               onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(34,211,238,0.15)"; }}
               onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}>
               ✓ Registrarme como voluntario
@@ -397,11 +397,11 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
           </div>
         </div>
 
-        <div style={{ textAlign: "center", marginTop: "1.25rem", fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-dim)", lineHeight: 1.6 }}>
+        <div style={{ textAlign: "center", marginTop: "1.25rem", fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)", lineHeight: 1.6 }}>
           Tus datos se usarán exclusivamente para la coordinación del evento.<br />
           Organiza: {config.organizador} · {config.lugar}, {config.provincia}
         </div>
-        <button onClick={onVolver} style={{ display: "block", margin: "1rem auto 0", background: "none", border: "none", color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: "0.65rem", cursor: "pointer", textDecoration: "underline" }}>
+        <button onClick={onVolver} style={{ display: "block", margin: "1rem auto 0", background: "none", border: "none", color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", cursor: "pointer", textDecoration: "underline" }}>
           ← Volver al panel de organización
         </button>
       </div>
@@ -413,10 +413,10 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
 function FormField({ label, error, hint, children }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
-      <label style={{ fontFamily: "var(--font-display)", fontSize: "0.78rem", fontWeight: 600, color: error ? "var(--red)" : "var(--text)" }}>{label}</label>
-      {hint && <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-muted)", marginTop: "-0.2rem" }}>{hint}</div>}
+      <label style={{ fontFamily: "var(--font-display)", fontSize: "var(--fs-base)", fontWeight: 600, color: error ? "var(--red)" : "var(--text)" }}>{label}</label>
+      {hint && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: "-0.2rem" }}>{hint}</div>}
       {children}
-      {error && <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.62rem", color: "var(--red)" }}>⚠ {error}</div>}
+      {error && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--red)" }}>⚠ {error}</div>}
     </div>
   );
 }
@@ -566,7 +566,7 @@ export default function App() {
               <h1 className="block-title" style={{margin:0}}>👥 Voluntarios</h1>
               <button
                 onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"proyecto"}}))}
-                style={{fontFamily:"var(--font-mono)",fontSize:".58rem",padding:".15rem .45rem",
+                style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".15rem .45rem",
                   borderRadius:4,border:"1px solid rgba(34,211,238,.3)",
                   background:"rgba(34,211,238,.1)",color:"var(--cyan)",cursor:"pointer"}}>
                 📋 Ver en Proyecto →
@@ -597,12 +597,12 @@ export default function App() {
               }}
               className="btn btn-ghost btn-sm"
               title={`Copiar enlace del formulario de registro de voluntarios:\n${window.location.origin}/voluntarios/registro`}
-              style={{ fontFamily:"var(--font-mono)", fontSize:".68rem" }}>
+              style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)" }}>
               {urlCopiada ? "✓ Enlace copiado" : "🔗 Formulario registro"}
             </button>
             <button
               className="btn btn-ghost btn-sm"
-              style={{ fontFamily:"var(--font-mono)", fontSize:".68rem" }}
+              style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)" }}
               onClick={async () => {
                 if (qrDataUrl) { setQrDataUrl(null); return; }
                 setQrLoading(true);
@@ -634,25 +634,25 @@ export default function App() {
         {qrDataUrl && (
           <div className="card mb" style={{ padding:"1rem", display:"flex", flexDirection:"column",
             alignItems:"center", gap:".65rem", background:"var(--surface2)" }}>
-            <div style={{ fontFamily:"var(--font-mono)", fontSize:".62rem", fontWeight:700,
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
               color:"var(--cyan)", textTransform:"uppercase", letterSpacing:".06em" }}>
               🔲 QR — Formulario de voluntarios
             </div>
             <img src={qrDataUrl} alt="QR formulario voluntarios"
               style={{ borderRadius:8, border:"4px solid #fff", width:200, height:200 }} />
-            <div style={{ fontFamily:"var(--font-mono)", fontSize:".58rem", color:"var(--text-muted)",
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)",
               textAlign:"center", wordBreak:"break-all", maxWidth:280 }}>
               {window.location.origin + "/voluntarios/registro"}
             </div>
             <div style={{ display:"flex", gap:".5rem" }}>
               <a href={qrDataUrl} download="qr-voluntarios-teg.png"
                 className="btn btn-ghost btn-sm"
-                style={{ fontFamily:"var(--font-mono)", fontSize:".68rem" }}>
+                style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)" }}>
                 ⬇ Descargar PNG
               </a>
               <button
                 className="btn btn-ghost btn-sm"
-                style={{ fontFamily:"var(--font-mono)", fontSize:".68rem" }}
+                style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)" }}
                 onClick={() => navigator.clipboard.writeText(window.location.origin + "/voluntarios/registro")}>
                 📋 Copiar enlace
               </button>
@@ -665,10 +665,10 @@ export default function App() {
           <button
             onClick={() => setConfigOpen(v => !v)}
             style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",background:"none",border:"none",cursor:"pointer",padding:0}}>
-            <span style={{fontFamily:"var(--font-mono)",fontSize:"0.62rem",fontWeight:700,color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:"0.1em"}}>
+            <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:"0.1em"}}>
               ⚙️ Configuración formulario público
             </span>
-            <span style={{fontFamily:"var(--font-mono)",fontSize:"0.6rem",color:"var(--text-dim)"}}>
+            <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-dim)"}}>
               {configOpen ? "▲ ocultar" : "▼ mostrar"}
             </span>
           </button>
@@ -815,21 +815,21 @@ function ImagenUploader({ label, img, onImg, accent }) {
         onMouseEnter={e => { e.currentTarget.style.borderColor = accent; }}
         onMouseLeave={e => { e.currentTarget.style.borderColor = `${accent}33`; }}>
         {compressing ? (
-          <div style={{ width: 24, height: 24, borderRadius: 4, background: `${accent}18`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", flexShrink: 0 }}>⏳</div>
+          <div style={{ width: 24, height: 24, borderRadius: 4, background: `${accent}18`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--fs-sm)", flexShrink: 0 }}>⏳</div>
         ) : !isPlaceholder ? (
           <img src={img} alt={label} style={{ width: 24, height: 24, objectFit: "cover", borderRadius: 4, flexShrink: 0 }} />
         ) : (
-          <div style={{ width: 24, height: 24, borderRadius: 4, background: `${accent}18`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", flexShrink: 0 }}>📷</div>
+          <div style={{ width: 24, height: 24, borderRadius: 4, background: `${accent}18`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--fs-sm)", flexShrink: 0 }}>📷</div>
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", fontWeight: 700, color: accent }}>{label}</div>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.55rem", color: "var(--text-dim)" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700, color: accent }}>{label}</div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)" }}>
             {compressing ? "Comprimiendo…" : !isPlaceholder ? "✓ Imagen cargada" : "Subir imagen"}
           </div>
         </div>
         {!isPlaceholder && (
           <button onClick={e => { e.preventDefault(); e.stopPropagation(); onImg(null); }}
-            style={{ background: "none", border: "none", color: "var(--text-dim)", cursor: "pointer", fontSize: "0.7rem", flexShrink: 0 }}
+            style={{ background: "none", border: "none", color: "var(--text-dim)", cursor: "pointer", fontSize: "var(--fs-sm)", flexShrink: 0 }}
             title="Eliminar imagen">✕</button>
         )}
       </div>
@@ -1112,16 +1112,16 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
               borderBottom: alertasColapsadas ? "none" : "1px solid rgba(248,113,113,.2)"}}>
             <span style={{width:8,height:8,borderRadius:"50%",
               background:"var(--red)",flexShrink:0,display:"inline-block"}}/>
-            <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:".72rem",
+            <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:"var(--fs-sm)",
               color:"var(--red)",flex:1}}>
               ⚠️ Puestos con cobertura insuficiente
             </span>
-            <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",
+            <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
               color:"var(--red)",padding:".1rem .4rem",borderRadius:20,
               background:"rgba(248,113,113,.15)"}}>
               {alertas.length}
             </span>
-            <span style={{fontFamily:"var(--font-mono)",fontSize:".7rem",
+            <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
               color:"rgba(248,113,113,.6)",flexShrink:0,
               transform:alertasColapsadas?"rotate(-90deg)":"rotate(0deg)",transition:"transform .18s"}}>▼</span>
           </button>
@@ -1133,11 +1133,11 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
                   title="Click para abrir ficha del puesto"
                   style={{ display:"flex",alignItems:"center",justifyContent:"space-between",
                     padding:"0.3rem 0.3rem",borderBottom:"1px solid rgba(248,113,113,0.1)",
-                    fontSize:"0.78rem",cursor:"pointer",borderRadius:4,transition:"background .12s"}}
+                    fontSize:"var(--fs-base)",cursor:"pointer",borderRadius:4,transition:"background .12s"}}
                   onMouseEnter={e => e.currentTarget.style.background="rgba(248,113,113,.08)"}
                   onMouseLeave={e => e.currentTarget.style.background="transparent"}>
                   <span>{p.nombre}</span>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:"0.7rem",
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
                     color:"var(--red)",fontWeight:700}}>
                     {p.totalAsignados}/{p.necesarios} ({p.cobertura}%)
                   </span>
@@ -1160,8 +1160,8 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
                   onClick={() => onEditarPuesto(p)}
                   title="Click para abrir ficha del puesto">
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.2rem" }}>
-                    <span style={{ fontSize: "0.72rem", color: "var(--text)" }}>{p.nombre}</span>
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.62rem", color }}>{p.totalAsignados}/{p.necesarios}</span>
+                    <span style={{ fontSize: "var(--fs-sm)", color: "var(--text)" }}>{p.nombre}</span>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color }}>{p.totalAsignados}/{p.necesarios}</span>
                   </div>
                   <div className="prog-bar">
                     <div className="prog-fill" style={{ width: `${pct}%`, background: color }} />
@@ -1170,7 +1170,7 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
               );
             })}
             {puestosConStats.length > 6 && (
-              <button className="btn btn-ghost" style={{ fontSize: "0.65rem", marginTop: "0.25rem" }} onClick={() => setTab("puestos")}>
+              <button className="btn btn-ghost" style={{ fontSize: "var(--fs-sm)", marginTop: "0.25rem" }} onClick={() => setTab("puestos")}>
                 Ver todos los puestos →
               </button>
             )}
@@ -1193,7 +1193,7 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
               : `⏳ Pendientes de confirmar (${pendConf.length})`;
             if (lista.length === 0) return (
               <div style={{ textAlign:"center", padding:"1.5rem 0",
-                fontFamily:"var(--font-mono)", fontSize:"0.7rem", color:"var(--green)" }}>
+                fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", color:"var(--green)" }}>
                 ✅ Todos asignados y confirmados
               </div>
             );
@@ -1213,7 +1213,7 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
                       <div style={{ width:26, height:26, borderRadius:"50%",
                         background:"var(--surface2)", border:"1px solid var(--border)",
                         display:"flex", alignItems:"center", justifyContent:"center",
-                        fontSize:"0.58rem", fontWeight:700, color:"var(--cyan)", flexShrink:0 }}>
+                        fontSize:"var(--fs-xs)", fontWeight:700, color:"var(--cyan)", flexShrink:0 }}>
                         {(v.nombre||"V").split(" ").map(n=>n[0]).slice(0,2).join("")}
                       </div>
                       <div style={{ flex:1, minWidth:0 }}>
@@ -1242,14 +1242,14 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
           <div className="card-title" style={{ marginBottom:".6rem", justifyContent:"space-between" }}>
             <span>
               👕 Tallas de voluntarios
-              <span style={{ fontFamily:"var(--font-mono)", fontSize:".58rem",
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                 color:"var(--text-dim)", fontWeight:400, marginLeft:".5rem" }}>
                 (excluye cancelados)
               </span>
             </span>
             <button
               className="btn btn-ghost btn-sm"
-              style={{ fontSize:".6rem", padding:".2rem .5rem" }}
+              style={{ fontSize:"var(--fs-xs)", padding:".2rem .5rem" }}
               onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block:"camisetas" } }))}>
               Ver en Camisetas →
             </button>
@@ -1259,7 +1259,7 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
               .filter(([, n]) => n > 0)
               .map(([talla, n]) => (
                 <div key={talla} style={{
-                  fontFamily:"var(--font-mono)", fontSize:".68rem",
+                  fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
                   padding:".2rem .6rem", borderRadius:6,
                   background:"var(--surface2)", border:"1px solid var(--border)",
                   display:"flex", gap:".4rem", alignItems:"center",
@@ -1317,7 +1317,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
         {/* Búsqueda */}
         <input className="inp" placeholder="Buscar por nombre o teléfono…" value={busqueda}
           onChange={e => setBusqueda(e.target.value)}
-          style={{ maxWidth: 320, fontSize:"0.8rem" }} />
+          style={{ maxWidth: 320, fontSize:"var(--fs-base)" }} />
         {/* Pills de estado */}
         <div style={{ display:"flex", flexWrap:"wrap", gap:"0.35rem", alignItems:"center" }}>
           {[
@@ -1395,13 +1395,13 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
                     background: grupo.color, flexShrink:0, display:"inline-block",
                   }}/>
                   <span style={{
-                    fontFamily:"var(--font-mono)", fontWeight:700, fontSize:".75rem",
+                    fontFamily:"var(--font-mono)", fontWeight:700, fontSize:"var(--fs-base)",
                     color: grupo.color, flex:1,
                   }}>
                     {grupo.label}
                   </span>
                   <span style={{
-                    fontFamily:"var(--font-mono)", fontSize:".65rem",
+                    fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
                     color:"var(--text-dim)",
                     padding:".1rem .4rem", borderRadius:20,
                     background:"rgba(255,255,255,.05)",
@@ -1409,7 +1409,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
                     {items.length}
                   </span>
                   <span style={{
-                    fontFamily:"var(--font-mono)", fontSize:".7rem",
+                    fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
                     color:"var(--text-dim)", flexShrink:0,
                     transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)",
                     transition:"transform .18s",
@@ -1447,7 +1447,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
                                   : "rgba(251,191,36,0.1)",
                                 border: `1px solid ${v.estado==="confirmado" ? "rgba(52,211,153,0.3)" : v.estado==="cancelado" ? "rgba(248,113,113,0.3)" : "rgba(251,191,36,0.3)"}`,
                                 display:"flex", alignItems:"center", justifyContent:"center",
-                                fontSize:"0.62rem", fontWeight:800,
+                                fontSize:"var(--fs-xs)", fontWeight:800,
                                 color: v.estado==="confirmado" ? "var(--green)" : v.estado==="cancelado" ? "var(--red)" : "var(--amber)",
                                 fontFamily:"var(--font-mono)",
                               }}>
@@ -1465,17 +1465,17 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
                                   style={{ fontSize:"0.5rem" }}>
                                   {v.rol||"apoyo"}
                                 </span>
-                                {v.coche && <span style={{ fontSize:"0.65rem" }} title="Tiene vehículo">🚗</span>}
+                                {v.coche && <span style={{ fontSize:"var(--fs-sm)" }} title="Tiene vehículo">🚗</span>}
                               </div>
                               <div style={{ display:"flex", gap:"0.75rem", flexWrap:"wrap" }}>
-                                <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.6rem",
+                                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                                   color:"var(--text-muted)" }}>{v.telefono||"—"}</span>
-                                <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.6rem",
+                                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                                   color:puesto?"var(--text-muted)":"var(--text-dim)" }}>
                                   📍 {puesto?puesto.nombre:"Sin asignar"}
                                 </span>
                                 {v.talla && (
-                                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.6rem",
+                                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                                     color:"var(--cyan)" }}>👕 {v.talla}</span>
                                 )}
                               </div>
@@ -1485,14 +1485,14 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
                               <select className="inp inp-sm" value={v.estado}
                                 onChange={e=>onUpdate(v.id,{estado:e.target.value})}
                                 style={{ width:"auto", color:estadoColor(v.estado),
-                                  background:estadoBg(v.estado), fontSize:"0.65rem" }}>
+                                  background:estadoBg(v.estado), fontSize:"var(--fs-sm)" }}>
                                 {Object.entries(ESTADOS).map(([k,lbl])=><option key={k} value={k}>{lbl}</option>)}
                               </select>
                               <button className="btn btn-ghost"
-                                style={{ padding:"0.22rem 0.38rem", fontSize:"0.65rem" }}
+                                style={{ padding:"0.22rem 0.38rem", fontSize:"var(--fs-sm)" }}
                                 onClick={()=>onEditar(v)}>✏️</button>
                               <button className="btn btn-red"
-                                style={{ padding:"0.22rem 0.38rem", fontSize:"0.65rem" }}
+                                style={{ padding:"0.22rem 0.38rem", fontSize:"var(--fs-sm)" }}
                                 onClick={()=>onDelete(v.id)}>✕</button>
                             </div>
                           </div>
@@ -1541,11 +1541,11 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
               <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start" }}>
                 {/* Kinetik: icono pill de cobertura */}
                 <div className="item-icon-pill" style={{ "--pill-color": color, marginTop: ".1rem" }}>
-                  <span style={{ fontSize: ".9rem" }}>📍</span>
+                  <span style={{ fontSize: "var(--fs-md)" }}>📍</span>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.3rem", flexWrap: "wrap" }}>
-                    <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>{p.nombre}</span>
+                    <span style={{ fontWeight: 700, fontSize: "var(--fs-md)" }}>{p.nombre}</span>
                     <span className="badge badge-cyan">{p.tipo}</span>
                     {p.localizacionId && (
                       <>
@@ -1558,7 +1558,7 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
                             <span
                               onClick={e => { e.stopPropagation(); window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"logistica",subtab:"material"}})); }}
                               title="Ver material asignado en Logística"
-                              style={{ fontFamily: "var(--font-mono)", fontSize: ".58rem",
+                              style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
                                 color: "var(--cyan)", background: "var(--cyan-dim)",
                                 padding: ".1rem .4rem", borderRadius: 4, whiteSpace: "nowrap",
                                 cursor:"pointer", border:"1px solid rgba(34,211,238,.2)" }}>
@@ -1569,7 +1569,7 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
                       </>
                     )}
                     {p.distancias.map(d => (
-                      <span key={d} style={{ fontFamily: "var(--font-mono)", fontSize: "0.58rem", padding: "0.1rem 0.35rem", borderRadius: 3, background: "rgba(34,211,238,0.08)", color: DIST_COLORS[d] || "var(--text-muted)", border: `1px solid ${DIST_COLORS[d] || "var(--border)"}33` }}>{d}</span>
+                      <span key={d} style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", padding: "0.1rem 0.35rem", borderRadius: 3, background: "rgba(34,211,238,0.08)", color: DIST_COLORS[d] || "var(--text-muted)", border: `1px solid ${DIST_COLORS[d] || "var(--border)"}33` }}>{d}</span>
                     ))}
                   </div>
                   <div style={{ display: "flex", gap: "1.25rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
@@ -1580,13 +1580,13 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
                   <div className="prog-bar" style={{ marginBottom: "0.4rem" }}>
                     <div className="prog-fill" style={{ width: `${pct}%`, background: color }} />
                   </div>
-                  {p.notas && <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontStyle: "italic" }}>{p.notas}</div>}
+                  {p.notas && <div style={{ fontSize: "var(--fs-sm)", color: "var(--text-muted)", fontStyle: "italic" }}>{p.notas}</div>}
                   {p.voluntariosAsignados.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", marginTop: "0.5rem" }}>
                       {p.voluntariosAsignados.map(v => (
                         <span key={v.id}
                           onClick={e => { e.stopPropagation(); onFichaVol && onFichaVol(v); }}
-                          style={{ fontSize: "0.65rem", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 4, padding: "0.15rem 0.45rem", color: v.estado === "confirmado" ? "var(--green)" : "var(--text-muted)" }}>
+                          style={{ fontSize: "var(--fs-sm)", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 4, padding: "0.15rem 0.45rem", color: v.estado === "confirmado" ? "var(--green)" : "var(--text-muted)" }}>
                           {(v.nombre || "V").split(" ")[0]} {(v.nombre || "").split(" ")[1]?.[0] || ""}.
                         </span>
                       ))}
@@ -1605,7 +1605,7 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
                         onClick={e => e.stopPropagation()}>
                         <div style={{ display: "flex", justifyContent: "space-between",
                           alignItems: "center", marginBottom: "0.3rem" }}>
-                          <span style={{ fontFamily: "var(--font-mono)", fontSize: ".58rem",
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
                             color: "var(--cyan)", fontWeight: 700,
                             textTransform: "uppercase", letterSpacing: ".04em" }}>
                             📦 Material asignado ({items.length})
@@ -1613,7 +1613,7 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
                           <button
                             onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate",
                               { detail: { block: "logistica", subtab: "material" } }))}
-                            style={{ fontFamily: "var(--font-mono)", fontSize: ".52rem",
+                            style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-2xs)",
                               padding: ".1rem .35rem", borderRadius: 3, cursor: "pointer",
                               border: "1px solid rgba(34,211,238,.25)",
                               background: "rgba(34,211,238,.08)", color: "var(--cyan)" }}>
@@ -1622,7 +1622,7 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
                         </div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: ".3rem" }}>
                           {items.map((item, i) => (
-                            <span key={i} style={{ fontFamily: "var(--font-mono)", fontSize: ".62rem",
+                            <span key={i} style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
                               padding: ".15rem .45rem", borderRadius: 4,
                               background: "var(--surface)", border: "1px solid var(--border)",
                               color: "var(--text-muted)", whiteSpace: "nowrap" }}>
@@ -1638,8 +1638,8 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
                   })()}
                 </div>
                 <div style={{ display: "flex", gap: "0.3rem", flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-                  <button className="btn btn-ghost" style={{ padding: "0.28rem 0.45rem", fontSize: "0.68rem" }} onClick={() => onEditPuesto(p)}>✏️</button>
-                  <button className="btn btn-red" style={{ padding: "0.28rem 0.45rem", fontSize: "0.68rem" }} onClick={() => onDeletePuesto(p.id)}>✕</button>
+                  <button className="btn btn-ghost" style={{ padding: "0.28rem 0.45rem", fontSize: "var(--fs-sm)" }} onClick={() => onEditPuesto(p)}>✏️</button>
+                  <button className="btn btn-red" style={{ padding: "0.28rem 0.45rem", fontSize: "var(--fs-sm)" }} onClick={() => onDeletePuesto(p.id)}>✕</button>
                 </div>
               </div>
             </div>
@@ -1722,21 +1722,21 @@ function TabTallas({ stats, voluntarios }) {
             const barPct = Math.round((n / maxVal) * 100);
             return (
               <div key={t} style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.72rem", fontWeight: 700, width: 36, textAlign: "right", color: n > 0 ? "var(--cyan)" : "var(--text-dim)" }}>{t}</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 700, width: 36, textAlign: "right", color: n > 0 ? "var(--cyan)" : "var(--text-dim)" }}>{t}</span>
                 <div style={{ flex: 1 }}>
                   <div className="prog-bar" style={{ height: 8 }}>
                     <div className="prog-fill" style={{ width: `${barPct}%`, background: n > 0 ? "var(--cyan)" : "var(--surface3)" }} />
                   </div>
                 </div>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.72rem", width: 40, textAlign: "right", color: n > 0 ? "var(--text)" : "var(--text-dim)" }}>{n}</span>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.62rem", width: 35, color: "var(--text-muted)" }}>{n > 0 ? `${pct}%` : ""}</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", width: 40, textAlign: "right", color: n > 0 ? "var(--text)" : "var(--text-dim)" }}>{n}</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", width: 35, color: "var(--text-muted)" }}>{n > 0 ? `${pct}%` : ""}</span>
               </div>
             );
           })}
         </div>
         <div style={{ marginTop: "1rem", padding: "0.75rem", background: "var(--surface2)", borderRadius: "var(--radius-sm)", display: "flex", justifyContent: "space-between" }}>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.72rem", color: "var(--text-muted)" }}>TOTAL CAMISETAS</span>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.9rem", fontWeight: 700, color: "var(--cyan)" }}>{total}</span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)" }}>TOTAL CAMISETAS</span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-md)", fontWeight: 700, color: "var(--cyan)" }}>{total}</span>
         </div>
       </div>
 
@@ -1745,8 +1745,8 @@ function TabTallas({ stats, voluntarios }) {
         <div className="tallas-grid">
           {TALLAS.filter(t => stats.tallasCount[t] > 0).map(t => (
             <div key={t} className="talla-cell">
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.1rem", fontWeight: 800, color: "var(--cyan)" }}>{stats.tallasCount[t]}</div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.65rem", color: "var(--text-muted)", marginTop: "0.15rem" }}>{t}</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-lg)", fontWeight: 800, color: "var(--cyan)" }}>{stats.tallasCount[t]}</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)", marginTop: "0.15rem" }}>{t}</div>
             </div>
           ))}
         </div>
@@ -1812,31 +1812,31 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
             cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
             transition: "all 0.15s",
             boxShadow: ultimoGuardado===v.id ? "0 0 8px rgba(34,211,238,0.4)" : "none" }}>
-          {v.presente && <span style={{ color: "#000", fontSize: ".75rem", fontWeight: 700 }}>✓</span>}
+          {v.presente && <span style={{ color: "#000", fontSize: "var(--fs-base)", fontWeight: 700 }}>✓</span>}
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600, fontSize: ".82rem",
+          <div style={{ fontWeight: 600, fontSize: "var(--fs-base)",
             color: v.presente ? "var(--green)" : v.estado === "pendiente" ? "var(--amber)" : "var(--text)" }}>
             {v.nombre}{v.apellidos ? (" " + v.apellidos) : ""}
             {v.estado === "pendiente" && (
-              <span style={{ fontFamily:"var(--font-mono)", fontSize:".55rem",
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                 color:"var(--amber)", marginLeft:".4rem" }}>PENDIENTE</span>
             )}
           </div>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: ".6rem", color: "var(--text-muted)" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>
             {mostrarPuesto && puesto ? `${puesto.nombre} · ` : ""}{v.telefono || "Sin teléfono"}
           </div>
           {(v.telefonoEmergencia || v.contactoEmergencia) && (
-            <div style={{ fontFamily:"var(--font-mono)", fontSize:".55rem", color:"var(--red)" }}>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--red)" }}>
               🚨 {v.telefonoEmergencia || v.contactoEmergencia}
             </div>
           )}
         </div>
         {v.talla && <span className="badge badge-cyan">{v.talla}</span>}
-        {v.coche && <span style={{ fontSize: ".75rem" }} title="Tiene coche">🚗</span>}
+        {v.coche && <span style={{ fontSize: "var(--fs-base)" }} title="Tiene coche">🚗</span>}
         {v.telefono && (
           <a href={`tel:${v.telefono}`}
-            style={{ fontSize: ".8rem", color: "var(--cyan)", textDecoration: "none", flexShrink: 0 }}
+            style={{ fontSize: "var(--fs-base)", color: "var(--cyan)", textDecoration: "none", flexShrink: 0 }}
             title={`Llamar a ${v.nombre}`}>📞</a>
         )}
       </div>
@@ -1864,7 +1864,7 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
           placeholder="Buscar por nombre o teléfono…"
           style={{ flex: 1, padding: ".45rem .75rem", borderRadius: 8,
             border: "1px solid var(--border)", background: "var(--surface2)",
-            color: "var(--text)", fontFamily: "var(--font-mono)", fontSize: ".72rem", outline: "none" }}
+            color: "var(--text)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", outline: "none" }}
         />
         <div style={{ display: "flex", gap: ".3rem", flexShrink: 0 }}>
           <button
@@ -1902,13 +1902,13 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
                   padding: ".6rem .85rem", borderBottom: "1px solid var(--border)",
                   borderLeft: `3px solid ${colorBorde}` }}>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: ".82rem" }}>{p.nombre}</div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: ".58rem", color: "var(--text-muted)" }}>
+                    <div style={{ fontWeight: 700, fontSize: "var(--fs-base)" }}>{p.nombre}</div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>
                       {p.horaInicio}–{p.horaFin}
                       {p.necesarios ? ` · ${p.necesarios} necesarios` : ""}
                     </div>
                   </div>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: ".8rem", fontWeight: 800,
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-base)", fontWeight: 800,
                     color: colorBorde, flexShrink: 0 }}>
                     {pres}/{conf}
                   </span>
@@ -1925,7 +1925,7 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
             <div className="card" style={{ marginBottom: ".6rem", padding: 0, overflow: "hidden" }}>
               <div style={{ padding: ".6rem .85rem", borderBottom: "1px solid var(--border)",
                 borderLeft: "3px solid var(--text-muted)" }}>
-                <div style={{ fontWeight: 700, fontSize: ".82rem", color: "var(--text-muted)" }}>Sin puesto asignado</div>
+                <div style={{ fontWeight: 700, fontSize: "var(--fs-base)", color: "var(--text-muted)" }}>Sin puesto asignado</div>
               </div>
               <div style={{ padding: "0 .1rem" }}>
                 {sinPuesto.map(v => <FilaVol key={v.id} v={v} mostrarPuesto={false} />)}
@@ -1934,7 +1934,7 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
           )}
           {puestosAgrupados.length === 0 && sinPuesto.length === 0 && (
             <div style={{ textAlign: "center", padding: "2rem", color: "var(--text-muted)",
-              fontFamily: "var(--font-mono)", fontSize: ".75rem" }}>
+              fontFamily: "var(--font-mono)", fontSize: "var(--fs-base)" }}>
               Sin voluntarios confirmados ni pendientes
             </div>
           )}
@@ -1959,7 +1959,7 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
           <div className="card">
             {volsFiltrados.length === 0 && (
               <div style={{ textAlign: "center", padding: "2rem", color: "var(--text-muted)",
-                fontFamily: "var(--font-mono)", fontSize: ".75rem" }}>
+                fontFamily: "var(--font-mono)", fontSize: "var(--fs-base)" }}>
                 No hay voluntarios para este filtro
               </div>
             )}
@@ -1989,18 +1989,18 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
             <div style={{ display:"flex", alignItems:"center", gap:"0.75rem" }}>
               <div style={{ width:44, height:44, borderRadius:"50%", background:"var(--cyan-dim)",
                 border:"2px solid rgba(34,211,238,0.3)", display:"flex", alignItems:"center",
-                justifyContent:"center", fontWeight:800, fontSize:"1rem", color:"var(--cyan)", flexShrink:0 }}>
+                justifyContent:"center", fontWeight:800, fontSize:"var(--fs-md)", color:"var(--cyan)", flexShrink:0 }}>
                 {iniciales(v.nombre)}
               </div>
               <div>
-                <div style={{ fontWeight:800, fontSize:"1rem" }}>{v.nombre || "Sin nombre"}</div>
-                <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.6rem", color:"var(--text-muted)", marginTop:"0.1rem" }}>
+                <div style={{ fontWeight:800, fontSize:"var(--fs-md)" }}>{v.nombre || "Sin nombre"}</div>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", marginTop:"0.1rem" }}>
                   <span style={{ color:estadoColor, fontWeight:700 }}>{v.estado}</span>
                   {v.rol && <> · {v.rol}</>}
                 </div>
               </div>
             </div>
-            <button className="btn btn-ghost" style={{ padding:"0.2rem 0.5rem", fontSize:"1rem" }} onClick={fvHandleClose}>✕</button>
+            <button className="btn btn-ghost" style={{ padding:"0.2rem 0.5rem", fontSize:"var(--fs-md)" }} onClick={fvHandleClose}>✕</button>
           </div>
         </div>
         <div className="modal-body">
@@ -2019,16 +2019,16 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
           ].filter(([,val]) => val).map(([label, val]) => (
             <div key={label} style={{ display:"flex", justifyContent:"space-between",
               padding:"0.4rem 0", borderBottom:"1px solid rgba(30,45,80,0.3)" }}>
-              <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem", color:"var(--text-muted)" }}>{label}</span>
-              <span style={{ fontSize:"0.78rem", fontWeight:600 }}>{val}</span>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>{label}</span>
+              <span style={{ fontSize:"var(--fs-base)", fontWeight:600 }}>{val}</span>
             </div>
           ))}
           {v.notas && (
             <div style={{ background:"var(--surface2)", borderRadius:8, padding:"0.6rem 0.75rem",
               borderLeft:"2px solid var(--border)", marginTop:"0.25rem" }}>
-              <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.55rem", color:"var(--text-muted)",
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)",
                 marginBottom:"0.25rem", textTransform:"uppercase" }}>Notas</div>
-              <div style={{ fontSize:"0.78rem", lineHeight:1.5 }}>{v.notas}</div>
+              <div style={{ fontSize:"var(--fs-base)", lineHeight:1.5 }}>{v.notas}</div>
             </div>
           )}
 
@@ -2038,33 +2038,33 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
               borderLeft:"2px solid var(--cyan)", marginTop:"0.25rem" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
                 marginBottom:"0.3rem" }}>
-                <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.55rem",
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                   color:"var(--cyan)", textTransform:"uppercase", fontWeight:700 }}>
                   📦 Material en tu puesto
                 </div>
                 <button
                   onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate",
                     {detail:{block:"logistica",subtab:"material"}}))}
-                  style={{ fontFamily:"var(--font-mono)", fontSize:".5rem", padding:".08rem .3rem",
+                  style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", padding:".08rem .3rem",
                     borderRadius:3, border:"1px solid rgba(34,211,238,.3)",
                     background:"rgba(34,211,238,.1)", color:"var(--cyan)", cursor:"pointer" }}>
                   Ver →
                 </button>
               </div>
               {materialEnLoc.length === 0 ? (
-                <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem",
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                   color:"var(--text-dim)" }}>Sin material asignado a {loc.nombre}</div>
               ) : materialEnLoc.slice(0, 5).map((item, i) => (
                 <div key={i} style={{ display:"flex", justifyContent:"space-between",
-                  fontSize:"0.7rem", padding:"0.18rem 0",
+                  fontSize:"var(--fs-sm)", padding:"0.18rem 0",
                   borderBottom: i < Math.min(materialEnLoc.length,5)-1 ? "1px solid var(--border)" : "none" }}>
                   <span style={{ fontWeight:600 }}>{item.nombre}</span>
-                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem",
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                     color:"var(--cyan)" }}>{item.cantidad} {item.unidad}</span>
                 </div>
               ))}
               {materialEnLoc.length > 5 && (
-                <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.58rem",
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                   color:"var(--text-dim)", marginTop:"0.2rem" }}>
                   +{materialEnLoc.length - 5} ítems más
                 </div>
@@ -2078,13 +2078,13 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
             display:"flex", gap:"0.5rem" }}>
             <button
               className="btn btn-green"
-              style={{ flex:1, fontFamily:"var(--font-mono)", fontSize:"0.72rem" }}
+              style={{ flex:1, fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)" }}
               onClick={() => onUpdate({ estado:"confirmado" })}>
               ✓ Confirmar voluntario
             </button>
             <button
               className="btn btn-ghost"
-              style={{ fontFamily:"var(--font-mono)", fontSize:"0.72rem",
+              style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
                 color:"var(--red)", border:"1px solid rgba(248,113,113,.3)" }}
               onClick={() => onUpdate({ estado:"cancelado" })}>
               ✕ Cancelar
@@ -2095,7 +2095,7 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
           <div style={{ padding:"0.5rem 1.25rem", borderTop:"1px solid var(--border)" }}>
             <button
               className="btn btn-ghost"
-              style={{ width:"100%", fontFamily:"var(--font-mono)", fontSize:"0.68rem",
+              style={{ width:"100%", fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
                 color:"var(--text-muted)" }}
               onClick={() => onUpdate({ estado:"pendiente" })}>
               ↩ Mover a pendiente
@@ -2140,27 +2140,27 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
         <div style={{ borderTop: "3px solid var(--violet)", borderRadius: "16px 16px 0 0" }}>
           <div className="modal-header">
             <div>
-              <div style={{ fontWeight:800, fontSize:"1rem" }}>{p.nombre}</div>
-              <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.6rem", color:"var(--text-muted)", marginTop:"0.1rem" }}>
+              <div style={{ fontWeight:800, fontSize:"var(--fs-md)" }}>{p.nombre}</div>
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", marginTop:"0.1rem" }}>
                 {p.tipo} · {p.horaInicio} – {p.horaFin}
               </div>
             </div>
-            <button className="btn btn-ghost" style={{ padding:"0.2rem 0.5rem", fontSize:"1rem" }} onClick={fpuHandleClose}>✕</button>
+            <button className="btn btn-ghost" style={{ padding:"0.2rem 0.5rem", fontSize:"var(--fs-md)" }} onClick={fpuHandleClose}>✕</button>
           </div>
         </div>
         <div className="modal-body">
           {/* Barra cobertura */}
           <div>
             <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"0.35rem" }}>
-              <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem", color:"var(--text-muted)" }}>Cobertura</span>
-              <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.72rem", fontWeight:700, color }}>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>Cobertura</span>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", fontWeight:700, color }}>
                 {asignados.length}/{p.necesarios} ({cobertura}%)
               </span>
             </div>
             <div style={{ height:6, background:"var(--surface3)", borderRadius:3, overflow:"hidden" }}>
               <div style={{ height:"100%", width:`${Math.min(cobertura,100)}%`, background:color, borderRadius:3, transition:"width .4s" }}/>
             </div>
-            <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.58rem", color:"var(--text-muted)", marginTop:"0.25rem" }}>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", marginTop:"0.25rem" }}>
               {confirmados} confirmados · {asignados.length - confirmados} pendientes
             </div>
           </div>
@@ -2172,18 +2172,18 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
           ].map(([label, val]) => (
             <div key={label} style={{ display:"flex", justifyContent:"space-between",
               padding:"0.4rem 0", borderBottom:"1px solid rgba(30,45,80,0.3)" }}>
-              <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem", color:"var(--text-muted)" }}>{label}</span>
-              <span style={{ fontSize:"0.78rem", fontWeight:600 }}>{val}</span>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>{label}</span>
+              <span style={{ fontSize:"var(--fs-base)", fontWeight:600 }}>{val}</span>
             </div>
           ))}
           {p.tiempoLimite && (
             <div style={{ display:"flex", justifyContent:"space-between", padding:"0.5rem 0.75rem",
               margin:"0.3rem 0", borderRadius:8,
               background:"rgba(251,191,36,0.07)", border:"1px solid rgba(251,191,36,0.25)" }}>
-              <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem", color:"var(--amber)", fontWeight:700 }}>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--amber)", fontWeight:700 }}>
                 ⏱ Tiempo límite paso corredor
               </span>
-              <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.88rem", fontWeight:800, color:"var(--amber)" }}>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-md)", fontWeight:800, color:"var(--amber)" }}>
                 {p.tiempoLimite}
               </span>
             </div>
@@ -2191,13 +2191,13 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
           {/* Voluntarios asignados */}
           {asignados.length > 0 && (
             <div style={{ background:"var(--surface2)", borderRadius:8, padding:"0.6rem 0.75rem" }}>
-              <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.55rem", color:"var(--text-muted)",
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)",
                 marginBottom:"0.4rem", textTransform:"uppercase" }}>Voluntarios asignados</div>
               {asignados.map(v => (
                 <div key={v.id} style={{ display:"flex", justifyContent:"space-between",
-                  padding:"0.25rem 0", fontSize:"0.75rem" }}>
+                  padding:"0.25rem 0", fontSize:"var(--fs-base)" }}>
                   <span style={{ fontWeight:600 }}>{v.nombre}</span>
-                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.6rem",
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                     color: v.estado==="confirmado"?"var(--green)":"var(--amber)" }}>{v.estado}</span>
                 </div>
               ))}
@@ -2206,9 +2206,9 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
           {p.notas && (
             <div style={{ background:"var(--surface2)", borderRadius:8, padding:"0.6rem 0.75rem",
               borderLeft:"2px solid var(--border)" }}>
-              <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.55rem", color:"var(--text-muted)",
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)",
                 marginBottom:"0.25rem", textTransform:"uppercase" }}>Notas</div>
-              <div style={{ fontSize:"0.78rem", lineHeight:1.5 }}>{p.notas}</div>
+              <div style={{ fontSize:"var(--fs-base)", lineHeight:1.5 }}>{p.notas}</div>
             </div>
           )}
 
@@ -2218,30 +2218,30 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
               borderLeft:"2px solid var(--cyan)" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
                 marginBottom:"0.35rem" }}>
-                <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.55rem",
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                   color:"var(--cyan)", textTransform:"uppercase", fontWeight:700 }}>
                   📦 Material en {loc.nombre}
                 </div>
                 <button
                   onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate",
                     {detail:{block:"logistica",subtab:"material"}}))}
-                  style={{ fontFamily:"var(--font-mono)", fontSize:".52rem", padding:".1rem .35rem",
+                  style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", padding:".1rem .35rem",
                     borderRadius:3, border:"1px solid rgba(34,211,238,.3)",
                     background:"rgba(34,211,238,.1)", color:"var(--cyan)", cursor:"pointer" }}>
                   Ver en Logística →
                 </button>
               </div>
               {materialEnLoc.length === 0 ? (
-                <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem",
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                   color:"var(--text-dim)" }}>Sin material asignado aún</div>
               ) : (
                 <div style={{ display:"flex", flexDirection:"column", gap:"0.2rem" }}>
                   {materialEnLoc.map((item, i) => (
                     <div key={i} style={{ display:"flex", justifyContent:"space-between",
-                      fontSize:"0.72rem", padding:"0.2rem 0",
+                      fontSize:"var(--fs-sm)", padding:"0.2rem 0",
                       borderBottom: i < materialEnLoc.length-1 ? "1px solid var(--border)" : "none" }}>
                       <span style={{ fontWeight:600 }}>{item.nombre}</span>
-                      <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem",
+                      <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                         color:"var(--cyan)" }}>{item.cantidad} {item.unidad}</span>
                     </div>
                   ))}
@@ -2256,14 +2256,14 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
               borderLeft:"2px solid var(--amber)" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
                 marginBottom:"0.35rem" }}>
-                <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.55rem",
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                   color:"var(--amber)", textTransform:"uppercase", fontWeight:700 }}>
                   🗺️ Rutas que pasan por aquí
                 </div>
                 <button
                   onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate",
                     {detail:{block:"logistica",subtab:"vehiculos"}}))}
-                  style={{ fontFamily:"var(--font-mono)", fontSize:".52rem", padding:".1rem .35rem",
+                  style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", padding:".1rem .35rem",
                     borderRadius:3, border:"1px solid rgba(251,191,36,.3)",
                     background:"rgba(251,191,36,.1)", color:"var(--amber)", cursor:"pointer" }}>
                   Ver vehículos →
@@ -2277,9 +2277,9 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
                 return (
                   <div key={r.id} style={{ display:"flex", justifyContent:"space-between",
                     alignItems:"center", padding:"0.2rem 0",
-                    borderBottom:"1px solid var(--border)", fontSize:"0.72rem" }}>
+                    borderBottom:"1px solid var(--border)", fontSize:"var(--fs-sm)" }}>
                     <span style={{ fontWeight:600 }}>{r.nombre}</span>
-                    <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem",
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                       color:"var(--amber)" }}>
                       {parada?.hora || r.horaInicio}
                     </span>
@@ -2295,13 +2295,13 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
             display:"flex", gap:"0.5rem" }}>
             <button
               className="btn btn-green"
-              style={{ flex:1, fontFamily:"var(--font-mono)", fontSize:"0.72rem" }}
+              style={{ flex:1, fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)" }}
               onClick={() => onUpdate({ estado:"confirmado" })}>
               ✓ Confirmar voluntario
             </button>
             <button
               className="btn btn-ghost"
-              style={{ fontFamily:"var(--font-mono)", fontSize:"0.72rem",
+              style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
                 color:"var(--red)", border:"1px solid rgba(248,113,113,.3)" }}
               onClick={() => onUpdate({ estado:"cancelado" })}>
               ✕ Cancelar
@@ -2312,7 +2312,7 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
           <div style={{ padding:"0.5rem 1.25rem", borderTop:"1px solid var(--border)" }}>
             <button
               className="btn btn-ghost"
-              style={{ width:"100%", fontFamily:"var(--font-mono)", fontSize:"0.68rem",
+              style={{ width:"100%", fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
                 color:"var(--text-muted)" }}
               onClick={() => onUpdate({ estado:"pendiente" })}>
               ↩ Mover a pendiente
@@ -2382,13 +2382,13 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
           <div>
             <label className="field-label" style={{ color: errores.nombre ? "var(--red)" : undefined }}>Nombre completo *</label>
             <input className="inp" value={form.nombre} onChange={e => upd("nombre", e.target.value)} placeholder="Nombre y apellidos" />
-            {errores.nombre && <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.62rem", color: "var(--red)", marginTop: "0.2rem" }}>⚠ {errores.nombre}</div>}
+            {errores.nombre && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--red)", marginTop: "0.2rem" }}>⚠ {errores.nombre}</div>}
           </div>
           <div className="field-row">
             <div>
               <label className="field-label" style={{ color: errores.telefono ? "var(--red)" : undefined }}>Teléfono *</label>
               <input className="inp" value={form.telefono} onChange={e => upd("telefono", e.target.value)} placeholder="612345678" inputMode="tel" />
-              {errores.telefono && <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.62rem", color: "var(--red)", marginTop: "0.2rem" }}>⚠ {errores.telefono}</div>}
+              {errores.telefono && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--red)", marginTop: "0.2rem" }}>⚠ {errores.telefono}</div>}
             </div>
             <div>
               <label className="field-label">Email</label>
@@ -2401,12 +2401,12 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
             <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", marginTop: "0.3rem" }}>
               {TALLAS.map(t => (
                 <button key={t} onClick={() => upd("talla", t)}
-                  style={{ padding: "0.35rem 0.6rem", borderRadius: 6, border: `1px solid ${form.talla === t ? "var(--cyan)" : "var(--border)"}`, background: form.talla === t ? "var(--cyan-dim)" : "var(--surface2)", color: form.talla === t ? "var(--cyan)" : "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: "0.68rem", fontWeight: 700, cursor: "pointer", transition: "all 0.12s", transform: form.talla === t ? "scale(1.05)" : "scale(1)" }}>
+                  style={{ padding: "0.35rem 0.6rem", borderRadius: 6, border: `1px solid ${form.talla === t ? "var(--cyan)" : "var(--border)"}`, background: form.talla === t ? "var(--cyan-dim)" : "var(--surface2)", color: form.talla === t ? "var(--cyan)" : "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 700, cursor: "pointer", transition: "all 0.12s", transform: form.talla === t ? "scale(1.05)" : "scale(1)" }}>
                   {t}
                 </button>
               ))}
             </div>
-            {errores.talla && <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.62rem", color: "var(--red)", marginTop: "0.2rem" }}>⚠ {errores.talla}</div>}
+            {errores.talla && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--red)", marginTop: "0.2rem" }}>⚠ {errores.talla}</div>}
           </div>
 
           <div className="field-row">
@@ -2442,8 +2442,8 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "0.65rem 0.85rem" }}>
             <div>
-              <div style={{ fontSize: "0.78rem", fontWeight: 600 }}>Vehículo propio</div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.58rem", color: "var(--text-muted)" }}>Facilita traslado a puestos</div>
+              <div style={{ fontSize: "var(--fs-base)", fontWeight: 600 }}>Vehículo propio</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>Facilita traslado a puestos</div>
             </div>
             <button className="toggle-pill" style={{ background: form.coche ? "var(--green)" : "var(--surface3)" }} onClick={() => upd("coche", !form.coche)}>
               <span className="toggle-pill-dot" style={{ left: form.coche ? 23 : 3 }} />
@@ -2458,7 +2458,7 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
                 onChange={e => upd("fechaNacimiento", e.target.value)} />
               {form.fechaNacimiento && (() => {
                 const años = Math.floor((new Date() - new Date(form.fechaNacimiento)) / (365.25 * 86400000));
-                return <div style={{ fontFamily:"var(--font-mono)", fontSize:".58rem",
+                return <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                   color:"var(--text-dim)", marginTop:".2rem" }}>{años} años</div>;
               })()}
             </div>
@@ -2473,7 +2473,7 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
                 inputMode="tel"
                 style={{ borderColor: errores.telefonoEmergencia ? "var(--red)" : undefined }} />
               {errores.telefonoEmergencia && (
-                <div style={{ fontFamily:"var(--font-mono)", fontSize:".62rem",
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                   color:"var(--red)", marginTop:".2rem" }}>⚠ {errores.telefonoEmergencia}</div>
               )}
             </div>
@@ -2482,7 +2482,7 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
           <div>
             <label className="field-label" style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
               <span>📝 Notas / Observaciones</span>
-              {form.notas && <span style={{fontFamily:"var(--font-mono)",fontSize:"0.55rem",color:"var(--cyan)",fontWeight:400}}>{form.notas.length} car.</span>}
+              {form.notas && <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--cyan)",fontWeight:400}}>{form.notas.length} car.</span>}
             </label>
             <textarea className="inp" rows={3} value={form.notas} onChange={e => upd("notas", e.target.value)}
               placeholder="Experiencia previa, idiomas, titulaciones especiales, restricciones, observaciones del organizador…"
@@ -2535,7 +2535,7 @@ function ModalPuesto({ puesto, locs, onSave, onClose }) {
               <option value="">-- Sin vincular --</option>
               {locs.map(l => <option key={l.id} value={l.id}>{l.nombre} ({l.tipo})</option>)}
             </select>
-            <div style={{ fontSize: "0.6rem", color: "var(--text-muted)", marginTop: "0.25rem", fontFamily: "var(--font-mono)" }}>
+            <div style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: "0.25rem", fontFamily: "var(--font-mono)" }}>
               Vincular a una localización maestra sincroniza el tipo y facilita la logística.
             </div>
           </div>
@@ -2561,7 +2561,7 @@ function ModalPuesto({ puesto, locs, onSave, onClose }) {
               <label className="field-label" style={{ color: "var(--amber)" }}>⏱ Tiempo límite de paso (corredor)</label>
               <input className="inp" type="time" value={form.tiempoLimite || ""} onChange={e => upd("tiempoLimite", e.target.value)}
                 placeholder="Hora máxima de paso" />
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-muted)", marginTop: "0.3rem" }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: "0.3rem" }}>
                 Corredores que lleguen después de esta hora deben ser retirados de la competición.
               </div>
             </div>
@@ -2571,7 +2571,7 @@ function ModalPuesto({ puesto, locs, onSave, onClose }) {
             <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
               {DISTANCIAS_PUESTO.map(d => (
                 <button key={d} onClick={() => toggleDist(d)}
-                  style={{ padding: "0.3rem 0.65rem", borderRadius: 6, border: `1px solid ${form.distancias.includes(d) ? DIST_COLORS[d] : "var(--border)"}`, background: form.distancias.includes(d) ? `${DIST_COLORS[d]}18` : "var(--surface2)", color: form.distancias.includes(d) ? DIST_COLORS[d] : "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: "0.7rem", fontWeight: 700, cursor: "pointer", transition: "all 0.15s" }}>
+                  style={{ padding: "0.3rem 0.65rem", borderRadius: 6, border: `1px solid ${form.distancias.includes(d) ? DIST_COLORS[d] : "var(--border)"}`, background: form.distancias.includes(d) ? `${DIST_COLORS[d]}18` : "var(--surface2)", color: form.distancias.includes(d) ? DIST_COLORS[d] : "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 700, cursor: "pointer", transition: "all 0.15s" }}>
                   {d}
                 </button>
               ))}
@@ -2597,9 +2597,9 @@ function ModalConfirm({ mensaje, onConfirm, onCancel }) {
     <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onCancel()}>
       <div className="modal" style={{ maxWidth: 380 }}>
         <div className="modal-body" style={{ paddingTop: "1.5rem", textAlign: "center" }}>
-          <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>⚠️</div>
-          <div style={{ fontWeight: 700, fontSize: "0.9rem", marginBottom: "0.5rem" }}>Confirmar acción</div>
-          <div style={{ color: "var(--text-muted)", fontSize: "0.78rem", fontFamily: "var(--font-mono)", lineHeight: 1.5 }}>{mensaje}</div>
+          <div style={{ fontSize: "var(--fs-xl)", marginBottom: "0.75rem" }}>⚠️</div>
+          <div style={{ fontWeight: 700, fontSize: "var(--fs-md)", marginBottom: "0.5rem" }}>Confirmar acción</div>
+          <div style={{ color: "var(--text-muted)", fontSize: "var(--fs-base)", fontFamily: "var(--font-mono)", lineHeight: 1.5 }}>{mensaje}</div>
         </div>
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onCancel}>Cancelar</button>

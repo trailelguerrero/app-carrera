@@ -29,6 +29,14 @@ export const BLOCK_CSS = `
     --r-sm:         9px;
     /* Kinetik: acento de línea en cards */
     --card-accent-width: 3px;
+    /* ── Escala tipográfica 7 pasos — fuente única de verdad ──────────── */
+    --fs-2xs: 0.50rem;  /* badges, separadores ultra-pequeños            */
+    --fs-xs:  0.60rem;  /* metadatos, timestamps, help text               */
+    --fs-sm:  0.72rem;  /* labels de formulario, celdas de tabla          */
+    --fs-base:0.82rem;  /* texto de contenido, listas, descripciones      */
+    --fs-md:  0.95rem;  /* títulos de sección secundaria, botones         */
+    --fs-lg:  1.20rem;  /* títulos de módulo, KPI labels                  */
+    --fs-xl:  2.20rem;  /* KPI values grandes, métricas destacadas        */
   }
 
 
@@ -72,7 +80,7 @@ export const BLOCK_CSS = `
     padding: 2.5rem 1.5rem;
     color: var(--text-muted);
     font-family: var(--font-mono);
-    font-size: .72rem;
+    font-size: var(--fs-sm);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -89,14 +97,14 @@ export const BLOCK_CSS = `
   }
   .empty-title {
     font-family: var(--font-display);
-    font-size: .82rem;
+    font-size: var(--fs-base);
     font-weight: 700;
     color: var(--text-muted);
     margin: 0;
   }
   .empty-sub {
     font-family: var(--font-mono);
-    font-size: .62rem;
+    font-size: var(--fs-xs);
     color: var(--text-dim);
     max-width: 220px;
     line-height: 1.5;
@@ -123,7 +131,7 @@ export const BLOCK_CSS = `
   }
   .block-title {
     margin: 0;
-    font-size: 1.5rem;
+    font-size: var(--fs-lg);
     font-weight: 900;
     font-family: var(--font-display);
     color: var(--text);
@@ -132,7 +140,7 @@ export const BLOCK_CSS = `
   }
   .block-title-sub {
     font-family: var(--font-mono);
-    font-size: 0.55rem;
+    font-size: var(--fs-xs);
     color: var(--text-muted);
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -154,7 +162,7 @@ export const BLOCK_CSS = `
     flex-wrap: wrap;
   }
   .pt {
-    font-size: 1.5rem;
+    font-size: var(--fs-lg);
     font-weight: 900;
     font-family: var(--font-display);
     color: var(--text);
@@ -163,7 +171,7 @@ export const BLOCK_CSS = `
   }
   .pd {
     font-family: var(--font-mono);
-    font-size: 0.55rem;
+    font-size: var(--fs-xs);
     color: var(--text-muted);
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -217,7 +225,7 @@ export const BLOCK_CSS = `
   .kpi:hover { transform: translateY(-3px); }
   .kpi:active { transform: translateY(-1px); }
   .kpi-label {
-    font-size: 0.6rem;
+    font-size: var(--fs-xs);
     font-family: var(--font-mono);
     color: var(--text-dim);
     font-weight: 700;
@@ -227,7 +235,7 @@ export const BLOCK_CSS = `
   }
   /* Kinetik: número ultra-bold display */
   .kpi-value {
-    font-size: 2rem;
+    font-size: var(--fs-xl);
     font-weight: 900;
     font-family: var(--font-display);
     line-height: 1;
@@ -235,7 +243,7 @@ export const BLOCK_CSS = `
     letter-spacing: -0.02em;
   }
   .kpi-sub {
-    font-size: 0.62rem;
+    font-size: var(--fs-xs);
     font-family: var(--font-mono);
     color: var(--text-muted);
     line-height: 1.4;
@@ -331,7 +339,7 @@ export const BLOCK_CSS = `
     background: transparent;
     color: var(--text-muted);
     font-family: var(--font-mono);
-    font-size: 0.65rem;
+    font-size: var(--fs-sm);
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -377,7 +385,7 @@ export const BLOCK_CSS = `
     background: color-mix(in srgb, var(--pill-color, var(--cyan)) 12%, transparent);
     border: 1px solid color-mix(in srgb, var(--pill-color, var(--cyan)) 30%, transparent);
     display: flex; align-items: center; justify-content: center;
-    font-size: 1rem; flex-shrink: 0;
+    font-size: var(--fs-md); flex-shrink: 0;
     transition: transform .15s;
   }
   .item-icon-pill-sm {
@@ -386,7 +394,7 @@ export const BLOCK_CSS = `
     background: color-mix(in srgb, var(--pill-color, var(--cyan)) 12%, transparent);
     border: 1px solid color-mix(in srgb, var(--pill-color, var(--cyan)) 28%, transparent);
     display: flex; align-items: center; justify-content: center;
-    font-size: .78rem; flex-shrink: 0;
+    font-size: var(--fs-base); flex-shrink: 0;
   }
   /* Fallback para navegadores sin color-mix */
   @supports not (background: color-mix(in srgb, red 10%, blue)) {
@@ -404,7 +412,7 @@ export const BLOCK_CSS = `
     cursor: pointer;
     white-space: nowrap;
     font-weight: 700;
-    font-size: 0.75rem;
+    font-size: var(--fs-base);
     font-family: var(--font-mono);
     letter-spacing: 0.04em;
     transition: all 0.18s;
@@ -430,7 +438,7 @@ export const BLOCK_CSS = `
     box-shadow: 0 2px 12px rgba(0,0,0,0.18);
   }
   .card-title {
-    font-size: 0.88rem;
+    font-size: var(--fs-md);
     font-weight: 700;
     font-family: var(--font-display);
     margin-bottom: 0.85rem;
@@ -457,7 +465,7 @@ export const BLOCK_CSS = `
     flex-wrap: wrap;
   }
   .section-title {
-    font-size: 0.82rem;
+    font-size: var(--fs-base);
     font-weight: 800;
     font-family: var(--font-display);
     color: var(--text);
@@ -465,7 +473,7 @@ export const BLOCK_CSS = `
   }
   .section-sub {
     font-family: var(--font-mono);
-    font-size: 0.6rem;
+    font-size: var(--fs-xs);
     color: var(--text-muted);
     margin-top: 0.1rem;
   }
@@ -498,12 +506,12 @@ export const BLOCK_CSS = `
     transition: opacity 0.2s;
   }
   .tbl-scroll-wrap.has-overflow::after { opacity: 1; }
-  .tbl { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: var(--fs-base); }
   .tbl th {
     text-align: left; padding: 0.65rem 0.75rem;
     border-bottom: 2px solid var(--border);
     color: var(--text-muted); font-weight: 600;
-    font-family: var(--font-mono); font-size: 0.68rem;
+    font-family: var(--font-mono); font-size: var(--fs-sm);
     text-transform: uppercase; letter-spacing: 0.05em;
     white-space: nowrap; background: var(--surface);
     position: sticky; top: 0; z-index: 1;
@@ -539,8 +547,8 @@ export const BLOCK_CSS = `
 
   /* ── Typography helpers ─────────────────────────────────────────────────── */
   .mono  { font-family: var(--font-mono); }
-  .xs    { font-size: 0.68rem; }
-  .sm    { font-size: 0.78rem; }
+  .xs    { font-size: var(--fs-sm); }
+  .sm    { font-size: var(--fs-base); }
   .muted { color: var(--text-muted); }
   .dim   { color: var(--text-dim); }
   .bold  { font-weight: 700; }
@@ -550,7 +558,7 @@ export const BLOCK_CSS = `
     padding: 0.55rem 0.9rem;
     border-radius: var(--r-sm);
     font-weight: 700;
-    font-size: 0.78rem;
+    font-size: var(--fs-base);
     font-family: var(--font-display);
     cursor: pointer;
     border: 1px solid transparent;
@@ -581,14 +589,14 @@ export const BLOCK_CSS = `
   .btn-primary{ background: var(--primary-dim);color: #c4c6ff;      border-color: rgba(99,102,241,0.4); }
   .btn-primary:hover{ background: var(--primary); color: #fff; }
   /* min-height garantiza área táctil suficiente en mobile (≥ 36px) */
-  .btn-sm { padding: 0.4rem 0.65rem; font-size: 0.7rem; min-height: 34px; }
+  .btn-sm { padding: 0.4rem 0.65rem; font-size: var(--fs-sm); min-height: 34px; }
   .btn-icon { padding: 0.4rem 0.5rem; min-width: 36px; min-height: 36px; }
 
   /* ── Badges ─────────────────────────────────────────────────────────────── */
   .badge {
     display: inline-flex; align-items: center;
     padding: 0.12rem 0.55rem; border-radius: 20px;
-    font-size: 0.6rem; font-weight: 700;
+    font-size: var(--fs-xs); font-weight: 700;
     font-family: var(--font-mono);
     text-transform: uppercase; letter-spacing: 0.08em;
     white-space: nowrap;
@@ -631,7 +639,7 @@ export const BLOCK_CSS = `
     border-radius: var(--r-sm);
     padding: 0.5rem 0.75rem;
     font-family: var(--font-display);
-    font-size: 0.88rem;
+    font-size: var(--fs-md);
     transition: border-color 0.15s, box-shadow 0.15s;
     outline: none;
     width: 100%;
@@ -644,7 +652,7 @@ export const BLOCK_CSS = `
     font-family: var(--font-mono);
     text-align: right;
   }
-  .inp-sm { padding: 0.35rem 0.6rem; font-size: 0.78rem; min-height: 34px; }
+  .inp-sm { padding: 0.35rem 0.6rem; font-size: var(--fs-base); min-height: 34px; }
   select.inp { cursor: pointer; }
 
   /* ── Progress bar ───────────────────────────────────────────────────────── */
@@ -662,9 +670,9 @@ export const BLOCK_CSS = `
   .empty-state {
     text-align: center; padding: 3rem 1rem;
     color: var(--text-dim);
-    font-family: var(--font-mono); font-size: 0.7rem;
+    font-family: var(--font-mono); font-size: var(--fs-sm);
   }
-  .empty-state-icon { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.5; }
+  .empty-state-icon { font-size: var(--fs-xl); margin-bottom: 0.75rem; opacity: 0.5; }
 
   /* ── Flex helpers ───────────────────────────────────────────────────────── */
   .flex { display: flex; }
@@ -698,11 +706,11 @@ export const BLOCK_CSS = `
   .search-bar:focus-within { border-color: var(--cyan); }
   .search-bar input {
     background: none; border: none; color: var(--text);
-    font-family: var(--font-display); font-size: 0.82rem;
+    font-family: var(--font-display); font-size: var(--fs-base);
     outline: none; width: 100%;
   }
   .search-bar input::placeholder { color: var(--text-dim); }
-  .search-icon { color: var(--text-muted); font-size: 0.85rem; flex-shrink: 0; }
+  .search-icon { color: var(--text-muted); font-size: var(--fs-base); flex-shrink: 0; }
 
   /* ── Status dot ─────────────────────────────────────────────────────────── */
   .dot {
@@ -778,7 +786,7 @@ export const BLOCK_CSS = `
     display: flex; align-items: center; justify-content: space-between;
     position: sticky; top: 0; background: var(--surface); z-index: 1;
   }
-  .modal-title { font-weight: 800; font-size: 0.95rem; color: var(--text); }
+  .modal-title { font-weight: 800; font-size: var(--fs-md); color: var(--text); }
   .modal-body  { padding: 1.1rem 1.25rem; }
   .modal-footer {
     padding: 0.85rem 1.25rem;
@@ -801,26 +809,26 @@ export const BLOCK_CSS = `
   /* ── Responsive ─────────────────────────────────────────────────────────── */
   @media (max-width: 640px) {
     .block-container { padding: 0.6rem; }
-    .block-title { font-size: 0.95rem; }
+    .block-title { font-size: var(--fs-md); }
     .block-title-sub { display: none; }
     .block-header { margin-bottom: 0.75rem; gap: 0.5rem; }
     /* KPI grid 2 columnas en mobile */
     .kpi-grid { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
     .kpi { padding: 0.7rem 0.8rem; }
     .kpi-value { font-size: 1.65rem; letter-spacing: -0.01em; }
-    .kpi-label { font-size: 0.58rem; }
+    .kpi-label { font-size: var(--fs-xs); }
     /* En mobile el sub va en multilínea para que no se corte feo */
     .kpi-sub {
       white-space: normal;
       font-size: 0.70rem;
       line-height: 1.45;
     }
-    .kpi-value { font-size: 1.2rem; }
+    .kpi-value { font-size: var(--fs-lg); }
     .card { padding: 0.85rem; }
     .tabs { gap: 0.3rem; position: relative; }
-    .tab-btn { padding: 0.5rem 0.9rem; font-size: 0.74rem; min-height: 40px; }
+    .tab-btn { padding: 0.5rem 0.9rem; font-size: var(--fs-sm); min-height: 40px; }
     /* Badge levemente más grande para ser legible */
-    .badge { font-size: 0.7rem; padding: 0.16rem 0.5rem; }
+    .badge { font-size: var(--fs-sm); padding: 0.16rem 0.5rem; }
     /* Inputs más grandes en mobile (≥ 44px para evitar zoom-in automático iOS) */
     .inp { font-size: 16px; min-height: 44px; padding: 0.55rem 0.75rem; }
     .inp-sm { font-size: 14px; min-height: 38px; }

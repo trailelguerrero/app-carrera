@@ -361,7 +361,7 @@ export const ScenarioBar = ({
                 placeholder="Nombre del escenario..."
               />
             ) : (
-              <span style={{ color: "var(--text-muted)", fontSize: "0.78rem", fontWeight: 400 }}>
+              <span style={{ color: "var(--text-muted)", fontSize: "var(--fs-base)", fontWeight: 400 }}>
                 Modifica inscritos o costes sin afectar los datos reales
               </span>
             )}
@@ -504,11 +504,11 @@ export const ScenarioBar = ({
           onClick={() => { setShowNewModal(false); setNewName(""); }}
         >
           <div className="sc-new-modal" onClick={(e) => e.stopPropagation()}>
-            <div style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>🔬</div>
+            <div style={{ fontSize: "var(--fs-lg)", marginBottom: "0.5rem" }}>🔬</div>
             <div
               style={{
                 fontWeight: 800,
-                fontSize: "1rem",
+                fontSize: "var(--fs-md)",
                 color: "var(--text)",
                 marginBottom: "0.3rem",
               }}
@@ -518,7 +518,7 @@ export const ScenarioBar = ({
             <p
               style={{
                 fontFamily: "var(--font-mono)",
-                fontSize: "0.68rem",
+                fontSize: "var(--fs-sm)",
                 color: "var(--text-muted)",
                 lineHeight: 1.6,
                 marginBottom: "1.25rem",
@@ -543,7 +543,7 @@ export const ScenarioBar = ({
               onChange={(e) => setNewNota(e.target.value)}
               rows={2}
               style={{ resize: "vertical", marginBottom: "1rem",
-                fontFamily: "var(--font-mono)", fontSize: "0.72rem" }}
+                fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)" }}
             />
             <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
               <button
@@ -569,13 +569,13 @@ export const ScenarioBar = ({
           <div className="sc-list-modal" onClick={(e) => e.stopPropagation()}>
             <div className="sc-list-header">
               <div>
-                <div style={{ fontWeight: 800, fontSize: "0.95rem", color: "var(--text)" }}>
+                <div style={{ fontWeight: 800, fontSize: "var(--fs-md)", color: "var(--text)" }}>
                   📋 Escenarios guardados
                 </div>
                 <div
                   style={{
                     fontFamily: "var(--font-mono)",
-                    fontSize: "0.6rem",
+                    fontSize: "var(--fs-xs)",
                     color: "var(--text-muted)",
                     marginTop: "0.15rem",
                   }}
@@ -612,7 +612,7 @@ export const ScenarioBar = ({
                       setShowList(false);
                     }}
                   >
-                    <div style={{ fontSize: "1.2rem", flexShrink: 0 }}>🔬</div>
+                    <div style={{ fontSize: "var(--fs-lg)", flexShrink: 0 }}>🔬</div>
                     <div className="sc-list-item-info">
                       <div className="sc-list-item-name">{sc.nombre}</div>
                       <div className="sc-list-item-meta">
@@ -623,7 +623,7 @@ export const ScenarioBar = ({
                           } excluido${sc.conceptosExcluidos.length !== 1 ? "s" : ""}`}
                       </div>
                       {sc.nota && (
-                        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.58rem",
+                        <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
                           color: "var(--text-dim)", marginTop: "0.2rem",
                           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
                           title={sc.nota}>
@@ -695,10 +695,10 @@ export const ScenarioBar = ({
           <div className="sc-list-modal" onClick={(e) => e.stopPropagation()}>
             <div className="sc-list-header">
               <div>
-                <div style={{ fontWeight: 800, fontSize: "0.95rem", color: "var(--text)" }}>
+                <div style={{ fontWeight: 800, fontSize: "var(--fs-md)", color: "var(--text)" }}>
                   🔍 Cambios vs Datos Reales
                 </div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-muted)", marginTop: "0.15rem" }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: "0.15rem" }}>
                   ¿Qué has modificado en este escenario?
                 </div>
               </div>
@@ -722,10 +722,10 @@ export const ScenarioBar = ({
                     borderBottom: i < diffs.length - 1 ? "1px solid var(--border-light)" : "none",
                     alignItems: "center"
                   }}>
-                    <div style={{ fontSize: "1.2rem", flexShrink: 0, opacity: 0.8 }}>{d.icon}</div>
+                    <div style={{ fontSize: "var(--fs-lg)", flexShrink: 0, opacity: 0.8 }}>{d.icon}</div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text)" }}>{d.ref}</div>
-                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.7rem", color: "var(--text-muted)", marginTop: 2 }}>{d.msg}</div>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)", marginTop: 2 }}>{d.msg}</div>
                     </div>
                   </div>
                 ));
@@ -738,11 +738,11 @@ export const ScenarioBar = ({
       {confirmDel && (
         <div className="sc-list-overlay" onClick={() => setConfirmDel(null)}>
           <div className="sc-new-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 340 }}>
-            <div style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>🗑</div>
-            <div style={{ fontWeight: 800, fontSize: "0.95rem", marginBottom: "0.3rem" }}>
+            <div style={{ fontSize: "var(--fs-lg)", marginBottom: "0.5rem" }}>🗑</div>
+            <div style={{ fontWeight: 800, fontSize: "var(--fs-md)", marginBottom: "0.3rem" }}>
               ¿Eliminar escenario?
             </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.68rem",
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)",
               color: "var(--text-muted)", lineHeight: 1.6, marginBottom: "1.25rem" }}>
               Se eliminará <strong style={{ color: "var(--text)" }}>{confirmDel.nombre}</strong>.
               {confirmDel.nota && (

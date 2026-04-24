@@ -278,7 +278,7 @@ export default function App() {
               <h1 className="block-title" style={{margin:0}}>🤝 Patrocinadores</h1>
               <button
                 onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"proyecto"}}))}
-                style={{fontFamily:"var(--font-mono)",fontSize:".58rem",padding:".15rem .45rem",
+                style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".15rem .45rem",
                   borderRadius:4,border:"1px solid rgba(52,211,153,.3)",
                   background:"rgba(52,211,153,.1)",color:"var(--green)",cursor:"pointer"}}>
                 📋 Ver en Proyecto →
@@ -356,7 +356,7 @@ export default function App() {
         <div className="modal-backdrop" onClick={e => e.target===e.currentTarget && setDelId(null)}>
           <div className="modal" style={{maxWidth:340,textAlign:"center"}}>
             <div className="modal-body" style={{paddingTop:"1.5rem"}}>
-              <div style={{fontSize:"2.5rem",marginBottom:".6rem"}}>⚠️</div>
+              <div style={{fontSize:"var(--fs-xl)",marginBottom:".6rem"}}>⚠️</div>
               <div style={{fontWeight:700,marginBottom:".4rem"}}>¿Eliminar patrocinador?</div>
               <div className="muted mono xs">Se eliminarán también todas sus contraprestaciones.</div>
             </div>
@@ -449,7 +449,7 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
         marginBottom:".85rem", padding:".55rem .85rem",
         background:"rgba(245,158,11,.05)", border:"1px solid rgba(245,158,11,.15)",
         borderRadius:"var(--r-sm)" }}>
-        <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+        <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
           color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:".06em" }}>
           🎯 Objetivo
         </span>
@@ -457,7 +457,7 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
           <>
             <input className="inp" type="number" value={tmpObj}
               onChange={e => setTmpObj(parseFloat(e.target.value)||0)}
-              style={{ width:90, fontFamily:"var(--font-mono)", fontSize:".75rem" }}
+              style={{ width:90, fontFamily:"var(--font-mono)", fontSize:"var(--fs-base)" }}
               autoFocus />
             <button className="btn btn-gold btn-sm"
               onClick={()=>{ setObjetivo(tmpObj); setEditObj(false); }}>OK</button>
@@ -466,7 +466,7 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
           </>
         ) : (
           <>
-            <span style={{ fontFamily:"var(--font-mono)", fontSize:".82rem",
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-base)",
               fontWeight:800, color:"#f59e0b" }}>{fmtEur(objetivo)}</span>
             <div style={{ flex:1, height:4, background:"var(--surface3)",
               borderRadius:2, overflow:"hidden", maxWidth:160 }}>
@@ -474,12 +474,12 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
                 width:`${stats.pctObj}%`,
                 background:"linear-gradient(90deg,#f59e0b,#fbbf24)" }} />
             </div>
-            <span style={{ fontFamily:"var(--font-mono)", fontSize:".72rem",
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
               fontWeight:700, color:stats.pctObj>=80?"var(--green)":stats.pctObj>=50?"#f59e0b":"var(--red)" }}>
               {stats.pctObj}%
             </span>
             <button className="btn btn-ghost btn-sm"
-              style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+              style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                 color:"var(--text-dim)", marginLeft:"auto" }}
               onClick={()=>{ setTmpObj(objetivo); setEditObj(true); }}>
               ✏️ Editar
@@ -494,16 +494,16 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
           <div className="ct">🏅 Captación por nivel</div>
           {porNivel.filter(x => x.count > 0 || x.n !== "Especie").map(x => (
             <div key={x.n} style={{ display: "flex", alignItems: "center", gap: ".75rem", marginBottom: ".75rem" }}>
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: x.cfg.dim, border: `1px solid ${x.cfg.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem", flexShrink: 0 }}>{x.cfg.icon}</div>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: x.cfg.dim, border: `1px solid ${x.cfg.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--fs-md)", flexShrink: 0 }}>{x.cfg.icon}</div>
               <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: ".74rem", fontWeight: 600, marginBottom: ".2rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--fs-sm)", fontWeight: 600, marginBottom: ".2rem" }}>
                   <span style={{ color: x.cfg.color }}>{x.n}</span>
                   <span className="mono" style={{ color: "var(--text-muted)" }}>{x.count} patrocinador{x.count !== 1 ? "es" : ""}</span>
                 </div>
                 <div className="pbar">
                   <div className="pfill" style={{ width: x.cfg.objetivo > 0 ? `${Math.min(x.total / x.cfg.objetivo * 100, 100)}%` : "0%", background: x.cfg.color }} />
                 </div>
-                <div style={{ marginTop: ".15rem", fontFamily: "var(--font-mono)", fontSize: ".65rem", color: x.cfg.color }}>{fmtEur(x.total)}</div>
+                <div style={{ marginTop: ".15rem", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: x.cfg.color }}>{fmtEur(x.total)}</div>
               </div>
             </div>
           ))}
@@ -520,10 +520,10 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
               <div key={p.id} style={{ display: "flex", alignItems: "center", gap: ".75rem", padding: ".45rem 0", borderBottom: "1px solid rgba(30,45,80,.3)", cursor:"pointer" }} onClick={()=>openDetalle(p)}>
                 <div style={{ width: 8, height: 8, borderRadius: "50%", background: getCfg(p.nivel).color, flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: ".76rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nombre}</div>
+                  <div style={{ fontSize: "var(--fs-base)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nombre}</div>
                   <div className="mono xs muted">{p.fechaVencimiento} · {fmtEur(p.importe)}</div>
                 </div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: ".62rem", fontWeight: 700, color: urgente ? "#f87171" : "#fbbf24", background: urgente ? "rgba(248,113,113,.1)" : "rgba(251,191,36,.1)", padding: ".12rem .4rem", borderRadius: 4, flexShrink: 0 }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700, color: urgente ? "#f87171" : "#fbbf24", background: urgente ? "rgba(248,113,113,.1)" : "rgba(251,191,36,.1)", padding: ".12rem .4rem", borderRadius: 4, flexShrink: 0 }}>
                   {dias < 0 ? "VENCIDO" : `${dias}d`}
                 </div>
               </div>
@@ -541,12 +541,12 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
           marginBottom:".65rem" }}>
           <div className="ct" style={{ marginBottom:0 }}>⚡ Requiere atención</div>
           {requierenAtencion.length === 0 && (
-            <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
               color:"var(--green)" }}>✅ Todo en orden</span>
           )}
         </div>
         {requierenAtencion.length === 0 ? (
-          <div style={{ fontFamily:"var(--font-mono)", fontSize:".72rem",
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
             color:"var(--text-muted)", textAlign:"center", padding:".75rem 0" }}>
             Sin acciones pendientes en patrocinadores
           </div>
@@ -564,24 +564,24 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
                   onMouseEnter={e=>e.currentTarget.style.borderColor="var(--border-light)"}
                   onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border)"}>
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:".78rem", fontWeight:700,
+                    <div style={{ fontSize:"var(--fs-base)", fontWeight:700,
                       overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                       {p.nombre}
                     </div>
-                    <div style={{ fontFamily:"var(--font-mono)", fontSize:".58rem",
+                    <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                       color:"var(--text-muted)", marginTop:".1rem" }}>
                       {cfg.icon} {p.nivel} · {p.sector}
                     </div>
                   </div>
                   <div style={{ display:"flex", flexDirection:"column",
                     alignItems:"flex-end", gap:".15rem", flexShrink:0 }}>
-                    <span style={{ fontFamily:"var(--font-mono)", fontSize:".62rem",
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                       fontWeight:700, color:p._color,
                       background:`${p._color}15`, border:`1px solid ${p._color}33`,
                       borderRadius:3, padding:".1rem .4rem", whiteSpace:"nowrap" }}>
                       {p._motivo}
                     </span>
-                    <span style={{ fontFamily:"var(--font-mono)", fontSize:".62rem",
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                       color:"var(--text-muted)" }}>
                       {p.especie > 0 ? `${fmtEur(p.especie)} especie` : fmtEur(p.importe)}
                     </span>
@@ -589,7 +589,7 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
                 </div>
               );
             })}
-            <button className="btn btn-ghost" style={{ marginTop:".25rem", fontSize:".65rem" }}
+            <button className="btn btn-ghost" style={{ marginTop:".25rem", fontSize:"var(--fs-sm)" }}
               onClick={() => setTab("patrocinadores")}>
               Ver todos los patrocinadores →
             </button>
@@ -627,7 +627,7 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
       {/* Filtros — Kinetik Ops quick-filter pills */}
       <div style={{ marginBottom:".75rem", display:"flex", flexDirection:"column", gap:"0.45rem" }}>
         <input className="inp" placeholder="Buscar por nombre, contacto o sector…" value={search}
-          onChange={e => setSearch(e.target.value)} style={{ maxWidth:320, fontSize:"0.8rem" }} />
+          onChange={e => setSearch(e.target.value)} style={{ maxWidth:320, fontSize:"var(--fs-base)" }} />
         <div className="filter-pill-group">
           {/* Estado */}
           {[
@@ -677,24 +677,24 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
             return (
               <div key={nivel} className="pat-k-col">
                 <div className="pat-k-hdr" style={{borderTopColor:cfg.color}}>
-                  <span style={{fontWeight:700,fontSize:".7rem",color:cfg.color}}>{cfg.icon} {nivel}</span>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",padding:".1rem .35rem",borderRadius:4,background:cfg.dim,color:cfg.color}}>{items.length}</span>
+                  <span style={{fontWeight:700,fontSize:"var(--fs-sm)",color:cfg.color}}>{cfg.icon} {nivel}</span>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".1rem .35rem",borderRadius:4,background:cfg.dim,color:cfg.color}}>{items.length}</span>
                 </div>
                 {items.map(p => {
                   const ecfg = ESTADO_CFG[p.estado] || ESTADO_CFG.prospecto;
                   return (
                     <div key={p.id} className="pat-k-card" style={{borderLeftColor:cfg.color,cursor:"pointer"}}
                       onClick={()=>onDetalle(p)}>
-                      <div style={{fontWeight:700,fontSize:".78rem",marginBottom:".2rem"}}>{p.nombre}</div>
+                      <div style={{fontWeight:700,fontSize:"var(--fs-base)",marginBottom:".2rem"}}>{p.nombre}</div>
                       <div className="mono xs muted" style={{marginBottom:".3rem"}}>{p.sector}</div>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:".76rem",fontWeight:700,color:cfg.color}}>{fmtEur(p.importe)}</span>
-                        <span className="badge" style={{background:ecfg.bg,color:ecfg.color,fontSize:".52rem"}}>{ecfg.label}</span>
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-base)",fontWeight:700,color:cfg.color}}>{fmtEur(p.importe)}</span>
+                        <span className="badge" style={{background:ecfg.bg,color:ecfg.color,fontSize:"var(--fs-2xs)"}}>{ecfg.label}</span>
                       {p.proximoContacto && p.estado === "negociando" && (() => {
                         const dias = Math.ceil((new Date(p.proximoContacto) - new Date()) / 86400000);
                         if (dias > 3) return null;
                         return (
-                          <span style={{ padding:".1rem .4rem", borderRadius:4, fontSize:".57rem",
+                          <span style={{ padding:".1rem .4rem", borderRadius:4, fontSize:"var(--fs-xs)",
                             fontFamily:"var(--font-mono)", fontWeight:700,
                             background: dias < 0 ? "var(--red-dim)" : "var(--amber-dim)",
                             color: dias < 0 ? "var(--red)" : "var(--amber)",
@@ -740,9 +740,9 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
               }}>
                 <div className="item-icon-pill"
                   style={{"--pill-color": cfg.color, width:38, height:38}}>
-                  <span style={{fontSize:"1.1rem"}}>{cfg.icon}</span>
+                  <span style={{fontSize:"var(--fs-lg)"}}>{cfg.icon}</span>
                 </div>
-                <div style={{ fontFamily:"var(--font-mono)", fontSize:".52rem",
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)",
                   color:cfg.color, fontWeight:700, textAlign:"center",
                   letterSpacing:".04em", textTransform:"uppercase",
                   whiteSpace:"nowrap" }}>
@@ -751,7 +751,7 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
               </div>
               <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: ".25rem" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: ".6rem", flexWrap: "wrap" }}>
-                  <span style={{ fontSize: ".9rem", fontWeight: 800 }}>{p.nombre}</span>
+                  <span style={{ fontSize: "var(--fs-md)", fontWeight: 800 }}>{p.nombre}</span>
                   <span className="badge" style={{ background: ecfg.bg, color: ecfg.color, border: `1px solid ${ecfg.color}33` }}>{ecfg.label}</span>
                   {contPend > 0 && <span className="badge" style={{ background: "rgba(248,113,113,.1)", color: "#f87171" }}>⚠ {contPend} compromisos pendientes</span>}
                 </div>
@@ -760,10 +760,10 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
                   <span className="mono xs muted">👤 {p.contacto}</span>
                   {p.telefono && <span className="mono xs muted">📞 {p.telefono}</span>}
                 </div>
-                {p.notas && <div style={{ fontSize: ".68rem", color: "var(--text-muted)", fontStyle: "italic", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 480 }}>{p.notas}</div>}
+                {p.notas && <div style={{ fontSize: "var(--fs-sm)", color: "var(--text-muted)", fontStyle: "italic", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 480 }}>{p.notas}</div>}
               </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: ".35rem", flexShrink: 0 }}>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: ".9rem", fontWeight: 800, color: cfg.color }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-md)", fontWeight: 800, color: cfg.color }}>
                   {p.especie > 0 ? fmtEur(p.especie) : fmtEur(p.importe)}
                   {p.especie > 0 && <span className="mono xs muted" style={{ marginLeft: ".3rem" }}>especie</span>}
                 </div>
@@ -811,33 +811,33 @@ function TabPipeline({ pats, onEditar, onDetalle, updateEstado, ordenAlfa, onNue
           <div key={col.e} className="kancol">
             <div className="kancol-header" style={{ borderTopColor: col.cfg.color }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontWeight: 700, fontSize: ".78rem", color: col.cfg.color }}>{col.cfg.label}</span>
+                <span style={{ fontWeight: 700, fontSize: "var(--fs-base)", color: col.cfg.color }}>{col.cfg.label}</span>
                 <span className="badge" style={{ background: col.cfg.bg, color: col.cfg.color }}>{col.pats.length}</span>
               </div>
               {col.total > 0 && <div className="mono xs" style={{ color: col.cfg.color, marginTop: ".2rem" }}>{fmtEur(col.total)}</div>}
             </div>
             <div className="kancol-body">
               {col.pats.length === 0 && (
-                <div style={{ padding: "1rem", textAlign: "center", color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: ".65rem" }}>—</div>
+                <div style={{ padding: "1rem", textAlign: "center", color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)" }}>—</div>
               )}
               {col.pats.map(p => {
                 const ncfg = getCfg(p.nivel);
                 return (
                   <div key={p.id} className="kancard" style={{ borderTopColor: ncfg.color, cursor:"pointer" }} onClick={()=>onDetalle(p)}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: ".35rem" }}>
-                      <span style={{ fontWeight: 700, fontSize: ".78rem", flex: 1, paddingRight: ".5rem" }}>{p.nombre}</span>
-                      <span style={{ fontSize: ".85rem" }}>{ncfg.icon}</span>
+                      <span style={{ fontWeight: 700, fontSize: "var(--fs-base)", flex: 1, paddingRight: ".5rem" }}>{p.nombre}</span>
+                      <span style={{ fontSize: "var(--fs-base)" }}>{ncfg.icon}</span>
                     </div>
                     <div className="mono xs muted" style={{ marginBottom: ".5rem" }}>{p.sector}</div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: ".78rem", fontWeight: 700, color: ncfg.color }}>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-base)", fontWeight: 700, color: ncfg.color }}>
                         {p.especie > 0 ? fmtEur(p.especie) : fmtEur(p.importe)}
                       </span>
                     </div>
                     {/* Mover de estado */}
                     <div style={{ marginTop: ".5rem", display: "flex", gap: ".25rem", flexWrap: "wrap" }}>
                       {ESTADOS.filter(s => s !== p.estado && s !== "cancelado").slice(0, 2).map(s => (
-                        <button key={s} className="btn btn-sm btn-ghost" style={{ fontSize: ".55rem", padding: ".1rem .35rem" }}
+                        <button key={s} className="btn btn-sm btn-ghost" style={{ fontSize: "var(--fs-xs)", padding: ".1rem .35rem" }}
                           onClick={e=>{e.stopPropagation();updateEstado(p.id, s)}}>
                           → {ESTADO_CFG[s].label}
                         </button>
@@ -885,7 +885,7 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
           <div style={{display:"flex",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:"var(--r-sm)",overflow:"hidden"}}>
             {[["lista","☰"],["kanban","⬛"]].map(([v,ic])=>(
               <button key={v} onClick={()=>setVistaKanban(v==="kanban")}
-                style={{padding:".3rem .55rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:".62rem",fontWeight:700,
+                style={{padding:".3rem .55rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
                   background:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"rgba(245,158,11,.2)":"transparent",
                   color:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"#f59e0b":"var(--text-muted)"}}>
                 {ic}
@@ -905,10 +905,10 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
           ].map(col=>(
             <div key={col.id} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--r)",overflow:"hidden"}}>
               <div style={{padding:".6rem .75rem",borderTop:`2px solid ${col.color}`,background:col.bg,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <span style={{fontWeight:700,fontSize:".7rem",color:col.color}}>{col.label}</span>
-                <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",padding:".1rem .35rem",borderRadius:4,background:col.color+"22",color:col.color}}>{col.items.length}</span>
+                <span style={{fontWeight:700,fontSize:"var(--fs-sm)",color:col.color}}>{col.label}</span>
+                <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".1rem .35rem",borderRadius:4,background:col.color+"22",color:col.color}}>{col.items.length}</span>
               </div>
-              {col.items.length===0 && <div style={{padding:"1rem",textAlign:"center",fontFamily:"var(--font-mono)",fontSize:".65rem",color:"var(--text-dim)"}}>—</div>}
+              {col.items.length===0 && <div style={{padding:"1rem",textAlign:"center",fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-dim)"}}>—</div>}
               {col.items.map(c=>{
                 const pcfg=getCfg(c.patNivel);
                 const isEditing = editingCont === `${c.patId}-${c.id}`;
@@ -925,11 +925,11 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
                   ) : (
                   <div key={c.patId+"-"+c.id} style={{margin:".35rem .4rem 0",background:"var(--surface2)",border:"1px solid var(--border)",borderLeft:`3px solid ${pcfg.color}`,borderRadius:7,padding:".5rem .65rem",cursor:"pointer"}}
                     onClick={()=>{ const p=pats.find(x=>x.id===c.patId); if(p) onDetalle(p); }}>
-                    <div style={{fontWeight:700,fontSize:".74rem",marginBottom:".15rem"}}>{c.tipo}</div>
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:".6rem",color:"var(--text-muted)"}}>{pcfg.icon} {c.patNombre}</div>
-                    {c.detalle&&<div style={{fontFamily:"var(--font-mono)",fontSize:".58rem",color:"var(--text-dim)",marginTop:".1rem"}}>{c.detalle}</div>}
+                    <div style={{fontWeight:700,fontSize:"var(--fs-sm)",marginBottom:".15rem"}}>{c.tipo}</div>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>{pcfg.icon} {c.patNombre}</div>
+                    {c.detalle&&<div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-dim)",marginTop:".1rem"}}>{c.detalle}</div>}
                     <div style={{marginTop:".35rem", display:"flex", justifyContent:"space-between", alignItems:"center"}} onClick={e=>e.stopPropagation()}>
-                      <button style={{fontFamily:"var(--font-mono)",fontSize:".58rem",padding:".12rem .4rem",borderRadius:4,
+                      <button style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".12rem .4rem",borderRadius:4,
                         border:`1px solid ${col.id==="pendiente"?"rgba(52,211,153,.3)":"rgba(248,113,113,.3)"}`,
                         background:col.id==="pendiente"?"var(--green-dim)":"var(--red-dim)",
                         color:col.id==="pendiente"?"var(--green)":"var(--red)",cursor:"pointer"}}
@@ -971,7 +971,7 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
             <div key={c.patId + "-" + c.id} style={{ display: "flex", alignItems: "center", gap: ".5rem", padding: ".35rem 0", borderBottom: "1px solid rgba(30,45,80,.25)" }}>
               <div style={{ width: 6, height: 6, borderRadius: "50%", background: getCfg(c.patNivel).color, flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: ".72rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.tipo}</div>
+                <div style={{ fontSize: "var(--fs-sm)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.tipo}</div>
                 <div className="mono xs muted">{c.patNombre}</div>
               </div>
               <div style={{display:"flex", gap:".25rem", flexShrink:0}}>
@@ -998,9 +998,9 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
               </div>
             ) : (
             <div key={c.patId + "-" + c.id} style={{ display: "flex", alignItems: "center", gap: ".5rem", padding: ".35rem 0", borderBottom: "1px solid rgba(30,45,80,.25)" }}>
-              <div style={{ color: "#34d399", fontSize: ".8rem", flexShrink: 0 }}>✓</div>
+              <div style={{ color: "#34d399", fontSize: "var(--fs-base)", flexShrink: 0 }}>✓</div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: ".72rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "line-through", color: "var(--text-muted)" }}>{c.tipo}</div>
+                <div style={{ fontSize: "var(--fs-sm)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "line-through", color: "var(--text-muted)" }}>{c.tipo}</div>
                 <div className="mono xs muted">{c.patNombre}</div>
               </div>
               <div style={{display:"flex", gap:".25rem", flexShrink:0}}>
@@ -1024,9 +1024,9 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
           <div key={p.id} className="card" style={{ marginBottom: ".6rem", borderLeftWidth: 3, borderLeftColor: cfg.color, cursor:"pointer" }} onClick={()=>onDetalle(p)}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ".75rem" }}>
               <div style={{ display: "flex", alignItems: "center", gap: ".5rem" }}>
-                <span style={{ fontSize: "1.1rem" }}>{cfg.icon}</span>
+                <span style={{ fontSize: "var(--fs-lg)" }}>{cfg.icon}</span>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: ".86rem" }}>{p.nombre}</div>
+                  <div style={{ fontWeight: 700, fontSize: "var(--fs-base)" }}>{p.nombre}</div>
                   <div className="mono xs muted">{p.contraprestaciones.length} compromisos · {pend} pendientes · {entr} entregados</div>
                 </div>
               </div>
@@ -1035,7 +1035,7 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
             </div>
 
             {p.contraprestaciones.length === 0 && addingTo !== p.id && (
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", color: "var(--text-dim)", padding: ".5rem 0" }}>Sin compromisos registrados</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-dim)", padding: ".5rem 0" }}>Sin compromisos registrados</div>
             )}
 
             {p.contraprestaciones.map(c => 
@@ -1056,19 +1056,19 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
               <div key={c.id} className={cls("cont-row", c.estado === "entregado" && "cont-done")} onClick={e=>e.stopPropagation()}>
                 <button className="ckbox" onClick={() => updateContraprestacion(p.id, c.id, "estado", c.estado === "entregado" ? "pendiente" : "entregado")}
                   style={{ borderColor: c.estado === "entregado" ? "#34d399" : "var(--border)", background: c.estado === "entregado" ? "#34d399" : "transparent" }}>
-                  {c.estado === "entregado" && <span style={{ color: "#000", fontSize: ".7rem", fontWeight: 800 }}>✓</span>}
+                  {c.estado === "entregado" && <span style={{ color: "#000", fontSize: "var(--fs-sm)", fontWeight: 800 }}>✓</span>}
                 </button>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: ".76rem", fontWeight: 600, color: c.estado === "entregado" ? "var(--text-muted)" : "var(--text)", textDecoration: c.estado === "entregado" ? "line-through" : "none" }}>{c.tipo}</div>
+                  <div style={{ fontSize: "var(--fs-base)", fontWeight: 600, color: c.estado === "entregado" ? "var(--text-muted)" : "var(--text)", textDecoration: c.estado === "entregado" ? "line-through" : "none" }}>{c.tipo}</div>
                   {c.detalle && <div className="mono xs muted">{c.detalle}</div>}
                 </div>
                 {c.estado !== "entregado" && (() => {
                   if (!c.fechaEntrega) return null;
                   const dias = Math.ceil((new Date(c.fechaEntrega) - new Date()) / 86400000);
-                  if (dias < 0)  return <span key="urg" style={{fontFamily:"var(--font-mono)",fontSize:".55rem",padding:".1rem .35rem",borderRadius:4,background:"var(--red-dim)",color:"var(--red)",fontWeight:700,flexShrink:0}}>⚠ {Math.abs(dias)}d vencida</span>;
-                  if (dias === 0) return <span key="urg" style={{fontFamily:"var(--font-mono)",fontSize:".55rem",padding:".1rem .35rem",borderRadius:4,background:"var(--amber-dim)",color:"var(--amber)",fontWeight:700,flexShrink:0}}>🔔 HOY</span>;
-                  if (dias <= 7) return <span key="urg" style={{fontFamily:"var(--font-mono)",fontSize:".55rem",padding:".1rem .35rem",borderRadius:4,background:"var(--amber-dim)",color:"var(--amber)",fontWeight:700,flexShrink:0}}>📅 {dias}d</span>;
-                  return <span key="urg" style={{fontFamily:"var(--font-mono)",fontSize:".55rem",color:"var(--text-dim)",flexShrink:0}}>📅 {c.fechaEntrega}</span>;
+                  if (dias < 0)  return <span key="urg" style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".1rem .35rem",borderRadius:4,background:"var(--red-dim)",color:"var(--red)",fontWeight:700,flexShrink:0}}>⚠ {Math.abs(dias)}d vencida</span>;
+                  if (dias === 0) return <span key="urg" style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".1rem .35rem",borderRadius:4,background:"var(--amber-dim)",color:"var(--amber)",fontWeight:700,flexShrink:0}}>🔔 HOY</span>;
+                  if (dias <= 7) return <span key="urg" style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".1rem .35rem",borderRadius:4,background:"var(--amber-dim)",color:"var(--amber)",fontWeight:700,flexShrink:0}}>📅 {dias}d</span>;
+                  return <span key="urg" style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-dim)",flexShrink:0}}>📅 {c.fechaEntrega}</span>;
                 })()}
                 <div style={{display:"flex",gap:".3rem",flexShrink:0}}>
                   <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(`${p.id}-${c.id}`); setEditC({ tipo: c.tipo, detalle: c.detalle||"", fechaEntrega: c.fechaEntrega||"" }); }}>✏️</button>
@@ -1126,9 +1126,9 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
         <div style={{ borderBottom: `2px solid ${cfg.color}33` }}>
           <div className="modal-header" style={{ borderBottom: "none", paddingBottom: ".5rem" }}>
             <div style={{ display: "flex", alignItems: "center", gap: ".75rem" }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: cfg.dim, border: `1px solid ${cfg.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.3rem" }}>{cfg.icon}</div>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: cfg.dim, border: `1px solid ${cfg.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--fs-lg)" }}>{cfg.icon}</div>
               <div>
-                <div style={{ fontWeight: 800, fontSize: "1rem" }}>{pat.nombre}</div>
+                <div style={{ fontWeight: 800, fontSize: "var(--fs-md)" }}>{pat.nombre}</div>
                 <div className="mono xs muted">{pat.sector} · {pat.nivel}</div>
               </div>
             </div>
@@ -1143,16 +1143,16 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
           <div style={{ display: "flex", gap: "0", padding: "0 1.4rem" }}>
             {[["info","ℹ️ Info"],["cont","🎁 Compromisos"],["especie","📦 En especie"],["docs","📁 Documentos"],["informe","📄 Informe"]].map(([id,label]) => (
               <button key={id} onClick={() => setSubTab(id)}
-                style={{ background:"none", border:"none", borderBottom: subTab===id ? `2px solid ${cfg.color}` : "2px solid transparent", color: subTab===id ? cfg.color : "var(--text-muted)", fontFamily:"Syne,sans-serif", fontSize:".72rem", fontWeight: subTab===id?700:500, padding:".4rem .75rem .5rem", cursor:"pointer", transition:"all .15s" }}>
+                style={{ background:"none", border:"none", borderBottom: subTab===id ? `2px solid ${cfg.color}` : "2px solid transparent", color: subTab===id ? cfg.color : "var(--text-muted)", fontFamily:"Syne,sans-serif", fontSize:"var(--fs-sm)", fontWeight: subTab===id?700:500, padding:".4rem .75rem .5rem", cursor:"pointer", transition:"all .15s" }}>
                 {label}
                 {id==="docs" && (() => {
                   const nDocs = (pat.docs||[]).length;
                   return nDocs > 0 ? (
-                    <span style={{ marginLeft:".3rem", background:cfg.dim, color:cfg.color, fontSize:".55rem", padding:".05rem .3rem", borderRadius:3, fontFamily:"var(--font-mono)" }}>{nDocs}</span>
+                    <span style={{ marginLeft:".3rem", background:cfg.dim, color:cfg.color, fontSize:"var(--fs-xs)", padding:".05rem .3rem", borderRadius:3, fontFamily:"var(--font-mono)" }}>{nDocs}</span>
                   ) : null;
                 })()}
-                {id==="cont" && (pat.contraprestaciones || []).filter(c=>c.estado==="pendiente").length > 0 && <span style={{ marginLeft:".3rem", background:"rgba(248,113,113,.12)", color:"#f87171", fontSize:".55rem", padding:".05rem .3rem", borderRadius:3, fontFamily:"var(--font-mono)" }}>{(pat.contraprestaciones || []).filter(c=>c.estado==="pendiente").length}</span>}
-                {id==="especie" && especieItems.length > 0 && <span style={{ marginLeft:".3rem", background:cfg.dim, color:cfg.color, fontSize:".55rem", padding:".05rem .3rem", borderRadius:3, fontFamily:"var(--font-mono)" }}>{especieItems.length}</span>}
+                {id==="cont" && (pat.contraprestaciones || []).filter(c=>c.estado==="pendiente").length > 0 && <span style={{ marginLeft:".3rem", background:"rgba(248,113,113,.12)", color:"#f87171", fontSize:"var(--fs-xs)", padding:".05rem .3rem", borderRadius:3, fontFamily:"var(--font-mono)" }}>{(pat.contraprestaciones || []).filter(c=>c.estado==="pendiente").length}</span>}
+                {id==="especie" && especieItems.length > 0 && <span style={{ marginLeft:".3rem", background:cfg.dim, color:cfg.color, fontSize:"var(--fs-xs)", padding:".05rem .3rem", borderRadius:3, fontFamily:"var(--font-mono)" }}>{especieItems.length}</span>}
               </button>
             ))}
           </div>
@@ -1170,7 +1170,7 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
             ].map(([k, v]) => (
               <div key={k}>
                 <div className="fl">{k}</div>
-                <div style={{ fontSize: ".78rem", fontWeight: 600 }}>{v}</div>
+                <div style={{ fontSize: "var(--fs-base)", fontWeight: 600 }}>{v}</div>
               </div>
             ))}
           </div>
@@ -1195,7 +1195,7 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
           {pat.notas && (
             <div>
               <div className="fl">Notas</div>
-              <div style={{ fontSize: ".74rem", color: "var(--text-muted)", fontStyle: "italic", lineHeight: 1.5 }}>{pat.notas}</div>
+              <div style={{ fontSize: "var(--fs-sm)", color: "var(--text-muted)", fontStyle: "italic", lineHeight: 1.5 }}>{pat.notas}</div>
             </div>
           )}
 
@@ -1222,19 +1222,19 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
               <div key={c.id} className={cls("cont-row", c.estado === "entregado" && "cont-done")}>
                 <button className="ckbox" onClick={() => updateContraprestacion(pat.id, c.id, "estado", c.estado === "entregado" ? "pendiente" : "entregado")}
                   style={{ borderColor: c.estado === "entregado" ? "#34d399" : "var(--border)", background: c.estado === "entregado" ? "#34d399" : "transparent" }}>
-                  {c.estado === "entregado" && <span style={{ color: "#000", fontSize: ".7rem", fontWeight: 800 }}>✓</span>}
+                  {c.estado === "entregado" && <span style={{ color: "#000", fontSize: "var(--fs-sm)", fontWeight: 800 }}>✓</span>}
                 </button>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: ".74rem", fontWeight: 600, textDecoration: c.estado === "entregado" ? "line-through" : "none", color: c.estado === "entregado" ? "var(--text-muted)" : "var(--text)" }}>{c.tipo}</div>
+                  <div style={{ fontSize: "var(--fs-sm)", fontWeight: 600, textDecoration: c.estado === "entregado" ? "line-through" : "none", color: c.estado === "entregado" ? "var(--text-muted)" : "var(--text)" }}>{c.tipo}</div>
                   {c.detalle && <div className="mono xs muted">{c.detalle}</div>}
                 </div>
                 <div style={{display:"flex",gap:".3rem",flexShrink:0}}>
                   {c.estado !== "entregado" && (() => {
                     if (!c.fechaEntrega) return null;
                     const dias = Math.ceil((new Date(c.fechaEntrega) - new Date()) / 86400000);
-                    if (dias < 0)  return <span key="urg" style={{fontFamily:"var(--font-mono)",fontSize:".55rem",padding:".1rem .35rem",borderRadius:4,background:"var(--red-dim)",color:"var(--red)",fontWeight:700}}>⚠ {Math.abs(dias)}d</span>;
-                    if (dias === 0) return <span key="urg" style={{fontFamily:"var(--font-mono)",fontSize:".55rem",padding:".1rem .35rem",borderRadius:4,background:"var(--amber-dim)",color:"var(--amber)",fontWeight:700}}>🔔 HOY</span>;
-                    if (dias <= 7) return <span key="urg" style={{fontFamily:"var(--font-mono)",fontSize:".55rem",padding:".1rem .35rem",borderRadius:4,background:"var(--amber-dim)",color:"var(--amber)",fontWeight:700}}>📅 {dias}d</span>;
+                    if (dias < 0)  return <span key="urg" style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".1rem .35rem",borderRadius:4,background:"var(--red-dim)",color:"var(--red)",fontWeight:700}}>⚠ {Math.abs(dias)}d</span>;
+                    if (dias === 0) return <span key="urg" style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".1rem .35rem",borderRadius:4,background:"var(--amber-dim)",color:"var(--amber)",fontWeight:700}}>🔔 HOY</span>;
+                    if (dias <= 7) return <span key="urg" style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".1rem .35rem",borderRadius:4,background:"var(--amber-dim)",color:"var(--amber)",fontWeight:700}}>📅 {dias}d</span>;
                     return null;
                   })()}
                   <button className="btn btn-sm btn-ghost" onClick={() => { setEditingCont(c.id); setEditC({ tipo: c.tipo, detalle: c.detalle||"", fechaEntrega: c.fechaEntrega||"" }); }}>✏️</button>
@@ -1243,7 +1243,7 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
               </div>
             ))}
             {pat.contraprestaciones.length === 0 && !addingCont && (
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", color: "var(--text-dim)" }}>Sin compromisos registrados</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-dim)" }}>Sin compromisos registrados</div>
             )}
             {addingCont && (
               <div style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 8, padding: ".65rem", marginTop: ".4rem", display: "flex", flexDirection: "column", gap: ".45rem" }}>
@@ -1266,14 +1266,14 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
           {subTab === "especie" && <>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ".6rem" }}>
               <div>
-                <div style={{ fontWeight: 700, fontSize: ".85rem" }}>📦 Productos / servicios en especie</div>
+                <div style={{ fontWeight: 700, fontSize: "var(--fs-base)" }}>📦 Productos / servicios en especie</div>
                 <div className="mono xs muted">{especieItems.filter(i=>i.recibido).length} recibidos · {especieItems.filter(i=>!i.recibido).length} pendientes</div>
               </div>
               <button className="btn btn-sm" style={{ background: cfg.dim, color: cfg.color, border: `1px solid ${cfg.border}` }}
                 onClick={() => setAddingEspecie(!addingEspecie)}>+ Añadir ítem</button>
             </div>
             {especieItems.length === 0 && !addingEspecie && (
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", color: "var(--text-dim)", textAlign: "center", padding: "1rem 0" }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-dim)", textAlign: "center", padding: "1rem 0" }}>
                 Sin ítems en especie registrados. Usa el botón + Añadir ítem.
               </div>
             )}
@@ -1294,13 +1294,13 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
               <div key={item.id} style={{ display: "flex", alignItems: "center", gap: ".6rem", padding: ".45rem 0", borderBottom: "1px solid rgba(30,45,80,.25)" }}>
                 <button onClick={() => updateEspecieItem(pat.id, item.id, "recibido", !item.recibido)}
                   style={{ width: 20, height: 20, borderRadius: 4, border: `2px solid ${item.recibido ? "#34d399" : "var(--border)"}`, background: item.recibido ? "#34d399" : "transparent", cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {item.recibido && <span style={{ color: "#000", fontSize: ".7rem", fontWeight: 800 }}>✓</span>}
+                  {item.recibido && <span style={{ color: "#000", fontSize: "var(--fs-sm)", fontWeight: 800 }}>✓</span>}
                 </button>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: ".78rem", fontWeight: 600, textDecoration: item.recibido ? "line-through" : "none", color: item.recibido ? "var(--text-muted)" : "var(--text)" }}>{item.nombre}</div>
+                  <div style={{ fontSize: "var(--fs-base)", fontWeight: 600, textDecoration: item.recibido ? "line-through" : "none", color: item.recibido ? "var(--text-muted)" : "var(--text)" }}>{item.nombre}</div>
                   <div className="mono xs muted">{item.cantidad} {item.unidad}</div>
                 </div>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: ".6rem", padding: ".1rem .4rem", borderRadius: 4,
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", padding: ".1rem .4rem", borderRadius: 4,
                   background: item.recibido ? "rgba(52,211,153,.12)" : "rgba(251,191,36,.1)",
                   color: item.recibido ? "#34d399" : "#fbbf24" }}>
                   {item.recibido ? "✓ Recibido" : "⏳ Pendiente"}
@@ -1463,7 +1463,7 @@ function InformePatrocinador({ pat, cfg, config = {} }) {
       {/* Cabecera del informe */}
       <div style={{ padding: ".75rem 1rem", background: `${cfg.color}10`,
         borderRadius: 10, border: `1px solid ${cfg.color}30` }}>
-        <div style={{ fontWeight: 700, fontSize: ".88rem" }}>{pat.nombre}</div>
+        <div style={{ fontWeight: 700, fontSize: "var(--fs-md)" }}>{pat.nombre}</div>
         <div className="mono xs muted">{pat.nivel} · {pat.sector}</div>
       </div>
 
@@ -1479,7 +1479,7 @@ function InformePatrocinador({ pat, cfg, config = {} }) {
           ].map(([k,v]) => (
             <div key={k} style={{ background:"var(--surface2)", borderRadius:8, padding:".5rem .75rem" }}>
               <div className="mono xs muted">{k}</div>
-              <div style={{ fontSize:".8rem", fontWeight:700, marginTop:".15rem" }}>{v}</div>
+              <div style={{ fontSize:"var(--fs-base)", fontWeight:700, marginTop:".15rem" }}>{v}</div>
             </div>
           ))}
         </div>
@@ -1496,13 +1496,13 @@ function InformePatrocinador({ pat, cfg, config = {} }) {
               padding:".4rem .65rem", borderRadius:6, marginBottom:".3rem",
               background: c.estado==="entregado" ? "rgba(52,211,153,.08)" : "rgba(251,191,36,.07)",
               border: `1px solid ${c.estado==="entregado" ? "rgba(52,211,153,.25)" : "rgba(251,191,36,.25)"}` }}>
-              <span style={{ fontSize:".7rem" }}>{c.estado==="entregado" ? "✅" : "⏳"}</span>
+              <span style={{ fontSize:"var(--fs-sm)" }}>{c.estado==="entregado" ? "✅" : "⏳"}</span>
               <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:".75rem", fontWeight:600 }}>{c.tipo}</div>
+                <div style={{ fontSize:"var(--fs-base)", fontWeight:600 }}>{c.tipo}</div>
                 {c.detalle && <div className="mono xs muted">{c.detalle}</div>}
               </div>
               {c.fechaEntrega && c.estado !== "entregado" && (
-                <span className="mono" style={{ fontSize:".6rem", color:"var(--amber)", flexShrink:0 }}>
+                <span className="mono" style={{ fontSize:"var(--fs-xs)", color:"var(--amber)", flexShrink:0 }}>
                   📅 {c.fechaEntrega}
                 </span>
               )}
@@ -1516,7 +1516,7 @@ function InformePatrocinador({ pat, cfg, config = {} }) {
         <div>
           <div className="ct" style={{ marginBottom: ".5rem" }}>Notas internas</div>
           <div style={{ background:"var(--surface2)", borderRadius:8, padding:".65rem .85rem",
-            fontSize:".75rem", lineHeight:1.6, color:"var(--text-muted)" }}>
+            fontSize:"var(--fs-base)", lineHeight:1.6, color:"var(--text-muted)" }}>
             {pat.notas}
           </div>
         </div>
@@ -1635,7 +1635,7 @@ function ModalPat({ data, onSave, onClose }) {
               <label className="fl">
                 Especie (€ valor)
                 <span title="Patrocinio en productos o servicios en lugar de dinero. Ej: material deportivo, servicios de fisioterapia, alimentación para avituallamiento. Indica el valor económico estimado."
-                  style={{ marginLeft: ".35rem", cursor: "help", opacity: .6, fontSize: ".65rem" }}>ⓘ</span>
+                  style={{ marginLeft: ".35rem", cursor: "help", opacity: .6, fontSize: "var(--fs-sm)" }}>ⓘ</span>
               </label>
               <input className="inp" type="number" value={form.especie} onChange={e => upd("especie", parseFloat(e.target.value) || 0)} />
             </div>
@@ -1644,35 +1644,35 @@ function ModalPat({ data, onSave, onClose }) {
           {/* Sección de productos en especie dentro del modal de creación/edición */}
           {(form.nivel === "Especie" || form.especie > 0) && (
             <div style={{ background: "var(--surface2)", borderRadius: 8, padding: ".85rem", marginTop: ".25rem", border: "1px solid var(--border)" }}>
-              <div style={{ fontWeight: 700, fontSize: ".76rem", marginBottom: ".5rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontWeight: 700, fontSize: "var(--fs-base)", marginBottom: ".5rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span>📦 Detalle de productos/servicios</span>
-                <button className="btn btn-sm btn-ghost" style={{ fontSize: ".6rem", padding: ".2rem .4rem" }}
+                <button className="btn btn-sm btn-ghost" style={{ fontSize: "var(--fs-xs)", padding: ".2rem .4rem" }}
                   onClick={() => {
                     const newItem = { id: Date.now(), nombre: "", cantidad: 1, unidad: "ud", recibido: false };
                     setForm(p => ({ ...p, especieItems: [...(p.especieItems || []), newItem] }));
                   }}>+ Añadir ítem</button>
               </div>
               {(form.especieItems || []).length === 0 && (
-                <div style={{ textAlign: "center", padding: ".5rem", fontSize: ".65rem", color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>
+                <div style={{ textAlign: "center", padding: ".5rem", fontSize: "var(--fs-sm)", color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>
                   Sin ítems detallados aún.
                 </div>
               )}
               <div style={{ display: "flex", flexDirection: "column", gap: ".4rem" }}>
                 {(form.especieItems || []).map((item, idx) => (
                   <div key={item.id} style={{ display: "flex", gap: ".4rem", alignItems: "center" }}>
-                    <input className="inp" style={{ flex: 2, fontSize: ".72rem" }} placeholder="Nombre producto" value={item.nombre}
+                    <input className="inp" style={{ flex: 2, fontSize: "var(--fs-sm)" }} placeholder="Nombre producto" value={item.nombre}
                       onChange={e => {
                         const newItems = [...form.especieItems];
                         newItems[idx].nombre = e.target.value;
                         setForm(p => ({ ...p, especieItems: newItems }));
                       }} />
-                    <input className="inp" style={{ flex: 0.8, fontSize: ".72rem" }} type="number" placeholder="Cant." value={item.cantidad}
+                    <input className="inp" style={{ flex: 0.8, fontSize: "var(--fs-sm)" }} type="number" placeholder="Cant." value={item.cantidad}
                       onChange={e => {
                         const newItems = [...form.especieItems];
                         newItems[idx].cantidad = Number(e.target.value);
                         setForm(p => ({ ...p, especieItems: newItems }));
                       }} />
-                    <input className="inp" style={{ flex: 1, fontSize: ".72rem" }} placeholder="ud" value={item.unidad}
+                    <input className="inp" style={{ flex: 1, fontSize: "var(--fs-sm)" }} placeholder="ud" value={item.unidad}
                       onChange={e => {
                         const newItems = [...form.especieItems];
                         newItems[idx].unidad = e.target.value;
@@ -1710,7 +1710,7 @@ function ModalPat({ data, onSave, onClose }) {
           <div>
             <label className="fl" style={{ display:"flex", alignItems:"center", gap:".35rem" }}>
               📞 Próximo seguimiento
-              <span style={{ fontFamily:"var(--font-mono)", fontSize:".58rem",
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                 color:"var(--text-dim)", fontWeight:400 }}>
                 (solo en negociando)
               </span>
@@ -1836,7 +1836,7 @@ function DocManager({ pat, addDoc, deleteDoc, cfg }) {
         <div style={{ fontSize:"1.8rem", marginBottom:".35rem" }}>
           {uploading ? "⏳" : dragging ? "⬇️" : "☁️"}
         </div>
-        <div style={{ fontWeight:700, fontSize:".78rem", marginBottom:".2rem" }}>
+        <div style={{ fontWeight:700, fontSize:"var(--fs-base)", marginBottom:".2rem" }}>
           {uploading ? "Subiendo a la nube…" : dragging ? "Suelta el archivo aquí" : "Arrastra o haz clic · Sube a Neon Cloud"}
         </div>
         <div className="mono xs muted">PDF, Word, Excel, imágenes · Máx. 5MB</div>
@@ -1845,7 +1845,7 @@ function DocManager({ pat, addDoc, deleteDoc, cfg }) {
       {/* Lista */}
       {loading && <div className="mono xs muted" style={{textAlign:"center",padding:"1rem"}}>Cargando documentos…</div>}
       {!loading && docs.length === 0 && (
-        <div style={{ textAlign:"center", padding:"1rem", color:"var(--text-dim)", fontFamily:"var(--font-mono)", fontSize:".68rem" }}>
+        <div style={{ textAlign:"center", padding:"1rem", color:"var(--text-dim)", fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)" }}>
           Sin documentos en la nube
         </div>
       )}
@@ -1858,9 +1858,9 @@ function DocManager({ pat, addDoc, deleteDoc, cfg }) {
             background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:8, marginBottom:".3rem" }}
             onMouseEnter={e=>e.currentTarget.style.borderColor="var(--border-light)"}
             onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border)"}>
-            <div style={{ fontSize:"1.3rem", flexShrink:0 }}>{getIcon(d.mime)}</div>
+            <div style={{ fontSize:"var(--fs-lg)", flexShrink:0 }}>{getIcon(d.mime)}</div>
             <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontSize:".74rem", fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{d.nombre}</div>
+              <div style={{ fontSize:"var(--fs-sm)", fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{d.nombre}</div>
               <div className="mono xs muted">{d.tipo} · {d.fecha} · {((d.size||0)/1024).toFixed(0)} KB</div>
             </div>
             <div style={{ display:"flex", gap:".3rem", flexShrink:0 }}>
@@ -1887,7 +1887,7 @@ function DocManager({ pat, addDoc, deleteDoc, cfg }) {
             display:"flex", flexDirection:"column", background:"var(--surface)", border:"1px solid var(--border-light)",
             borderRadius:16, overflow:"hidden" }}>
             <div style={{ padding:".75rem 1rem", display:"flex", justifyContent:"space-between", alignItems:"center", borderBottom:"1px solid var(--border)" }}>
-              <div><div style={{ fontWeight:700, fontSize:".85rem" }}>{preview.nombre}</div><div className="mono xs muted">{preview.tipo}</div></div>
+              <div><div style={{ fontWeight:700, fontSize:"var(--fs-base)" }}>{preview.nombre}</div><div className="mono xs muted">{preview.tipo}</div></div>
               <div style={{ display:"flex", gap:".4rem" }}>
                 {(preview.blob_url || preview.data) && <a href={preview.blob_url || preview.data} download={preview.nombre} target="_blank" rel="noreferrer" className="btn btn-sm btn-ghost" style={{ textDecoration:"none" }}>⬇ Descargar</a>}
                 <button className="btn btn-sm btn-ghost" onClick={() => setPreview(null)}>✕</button>
@@ -1901,10 +1901,10 @@ function DocManager({ pat, addDoc, deleteDoc, cfg }) {
                   <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
                     height:"60vh", gap:"1rem", color:"var(--text-muted)" }}>
                     <span style={{ fontSize:"3rem" }}>📄</span>
-                    <div style={{ fontFamily:"var(--font-mono)", fontSize:".78rem" }}>{preview.nombre}</div>
+                    <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-base)" }}>{preview.nombre}</div>
                     <a href={pdfSrc} download={preview.nombre} style={{
                       background:"var(--cyan)", color:"var(--bg)", border:"none", borderRadius:10,
-                      padding:".65rem 1.75rem", fontWeight:800, fontSize:".9rem", cursor:"pointer",
+                      padding:".65rem 1.75rem", fontWeight:800, fontSize:"var(--fs-md)", cursor:"pointer",
                       textDecoration:"none", display:"inline-block",
                     }}>⬇ Descargar PDF</a>
                   </div>
@@ -1977,16 +1977,16 @@ function LogContactos({ patId, cfg }) {
       )}
 
       {safeLogs.length === 0 && !adding && (
-        <div style={{ fontFamily:"var(--font-mono)", fontSize:".65rem", color:"var(--text-dim)", padding:".4rem 0" }}>
+        <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", color:"var(--text-dim)", padding:".4rem 0" }}>
           Sin contactos registrados
         </div>
       )}
 
       {safeLogs.slice(0, 5).map(l => (
         <div key={l.id} style={{ display:"flex", gap:".5rem", alignItems:"flex-start", padding:".35rem 0", borderBottom:"1px solid rgba(30,45,80,.2)" }}>
-          <span style={{ fontSize:".8rem", flexShrink:0, marginTop:".05rem" }}>{TIPO_ICONS[l.tipo]||"📝"}</span>
+          <span style={{ fontSize:"var(--fs-base)", flexShrink:0, marginTop:".05rem" }}>{TIPO_ICONS[l.tipo]||"📝"}</span>
           <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontSize:".72rem", fontWeight:600, lineHeight:1.4 }}>{l.nota}</div>
+            <div style={{ fontSize:"var(--fs-sm)", fontWeight:600, lineHeight:1.4 }}>{l.nota}</div>
             <div className="mono xs muted">{l.tipo} · {l.fecha}</div>
           </div>
           <button className="btn btn-sm btn-red" style={{ flexShrink:0, opacity:.6 }}
@@ -2030,7 +2030,7 @@ function TabDocumentos({ pats, addDoc, deleteDoc }) {
       {/* Uso de almacenamiento */}
       <div className="card" style={{ marginBottom: ".75rem", background: parseFloat(pctLS) > 70 ? "rgba(248,113,113,.04)" : "var(--surface)", borderColor: parseFloat(pctLS) > 70 ? "rgba(248,113,113,.2)" : "var(--border)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ".4rem" }}>
-          <span style={{ fontSize: ".72rem", fontWeight: 600 }}>💾 Almacenamiento local utilizado</span>
+          <span style={{ fontSize: "var(--fs-sm)", fontWeight: 600 }}>💾 Almacenamiento local utilizado</span>
           <span className="mono xs" style={{ color: parseFloat(pctLS) > 70 ? "#f87171" : "var(--text-muted)" }}>{(totalBytes/1024).toFixed(0)} KB · {pctLS}% del límite</span>
         </div>
         <div className="pbar">
@@ -2078,15 +2078,15 @@ function TabDocumentos({ pats, addDoc, deleteDoc }) {
                 onMouseEnter={e => e.currentTarget.style.borderColor = "var(--border-light)"}
                 onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border)"}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: ".6rem" }}>
-                  <div style={{ fontSize: "1.5rem", flexShrink: 0 }}>{getIcon(d.mime)}</div>
+                  <div style={{ fontSize: "var(--fs-lg)", flexShrink: 0 }}>{getIcon(d.mime)}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: ".76rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.nombre}</div>
+                    <div style={{ fontSize: "var(--fs-base)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.nombre}</div>
                     <div className="mono xs muted">{d.tipo}</div>
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: ".4rem" }}>
                   <div style={{ width: 6, height: 6, borderRadius: "50%", background: ncfg.color, flexShrink: 0 }} />
-                  <span style={{ fontSize: ".68rem", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.patNombre}</span>
+                  <span style={{ fontSize: "var(--fs-sm)", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.patNombre}</span>
                 </div>
                 <div className="mono xs muted">{d.fecha} · {(d.size/1024).toFixed(0)} KB</div>
                 <div style={{ display: "flex", gap: ".3rem", marginTop: ".1rem" }}>
@@ -2110,7 +2110,7 @@ function TabDocumentos({ pats, addDoc, deleteDoc }) {
           <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 700, maxHeight: "90vh", display: "flex", flexDirection: "column", background: "var(--surface)", border: "1px solid var(--border-light)", borderRadius: 16, overflow: "hidden" }}>
             <div style={{ padding: ".75rem 1rem", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border)" }}>
               <div>
-                <div style={{ fontWeight: 700, fontSize: ".85rem" }}>{preview.nombre}</div>
+                <div style={{ fontWeight: 700, fontSize: "var(--fs-base)" }}>{preview.nombre}</div>
                 <div className="mono xs muted">{preview.tipo} · {preview.patNombre}</div>
               </div>
               <div style={{ display: "flex", gap: ".4rem" }}>

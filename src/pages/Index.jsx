@@ -98,7 +98,7 @@ function AutosaveIndicator({ status }) {
       key={status}
       style={{
         display: "inline-flex", alignItems: "center", gap: "0.3rem",
-        fontFamily: "var(--font-mono)", fontSize: "0.55rem",
+        fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
         color: c.color, background: c.bg,
         border: `1px solid ${c.border}`,
         borderRadius: 6, padding: "0.2rem 0.5rem", whiteSpace: "nowrap",
@@ -226,11 +226,11 @@ function PinScreen({ onUnlock }) {
         width: "100%", maxWidth: 300, textAlign: "center",
         animation: "teg-fadein 0.45s ease-out",
       }}>
-        <div style={{ fontSize: "2.2rem", marginBottom: "0.4rem" }}>🏔️</div>
-        <div style={{ fontWeight: 800, fontSize: "1.25rem", color: "var(--teg-text-primary)", marginBottom: "0.2rem" }}>
+        <div style={{ fontSize: "var(--fs-xl)", marginBottom: "0.4rem" }}>🏔️</div>
+        <div style={{ fontWeight: 800, fontSize: "var(--fs-lg)", color: "var(--teg-text-primary)", marginBottom: "0.2rem" }}>
           Trail El Guerrero
         </div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.58rem",
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
           color: "var(--teg-text-muted)", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "2.5rem" }}>
           Panel de gestión · 2026
         </div>
@@ -243,7 +243,7 @@ function PinScreen({ onUnlock }) {
         </div>
 
         <div style={{ height: "1.2rem", fontFamily: "var(--font-mono)",
-          fontSize: "0.62rem", color: "#dc2626", marginBottom: "1.5rem" }}>{hint}</div>
+          fontSize: "var(--fs-xs)", color: "#dc2626", marginBottom: "1.5rem" }}>{hint}</div>
 
         <Numpad onDigit={handleDigit} onBackspace={handleBackspace} />
 
@@ -318,26 +318,26 @@ function ChangePinModal({ onClose }) {
       >
         {ok ? (
           <div style={{ animation: "teg-fadein-scale 0.25s ease" }}>
-            <div style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>✅</div>
-            <div style={{ color: "#059669", fontWeight: 800, fontSize: "1rem" }}>PIN actualizado</div>
+            <div style={{ fontSize: "var(--fs-xl)", marginBottom: "0.5rem" }}>✅</div>
+            <div style={{ color: "#059669", fontWeight: 800, fontSize: "var(--fs-md)" }}>PIN actualizado</div>
           </div>
         ) : (
           <>
-            <div style={{ fontWeight: 800, fontSize: "0.95rem", color: "var(--teg-text-primary)", marginBottom: "0.3rem" }}>
+            <div style={{ fontWeight: 800, fontSize: "var(--fs-md)", color: "var(--teg-text-primary)", marginBottom: "0.3rem" }}>
               🔐 Cambiar PIN
             </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--teg-text-muted)", marginBottom: "1.5rem" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--teg-text-muted)", marginBottom: "1.5rem" }}>
               {STEP_LABEL[step]}
             </div>
             <div style={{ marginBottom: "0.5rem" }}>
               <PinDots count={4} filled={input.length} />
             </div>
             <div style={{ height: "1rem", fontFamily: "var(--font-mono)",
-              fontSize: "0.6rem", color: "#dc2626", marginBottom: "1rem" }}>{error}</div>
+              fontSize: "var(--fs-xs)", color: "#dc2626", marginBottom: "1rem" }}>{error}</div>
             <Numpad onDigit={handleDigit} onBackspace={handleBackspace} />
             <button onClick={onClose} style={{ marginTop: "1.25rem", background: "none",
               border: "none", color: "var(--teg-text-muted)", cursor: "pointer", fontFamily: "var(--font-mono)",
-              fontSize: "0.6rem" }}>Cancelar</button>
+              fontSize: "var(--fs-xs)" }}>Cancelar</button>
           </>
         )}
       </div>
@@ -374,7 +374,7 @@ function ScrollToTop() {
         border: "1px solid rgba(34,211,238,0.25)",
         color: "var(--cyan)",
         cursor: "pointer",
-        fontSize: ".75rem",
+        fontSize: "var(--fs-base)",
         zIndex: 45,
         display: "flex", alignItems: "center", justifyContent: "center",
         backdropFilter: "blur(8px)",
@@ -573,7 +573,7 @@ export default function Index() {
           textAlign: "center",
           padding: "0.45rem 1rem",
           fontFamily: "var(--font-mono)",
-          fontSize: "0.68rem",
+          fontSize: "var(--fs-sm)",
           fontWeight: 700,
           letterSpacing: ".04em",
           display: "flex",
@@ -611,7 +611,7 @@ export default function Index() {
                 background:"linear-gradient(135deg, rgba(34,211,238,0.2) 0%, rgba(167,139,250,0.15) 100%)",
                 border:"1px solid rgba(34,211,238,0.3)",
                 display:"flex", alignItems:"center", justifyContent:"center",
-                fontFamily:"'Syne',sans-serif", fontWeight:900, fontSize:"0.6rem",
+                fontFamily:"'Syne',sans-serif", fontWeight:900, fontSize:"var(--fs-xs)",
                 color:"var(--cyan)", cursor:"pointer", flexShrink:0,
                 transition:"all 0.18s", userSelect:"none",
                 boxShadow:"0 0 10px rgba(34,211,238,0.1)",
@@ -626,7 +626,7 @@ export default function Index() {
             {!isMobile && (
               <div>
                 <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800,
-                  fontSize:"0.78rem", color:"var(--teg-text-primary)", lineHeight:1.1,
+                  fontSize:"var(--fs-base)", color:"var(--teg-text-primary)", lineHeight:1.1,
                   letterSpacing:"-0.01em" }}>
                   Kinetik Ops
                 </div>
@@ -655,7 +655,7 @@ export default function Index() {
                 color:"var(--teg-text-muted)", cursor:"pointer",
                 width:30, height:30, borderRadius:8,
                 display:"flex", alignItems:"center", justifyContent:"center",
-                fontSize:"0.75rem", transition:"all 0.15s",
+                fontSize:"var(--fs-base)", transition:"all 0.15s",
               }}
               onMouseEnter={e => { e.currentTarget.style.borderColor="rgba(34,211,238,0.35)"; e.currentTarget.style.color="var(--cyan)"; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor="var(--teg-border)"; e.currentTarget.style.color="var(--teg-text-muted)"; }}
@@ -668,7 +668,7 @@ export default function Index() {
                 background:"rgba(248,113,113,0.12)", color:"#f87171",
                 border:"1px solid rgba(248,113,113,0.3)", borderRadius:8,
                 padding:"0.2rem 0.45rem",
-                fontFamily:"var(--font-mono)", fontSize:"0.55rem",
+                fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                 fontWeight:700, cursor:"pointer", height:28,
                 display:"flex", alignItems:"center", gap:"0.25rem",
               }}>🏁{!isMobile && <span style={{letterSpacing:".04em"}}>DÍA D</span>}</button>
@@ -687,7 +687,7 @@ export default function Index() {
                 color: activeBlock==="configuracion" ? "var(--violet)" : "var(--teg-text-muted)",
                 cursor:"pointer", width:30, height:30, borderRadius:8,
                 display:"flex", alignItems:"center", justifyContent:"center",
-                fontSize:"0.78rem", transition:"all 0.15s",
+                fontSize:"var(--fs-base)", transition:"all 0.15s",
                 boxShadow: activeBlock==="configuracion" ? "0 0 10px rgba(167,139,250,0.15)" : "none",
               }}
               onMouseEnter={e => { if(activeBlock!=="configuracion") { e.currentTarget.style.borderColor="rgba(167,139,250,0.35)"; e.currentTarget.style.color="var(--violet)"; }}}
@@ -725,7 +725,7 @@ export default function Index() {
                   animation:"teg-spin 0.7s linear infinite",
                 }} />
                 <div style={{
-                  fontFamily:"'DM Mono', 'Space Mono', monospace,monospace", fontSize:"0.6rem",
+                  fontFamily:"'DM Mono', 'Space Mono', monospace,monospace", fontSize:"var(--fs-xs)",
                   color:"var(--teg-text-muted)", letterSpacing:"0.1em",
                 }}>Cargando módulo…</div>
                 <style>{`@keyframes teg-spin { to { transform: rotate(360deg); } }`}</style>
@@ -802,7 +802,7 @@ export default function Index() {
                       position:"absolute", top:-3, right:-5,
                       minWidth:13, height:13, borderRadius:7,
                       background:"#f87171", color:"#fff",
-                      fontSize:".48rem", fontWeight:800,
+                      fontSize:"var(--fs-2xs)", fontWeight:800,
                       display:"flex", alignItems:"center", justifyContent:"center",
                       padding:"0 3px", lineHeight:1,
                       fontFamily:"monospace", border:"1.5px solid var(--bg)",
@@ -856,7 +856,7 @@ export default function Index() {
                   }} />
               )}
               <span style={{
-                fontSize:"1.45rem",
+                fontSize:"var(--fs-lg)",
                 filter: (showMoreNav || moreIsActive) ? "none" : "grayscale(0.55)",
                 transform:(showMoreNav || moreIsActive) ? "scale(1.1)" : "scale(1)",
                 transition:"all 0.2s", position:"relative", zIndex:1,
@@ -899,7 +899,7 @@ export default function Index() {
             }}>
               {/* Handle visual */}
               <div style={{ width:36, height:4, background:"var(--teg-border)", borderRadius:2, margin:"0 auto 0.75rem" }} />
-              <div style={{ fontFamily:"var(--font-mono)", fontSize:"0.6rem", color:"var(--teg-text-muted)",
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--teg-text-muted)",
                 textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:"0.5rem", paddingLeft:"0.25rem" }}>
                 Más secciones
               </div>
@@ -925,7 +925,7 @@ export default function Index() {
                       <span style={{ fontSize:"1.6rem" }}>{b.icon}</span>
                       <span style={{
                         fontFamily:"'DM Mono','Space Mono',monospace",
-                        fontSize:"0.6rem", fontWeight:700,
+                        fontSize:"var(--fs-xs)", fontWeight:700,
                         color: isActive ? "var(--teg-cyan)" : "var(--teg-text-muted)",
                         whiteSpace:"nowrap",
                       }}>{b.label}</span>
