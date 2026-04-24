@@ -121,20 +121,15 @@ export default function Dashboard() {
     const camPedidos     = get("teg_camisetas_v1_pedidos", []);
     const camCoste       = get("teg_camisetas_v1_coste", { corredor: 7.5, voluntario: 7.5 });
     const camPedidosArr  = Array.isArray(camPedidos) ? camPedidos : [];
-    const _camBeneficio  = (() => {
-      if (!syncConfig.camisetas) return 0;
-      return camPedidosArr.reduce((sum, p) => {
-        const lineas = Array.isArray(p.lineas) ? p.lineas : [];
-        return sum + lineas.reduce((ls, l) => {
-          const costeU = camCoste[l.tipo] ?? 7.5;
-          return ls + (l.precioVenta - costeU) * (l.cantidad || 0);
-        }, 0);
-      }, 0);
-    })();
-    const _camIngresos   = camPedidosArr.reduce((sum, p) =>
-      sum + (Array.isArray(p.lineas) ? p.lineas : []).reduce((ls, l) => ls + (l.precioVenta || 0) * (l.cantidad || 0), 0), 0);
-    const _camCostes     = camPedidosArr.reduce((sum, p) =>
-      sum + (Array.isArray(p.lineas) ? p.lineas : []).reduce((ls, l) => ls + (camCoste[l.tipo] ?? 7.5) * (l.cantidad || 0), 0), 0);
+    // Cálculo de camisetas — igual que useBudgetLogic:
+    //   ingresos y beneficio: solo líneas con estadoPago==="pagado"
+    //   costes: líneas pagadas + pendientes (ya fabricadas o por fabricar)
+    const _camLineas     = camPedidosArr.flatMap(p => Array.isArray(p.lineas) ? p.lineas : []);
+    const _camLineasPag  = _camLineas.filter(l => l.estadoPago === "pagado");
+    const _camLineasFab  = _camLineas.filter(l => l.estadoPago === "pagado" || l.estadoPago === "pendiente");
+    const _camIngresos   = _camLineasPag.reduce((s, l) => s + (l.precioVenta || 0) * (l.cantidad || 0), 0);
+    const _camCostes     = _camLineasFab.reduce((s, l) => s + (camCoste[l.tipo] ?? 7.5) * (l.cantidad || 0), 0);
+    const _camBeneficio  = _camIngresos - _camCostes;
     const merchStats     = syncConfig.camisetas
       ? { totalIngresos: _camIngresos, totalCostes: _camCostes, beneficio: _camBeneficio }
       : {};
@@ -166,20 +161,27 @@ export default function Dashboard() {
     const ocupacionGlobal  = totalMaximos > 0 ? Math.round(totalInscritos / totalMaximos * 100) : null;
 
     // PATROCINIOS: Sync vs Manual (idéntico a useBudgetLogic — usar importeCobrado si cobrado)
+    // Patrocinadores: misma lógica que useBudgetLogic (totalPatConfirmado)
+    // !p.especie excluye aportaciones en especie (no monetarias)
+    // usa p.importe para todos (igual que useBudgetLogic, no importeCobrado)
     const totalIngresosExtra = syncConfig.patrocinios
       ? pats
-          .filter(p => p.estado === "cobrado" || p.estado === "confirmado")
-          .reduce((sum, p) => sum + (p.estado === "cobrado" ? (p.importeCobrado||p.importe||0) : (p.importe||0)), 0)
+          .filter(p => !p.especie && (p.estado === "cobrado" || p.estado === "confirmado"))
+          .reduce((sum, p) => sum + (p.importe || 0), 0)
       : ingresosExtra.filter(i => i.activo).reduce((sum, i) => sum + (i.valor||0), 0);
 
     // MERCHANDISING: Sync vs Manual
-    const merchIngresos = syncConfig.camisetas
+    // Cuando sync: usa las stats calculadas de pedidos reales (solo líneas pagadas)
+    // idéntico a totalMerchBeneficio en useBudgetLogic
+    const merchIngresos  = syncConfig.camisetas
       ? (merchStats.totalIngresos || 0)
       : merchandising.filter(m => m.activo).reduce((sum, m) => sum + m.unidades * m.precioVenta, 0);
     const merchCostes = syncConfig.camisetas
       ? (merchStats.totalCostes || 0)
       : merchandising.filter(m => m.activo).reduce((sum, m) => sum + m.unidades * m.costeUnitario, 0);
-    const merchBeneficio = merchIngresos - merchCostes;
+    const merchBeneficio = syncConfig.camisetas
+      ? (merchStats.beneficio || 0)   // beneficio ya calculado sobre líneas pagadas
+      : merchIngresos - merchCostes;
 
     const totalOtrosIngresos = totalIngresosExtra + merchBeneficio;
     const resultado = totalIngresos + totalOtrosIngresos - totalCostesFijos - totalCostesVars;

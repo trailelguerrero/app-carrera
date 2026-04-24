@@ -732,8 +732,8 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
                   <div style={{display:"flex",alignItems:"center",gap:".35rem",flexWrap:"wrap"}}>
                     {m.nombre}
                     {m.presupuestoConceptoId && (() => {
-                      const c=conceptosPres.find(c=>c.id===m.presupuestoConceptoId);
-                      return c ? (
+                      const conceptoPresu=conceptosPres.find(function(cp){return cp.id===m.presupuestoConceptoId;});
+                      return conceptoPresu ? (
                         <button
                           onClick={e => { e.stopPropagation(); window.dispatchEvent(new CustomEvent("teg-navigate", { detail:{ block:"presupuesto" } })); }}
                           title="Ver en Presupuesto"
@@ -741,7 +741,7 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
                             padding:".06rem .3rem",borderRadius:10,cursor:"pointer",
                             background:"var(--violet-dim)",color:"var(--violet)",
                             border:"1px solid rgba(167,139,250,.25)"}}>
-                          💰 {c.nombre} →
+                          💰 {conceptoPresu.nombre} →
                         </button>
                       ) : null;
                     })()}
@@ -1403,7 +1403,7 @@ function TabEmergencias({cont,inc,setInc,abrirModal,abrirFicha,tiposContacto=[]}
               {contUrgentes.map(c=>{
                 const t=getTipo(c.tipo);
                 return (
-                  <div key={c.id} className="ccard"
+                  <div key={conceptoPresu.id} className="ccard"
                     style={{borderTopColor:t.color,cursor:"pointer",
                       borderLeft:`3px solid ${t.color}`}}
                     onClick={()=>abrirFicha("cont",c)}>
@@ -1415,13 +1415,13 @@ function TabEmergencias({cont,inc,setInc,abrirModal,abrirFicha,tiposContacto=[]}
                       </div>
                     </div>
                     <div className="ccd">
-                      <a href={`tel:${c.telefono}`} className="ctel"
+                      <a href={`tel:${conceptoPresu.telefono}`} className="ctel"
                         style={{background:t.color+"18",color:t.color,
                           border:`1px solid ${t.color}33`,borderRadius:6,
                           padding:".3rem .7rem",fontWeight:800,fontSize:"var(--fs-base)",
                           textDecoration:"none",display:"inline-flex",
                           alignItems:"center",gap:".35rem"}}>
-                        📞 {c.telefono}
+                        📞 {conceptoPresu.telefono}
                       </a>
                     </div>
                     {citem.notas&&<div className="cnota">{citem.notas}</div>}
@@ -1679,7 +1679,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
               {contFiltrado.map(c=>{
                 const t = getTipo(c.tipo);
                 return (
-                  <div key={c.id} className="ccard"
+                  <div key={conceptoPresu.id} className="ccard"
                     style={{borderTopColor:t.color,cursor:"pointer"}}
                     onClick={()=>abrirFicha("cont",c)}>
                     <div className="cch">
@@ -1698,7 +1698,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
                       <a href={`tel:${citem.telefono}`} className="ctel">📞 {citem.telefono}</a>
                       {citem.email&&<a href={`mailto:${citem.email}`} className="ceml">✉️ {citem.email}</a>}
                     </div>
-                    {c.web&&<div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
+                    {conceptoPresu.web&&<div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                       color:"var(--cyan)",marginTop:".2rem"}}>
                       <a href={citem.web} target="_blank" rel="noreferrer"
                         style={{color:"var(--cyan)",textDecoration:"none"}}
