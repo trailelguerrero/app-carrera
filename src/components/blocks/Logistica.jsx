@@ -1849,9 +1849,9 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
   const [fase,setFase]=useState(faseActiva);
   const [vistaKanban,setVistaKanban]=useState(false);
   const toggle=(id)=>setCk(p=>{
-    const next=p.map(c=>c.id===id?{...c,estado:c.estado==="completado"?"pendiente":"completado"}:c);
+    const next=p.map(function(ckItem){return ckItem.id===id?{...ckItem,estado:ckItem.estado==="completado"?"pendiente":"completado"}:ckItem;});
     // Sincronizar con Proyecto si hay vínculo
-    const item=next.find(c=>c.id===id);
+    const item=next.find(function(ckItem){return ckItem.id===id;});
     if(item?.proyectoTareaId && setTareasProyecto) {
       const nuevoEstado=item.estado==="completado"?"completado":"en curso";
       setTareasProyecto(prev=>prev.map(t=>t.id===item.proyectoTareaId?{...t,estado:nuevoEstado}:t));
@@ -2307,16 +2307,16 @@ function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setV
     return () => clearTimeout(t);
   }, []);
   const {tipo,data}=modal;
-  const locNames = locs && locs.length > 0 ? locs.map(l => l.nombre) : PUESTOS_REF;
-  const sv=(setter,arr,item)=>{ if(item.id) setter(p=>p.map(x=>x.id===item.id?item:x)); else setter(p=>[...p,{...item,id:genIdNum(arr)}]); onClose(); };
+  const locNames = locs && locs.length > 0 ? locs.map(function(locItem){return locItem.nombre;}) : PUESTOS_REF;
+  const sv=(stFn,stArr,stItem)=>{ if(stItem.id) stFn(prev=>prev.map(x=>x.id===stItem.id?stItem:x)); else stFn(prev=>[...prev,{...stItem,id:genIdNum(stArr)}]); onClose(); };
 
   if(tipo==="mat") {
-    const conceptosP = modal.conceptosPres || [];
-    const camposConcepto = conceptosP.length > 0 ? [{
+    const matConceptos = modal.matConceptosres || [];
+    const camposConcepto = matConceptos.length > 0 ? [{
       k:"presupuestoConceptoId", l:"Concepto del presupuesto (opcional)",
       t:"sel",
-      o:[null,...conceptosP.map(c=>c.id)],
-      lb:["— Sin vínculo",...conceptosP.map(c=>`[${c.tipo==="variable"?"var":"fijo"}] ${c.nombre}`)],
+      o:[null,...matConceptos.map(c=>c.id)],
+      lb:["— Sin vínculo",...matConceptos.map(c=>`[${c.tipo==="variable"?"var":"fijo"}] ${c.nombre}`)],
       num:true, nullable:true,
     }] : [];
     return <MF title={data?"✏️ Editar material":"📦 Nuevo material"} onClose={onClose}
@@ -2461,7 +2461,7 @@ function MF({title,fields,init,onSave,onClose}) {
 }
 
 function ModalRuta({data,veh,rutas,setRutas,onClose,locs}) {
-  const locNames = locs && locs.length > 0 ? locs.map(l => l.nombre) : PUESTOS_REF;
+  const locNames = locs && locs.length > 0 ? locs.map(function(locItem){return locItem.nombre;}) : PUESTOS_REF;
   const [form,setForm]=useState(() => {
     const base = data || {nombre:"",vehiculoId:veh[0]?.id||1,horaInicio:"05:00",paradas:[]};
     return { ...base, paradas: Array.isArray(base.paradas) ? base.paradas : [] };

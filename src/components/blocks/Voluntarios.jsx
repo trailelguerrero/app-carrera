@@ -2294,36 +2294,7 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
             </div>
           )}
         </div>
-        {/* Acciones rápidas de estado */}
-        {onUpdate && v.estado !== "confirmado" && v.estado !== "cancelado" && (
-          <div style={{ padding:"0.6rem 1.25rem", borderTop:"1px solid var(--border)",
-            display:"flex", gap:"0.5rem" }}>
-            <button
-              className="btn btn-green"
-              style={{ flex:1, fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)" }}
-              onClick={() => onUpdate({ estado:"confirmado" })}>
-              ✓ Confirmar voluntario
-            </button>
-            <button
-              className="btn btn-ghost"
-              style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
-                color:"var(--red)", border:"1px solid rgba(248,113,113,.3)" }}
-              onClick={() => onUpdate({ estado:"cancelado" })}>
-              ✕ Cancelar
-            </button>
-          </div>
-        )}
-        {onUpdate && v.estado === "confirmado" && (
-          <div style={{ padding:"0.5rem 1.25rem", borderTop:"1px solid var(--border)" }}>
-            <button
-              className="btn btn-ghost"
-              style={{ width:"100%", fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
-                color:"var(--text-muted)" }}
-              onClick={() => onUpdate({ estado:"pendiente" })}>
-              ↩ Mover a pendiente
-            </button>
-          </div>
-        )}
+
         <div className="modal-footer" style={{ justifyContent:"space-between" }}>
           <button className="btn btn-red" onClick={onEliminar}>🗑 Eliminar</button>
           <div style={{ display:"flex", gap:"0.4rem" }}>
