@@ -692,20 +692,6 @@ export default function Index() {
           {/* RIGHT — Actions */}
           <div style={{ display:"flex", gap:"0.25rem", alignItems:"center", flexShrink:0 }}>
 
-            {/* Búsqueda rápida — navega entre módulos */}
-            <button
-              title="Buscar módulo (próximamente)"
-              style={{
-                background:"transparent", border:"1px solid var(--teg-border)",
-                color:"var(--teg-text-muted)", cursor:"pointer",
-                width:30, height:30, borderRadius:8,
-                display:"flex", alignItems:"center", justifyContent:"center",
-                fontSize:"var(--fs-base)", transition:"all 0.15s",
-              }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor="rgba(34,211,238,0.35)"; e.currentTarget.style.color="var(--cyan)"; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor="var(--teg-border)"; e.currentTarget.style.color="var(--teg-text-muted)"; }}
-            >🔍</button>
-
             <ThemeToggle size={28} />
 
             {(mostrarBtnDiaD || mostrarBtnDiaDProminente) && (

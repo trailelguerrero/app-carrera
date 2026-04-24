@@ -679,6 +679,22 @@ export const BLOCK_CSS = `
   .flex-between { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
   .flex-center  { display: flex; align-items: center; gap: 0.5rem; }
 
+  /* ── Clases de utilidad — migración de inline styles frecuentes ──────────── */
+  .mono-xs     { font-family: var(--font-mono); font-size: var(--fs-xs); }
+  .mono-sm     { font-family: var(--font-mono); font-size: var(--fs-sm); }
+  .mono-base   { font-family: var(--font-mono); font-size: var(--fs-base); }
+  .text-muted  { color: var(--text-muted); }
+  .text-dim    { color: var(--text-dim); }
+  .fw-700      { font-weight: 700; }
+  .fw-600      { font-weight: 600; }
+  .flex-1      { flex: 1; min-width: 0; }
+  .lh-16       { line-height: 1.6; }
+  .lh-15       { line-height: 1.5; }
+  .text-center { text-align: center; }
+  .cursor-ptr  { cursor: pointer; }
+  .uppercase   { text-transform: uppercase; letter-spacing: .09em; }
+  .ellipsis    { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
   /* ── Secciones de formulario ─────────────────────────────────────────────── */
   .form-section {
     padding-top: .85rem;
@@ -698,6 +714,24 @@ export const BLOCK_CSS = `
     align-items: center;
     gap: .35rem;
   }
+
+  /* ── Animaciones escalonadas en listas ──────────────────────────────────── */
+  @keyframes list-item-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .list-item-anim {
+    animation: list-item-in 0.22s ease both;
+  }
+  .list-item-anim:nth-child(1)  { animation-delay:   0ms; }
+  .list-item-anim:nth-child(2)  { animation-delay:  30ms; }
+  .list-item-anim:nth-child(3)  { animation-delay:  60ms; }
+  .list-item-anim:nth-child(4)  { animation-delay:  90ms; }
+  .list-item-anim:nth-child(5)  { animation-delay: 120ms; }
+  .list-item-anim:nth-child(6)  { animation-delay: 150ms; }
+  .list-item-anim:nth-child(7)  { animation-delay: 180ms; }
+  .list-item-anim:nth-child(8)  { animation-delay: 210ms; }
+  .list-item-anim:nth-child(n+9){ animation-delay: 240ms; }
 
   /* ── Skeleton loaders ──────────────────────────────────────────────────────── */
   @keyframes skel-shimmer {

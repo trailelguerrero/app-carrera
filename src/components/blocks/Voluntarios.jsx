@@ -599,12 +599,12 @@ export default function App() {
               }}
               className="btn btn-ghost btn-sm"
               title={`Copiar enlace del formulario de registro de voluntarios:\n${window.location.origin}/voluntarios/registro`}
-              style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)" }}>
+              className="mono-sm">
               {urlCopiada ? "✓ Enlace copiado" : "🔗 Formulario registro"}
             </button>
             <button
               className="btn btn-ghost btn-sm"
-              style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)" }}
+              className="mono-sm"
               onClick={async () => {
                 if (qrDataUrl) { setQrDataUrl(null); return; }
                 setQrLoading(true);
@@ -649,12 +649,12 @@ export default function App() {
             <div style={{ display:"flex", gap:".5rem" }}>
               <a href={qrDataUrl} download="qr-voluntarios-teg.png"
                 className="btn btn-ghost btn-sm"
-                style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)" }}>
+                className="mono-sm">
                 ⬇ Descargar PNG
               </a>
               <button
                 className="btn btn-ghost btn-sm"
-                style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)" }}
+                className="mono-sm"
                 onClick={() => navigator.clipboard.writeText(window.location.origin + "/voluntarios/registro").then(() => toast.success("URL copiada al portapapeles"))}>
                 📋 Copiar enlace
               </button>
@@ -1067,14 +1067,14 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
     <>
       <div className="kpi-grid">
         <div className={`kpi ${stats.coberturaGlobal>=80?"green":stats.coberturaGlobal>=50?"amber":"red"}`}
-          style={{cursor:"pointer"}} onClick={() => setTab("puestos")}>
+          className="cursor-ptr" onClick={() => setTab("puestos")}>
           <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>🎯 Cobertura global<Tooltip text={"Voluntarios confirmados ÷ plazas necesarias en todos los puestos.\n100% = todos los puestos cubiertos por voluntarios confirmados."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value" style={{color:stats.coberturaGlobal>=80?"var(--green)":stats.coberturaGlobal>=50?"var(--amber)":"var(--red)"}}>
             {stats.coberturaGlobal}%
           </div>
           <div className="kpi-sub">{stats.confirmados}/{stats.totalNecesarios} confirmados</div>
         </div>
-        <div className="kpi cyan" style={{cursor:"pointer"}} onClick={() => setTab("voluntarios")}>
+        <div className="kpi cyan" className="cursor-ptr" onClick={() => setTab("voluntarios")}>
           <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>👥 Total voluntarios<Tooltip text={"Total de voluntarios registrados en el sistema, independientemente de su estado.\nIncluye confirmados, pendientes y cancelados."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value" style={{color:"var(--cyan)"}}>{stats.total}</div>
           <div className="kpi-sub">
@@ -1085,7 +1085,7 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
           </div>
         </div>
         <div className={`kpi ${alertas.length>0?"red":"violet"}`}
-          style={{cursor:"pointer"}} onClick={() => setTab("puestos")}>
+          className="cursor-ptr" onClick={() => setTab("puestos")}>
           <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>📍 Puestos<Tooltip text={"Número de puestos operativos definidos para el evento.\nCada puesto tiene un número de voluntarios necesarios y un horario asignado."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value" style={{color:alertas.length>0?"var(--red)":"var(--violet)"}}>
             {puestosConStats.length}
@@ -1158,7 +1158,7 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
               const pct = Math.min(p.cobertura, 100);
               const color = pct >= 80 ? "var(--green)" : pct >= 50 ? "var(--amber)" : "var(--red)";
               return (
-                <div key={p.id} style={{cursor:"pointer"}}
+                <div key={p.id} className="cursor-ptr"
                   onClick={() => onEditarPuesto(p)}
                   title="Click para abrir ficha del puesto">
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.2rem" }}>
@@ -1428,6 +1428,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
                       const puesto = puestos.find(p => p.id === v.puestoId);
                       return (
                         <div key={v.id}
+                          className="list-item-anim"
                           onClick={() => onFicha(v)}
                           style={{
                             background:"var(--surface)", padding:"0.65rem 0.85rem",
@@ -2062,7 +2063,7 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
                 <div key={i} style={{ display:"flex", justifyContent:"space-between",
                   fontSize:"var(--fs-sm)", padding:"0.18rem 0",
                   borderBottom: i < Math.min(materialEnLoc.length,5)-1 ? "1px solid var(--border)" : "none" }}>
-                  <span style={{ fontWeight:600 }}>{item.nombre}</span>
+                  <span className="fw-600">{item.nombre}</span>
                   <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                     color:"var(--cyan)" }}>{item.cantidad} {item.unidad}</span>
                 </div>
@@ -2200,7 +2201,7 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
               {asignados.map(v => (
                 <div key={v.id} style={{ display:"flex", justifyContent:"space-between",
                   padding:"0.25rem 0", fontSize:"var(--fs-base)" }}>
-                  <span style={{ fontWeight:600 }}>{v.nombre}</span>
+                  <span className="fw-600">{v.nombre}</span>
                   <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                     color: v.estado==="confirmado"?"var(--green)":"var(--amber)" }}>{v.estado}</span>
                 </div>
@@ -2244,7 +2245,7 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
                     <div key={i} style={{ display:"flex", justifyContent:"space-between",
                       fontSize:"var(--fs-sm)", padding:"0.2rem 0",
                       borderBottom: i < materialEnLoc.length-1 ? "1px solid var(--border)" : "none" }}>
-                      <span style={{ fontWeight:600 }}>{item.nombre}</span>
+                      <span className="fw-600">{item.nombre}</span>
                       <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                         color:"var(--cyan)" }}>{item.cantidad} {item.unidad}</span>
                     </div>
@@ -2282,7 +2283,7 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
                   <div key={r.id} style={{ display:"flex", justifyContent:"space-between",
                     alignItems:"center", padding:"0.2rem 0",
                     borderBottom:"1px solid var(--border)", fontSize:"var(--fs-sm)" }}>
-                    <span style={{ fontWeight:600 }}>{r.nombre}</span>
+                    <span className="fw-600">{r.nombre}</span>
                     <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                       color:"var(--amber)" }}>
                       {parada?.hora || r.horaInicio}

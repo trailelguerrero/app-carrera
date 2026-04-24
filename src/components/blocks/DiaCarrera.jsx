@@ -161,7 +161,7 @@ export default function DiaCarrera({ onClose }) {
       {tl.length > 0 && (
         <div className="dc-prog">
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <span style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>
+            <span className="mono-xs text-muted">
               {tlCompletadas}/{tl.length} tareas
             </span>
             {proximaSig ? (
@@ -208,7 +208,7 @@ export default function DiaCarrera({ onClose }) {
                 <button className={`dc-chk${item.done?" on":""}`} onClick={() => toggleTl(item.id)}>
                   {item.done && <span style={{color:"#000",fontSize:"var(--fs-sm)",fontWeight:700}}>✓</span>}
                 </button>
-                <div style={{flex:1,minWidth:0}}>
+                <div className="flex-1">
                   <div style={{display:"flex",alignItems:"center",gap:".4rem",marginBottom:".15rem"}}>
                     <span className="dc-hora">{item.hora}</span>
                     <span style={{fontSize:"var(--fs-sm)"}}>{CAT_ICON[item.categoria]||"📌"}</span>
@@ -245,11 +245,11 @@ export default function DiaCarrera({ onClose }) {
                   <button className={`dc-chk${v.presente?" on":""}`} onClick={() => toggleVol(v.id)}>
                     {v.presente && <span style={{color:"#000",fontSize:"var(--fs-sm)",fontWeight:700}}>✓</span>}
                   </button>
-                  <div style={{flex:1,minWidth:0}}>
+                  <div className="flex-1">
                     <div style={{fontWeight:700,fontSize:"var(--fs-base)",color:v.presente?"var(--green)":"var(--text)"}}>
                       {v.nombre}
                     </div>
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>
+                    <div className="mono-xs text-muted">
                       {puesto?.nombre || "Sin puesto"} · {v.telefono || "—"}
                     </div>
                   </div>
@@ -277,7 +277,7 @@ export default function DiaCarrera({ onClose }) {
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:".3rem"}}>
                     <div>
                       <div style={{fontWeight:700,fontSize:"var(--fs-base)"}}>{p.nombre}</div>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>
+                      <div className="mono-xs text-muted">
                         {p.horaInicio}–{p.horaFin} · necesarios: {p.necesarios||1}
                       </div>
                     </div>
@@ -328,9 +328,9 @@ export default function DiaCarrera({ onClose }) {
                   <div key={c.id} style={{display:"flex",alignItems:"center",gap:".65rem",
                     padding:".6rem .75rem",borderRadius:10,background:"var(--surface)",
                     border:"1px solid var(--border)",borderLeft:`3px solid ${color}`,marginBottom:".4rem"}}>
-                    <div style={{flex:1,minWidth:0}}>
+                    <div className="flex-1">
                       <div style={{fontWeight:700,fontSize:"var(--fs-base)"}}>{c.nombre}</div>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>
+                      <div className="mono-xs text-muted">
                         {c.rol}{c.notas ? ` · ${c.notas}` : ""}
                       </div>
                     </div>

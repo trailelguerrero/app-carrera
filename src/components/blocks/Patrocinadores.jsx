@@ -518,7 +518,7 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
             const dias = Math.ceil((new Date(p.fechaVencimiento) - new Date()) / 86400000);
             const urgente = dias < 30;
             return (
-              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: ".75rem", padding: ".45rem 0", borderBottom: "1px solid rgba(30,45,80,.3)", cursor:"pointer" }} onClick={()=>openDetalle(p)}>
+              <div key={p.id} className="list-item-anim" style={{ display: "flex", alignItems: "center", gap: ".75rem", padding: ".45rem 0", borderBottom: "1px solid rgba(30,45,80,.3)", cursor:"pointer" }} onClick={()=>openDetalle(p)}>
                 <div style={{ width: 8, height: 8, borderRadius: "50%", background: getCfg(p.nivel).color, flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: "var(--fs-base)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nombre}</div>

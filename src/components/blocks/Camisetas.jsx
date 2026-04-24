@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useModalClose } from "@/hooks/useModalClose";
+import EmptyState from "@/components/EmptyState";
 import { useData } from "@/lib/dataService";
 import { toast } from "@/lib/toast";
 import { genIdNum, fmtEur2, fmtNum2, scrollMainToTop } from "@/lib/utils";
@@ -564,7 +565,13 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal }) {
           {(bus||fPago!=="todos"||fEnt!=="todos")&&<button className="btn btn-ghost btn-sm" onClick={()=>{setBus("");setFPago("todos");setFEnt("todos");}}>✕ Limpiar</button>}
         </div>
       </div>
-      {filtrados.length===0&&<div className="empty-state"><div className="empty-state-icon">👕</div>Sin pedidos con estos filtros</div>}
+      {filtrados.length===0 && pedidos.length===0 && (
+        <EmptyState icon="👕" title="Sin pedidos de camisetas"
+          sub="Crea el primer pedido para empezar a gestionar las camisetas del evento." />
+      )}
+      {filtrados.length===0 && pedidos.length>0 && (
+        <div className="empty-state"><div className="empty-state-icon">🔍</div>Sin pedidos con esos filtros</div>
+      )}
       {vistaK ? (
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:".65rem"}}>
           {ESTADOS_PAGO.map(estado=>{
