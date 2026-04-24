@@ -699,6 +699,23 @@ export const BLOCK_CSS = `
     gap: .35rem;
   }
 
+  /* ── Skeleton loaders ──────────────────────────────────────────────────────── */
+  @keyframes skel-shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position:  400px 0; }
+  }
+  .skel {
+    background: linear-gradient(90deg,
+      var(--surface2) 25%,
+      var(--surface3) 50%,
+      var(--surface2) 75%
+    );
+    background-size: 400px 100%;
+    animation: skel-shimmer 1.4s ease infinite;
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+
   /* ── Toast notifications ─────────────────────────────────────────────────── */
   .teg-toast-stack {
     position: fixed;
