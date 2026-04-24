@@ -57,6 +57,7 @@ export function exportarPatrocinadores(pats = []) {
     'Próx. seguimiento':   p.proximoContacto || '',
     'Notas':               p.notas || '',
     'Contraprestaciones':  (p.contraprestaciones || []).length,
+    'Entregadas':          (p.contraprestaciones || []).filter(c => c.estado === 'entregado').length,
     'Pend. entrega':       (p.contraprestaciones || []).filter(c => c.estado === 'pendiente').length,
   }));
 

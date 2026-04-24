@@ -116,7 +116,28 @@ export default function Dashboard() {
     const inscritos    = get("teg_presupuesto_v1_inscritos", { tramos: {} });
     const syncConfig     = get("teg_presupuesto_v1_syncConfig", { patrocinios: true, camisetas: true });
     const scenarioActivo = get("teg_scenario_active_name", null);
-    const merchStats     = get("teg_camisetas_v1_stats", {});
+    // Camisetas: leer pedidos y coste directamente (igual que useBudgetLogic)
+    // teg_camisetas_v1_stats nunca se escribe — se calcula aquí en tiempo real
+    const camPedidos     = get("teg_camisetas_v1_pedidos", []);
+    const camCoste       = get("teg_camisetas_v1_coste", { corredor: 7.5, voluntario: 7.5 });
+    const camPedidosArr  = Array.isArray(camPedidos) ? camPedidos : [];
+    const _camBeneficio  = (() => {
+      if (!syncConfig.camisetas) return 0;
+      return camPedidosArr.reduce((sum, p) => {
+        const lineas = Array.isArray(p.lineas) ? p.lineas : [];
+        return sum + lineas.reduce((ls, l) => {
+          const costeU = camCoste[l.tipo] ?? 7.5;
+          return ls + (l.precioVenta - costeU) * (l.cantidad || 0);
+        }, 0);
+      }, 0);
+    })();
+    const _camIngresos   = camPedidosArr.reduce((sum, p) =>
+      sum + (Array.isArray(p.lineas) ? p.lineas : []).reduce((ls, l) => ls + (l.precioVenta || 0) * (l.cantidad || 0), 0), 0);
+    const _camCostes     = camPedidosArr.reduce((sum, p) =>
+      sum + (Array.isArray(p.lineas) ? p.lineas : []).reduce((ls, l) => ls + (camCoste[l.tipo] ?? 7.5) * (l.cantidad || 0), 0), 0);
+    const merchStats     = syncConfig.camisetas
+      ? { totalIngresos: _camIngresos, totalCostes: _camCostes, beneficio: _camBeneficio }
+      : {};
     const pats           = get("teg_patrocinadores_v1_pats", []);
     const ingresosExtra  = get("teg_presupuesto_v1_ingresosExtra", []);
     const merchandising  = get("teg_presupuesto_v1_merchandising", []);

@@ -370,7 +370,7 @@ export default function App() {
             busqueda={busquedaGlobal || busqueda} setBusqueda={(v)=>{setBusqueda(v); setBusquedaGlobal(v);}}
             updEstado={updEstado} setModal={setModal} setDelConf={setDelConf} setFicha={abrirFicha}
             vista={vistaTablon} setVista={setVistaTablon} />}
-          {tab==="gantt"  && <TabGantt tareas={tareas} hitos={hitos} equipo={equipo} setModal={setModal} setFicha={abrirFicha} setFiltroArea={setFiltroArea} setTabParent={setTab} />}
+          {tab==="gantt"  && <TabGantt tareas={tareas} hitos={hitos} equipo={equipo} setModal={setModal} setFicha={abrirFicha} setFiltroArea={setFiltroArea} setTabParent={setTab} eventFecha={config?.fecha || EVENT_CONFIG_DEFAULT.fecha} />}
           {tab==="equipo" && <TabEquipo equipo={equipo} setEquipo={setEquipo} tareas={tareas} setModal={setModal} setDelConf={setDelConf} setFicha={abrirFicha} />}
           {tab==="hitos"  && <TabHitos hitos={hitos} updHito={updHito} setModal={setModal} setDelConf={setDelConf} setFicha={abrirFicha} />}
         </div>
@@ -1031,18 +1031,24 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
 }
 
 // ─── TAB GANTT ────────────────────────────────────────────────────────────────
-function TabGantt({ tareas, hitos, equipo, setModal, setFicha, setFiltroArea, setTabParent }) {
+function TabGantt({ tareas, hitos, equipo, setModal, setFicha, setFiltroArea, setTabParent, eventFecha }) {
   const [filtroGantt, setFiltroGantt] = useState("todas");
-  // Simplified visual calendar: months from today to event + 1
+
+  // Rango del Gantt: desde 6 meses antes del evento hasta 1 mes después
+  // Derivado de eventFecha (eventConfig) — no hardcodeado
+  const eventoDate  = eventFecha ? new Date(eventFecha) : new Date("2026-08-29");
+  const ganttStart  = new Date(eventoDate); ganttStart.setMonth(ganttStart.getMonth() - 6); ganttStart.setDate(1);
+  const ganttEnd    = new Date(eventoDate); ganttEnd.setMonth(ganttEnd.getMonth() + 1);   ganttEnd.setDate(28);
+
   const months = [];
-  let d = new Date(TODAY);
+  let d = new Date(ganttStart);
   d.setDate(1);
-  while (d <= new Date("2026-09-30")) {
+  while (d <= ganttEnd) {
     months.push(new Date(d));
     d.setMonth(d.getMonth()+1);
   }
-  const totalDays = Math.ceil((new Date("2026-09-30") - new Date("2026-03-01")) / 86400000);
-  const pct = (date) => Math.max(0, Math.min(100, (new Date(date) - new Date("2026-03-01")) / 86400000 / totalDays * 100));
+  const totalDays = Math.ceil((ganttEnd - ganttStart) / 86400000);
+  const pct = (date) => Math.max(0, Math.min(100, (new Date(date) - ganttStart) / 86400000 / totalDays * 100));
 
   // Group tasks by area, take earliest fechaLimite and latest fechaLimite per area
   const TODAY_g = new Date();
@@ -1441,25 +1447,27 @@ function TabEquipo({ equipo, setEquipo, tareas, setModal, setDelConf, setFicha }
 function TabHitos({ hitos, updHito, setModal, setDelConf, setFicha }) {
   const [ordenAlfa, setOrdenAlfa] = useState(false);
   const sorted = ordenAlfa
-    ? [...hitos].sort((a,b) => (a.nombre||"").localeCompare(b.nombre||"","es"))
-    : [...hitos].sort((a,b) => a.fecha.localeCompare(b.fecha));
+    ? [...hitos].sort((ha,hb) => (ha.nombre||"").localeCompare(hb.nombre||"","es"))
+    : [...hitos].sort((ha,hb) => ha.fecha.localeCompare(hb.fecha));
+  const hitosPendientes  = hitos.filter(ht => !ht.completado).length;
+  const hitosCompletados = hitos.filter(ht =>  ht.completado).length;
+
   return (
     <>
       <div className="ph">
         <div>
           <div className="pt">🏁 Hitos del Proyecto</div>
-          <div className="pd">{hitos.filter(h=>!h.completado).length} pendientes · {hitos.filter(h=>h.completado).length} completados</div>
+          <div className="pd">{hitosPendientes} pendientes · {hitosCompletados} completados</div>
         </div>
         <div style={{display:"flex",gap:".4rem",alignItems:"center"}}>
-          <button className={`btn btn-sm ${ordenAlfa?"btn-primary":"btn-ghost"}`} onClick={()=>setOrdenAlfa(v=>!v)} title={ordenAlfa?"Ordenar por fecha":"Ordenar A-Z"}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
+          <button className={`btn btn-sm ${ordenAlfa?"btn-primary":"btn-ghost"}`} onClick={()=>setOrdenAlfa(ov=>!ov)} title={ordenAlfa?"Ordenar por fecha":"Ordenar A-Z"}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
           <button className="btn btn-primary" onClick={() => setModal({tipo:"hito",data:null})}>+ Nuevo hito</button>
         </div>
       </div>
 
       {/* Progreso global de hitos */}
       {hitos.length > 0 && (() => {
-        const comp = hitos.filter(h=>h.completado).length;
-        const pct  = Math.round(comp/hitos.length*100);
+        const pct  = Math.round(hitosCompletados/hitos.length*100);
         return (
           <div style={{marginBottom:".65rem",padding:".6rem .75rem",
             background:"var(--surface2)",borderRadius:8,
@@ -1468,7 +1476,7 @@ function TabHitos({ hitos, updHito, setModal, setDelConf, setFicha }) {
               alignItems:"center",marginBottom:".35rem"}}>
               <span style={{fontFamily:"var(--font-mono)",fontSize:".6rem",
                 color:"var(--text-muted)"}}>
-                {comp}/{hitos.length} hitos completados
+                {hitosComp}/{hitos.length} hitos completados
               </span>
               <span style={{fontFamily:"var(--font-mono)",fontSize:".65rem",
                 fontWeight:700,

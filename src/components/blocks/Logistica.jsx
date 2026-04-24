@@ -1962,7 +1962,7 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {} }) {
   return (
     <>
       <div className="ph">
-        <div><div className="pt">📍 Localizaciones Maestras</div><div className="pd">{locs.length} ubicaciones · Compartidas con Voluntarios</div></div>
+        <div><div className="pt">📍 Localizaciones Maestras</div><div className="pd">{locs.length} ubicaciones · Compartidas con Voluntarios · <span style={{cursor:"pointer",color:"var(--text-dim)"}} onClick={()=>window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"configuracion"}}))} title="Abrir Configuración">⚙️ Configuración</span></div></div>
         <div style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
           <select style={{ fontFamily: "var(--font-mono)", fontSize: ".72rem", background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text)", borderRadius: "var(--r-sm)", padding: ".3rem .5rem" }}
             value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
@@ -2040,9 +2040,25 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {} }) {
             </div>
           );
         })}
-        {locsF.length === 0 && (
+        {locsF.length === 0 && locs.length > 0 && (
           <div className="card" style={{ textAlign: "center", color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: ".7rem", padding: "2rem" }}>
             Sin localizaciones con ese filtro
+          </div>
+        )}
+        {locs.length === 0 && (
+          <div className="card" style={{ textAlign: "center", padding: "2rem" }}>
+            <div style={{ fontSize: "1.5rem", marginBottom: ".5rem" }}>📍</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: ".75rem", fontWeight: 700, marginBottom: ".4rem" }}>
+              Sin localizaciones maestras
+            </div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", color: "var(--text-dim)", lineHeight: 1.6, marginBottom: ".75rem" }}>
+              Las localizaciones definen dónde están los puestos de voluntarios
+              y el material asignado. Puedes crearlas aquí o desde Configuración.
+            </div>
+            <button className="btn btn-ghost btn-sm"
+              onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "configuracion" } }))}>
+              ⚙️ Ir a Configuración
+            </button>
           </div>
         )}
       </div>
