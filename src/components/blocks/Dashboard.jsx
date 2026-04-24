@@ -1288,7 +1288,7 @@ function EmptyChart({ mensaje, sub }) {
 
 // ─── Estilos ──────────────────────────────────────────────────────────────────
 const TOOLTIP_STYLE = {
-  background:"#0f1629", border:"1px solid #1e2d50",
+  background:"var(--bg)", border:"1px solid #1e2d50",
   borderRadius:8, fontSize:"0.65rem", fontFamily:"var(--font-mono)",
 };
 

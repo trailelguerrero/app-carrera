@@ -53,7 +53,7 @@ export default function OnboardingModal({ onClose, onNavigate }) {
       `}</style>
 
       <div style={{
-        background: "#0f1629", border: "1px solid #243460",
+        background: "var(--bg)", border: "1px solid #243460",
         borderRadius: 18, width: "100%", maxWidth: 500,
         maxHeight: "90vh", overflow: "hidden",
         display: "flex", flexDirection: "column",

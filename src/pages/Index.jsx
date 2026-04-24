@@ -370,7 +370,7 @@ function ScrollToTop() {
         right: 16,
         width: 34, height: 34,
         borderRadius: "50%",
-        background: "rgba(13,17,33,0.85)",
+        background: "var(--teg-surface-header, rgba(13,17,33,0.85))",
         border: "1px solid rgba(34,211,238,0.25)",
         color: "var(--cyan)",
         cursor: "pointer",
@@ -569,7 +569,7 @@ export default function Index() {
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
           background: "rgba(251,191,36,0.97)",
-          color: "#0d1121",
+          color: "var(--teg-text-primary)",
           textAlign: "center",
           padding: "0.45rem 1rem",
           fontFamily: "var(--font-mono)",
@@ -592,7 +592,7 @@ export default function Index() {
 
         {/* TOP BAR — Kinetik Ops style */}
         <header style={{
-          background:"rgba(13,17,33,0.75)", backdropFilter:"blur(20px) saturate(180%)",
+          background:"var(--teg-surface-header, rgba(13,17,33,0.88))", backdropFilter:"blur(20px) saturate(180%)",
           WebkitBackdropFilter:"blur(20px) saturate(180%)",
           borderBottom:"1px solid rgba(34,211,238,0.08)",
           padding:"0 0.75rem", display:"flex", alignItems:"center",
@@ -745,7 +745,7 @@ export default function Index() {
           aria-label="Navegación principal"
           style={{
             position:"fixed", bottom:0, left:0, right:0,
-            background:"rgba(13,17,33,0.8)", backdropFilter:"blur(20px) saturate(180%)",
+            background:"var(--teg-surface-header, rgba(13,17,33,0.88))", backdropFilter:"blur(20px) saturate(180%)",
             WebkitBackdropFilter:"blur(20px) saturate(180%)",
             borderTop:"1px solid rgba(34,211,238,0.07)",
             display:"flex", justifyContent:"space-around", alignItems:"center",

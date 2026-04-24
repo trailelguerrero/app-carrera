@@ -1140,7 +1140,7 @@ export default function Documentos() {
                   No se pudo cargar el documento
                 </div>
                 <button onClick={() => downloadDoc(visorDoc)} style={{
-                  background:"#34d399",color:"#0f1629",border:"none",borderRadius:10,
+                  background:"#34d399",color:"var(--bg)",border:"none",borderRadius:10,
                   padding:".6rem 1.5rem",fontWeight:800,fontSize:".85rem",cursor:"pointer",
                 }}>⬇ Descargar</button>
               </div>

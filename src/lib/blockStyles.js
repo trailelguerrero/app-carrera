@@ -34,7 +34,8 @@ export const BLOCK_CSS = `
 
   /* ── Modo claro (cuando ThemeProvider no añade .dark al html) ─────────── */
   html:not(.dark) :root,
-  html.light :root {
+  html.light :root,
+  [data-theme="light"] :root {
     --bg:           #f0f4f8;
     --surface:      #ffffff;
     --surface2:     #e8eef6;
@@ -51,6 +52,7 @@ export const BLOCK_CSS = `
     --red:          #dc2626;  --red-dim:    rgba(220,38,38,0.10);
     --orange:       #ea580c;  --orange-dim: rgba(234,88,12,0.10);
     --primary:      #4f46e5;  --primary-dim:rgba(79,70,229,0.12);
+    --card-accent-width: 3px;
   }
 
   /* ── Scrollbar Kinetik Ops — global 4px ───────────────────────────────── */
@@ -59,8 +61,9 @@ export const BLOCK_CSS = `
   ::-webkit-scrollbar-thumb {
     background: var(--border-light);
     border-radius: 4px;
+    transition: background 0.2s;
   }
-  ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
   ::-webkit-scrollbar-corner { background: transparent; }
 
   /* ── Empty states — SVG ilustrado ──────────────────────────────────────── */
@@ -667,6 +670,15 @@ export const BLOCK_CSS = `
   .flex { display: flex; }
   .flex-between { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
   .flex-center  { display: flex; align-items: center; gap: 0.5rem; }
+
+  /* ── Tema: transición suave en cambio claro/oscuro ──────────────────────── */
+  *, *::before, *::after {
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
+  }
+  /* Excluir transiciones en animaciones propias para evitar conflictos */
+  .modal, .modal-backdrop, .kpi-progress-fill, .dc-prog-fill {
+    transition: inherit;
+  }
   .gap-sm { gap: 0.4rem; }
   .gap    { gap: 0.75rem; }
   .gap-lg { gap: 1.25rem; }

@@ -51,6 +51,7 @@ All colors MUST be HSL.
     /* Raw colors for inline-styled components */
     --teg-bg: #f4f6fb;
     --teg-surface: #ffffff;
+    --teg-surface-header: rgba(240,244,248,0.90);
     --teg-surface-2: #eef1f8;
     --teg-border: #d0d7e8;
     --teg-text-primary: #0f1629;
@@ -106,6 +107,7 @@ All colors MUST be HSL.
     /* Raw colors — Kinetik Ops identity */
     --teg-bg: #08091a;
     --teg-surface: #0d1121;
+    --teg-surface-header: rgba(13,17,33,0.88);
     --teg-surface-2: #121829;
     --teg-border: #1e2d50;
     --teg-text-primary: #f0f4ff;

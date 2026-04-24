@@ -23,7 +23,7 @@ const LS_KEY = "teg_voluntarios_v1";
 // Para producción: sustituir por URLs de tus imágenes reales
 const SHIRT_PLACEHOLDER_FRONT = "data:image/svg+xml," + encodeURIComponent(`
 <svg width="400" height="450" xmlns="http://www.w3.org/2000/svg">
-  <rect width="400" height="450" fill="#0f1629"/>
+  <rect width="400" height="450" fill="var(--bg)"/>
   <text x="200" y="200" text-anchor="middle" fill="#22d3ee" font-size="18" font-family="monospace">CAMISETA TRAIL</text>
   <text x="200" y="230" text-anchor="middle" fill="#22d3ee" font-size="14" font-family="monospace">EL GUERRERO 2026</text>
   <text x="200" y="270" text-anchor="middle" fill="#5a6a8a" font-size="12" font-family="monospace">PARTE DELANTERA</text>
@@ -31,7 +31,7 @@ const SHIRT_PLACEHOLDER_FRONT = "data:image/svg+xml," + encodeURIComponent(`
 </svg>`);
 const SHIRT_PLACEHOLDER_BACK = "data:image/svg+xml," + encodeURIComponent(`
 <svg width="400" height="450" xmlns="http://www.w3.org/2000/svg">
-  <rect width="400" height="450" fill="#0f1629"/>
+  <rect width="400" height="450" fill="var(--bg)"/>
   <text x="200" y="200" text-anchor="middle" fill="#a78bfa" font-size="18" font-family="monospace">CAMISETA TRAIL</text>
   <text x="200" y="230" text-anchor="middle" fill="#a78bfa" font-size="14" font-family="monospace">EL GUERRERO 2026</text>
   <text x="200" y="270" text-anchor="middle" fill="#5a6a8a" font-size="12" font-family="monospace">PARTE TRASERA</text>
@@ -611,7 +611,7 @@ export default function App() {
                   const QRCode = (await import("qrcode")).default;
                   const dataUrl = await QRCode.toDataURL(url, {
                     width: 256, margin: 2,
-                    color: { dark: "#0d1121", light: "#ffffff" },
+                    color: { dark: "var(--surface)", light: "#ffffff" },
                   });
                   setQrDataUrl(dataUrl);
                 } catch { /* qrcode no instalado — silenciar */ }
@@ -846,8 +846,8 @@ function AppShell({ children }) {
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-          --bg: #080c18;
-          --surface: #0f1629;
+          --bg: var(--bg);
+          --surface: var(--bg);
           --surface2: #151e35;
           --surface3: #1a2540;
           --border: #263754;

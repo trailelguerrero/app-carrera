@@ -1363,11 +1363,11 @@ function generarInformePDF(pat, config = {}) {
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; background: #fff; padding: 40px; max-width: 750px; margin: 0 auto; }
     .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 3px solid #22d3ee; }
-    .evento-nombre { font-size: 22px; font-weight: 800; color: #0d1121; }
+    .evento-nombre { font-size: 22px; font-weight: 800; color: var(--surface); }
     .evento-meta { font-size: 12px; color: #666; margin-top: 4px; font-family: monospace; }
     .pat-block { background: #f8faff; border-radius: 10px; padding: 20px 24px; margin-bottom: 24px; border-left: 4px solid #22d3ee; }
     .pat-nombre { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
-    .pat-nivel { display: inline-block; background: #22d3ee22; color: #0d9aaa; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 20px; font-family: monospace; border: 1px solid #22d3ee44; }
+    .pat-nivel { display: inline-block; background: #22d3ee22; color: var(--cyan); font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 20px; font-family: monospace; border: 1px solid #22d3ee44; }
     .seccion-titulo { font-size: 13px; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 0.08em; margin: 20px 0 10px; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
     .dato { background: #f0f4ff; border-radius: 8px; padding: 10px 14px; }
