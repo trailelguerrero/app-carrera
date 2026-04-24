@@ -1612,7 +1612,18 @@ function ModalTarea({ data, prefill={}, equipo, tareas, documentos, onSave, onCl
             <label className="fl">Enlace a Documento (opcional)</label>
             <select className="inp" value={form.documentoId||""} onChange={e=>upd("documentoId",e.target.value||null)}>
               <option value="">Ninguno</option>
-              {documentos.map(d=><option key={d.id} value={d.id}>{d.nombre}</option>)}
+              {(() => {
+                const docs  = (documentos||[]).filter(d => !String(d.id).startsWith('gestion'));
+                const gests = (documentos||[]).filter(d =>  String(d.id).startsWith('gestion'));
+                return (<>
+                  {docs.length > 0 && <optgroup label="📄 Documentos">
+                    {docs.map(d=><option key={d.id} value={d.id}>{d.nombreDisplay||d.nombre}</option>)}
+                  </optgroup>}
+                  {gests.length > 0 && <optgroup label="🏛️ Gestiones legales">
+                    {gests.map(d=><option key={d.id} value={d.id}>{d.nombre||d.titulo}</option>)}
+                  </optgroup>}
+                </>);
+              })()}
             </select>
           </div>
           <div>

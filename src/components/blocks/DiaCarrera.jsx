@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { useData } from "@/lib/dataService";
-import dataService from "@/lib/dataService";
+import { useData, dataService } from "@/lib/dataService";
+import EmptyState from "@/components/EmptyState";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { getEventDate } from "@/lib/eventUtils";
 
@@ -75,10 +75,10 @@ export default function DiaCarrera({ onClose }) {
     tl.find(t => !t.done && t.hora >= hora) || null
   , [tl, hora]);
 
-  const toggleTl  = id => setTl(prev  => prev.map(t => t.id===id ? {...t, done:!t.done} : t));
-  const toggleVol = id => setVols(prev => prev.map(v => v.id===id ? {...v, presente:!v.presente} : v));
-  const toggleCk  = id => setCk(prev  => prev.map(t => t.id===id
-    ? {...t, estado: t.estado==="completado" ? "pendiente" : "completado"} : t));
+  const toggleTl  = id => { setTl(prev => prev.map(t => t.id===id ? {...t, done:!t.done} : t)); dataService.notify(); };
+  const toggleVol = id => { setVols(prev => prev.map(v => v.id===id ? {...v, presente:!v.presente} : v)); dataService.notify(); };
+  const toggleCk  = id => { setCk(prev => prev.map(t => t.id===id
+    ? {...t, estado: t.estado==="completado" ? "pendiente" : "completado"} : t)); dataService.notify(); };
 
   const guardarIncidencia = async () => {
     if (!incForm.descripcion.trim()) return;
@@ -94,6 +94,7 @@ export default function DiaCarrera({ onClose }) {
     };
     const incs = await dataService.get(LS_LOG + "_inc", []);
     await dataService.set(LS_LOG + "_inc", [...(Array.isArray(incs) ? incs : []), nueva]);
+    dataService.notify();
     setIncGuardado(true);
     setTimeout(() => {
       setShowInc(false);
@@ -193,6 +194,10 @@ export default function DiaCarrera({ onClose }) {
 
         {tab === "timeline" && (
           <>
+            {tl.length === 0 ? (
+              <EmptyState icon="⏱" title="Sin tareas en el timeline" sub="Añade tareas en Logística → Timeline para verlas aquí el día del evento." />
+            ) : (
+            <>
             <div style={{fontFamily:"'DM Mono',monospace",fontSize:".6rem",color:"var(--text-muted)",marginBottom:".5rem"}}>
               {tl.filter(t=>t.done).length}/{tl.length} completados
             </div>
@@ -221,7 +226,8 @@ export default function DiaCarrera({ onClose }) {
                 </div>
               </div>
             ))}
-            {tl.length === 0 && <Empty msg="Sin timeline. Añade entradas en Logística → Timeline." />}
+          </>
+            )}
           </>
         )}
 

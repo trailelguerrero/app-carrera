@@ -436,7 +436,7 @@ export default function Dashboard() {
                   ⚠️ MODO ESCENARIO ACTIVO
                 </div>
                 <div style={{fontFamily:"var(--font-mono)",fontSize:".62rem",color:"var(--text-muted)"}}>
-                  Los KPIs reflejan «{d.scenarioActivo}» — NO son datos reales
+                  Escenario «{d.scenarioActivo}» activo en Presupuesto. Este Dashboard siempre muestra <strong>datos reales</strong>, no del escenario.
                 </div>
               </div>
             </div>

@@ -136,7 +136,7 @@ const PAT0 = [
   },
 ];
 
-const OBJETIVO_TOTAL = 8000;
+// Objetivo de patrocinadores: valor inicial 8.000€, editable desde el UI
 
 // ─── STORAGE ──────────────────────────────────────────────────────────────────
 
@@ -153,7 +153,7 @@ export default function App() {
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
   const [tab, setTab] = useState("dashboard");
   const [rawPats, setPats] = useData(LS + "_pats", PAT0);
-  const [objetivo, setObjetivo] = useData(LS + "_obj", OBJETIVO_TOTAL);
+  const [objetivo, setObjetivo] = useData(LS + "_obj", 8000);
   const pats = Array.isArray(rawPats) ? rawPats : [];
   const [saved, setSaved] = useState(false);
   const [modal, setModal] = useState(null);
