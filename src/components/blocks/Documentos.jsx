@@ -1428,7 +1428,7 @@ export default function Documentos() {
             <div className="modal-body" style={{gap:".65rem"}}>
               <div>
                 <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Nombre *</label>
-                <input className="inp" value={gForm.nombre} onChange={e=>setGForm(p=>({...p,nombre:e.target.value}))} placeholder="Ej: Autorización Ayuntamiento" />
+                <input autoFocus className="inp" value={gForm.nombre} onChange={e=>setGForm(p=>({...p,nombre:e.target.value}))} placeholder="Ej: Autorización Ayuntamiento" />
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
                 <div>

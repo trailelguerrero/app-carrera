@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useModalClose } from "@/hooks/useModalClose";
 import { exportarPatrocinadores } from "@/lib/exportUtils";
 import { toast } from "@/lib/toast";
@@ -355,7 +355,7 @@ export default function App() {
       )}
       {delId && (
         <div className="modal-backdrop" onClick={e => e.target===e.currentTarget && setDelId(null)}>
-          <div className="modal" style={{maxWidth:340,textAlign:"center"}}>
+          <div className="modal" role="dialog" aria-modal="true" style={{maxWidth:340,textAlign:"center"}}>
             <div className="modal-body" style={{paddingTop:"1.5rem"}}>
               <div style={{fontSize:"var(--fs-xl)",marginBottom:".6rem"}}>⚠️</div>
               <div style={{fontWeight:700,marginBottom:".4rem"}}>¿Eliminar patrocinador?</div>
@@ -1539,7 +1539,8 @@ function InformePatrocinador({ pat, cfg, config = {} }) {
 }
 
 // ─── MODAL PAT (crear / editar) ───────────────────────────────────────────────
-function ModalPat({ data, onSave, onClose }) {
+function ModalPat({
+ data, onSave, onClose }) {
   const { closing: mpClosing, handleClose: mpHandleClose } = useModalClose(onClose);
   const [form, setForm] = useState(data ? { ...data } : {
     nombre: "", sector: SECTORES[0], nivel: "Plata", contacto: "", telefono: "", email: "",
@@ -1577,7 +1578,7 @@ function ModalPat({ data, onSave, onClose }) {
         <div className="modal-body">
           <div>
             <label className="fl" style={{ color: err.nombre ? "#f87171" : undefined }}>Nombre / Empresa *</label>
-            <input className="inp" value={form.nombre} onChange={e => upd("nombre", e.target.value)} placeholder="Decathlon Ávila" />
+            <input ref={firstInputRef} className="inp" value={form.nombre} onChange={e => upd("nombre", e.target.value)} placeholder="Decathlon Ávila" />
             {err.nombre && <div className="xs mono" style={{ color: "#f87171", marginTop: ".2rem" }}>⚠ {err.nombre}</div>}
           </div>
 

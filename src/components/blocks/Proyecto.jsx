@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useModalClose } from "@/hooks/useModalClose";
 import EmptyState from "@/components/EmptyState";
 import { usePaginacion } from "@/lib/usePaginacion.jsx";
@@ -385,7 +385,7 @@ export default function App() {
       {modal?.tipo==="persona" && <ModalPersona key={modal.data?.id||"new"} data={modal.data}                                  onSave={savePersona} onClose={() => setModal(null)} />}
       {delConf && (
         <div className="overlay" onClick={e => e.target===e.currentTarget && setDelConf(null)}>
-          <div className="modal" style={{maxWidth:340,textAlign:"center"}}>
+          <div className="modal" role="dialog" aria-modal="true" style={{maxWidth:340,textAlign:"center"}}>
             <div className="modal-body" style={{paddingTop:"1.5rem"}}>
               <div style={{fontSize:"var(--fs-xl)",marginBottom:".6rem"}}>⚠️</div>
               <div style={{fontWeight:700,fontSize:"var(--fs-md)",marginBottom:".4rem"}}>¿Eliminar este elemento?</div>
@@ -1543,7 +1543,8 @@ function validarTarea(formData) {
   return validation;
 }
 
-function ModalTarea({ data, prefill={}, equipo, tareas, documentos, onSave, onClose }) {
+function ModalTarea({
+ data, prefill={}, equipo, tareas, documentos, onSave, onClose }) {
   const [form, setForm] = useState(data || {
     area: prefill.area || "permisos",
     titulo: prefill.titulo || "",
@@ -1565,7 +1566,7 @@ function ModalTarea({ data, prefill={}, equipo, tareas, documentos, onSave, onCl
 
   return (
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="modal">
+      <div className="modal" role="dialog" aria-modal="true">
         <div className="modal-header">
           <span className="mtit">{data?"✏️ Editar tarea":"➕ Nueva tarea"}</span>
           <button className="btn btn-sm btn-ghost" aria-label="Cerrar formulario de tarea" onClick={onClose}><span aria-hidden="true">✕</span></button>
@@ -1573,7 +1574,7 @@ function ModalTarea({ data, prefill={}, equipo, tareas, documentos, onSave, onCl
         <div className="modal-body">
           <div>
             <label className="fl" style={{color:err.titulo?"#f87171":undefined}}>Título de la tarea *</label>
-            <input className="inp" value={form.titulo} onChange={e=>upd("titulo",e.target.value)} placeholder="Describe la tarea..." />
+            <input className="inp" autoFocus value={form.titulo} onChange={e=>upd("titulo",e.target.value)} placeholder="Describe la tarea..." />
             {err.titulo && <div className="mono xs" style={{color:"#f87171",marginTop:".2rem"}}>⚠ {err.titulo}</div>}
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".75rem"}}>
@@ -1651,7 +1652,8 @@ function ModalTarea({ data, prefill={}, equipo, tareas, documentos, onSave, onCl
 }
 
 // ─── MODAL HITO ───────────────────────────────────────────────────────────────
-function ModalHito({ data, onSave, onClose }) {
+function ModalHito({
+ data, onSave, onClose }) {
   const [form, setForm] = useState(data || {nombre:"", fecha:"", critico:false, completado:false});
   const [err, setErr] = useState({});
   const upd = (fkey, fval) => setForm(prev=>({...prev,[fkey]:fval}));
@@ -1664,12 +1666,12 @@ function ModalHito({ data, onSave, onClose }) {
   };
   return (
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="modal" style={{maxWidth:420}}>
+      <div className="modal" role="dialog" aria-modal="true" style={{maxWidth:420}}>
         <div className="modal-header"><span className="mtit">{data?"✏️ Editar hito":"🏁 Nuevo hito"}</span><button className="btn btn-sm btn-ghost" aria-label="Cerrar formulario de tarea" onClick={onClose}><span aria-hidden="true">✕</span></button></div>
         <div className="modal-body">
           <div>
             <label className="fl" style={{color:err.nombre?"#f87171":undefined}}>Nombre del hito *</label>
-            <input className="inp" value={form.nombre} onChange={e=>upd("nombre",e.target.value)} placeholder="Ej: Apertura de inscripciones"/>
+            <input ref={firstInputRef} className="inp" autoFocus value={form.nombre} onChange={e=>upd("nombre",e.target.value)} placeholder="Ej: Apertura de inscripciones"/>
             {err.nombre && <div className="mono xs" style={{color:"#f87171",marginTop:".2rem"}}>⚠ {err.nombre}</div>}
           </div>
           <div>
@@ -1711,7 +1713,7 @@ function ModalPersona({ data, onSave, onClose }) {
   };
   return (
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="modal">
+      <div className="modal" role="dialog" aria-modal="true">
         <div className="modal-header"><span className="mtit">{data?"✏️ Editar persona":"👤 Nueva persona"}</span><button className="btn btn-sm btn-ghost" aria-label="Cerrar formulario de tarea" onClick={onClose}><span aria-hidden="true">✕</span></button></div>
         <div className="modal-body">
           <div style={{display:"flex",alignItems:"center",gap:"1rem",padding:".75rem",background:"var(--surface2)",borderRadius:10}}>
@@ -1728,7 +1730,7 @@ function ModalPersona({ data, onSave, onClose }) {
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".75rem"}}>
             <div>
               <label className="fl" style={{color:err.nombre?"#f87171":undefined}}>Nombre completo *</label>
-              <input className="inp" value={form.nombre} onChange={e=>upd("nombre",e.target.value)} placeholder="Nombre Apellido"/>
+              <input className="inp" autoFocus value={form.nombre} onChange={e=>upd("nombre",e.target.value)} placeholder="Nombre Apellido"/>
               {err.nombre&&<div className="mono xs" style={{color:"#f87171",marginTop:".2rem"}}>⚠ {err.nombre}</div>}
             </div>
             <div>

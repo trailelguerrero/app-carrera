@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useModalClose } from "@/hooks/useModalClose";
 import { useData } from "@/lib/dataService";
 import { toast } from "@/lib/toast";
@@ -276,7 +276,7 @@ export default function App() {
       {modal && <ModalPedido data={modal.data} coste={coste} onSave={savePedido} onClose={()=>setModal(null)} />}
       {delId && (
         <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setDelId(null)}>
-          <div className="modal" style={{maxWidth:340,textAlign:"center"}}>
+          <div className="modal" role="dialog" aria-modal="true" style={{maxWidth:340,textAlign:"center"}}>
             <div className="modal-body" style={{paddingTop:"1.5rem"}}><div style={{fontSize:"var(--fs-xl)",marginBottom:".6rem"}}>⚠️</div><div style={{fontWeight:700,marginBottom:".4rem"}}>¿Eliminar pedido?</div><div className="mono xs muted">Esta acción no se puede deshacer.</div></div>
             <div className="modal-footer"><button className="btn btn-ghost" onClick={()=>setDelId(null)}>Cancelar</button><button className="btn btn-red" onClick={deletePedido}>Eliminar</button></div>
           </div>
@@ -1399,7 +1399,8 @@ function FichaPedido({ pedido:p, coste, onClose, onEditar, onEliminar, updateLin
 }
 
 // ─── MODAL CREAR/EDITAR ───────────────────────────────────────────────────────
-function ModalPedido({ data, coste, onSave, onClose }) {
+function ModalPedido({
+ data, coste, onSave, onClose }) {
   const { closing: mpedClosing, handleClose: mpedHandleClose } = useModalClose(onClose);
   const esEdit = !!data?.id;
   const [form,setForm] = useState(()=>data?{...data,lineas:data.lineas.map(l=>({...l}))}:{
@@ -1421,7 +1422,7 @@ function ModalPedido({ data, coste, onSave, onClose }) {
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
             <div style={{gridColumn:"1/-1"}}>
               <label className="fl" style={{color:intentoGuardar&&!form.nombre.trim()?"var(--red)":undefined}}>Nombre *</label>
-              <input className="inp" value={form.nombre}
+              <input className="inp" autoFocus value={form.nombre}
                 onChange={e=>{upd("nombre",e.target.value);setIntentoGuardar(false);}}
                 placeholder="Nombre completo"
                 style={{borderColor:intentoGuardar&&!form.nombre.trim()?"var(--red)":undefined}}/>

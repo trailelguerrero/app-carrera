@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useModalClose } from "@/hooks/useModalClose";
 import { exportarMaterial } from "@/lib/exportUtils";
 import { toast } from "@/lib/toast";
@@ -391,7 +391,7 @@ export default function App() {
       )}
       {del && (
         <div className="modal-backdrop" style={{zIndex:200}} onClick={e => e.target===e.currentTarget && setDel(null)}>
-          <div className="modal" style={{maxWidth:340,textAlign:"center"}}>
+          <div className="modal" role="dialog" aria-modal="true" style={{maxWidth:340,textAlign:"center"}}>
             <div className="modal-body" style={{paddingTop:"1.5rem"}}>
               <div style={{fontSize:"var(--fs-xl)",marginBottom:"0.6rem"}}>⚠️</div>
               <div style={{fontWeight:700,marginBottom:"0.4rem"}}>¿Eliminar elemento?</div>
@@ -1256,7 +1256,7 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
       {/* Modal nuevo tipo personalizado */}
       {modalTipo && (
         <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setModalTipo(false)}>
-          <div className="modal" style={{maxWidth:360}}>
+          <div className="modal" role="dialog" aria-modal="true" style={{maxWidth:360}}>
             <div className="modal-header">
               <span className="modal-title">🏷️ Nuevo tipo de contacto</span>
               <button className="btn btn-ghost btn-sm" onClick={()=>setModalTipo(false)} aria-label="Cerrar">✕</button>
@@ -1772,7 +1772,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
       {/* Modal nuevo tipo de contacto */}
       {modalTipo && (
         <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setModalTipo(false)}>
-          <div className="modal" style={{maxWidth:360}}>
+          <div className="modal" role="dialog" aria-modal="true" style={{maxWidth:360}}>
             <div className="modal-header">
               <span className="modal-title">🏷️ Nuevo tipo de contacto</span>
               <button className="btn btn-ghost btn-sm" onClick={()=>setModalTipo(false)} aria-label="Cerrar">✕</button>
@@ -2118,7 +2118,7 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {} }) {
       {/* Modal edición */}
       {modal && (
         <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && setModal(null)}>
-          <div className="modal" style={{ maxWidth: 420 }}>
+          <div className="modal" role="dialog" aria-modal="true" style={{ maxWidth: 420 }}>
             <div className="modal-header">
               <div style={{ fontWeight: 700 }}>{modal.data ? "✏️ Editar localización" : "📍 Nueva localización"}</div>
               <button className="btn btn-ghost btn-sm" onClick={() => setModal(null)} aria-label="Cerrar">✕</button>
@@ -2150,7 +2150,7 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {} }) {
       {/* Confirm delete */}
       {del && (
         <div className="modal-backdrop" style={{ zIndex: 200 }} onClick={e => e.target === e.currentTarget && setDel(null)}>
-          <div className="modal" style={{ maxWidth: 320, textAlign: "center" }}>
+          <div className="modal" role="dialog" aria-modal="true" style={{ maxWidth: 320, textAlign: "center" }}>
             <div className="modal-body" style={{ paddingTop: "1.5rem" }}>
               <div style={{ fontSize: "var(--fs-xl)", marginBottom: ".5rem" }}>⚠️</div>
               <div style={{ fontWeight: 700 }}>¿Eliminar localización?</div>
@@ -2294,6 +2294,13 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar })
 
 
 function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setVeh,rutas,setRutas,tl,setTl,cont,setCont,inc,setInc,ck,setCk,locs,tiposContacto=[],conceptosPres=[]}) {
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const firstField = document.querySelector(".modal-backdrop .modal-body input, .modal-backdrop .modal-body select, .modal-backdrop .modal-body textarea");
+      if (firstField) firstField.focus();
+    }, 80);
+    return () => clearTimeout(t);
+  }, []);
   const {tipo,data}=modal;
   const locNames = locs && locs.length > 0 ? locs.map(l => l.nombre) : PUESTOS_REF;
   const sv=(setter,arr,item)=>{ if(item.id) setter(p=>p.map(x=>x.id===item.id?item:x)); else setter(p=>[...p,{...item,id:genIdNum(arr)}]); onClose(); };
@@ -2476,7 +2483,7 @@ function ModalRuta({data,veh,rutas,setRutas,onClose,locs}) {
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem"}}>
             <div>
               <label className="fl" style={{color:!form.nombre&&formErr?"var(--red)":undefined}}>Nombre *</label>
-              <input className="inp" value={form.nombre} onChange={e=>{upd("nombre",e.target.value);setFormErr(false);}}
+              <input className="inp" autoFocus value={form.nombre} onChange={e=>{upd("nombre",e.target.value);setFormErr(false);}}
                 placeholder="Nombre de la ruta"
                 style={{borderColor:!form.nombre&&formErr?"var(--red)":undefined}}/>
               {!form.nombre&&formErr&&<div className="xs mono" style={{color:"var(--red)",marginTop:".2rem"}}>⚠ El nombre es obligatorio</div>}
@@ -3105,7 +3112,7 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
       {delId && (
         <div className="modal-backdrop" style={{zIndex:200}}
           onClick={e=>e.target===e.currentTarget&&setDelId(null)}>
-          <div className="modal" style={{maxWidth:320,textAlign:"center"}}>
+          <div className="modal" role="dialog" aria-modal="true" style={{maxWidth:320,textAlign:"center"}}>
             <div className="modal-body" style={{paddingTop:"1.5rem"}}>
               <div style={{fontSize:"var(--fs-xl)",marginBottom:".5rem"}}>⚠️</div>
               <div style={{fontWeight:700}}>¿Eliminar pedido?</div>

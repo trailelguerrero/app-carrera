@@ -2390,7 +2390,7 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
             <div style={{display:"flex",flexDirection:"column",gap:".65rem"}}>
               <div>
                 <label className="field-label" style={{ color: errores.nombre ? "var(--red)" : undefined }}>Nombre completo *</label>
-                <input className="inp" value={form.nombre} onChange={e => upd("nombre", e.target.value)} placeholder="Nombre y apellidos" />
+                <input ref={firstInputRef} className="inp" value={form.nombre} onChange={e => upd("nombre", e.target.value)} placeholder="Nombre y apellidos" />
                 {errores.nombre && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--red)", marginTop: "0.2rem" }}>⚠ {errores.nombre}</div>}
               </div>
               <div className="field-row">
@@ -2523,6 +2523,8 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
 
 // ─── MODAL PUESTO ─────────────────────────────────────────────────────────────
 function ModalPuesto({ puesto, locs, onSave, onClose }) {
+  const firstInputRef = useRef(null);
+  useEffect(() => { const t = setTimeout(() => firstInputRef.current?.focus(), 60); return () => clearTimeout(t); }, []);
   const { closing: mpuClosing, handleClose: mpuHandleClose } = useModalClose(onClose);
   const [form, setForm] = useState(puesto || {
     nombre: "", tipo: "Avituallamiento", distancias: ["Todas"],
@@ -2559,7 +2561,7 @@ function ModalPuesto({ puesto, locs, onSave, onClose }) {
               Vincular a una localización maestra sincroniza el tipo y facilita la logística.
             </div>
           </div>
-          <div><label className="field-label">Nombre del puesto *</label><input className="inp" value={form.nombre} onChange={e => upd("nombre", e.target.value)} placeholder="Ej: Avituallamiento KM 7" /></div>
+          <div><label className="field-label">Nombre del puesto *</label><input ref={firstInputRef} className="inp" autoFocus value={form.nombre} onChange={e => upd("nombre", e.target.value)} placeholder="Ej: Avituallamiento KM 7" /></div>
           <div className="field-row">
             <div>
               <label className="field-label">Tipo</label>
@@ -2615,7 +2617,7 @@ function ModalPuesto({ puesto, locs, onSave, onClose }) {
 function ModalConfirm({ mensaje, onConfirm, onCancel }) {
   return (
     <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onCancel()}>
-      <div className="modal" style={{ maxWidth: 380 }}>
+      <div className="modal" role="dialog" aria-modal="true" style={{ maxWidth: 380 }}>
         <div className="modal-body" style={{ paddingTop: "1.5rem", textAlign: "center" }}>
           <div style={{ fontSize: "var(--fs-xl)", marginBottom: "0.75rem" }}>⚠️</div>
           <div style={{ fontWeight: 700, fontSize: "var(--fs-md)", marginBottom: "0.5rem" }}>Confirmar acción</div>
