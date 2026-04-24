@@ -1401,6 +1401,9 @@ function FichaPedido({ pedido:p, coste, onClose, onEditar, onEliminar, updateLin
 // ─── MODAL CREAR/EDITAR ───────────────────────────────────────────────────────
 function ModalPedido({
  data, coste, onSave, onClose }) {
+  const firstInputRef = useRef(null);
+  useEffect(() => { const t = setTimeout(() => firstInputRef.current?.focus(), 60); return () => clearTimeout(t); }, []);
+
   const { closing: mpedClosing, handleClose: mpedHandleClose } = useModalClose(onClose);
   const esEdit = !!data?.id;
   const [form,setForm] = useState(()=>data?{...data,lineas:data.lineas.map(l=>({...l}))}:{
@@ -1422,7 +1425,7 @@ function ModalPedido({
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
             <div style={{gridColumn:"1/-1"}}>
               <label className="fl" style={{color:intentoGuardar&&!form.nombre.trim()?"var(--red)":undefined}}>Nombre *</label>
-              <input className="inp" autoFocus value={form.nombre}
+              <input ref={firstInputRef} className="inp" value={form.nombre}
                 onChange={e=>{upd("nombre",e.target.value);setIntentoGuardar(false);}}
                 placeholder="Nombre completo"
                 style={{borderColor:intentoGuardar&&!form.nombre.trim()?"var(--red)":undefined}}/>
