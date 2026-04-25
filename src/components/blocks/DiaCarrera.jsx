@@ -73,10 +73,10 @@ export default function DiaCarrera({ onClose }) {
   const presentes   = vols.filter(v => v.presente).length;
 
   const proxima = useMemo(() =>
-    tl.find(t => !t.done && t.hora >= hora) || null
+    tl.find(t => !tlDone(t) && t.hora >= hora) || null
   , [tl, hora]);
 
-  const toggleTl  = id => { setTl(prev => prev.map(t => t.id===id ? {...t, done:!t.done} : t)); dataService.notify(); };
+  const toggleTl  = id => { setTl(prev => prev.map(t => t.id===id ? {...t, estado:(t.estado==="completado"||t.done)?"pendiente":"completado", done:false} : t)); dataService.notify(); };
   const toggleVol = id => { setVols(prev => prev.map(v => v.id===id ? {...v, presente:!v.presente} : v)); dataService.notify(); };
   const toggleCk  = id => { setCk(prev => prev.map(t => t.id===id
     ? {...t, estado: t.estado==="completado" ? "pendiente" : "completado"} : t)); dataService.notify(); };
@@ -105,9 +105,10 @@ export default function DiaCarrera({ onClose }) {
     }, 1000);
   };
 
-  const tlCompletadas = tl.filter(t => t.done).length;
+  const tlDone = t => t.estado==="completado" || t.done;
+  const tlCompletadas = tl.filter(tlDone).length;
   const progresoDia   = tl.length > 0 ? Math.round(tlCompletadas / tl.length * 100) : 0;
-  const proximaSig    = tl.find(t => !t.done);
+  const proximaSig    = tl.find(t => !tlDone(t));
 
   const TABS = [
     {id:"timeline",    label:"⏱ Runbook"},
@@ -201,20 +202,20 @@ export default function DiaCarrera({ onClose }) {
             ) : (
             <>
             <div style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginBottom:".5rem"}}>
-              {tl.filter(t=>t.done).length}/{tl.length} completados
+              {tl.filter(tlDone).length}/{tl.length} completados
             </div>
             {tl.map(item => (
-              <div key={item.id} className={`dc-row${item.done?" done":""}`}>
-                <button className={`dc-chk${item.done?" on":""}`} onClick={() => toggleTl(item.id)}>
-                  {item.done && <span style={{color:"#000",fontSize:"var(--fs-sm)",fontWeight:700}}>✓</span>}
+              <div key={item.id} className={`dc-row${tlDone(item)?" done":""}`}>
+                <button className={`dc-chk${tlDone(item)?" on":""}`} onClick={() => toggleTl(item.id)}>
+                  {tlDone(item) && <span style={{color:"#000",fontSize:"var(--fs-sm)",fontWeight:700}}>✓</span>}
                 </button>
                 <div className="flex-1">
                   <div style={{display:"flex",alignItems:"center",gap:".4rem",marginBottom:".15rem"}}>
                     <span className="dc-hora">{item.hora}</span>
                     <span style={{fontSize:"var(--fs-sm)"}}>{CAT_ICON[item.categoria]||"📌"}</span>
                   </div>
-                  <div style={{fontWeight:700,fontSize:"var(--fs-base)",textDecoration:item.done?"line-through":"none",
-                    color:item.done?"var(--text-dim)":"var(--text)"}}>{item.titulo}</div>
+                  <div style={{fontWeight:700,fontSize:"var(--fs-base)",textDecoration:tlDone(item)?"line-through":"none",
+                    color:tlDone(item)?"var(--text-dim)":"var(--text)"}}>{item.titulo}</div>
                   {item.descripcion && (
                     <div style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginTop:".15rem",lineHeight:1.5}}>
                       {item.descripcion}
