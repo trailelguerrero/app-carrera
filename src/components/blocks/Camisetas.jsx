@@ -96,6 +96,7 @@ export default function App() {
   const [modal,setModal] = useState(null);
   const [ficha,setFicha] = useState(null);
   const [delId,setDelId] = useState(null);
+  const [filtroP, setFiltroP] = useState({ pago:"todos", ent:"todos" }); // filtro externo para TabPedidos
 
   // ─── Fuentes externas para Tab Tallas ───────────────────────────────────────
   // Tallas de corredores: entrada manual desde plataforma externa (total por talla)
@@ -133,6 +134,11 @@ export default function App() {
   const [fuentesActivas, setFuentesActivas] = useData(LS + "_fuentes", FUENTES_DEFAULT);
 
   const scrollTop   = () => { scrollMainToTop(); };
+  const goToTab     = (tabId, filtro) => {
+    scrollMainToTop();
+    if (filtro) setFiltroP(filtro);
+    setTab(tabId);
+  };
   const abrirFicha  = (p) => { scrollMainToTop(); setFicha(p); };
   const abrirModal  = (pd) => { scrollMainToTop(); setModal({data:pd||null}); };
   const abrirEditar = (p) => { scrollMainToTop(); setFicha(null); setModal({data:p}); };
@@ -301,7 +307,7 @@ export default function App() {
           {TABS.map(t=>(<button key={t.id} className={cls("tab-btn",tab===t.id&&"active")} onClick={()=>setTab(t.id)} title={t.title}>{t.icon} {t.label}</button>))}
         </div>
         <div key={tab}>
-          {tab==="dashboard" && <TabDashboard stats={stats} pedidos={pedidos} coste={coste} setCoste={setCoste} setTab={setTab} abrirFicha={abrirFicha}
+          {tab==="dashboard" && <TabDashboard stats={stats} pedidos={pedidos} coste={coste} setCoste={setCoste} setTab={setTab} goToTab={goToTab} abrirFicha={abrirFicha}
             fechaPedido={fechaPedido} setFechaPedido={setFechaPedido}
             estadoPedido={estadoPedido} setEstadoPedido={setEstadoPedido}
             precioCorrExt={precioCorrExt} setPrecioCorrExt={(v) => setPrecioPlatExt({ precio: v })}
@@ -309,7 +315,7 @@ export default function App() {
             corredoresExt={corredoresExt} voluntariosActivos={voluntariosActivos}
             voluntariosConfirmados={voluntariosConfirmados} voluntariosPendientes={voluntariosPendientes}
             ninoExt={ninoExt} />}
-          {tab==="pedidos"   && <TabPedidos   pedidos={pedidos} coste={coste} abrirFicha={abrirFicha} abrirModal={abrirModal} />}
+          {tab==="pedidos"   && <TabPedidos   pedidos={pedidos} coste={coste} abrirFicha={abrirFicha} abrirModal={abrirModal} filtroExterno={filtroP} onClearFiltro={() => setFiltroP({pago:"todos",ent:"todos"})} />}
           {tab==="tallas"    && <TabTallas    pedidos={pedidos} corredoresExt={corredoresExt} setCorredores={setCorredores} voluntariosActivos={voluntariosActivos} fuentesActivas={fuentesActivas}
             voluntariosConfirmados={voluntariosConfirmados} voluntariosPendientes={voluntariosPendientes}
             inclPendientes={inclPendientes} setInclPendientes={setInclPendientes}
@@ -333,7 +339,7 @@ export default function App() {
 }
 
 // ─── TAB DASHBOARD ────────────────────────────────────────────────────────────
-function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, precioCorrExt, setPrecioCorrExt, fuentesActivas, setFuentesActivas, ninoExt = {} }) {
+function TabDashboard({ stats, pedidos, coste, setCoste, setTab, goToTab, abrirFicha, precioCorrExt, setPrecioCorrExt, fuentesActivas, setFuentesActivas, ninoExt = {} }) {
   const [editCoste,setEditCoste] = useState(false);
   const [tmpCoste, setTmpCoste]  = useState({...coste});
   const [editPrecioPlat, setEditPrecioPlat] = useState(false);
@@ -384,7 +390,7 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1rem", marginBottom: "1.25rem" }}>
         
         {/* Card Principal de Beneficio */}
-        <div className="card" style={{ background: "linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%)", borderLeft: "4px solid var(--green)", padding: "1.25rem", position: "relative", overflow: "hidden" }}>
+        <div className="card" style={{ background: "linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%)", borderLeft: "4px solid var(--green)", padding: "1.25rem", position: "relative", overflow: "hidden", cursor:"pointer", transition:"box-shadow .15s" }} onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"presupuesto"}}))} onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 16px rgba(52,211,153,.12)"} onMouseLeave={e=>e.currentTarget.style.boxShadow=""}>
           <div style={{ position: "absolute", top: -10, right: -10, fontSize: "4rem", opacity: 0.05 }}>💰</div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
             <div>
@@ -423,8 +429,8 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
             {[
               { id: "corredoresPlat",  label: "Inscritos Plataforma", icon: "🏃", sub: `${stats.uCorExt} ud`, color: "var(--cyan)" },
               { id: "extrasCorredor",  label: "Extras Corredor",     icon: "👕", sub: `${stats.uExtrasCor} ud`, color: "var(--cyan)" },
-              { id: "voluntariosAuto", label: "Voluntarios (Gasto)", icon: "👥", sub: `${stats.uVolAuto} ud`, color: "var(--violet)" },
-              { id: "extrasVoluntario", label: "Extras Voluntario",   icon: "🛍️", sub: `${stats.uExtrasVol} ud`, color: "var(--violet)" },
+              { id: "voluntariosAuto", label: "Voluntarios (Gasto)", icon: "👥", sub: `${stats.uVolAuto} ud`, color: "var(--violet)", tab: "tallas" },
+              { id: "extrasVoluntario", label: "Extras Voluntario",   icon: "🛍️", tab: "pedidos", sub: `${stats.uExtrasVol} ud`, color: "var(--violet)" },
             ].map(f => (
               <div key={f.id} className="flex-between" style={{ padding: ".4rem .65rem", background: "var(--surface2)", borderRadius: 8, border: `1px solid ${fuentesActivas[f.id] ? f.color + "44" : "transparent"}`, transition: "all .15s" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: ".6rem" }}>
@@ -447,12 +453,12 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
 
       {/* ── KPIs operativos — solo lo que no está en la card principal ── */}
       <div className="kpi-grid mb">
-        <div className="kpi cyan" style={{cursor:"pointer"}} onClick={() => setTab("pedidos")}>
+        <div className="kpi cyan" style={{cursor:"pointer"}} onClick={() => goToTab ? goToTab("pedidos",{pago:"todos",ent:"todos"}) : setTab("pedidos")}>
           <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>👕 Pedidos extras<Tooltip text={"Cantidad de pedidos ingresados manualmente para solicitantes extra."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value">{stats.totalPedidosExtras}</div>
           <div className="kpi-sub">{stats.totalPedidosExtras===0?"sin pedidos manuales":"pedidos manuales"}</div>
         </div>
-        <div className={`kpi ${stats.cPendCobro > 0 ? "amber" : "green"}`} style={{cursor:"pointer"}} onClick={() => setTab("pedidos")}>
+        <div className={`kpi ${stats.cPendCobro > 0 ? "amber" : "green"}`} style={{cursor:"pointer"}} onClick={() => goToTab ? goToTab("pedidos",{pago:"pendiente",ent:"todos"}) : setTab("pedidos")}>
           <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>⏳ Pendiente cobro<Tooltip text={"Importe total de pedidos manuales que aún no han sido cobrados."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value">{fmtEur2(stats.cPendCobro)}</div>
           <div className="kpi-sub">{stats.cPendCobro > 0 ? "por cobrar" : "todo cobrado ✓"}</div>
@@ -471,7 +477,7 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
 
       {/* ── Configuración ── */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: ".75rem", marginBottom: ".85rem" }}>
-        <div className="card" style={{ borderLeft: "3px solid var(--primary)" }}>
+        <div className="card" style={{ borderLeft: "3px solid var(--primary)", cursor:"pointer", transition:"box-shadow .12s" }} onClick={() => !editCoste && setEditCoste(true)} onMouseEnter={e=>e.currentTarget.style.boxShadow="0 2px 12px rgba(0,0,0,.12)"} onMouseLeave={e=>e.currentTarget.style.boxShadow=""}>
           <div className="flex-between">
             <div>
               <div style={{ fontWeight: 700, fontSize: "var(--fs-base)", marginBottom: ".15rem" }}>
@@ -493,7 +499,7 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
             )}
           </div>
         </div>
-        <div className="card" style={{ borderLeft: "3px solid var(--cyan)" }}>
+        <div className="card" style={{ borderLeft: "3px solid var(--cyan)", cursor:"pointer", transition:"box-shadow .12s" }} onClick={() => !editPrecioPlat && setEditPrecioPlat(true)} onMouseEnter={e=>e.currentTarget.style.boxShadow="0 2px 12px rgba(34,211,238,.1)"} onMouseLeave={e=>e.currentTarget.style.boxShadow=""}>
           <div className="flex-between">
             <div>
               <div style={{ fontWeight: 700, fontSize: "var(--fs-base)", marginBottom: ".15rem" }}>
@@ -605,11 +611,18 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
 }
 
 // ─── TAB PEDIDOS ──────────────────────────────────────────────────────────────
-function TabPedidos({ pedidos, coste, abrirFicha, abrirModal }) {
+function TabPedidos({ pedidos, coste, abrirFicha, abrirModal, filtroExterno, onClearFiltro }) {
   const [vistaK,setVistaK]   = useState(false);
   const [alfa,  setAlfa]     = useState(false);
   const [fPago, setFPago]    = useState("todos");
   const [fEnt,  setFEnt]     = useState("todos");
+  // Sincronizar filtro externo (cuando se navega desde el Dashboard con filtro predefinido)
+  useEffect(() => {
+    if (filtroExterno) {
+      if (filtroExterno.pago) setFPago(filtroExterno.pago);
+      if (filtroExterno.ent)  setFEnt(filtroExterno.ent);
+    }
+  }, [filtroExterno]);
   const [bus,   setBus]      = useState("");
   const [pedGrupos, setPedGrupos] = useState({ pendiente:true, preparado:true, entregado:true, cancelado:true }); // todos colapsados por defecto
   const filtrados = useMemo(()=>{
@@ -930,10 +943,10 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
             total: fuentesActivas.extrasVoluntario
               ? pedidos.filter(p=>p.lineas?.some(l=>l.tipo==="voluntario")).reduce((s,p)=>s+p.lineas.filter(l=>l.tipo==="voluntario").reduce((ss,l)=>ss+l.cantidad,0),0)
               : 0 },
-          { key:"ninoManual", icon:"👶", label:"Niño/a", sub:"Tallas introducidas manualmente por categoría",
+          { key:"ninoManual", tab:"tallas", icon:"👶", label:"Niño/a", sub:"Tallas introducidas manualmente por categoría",
             color:TC.nino.color, dim:TC.nino.dim,
             total: fuentesActivas.ninoManual ? TALLAS_NINO.reduce((s,t)=>s+(ninoExt[t]||0),0) : 0 },
-          { key:"extrasNino", icon:"👶+", label:"Extras niño/a", sub:"Pedidos manuales",
+          { key:"extrasNino", tab:"pedidos", icon:"👶+", label:"Extras niño/a", sub:"Pedidos manuales",
             color:TC.nino.color, dim:TC.nino.dim,
             total: fuentesActivas.extrasNino
               ? pedidos.filter(p=>p.lineas?.some(l=>l.tipo==="nino")).reduce((s,p)=>s+p.lineas.filter(l=>l.tipo==="nino").reduce((ss,l)=>ss+l.cantidad,0),0)
