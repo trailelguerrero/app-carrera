@@ -86,9 +86,9 @@ function estadoBg(e) {
 }
 
 // ─── PUBLIC REGISTRATION FORM ──────────────────────────────────────────────────
-export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: imgF, imgBack: imgB, imgGuiaTallas, opcionPuesto, opcionVehiculo, config: cfgProp }) {
+export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: imgF, imgBack: imgB, imgGuiaTallas, opcionPuesto, opcionVehiculo, opcionEmail, opcionEmergencia, config: cfgProp }) {
   const config = cfgProp || EVENT_CONFIG_DEFAULT;
-  const [form, setForm] = useState({ nombre: "", apellidos: "", telefono: "", email: "", talla: "", puestoId: "", coche: false, contactoEmergencia: "", website: "" });
+  const [form, setForm] = useState({ nombre: "", apellidos: "", telefono: "", email: "", talla: "", puestoId: "", coche: false, telefonoEmergencia: "", contactoEmergencia: "", website: "" });
   const [enviado, setEnviado] = useState(false);
   const [errores, setErrores] = useState({});
   const [lightbox, setLightbox] = useState(null); // null | "front" | "back"
@@ -101,9 +101,9 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
     if (!form.nombre.trim()) e.nombre = "Requerido";
     if (!form.apellidos.trim()) e.apellidos = "Requerido";
     if (!form.telefono.trim() || !/^\d{9}$/.test(form.telefono.replace(/\s/g, ""))) e.telefono = "Teléfono de 9 dígitos";
-    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) e.email = "Email no válido";
+    if (opcionEmail && form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) e.email = "Email no válido";
     if (!form.talla) e.talla = "Selecciona talla";
-    if (!form.telefonoEmergencia.trim()) e.telefonoEmergencia = "Requerido para la seguridad del evento";
+    if (opcionEmergencia && !form.telefonoEmergencia?.trim()) e.telefonoEmergencia = "Requerido para la seguridad del evento";
     setErrores(e);
     return Object.keys(e).length === 0;
   };
@@ -113,13 +113,12 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
     onRegistrar({
       nombre: `${form.nombre.trim()} ${form.apellidos.trim()}`,
       telefono: form.telefono.trim(),
-      email: form.email.trim(),
+      ...(opcionEmail ? { email: form.email.trim() } : {}),
       talla: form.talla,
       puestoId: form.puestoId ? parseInt(form.puestoId) : null,
       rol: "apoyo", estado: "pendiente", coche: form.coche,
       notas: "", fechaRegistro: new Date().toISOString().split("T")[0],
-      telefonoEmergencia: form.telefonoEmergencia.trim(),
-      contactoEmergencia: form.telefonoEmergencia.trim(),
+      ...(opcionEmergencia ? { telefonoEmergencia: form.telefonoEmergencia?.trim(), contactoEmergencia: form.telefonoEmergencia?.trim() } : {}),
     });
     setEnviado(true);
   };
@@ -136,7 +135,7 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "1rem 1.5rem", marginBottom: "1.5rem", textAlign: "left" }}>
           <div style={{ fontSize: "var(--fs-sm)", fontFamily: "var(--font-mono)", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.75rem" }}>Tu registro</div>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-            {[["Nombre", `${form.nombre} ${form.apellidos}`], ["Teléfono", form.telefono], ["Email", form.email || "—"], ["Talla camiseta", form.talla]].map(([k, v]) => (
+            {[["Nombre", `${form.nombre} ${form.apellidos}`], ["Teléfono", form.telefono], ...(opcionEmail ? [["Email", form.email || "—"]] : []), ["Talla camiseta", form.talla], ...(opcionEmergencia ? [["🚨 Tel. emergencia", form.telefonoEmergencia || "—"]] : [])].map(([k, v]) => (
               <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--fs-base)" }}>
                 <span style={{ color: "var(--text-muted)" }}>{k}</span>
                 <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--text)" }}>{v}</span>
@@ -329,9 +328,11 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
               <input className="pub-input" placeholder="612 345 678" value={form.telefono} onChange={e => update("telefono", e.target.value)} inputMode="tel" />
             </FormField>
 
-            <FormField label="Email" error={errores.email} hint="Para comunicaciones previas a la carrera (instrucciones, cambios de horario)">
-              <input className="pub-input" type="email" placeholder="tu@email.com" value={form.email} onChange={e => update("email", e.target.value)} inputMode="email" autoCapitalize="none" />
-            </FormField>
+            {opcionEmail && (
+              <FormField label="Email" error={errores.email} hint="Para comunicaciones previas a la carrera (instrucciones, cambios de horario)">
+                <input className="pub-input" type="email" placeholder="tu@email.com" value={form.email} onChange={e => update("email", e.target.value)} inputMode="email" autoCapitalize="none" />
+              </FormField>
+            )}
 
             {/* Talla con guía */}
             <div>
@@ -380,15 +381,17 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
               </div>
             )}
 
-            <FormField label="🚨 Teléfono de emergencia *" error={errores.telefonoEmergencia}
-              hint="Persona a avisar en caso de incidente el día del evento">
-              <input className="pub-input" type="tel"
-                placeholder="612 345 678"
-                value={form.telefonoEmergencia}
-                onChange={e => update("telefonoEmergencia", e.target.value)}
-                inputMode="tel"
-                style={{ borderColor: errores.telefonoEmergencia ? "var(--red)" : undefined }} />
-            </FormField>
+            {opcionEmergencia && (
+              <FormField label="🚨 Teléfono de emergencia" error={errores.telefonoEmergencia}
+                hint="Persona a avisar en caso de incidente el día del evento">
+                <input className="pub-input" type="tel"
+                  placeholder="612 345 678"
+                  value={form.telefonoEmergencia || ""}
+                  onChange={e => update("telefonoEmergencia", e.target.value)}
+                  inputMode="tel"
+                  style={{ borderColor: errores.telefonoEmergencia ? "var(--red)" : undefined }} />
+              </FormField>
+            )}
 
             <button onClick={handleSubmit}
               style={{ width: "100%", padding: "0.85rem", background: "linear-gradient(135deg, rgba(34,211,238,0.2), rgba(167,139,250,0.15))", border: "1px solid rgba(34,211,238,0.35)", borderRadius: 10, color: "var(--text)", fontFamily: "var(--font-display)", fontSize: "var(--fs-md)", fontWeight: 800, cursor: "pointer", letterSpacing: "0.03em", transition: "all 0.18s", marginTop: "0.25rem" }}
@@ -467,6 +470,8 @@ export default function App() {
   const [imgGuiaTallas, setImgGuiaTallas] = useData(LS_KEY + "_imgGuiaTallas", null);
   const [opcionPuesto, setOpcionPuesto] = useData(LS_KEY + "_opcionPuesto", true);
   const [opcionVehiculo, setOpcionVehiculo] = useData(LS_KEY + "_opcionVehiculo", true);
+  const [opcionEmail, setOpcionEmail] = useData(LS_KEY + "_opcionEmail", false);
+  const [opcionEmergencia, setOpcionEmergencia] = useData(LS_KEY + "_opcionEmergencia", false);
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [filtroPuesto, setFiltroPuesto] = useState("todos");
@@ -551,6 +556,8 @@ export default function App() {
         imgGuiaTallas={imgGuiaTallas}
         opcionPuesto={opcionPuesto}
         opcionVehiculo={opcionVehiculo}
+        opcionEmail={opcionEmail}
+        opcionEmergencia={opcionEmergencia}
         config={config}
         onRegistrar={(data) => { addVoluntario(data); setVista("gestion"); setTab("voluntarios"); }}
       />
@@ -693,8 +700,10 @@ export default function App() {
           {configOpen && (
             <div className="flex-center gap" style={{flexWrap:"wrap",marginTop:"0.65rem",paddingTop:"0.65rem",borderTop:"1px solid var(--border)"}}>
               {[
-                { label: "Elegir puesto", val: opcionPuesto, set: setOpcionPuesto },
-                { label: "Vehículo propio", val: opcionVehiculo, set: setOpcionVehiculo },
+                { label: "Elegir puesto",      val: opcionPuesto,      set: setOpcionPuesto },
+                { label: "Vehículo propio",    val: opcionVehiculo,    set: setOpcionVehiculo },
+                { label: "Email de contacto",  val: opcionEmail,       set: setOpcionEmail },
+                { label: "Tel. emergencia",    val: opcionEmergencia,  set: setOpcionEmergencia },
               ].map(opt => (
                 <div key={opt.label} className="flex-center gap-sm">
                   <button className={cls("toggle-btn", opt.val && "active")} onClick={() => opt.set(!opt.val)}>

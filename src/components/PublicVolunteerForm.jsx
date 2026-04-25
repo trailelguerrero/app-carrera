@@ -152,6 +152,8 @@ export default function PublicVolunteerForm() {
   const [imgGuiaTallas,  setImgGuiaTallas]  = useState(null);
   const [opcionPuesto,   setOpcionPuesto]   = useState(true);
   const [opcionVehiculo, setOpcionVehiculo] = useState(true);
+  const [opcionEmail,    setOpcionEmail]    = useState(false);
+  const [opcionEmergencia, setOpcionEmergencia] = useState(false);
   const [loading,        setLoading]        = useState(true);
   const [enviando,       setEnviando]       = useState(false);
   const [registroOk,     setRegistroOk]     = useState(false);
@@ -165,13 +167,17 @@ export default function PublicVolunteerForm() {
       fetchPublic(LS_KEY + "_imgGuiaTallas"),
       fetchPublic(LS_KEY + "_opcionPuesto"),
       fetchPublic(LS_KEY + "_opcionVehiculo"),
-    ]).then(([psts, front, back, guia, opPuesto, opVehiculo]) => {
+      fetchPublic(LS_KEY + "_opcionEmail"),
+      fetchPublic(LS_KEY + "_opcionEmergencia"),
+    ]).then(([psts, front, back, guia, opPuesto, opVehiculo, opEmail, opEmergencia]) => {
       if (Array.isArray(psts))   setPuestos(psts);
       if (front)                 setImgFront(front);
       if (back)                  setImgBack(back);
       if (guia)                  setImgGuiaTallas(guia);
-      if (opPuesto  !== null)    setOpcionPuesto(Boolean(opPuesto));
-      if (opVehiculo !== null)   setOpcionVehiculo(Boolean(opVehiculo));
+      if (opPuesto    !== null) setOpcionPuesto(Boolean(opPuesto));
+      if (opVehiculo  !== null) setOpcionVehiculo(Boolean(opVehiculo));
+      if (opEmail     !== null) setOpcionEmail(Boolean(opEmail));
+      if (opEmergencia !== null) setOpcionEmergencia(Boolean(opEmergencia));
       setLoading(false);
     });
   }, []);
@@ -256,6 +262,8 @@ export default function PublicVolunteerForm() {
           imgGuiaTallas={imgGuiaTallas}
           opcionPuesto={opcionPuesto}
           opcionVehiculo={opcionVehiculo}
+          opcionEmail={opcionEmail}
+          opcionEmergencia={opcionEmergencia}
           enviando={enviando}
           onRegistrar={addVoluntario}
         />
@@ -265,7 +273,7 @@ export default function PublicVolunteerForm() {
 }
 
 // ── StepperForm — 3 pasos ─────────────────────────────────────────────────────
-function StepperForm({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, opcionVehiculo, onRegistrar, enviando }) {
+function StepperForm({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, opcionVehiculo, opcionEmail, opcionEmergencia, onRegistrar, enviando }) {
   const [paso, setPaso]       = useState(1);
   const [dir,  setDir]        = useState(1);   // 1 = adelante, -1 = atrás
   const [form, setForm]       = useState({
@@ -324,11 +332,13 @@ function StepperForm({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, 
     onRegistrar({
       nombre:   `${form.nombre.trim()} ${form.apellidos.trim()}`,
       telefono: form.telefono.trim(),
-      email:    "",
+      ...(opcionEmail ? { email: form.email?.trim() || "" } : {}),
       talla:    form.talla,
       puestoId: form.puestoId ? parseInt(form.puestoId) : null,
       coche:    form.coche,
       notas:    "",
+      fechaRegistro: new Date().toISOString().split("T")[0],
+      ...(opcionEmergencia ? { telefonoEmergencia: form.telefonoEmergencia?.trim() || "", contactoEmergencia: form.telefonoEmergencia?.trim() || "" } : {}),
     });
   };
 
@@ -529,6 +539,24 @@ function StepperForm({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, 
                     placeholder="612 345 678" inputMode="tel"
                     value={form.telefono} onChange={e => set("telefono", e.target.value)} />
                 </Field>
+                {opcionEmail && (
+                  <Field label="Email" error={errores.email}
+                    hint="Para comunicaciones previas a la carrera">
+                    <input className={`pub-input${errores.email?" error":""}`}
+                      type="email" placeholder="tu@email.com" inputMode="email"
+                      autoCapitalize="none"
+                      value={form.email || ""} onChange={e => set("email", e.target.value)} />
+                  </Field>
+                )}
+                {opcionEmergencia && (
+                  <Field label="Teléfono de emergencia" error={errores.telefonoEmergencia}
+                    hint="Persona a avisar en caso de incidente el día del evento">
+                    <input className={`pub-input${errores.telefonoEmergencia?" error":""}`}
+                      type="tel" placeholder="612 345 678" inputMode="tel"
+                      value={form.telefonoEmergencia || ""}
+                      onChange={e => set("telefonoEmergencia", e.target.value)} />
+                  </Field>
+                )}
                 <div className="step-nav">
                   <button className="pub-btn-primary" onClick={siguiente}>
                     Continuar →
