@@ -6,6 +6,7 @@ import {
   calculateIngresosPorDistancia,
   calculateCostesFijos,
   calculateCostesVariables,
+  calculateResultadoFinanciero,
 } from "@/lib/budgetUtils";
 import { EVENT_DATE } from "@/constants/budgetConstants";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
@@ -120,19 +121,7 @@ export default function Dashboard() {
     // teg_camisetas_v1_stats nunca se escribe — se calcula aquí en tiempo real
     const camPedidos     = get("teg_camisetas_v1_pedidos", []);
     const camCoste       = get("teg_camisetas_v1_coste", { corredor: 7.5, voluntario: 7.5 });
-    const camPedidosArr  = Array.isArray(camPedidos) ? camPedidos : [];
-    // Cálculo de camisetas — igual que useBudgetLogic:
-    //   ingresos y beneficio: solo líneas con estadoPago==="pagado"
-    //   costes: líneas pagadas + pendientes (ya fabricadas o por fabricar)
-    const _camLineas     = camPedidosArr.flatMap(p => Array.isArray(p.lineas) ? p.lineas : []);
-    const _camLineasPag  = _camLineas.filter(l => l.estadoPago === "pagado");
-    const _camLineasFab  = _camLineas.filter(l => l.estadoPago === "pagado" || l.estadoPago === "pendiente");
-    const _camIngresos   = _camLineasPag.reduce((s, l) => s + (l.precioVenta || 0) * (l.cantidad || 0), 0);
-    const _camCostes     = _camLineasFab.reduce((s, l) => s + (camCoste[l.tipo] ?? 7.5) * (l.cantidad || 0), 0);
-    const _camBeneficio  = _camIngresos - _camCostes;
-    const merchStats     = syncConfig.camisetas
-      ? { totalIngresos: _camIngresos, totalCostes: _camCostes, beneficio: _camBeneficio }
-      : {};
+    // Cálculo de camisetas delegado a calculateResultadoFinanciero
     const pats           = get("teg_patrocinadores_v1_pats", []);
     const ingresosExtra  = get("teg_presupuesto_v1_ingresosExtra", []);
     const merchandising  = get("teg_presupuesto_v1_merchandising", []);
@@ -160,34 +149,15 @@ export default function Dashboard() {
     };
     const ocupacionGlobal  = totalMaximos > 0 ? Math.round(totalInscritos / totalMaximos * 100) : null;
 
-    // PATROCINIOS: Sync vs Manual (idéntico a useBudgetLogic — usar importeCobrado si cobrado)
-    // Patrocinadores: misma lógica que useBudgetLogic (totalPatConfirmado)
-    // !p.especie excluye aportaciones en especie (no monetarias)
-    // usa p.importe para todos (igual que useBudgetLogic, no importeCobrado)
-    const totalIngresosExtra = syncConfig.patrocinios
-      ? pats
-          .filter(p => !p.especie && (p.estado === "cobrado" || p.estado === "confirmado"))
-          .reduce((sum, p) => sum + (p.importe || 0), 0)
-      : ingresosExtra.filter(i => i.activo).reduce((sum, i) => sum + (i.valor||0), 0);
-
-    // MERCHANDISING: Sync vs Manual
-    // Cuando sync: usa las stats calculadas de pedidos reales (solo líneas pagadas)
-    // idéntico a totalMerchBeneficio en useBudgetLogic
-    const merchIngresos  = syncConfig.camisetas
-      ? (merchStats.totalIngresos || 0)
-      : merchandising.filter(m => m.activo).reduce((sum, m) => sum + m.unidades * m.precioVenta, 0);
-    const merchCostes = syncConfig.camisetas
-      ? (merchStats.totalCostes || 0)
-      : merchandising.filter(m => m.activo).reduce((sum, m) => sum + m.unidades * m.costeUnitario, 0);
-    const merchBeneficio = syncConfig.camisetas
-      ? (merchStats.beneficio || 0)   // beneficio ya calculado sobre líneas pagadas
-      : merchIngresos - merchCostes;
-
-    const totalOtrosIngresos = totalIngresosExtra + merchBeneficio;
-    const resultado = totalIngresos + totalOtrosIngresos - totalCostesFijos - totalCostesVars;
-    const roiGlobal = (totalCostesFijos + totalCostesVars) > 0
-      ? Math.round(((totalIngresos + totalOtrosIngresos - (totalCostesFijos + totalCostesVars)) / (totalCostesFijos + totalCostesVars)) * 100)
-      : 0;
+    // ── Resultado financiero — fuente única de verdad via calculateResultadoFinanciero
+    const {
+      totalIngresosExtra, totalMerchBeneficio: merchBeneficio,
+      totalOtrosIngresos, resultado, roiGlobal,
+    } = calculateResultadoFinanciero({
+      totalIngresos, totalCostesFijos, totalCostesVars,
+      pats, ingresosExtra, camPedidos, camCoste: camCoste || { corredor: 7.5, voluntario: 7.5 },
+      merchandising, syncConfig,
+    });
 
     // VOLUNTARIOS
     const voluntarios      = get("teg_voluntarios_v1_voluntarios", []);

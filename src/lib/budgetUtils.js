@@ -198,3 +198,64 @@ export const calculatePEGlobal = (totalInscritos, precioMedioDistancia, costesVa
     margenFaltante: Math.max(margenFaltante, 0),
   };
 };
+
+/**
+ * calculateResultadoFinanciero — fuente única de verdad para el resultado económico.
+ * Usada por useBudgetLogic Y Dashboard, evitando duplicación de lógica.
+ *
+ * @param {object} p
+ * @param {number}  p.totalIngresos      - Ingresos de inscripciones
+ * @param {number}  p.totalCostesFijos   - Costes fijos calculados
+ * @param {number}  p.totalCostesVars    - Costes variables calculados
+ * @param {Array}   p.pats               - Array de patrocinadores
+ * @param {Array}   p.ingresosExtra      - Líneas de ingresos extra manuales
+ * @param {Array}   p.camPedidos         - Pedidos de camisetas
+ * @param {object}  p.camCoste           - { corredor, voluntario } coste unitario
+ * @param {Array}   p.merchandising      - Líneas de merchandising manuales
+ * @param {object}  p.syncConfig         - { patrocinios: bool, camisetas: bool }
+ * @returns {{ totalIngresosExtra, totalMerchBeneficio, totalOtrosIngresos,
+ *             resultado, roiGlobal, totalIngresosBrutos }}
+ */
+export const calculateResultadoFinanciero = ({
+  totalIngresos, totalCostesFijos, totalCostesVars,
+  pats = [], ingresosExtra = [],
+  camPedidos = [], camCoste = { corredor: 7.5, voluntario: 7.5 },
+  merchandising = [],
+  syncConfig = { patrocinios: true, camisetas: true },
+}) => {
+  // ── Patrocinios ──────────────────────────────────────────────────────────
+  const totalIngresosExtra = syncConfig.patrocinios
+    ? pats
+        .filter(p => !p.especie && (p.estado === "cobrado" || p.estado === "confirmado"))
+        .reduce((s, p) => s + (p.importe || 0), 0)
+    : ingresosExtra.filter(i => i.activo).reduce((s, i) => s + (i.valor || 0), 0);
+
+  // ── Camisetas (merchandising) ─────────────────────────────────────────────
+  let totalMerchBeneficio = 0;
+  if (syncConfig.camisetas) {
+    const lineas     = (Array.isArray(camPedidos) ? camPedidos : []).flatMap(p => Array.isArray(p.lineas) ? p.lineas : []);
+    const ingresos   = lineas.filter(l => l.estadoPago === "pagado").reduce((s, l) => s + (l.precioVenta || 0) * (l.cantidad || 0), 0);
+    const costes     = lineas.filter(l => l.estadoPago === "pagado" || l.estadoPago === "pendiente")
+                             .reduce((s, l) => s + ((camCoste[l.tipo] ?? 7.5) * (l.cantidad || 0)), 0);
+    totalMerchBeneficio = ingresos - costes;
+  } else {
+    const merch = Array.isArray(merchandising) ? merchandising : [];
+    const ingresos = merch.filter(m => m.activo).reduce((s, m) => s + m.unidades * m.precioVenta, 0);
+    const costes   = merch.filter(m => m.activo).reduce((s, m) => s + m.unidades * m.costeUnitario, 0);
+    totalMerchBeneficio = ingresos - costes;
+  }
+
+  const totalOtrosIngresos  = totalIngresosExtra + totalMerchBeneficio;
+  const totalIngresosBrutos = totalIngresos + totalOtrosIngresos;
+  const resultado           = totalIngresosBrutos - totalCostesFijos - totalCostesVars;
+  const costes              = totalCostesFijos + totalCostesVars;
+  const roiGlobal           = costes > 0
+    ? Math.round(((totalIngresosBrutos - costes) / costes) * 100)
+    : 0;
+
+  return {
+    totalIngresosExtra, totalMerchBeneficio,
+    totalOtrosIngresos, totalIngresosBrutos,
+    resultado, roiGlobal,
+  };
+};
