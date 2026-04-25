@@ -649,12 +649,15 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
   ];
   const ms=useMemo(()=>material.map(m=>{const a=asigs.filter(x=>x.materialId===m.id);const asig=a.reduce((s,x)=>s+x.cantidad,0);const ent=a.filter(x=>x.estado==="entregado").reduce((s,x)=>s+x.cantidad,0);return{...m,asig,ent,def:Math.max(asig-m.stock,0)}}),[material,asigs]);
   const mf=useMemo(()=>{
-  const { items: mfPag, total: totalMat, PaginadorUI: PagMat } = usePaginacion(mf, 20);
-    let list = filtrarMaterialPorCategoria(ms, cat);
-    if(busqMat.trim()) list = filtrarMaterialPorBusqueda(list, busqMat);
+    let list = ms.filter(m => cat === "todas" || m.categoria === cat);
+    if(busqMat.trim()) {
+      const q = busqMat.toLowerCase();
+      list = list.filter(m => (m.nombre||"").toLowerCase().includes(q) || (m.categoria||"").toLowerCase().includes(q));
+    }
     if(ordenAlfa) list=[...list].sort((sa,sb)=>(sa.nombre||"").localeCompare(sb.nombre||"","es"));
     return list;
   },[ms,cat,ordenAlfa,busqMat]);
+  const { items: mfPag, total: totalMat, PaginadorUI: PagMat } = usePaginacion(mf, 20);
   const mover=(id,dir)=>{
     if(ordenAlfa) return;
     setMaterial(prev=>{
