@@ -2310,6 +2310,8 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
 // ─── MODAL VOLUNTARIO ─────────────────────────────────────────────────────────
 function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
   const { closing: mvClosing, handleClose: mvHandleClose } = useModalClose(onClose);
+  const firstInputRef = useRef(null);
+  useEffect(() => { const t = setTimeout(() => firstInputRef.current?.focus(), 60); return () => clearTimeout(t); }, []);
   // Split nombre into nombre/apellidos for display if needed
   const partes = (voluntario && voluntario.nombre) ? voluntario.nombre.split(" ") : [];
   const nombreInicial = partes[0] || "";
