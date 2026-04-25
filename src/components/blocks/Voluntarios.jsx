@@ -511,6 +511,12 @@ export default function App() {
   };
 
   const updateVoluntario = (id, data) => { setVoluntarios(prev => prev.map(v => v.id === id ? { ...v, ...data } : v)); if(data.estado==="confirmado") toast.success("Voluntario confirmado ✓"); else if(data.estado==="cancelado") toast.warning("Voluntario cancelado"); };
+  const bulkUpdateVoluntarios = (ids, data) => {
+    setVoluntarios(prev => prev.map(v => ids.includes(v.id) ? { ...v, ...data } : v));
+    if (data.estado === "confirmado") toast.success(`${ids.length} voluntarios confirmados ✓`);
+    else if (data.estado === "cancelado") toast.warning(`${ids.length} voluntarios cancelados`);
+    else if (data.estado === "pendiente") toast.info(`${ids.length} voluntarios movidos a pendiente`);
+  };
   const deleteVoluntario = (id) => { setVoluntarios(prev => prev.filter(v => v.id !== id)); setConfirmDelete(null); };
   const updatePuesto = (id, data) => setPuestos(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
   const addPuesto = (data) => setPuestos(prev => [...prev, { id: genIdNum(puestos), ...data }]);
@@ -717,7 +723,7 @@ export default function App() {
               busqueda={busqueda} setBusqueda={setBusqueda}
               filtroEstado={filtroEstado} setFiltroEstado={setFiltroEstado}
               filtroPuesto={filtroPuesto} setFiltroPuesto={setFiltroPuesto}
-              onUpdate={updateVoluntario} onDelete={(id) => setConfirmDelete(id)}
+              onUpdate={updateVoluntario} onBulkUpdate={bulkUpdateVoluntarios} onDelete={(id) => setConfirmDelete(id)}
               onNuevo={() => setModalVol("nuevo")} onEditar={(v) => setModalVol(v)}
               onFicha={(v) => abrirFicha("vol", v)}
             />
@@ -1066,15 +1072,15 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
   return (
     <>
       <div className="kpi-grid">
-        <div className={`kpi ${stats.coberturaGlobal>=80?"green":stats.coberturaGlobal>=50?"amber":"red"}`}
-          className="cursor-ptr" onClick={() => setTab("puestos")}>
+        <div className={`kpi cursor-ptr ${stats.coberturaGlobal>=80?"green":stats.coberturaGlobal>=50?"amber":"red"}`}
+          onClick={() => setTab("puestos")}>
           <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>🎯 Cobertura global<Tooltip text={"Voluntarios confirmados ÷ plazas necesarias en todos los puestos.\n100% = todos los puestos cubiertos por voluntarios confirmados."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value" style={{color:stats.coberturaGlobal>=80?"var(--green)":stats.coberturaGlobal>=50?"var(--amber)":"var(--red)"}}>
             {stats.coberturaGlobal}%
           </div>
           <div className="kpi-sub">{stats.confirmados}/{stats.totalNecesarios} confirmados</div>
         </div>
-        <div className="kpi cyan" className="cursor-ptr" onClick={() => setTab("voluntarios")}>
+        <div className="kpi cyan cursor-ptr" onClick={() => setTab("voluntarios")}>
           <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>👥 Total voluntarios<Tooltip text={"Total de voluntarios registrados en el sistema, independientemente de su estado.\nIncluye confirmados, pendientes y cancelados."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value" style={{color:"var(--cyan)"}}>{stats.total}</div>
           <div className="kpi-sub">
@@ -1084,8 +1090,8 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
             {stats.cancelados > 0 && <>{" · "}<span style={{color:"var(--red)"}}>{stats.cancelados} ✕</span></>}
           </div>
         </div>
-        <div className={`kpi ${alertas.length>0?"red":"violet"}`}
-          className="cursor-ptr" onClick={() => setTab("puestos")}>
+        <div className={`kpi cursor-ptr ${alertas.length>0?"red":"violet"}`}
+          onClick={() => setTab("puestos")}>
           <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>📍 Puestos<Tooltip text={"Número de puestos operativos definidos para el evento.\nCada puesto tiene un número de voluntarios necesarios y un horario asignado."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value" style={{color:alertas.length>0?"var(--red)":"var(--violet)"}}>
             {puestosConStats.length}
@@ -1096,7 +1102,7 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
               : `${puestosConStats.filter(p=>p.cobertura>=100).length} al 100%`}
           </div>
         </div>
-        <div className="kpi amber">
+        <div className="kpi amber cursor-ptr" onClick={() => setTab("voluntarios")} title="Ver voluntarios con vehículo">
           <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>🚗 Con vehículo<Tooltip text={"Voluntarios confirmados que han indicado disponer de vehículo propio.\nÚtil para planificar rutas de reparto y acceso a puestos remotos."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value" style={{color:"var(--amber)"}}>{stats.conCoche}</div>
           <div className="kpi-sub">{stats.total>0?Math.round(stats.conCoche/stats.total*100):0}% del total</div>
@@ -1278,7 +1284,7 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
 }
 
 // ─── TAB VOLUNTARIOS ──────────────────────────────────────────────────────────
-function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda, filtroEstado, setFiltroEstado, filtroPuesto, setFiltroPuesto, onUpdate, onDelete, onNuevo, onEditar, onFicha }) {
+function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda, filtroEstado, setFiltroEstado, filtroPuesto, setFiltroPuesto, onUpdate, onBulkUpdate, onDelete, onNuevo, onEditar, onFicha }) {
   const [orden, setOrden]           = useState("nombre");
   const [colapsados, setColapsados] = useState({ confirmado:true, pendiente:true, cancelado:true }); // todos colapsados por defecto
 
@@ -1304,6 +1310,8 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
     { id:"cancelado",  label:"Cancelados",  color:"var(--red)",    bg:"rgba(248,113,113,.06)" },
   ];
 
+  const volsFiltradosIds = volsOrdenados.map(v => v.id);
+
   return (
     <>
       <div className="page-header">
@@ -1311,7 +1319,32 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
           <div className="page-title">👥 Voluntarios</div>
           <div className="page-desc">{todosVols.length} registrados · {voluntarios.length} mostrados · click para abrir ficha</div>
         </div>
-        <button className="btn btn-primary" onClick={onNuevo}>+ Nuevo voluntario</button>
+        <div style={{ display:"flex", gap:".5rem" }}>
+          <button className="btn btn-ghost" aria-label="Exportar lista de voluntarios"
+            onClick={() => {
+              const activos = todosVols.filter(v => v.estado !== "cancelado");
+              const rows = [["Nombre","Teléfono","Email","Puesto","Talla","Rol","Estado","Tel.Emergencia","Vehículo","Notas"]];
+              activos.forEach(v => {
+                const puesto = puestos.find(p => p.id === v.puestoId);
+                rows.push([
+                  v.nombre||"", v.telefono||"", v.email||"",
+                  puesto?.nombre||"Sin asignar", v.talla||"",
+                  v.rol||"apoyo", v.estado||"pendiente",
+                  v.telefonoEmergencia||v.contactoEmergencia||"",
+                  v.coche?"Sí":"No", (v.notas||"").replace(/\n/g," ")
+                ]);
+              });
+              const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+              const blob = new Blob(["﻿"+csv], { type:"text/csv;charset=utf-8;" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url; a.download = "voluntarios_trail_el_guerrero.csv"; a.click();
+              URL.revokeObjectURL(url);
+            }}>
+            📥 Exportar CSV
+          </button>
+          <button className="btn btn-primary" onClick={onNuevo}>+ Nuevo voluntario</button>
+        </div>
       </div>
 
       {/* Filtros + ordenación — Kinetik Ops quick-filter pills */}
@@ -1363,6 +1396,41 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
         </div>
       </div>
 
+      {/* ── Acciones masivas — visible cuando hay filtro activo ── */}
+      {onBulkUpdate && voluntarios.length > 0 && (filtroEstado !== "todos" || filtroPuesto !== "todos" || busqueda) && (
+        <div style={{ display:"flex", alignItems:"center", gap:".6rem", padding:".55rem .85rem",
+          borderRadius:8, background:"var(--surface2)", border:"1px solid var(--border)",
+          marginBottom:".65rem", flexWrap:"wrap" }}>
+          <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", flex:1, minWidth:120 }}>
+            {voluntarios.length} voluntario{voluntarios.length===1?"":"s"} con este filtro
+          </span>
+          {filtroEstado === "pendiente" && (
+            <button className="btn btn-green btn-sm"
+              onClick={() => onBulkUpdate(voluntarios.map(v=>v.id), { estado:"confirmado" })}>
+              ✓ Confirmar todos
+            </button>
+          )}
+          {filtroEstado === "pendiente" && (
+            <button className="btn btn-ghost btn-sm"
+              style={{ color:"var(--red)", borderColor:"rgba(248,113,113,.3)" }}
+              onClick={() => onBulkUpdate(voluntarios.map(v=>v.id), { estado:"cancelado" })}>
+              ✕ Cancelar todos
+            </button>
+          )}
+          {filtroEstado === "cancelado" && (
+            <button className="btn btn-ghost btn-sm"
+              onClick={() => onBulkUpdate(voluntarios.map(v=>v.id), { estado:"pendiente" })}>
+              ↩ Mover a pendiente
+            </button>
+          )}
+          {filtroEstado === "confirmado" && (
+            <button className="btn btn-ghost btn-sm"
+              onClick={() => onBulkUpdate(voluntarios.map(v=>v.id), { estado:"pendiente" })}>
+              ↩ Mover todos a pendiente
+            </button>
+          )}
+        </div>
+      )}
       {/* Listado agrupado por estado — cada grupo colapsable */}
       {volsPaginados.length === 0 && volsOrdenados.length === 0 ? (
         <EmptyState
@@ -1520,6 +1588,9 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
   const puestosOrdenados = ordenAlfa
     ? [...puestosConStats].sort((a,b) => (a.nombre||"").localeCompare(b.nombre||"","es"))
     : puestosConStats;
+  const puestosFiltrados = busqPuesto.trim()
+    ? puestosOrdenados.filter(p => p.nombre.toLowerCase().includes(busqPuesto.toLowerCase()))
+    : puestosOrdenados;
   return (
     <>
       <div className="page-header">
@@ -1533,8 +1604,21 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
         </div>
       </div>
 
+      {/* Búsqueda de puestos */}
+      <div style={{ marginBottom:".65rem", display:"flex", alignItems:"center", gap:".5rem" }}>
+        <input className="inp" placeholder="🔍 Buscar puesto…" value={busqPuesto}
+          onChange={e => setBusqPuesto(e.target.value)}
+          style={{ maxWidth:280, fontSize:"var(--fs-base)" }} />
+        {busqPuesto && (
+          <button className="btn btn-ghost btn-sm" onClick={() => setBusqPuesto("")}>✕</button>
+        )}
+        <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", marginLeft:".25rem" }}>
+          {puestosFiltrados.length}/{puestosConStats.length}
+        </span>
+      </div>
+
       <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-        {puestosOrdenados.map(p => {
+        {puestosFiltrados.map(p => {
           const pct = Math.min(p.cobertura, 100);
           const color = pct >= 80 ? "var(--green)" : pct >= 50 ? "var(--amber)" : "var(--red)";
           return (
@@ -2013,6 +2097,7 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
             ["📞 Teléfono",   v.telefono],
             ["✉️ Email",      v.email],
             ["👕 Talla",      v.talla],
+            ["🏷️ Rol",        v.rol ? (v.rol === "responsable" ? "Responsable de puesto" : "Voluntario de apoyo") : null],
             ["📍 Puesto",     puesto?.nombre || "Sin asignar"],
             ["🗓 Registrado", v.fechaRegistro],
             ["🚗 Vehículo",   v.coche ? "Sí, tiene coche" : "No"],
@@ -2340,6 +2425,10 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
     if (!form.telefono.trim()) e.telefono = "Requerido";
     if (!form.talla) e.talla = "Requerido";
     if (!form.telefonoEmergencia?.trim()) e.telefonoEmergencia = "Requerido — evento deportivo";
+    if (form.fechaNacimiento) {
+      const años = Math.floor((new Date() - new Date(form.fechaNacimiento)) / (365.25 * 86400000));
+      if (años < 18) e.fechaNacimiento = `Menor de edad (${años} años) — se requiere autorización parental`;
+    }
     setErrores(e);
     return Object.keys(e).length === 0;
   };
@@ -2450,9 +2539,18 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
                     onChange={e => upd("fechaNacimiento", e.target.value)} />
                   {form.fechaNacimiento && (() => {
                     const años = Math.floor((new Date() - new Date(form.fechaNacimiento)) / (365.25 * 86400000));
+                    const esMenor = años < 18;
                     return <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                      color:"var(--text-dim)", marginTop:".2rem" }}>{años} años</div>;
+                      color: esMenor ? "var(--red)" : "var(--text-dim)", marginTop:".2rem",
+                      fontWeight: esMenor ? 700 : 400 }}>
+                      {esMenor ? `⚠️ ${años} años — menor de edad` : `${años} años`}
+                    </div>;
                   })()}
+                  {errores.fechaNacimiento && (
+                    <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--red)", marginTop:".2rem" }}>
+                      ⚠ {errores.fechaNacimiento}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="field-label" style={{ color: errores.telefonoEmergencia ? "var(--red)" : undefined }}>
