@@ -221,11 +221,15 @@ export default function App() {
     };
   }, [pedidos, coste, corredoresExt, voluntariosActivos, precioCorrExt, fuentesActivas]);
 
+  // Detectar estado inicial para mostrar el panel de configuración
+  const totalCorredoresConf = TALLAS.reduce((s,t) => s + (corredoresExt[t]||0), 0);
+  const esEstadoInicial = pedidos.length === 0 && totalCorredoresConf === 0;
+
   const TABS = [
-    {id:"dashboard",icon:"📊",label:"Dashboard"},
-    {id:"pedidos",  icon:"👕",label:"Pedidos"},
-    {id:"tallas",   icon:"📐",label:"Tallas"},
-    {id:"checklist",icon:"✅",       label:"Producción"},
+    {id:"dashboard", icon:"📊", label:"Resumen",              title:"Visión general del estado de las camisetas"},
+    {id:"tallas",    icon:"📐", label:"Pedido al proveedor",  title:"Consolida las unidades por talla para pedir al fabricante"},
+    {id:"pedidos",   icon:"👕", label:"Extras y familiares",  title:"Pedidos individuales: staff, familiares y personas fuera de plataforma"},
+    {id:"checklist", icon:"📬", label:"Entrega",              title:"Control de entrega el día del evento"},
   ];
 
   return (
@@ -252,8 +256,49 @@ export default function App() {
             <button className="btn btn-primary" onClick={()=>abrirModal(null)}>+ Nuevo pedido</button>
           </div>
         </div>
+        {/* ── Panel de configuración inicial ─────────────────────────── */}
+        {esEstadoInicial && (
+          <div style={{ background:"linear-gradient(135deg,rgba(34,211,238,.07),rgba(167,139,250,.05))", border:"1px solid rgba(34,211,238,.2)", borderRadius:"var(--r)", padding:"1.25rem 1.5rem", marginBottom:"1rem" }}>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--cyan)", fontWeight:700, textTransform:"uppercase", letterSpacing:".12em", marginBottom:".65rem" }}>
+              🚀 Guía de configuración
+            </div>
+            <div style={{ fontSize:"var(--fs-sm)", color:"var(--text-muted)", marginBottom:"1rem", lineHeight:1.6 }}>
+              Gestiona aquí las camisetas del evento: consolida las tallas de todos los participantes, registra pedidos de extras y controla la entrega el día de carrera.
+            </div>
+            <div style={{ display:"flex", flexDirection:"column", gap:".5rem" }}>
+              {[
+                { n:1, done: coste.corredor !== 8 || coste.voluntario !== 7, label:"Configura los costes unitarios", sub:"Precio que cobra el proveedor por cada camiseta", tab:"dashboard", cta:"Configurar costes →" },
+                { n:2, done: totalCorredoresConf > 0, label:"Introduce las tallas de corredores", sub:"Exporta los datos de tu plataforma de inscripción e introdúcelos por talla", tab:"tallas", cta:"Ir a Pedido al proveedor →" },
+                { n:3, done: pedidos.length > 0, label:"Registra pedidos de extras", sub:"Familiares, staff y personas fuera de plataforma", tab:"pedidos", cta:"Añadir pedido →" },
+                { n:4, done: stats.pendEnt === 0 && pedidos.length > 0, label:"Gestiona la entrega el día del evento", sub:"Marca cada camiseta como entregada desde la pestaña Entrega", tab:"checklist", cta:"Ver entregas →" },
+              ].map(step => (
+                <div key={step.n} style={{ display:"flex", alignItems:"flex-start", gap:".75rem", padding:".6rem .75rem", borderRadius:8,
+                  background: step.done ? "rgba(52,211,153,.06)" : "var(--surface2)",
+                  border: `1px solid ${step.done ? "rgba(52,211,153,.2)" : "var(--border)"}`,
+                  opacity: step.done ? .7 : 1 }}>
+                  <div style={{ width:22, height:22, borderRadius:"50%", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center",
+                    background: step.done ? "var(--green-dim)" : "var(--surface3)",
+                    border: `1.5px solid ${step.done ? "var(--green)" : "var(--border-light)"}`,
+                    fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                    color: step.done ? "var(--green)" : "var(--text-muted)" }}>
+                    {step.done ? "✓" : step.n}
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontWeight:600, fontSize:"var(--fs-sm)", textDecoration: step.done ? "line-through" : "none", color: step.done ? "var(--text-muted)" : "var(--text)" }}>{step.label}</div>
+                    <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)", marginTop:".1rem" }}>{step.sub}</div>
+                  </div>
+                  {!step.done && (
+                    <button onClick={() => setTab(step.tab)} style={{ flexShrink:0, fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700, color:"var(--cyan)", background:"var(--cyan-dim)", border:"1px solid rgba(34,211,238,.2)", borderRadius:5, padding:".2rem .5rem", cursor:"pointer", whiteSpace:"nowrap" }}>
+                      {step.cta}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="tabs">
-          {TABS.map(t=>(<button key={t.id} className={cls("tab-btn",tab===t.id&&"active")} onClick={()=>setTab(t.id)}>{t.icon} {t.label}</button>))}
+          {TABS.map(t=>(<button key={t.id} className={cls("tab-btn",tab===t.id&&"active")} onClick={()=>setTab(t.id)} title={t.title}>{t.icon} {t.label}</button>))}
         </div>
         <div key={tab}>
           {tab==="dashboard" && <TabDashboard stats={stats} pedidos={pedidos} coste={coste} setCoste={setCoste} setTab={setTab} abrirFicha={abrirFicha}
@@ -298,6 +343,43 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
 
   return (
     <>
+      {/* ── Panel de estado del flujo ── */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:".6rem", marginBottom:"1.25rem" }}>
+        {[
+          { icon:"💶", label:"Costes configurados", ok: coste.corredor !== 8 || coste.voluntario !== 7,
+            val: `${fmtEur2(coste.corredor)}/corr · ${fmtEur2(coste.voluntario)}/vol`,
+            action: () => setEditCoste(true), cta:"Editar" },
+          { icon:"🏃", label:"Tallas corredores", ok: stats.uCorExt > 0,
+            val: stats.uCorExt > 0 ? `${stats.uCorExt} ud configuradas` : "Sin datos — ir a Pedido al proveedor",
+            action: () => setTab("tallas"), cta:"Introducir" },
+          { icon:"👥", label:"Voluntarios", ok: stats.uVolAuto > 0,
+            val: stats.uVolAuto > 0 ? `${stats.uVolAuto} ud (auto)` : "Sin voluntarios confirmados aún",
+            noAction: true },
+          { icon:"👕", label:"Extras y familiares", ok: stats.totalPedidosExtras > 0,
+            val: stats.totalPedidosExtras > 0 ? `${stats.totalPedidosExtras} pedido${stats.totalPedidosExtras===1?"":"s"} registrados` : "Sin pedidos aún",
+            action: () => setTab("pedidos"), cta:"Añadir" },
+        ].map(item => (
+          <div key={item.label} style={{ padding:".75rem .85rem", borderRadius:"var(--r-sm)",
+            background: item.ok ? "rgba(52,211,153,.06)" : "var(--surface2)",
+            border: `1px solid ${item.ok ? "rgba(52,211,153,.2)" : "var(--border)"}` }}>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:".3rem" }}>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                color: item.ok ? "var(--green)" : "var(--text-muted)", textTransform:"uppercase", letterSpacing:".08em" }}>
+                {item.icon} {item.label}
+              </span>
+              <span style={{ fontSize:"var(--fs-sm)" }}>{item.ok ? "✅" : "⚠️"}</span>
+            </div>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)", lineHeight:1.5 }}>{item.val}</div>
+            {!item.ok && !item.noAction && item.action && (
+              <button onClick={item.action} style={{ marginTop:".4rem", fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                color:"var(--cyan)", background:"var(--cyan-dim)", border:"1px solid rgba(34,211,238,.2)",
+                borderRadius:4, padding:".15rem .4rem", cursor:"pointer" }}>
+                {item.cta} →
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
       {/* ── BALANCE ECONÓMICO CONSOLIDADO (Expert view) ── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1rem", marginBottom: "1.25rem" }}>
         
@@ -483,7 +565,11 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, abrirFicha, pre
                     onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border)"}>
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:"var(--fs-base)", fontWeight:700,
-                        overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                        overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
+                        display:"flex", alignItems:"center", gap:".3rem" }}>
+                        {[...new Set(p.lineas.map(l=>l.tipo))].map(t=>(
+                          <span key={t} title={TC[t]?.label} style={{flexShrink:0}}>{TC[t]?.icon}</span>
+                        ))}
                         {p.nombre}
                       </div>
                     </div>
@@ -566,8 +652,8 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal }) {
         </div>
       </div>
       {filtrados.length===0 && pedidos.length===0 && (
-        <EmptyState icon="👕" title="Sin pedidos de camisetas"
-          sub="Crea el primer pedido para empezar a gestionar las camisetas del evento." />
+        <EmptyState icon="👕" title="Sin pedidos de extras aún"
+          sub="Aquí se registran pedidos individuales de camisetas para familiares, staff, patrocinadores y cualquier persona que no esté en tu plataforma de inscripción. Los corredores y voluntarios se gestionan automáticamente en la pestaña «Pedido al proveedor»." />
       )}
       {filtrados.length===0 && pedidos.length>0 && (
         <div className="empty-state"><div className="empty-state-icon">🔍</div>Sin pedidos con esos filtros</div>
@@ -747,6 +833,8 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
   const grandTotalCor  = TALLAS.reduce((s, t)      => s + (totalCorredor[t]  || 0), 0);
   const grandTotalVol  = TALLAS.reduce((s, t)      => s + (totalVoluntario[t] || 0), 0);
   const grandTotalNino = TALLAS_NINO.reduce((s, t) => s + (ninoExt[t] || 0) + (tallasExtrasNino[t] || 0), 0);
+  const grandTallasCor  = useMemo(() => Object.fromEntries(TALLAS.map(t => [t, (corredoresExt[t]||0) + tallasExtras[t]?.corredor||0])), [corredoresExt, tallasExtras]);
+  const grandTallasVol  = useMemo(() => Object.fromEntries(TALLAS.map(t => [t, voluntariosActivos.filter(v=>v.talla===t).length + (tallasExtras[t]?.voluntario||0)])), [voluntariosActivos, tallasExtras]);
   const grandTotal     = grandTotalCor + grandTotalVol + grandTotalNino;
 
   // Helper: cabecera de sección colapsable
@@ -798,9 +886,28 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
     <>
       <div className="ph">
         <div>
-          <div className="pt">📐 Tallas para producción</div>
+          <div className="pt">📐 Pedido al proveedor</div>
           <div className="pd">{grandTotal} unidades totales · {grandTotalCor} corredor · {grandTotalVol} voluntario{grandTotalNino > 0 ? ` · ${grandTotalNino} niño/a` : ""}</div>
         </div>
+        {grandTotal > 0 && (
+          <button
+            aria-label="Copiar resumen de tallas para el proveedor"
+            onClick={() => {
+              const lineas = TALLAS.map(t => {
+                const tot = (grandTallasCor[t]||0) + (grandTallasVol[t]||0);
+                if(tot === 0) return null;
+                return `${t}: ${tot} ud`;
+              }).filter(Boolean);
+              const txt = "PEDIDO CAMISETAS — " + new Date().toLocaleDateString("es-ES") + "\n" + lineas.join("\n") + "\nTOTAL: " + grandTotal + " unidades";
+              navigator.clipboard?.writeText(txt).then(() => toast.success("Resumen copiado al portapapeles"));
+            }}
+            style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+              color:"var(--cyan)", background:"var(--cyan-dim)", border:"1px solid rgba(34,211,238,.25)",
+              borderRadius:6, padding:".35rem .75rem", cursor:"pointer", display:"flex",
+              alignItems:"center", gap:".35rem", flexShrink:0 }}>
+            📋 Copiar para proveedor
+          </button>
+        )}
       </div>
 
       {/* ── PANEL DE FUENTES — orientación antes de la tabla ── */}
@@ -1192,7 +1299,7 @@ function TabChecklist({ pedidos, updateLinea, abrirFicha }) {
   ];
   return (
     <>
-      <div className="ph"><div><div className="pt">✅ Producción y entrega</div><div className="pd">{cPE} líneas por entregar · {cPP} sin cobrar</div></div></div>
+      <div className="ph"><div><div className="pt">📬 Entrega de camisetas</div><div className="pd">{cPE} líneas por entregar · {cPP} sin cobrar</div></div></div>
       <div style={{display:"flex",gap:".4rem",flexWrap:"wrap",marginBottom:".85rem"}}>
         {FILTROS.map(f=>(
           <button key={f.id} onClick={()=>setFiltro(f.id)} style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,padding:".28rem .6rem",borderRadius:"var(--r-sm)",border:`1px solid ${filtro===f.id?f.color:"var(--border)"}`,background:filtro===f.id?`${f.color}18`:"transparent",color:filtro===f.id?f.color:"var(--text-muted)",cursor:"pointer",transition:"all .15s"}}>{f.label}</button>
