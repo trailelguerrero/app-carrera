@@ -61,10 +61,12 @@ export default function DiaCarrera({ onClose }) {
   const [rawCk,  setCk]   = useData(LS_LOG + "_ck",  []);
   const [rawPuestos]      = useData(LS_VOL + "_puestos", []);
   const [rawVols, setVols]= useData(LS_VOL + "_voluntarios", []);
+  const [rawInc,  setInc] = useData(LS_LOG + "_inc", []);
 
   const tl       = Array.isArray(rawTl)      ? [...rawTl].sort((a,b)=>a.hora.localeCompare(b.hora)) : [];
   const contactos= Array.isArray(rawCont)    ? rawCont : [];
   const ck       = Array.isArray(rawCk)      ? rawCk  : [];
+  const incidencias = Array.isArray(rawInc) ? rawInc : [];
   const puestos  = Array.isArray(rawPuestos) ? rawPuestos : [];
   const vols     = Array.isArray(rawVols)    ? rawVols : [];
 
@@ -76,12 +78,11 @@ export default function DiaCarrera({ onClose }) {
     tl.find(t => !tlDone(t) && t.hora >= hora) || null
   , [tl, hora]);
 
-  const toggleTl  = id => { setTl(prev => prev.map(t => t.id===id ? {...t, estado:(t.estado==="completado"||t.done)?"pendiente":"completado", done:false} : t)); dataService.notify(); };
+  const toggleTl  = id => { const now = new Date().toTimeString().slice(0,5); setTl(prev => prev.map(t => t.id===id ? {...t, estado:(t.estado==="completado"||t.done)?"pendiente":"completado", done:false, completadoEn:(t.estado==="completado"||t.done)?undefined:now} : t)); dataService.notify(); };
   const toggleVol = id => { setVols(prev => prev.map(v => v.id===id ? {...v, presente:!v.presente} : v)); dataService.notify(); };
-  const toggleCk  = id => { setCk(prev => prev.map(t => t.id===id
-    ? {...t, estado: t.estado==="completado" ? "pendiente" : "completado"} : t)); dataService.notify(); };
+  const toggleCk  = id => { const now = new Date().toTimeString().slice(0,5); setCk(prev => prev.map(t => t.id===id ? {...t, estado: t.estado==="completado" ? "pendiente" : "completado", completadoEn: t.estado==="completado" ? undefined : now} : t)); dataService.notify(); };
 
-  const guardarIncidencia = async () => {
+  const guardarIncidencia = () => {
     if (!incForm.descripcion.trim()) return;
     const nueva = {
       id: `inc_${Date.now()}`,
@@ -93,8 +94,7 @@ export default function DiaCarrera({ onClose }) {
       estado: "abierta",
       resolucion: "",
     };
-    const incs = await dataService.get(LS_LOG + "_inc", []);
-    await dataService.set(LS_LOG + "_inc", [...(Array.isArray(incs) ? incs : []), nueva]);
+    setInc(prev => [...(Array.isArray(prev) ? prev : []), nueva]);
     dataService.notify();
     toast.success("Incidencia registrada correctamente");
     setIncGuardado(true);
@@ -211,7 +211,12 @@ export default function DiaCarrera({ onClose }) {
                 </button>
                 <div className="flex-1">
                   <div style={{display:"flex",alignItems:"center",gap:".4rem",marginBottom:".15rem"}}>
-                    <span className="dc-hora">{item.hora}</span>
+                    <span className="dc-hora">
+                      {item.hora}
+                      {tlDone(item) && item.completadoEn && (
+                        <span style={{ fontSize:"var(--fs-xs)", color:"var(--green)", display:"block", lineHeight:1.2, fontWeight:400 }}>✓{item.completadoEn}</span>
+                      )}
+                    </span>
                     <span style={{fontSize:"var(--fs-sm)"}}>{CAT_ICON[item.categoria]||"📌"}</span>
                   </div>
                   <div style={{fontWeight:700,fontSize:"var(--fs-base)",textDecoration:tlDone(item)?"line-through":"none",

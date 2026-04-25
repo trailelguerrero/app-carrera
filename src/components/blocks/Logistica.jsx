@@ -141,10 +141,16 @@ const CK0 = [
 
 
 // ─── APP ──────────────────────────────────────────────────────────────────────
-export default function App() {
+export default function App({ initialSubtab, onSubtabConsumed } = {}) {
   const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
   const [tab, setTab] = useState("dashboard");
+  useEffect(() => {
+    if (initialSubtab) {
+      setTab(initialSubtab);
+      if (onSubtabConsumed) onSubtabConsumed();
+    }
+  }, [initialSubtab]);
   const [rawMaterial, setMaterial] = useData(LS+"_mat", MAT0);
   const material = Array.isArray(rawMaterial) ? rawMaterial : [];
   const [rawAsigs, setAsigs] = useData(LS+"_asig", ASIG0);
@@ -984,7 +990,7 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
       return prev.map(x=>x.id===arr[i].id?{...x,hora:horaJ}:x.id===arr[j].id?{...x,hora:horaI}:x);
     });
   };
-  const upd=(id,estado)=>setTl(p=>p.map(t=>t.id===id?{...t,estado}:t));
+  const upd=(id,estado)=>setTl(p=>p.map(t=>t.id===id?{...t,estado,completadoEn:estado==="completado"?new Date().toTimeString().slice(0,5):undefined}:t));
   return(
     <>
       <div className="ph">
@@ -1853,9 +1859,11 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
   const [fase,setFase]=useState(faseActiva);
   const [vistaKanban,setVistaKanban]=useState(false);
   function toggle(ckId) {
+    var ckNow = new Date().toTimeString().slice(0,5);
     setCk(function(ckPrev) {
       var ckNext = ckPrev.map(function(ckItm) {
-        return ckItm.id===ckId ? {...ckItm, estado: ckItm.estado==="completado" ? "pendiente" : "completado"} : ckItm;
+        var nuevoEstado = ckItm.id===ckId ? (ckItm.estado==="completado" ? "pendiente" : "completado") : ckItm.estado;
+        return ckItm.id===ckId ? {...ckItm, estado: nuevoEstado, completadoEn: nuevoEstado==="completado" ? ckNow : undefined} : ckItm;
       });
       var ckHit = ckNext.find(function(ckItm) { return ckItm.id===ckId; });
       if (ckHit && ckHit.proyectoTareaId && setTareasProyecto) {

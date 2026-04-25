@@ -440,7 +440,7 @@ function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, upd
                   logistica:      <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:"var(--fs-xs)",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"logistica"}}))}}>📦 Ver logística →</button>,
                   comercial:      <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:"var(--fs-xs)",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"camisetas"}}))}}>👕 Ver camisetas →</button>,
                   sanitario:      <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:"var(--fs-xs)",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"logistica"}}))}}>🏥 Ver logística →</button>,
-                  diaD:           <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:"var(--fs-xs)",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"diaCarrera"}}))}}>🏁 Vista día D →</button>,
+                  diaD:           <button className="btn btn-ghost" style={{marginTop:".5rem",fontSize:"var(--fs-xs)",padding:".2rem .5rem",width:"100%"}} onClick={e=>{e.stopPropagation();window.dispatchEvent(new CustomEvent("teg-open-diacarrera"))}}>🏁 Vista día D →</button>,
                 }[a.id] || null}
               </div>
             );

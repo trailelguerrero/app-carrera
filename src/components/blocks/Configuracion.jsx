@@ -167,6 +167,10 @@ export default function Configuracion() {
     "teg_documentos_v1",
     "teg_documentos_v1_gestiones",
     "teg_camisetas_v1",
+    "teg_camisetas_v1_pedidos",
+    "teg_camisetas_v1_coste",
+    "teg_logistica_v1_tipos_cont",
+    "teg_logistica_v1_pedidos_prov",
   ];
 
   // ── Exportar todos los datos como JSON ───────────────────────────────────
@@ -184,6 +188,13 @@ export default function Configuracion() {
           const raw = localStorage.getItem(key);
           if (raw) backup.datos[key] = JSON.parse(raw);
         } catch {}
+      }
+      // Logs dinámicos de patrocinadores (teg_pat_log_<id>)
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith("teg_pat_log_")) {
+          try { const raw = localStorage.getItem(k); if (raw) backup.datos[k] = JSON.parse(raw); } catch {}
+        }
       }
       const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
       const url  = URL.createObjectURL(blob);

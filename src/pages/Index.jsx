@@ -461,6 +461,7 @@ export default function Index() {
   const [showMoreNav, setShowMoreNav]       = useState(false);
   const [activeBlock, setActiveBlock]       = useState("dashboard");
   const [showDiaCarrera, setShowDiaCarrera] = useState(false);
+  const [pendingSubtab, setPendingSubtab] = useState(null);
   const [readmeBlock, setReadmeBlock] = useState(null);
   const [showOnboarding, setShowOnboarding] = useState(
     () => !localStorage.getItem("teg_onboarding_done")
@@ -490,7 +491,12 @@ export default function Index() {
 
   // Navegación desde cualquier bloque via evento custom (ej. alertas del Dashboard)
   useEffect(() => {
-    const h = (e) => { if (e.detail?.block) handleBlockChange(e.detail.block); };
+    const h = (e) => {
+      if (e.detail?.block) {
+        handleBlockChange(e.detail.block);
+        if (e.detail.subtab) setPendingSubtab(e.detail.subtab);
+      }
+    };
     window.addEventListener("teg-navigate", h);
     return () => window.removeEventListener("teg-navigate", h);
   }, [handleBlockChange]);
@@ -500,6 +506,12 @@ export default function Index() {
     const h = () => setShowChangePin(true);
     window.addEventListener("teg-open-changepin", h);
     return () => window.removeEventListener("teg-open-changepin", h);
+  }, []);
+
+  useEffect(() => {
+    const h = () => setShowDiaCarrera(true);
+    window.addEventListener("teg-open-diacarrera", h);
+    return () => window.removeEventListener("teg-open-diacarrera", h);
   }, []);
 
   // Keyboard shortcuts: 1-7 cambian de bloque, Esc cierra modales
@@ -764,7 +776,11 @@ export default function Index() {
                 <style>{`@keyframes teg-spin { to { transform: rotate(360deg); } }`}</style>
               </div>
             }>
-              {ActiveComponent && <ActiveComponent key={activeBlock} />}
+              {ActiveComponent && <ActiveComponent
+              key={activeBlock}
+              initialSubtab={pendingSubtab}
+              onSubtabConsumed={() => setPendingSubtab(null)}
+            />}
             </Suspense>
           </ErrorBoundary>
           </div>
