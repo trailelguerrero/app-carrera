@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { exportarVoluntarios } from "@/lib/exportUtils";
 import { toast } from "@/lib/toast";
 import { genIdNum, scrollMainToTop } from "@/lib/utils";
@@ -753,7 +754,7 @@ export default function App() {
       </div>
 
       {/* MODALES */}
-      {ficha?.tipo==="vol" && (
+      {ficha?.tipo==="vol" && createPortal(
         <FichaVoluntario
           voluntario={ficha.data} puestos={puestos}
           locs={locs} matPorLoc={matPorLoc}
@@ -762,8 +763,8 @@ export default function App() {
           onEliminar={() => { setFicha(null); setConfirmDelete(ficha.data.id); }}
           onUpdate={(data) => { updateVoluntario(ficha.data.id, data); setFicha(f => ({ ...f, data: { ...f.data, ...data } })); }}
         />
-      )}
-      {ficha?.tipo==="puesto" && (
+      , document.body)}
+      {ficha?.tipo==="puesto" && createPortal(
         <FichaPuesto
           puesto={ficha.data} voluntarios={voluntarios}
           locs={locs} matPorLoc={matPorLoc} rutas={rutas}
@@ -771,8 +772,8 @@ export default function App() {
           onEditar={() => { const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"}); setFicha(null); setModalPuesto(ficha.data); }}
           onEliminar={() => { setFicha(null); setConfirmDeletePuesto(ficha.data.id); }}
         />
-      )}
-      {modalVol && (
+      , document.body)}
+      {modalVol && createPortal(
         <ModalVoluntario
           key={modalVol==="nuevo" ? "nuevo" : modalVol.id}
           voluntario={modalVol==="nuevo" ? null : modalVol}
@@ -780,8 +781,8 @@ export default function App() {
           onSave={(data) => { if (modalVol==="nuevo") addVoluntario(data); else updateVoluntario(modalVol.id, data); setModalVol(null); }}
           onClose={() => setModalVol(null)}
         />
-      )}
-      {modalPuesto && (
+      , document.body)}
+      {modalPuesto && createPortal(
         <ModalPuesto
           key={modalPuesto==="nuevo" ? "nuevo" : modalPuesto.id}
           puesto={modalPuesto==="nuevo" ? null : modalPuesto}
@@ -789,9 +790,9 @@ export default function App() {
           onSave={(data) => { if (modalPuesto==="nuevo") addPuesto(data); else updatePuesto(modalPuesto.id, data); setModalPuesto(null); }}
           onClose={() => setModalPuesto(null)}
         />
-      )}
-      {confirmDelete && <ModalConfirm mensaje="¿Eliminar este voluntario? Esta acción no se puede deshacer." onConfirm={() => deleteVoluntario(confirmDelete)} onCancel={() => setConfirmDelete(null)} />}
-      {confirmDeletePuesto && <ModalConfirm mensaje="¿Eliminar este puesto? Los voluntarios asignados quedarán sin puesto." onConfirm={() => { deletePuesto(confirmDeletePuesto); setConfirmDeletePuesto(null); }} onCancel={() => setConfirmDeletePuesto(null)} />}
+      , document.body)}
+      {confirmDelete && createPortal(<ModalConfirm mensaje="¿Eliminar este voluntario? Esta acción no se puede deshacer." onConfirm={() => deleteVoluntario(confirmDelete)} onCancel={() => setConfirmDelete(null)} />, document.body)}
+      {confirmDeletePuesto && createPortal(<ModalConfirm mensaje="¿Eliminar este puesto? Los voluntarios asignados quedarán sin puesto." onConfirm={() => { deletePuesto(confirmDeletePuesto); setConfirmDeletePuesto(null); }} onCancel={() => setConfirmDeletePuesto(null)} />, document.body)}
     </AppShell>
   );
 }
