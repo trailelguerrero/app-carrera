@@ -25,4 +25,13 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    // Desactivar el renombrado de identificadores para evitar TDZ en módulos grandes.
+    // Logistica.jsx (~3800 líneas, chunk único) agota los identificadores de 1 letra
+    // y el minificador crea colisiones de scope → TDZ en runtime en Vercel.
+    // El coste es ~8-12% de bundle size adicional, aceptable para el proyecto.
+    esbuildOptions: {
+      minifyIdentifiers: false,
+    },
+  },
 }));
