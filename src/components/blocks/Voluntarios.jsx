@@ -1297,6 +1297,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
       const pb = puestos.find(p => p.id === b.puestoId)?.nombre || "zzz";
       return pa.localeCompare(pb, "es");
     }
+    if (orden === "fecha") return (b.fechaRegistro || "").localeCompare(a.fechaRegistro || "");
     return 0;
   });
 
@@ -1356,22 +1357,25 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
         {/* Pills de estado */}
         <div style={{ display:"flex", flexWrap:"wrap", gap:"0.35rem", alignItems:"center" }}>
           {[
-            { id:"todos",      label:"Todos" },
-            { id:"confirmado", label:"Confirmados" },
-            { id:"pendiente",  label:"Pendientes" },
-            { id:"cancelado",  label:"Cancelados" },
-          ].map(({ id, label }) => (
+            { id:"todos",      label:"Todos",       count: todosVols.length,                                            color:"var(--text-muted)",  bg:"rgba(255,255,255,.08)" },
+            { id:"confirmado", label:"Confirmados", count: todosVols.filter(v=>v.estado==="confirmado").length, color:"var(--green)",         bg:"rgba(52,211,153,.15)"  },
+            { id:"pendiente",  label:"Pendientes",  count: todosVols.filter(v=>v.estado==="pendiente").length,  color:"var(--amber)",         bg:"rgba(251,191,36,.15)"  },
+            { id:"cancelado",  label:"Cancelados",  count: todosVols.filter(v=>v.estado==="cancelado").length,  color:"var(--red)",           bg:"rgba(248,113,113,.15)" },
+          ].map(({ id, label, count, color, bg }) => (
             <button key={id}
               className={`filter-pill${filtroEstado === id ? " active" : ""}`}
               onClick={() => setFiltroEstado(id)}>
               {label}
-              {id !== "todos" && (
-                <span style={{ fontWeight:400, opacity:0.7 }}>
-                  {id === "confirmado" && `·${voluntarios.filter(v=>v.estado==="confirmado").length}`}
-                  {id === "pendiente"  && `·${voluntarios.filter(v=>v.estado==="pendiente").length}`}
-                  {id === "cancelado"  && `·${voluntarios.filter(v=>v.estado==="cancelado").length}`}
-                </span>
-              )}
+              <span style={{
+                fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                color: filtroEstado === id ? color : "var(--text-dim)",
+                background: filtroEstado === id ? bg : "transparent",
+                borderRadius:10, padding:"0 .3rem", marginLeft:".15rem",
+                minWidth:16, display:"inline-block", textAlign:"center",
+                transition:"all .15s",
+              }}>
+                {count}
+              </span>
             </button>
           ))}
           <div className="filter-pill-sep" />
@@ -1386,6 +1390,8 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
             onClick={() => setOrden("nombre")}>A–Z</button>
           <button className={`filter-pill${orden === "puesto" ? " active" : ""}`}
             onClick={() => setOrden("puesto")}>Por puesto</button>
+          <button className={`filter-pill${orden === "fecha" ? " active" : ""}`}
+            onClick={() => setOrden("fecha")}>Más recientes</button>
           {(busqueda || filtroEstado !== "todos" || filtroPuesto !== "todos") && (
             <button className="filter-pill"
               onClick={() => { setBusqueda(""); setFiltroEstado("todos"); setFiltroPuesto("todos"); }}
@@ -1472,11 +1478,12 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
                   </span>
                   <span style={{
                     fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
-                    color:"var(--text-dim)",
-                    padding:".1rem .4rem", borderRadius:20,
-                    background:"rgba(255,255,255,.05)",
+                    color: grupo.color, fontWeight:700,
+                    padding:".1rem .5rem", borderRadius:20,
+                    background:`${grupo.color}18`,
+                    border:`1px solid ${grupo.color}30`,
                   }}>
-                    {items.length}
+                    {todosVols.filter(v => v.estado === grupo.id).length}
                   </span>
                   <span style={{
                     fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
@@ -1549,6 +1556,13 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
                                   <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                                     color:"var(--cyan)" }}>👕 {v.talla}</span>
                                 )}
+                                {v.fechaRegistro && (() => {
+                                  const dias = Math.floor((new Date() - new Date(v.fechaRegistro)) / 86400000);
+                                  if (dias > 7) return null;
+                                  return <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--cyan)", fontWeight:700, background:"var(--cyan-dim)", borderRadius:4, padding:"0 .3rem" }}>
+                                    🆕 {dias===0?"hoy":`${dias}d`}
+                                  </span>;
+                                })()}
                               </div>
                             </div>
                             <div onClick={e=>e.stopPropagation()} style={{ display:"flex",
@@ -1802,6 +1816,26 @@ function TabTallas({ stats, voluntarios }) {
         </div>
       </div>
 
+      {/* ── Banner de integración con Camisetas ── */}
+      <div style={{ display:"flex", alignItems:"center", gap:".75rem", padding:".6rem .85rem",
+        borderRadius:8, background:"rgba(34,211,238,.06)", border:"1px solid rgba(34,211,238,.15)",
+        marginBottom:".85rem" }}>
+        <span style={{ fontSize:"var(--fs-lg)", flexShrink:0 }}>👕</span>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700, color:"var(--cyan)" }}>
+            Integración con Camisetas
+          </div>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", marginTop:".1rem" }}>
+            Estos datos se sincronizan automáticamente con el bloque Camisetas como «Fuente Voluntarios».
+          </div>
+        </div>
+        <button
+          className="btn btn-ghost btn-sm"
+          style={{ flexShrink:0 }}
+          onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail:{ block:"camisetas" } }))}>
+          Ir a Camisetas →
+        </button>
+      </div>
       <div className="card">
         <div className="card-title">Distribución por talla</div>
         <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
