@@ -431,7 +431,16 @@ export default function App() {
   const [rawPuestos, setPuestos] = useData(LS_KEY + "_puestos", PUESTOS_DEFAULT);
   const puestos = Array.isArray(rawPuestos) ? rawPuestos : [];
   const [rawVoluntarios, setVoluntarios] = useData(LS_KEY + "_voluntarios", VOLUNTARIOS_DEFAULT);
-  const voluntarios = Array.isArray(rawVoluntarios) ? rawVoluntarios : [];
+  const voluntarios = useMemo(() => {
+    const raw = Array.isArray(rawVoluntarios) ? rawVoluntarios : [];
+    // Migrar campo legado contactoEmergencia → telefonoEmergencia
+    return raw.map(v => {
+      if (v.contactoEmergencia && !v.telefonoEmergencia) {
+        return { ...v, telefonoEmergencia: v.contactoEmergencia };
+      }
+      return v;
+    });
+  }, [rawVoluntarios]);
   const [locs] = useData(LOCS_KEY, LOCS_DEFAULT);
   // Material asignado a localizaciones (solo lectura, para mostrar en ficha de puesto)
   const [rawMat]  = useData("teg_logistica_v1_mat",  []);
@@ -1597,7 +1606,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
   );
 }
 // ─── TAB PUESTOS ──────────────────────────────────────────────────────────────
-function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpdatePuesto, onDeletePuesto, onNuevoPuesto, onEditPuesto, onEditarVol, onFichaPuesto, onFichaVol }) {
+function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpdatePuesto, onDeletePuesto, onNuevoPuesto, onEditPuesto, onFichaPuesto, onFichaVol }) {
   const [ordenAlfa, setOrdenAlfa] = useState(false);
   const puestosOrdenados = ordenAlfa
     ? [...puestosConStats].sort((a,b) => (a.nombre||"").localeCompare(b.nombre||"","es"))
@@ -2469,7 +2478,9 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
 
   const handleSave = () => {
     if (!validar()) return;
-    onSave({ ...form, puestoId: form.puestoId ? parseInt(form.puestoId) : null, contactoEmergencia: form.telefonoEmergencia });
+    // Guardar en telefonoEmergencia (campo canónico) y limpiar el alias viejo contactoEmergencia
+    const { contactoEmergencia: _old, ...rest } = { ...form, puestoId: form.puestoId ? parseInt(form.puestoId) : null };
+    onSave({ ...rest, telefonoEmergencia: form.telefonoEmergencia, contactoEmergencia: undefined });
   };
 
   return (
@@ -2636,10 +2647,19 @@ function ModalPuesto({ puesto, locs, onSave, onClose }) {
     nombre: "", tipo: "Avituallamiento", distancias: ["Todas"],
     horaInicio: "08:00", horaFin: "15:00", necesarios: 3, responsableId: null, tiempoLimite: "", notas: ""
   });
+  const [errMP, setErrMP] = useState({});
   const upd = (k, v) => setForm(p => ({ ...p, [k]: v }));
   const toggleDist = (d) => setForm(p => ({
     ...p, distancias: p.distancias.includes(d) ? p.distancias.filter(x => x !== d) : [...p.distancias, d]
   }));
+  const validarPuesto = () => {
+    const e = {};
+    if (!form.nombre.trim()) e.nombre = "El nombre del puesto es obligatorio";
+    if (!form.necesarios || form.necesarios < 1) e.necesarios = "Mínimo 1 voluntario necesario";
+    if (!form.distancias || form.distancias.length === 0) e.distancias = "Selecciona al menos una distancia";
+    setErrMP(e);
+    return Object.keys(e).length === 0;
+  };
 
   return (
     <div className={`modal-backdrop${mpuClosing ? " modal-backdrop-closing" : ""}`} onClick={e => e.target === e.currentTarget && mpuHandleClose()}>
@@ -2667,7 +2687,14 @@ function ModalPuesto({ puesto, locs, onSave, onClose }) {
               Vincular a una localización maestra sincroniza el tipo y facilita la logística.
             </div>
           </div>
-          <div><label className="field-label">Nombre del puesto *</label><input ref={firstInputRef} className="inp" autoFocus value={form.nombre} onChange={e => upd("nombre", e.target.value)} placeholder="Ej: Avituallamiento KM 7" /></div>
+          <div>
+            <label className="field-label" style={{ color: errMP.nombre ? "var(--red)" : undefined }}>Nombre del puesto *</label>
+            <input ref={firstInputRef} className="inp" autoFocus value={form.nombre}
+              onChange={e => { upd("nombre", e.target.value); if (e.target.value.trim()) setErrMP(p=>({...p,nombre:undefined})); }}
+              placeholder="Ej: Avituallamiento KM 7"
+              style={{ borderColor: errMP.nombre ? "var(--red)" : undefined }} />
+            {errMP.nombre && <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--red)", marginTop:".2rem" }}>⚠ {errMP.nombre}</div>}
+          </div>
           <div className="field-row">
             <div>
               <label className="field-label">Tipo</label>
@@ -2695,7 +2722,8 @@ function ModalPuesto({ puesto, locs, onSave, onClose }) {
             </div>
           )}
           <div>
-            <label className="field-label">Distancias</label>
+            <label className="field-label" style={{ color: errMP.distancias ? "var(--red)" : undefined }}>Distancias *</label>
+            {errMP.distancias && <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--red)", marginBottom:".25rem" }}>⚠ {errMP.distancias}</div>}
             <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
               {DISTANCIAS_PUESTO.map(d => (
                 <button key={d} onClick={() => toggleDist(d)}
@@ -2710,7 +2738,7 @@ function ModalPuesto({ puesto, locs, onSave, onClose }) {
         </div>
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
-          <button className="btn btn-cyan" onClick={() => { if (form.nombre) onSave(form); }}>
+          <button className="btn btn-cyan" onClick={() => { if (validarPuesto()) onSave(form); }}>
             {puesto ? "Guardar cambios" : "Crear puesto"}
           </button>
         </div>
