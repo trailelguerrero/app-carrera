@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useModalClose } from "@/hooks/useModalClose";
 import EmptyState from "@/components/EmptyState";
 import { usePaginacion } from "@/lib/usePaginacion.jsx";
@@ -1790,11 +1791,8 @@ function FichaProyecto({ ficha, equipo, documentos, tareas, onClose, onEditar, o
   const titulo = data.titulo || data.nombre;
   const docVinculado = documentos?.find(d => String(d.id) === String(data.documentoId));
 
-  return (
-    <>
-      <style>{`
-      `}</style>
-      <div className={`modal-backdrop${fpClosing ? " modal-backdrop-closing" : ""}`} onClick={e => e.target===e.currentTarget && fpHandleClose()}>
+  return createPortal(
+    <div className={`modal-backdrop${fpClosing ? " modal-backdrop-closing" : ""}`} onClick={e => e.target===e.currentTarget && fpHandleClose()}>
         <div className={`modal modal-ficha${fpClosing ? " modal-closing" : ""}`}>
           <div style={{ borderTop:`3px solid ${accent}`, borderRadius:"16px 16px 0 0" }}>
             <div className="modal-header">
@@ -1989,8 +1987,7 @@ function FichaProyecto({ ficha, equipo, documentos, tareas, onClose, onEditar, o
           </div>
         </div>
       </div>
-    </>
-  );
+  , document.body);
 }
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
