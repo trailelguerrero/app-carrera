@@ -223,12 +223,19 @@ export const calculateResultadoFinanciero = ({
   merchandising = [],
   syncConfig = { patrocinios: true, camisetas: true },
 }) => {
-  // ── Patrocinios ──────────────────────────────────────────────────────────
-  const totalIngresosExtra = syncConfig.patrocinios
-    ? pats
-        .filter(p => !p.especie && (p.estado === "cobrado" || p.estado === "confirmado"))
-        .reduce((s, p) => s + (p.importe || 0), 0)
-    : ingresosExtra.filter(i => i.activo).reduce((s, i) => s + (i.valor || 0), 0);
+  // ── Patrocinios + ingresos extra ─────────────────────────────────────────
+  // Replica exactamente la lógica de useBudgetLogic:
+  // - línea id=1 (patrocinios synced): si syncConfig.patrocinios, valor = suma de pats confirmados/cobrados
+  // - línea id=2 (camisetas synced): gestionado más abajo via totalMerchBeneficio
+  // - líneas manuales (id≥10): se suman siempre si están activas y tienen valor
+  const patSyncado = syncConfig.patrocinios
+    ? pats.filter(p => !p.especie && (p.estado === "cobrado" || p.estado === "confirmado"))
+          .reduce((s, p) => s + (p.importe || 0), 0)
+    : (ingresosExtra.find(i => i.id === 1 && i.activo)?.valor || 0);
+  const ingresosManuales = ingresosExtra
+    .filter(i => i.activo && !i.synced && i.id !== 1 && i.id !== 2)
+    .reduce((s, i) => s + (i.valor || 0), 0);
+  const totalIngresosExtra = patSyncado + ingresosManuales;
 
   // ── Camisetas (merchandising) ─────────────────────────────────────────────
   let totalMerchBeneficio = 0;
