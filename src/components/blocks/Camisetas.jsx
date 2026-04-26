@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useModalClose } from "@/hooks/useModalClose";
 import EmptyState from "@/components/EmptyState";
@@ -324,16 +325,16 @@ export default function App() {
         </div>
       </div>
 
-      {ficha && <FichaPedido pedido={pedidos.find(p=>p.id===ficha.id)||ficha} coste={coste} onClose={()=>setFicha(null)} onEditar={()=>abrirEditar(pedidos.find(p=>p.id===ficha.id)||ficha)} onEliminar={()=>{setDelId(ficha.id);setFicha(null);}} updateLinea={updateLinea} />}
-      {modal && <ModalPedido data={modal.data} coste={coste} onSave={savePedido} onClose={()=>setModal(null)} />}
-      {delId && (
+      {ficha && createPortal(<FichaPedido pedido={pedidos.find(p=>p.id===ficha.id)||ficha} coste={coste} onClose={()=>setFicha(null)} onEditar={()=>abrirEditar(pedidos.find(p=>p.id===ficha.id)||ficha)} onEliminar={()=>{const id=ficha?.id; setFicha(null); if(id) setDelId(id);}} updateLinea={updateLinea} />, document.body)}
+      {modal && createPortal(<ModalPedido data={modal.data} coste={coste} onSave={savePedido} onClose={()=>setModal(null)} />, document.body)}
+      {delId && createPortal(
         <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setDelId(null)}>
           <div className="modal" role="dialog" aria-modal="true" style={{maxWidth:340,textAlign:"center"}}>
             <div className="modal-body" style={{paddingTop:"1.5rem"}}><div style={{fontSize:"var(--fs-xl)",marginBottom:".6rem"}}>⚠️</div><div style={{fontWeight:700,marginBottom:".4rem"}}>¿Eliminar pedido?</div><div className="mono xs muted">Esta acción no se puede deshacer.</div></div>
             <div className="modal-footer"><button className="btn btn-ghost" onClick={()=>setDelId(null)}>Cancelar</button><button className="btn btn-red" onClick={deletePedido}>Eliminar</button></div>
           </div>
         </div>
-      )}
+      , document.body)}
     </>
   );
 }

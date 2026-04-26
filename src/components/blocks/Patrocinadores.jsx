@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useModalClose } from "@/hooks/useModalClose";
 import { exportarPatrocinadores } from "@/lib/exportUtils";
@@ -341,8 +342,8 @@ export default function App() {
       </datalist>
 
       {/* MODALES */}
-      {modal?.tipo==="pat" && <ModalPat key={modal.data?.id||"nuevo"} data={modal.data} onSave={savePat} onClose={() => setModal(null)} />}
-      {modal?.tipo==="detalle" && (
+      {modal?.tipo==="pat" && createPortal(<ModalPat key={modal.data?.id||"nuevo"} data={modal.data} onSave={savePat} onClose={() => setModal(null)} />, document.body)}
+      {modal?.tipo==="detalle" && createPortal(
         <ModalDetalle key={modal.data.id} pat={pats.find(p=>p.id===modal.data.id)||modal.data}
           onClose={() => setModal(null)}
           onEditar={() => setModal({tipo:"pat",data:pats.find(p=>p.id===modal.data.id)||modal.data})}
@@ -352,8 +353,8 @@ export default function App() {
           addEspecieItem={addEspecieItem} updateEspecieItem={updateEspecieItem} deleteEspecieItem={deleteEspecieItem}
           config={config}
         />
-      )}
-      {delId && (
+      , document.body)}
+      {delId && createPortal(
         <div className="modal-backdrop" onClick={e => e.target===e.currentTarget && setDelId(null)}>
           <div className="modal" role="dialog" aria-modal="true" style={{maxWidth:340,textAlign:"center"}}>
             <div className="modal-body" style={{paddingTop:"1.5rem"}}>
@@ -367,7 +368,7 @@ export default function App() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </>
   );
 }

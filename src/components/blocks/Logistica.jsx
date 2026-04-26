@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useModalClose } from "@/hooks/useModalClose";
 import { exportarMaterial } from "@/lib/exportUtils";
@@ -392,17 +393,15 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
         </div>
       </div>
 
-      {ficha && <FichaLogistica ficha={ficha} material={material} veh={veh} onClose={()=>setFicha(null)} onEditar={(tipo,data)=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo,data,...(tipo==="ck"?{tareasProyecto}:{}),...(tipo==="mat"?{conceptosPres}:{})});}} onEliminar={(tipo,id)=>{setFicha(null);setDel({tipo,id});}} />}
-      {modal && (
-        <ModalRouter key={modal.tipo+(modal.data?.id||"n")} modal={modal} onClose={() => setModal(null)}
+      {ficha && createPortal(<FichaLogistica ficha={ficha} material={material} veh={veh} onClose={()=>setFicha(null)} onEditar={(tipo,data)=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo,data,...(tipo==="ck"?{tareasProyecto}:{}),...(tipo==="mat"?{conceptosPres}:{})});}} onEliminar={(tipo,id)=>{setFicha(null);setDel({tipo,id});}} />, document.body)}
+      {modal && createPortal(<ModalRouter key={modal.tipo+(modal.data?.id||"n")} modal={modal} onClose={() => setModal(null)}
           material={material} setMaterial={setMaterial} asigs={asigs} setAsigs={setAsigs}
           veh={veh} setVeh={setVeh} rutas={rutas} setRutas={setRutas}
           tl={tl} setTl={setTl} cont={cont} setCont={setCont}
           inc={inc} setInc={setInc} ck={ck} setCk={setCk}
-          locs={locs} tiposContacto={tiposContacto} conceptosPres={conceptosPres} />
-      )}
-      {del && (
-        <div className="modal-backdrop" style={{zIndex:200}} onClick={e => e.target===e.currentTarget && setDel(null)}>
+          locs={locs} tiposContacto={tiposContacto} conceptosPres={conceptosPres} />, document.body)}
+      {del && createPortal(
+        <div className="modal-backdrop" onClick={e => e.target===e.currentTarget && setDel(null)}>
           <div className="modal" role="dialog" aria-modal="true" style={{maxWidth:340,textAlign:"center"}}>
             <div className="modal-body" style={{paddingTop:"1.5rem"}}>
               <div style={{fontSize:"var(--fs-xl)",marginBottom:"0.6rem"}}>⚠️</div>
@@ -412,7 +411,7 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
             <div className="modal-footer"><button className="btn btn-ghost" onClick={() => setDel(null)}>Cancelar</button><button className="btn btn-red" onClick={doDelete}>Eliminar</button></div>
           </div>
         </div>
-      )}
+      , document.body)}
     </>
   );
 }
