@@ -930,6 +930,9 @@ export const BLOCK_CSS = `
     padding-bottom: calc(0.85rem + env(safe-area-inset-bottom, 0px));
     border-top: 1px solid var(--border);
     display: flex; justify-content: flex-end; gap: 0.5rem;
+    position: sticky; bottom: 0;
+    background: var(--surface);
+    z-index: 1;
   }
 
   /* ── Animations ─────────────────────────────────────────────────────────── */

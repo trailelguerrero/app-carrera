@@ -769,7 +769,12 @@ export default function App() {
           locs={locs} matPorLoc={matPorLoc}
           onClose={() => setFicha(null)}
           onEditar={() => { const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"}); setFicha(null); setModalVol(ficha.data); }}
-          onEliminar={() => { setFicha(null); setConfirmDelete(ficha.data.id); }}
+          onEliminar={() => {
+            const idToDelete = ficha?.data?.id;
+            if (!idToDelete) return;
+            setFicha(null);
+            setConfirmDelete(idToDelete);
+          }}
           onUpdate={(data) => { updateVoluntario(ficha.data.id, data); setFicha(f => ({ ...f, data: { ...f.data, ...data } })); }}
         />
       , document.body)}
@@ -2142,7 +2147,14 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
                 </div>
               </div>
             </div>
-            <button className="btn btn-ghost" style={{ padding:"0.2rem 0.5rem", fontSize:"var(--fs-md)" }} onClick={fvHandleClose} aria-label="Cerrar">✕</button>
+            <div style={{ display:"flex", gap:".35rem", alignItems:"center" }}>
+              {onEliminar && (
+                <button className="btn btn-ghost" aria-label="Eliminar voluntario"
+                  style={{ padding:"0.2rem 0.5rem", fontSize:"var(--fs-sm)", color:"var(--red)", borderColor:"rgba(248,113,113,.25)" }}
+                  onClick={onEliminar}>🗑</button>
+              )}
+              <button className="btn btn-ghost" style={{ padding:"0.2rem 0.5rem", fontSize:"var(--fs-md)" }} onClick={fvHandleClose} aria-label="Cerrar">✕</button>
+            </div>
           </div>
         </div>
         <div className="modal-body">
