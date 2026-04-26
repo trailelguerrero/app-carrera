@@ -806,8 +806,8 @@ export default function App() {
           onClose={() => setModalPuesto(null)}
         />
       , document.body)}
-      {confirmDelete && createPortal(<ModalConfirm mensaje="¿Eliminar este voluntario? Esta acción no se puede deshacer." onConfirm={() => deleteVoluntario(confirmDelete)} onCancel={() => setConfirmDelete(null)} />, document.body)}
-      {confirmDeletePuesto && createPortal(<ModalConfirm mensaje="¿Eliminar este puesto? Los voluntarios asignados quedarán sin puesto." onConfirm={() => { deletePuesto(confirmDeletePuesto); setConfirmDeletePuesto(null); }} onCancel={() => setConfirmDeletePuesto(null)} />, document.body)}
+      {confirmDelete && createPortal(<ModalConfirm zIndex={400} mensaje="¿Eliminar este voluntario? Esta acción no se puede deshacer." onConfirm={() => deleteVoluntario(confirmDelete)} onCancel={() => setConfirmDelete(null)} />, document.body)}
+      {confirmDeletePuesto && createPortal(<ModalConfirm zIndex={400} mensaje="¿Eliminar este puesto? Los voluntarios asignados quedarán sin puesto." onConfirm={() => { deletePuesto(confirmDeletePuesto); setConfirmDeletePuesto(null); }} onCancel={() => setConfirmDeletePuesto(null)} />, document.body)}
     </AppShell>
   );
 }
@@ -1593,6 +1593,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
                             <div onClick={e=>e.stopPropagation()} style={{ display:"flex",
                               alignItems:"center", gap:"0.3rem", flexShrink:0 }}>
                               <select className="inp inp-sm" value={v.estado}
+                                onClick={e=>e.stopPropagation()}
                                 onChange={e=>onUpdate(v.id,{estado:e.target.value})}
                                 style={{ width:"auto", color:estadoColor(v.estado),
                                   background:estadoBg(v.estado), fontSize:"var(--fs-sm)" }}>
@@ -1600,10 +1601,10 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
                               </select>
                               <button className="btn btn-ghost"
                                 style={{ padding:"0.22rem 0.38rem", fontSize:"var(--fs-sm)" }}
-                                onClick={()=>onEditar(v)}>✏️</button>
+                                onClick={e=>{e.stopPropagation();onEditar(v);}}>✏️</button>
                               <button className="btn btn-red"
                                 style={{ padding:"0.22rem 0.38rem", fontSize:"var(--fs-sm)" }}
-                                onClick={()=>onDelete(v.id)}>✕</button>
+                                onClick={e=>{e.stopPropagation();onDelete(v.id);}}>✕</button>
                             </div>
                           </div>
                         </div>
@@ -2774,9 +2775,9 @@ function ModalPuesto({ puesto, locs, onSave, onClose }) {
 }
 
 // ─── MODAL CONFIRMAR ──────────────────────────────────────────────────────────
-function ModalConfirm({ mensaje, onConfirm, onCancel }) {
+function ModalConfirm({ mensaje, onConfirm, onCancel, zIndex }) {
   return (
-    <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onCancel()}>
+    <div className="modal-backdrop" style={zIndex ? { zIndex } : undefined} onClick={e => e.target === e.currentTarget && onCancel()}>
       <div className="modal" role="dialog" aria-modal="true" style={{ maxWidth: 380 }}>
         <div className="modal-body" style={{ paddingTop: "1.5rem", textAlign: "center" }}>
           <div style={{ fontSize: "var(--fs-xl)", marginBottom: "0.75rem" }}>⚠️</div>

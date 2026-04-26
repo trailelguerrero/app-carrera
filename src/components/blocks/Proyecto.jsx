@@ -150,11 +150,15 @@ export default function App() {
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
   const [rawDocs]                = useData("teg_documentos_v1", []);
   const [rawGest]                = useData("teg_documentos_v1_gestiones", []);
+  const [rawVoluntarios]         = useData("teg_voluntarios_v1_voluntarios", []);
+  const [rawContLog]             = useData("teg_logistica_v1_cont", []);
 
   const tareas = Array.isArray(rawTareas) ? rawTareas : [];
   const hitos = Array.isArray(rawHitos) ? rawHitos : [];
   const equipo = Array.isArray(rawEquipo) ? rawEquipo : [];
-  const documentos = [...(Array.isArray(rawDocs)?rawDocs:[]), ...(Array.isArray(rawGest)?rawGest:[])];
+  const documentos  = [...(Array.isArray(rawDocs)?rawDocs:[]), ...(Array.isArray(rawGest)?rawGest:[])];
+  const voluntarios = Array.isArray(rawVoluntarios) ? rawVoluntarios : [];
+  const contLog     = Array.isArray(rawContLog) ? rawContLog : [];
   const [modal, setModal]     = useState(null);
   const [ficha, setFicha]     = useState(null); // {tipo,data} — vista previa
   const abrirFicha = (tipo, data) => {
@@ -371,7 +375,7 @@ export default function App() {
             updEstado={updEstado} setModal={setModal} setDelConf={setDelConf} setFicha={abrirFicha}
             vista={vistaTablon} setVista={setVistaTablon} />}
           {tab==="gantt"  && <TabGantt tareas={tareas} hitos={hitos} equipo={equipo} setModal={setModal} setFicha={abrirFicha} setFiltroArea={setFiltroArea} setTabParent={setTab} eventFecha={config?.fecha || EVENT_CONFIG_DEFAULT.fecha} />}
-          {tab==="equipo" && <TabEquipo equipo={equipo} setEquipo={setEquipo} tareas={tareas} setModal={setModal} setDelConf={setDelConf} setFicha={abrirFicha} />}
+          {tab==="equipo" && <TabEquipo equipo={equipo} setEquipo={setEquipo} tareas={tareas} voluntarios={voluntarios} contLog={contLog} setModal={setModal} setDelConf={setDelConf} setFicha={abrirFicha} />}
           {tab==="hitos"  && <TabHitos hitos={hitos} updHito={updHito} setModal={setModal} setDelConf={setDelConf} setFicha={abrirFicha} />}
         </div>
       </div>
@@ -1181,7 +1185,7 @@ function TabGantt({ tareas, hitos, equipo, setModal, setFicha, setFiltroArea, se
 }
 
 // ─── TAB EQUIPO ───────────────────────────────────────────────────────────────
-function TabEquipo({ equipo, setEquipo, tareas, setModal, setDelConf, setFicha }) {
+function TabEquipo({ equipo, setEquipo, tareas, setModal, setDelConf, setFicha, voluntarios=[], contLog=[] }) {
   const [vistaEquipo, setVistaEquipo]  = useState("cards");
   const [ordenAlfa, setOrdenAlfa]      = useState(false);
   // Inicializar todas las áreas colapsadas por defecto
@@ -1211,6 +1215,33 @@ function TabEquipo({ equipo, setEquipo, tareas, setModal, setDelConf, setFicha }
   const areasConPersonas = AREAS.filter(a => equipoOrdenado.some(p => p.area === a.id));
   return (
     <>
+      {/* ── Banner de interconexiones ── */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:".6rem", marginBottom:".85rem" }}>
+        <div style={{ padding:".65rem .85rem", borderRadius:8, background:"rgba(167,139,250,.06)", border:"1px solid rgba(167,139,250,.15)", display:"flex", alignItems:"center", justifyContent:"space-between", gap:".5rem" }}>
+          <div>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700, color:"var(--violet)" }}>👥 Voluntarios</div>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)", marginTop:".1rem" }}>
+              {voluntarios.filter(v=>v.estado==="confirmado").length} confirmados · {voluntarios.filter(v=>v.estado==="pendiente").length} pendientes
+            </div>
+          </div>
+          <button className="btn btn-ghost btn-sm"
+            onClick={()=>window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"voluntarios"}}))}>
+            Ver →
+          </button>
+        </div>
+        <div style={{ padding:".65rem .85rem", borderRadius:8, background:"rgba(251,146,60,.06)", border:"1px solid rgba(251,146,60,.15)", display:"flex", alignItems:"center", justifyContent:"space-between", gap:".5rem" }}>
+          <div>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700, color:"var(--amber)" }}>📋 Directorio Logística</div>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)", marginTop:".1rem" }}>
+              {contLog.length} contactos registrados
+            </div>
+          </div>
+          <button className="btn btn-ghost btn-sm"
+            onClick={()=>window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"logistica", subtab:"contactos"}}))}>
+            Ver →
+          </button>
+        </div>
+      </div>
       <div className="ph">
         <div>
           <div className="pt">👥 Equipo Organizador</div>
@@ -1385,7 +1416,12 @@ function TabEquipo({ equipo, setEquipo, tareas, setModal, setDelConf, setFicha }
                   {iniciales(p.nombre)}
                 </div>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontWeight:800,fontSize:"var(--fs-md)",marginBottom:".15rem"}}>{p.nombre}</div>
+                  <div style={{fontWeight:800,fontSize:"var(--fs-md)",marginBottom:".15rem",display:"flex",alignItems:"center",gap:".4rem"}}>
+                    {p.nombre}
+                    {voluntarios.some(v=>v.nombre?.toLowerCase().includes(p.nombre?.split(" ")[0]?.toLowerCase())&&v.estado==="confirmado") && (
+                      <span title="También registrado como voluntario confirmado" style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--green)",background:"rgba(52,211,153,.1)",borderRadius:4,padding:"0 .3rem"}}>✓ Vol</span>
+                    )}
+                  </div>
                   <div className="mono xs muted" style={{marginBottom:".25rem"}}>{p.rol}</div>
                   <div style={{display:"flex",alignItems:"center",gap:".3rem"}}>
                     <span style={{fontSize:"var(--fs-sm)"}}>{areaP.icon}</span>

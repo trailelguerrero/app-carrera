@@ -868,7 +868,7 @@ export const BLOCK_CSS = `
 
   /* ── Modal backdrop ─────────────────────────────────────────────────────── */
   .modal-backdrop {
-    position: fixed; inset: 0; z-index: 100;
+    position: fixed; inset: 0; z-index: 300;
     background: rgba(0,0,0,0.75);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
