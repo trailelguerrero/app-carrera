@@ -775,6 +775,12 @@ export default function App() {
             setFicha(null);
             setConfirmDelete(idToDelete);
           }}
+          onEliminarConfirmado={() => {
+            const idToDelete = ficha?.data?.id;
+            if (!idToDelete) return;
+            deleteVoluntario(idToDelete);
+            setFicha(null);
+          }}
           onUpdate={(data) => { updateVoluntario(ficha.data.id, data); setFicha(f => ({ ...f, data: { ...f.data, ...data } })); }}
         />
       , document.body)}
@@ -2121,7 +2127,7 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
 }
 
 // ─── FICHA VOLUNTARIO ─────────────────────────────────────────────────────────
-function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClose, onEditar, onEliminar, onUpdate }) {
+function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClose, onEditar, onEliminar, onEliminarConfirmado, onUpdate }) {
   const { closing: fvClosing, handleClose: fvHandleClose } = useModalClose(onClose);
   const [confirmando, setConfirmando] = useState(false);
   const puesto = puestos.find(p => p.id === v.puestoId);
@@ -2273,7 +2279,7 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
             <>
               <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--red)", flex:1 }}>¿Eliminar a {v.nombre}?</span>
               <button className="btn btn-ghost" onClick={() => setConfirmando(false)}>Cancelar</button>
-              <button className="btn btn-red" onClick={onEliminar}>Sí, eliminar</button>
+              <button className="btn btn-red" onClick={() => { if(onEliminarConfirmado) onEliminarConfirmado(); else onEliminar(); }}>Sí, eliminar</button>
             </>
           )}
         </div>
