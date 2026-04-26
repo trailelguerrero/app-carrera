@@ -532,7 +532,7 @@ export default function App() {
     else if (data.estado === "cancelado") toast.warning(`${ids.length} voluntarios cancelados`);
     else if (data.estado === "pendiente") toast.info(`${ids.length} voluntarios movidos a pendiente`);
   };
-  const deleteVoluntario = (id) => { setVoluntarios(prev => prev.filter(v => v.id !== id)); setConfirmDelete(null); };
+  const deleteVoluntario = (id) => { const sid = String(id); setVoluntarios(prev => prev.filter(v => String(v.id) !== sid)); setConfirmDelete(null); toast.success("Voluntario eliminado"); };
   const updatePuesto = (id, data) => setPuestos(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
   const addPuesto = (data) => setPuestos(prev => [...prev, { id: genIdNum(puestos), ...data }]);
   const deletePuesto = (id) => { setPuestos(prev => prev.filter(p => p.id !== id)); setVoluntarios(prev => prev.map(v => v.puestoId === id ? { ...v, puestoId: null } : v)); };
@@ -794,6 +794,7 @@ export default function App() {
           puestos={puestos}
           onSave={(data) => { if (modalVol==="nuevo") addVoluntario(data); else updateVoluntario(modalVol.id, data); setModalVol(null); }}
           onClose={() => setModalVol(null)}
+          onEliminar={modalVol!=="nuevo" ? () => { const id = modalVol?.id; if (!id) return; setModalVol(null); setConfirmDelete(id); } : undefined}
         />
       , document.body)}
       {modalPuesto && createPortal(
@@ -2458,7 +2459,7 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
 }
 
 // ─── MODAL VOLUNTARIO ─────────────────────────────────────────────────────────
-function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
+function ModalVoluntario({ voluntario, puestos, onSave, onClose, onEliminar }) {
   const { closing: mvClosing, handleClose: mvHandleClose } = useModalClose(onClose);
   const firstInputRef = useRef(null);
   useEffect(() => { const t = setTimeout(() => firstInputRef.current?.focus(), 60); return () => clearTimeout(t); }, []);
@@ -2649,6 +2650,9 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose }) {
 
         </div>
         <div className="modal-footer">
+          {onEliminar && (
+            <button className="btn btn-red" style={{ marginRight:"auto" }} onClick={onEliminar}>🗑 Eliminar</button>
+          )}
           <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
           <button className="btn btn-cyan" onClick={handleSave}>
             {voluntario ? "💾 Guardar cambios" : "➕ Añadir voluntario"}

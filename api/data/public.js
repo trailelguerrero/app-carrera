@@ -25,6 +25,8 @@ const READ_WHITELIST = new Set([
   'teg_voluntarios_v1_imgGuiaTallas',
   'teg_voluntarios_v1_opcionPuesto',
   'teg_voluntarios_v1_opcionVehiculo',
+  'teg_voluntarios_v1_opcionEmail',
+  'teg_voluntarios_v1_opcionEmergencia',
 ]);
 
 const WRITE_WHITELIST = new Set([
