@@ -1604,7 +1604,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
                                 onClick={e=>{e.stopPropagation();onEditar(v);}}>✏️</button>
                               <button className="btn btn-red"
                                 style={{ padding:"0.22rem 0.38rem", fontSize:"var(--fs-sm)" }}
-                                onClick={e=>{e.stopPropagation();onDelete(v.id);}}>✕</button>
+                                onClick={e=>{e.stopPropagation();if(window.confirm("¿Eliminar a "+v.nombre+"? Esta acción no se puede deshacer."))onDelete(v.id);}}>✕</button>
                             </div>
                           </div>
                         </div>
@@ -2123,6 +2123,7 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
 // ─── FICHA VOLUNTARIO ─────────────────────────────────────────────────────────
 function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClose, onEditar, onEliminar, onUpdate }) {
   const { closing: fvClosing, handleClose: fvHandleClose } = useModalClose(onClose);
+  const [confirmando, setConfirmando] = useState(false);
   const puesto = puestos.find(p => p.id === v.puestoId);
   const estadoColor = v.estado === "confirmado" ? "var(--green)" : v.estado === "cancelado" ? "var(--red)" : "var(--amber)";
   const iniciales = (n) => (n||"V").split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
@@ -2153,7 +2154,7 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
               {onEliminar && (
                 <button className="btn btn-ghost" aria-label="Eliminar voluntario"
                   style={{ padding:"0.2rem 0.5rem", fontSize:"var(--fs-sm)", color:"var(--red)", borderColor:"rgba(248,113,113,.25)" }}
-                  onClick={onEliminar}>🗑</button>
+                  onClick={() => setConfirmando(true)}>🗑</button>
               )}
               <button className="btn btn-ghost" style={{ padding:"0.2rem 0.5rem", fontSize:"var(--fs-md)" }} onClick={fvHandleClose} aria-label="Cerrar">✕</button>
             </div>
@@ -2260,11 +2261,21 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
           </div>
         )}
         <div className="modal-footer" style={{ justifyContent:"space-between" }}>
-          <button className="btn btn-red" onClick={onEliminar}>🗑 Eliminar</button>
-          <div style={{ display:"flex", gap:"0.4rem" }}>
-            <button className="btn btn-ghost" onClick={onClose}>Cerrar</button>
-            <button className="btn btn-cyan" onClick={onEditar}>✏️ Editar</button>
-          </div>
+          {!confirmando ? (
+            <>
+              <button className="btn btn-red" onClick={() => setConfirmando(true)}>🗑 Eliminar</button>
+              <div style={{ display:"flex", gap:"0.4rem" }}>
+                <button className="btn btn-ghost" onClick={onClose}>Cerrar</button>
+                <button className="btn btn-cyan" onClick={onEditar}>✏️ Editar</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--red)", flex:1 }}>¿Eliminar a {v.nombre}?</span>
+              <button className="btn btn-ghost" onClick={() => setConfirmando(false)}>Cancelar</button>
+              <button className="btn btn-red" onClick={onEliminar}>Sí, eliminar</button>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -2652,7 +2663,7 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose, onEliminar }) {
         </div>
         <div className="modal-footer">
           {onEliminar && (
-            <button className="btn btn-red" style={{ marginRight:"auto" }} onClick={onEliminar}>🗑 Eliminar</button>
+            <button className="btn btn-red" style={{ marginRight:"auto" }} onClick={() => { if(window.confirm("¿Eliminar a "+(form.nombre||"este voluntario")+"?")) onEliminar(); }}>🗑 Eliminar</button>
           )}
           <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
           <button className="btn btn-cyan" onClick={handleSave}>

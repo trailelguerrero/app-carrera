@@ -358,7 +358,8 @@ export const ScenarioBar = ({
                 onFocus={() => setEditingName(true)}
                 onBlur={() => setEditingName(false)}
                 aria-label="Nombre del escenario"
-                placeholder="Nombre del escenario..."
+                placeholder="⚠️ Escribe un nombre antes de guardar..."
+                style={{ borderColor: !activeScenario?.nombre?.trim() ? "var(--amber)" : undefined }}
               />
             ) : (
               <span style={{ color: "var(--text-muted)", fontSize: "var(--fs-base)", fontWeight: 400 }}>
@@ -614,7 +615,10 @@ export const ScenarioBar = ({
                   >
                     <div style={{ fontSize: "var(--fs-lg)", flexShrink: 0 }}>🔬</div>
                     <div className="sc-list-item-info">
-                      <div className="sc-list-item-name">{sc.nombre}</div>
+                      <div className="sc-list-item-name">{sc.nombre || <span style={{color:"var(--amber)",fontStyle:"italic"}}>Sin nombre</span>}</div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-dim)",marginTop:".1rem"}}>
+                        {sc.guardadoEn ? "💾 " + new Date(sc.guardadoEn).toLocaleDateString("es-ES",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}).replace(",","") : sc.creadoEn ? "📅 " + new Date(sc.creadoEn).toLocaleDateString("es-ES",{day:"2-digit",month:"short"}) : ""}
+                      </div>
                       <div className="sc-list-item-meta">
                         Creado {formatDate(sc.creadoEn)}
                         {sc.conceptosExcluidos?.length > 0 &&

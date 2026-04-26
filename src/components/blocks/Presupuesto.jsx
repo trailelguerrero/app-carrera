@@ -216,6 +216,8 @@ const Presupuesto = () => {
 
   const handleReset = () => {
     resetAllData(true);
+    // Eliminar escenarios guardados — sus datos base ya no existen tras el reset
+    deleteScenario && savedScenarios?.forEach(sc => deleteScenario(sc.id));
     setConfirmReset(false);
   };
 

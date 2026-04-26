@@ -56,7 +56,11 @@ export const useScenario = (realInscritos, realConceptos, realIngresosExtra, rea
 
   /** Crea un nuevo escenario a partir del estado real actual. */
   const createScenario = useCallback(
-    (nombre = "Nuevo escenario", nota = "") => {
+    (nombre, nota = "") => {
+      if (!nombre) {
+        const ahora = new Date();
+        nombre = "Escenario " + ahora.toLocaleDateString("es-ES", { day:"2-digit", month:"short" }) + " " + ahora.toTimeString().slice(0,5);
+      }
       setActiveScenario({
         id: null, // null = no guardado aún
         nombre,
@@ -204,12 +208,17 @@ export const useScenario = (realInscritos, realConceptos, realIngresosExtra, rea
   /** Guarda el draft en la lista de escenarios persistidos. */
   const saveScenario = useCallback(() => {
     if (!activeScenario) return;
+    if (!activeScenario.nombre?.trim()) {
+      const ahora = new Date();
+      setActiveScenario(prev => prev ? {...prev, nombre: "Escenario " + ahora.toLocaleDateString("es-ES",{day:"2-digit",month:"short"}) + " " + ahora.toTimeString().slice(0,5)} : prev);
+      return; // dejar al usuario que lo nombre antes de guardar
+    }
 
     setActiveScenario((prev) => {
       if (!prev) return prev;
 
       const id = prev.id ?? `sc_${Date.now()}`;
-      const toSave = { ...prev, id };
+      const toSave = { ...prev, id, guardadoEn: new Date().toISOString() };
 
       setSavedScenarios((scenarios) => {
         const existing = scenarios.findIndex((s) => s.id === id);
