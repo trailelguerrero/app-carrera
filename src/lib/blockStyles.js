@@ -30,7 +30,7 @@ export const BLOCK_CSS = `
     /* Kinetik: acento de línea en cards */
     --card-accent-width: 3px;
     /* ── Escala tipográfica 7 pasos — fuente única de verdad ──────────── */
-    --fs-2xs: 0.50rem;  /* badges, separadores ultra-pequeños            */
+    --fs-2xs: 0.62rem;  /* badges, separadores ultra-pequeños            */
     --fs-xs:  0.70rem;  /* metadatos, timestamps, help text               */
     --fs-sm:  0.75rem;  /* labels de formulario, celdas de tabla          */
     --fs-base:0.82rem;  /* texto de contenido, listas, descripciones      */
@@ -568,7 +568,7 @@ export const BLOCK_CSS = `
     justify-content: center;
     gap: 0.3rem;
     white-space: nowrap;
-    min-height: 36px;
+    min-height: 44px;
     position: relative;
     -webkit-tap-highlight-color: transparent;
   }
@@ -588,7 +588,7 @@ export const BLOCK_CSS = `
   .btn-red:hover    { background: var(--red);    color: #fff; }
   .btn-primary{ background: var(--primary-dim);color: #c4c6ff;      border-color: rgba(99,102,241,0.4); }
   .btn-primary:hover{ background: var(--primary); color: #fff; }
-  /* min-height garantiza área táctil suficiente en mobile (≥ 36px) */
+  /* min-height garantiza área táctil suficiente en mobile (≥ 44px, Apple HIG) */
   .btn-sm { padding: 0.4rem 0.65rem; font-size: var(--fs-sm); min-height: 44px; }
   .btn-icon { padding: 0.4rem 0.5rem; min-width: 44px; min-height: 44px; }
 
@@ -643,7 +643,7 @@ export const BLOCK_CSS = `
     transition: border-color 0.15s, box-shadow 0.15s;
     outline: none;
     width: 100%;
-    min-height: 40px;
+    min-height: 44px;
     -webkit-appearance: none;
   }
   .inp:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--cyan-dim); }
@@ -652,7 +652,7 @@ export const BLOCK_CSS = `
     font-family: var(--font-mono);
     text-align: right;
   }
-  .inp-sm { padding: 0.35rem 0.6rem; font-size: var(--fs-base); min-height: 34px; }
+  .inp-sm { padding: 0.35rem 0.6rem; font-size: var(--fs-base); min-height: 44px; }
   select.inp { cursor: pointer; }
 
   /* ── Progress bar ───────────────────────────────────────────────────────── */
@@ -965,15 +965,15 @@ export const BLOCK_CSS = `
     .kpi-value { font-size: var(--fs-lg); }
     .card { padding: 0.85rem; }
     .tabs { gap: 0.3rem; position: relative; }
-    .tab-btn { padding: 0.5rem 0.9rem; font-size: var(--fs-sm); min-height: 40px; }
+    .tab-btn { padding: 0.5rem 0.9rem; font-size: var(--fs-sm); min-height: 44px; }
     /* Badge levemente más grande para ser legible */
     .badge { font-size: var(--fs-sm); padding: 0.16rem 0.5rem; }
     /* Inputs más grandes en mobile (≥ 44px para evitar zoom-in automático iOS) */
     .inp { font-size: 16px; min-height: 44px; padding: 0.55rem 0.75rem; }
-    .inp-sm { font-size: 14px; min-height: 38px; }
-    /* Botones más accesibles en touch */
-    .btn { min-height: 40px; }
-    .btn-sm { min-height: 38px; }
+    .inp-sm { font-size: 14px; min-height: 44px; }
+    /* Botones más accesibles en touch — 44px mínimo (Apple HIG / Material Design) */
+    .btn { min-height: 44px; }
+    .btn-sm { min-height: 44px; }
     /* Grids colapsan antes */
     .grid-2, .grid-3 { grid-template-columns: 1fr; }
   }

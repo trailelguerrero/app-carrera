@@ -523,6 +523,7 @@ export default function App() {
   const addVoluntario = (data) => {
     const nuevo = { id: genIdNum(voluntarios), ...data };
     setVoluntarios(prev => [...prev, nuevo]);
+    toast.success("Voluntario añadido");
   };
 
   const updateVoluntario = (id, data) => { setVoluntarios(prev => prev.map(v => v.id === id ? { ...v, ...data } : v)); if(data.estado==="confirmado") toast.success("Voluntario confirmado ✓"); else if(data.estado==="cancelado") toast.warning("Voluntario cancelado"); };

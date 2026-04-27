@@ -255,19 +255,25 @@ export default function App() {
 
   // ── CRUD ───────────────────────────────────────────────────────────────────
   const saveTarea = (t) => {
+    const esNuevo = !t.id;
     if (t.id) setTareas(p => p.map(x => x.id===t.id ? t : x));
     else setTareas(p => [...p, {...t, id:genIdNum(p)}]);
     setModal(null);
+    toast.success(esNuevo ? "Tarea creada" : "Tarea actualizada");
   };
   const saveHito = (h) => {
+    const esNuevo = !h.id;
     if (h.id) setHitos(p => p.map(x => x.id===h.id ? h : x));
     else setHitos(p => [...p, {...h, id:genIdNum(p)}]);
     setModal(null);
+    toast.success(esNuevo ? "Hito creado" : "Hito actualizado");
   };
   const savePersona = (p) => {
+    const esNuevo = !p.id;
     if (p.id) setEquipo(prev => prev.map(x => x.id===p.id ? p : x));
     else setEquipo(prev => [...prev, {...p, id:genIdNum(prev)}]);
     setModal(null);
+    toast.success(esNuevo ? "Miembro añadido al equipo" : "Miembro actualizado");
   };
   const doDelete = () => {
     if (!delConf) return;

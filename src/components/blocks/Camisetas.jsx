@@ -149,7 +149,7 @@ export default function App() {
     else      { setPedidos(prev => [...prev, {...p, id:genId(pedidos)}]); toast.success("Pedido creado"); }
     setModal(null);
   };
-  const deletePedido = () => { setPedidos(prev => prev.filter(x => x.id!==delId)); setDelId(null); setFicha(null); };
+  const deletePedido = () => { setPedidos(prev => prev.filter(x => x.id!==delId)); setDelId(null); setFicha(null); toast.success("Pedido eliminado"); };
   const updateLinea  = (pedidoId,lineaId,campo,valor) =>
     setPedidos(prev => prev.map(p => p.id!==pedidoId ? p : {
       ...p, lineas: p.lineas.map(l => l.id!==lineaId ? l : {...l,[campo]:valor})
