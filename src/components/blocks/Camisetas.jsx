@@ -119,6 +119,11 @@ export default function App() {
   // Tallas de voluntarios: lectura automática (solo confirmados/pendientes, excluye cancelados)
   const [rawVols, , loadVols] = useData("teg_voluntarios_v1_voluntarios", []);
 
+  // ── Hooks que deben ir ANTES de cualquier early return ──────────────────────
+  const [inclPendientes, setInclPendientes] = useData(LS+"_incluir_pendientes", false);
+  const [margenSeguridad, setMargenSeguridad] = useData(LS+"_margen_seguridad", 5);
+  const [fuentesActivas, setFuentesActivas] = useData(LS + "_fuentes", FUENTES_DEFAULT);
+
   const isLoading = loadCfg || loadP || loadCoste || loadCorredores || loadNino || loadVols;
 
   if (isLoading) {
@@ -146,15 +151,10 @@ export default function App() {
   const voluntariosPendientes = Array.isArray(rawVols)
     ? rawVols.filter(vol => vol?.estado === "pendiente" && vol?.talla)
     : [];
-  // Para el pedido al proveedor usamos confirmados + pendientes (excluye cancelados)
-  const [inclPendientes, setInclPendientes] = useData(LS+"_incluir_pendientes", false);
-  const [margenSeguridad, setMargenSeguridad] = useData(LS+"_margen_seguridad", 5);
   // voluntariosActivos respeta el toggle del organizador
   const voluntariosActivos = inclPendientes
     ? [...voluntariosConfirmados, ...voluntariosPendientes]
     : [...voluntariosConfirmados];
-
-  const [fuentesActivas, setFuentesActivas] = useData(LS + "_fuentes", FUENTES_DEFAULT);
 
   const scrollTop   = () => { scrollMainToTop(); };
   const goToTab     = (tabId, filtro) => {
