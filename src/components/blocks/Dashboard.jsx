@@ -492,7 +492,41 @@ export default function Dashboard() {
           </div>
         )}
 
-                {/* ── HERO: COUNTDOWN + SALUD ── */}
+                {/* ── SPRINT 2.3: Botón DíaCarrera prominente ≤7 días ── */}
+        {d.esSemana && !d.yaFue && (
+          <div
+            onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "diaCarrera" } }))}
+            style={{
+              display: "flex", alignItems: "center", gap: ".75rem",
+              padding: ".85rem 1rem", marginBottom: ".85rem",
+              borderRadius: 10, cursor: "pointer",
+              background: "linear-gradient(135deg, rgba(248,113,113,0.14) 0%, rgba(251,191,36,0.10) 100%)",
+              border: "2px solid rgba(248,113,113,0.45)",
+              boxShadow: "0 0 0 4px rgba(248,113,113,0.07), 0 4px 20px rgba(248,113,113,0.15)",
+              animation: "teg-slidein .3s ease",
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = "linear-gradient(135deg, rgba(248,113,113,0.22) 0%, rgba(251,191,36,0.14) 100%)"}
+            onMouseLeave={e => e.currentTarget.style.background = "linear-gradient(135deg, rgba(248,113,113,0.14) 0%, rgba(251,191,36,0.10) 100%)"}
+          >
+            <span style={{ fontSize: "2rem", lineHeight: 1 }}>🏁</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 900, fontSize: "var(--fs-base)", color: "#f87171", letterSpacing: "-.01em" }}>
+                {d.diasHasta === 0 ? "¡HOY ES EL EVENTO!" : `¡FALTAN ${d.diasHasta} DÍAS!`}
+              </div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: 2 }}>
+                Abrir Panel Día de Carrera →
+              </div>
+            </div>
+            <div style={{
+              fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700,
+              color: "#f87171", background: "rgba(248,113,113,0.12)",
+              border: "1px solid rgba(248,113,113,0.3)", borderRadius: 6,
+              padding: ".3rem .65rem", flexShrink: 0,
+            }}>⚡ Abrir</div>
+          </div>
+        )}
+
+        {/* ── HERO: COUNTDOWN + SALUD ── */}
         <div className={`dash-hero card mb ${d.esSemana ? "dash-hero-urgente" : ""}`}>
           <div className="dash-hero-bg" />
           <div className="dash-hero-content">
@@ -884,12 +918,17 @@ export default function Dashboard() {
 
 
 
-        {/* ── KPIs ── */}
+        {/* ── KPIs — Sprint 2.1 KPIs accionables ── */}
         <div className="kpi-grid mb">
           <KPI icon="💰" label="Resultado"
             tooltip="Ingresos totales (inscripciones + patrocinios + merch) menos costes fijos y variables.\nPositivo = superávit. Negativo = déficit."
             value={fmtEur(d.resultado)}
-            sub={`Ingresos: ${fmtEur(d.totalIngresos + d.totalOtrosIngresos)}`}
+            sub={(() => {
+              const totalCostes = d.totalCostesFijos + d.totalCostesVars;
+              if (d.resultado >= 0) return totalCostes > 0 ? `✓ Por encima del punto de equilibrio (+${fmtEur(d.resultado)})` : `Ingresos: ${fmtEur(d.totalIngresos + d.totalOtrosIngresos)}`;
+              const pctFaltante = totalCostes > 0 ? Math.round(Math.abs(d.resultado) / totalCostes * 100) : 0;
+              return `⚠ Déficit del ${pctFaltante}% — Costes: ${fmtEur(totalCostes)}`;
+            })()}
             color={resColor} colorClass={d.resultado >= 0 ? "green" : "red"}
             progress={d.resultado >= 0 && (d.totalCostesFijos+d.totalCostesVars) > 0
               ? Math.min(100, Math.round(d.resultado / (d.totalCostesFijos+d.totalCostesVars) * 100))
@@ -898,20 +937,27 @@ export default function Dashboard() {
           <KPI icon="🏃" label="Inscritos"
             tooltip="Corredores inscritos en todos los tramos y distancias.\nEl denominador es el aforo máximo configurado en Presupuesto → Inscripciones."
             value={d.ocupacionGlobal !== null ? `${d.ocupacionGlobal}%` : (d.totalInscritos > 0 ? String(d.totalInscritos) : "—")}
-            sub={d.ocupacionGlobal !== null
-              ? `${d.totalInscritos}/${d.totalMaximos} · TG7 ${d.inscritosPorDist.TG7} · TG13 ${d.inscritosPorDist.TG13} · TG25 ${d.inscritosPorDist.TG25}`
-              : d.totalInscritos > 0 ? `TG7 ${d.inscritosPorDist.TG7} · TG13 ${d.inscritosPorDist.TG13} · TG25 ${d.inscritosPorDist.TG25}` : "Sin inscritos aún — ir a Presupuesto"
-            }
+            sub={(() => {
+              if (d.totalMaximos > 0 && d.totalInscritos < d.totalMaximos) {
+                const libres = d.totalMaximos - d.totalInscritos;
+                return `Quedan ${libres} plazas libres de ${d.totalMaximos}`;
+              }
+              if (d.ocupacionGlobal >= 100) return "✓ Aforo completo";
+              if (d.totalInscritos > 0) return `TG7 ${d.inscritosPorDist.TG7} · TG13 ${d.inscritosPorDist.TG13} · TG25 ${d.inscritosPorDist.TG25}`;
+              return "Sin inscritos aún — ir a Presupuesto";
+            })()}
             color="var(--cyan)" colorClass="cyan"
             progress={d.ocupacionGlobal}
             onClick={() => navigate("presupuesto", "inscritos")} />
           <KPI icon="👥" label="Voluntarios"
             tooltip="Voluntarios confirmados sobre el total de plazas necesarias definidas en los puestos.\nEl % es la cobertura global: confirmados ÷ necesarios."
             value={d.totalNecesarios > 0 ? `${d.coberturaVol}%` : (d.volConfirmados > 0 ? String(d.volConfirmados) : "—")}
-            sub={d.totalNecesarios > 0
-              ? `${d.volConfirmados}/${d.totalNecesarios} · ${d.volPendientes} pendientes`
-              : "Sin puestos definidos — ir a Voluntarios"
-            }
+            sub={(() => {
+              if (d.totalNecesarios === 0) return "Sin puestos definidos — ir a Voluntarios";
+              if (d.coberturaVol >= 100) return "✓ Cobertura completa";
+              const faltan = d.totalNecesarios - d.volConfirmados;
+              return `Faltan ${faltan} voluntario${faltan !== 1 ? "s" : ""} para el 100%`;
+            })()}
             color={d.totalNecesarios===0?"var(--text-muted)":d.coberturaVol>=80?"var(--green)":d.coberturaVol>=50?"var(--amber)":"var(--red)"}
             colorClass={d.totalNecesarios===0?"muted":d.coberturaVol>=80?"green":d.coberturaVol>=50?"amber":"red"}
             progress={d.totalNecesarios>0?d.coberturaVol:undefined}
@@ -919,7 +965,12 @@ export default function Dashboard() {
           <KPI icon="🤝" label="Patrocinio"
             tooltip="Importe comprometido (confirmado + cobrado) de todos los patrocinadores activos.\nEl % indica el avance respecto al objetivo de captación.\nEl importe cobrado es el dinero realmente recibido."
             value={`${Math.round(d.patComprometido/Math.max(d.objetivo,1)*100)}%`}
-            sub={`${fmtEur(d.patCobrado)} cobrado · ${fmtEur(d.patComprometido)} comprometido`}
+            sub={(() => {
+              const pct = d.objetivo > 0 ? Math.round(d.patComprometido / d.objetivo * 100) : 0;
+              if (pct >= 100) return `✓ Objetivo superado · ${fmtEur(d.patCobrado)} cobrado`;
+              const faltan = d.objetivo - d.patComprometido;
+              return `Faltan ${fmtEur(faltan)} para el objetivo · ${fmtEur(d.patCobrado)} cobrado`;
+            })()}
             color={d.patComprometido>=d.objetivo*0.8?"var(--green)":d.patComprometido>=d.objetivo*0.5?"var(--amber)":"var(--red)"}
             colorClass={d.patComprometido>=d.objetivo*0.8?"green":d.patComprometido>=d.objetivo*0.5?"amber":"red"}
             progress={d.objetivo>0?Math.min(100,Math.round(d.patComprometido/d.objetivo*100)):undefined}
@@ -927,24 +978,42 @@ export default function Dashboard() {
           <KPI icon="📋" label="Tareas"
             tooltip="Tareas completadas del bloque Proyecto sobre el total.\nIncluye todas las áreas: permisos, logística, comunicación, etc."
             value={d.tareasTotal > 0 ? `${d.progresoGlobal}%` : "—"}
-            sub={d.tareasTotal > 0
-              ? `${d.tareasCompletadas}/${d.tareasTotal} · ${d.tareasVencidas > 0 ? `⚠ ${d.tareasVencidas} vencidas` : "sin vencidas"}`
-              : "Sin tareas definidas — ir a Proyecto"
-            }
+            sub={(() => {
+              if (d.tareasTotal === 0) return "Sin tareas definidas — ir a Proyecto";
+              if (d.tareasVencidas > 0) return `⚠ ${d.tareasVencidas} tarea${d.tareasVencidas !== 1 ? "s" : ""} vencida${d.tareasVencidas !== 1 ? "s" : ""} — acción urgente`;
+              if (d.progresoGlobal >= 100) return "✓ Todas las tareas completadas";
+              return `${d.tareasCompletadas}/${d.tareasTotal} completadas · sin vencidas`;
+            })()}
             color={d.tareasTotal===0?"var(--text-muted)":"var(--violet)"} colorClass={d.tareasTotal===0?"muted":"violet"}
             progress={d.tareasTotal>0?d.progresoGlobal:undefined}
             onClick={() => navigate("proyecto")} />
           <KPI icon="✅" label="Checklist"
             tooltip="Ítems completados del checklist de Logística sobre el total.\nEl checklist se organiza por fases temporales antes del evento."
             value={d.ckTotal > 0 ? `${Math.round(d.ckDone/d.ckTotal*100)}%` : "—"}
-            sub={d.ckTotal > 0
-              ? `${d.ckDone}/${d.ckTotal} ítems · Timeline: ${d.tlDone}/${d.tlTotal}`
-              : "Sin checklist definido — ir a Logística"
-            }
+            sub={(() => {
+              if (d.ckTotal === 0) return "Sin checklist definido — ir a Logística";
+              if (d.ckDone >= d.ckTotal) return "✓ Checklist completado";
+              const pendientes = d.ckTotal - d.ckDone;
+              return `${pendientes} ítem${pendientes !== 1 ? "s" : ""} pendiente${pendientes !== 1 ? "s" : ""} · Timeline: ${d.tlDone}/${d.tlTotal}`;
+            })()}
             color={d.ckTotal===0?"var(--text-muted)":"var(--cyan)"} colorClass={d.ckTotal===0?"muted":"cyan"}
             progress={d.ckTotal>0?Math.round(d.ckDone/d.ckTotal*100):undefined}
             onClick={() => navigate("logistica")} />
         </div>
+
+        {/* ── SPRINT 2.2: Mini-desglose económico ── */}
+        {(d.totalIngresos > 0 || d.totalCostesFijos > 0) && (
+          <MiniDesglose
+            totalIngresos={d.totalIngresos}
+            totalIngresosExtra={d.totalIngresosExtra}
+            merchBeneficio={d.merchBeneficio}
+            totalCostesFijos={d.totalCostesFijos}
+            totalCostesVars={d.totalCostesVars}
+            resultado={d.resultado}
+            roiGlobal={d.roiGlobal}
+            navigate={navigate}
+          />
+        )}
 
         {/* ── CHARTS ── */}
         <div className="dash-charts-row mb">
@@ -1107,6 +1176,76 @@ export default function Dashboard() {
 
       </div>
     </>
+  );
+}
+
+// ─── Sprint 2.2: Mini-desglose económico ────────────────────────────────────
+function MiniDesglose({ totalIngresos, totalIngresosExtra, merchBeneficio, totalCostesFijos, totalCostesVars, resultado, roiGlobal, navigate }) {
+  const [open, setOpen] = useState(false);
+  const totalIng = totalIngresos + totalIngresosExtra + merchBeneficio;
+  const totalCostes = totalCostesFijos + totalCostesVars;
+  const resColor = resultado >= 0 ? "var(--green)" : "var(--red)";
+
+  return (
+    <div className="card mb" style={{
+      padding: 0, overflow: "hidden",
+      borderLeft: `3px solid ${resColor}`,
+    }}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{
+          width: "100%", background: "none", border: "none", cursor: "pointer",
+          display: "flex", alignItems: "center", gap: ".65rem",
+          padding: ".65rem 1rem", textAlign: "left",
+        }}
+      >
+        <span style={{ fontSize: "var(--fs-base)" }}>💰</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: ".07em" }}>Desglose económico</span>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)", marginTop: 2 }}>
+            Ingresos: <span style={{ color: "var(--green)" }}>{fmtEur(totalIngresos)}</span>
+            {" · "}
+            Costes: <span style={{ color: "var(--red)" }}>{fmtEur(totalCostes)}</span>
+          </div>
+        </div>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-base)", fontWeight: 800, color: resColor, flexShrink: 0 }}>
+          {resultado >= 0 ? "+" : ""}{fmtEur(resultado)}
+        </span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)", transition: "transform .2s", display: "inline-block", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}>▼</span>
+      </button>
+      {open && (
+        <div style={{ borderTop: "1px solid var(--border)", padding: ".65rem 1rem", display: "flex", flexDirection: "column", gap: ".4rem" }}>
+          {[
+            { label: "Inscripciones", val: totalIngresos,      color: "#22d3ee", tipo: "+" },
+            { label: "Patrocinios",   val: totalIngresosExtra,  color: "#34d399", tipo: "+" },
+            { label: "Merchandising", val: merchBeneficio,      color: "#a78bfa", tipo: "+" },
+            { label: "Costes fijos",  val: totalCostesFijos,    color: "#f87171", tipo: "-" },
+            { label: "Costes var.",   val: totalCostesVars,     color: "#fb923c", tipo: "-" },
+          ].map(item => {
+            const max = Math.max(totalIngresos, totalCostes, 1);
+            const pct = Math.min(Math.round(item.val / max * 100), 100);
+            return (
+              <div key={item.label}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: ".15rem" }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>{item.tipo === "+" ? "↑" : "↓"} {item.label}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: item.color, fontWeight: 700 }}>{fmtEur(item.val)}</span>
+                </div>
+                <div style={{ height: 4, background: "var(--surface3)", borderRadius: 2, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${pct}%`, background: item.color, opacity: item.val <= 0 ? 0.2 : 0.8, borderRadius: 2, transition: "width .5s" }} />
+                </div>
+              </div>
+            );
+          })}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: ".3rem", paddingTop: ".45rem", borderTop: "1px solid var(--border)" }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: ".4rem" }}>
+              Margen
+              <span className={`badge ${roiGlobal >= 0 ? "badge-green" : "badge-red"}`} style={{ fontSize: "var(--fs-2xs)" }}>{roiGlobal > 0 ? "+" : ""}{roiGlobal}%</span>
+            </span>
+            <button onClick={() => navigate("presupuesto")} style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--cyan)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>Ver en Presupuesto →</button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
