@@ -762,8 +762,9 @@ export default function Index() {
             }
             .module-enter { animation: module-enter 0.22s cubic-bezier(0.34,1.1,0.64,1) both; }
           `}</style>
-          <div key={activeBlock} className="module-enter">
+          <div className="module-enter">
           <ErrorBoundary
+            key={activeBlock}
             blockName={BLOCKS.find(b => b.id === activeBlock)?.label}
             onNavigate={handleBlockChange}
           >

@@ -15,6 +15,17 @@ export default class ErrorBoundary extends Component {
     return { error };
   }
 
+  // Auto-reset cuando cambia el módulo (blockName) — cubre navegación y HMR
+  static getDerivedStateFromProps(nextProps, prevState) {
+    if (prevState.error && nextProps.blockName !== prevState.blockName) {
+      return { error: null, info: null, blockName: nextProps.blockName };
+    }
+    if (nextProps.blockName !== prevState.blockName) {
+      return { blockName: nextProps.blockName };
+    }
+    return null;
+  }
+
   componentDidCatch(error, info) {
     this.setState({ info });
     console.error("[ErrorBoundary]", error, info?.componentStack);
