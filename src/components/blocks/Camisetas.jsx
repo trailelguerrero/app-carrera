@@ -120,11 +120,15 @@ export default function App() {
   const [rawVols, , loadVols] = useData("teg_voluntarios_v1_voluntarios", []);
 
   // ── Hooks que deben ir ANTES de cualquier early return ──────────────────────
-  const [inclPendientes, setInclPendientes] = useData(LS+"_incluir_pendientes", false);
-  const [margenSeguridad, setMargenSeguridad] = useData(LS+"_margen_seguridad", 5);
-  const [fuentesActivas, setFuentesActivas] = useData(LS + "_fuentes", FUENTES_DEFAULT);
+  const [inclPendientes, setInclPendientes, loadInclP] = useData(LS+"_incluir_pendientes", false);
+  const [margenSeguridad, setMargenSeguridad, loadMargen] = useData(LS+"_margen_seguridad", 5);
+  const [rawFuentes, setFuentesActivas, loadFuentes] = useData(LS + "_fuentes", FUENTES_DEFAULT);
+  // Siempre un objeto válido aunque la API aún no haya respondido
+  const fuentesActivas = (rawFuentes && typeof rawFuentes === 'object' && !Array.isArray(rawFuentes))
+    ? { ...FUENTES_DEFAULT, ...rawFuentes }
+    : FUENTES_DEFAULT;
 
-  const isLoading = loadCfg || loadP || loadCoste || loadCorredores || loadNino || loadVols;
+  const isLoading = loadCfg || loadP || loadCoste || loadCorredores || loadNino || loadVols || loadInclP || loadMargen || loadFuentes;
 
   if (isLoading) {
     return (
