@@ -328,6 +328,7 @@ export default function App() {
               onDelete={(id) => setDelId(id)} onNuevo={openNuevo}
               updateEstado={updateEstado}
               ordenAlfa={ordenPats} setOrdenAlfa={setOrdenPats}
+              onAddContra={openDetalle}
             />
           )}
           {tab==="pipeline" && <TabPipeline pats={pats} onEditar={openEditar} onDetalle={openDetalle} updateEstado={updateEstado} ordenAlfa={ordenPats} onNuevo={openNuevo} />}
@@ -605,7 +606,7 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
 }
 
 // ─── TAB PATROCINADORES ───────────────────────────────────────────────────────
-function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, setFiltroNivel, filtroEstado, setFiltroEstado, onEditar, onDetalle, onDelete, onNuevo, updateEstado, ordenAlfa, setOrdenAlfa }) {
+function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, setFiltroNivel, filtroEstado, setFiltroEstado, onEditar, onDetalle, onDelete, onNuevo, updateEstado, ordenAlfa, setOrdenAlfa, onAddContra }) {
   const [vistaKanban, setVistaKanban] = useState(false);
   const patsOrdenados = ordenAlfa ? [...pats].sort((a,b) => a.nombre.localeCompare(b.nombre,"es")) : pats;
   const { items: patsPaginados, total: totalPats, PaginadorUI } = usePaginacion(patsOrdenados, 12);
@@ -774,8 +775,15 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
                 {p.fechaVencimiento && (
                   <div className="mono xs muted">{p.estado !== "cobrado" ? `Vence: ${p.fechaVencimiento}` : "✓ Cobrado"}</div>
                 )}
-                <div style={{ display: "flex", gap: ".3rem" }}>
+                <div style={{ display: "flex", gap: ".3rem", flexWrap: "wrap" }}>
                   <button className="btn btn-sm" style={{ background: cfg.dim, color: cfg.color, border: `1px solid ${cfg.border}` }} onClick={e=>{e.stopPropagation();onDetalle(p)}}>Ver detalle</button>
+                  {onAddContra && (
+                    <button className="btn btn-sm btn-ghost"
+                      title="Añadir contraprestación"
+                      onClick={e=>{e.stopPropagation();onAddContra(p);}}>
+                      + Contraprestación
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

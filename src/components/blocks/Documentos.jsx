@@ -618,9 +618,10 @@ export default function Documentos() {
           </div>
         </div>
 
-        {/* ── PANEL DE ALERTAS UNIFICADO ── */}
+        {/* ── PANEL DE ALERTAS UNIFICADO ── sticky cuando hay críticos */}
         {(gestionesCriticas.length > 0 || gestionesVencidas.length > 0 ||
           vencidos.length > 0 || gestionesProxVencer.length > 0 || proxVencer.length > 0) && (() => {
+          const hayCriticos = gestionesCriticas.length > 0 || gestionesVencidas.length > 0 || vencidos.length > 0;
           // Unificamos gestiones + documentos en una sola lista priorizada
           const items = [
             ...gestionesCriticas.map(g => ({
@@ -662,7 +663,14 @@ export default function Documentos() {
             }),
           ];
           return (
-            <div className="card mb" style={{padding:".7rem .9rem"}}>
+            <div className="card mb" style={{
+              padding:".7rem .9rem",
+              position: hayCriticos ? "sticky" : "relative",
+              top: hayCriticos ? "0" : "auto",
+              zIndex: hayCriticos ? 15 : "auto",
+              boxShadow: hayCriticos ? "0 4px 16px rgba(248,113,113,.15), 0 2px 4px rgba(0,0,0,.3)" : "none",
+              borderColor: hayCriticos ? "rgba(248,113,113,.35)" : "var(--border)",
+            }}>
               <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
                 color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:".08em",
                 marginBottom:".45rem"}}>
