@@ -130,57 +130,18 @@ export default function App() {
 
   const isLoading = loadCfg || loadP || loadCoste || loadCorredores || loadNino || loadVols || loadInclP || loadMargen || loadFuentes;
 
-  if (isLoading) {
-    return (
-      <>
-        <style>{BLOCK_CSS+CSS}</style>
-        <div className="block-container">
-          <div className="block-header">
-            <div>
-              <h1 className="block-title">👕 Camisetas Extra</h1>
-              <div className="block-title-sub">Cargando datos de camisetas...</div>
-            </div>
-          </div>
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh" }}>
-            <div className="teg-spinner"></div>
-          </div>
-        </div>
-      </>
-    );
-  }
-
+  // ── Derivados — siempre calculados, antes de cualquier return ────────────
   const voluntariosConfirmados = Array.isArray(rawVols)
     ? rawVols.filter(vol => vol?.estado === "confirmado" && vol?.talla)
     : [];
   const voluntariosPendientes = Array.isArray(rawVols)
     ? rawVols.filter(vol => vol?.estado === "pendiente" && vol?.talla)
     : [];
-  // voluntariosActivos respeta el toggle del organizador
   const voluntariosActivos = inclPendientes
     ? [...voluntariosConfirmados, ...voluntariosPendientes]
     : [...voluntariosConfirmados];
 
-  const scrollTop   = () => { scrollMainToTop(); };
-  const goToTab     = (tabId, filtro) => {
-    scrollMainToTop();
-    if (filtro) setFiltroP(filtro);
-    setTab(tabId);
-  };
-  const abrirFicha  = (p) => { scrollMainToTop(); setFicha(p); };
-  const abrirModal  = (pd) => { scrollMainToTop(); setModal({data:pd||null}); };
-  const abrirEditar = (p) => { scrollMainToTop(); setFicha(null); setModal({data:p}); };
-
-  const savePedido = (p) => {
-    if (p.id) { setPedidos(prev => prev.map(x => x.id===p.id ? p : x)); toast.success("Pedido actualizado"); }
-    else      { setPedidos(prev => [...prev, {...p, id:genIdNum(pedidos)}]); toast.success("Pedido creado"); }
-    setModal(null);
-  };
-  const deletePedido = () => { setPedidos(prev => prev.filter(x => x.id!==delId)); setDelId(null); setFicha(null); toast.success("Pedido eliminado"); };
-  const updateLinea  = (pedidoId,lineaId,campo,valor) =>
-    setPedidos(prev => prev.map(p => p.id!==pedidoId ? p : {
-      ...p, lineas: p.lineas.map(l => l.id!==lineaId ? l : {...l,[campo]:valor})
-    }));
-
+  // ── useMemo SIEMPRE antes del return ────────────────────────────
   const stats = useMemo(() => {
     // 1. Unidades por fuente
     const uCorExt  = fuentesActivas.corredoresPlat  ? TALLAS.reduce((s,t)      => s + (corredoresExt[t]||0), 0) : 0;
@@ -195,9 +156,8 @@ export default function App() {
     const totalUnidades = uCorExt + uVolAuto + uExtrasCor + uExtrasVol + uNinoExt + uExtrasNino;
 
     // 2. Ingresos por fuente
-    const iCorExt = uCorExt * precioCorrExt; // Ingreso proyectado plataforma
+    const iCorExt = uCorExt * precioCorrExt;
     
-    // Ingresos de extras (solo pagados para "Ingreso Real", todos para "Proyectado")
     const extrasPagados = extrasLineas.filter(l => l.estadoPago === "pagado" && (
       (l.tipo === "corredor" && fuentesActivas.extrasCorredor) || 
       (l.tipo === "voluntario" && fuentesActivas.extrasVoluntario)
@@ -226,13 +186,11 @@ export default function App() {
     const beneficioNetoReal = totalIngresosReal - totalGastos;
     const beneficioNetoProyectado = totalIngresosProyectado - totalGastos;
 
-    // 5. Coste de regalos (específico para transparencia)
     const gRegalos = extrasLineas.filter(l => l.estadoPago === "regalo" && (
       (l.tipo === "corredor" && fuentesActivas.extrasCorredor) || 
       (l.tipo === "voluntario" && fuentesActivas.extrasVoluntario)
     )).reduce((s,l) => s + l.cantidad * (coste[l.tipo] || 0), 0);
 
-    // Métricas auxiliares para KPIs antiguos
     const cPendCobro = extrasLineas.filter(l => l.estadoPago === "pendiente" && (
       (l.tipo === "corredor" && fuentesActivas.extrasCorredor) || 
       (l.tipo === "voluntario" && fuentesActivas.extrasVoluntario)
@@ -257,6 +215,48 @@ export default function App() {
   // Detectar estado inicial para mostrar el panel de configuración
   const totalCorredoresConf = TALLAS.reduce((s,t) => s + (corredoresExt[t]||0), 0);
   const esEstadoInicial = pedidos.length === 0 && totalCorredoresConf === 0;
+
+  // ── Handlers (no son hooks, pueden estar aquí) ──────────────────────
+  const scrollTop   = () => { scrollMainToTop(); };
+  const goToTab     = (tabId, filtro) => {
+    scrollMainToTop();
+    if (filtro) setFiltroP(filtro);
+    setTab(tabId);
+  };
+  const abrirFicha  = (p) => { scrollMainToTop(); setFicha(p); };
+  const abrirModal  = (pd) => { scrollMainToTop(); setModal({data:pd||null}); };
+  const abrirEditar = (p) => { scrollMainToTop(); setFicha(null); setModal({data:p}); };
+
+  const savePedido = (p) => {
+    if (p.id) { setPedidos(prev => prev.map(x => x.id===p.id ? p : x)); toast.success("Pedido actualizado"); }
+    else      { setPedidos(prev => [...prev, {...p, id:genIdNum(pedidos)}]); toast.success("Pedido creado"); }
+    setModal(null);
+  };
+  const deletePedido = () => { setPedidos(prev => prev.filter(x => x.id!==delId)); setDelId(null); setFicha(null); toast.success("Pedido eliminado"); };
+  const updateLinea  = (pedidoId,lineaId,campo,valor) =>
+    setPedidos(prev => prev.map(p => p.id!==pedidoId ? p : {
+      ...p, lineas: p.lineas.map(l => l.id!==lineaId ? l : {...l,[campo]:valor})
+    }));
+
+  // ── Loading screen (renderizado condicional SIN early return) ────────────
+  if (isLoading) {
+    return (
+      <>
+        <style>{BLOCK_CSS+CSS}</style>
+        <div className="block-container">
+          <div className="block-header">
+            <div>
+              <h1 className="block-title">👕 Camisetas Extra</h1>
+              <div className="block-title-sub">Cargando datos de camisetas...</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh" }}>
+            <div className="teg-spinner"></div>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   const TABS = [
     {id:"dashboard", icon:"📊", label:"Resumen",              title:"Visión general del estado de las camisetas"},
