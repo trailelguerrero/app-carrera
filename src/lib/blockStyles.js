@@ -31,8 +31,8 @@ export const BLOCK_CSS = `
     --card-accent-width: 3px;
     /* ── Escala tipográfica 7 pasos — fuente única de verdad ──────────── */
     --fs-2xs: 0.50rem;  /* badges, separadores ultra-pequeños            */
-    --fs-xs:  0.60rem;  /* metadatos, timestamps, help text               */
-    --fs-sm:  0.72rem;  /* labels de formulario, celdas de tabla          */
+    --fs-xs:  0.70rem;  /* metadatos, timestamps, help text               */
+    --fs-sm:  0.75rem;  /* labels de formulario, celdas de tabla          */
     --fs-base:0.82rem;  /* texto de contenido, listas, descripciones      */
     --fs-md:  0.95rem;  /* títulos de sección secundaria, botones         */
     --fs-lg:  1.20rem;  /* títulos de módulo, KPI labels                  */
@@ -589,8 +589,8 @@ export const BLOCK_CSS = `
   .btn-primary{ background: var(--primary-dim);color: #c4c6ff;      border-color: rgba(99,102,241,0.4); }
   .btn-primary:hover{ background: var(--primary); color: #fff; }
   /* min-height garantiza área táctil suficiente en mobile (≥ 36px) */
-  .btn-sm { padding: 0.4rem 0.65rem; font-size: var(--fs-sm); min-height: 34px; }
-  .btn-icon { padding: 0.4rem 0.5rem; min-width: 36px; min-height: 36px; }
+  .btn-sm { padding: 0.4rem 0.65rem; font-size: var(--fs-sm); min-height: 44px; }
+  .btn-icon { padding: 0.4rem 0.5rem; min-width: 44px; min-height: 44px; }
 
   /* ── Badges ─────────────────────────────────────────────────────────────── */
   .badge {

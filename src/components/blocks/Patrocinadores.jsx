@@ -211,11 +211,13 @@ export default function App() {
       setPats(prev => [...prev, { ...pat, id: genIdNum(pats), contraprestaciones: [], docs: [], especieItems: [] }]);
     }
     setModal(null);
+    toast.success(pat.id ? "Patrocinador actualizado" : "Patrocinador creado");
   };
 
   const deletePat = () => {
     setPats(prev => prev.filter(p => p.id !== delId));
     setDelId(null);
+    toast.success("Patrocinador eliminado");
   };
 
   const updateEstado = (id, estado) => { setPats(prev => prev.map(p => p.id === id ? { ...p, estado } : p)); if(estado==="cobrado") toast.success("Patrocinador marcado como cobrado ✓"); };

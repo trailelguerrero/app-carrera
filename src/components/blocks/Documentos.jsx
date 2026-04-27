@@ -213,6 +213,7 @@ export default function Documentos() {
       }
     }
     save([...docs, ...subidos]);
+    if (subidos.length > 0) toast.success(subidos.length === 1 ? "Documento subido correctamente" : `${subidos.length} documentos subidos`);
     setNota(""); setSubcat(""); setVencNuevo(""); setEstadoNuevo("pendiente"); setEmisorNuevo("");
     setUploading(false);
   }, [docs, tab, subcat, nota, estadoNuevo, vencNuevo, uploading, save]);
@@ -239,6 +240,7 @@ export default function Documentos() {
     if (esGestion) {
       saveGestiones(gestiones.filter(x => x.id !== id));
       setGEditId(null);
+      toast.success("Gestión eliminada");
     } else {
       try {
         await fetch(`/api/documents?id=${id}`, {
@@ -247,6 +249,7 @@ export default function Documentos() {
         });
       } catch (e) { console.error("Error eliminando:", e); }
       save(docs.filter(d => d.id !== id));
+      toast.success("Documento eliminado");
     }
   };
   const downloadDoc = async (doc) => {

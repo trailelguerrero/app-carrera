@@ -833,9 +833,18 @@ export default function Index() {
                   top:"50%", left:"50%",
                   transform:`translate(-50%, -50%) scale(${isActive ? 1 : 0})`,
                   width:44, height:36, borderRadius:12,
-                  background:"rgba(34,211,238,0.1)",
-                  boxShadow: isActive ? "0 0 18px rgba(34,211,238,0.18)" : "none",
+                  background:"rgba(34,211,238,0.12)",
+                  boxShadow: isActive ? "0 0 18px rgba(34,211,238,0.22)" : "none",
                   transition:"transform 0.35s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease",
+                  pointerEvents:"none",
+                }} />
+                {/* Franja inferior indicador activo */}
+                <div style={{
+                  position:"absolute", bottom:2, left:"50%",
+                  transform:`translateX(-50%) scaleX(${isActive ? 1 : 0})`,
+                  width:22, height:3, borderRadius:2,
+                  background:"var(--cyan)",
+                  transition:"transform 0.3s cubic-bezier(0.34,1.56,0.64,1)",
                   pointerEvents:"none",
                 }} />
                 <span style={{
@@ -864,9 +873,10 @@ export default function Index() {
                 <span style={{
                   fontFamily:"'DM Mono', 'Space Mono', monospace,monospace",
                   fontSize:"0.48rem",
-                  fontWeight:700, letterSpacing:"0.07em", textTransform:"uppercase",
+                  fontWeight: isActive ? 800 : 600, letterSpacing:"0.07em", textTransform:"uppercase",
                   color: isActive ? "var(--cyan)" : "var(--teg-text-muted)",
-                  transition:"color 0.2s",
+                  textShadow: isActive ? "0 0 10px rgba(34,211,238,0.45)" : "none",
+                  transition:"color 0.2s, text-shadow 0.2s",
                   pointerEvents:"none", whiteSpace:"nowrap",
                   position:"relative", zIndex:1,
                 }}>

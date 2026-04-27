@@ -292,6 +292,7 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
     const MAP = { material:setMaterial, asig:setAsigs, veh:setVeh, ruta:setRutas, tl:setTl, cont:setCont, inc:setInc, ck:setCk };
     MAP[tipo]?.(prev => prev.filter(x0 => x0.id !== id));
     setDel(null);
+    toast.success("Elemento eliminado");
   };
 
   return (
@@ -1156,6 +1157,7 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
     setTiposContacto(prev=>[...(Array.isArray(prev)?prev:[]),{...nuevoTipo,id:nuevoId}]);
     setNuevoTipo({nombre:"",icono:"🏷️",color:"var(--text-muted)"});
     setModalTipo(false);
+    toast.success("Tipo de contacto creado");
   };
 
   return (
@@ -1605,6 +1607,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
     setTiposContacto(prev=>[...(Array.isArray(prev)?prev:[]),{...nuevoTipo,id}]);
     setNuevoTipo({nombre:"",icono:"🏷️",color:"var(--text-muted)"});
     setModalTipo(false);
+    toast.success("Tipo de contacto creado");
   };
   const eliminarTipo = (id) => {
     setTiposContacto(function(tcPrev){return(Array.isArray(tcPrev)?tcPrev:[]).filter(function(tcItm){return tcItm.id!==id;});});
@@ -2380,7 +2383,8 @@ function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setV
   }, []);
   const {tipo,data}=modal;
   const locNames = locs && locs.length > 0 ? locs.map(function(locItem){return locItem.nombre;}) : PUESTOS_REF;
-  const sv=(stFn,stArr,stItem)=>{ if(stItem.id) stFn(prev=>prev.map(x=>x.id===stItem.id?stItem:x)); else stFn(prev=>[...prev,{...stItem,id:genIdNum(stArr)}]); onClose(); };
+  const TIPO_LABELS = { material:"Material", asig:"Asignación", veh:"Vehículo", ruta:"Ruta", tl:"Entrada de runbook", cont:"Contacto", inc:"Incidencia", ck:"Tarea pre-operativa" };
+  const sv=(stFn,stArr,stItem,tipo="elemento")=>{ const esNuevo=!stItem.id; if(esNuevo) stFn(prev=>[...prev,{...stItem,id:genIdNum(stArr)}]); else stFn(prev=>prev.map(x=>x.id===stItem.id?stItem:x)); onClose(); toast.success(esNuevo?`${TIPO_LABELS[tipo]||tipo} creado`:`${TIPO_LABELS[tipo]||tipo} actualizado`); };
 
   if(tipo==="mat") {
     const matConceptos = modal.matConceptosres || [];
@@ -2401,25 +2405,25 @@ function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setV
         ...camposConcepto,
       ]}
       init={data||{nombre:"",categoria:"Avituallamiento",stock:0,stockMinimo:0,unidad:"ud",presupuestoConceptoId:null}}
-      onSave={v=>sv(setMaterial,material,{...v,presupuestoConceptoId:v.presupuestoConceptoId?parseInt(v.presupuestoConceptoId):null})} />;
+      onSave={v=>sv(setMaterial,material,{...v,presupuestoConceptoId:v.presupuestoConceptoId?parseInt(v.presupuestoConceptoId):null},"material")} />;
   }
 
   if(tipo==="asig") return <MF title={data?"✏️ Editar asignación":"📍 Nueva asignación"} onClose={onClose}
     fields={[{k:"materialId",l:"Material",t:"sel",o:material.map(m=>m.id),lb:material.map(m=>m.nombre),num:true},{k:"puesto",l:"Puesto destino",t:"sel",o:locNames},{k:"cantidad",l:"Cantidad",t:"num"},{k:"estado",l:"Estado entrega",t:"sel",o:ESTADO_ENTREGA}]}
     init={data||{materialId:material[0]?.id||1,puesto:locNames[0],cantidad:1,estado:"pendiente"}}
-    onSave={v=>sv(setAsigs,asigs,{...v,materialId:parseInt(v.materialId)})} />;
+    onSave={v=>sv(setAsigs,asigs,{...v,materialId:parseInt(v.materialId)},"asig")} />;
 
   if(tipo==="veh") return <MF title={data?"✏️ Editar vehículo":"🚗 Nuevo vehículo"} onClose={onClose}
     fields={[{k:"nombre",l:"Nombre *",t:"text"},{k:"matricula",l:"Matrícula",t:"text"},{k:"conductor",l:"Conductor",t:"text"},{k:"capacidad",l:"Capacidad",t:"text"},{k:"telefono",l:"Teléfono",t:"text"},{k:"notas",l:"Notas",t:"text"}]}
     init={data||{nombre:"",matricula:"",conductor:"",capacidad:"",telefono:"",notas:""}}
-    onSave={v=>sv(setVeh,veh,v)} />;
+    onSave={v=>sv(setVeh,veh,v,"veh")} />;
 
   if(tipo==="ruta") return <ModalRuta data={data} veh={veh} rutas={rutas} setRutas={setRutas} onClose={onClose} locs={locs} />;
 
   if(tipo==="tl") return <MF title={data?"✏️ Editar entrada":"⏱️ Nueva entrada del Runbook"} onClose={onClose}
     fields={[{k:"hora",l:"Hora",t:"time"},{k:"titulo",l:"Título *",t:"text"},{k:"descripcion",l:"Descripción",t:"text"},{k:"responsable",l:"Responsable",t:"text"},{k:"categoria",l:"Categoría",t:"sel",o:["logistica","organizacion","voluntarios","carrera","comunicacion"]},{k:"estado",l:"Estado",t:"sel",o:ESTADO_TAREA}]}
     init={data||{hora:"08:00",titulo:"",descripcion:"",responsable:"",categoria:"organizacion",estado:"pendiente"}}
-    onSave={v=>sv(setTl,tl,v)} />;
+    onSave={v=>sv(setTl,tl,v,"tl")} />;
 
   if(tipo==="cont") {
     const TIPOS_BASE_IDS = ["emergencia","proveedor","staff","institucional","medico","media"];
@@ -2440,13 +2444,13 @@ function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setV
         {k:"notas",l:"Notas",t:"text"},
       ]}
       init={data||{nombre:"",rol:"",telefono:"",email:"",web:"",tipo:"staff",notas:""}}
-      onSave={v=>sv(setCont,cont,v)} />;
+      onSave={v=>sv(setCont,cont,v,"cont")} />;
   }
 
   if(tipo==="inc") return <MF title={data?"✏️ Editar incidencia":"⚠️ Registrar incidencia"} onClose={onClose}
     fields={[{k:"hora",l:"Hora",t:"time"},{k:"tipo",l:"Tipo",t:"sel",o:["médica","señalización","avituallamiento","corredor perdido","meteorológica","otra"]},{k:"gravedad",l:"Gravedad",t:"sel",o:["baja","media","alta"]},{k:"descripcion",l:"Descripción *",t:"text"},{k:"responsable",l:"Responsable",t:"text"},{k:"estado",l:"Estado",t:"sel",o:["abierta","resuelta"]},{k:"resolucion",l:"Resolución",t:"text"}]}
     init={data||{hora:new Date().toTimeString().slice(0,5),tipo:"médica",gravedad:"media",descripcion:"",responsable:"",estado:"abierta",resolucion:""}}
-    onSave={v=>sv(setInc,inc,v)} />;
+    onSave={v=>sv(setInc,inc,v,"inc")} />;
 
   if(tipo==="ck") {
     const tareasProy = Array.isArray(modal.tareasProyecto) ? modal.tareasProyecto : [];
@@ -2468,7 +2472,7 @@ function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setV
         {k:"notas",l:"Notas",t:"text"},
       ]}
       init={data||{tarea:"",fase:modal.fase||"Semana antes",responsable:"",prioridad:"media",estado:"pendiente",proyectoTareaId:null,notas:""}}
-      onSave={v=>sv(setCk,ck,{...v,proyectoTareaId:v.proyectoTareaId?parseInt(v.proyectoTareaId):null})} />;
+      onSave={v=>sv(setCk,ck,{...v,proyectoTareaId:v.proyectoTareaId?parseInt(v.proyectoTareaId):null},"ck")} />;
   }
 
   return null;
