@@ -172,7 +172,7 @@ export default function App() {
 
   const savePedido = (p) => {
     if (p.id) { setPedidos(prev => prev.map(x => x.id===p.id ? p : x)); toast.success("Pedido actualizado"); }
-    else      { setPedidos(prev => [...prev, {...p, id:genId(pedidos)}]); toast.success("Pedido creado"); }
+    else      { setPedidos(prev => [...prev, {...p, id:genIdNum(pedidos)}]); toast.success("Pedido creado"); }
     setModal(null);
   };
   const deletePedido = () => { setPedidos(prev => prev.filter(x => x.id!==delId)); setDelId(null); setFicha(null); toast.success("Pedido eliminado"); };
@@ -1566,7 +1566,7 @@ function ModalPedido({
   });
   const upd      = (k,v)   => setForm(p=>({...p,[k]:v}));
   const updL     = (i,k,v) => setForm(p=>({...p,lineas:p.lineas.map((l,j)=>j===i?{...l,[k]:v}:l)}));
-  const addL     = ()      => setForm(p=>({...p,lineas:[...p.lineas,{id:genId(p.lineas),tipo:"corredor",talla:"M",cantidad:1,precioVenta:0,estadoPago:"pendiente",estadoEntrega:"pendiente"}]}));
+  const addL     = ()      => setForm(p=>({...p,lineas:[...p.lineas,{id:genIdNum(p.lineas),tipo:"corredor",talla:"M",cantidad:1,precioVenta:0,estadoPago:"pendiente",estadoEntrega:"pendiente"}]}));
   const delL     = (i)     => setForm(p=>({...p,lineas:p.lineas.filter((_,j)=>j!==i)}));
   const {totalVenta,totalCoste,beneficio,benRealizado,benPotencial,costeRegalos} = calcPedido(form,coste);
   const [intentoGuardar, setIntentoGuardar] = useState(false);
