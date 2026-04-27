@@ -1468,28 +1468,28 @@ function TabEmergencias({cont,inc,setInc,abrirModal,abrirFicha,tiposContacto=[]}
               {contUrgentes.map(c=>{
                 const t=getTipo(c.tipo);
                 return (
-                  <div key={conceptoPresu.id} className="ccard"
+                  <div key={c.id} className="ccard"
                     style={{borderTopColor:t.color,cursor:"pointer",
                       borderLeft:`3px solid ${t.color}`}}
                     onClick={()=>abrirFicha("cont",c)}>
                     <div className="cch">
                       <div className="ccti">{t.icono}</div>
                       <div style={{flex:1,minWidth:0}}>
-                        <div className="ccn">{citem.nombre}</div>
-                        <div className="ccr">{citem.rol}</div>
+                        <div className="ccn">{c.nombre}</div>
+                        <div className="ccr">{c.rol}</div>
                       </div>
                     </div>
                     <div className="ccd">
-                      <a href={`tel:${conceptoPresu.telefono}`} className="ctel"
+                      <a href={`tel:${c.telefono}`} className="ctel"
                         style={{background:t.color+"18",color:t.color,
                           border:`1px solid ${t.color}33`,borderRadius:6,
                           padding:".3rem .7rem",fontWeight:800,fontSize:"var(--fs-base)",
                           textDecoration:"none",display:"inline-flex",
                           alignItems:"center",gap:".35rem"}}>
-                        📞 {conceptoPresu.telefono}
+                        📞 {c.telefono}
                       </a>
                     </div>
-                    {citem.notas&&<div className="cnota">{citem.notas}</div>}
+                    {c.notas&&<div className="cnota">{c.notas}</div>}
                   </div>
                 );
               })}
@@ -1611,6 +1611,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
   };
   const eliminarTipo = (id) => {
     setTiposContacto(function(tcPrev){return(Array.isArray(tcPrev)?tcPrev:[]).filter(function(tcItm){return tcItm.id!==id;});});
+    toast.success("Tipo de contacto eliminado");
   };
 
   const incAbiertas = inc.filter(i=>i.estado==="abierta").length;
@@ -2066,8 +2067,10 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {} }) {
     if (!form.nombre.trim()) return;
     if (modal.data) {
       setLocs(function(locsPrev){return locsPrev.map(function(locItm){return locItm.id===modal.data.id?{...locItm,...form}:locItm;});});
+      toast.success("Localización actualizada");
     } else {
       setLocs(function(locsPrev){return [...locsPrev,{id:genIdNum(locsPrev),...form}];});
+      toast.success("Localización creada");
     }
     setModal(null);
   };
@@ -2551,8 +2554,14 @@ function ModalRuta({data,veh,rutas,setRutas,onClose,locs}) {
   const save=()=>{
     if(!form.nombre){ setFormErr(true); return; }
     const rutaItem={...form,vehiculoId:parseInt(form.vehiculoId)};
-    if(rutaItem.id)setRutas(function(rsPrev){return rsPrev.map(function(rsItm){return rsItm.id===rutaItem.id?rutaItem:rsItm;});});
-    else setRutas(function(rsPrev){return [...rsPrev,{...rutaItem,id:genIdNum(rutas)}];});
+    if(rutaItem.id) {
+      setRutas(function(rsPrev){return rsPrev.map(function(rsItm){return rsItm.id===rutaItem.id?rutaItem:rsItm;});});
+      toast.success("Ruta actualizada");
+    }
+    else {
+      setRutas(function(rsPrev){return [...rsPrev,{...rutaItem,id:genIdNum(rutas)}];});
+      toast.success("Ruta creada");
+    }
     onClose();
   };
   // sin scroll-lock — causa freeze en Android

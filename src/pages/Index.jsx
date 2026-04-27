@@ -484,6 +484,14 @@ export default function Index() {
   const isOnline    = useOnlineStatus();
   useMobileKeyboardScroll();
 
+  // Sync counter — increments on every teg-sync so badges recalculate
+  const [syncTick, setSyncTick] = useState(0);
+  useEffect(() => {
+    const h = () => setSyncTick(t => t + 1);
+    window.addEventListener("teg-sync", h);
+    return () => window.removeEventListener("teg-sync", h);
+  }, []);
+
   const handleBlockChange = useCallback((id) => {
     window.dispatchEvent(new Event("teg-sync"));
     setActiveBlock(id);
@@ -597,7 +605,8 @@ export default function Index() {
 
       return badges;
     } catch { return {}; }
-  }, [activeBlock]); // recalcular al cambiar de bloque
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeBlock, syncTick]); // recalcular al cambiar de bloque o al sincronizar datos
 
   if (!authed) return <PinScreen onUnlock={() => setAuthed(true)} />;
 
@@ -981,13 +990,28 @@ export default function Index() {
                         transition:"all 0.15s",
                       }}
                     >
-                      <span style={{ fontSize:"1.6rem" }}>{b.icon}</span>
-                      <span style={{
-                        fontFamily:"'DM Mono','Space Mono',monospace",
-                        fontSize:"var(--fs-xs)", fontWeight:700,
-                        color: isActive ? "var(--teg-cyan)" : "var(--teg-text-muted)",
-                        whiteSpace:"nowrap",
-                      }}>{b.label}</span>
+                       <span style={{ position:"relative", fontSize:"1.6rem" }}>
+                         {b.icon}
+                         {alertasBadges[b.id] && (
+                           <span style={{
+                             position:"absolute", top:-2, right:-4,
+                             minWidth:13, height:13, borderRadius:7,
+                             background:"#f87171", color:"#fff",
+                             fontSize:"var(--fs-2xs)", fontWeight:800,
+                             display:"flex", alignItems:"center", justifyContent:"center",
+                             padding:"0 3px", lineHeight:1,
+                             fontFamily:"monospace", border:"1.5px solid var(--bg)",
+                           }}>
+                             {typeof alertasBadges[b.id] === "number" ? alertasBadges[b.id] : "!"}
+                           </span>
+                         )}
+                       </span>
+                       <span style={{
+                         fontFamily:"'DM Mono','Space Mono',monospace",
+                         fontSize:"var(--fs-xs)", fontWeight:700,
+                         color: isActive ? "var(--teg-cyan)" : "var(--teg-text-muted)",
+                         whiteSpace:"nowrap",
+                       }}>{b.label}</span>
                     </button>
                   );
                 })}

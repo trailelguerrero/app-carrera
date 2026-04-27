@@ -526,7 +526,7 @@ export default function App() {
     toast.success("Voluntario añadido");
   };
 
-  const updateVoluntario = (id, data) => { setVoluntarios(prev => prev.map(v => v.id === id ? { ...v, ...data } : v)); if(data.estado==="confirmado") toast.success("Voluntario confirmado ✓"); else if(data.estado==="cancelado") toast.warning("Voluntario cancelado"); };
+  const updateVoluntario = (id, data) => { setVoluntarios(prev => prev.map(v => v.id === id ? { ...v, ...data } : v)); if(data.estado==="confirmado") toast.success("Voluntario confirmado ✓"); else if(data.estado==="cancelado") toast.warning("Voluntario cancelado"); else if(!Object.prototype.hasOwnProperty.call(data, "estado")) toast.success("Voluntario actualizado"); };
   const bulkUpdateVoluntarios = (ids, data) => {
     setVoluntarios(prev => prev.map(v => ids.includes(v.id) ? { ...v, ...data } : v));
     if (data.estado === "confirmado") toast.success(`${ids.length} voluntarios confirmados ✓`);
@@ -534,9 +534,9 @@ export default function App() {
     else if (data.estado === "pendiente") toast.info(`${ids.length} voluntarios movidos a pendiente`);
   };
   const deleteVoluntario = (id) => { const sid = String(id); setVoluntarios(prev => prev.filter(v => String(v.id) !== sid)); setConfirmDelete(null); toast.success("Voluntario eliminado"); };
-  const updatePuesto = (id, data) => setPuestos(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
-  const addPuesto = (data) => setPuestos(prev => [...prev, { id: genIdNum(puestos), ...data }]);
-  const deletePuesto = (id) => { setPuestos(prev => prev.filter(p => p.id !== id)); setVoluntarios(prev => prev.map(v => v.puestoId === id ? { ...v, puestoId: null } : v)); };
+  const updatePuesto = (id, data) => { setPuestos(prev => prev.map(p => p.id === id ? { ...p, ...data } : p)); toast.success("Puesto actualizado"); };
+  const addPuesto = (data) => { setPuestos(prev => [...prev, { id: genIdNum(puestos), ...data }]); toast.success("Puesto creado"); };
+  const deletePuesto = (id) => { setPuestos(prev => prev.filter(p => p.id !== id)); setVoluntarios(prev => prev.map(v => v.puestoId === id ? { ...v, puestoId: null } : v)); toast.success("Puesto eliminado"); };
 
   const volsFiltrados = useMemo(() => voluntarios.filter(v => {
     const nombreCompleto = (v.nombre + " " + (v.apellidos||"")).toLowerCase();

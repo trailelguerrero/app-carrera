@@ -54,14 +54,39 @@ export default function DiaCarrera({ onClose }) {
     return () => clearInterval(t);
   }, []);
 
-  const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
+  const [eventCfg, , loadCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
   const config     = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
-  const [rawTl,  setTl]   = useData(LS_LOG + "_tl",  []);
-  const [rawCont]         = useData(LS_LOG + "_cont", []);
-  const [rawCk,  setCk]   = useData(LS_LOG + "_ck",  []);
-  const [rawPuestos]      = useData(LS_VOL + "_puestos", []);
-  const [rawVols, setVols]= useData(LS_VOL + "_voluntarios", []);
-  const [rawInc,  setInc] = useData(LS_LOG + "_inc", []);
+  const [rawTl,  setTl, loadTl]   = useData(LS_LOG + "_tl",  []);
+  const [rawCont, , loadCont]         = useData(LS_LOG + "_cont", []);
+  const [rawCk,  setCk, loadCk]   = useData(LS_LOG + "_ck",  []);
+  const [rawPuestos, , loadPuestos]      = useData(LS_VOL + "_puestos", []);
+  const [rawVols, setVols, loadVols]= useData(LS_VOL + "_voluntarios", []);
+  const [rawInc,  setInc, loadInc] = useData(LS_LOG + "_inc", []);
+
+  const isLoading = loadCfg || loadTl || loadCont || loadCk || loadPuestos || loadVols || loadInc;
+
+  if (isLoading) {
+    return (
+      <div className="dc">
+        <style>{CSS}</style>
+        <div className="dc-hdr">
+          <div>
+            <div className="dc-title">🏔️ Día de Carrera</div>
+            <div className="dc-sub">Cargando datos del evento...</div>
+          </div>
+          <button onClick={onClose} aria-label="Cerrar vista Día de la Carrera" style={{
+            background:"var(--surface2)", border:"1px solid var(--border)",
+            borderRadius:8, color:"var(--text-muted)", cursor:"pointer",
+            padding:".35rem .7rem", fontFamily:"'DM Mono',monospace",
+            fontSize:"var(--fs-sm)", fontWeight:700,
+          }}>✕ Salir</button>
+        </div>
+        <div className="dc-body" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh" }}>
+          <div className="teg-spinner"></div>
+        </div>
+      </div>
+    );
+  }
 
   const tl       = Array.isArray(rawTl)      ? [...rawTl].sort((a,b)=>a.hora.localeCompare(b.hora)) : [];
   const contactos= Array.isArray(rawCont)    ? rawCont : [];

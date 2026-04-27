@@ -86,12 +86,12 @@ const FUENTES_DEFAULT = {
 };
 
 export default function App() {
-  const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
+  const [eventCfg, , loadCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
   const [tab,setTab] = useState("dashboard");
-  const [rawP,setPedidos] = useData(LS+"_pedidos", PEDIDOS_DEFAULT);
+  const [rawP,setPedidos, loadP] = useData(LS+"_pedidos", PEDIDOS_DEFAULT);
   const pedidos = Array.isArray(rawP) ? rawP : [];
-  const [coste,setCoste] = useData(LS+"_coste", COSTE_DEFAULT);
+  const [coste,setCoste, loadCoste] = useData(LS+"_coste", COSTE_DEFAULT);
   const [fechaPedido, setFechaPedido] = useData(LS+"_fecha_pedido", "");
   const [estadoPedido, setEstadoPedido] = useData(LS+"_estado_pedido", "pendiente");
   const [modal,setModal] = useState(null);
@@ -101,13 +101,13 @@ export default function App() {
 
   // ─── Fuentes externas para Tab Tallas ───────────────────────────────────────
   // Tallas de corredores: entrada manual desde plataforma externa (total por talla)
-  const [rawCorredores, setCorredores] = useData(LS+"_corredores", CORREDORES_DEFAULT);
+  const [rawCorredores, setCorredores, loadCorredores] = useData(LS+"_corredores", CORREDORES_DEFAULT);
   const corredoresExt = (rawCorredores && typeof rawCorredores === 'object' && !Array.isArray(rawCorredores))
     ? { ...CORREDORES_DEFAULT, ...rawCorredores }
     : CORREDORES_DEFAULT;
 
   // Tallas de niño: entrada manual por talla
-  const [rawNino, setNino] = useData(LS+"_nino", NINO_DEFAULT);
+  const [rawNino, setNino, loadNino] = useData(LS+"_nino", NINO_DEFAULT);
   const ninoExt = (rawNino && typeof rawNino === 'object' && !Array.isArray(rawNino))
     ? { ...NINO_DEFAULT, ...rawNino }
     : NINO_DEFAULT;
@@ -117,7 +117,29 @@ export default function App() {
   const precioCorrExt = (precioPlatExt?.precio ?? 15);
 
   // Tallas de voluntarios: lectura automática (solo confirmados/pendientes, excluye cancelados)
-  const [rawVols] = useData("teg_voluntarios_v1_voluntarios", []);
+  const [rawVols, , loadVols] = useData("teg_voluntarios_v1_voluntarios", []);
+
+  const isLoading = loadCfg || loadP || loadCoste || loadCorredores || loadNino || loadVols;
+
+  if (isLoading) {
+    return (
+      <>
+        <style>{BLOCK_CSS+CSS}</style>
+        <div className="block-container">
+          <div className="block-header">
+            <div>
+              <h1 className="block-title">👕 Camisetas Extra</h1>
+              <div className="block-title-sub">Cargando datos de camisetas...</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh" }}>
+            <div className="teg-spinner"></div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   const voluntariosConfirmados = Array.isArray(rawVols)
     ? rawVols.filter(vol => vol?.estado === "confirmado" && vol?.talla)
     : [];

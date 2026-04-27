@@ -345,6 +345,7 @@ export function useData(key, defaultValue) {
   });
 
   const stateRef = useRef(state);
+  const [isLoading, setIsLoading] = useState(ADAPTER === 'api');
 
   useEffect(() => {
     let mounted = true;
@@ -361,8 +362,13 @@ export function useData(key, defaultValue) {
             }
             return prev;
           });
+          setIsLoading(false);
         }
+      }).catch(() => {
+        if (mounted) setIsLoading(false);
       });
+    } else {
+      setIsLoading(false);
     }
 
     // Suscribirse a cambios desde otros bloques o pestañas
@@ -408,7 +414,7 @@ export function useData(key, defaultValue) {
     }
   }, [key]);
 
-  return [state, setValue];
+  return [state, setValue, isLoading];
 }
 
 /**

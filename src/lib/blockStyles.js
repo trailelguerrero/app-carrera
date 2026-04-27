@@ -589,7 +589,7 @@ export const BLOCK_CSS = `
   .btn-primary{ background: var(--primary-dim);color: #c4c6ff;      border-color: rgba(99,102,241,0.4); }
   .btn-primary:hover{ background: var(--primary); color: #fff; }
   /* min-height garantiza área táctil suficiente en mobile (≥ 44px, Apple HIG) */
-  .btn-sm { padding: 0.4rem 0.65rem; font-size: var(--fs-sm); min-height: 44px; }
+  .btn-sm { padding: 0.4rem 1rem; font-size: var(--fs-sm); min-height: 44px; }
   .btn-icon { padding: 0.4rem 0.5rem; min-width: 44px; min-height: 44px; }
 
   /* ── Badges ─────────────────────────────────────────────────────────────── */
@@ -607,6 +607,19 @@ export const BLOCK_CSS = `
   .badge-amber  { background: var(--amber-dim);  color: var(--amber);  border: 1px solid rgba(251,191,36,0.2); }
   .badge-red    { background: var(--red-dim);    color: var(--red);    border: 1px solid rgba(248,113,113,0.2); }
   .badge-muted  { background: rgba(90,106,138,0.1); color: var(--text-muted); border: 1px solid rgba(90,106,138,0.2); }
+
+  /* ── Loader / Spinner ─────────────────────────────────────────────────────── */
+  .teg-spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    border-top-color: var(--cyan);
+    animation: teg-spin 1s ease-in-out infinite;
+  }
+  @keyframes teg-spin {
+    to { transform: rotate(360deg); }
+  }
 
   /* ── Toggle switch ──────────────────────────────────────────────────────── */
   .toggle-btn {
