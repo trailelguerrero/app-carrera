@@ -143,6 +143,11 @@ const CK0 = [
 
 // ─── APP ──────────────────────────────────────────────────────────────────────
 export default function App({ initialSubtab, onSubtabConsumed } = {}) {
+  // 5.1 Scroll indicator para tabs
+  const tabsScrollRef = useRef(null);
+  const [tabsScrolled, setTabsScrolled] = useState(false);
+  const [tabsHasMore,  setTabsHasMore]  = useState(true); // asumir que hay más al inicio
+
   const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
   const [tab, setTab] = useState("dashboard");
@@ -268,17 +273,17 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
   // RECURSOS: inventario y planificación
   const TABS_RECURSOS = [
     {id:"dashboard",     icon:"📊", label:"Dashboard"},
-    {id:"material",      icon:"📦", label:"Material"},
     {id:"vehiculos",     icon:"🚗", label:"Vehículos"},
     {id:"localizaciones",icon:"📍", label:"Ubicaciones"},
+    {id:"material",      icon:"📦", label:"Material"},
   ];
   // OPERACIONES: ejecución, día de la carrera
   const TABS_OPERACIONES = [
     {id:"timeline",   icon:"⏱️",  label:"Runbook"},
-    {id:"pedidos",    icon:"🛒",  label:"Pedidos"},
     {id:"checklist",  icon:"✅",  label:"Pre-operativo"},
     {id:"contactos",  icon:"📋",  label:"Directorio"},
     {id:"emergencias",icon:"🚨",  label:"Emergencias"},
+    {id:"pedidos",    icon:"🛒",  label:"Pedidos"},
   ];
   // Alias para compatibilidad con código existente
   const TABS_OPERATIVAS = TABS_RECURSOS;
@@ -335,8 +340,15 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
           </div>
         </div>
 
-        {/* TABS — dos grupos semánticos con separador */}
-        <div className="tabs">
+        {/* TABS — dos grupos semánticos con separador + indicador de scroll en móvil */}
+        <div style={{ position:"relative" }}>
+          <div className="tabs" ref={tabsScrollRef}
+            style={{ overflowX:"auto", scrollbarWidth:"none", msOverflowStyle:"none" }}
+            onScroll={e => {
+              const el = e.currentTarget;
+              setTabsScrolled(el.scrollLeft > 8);
+              setTabsHasMore(el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
+            }}>
           {/* Grupo 1: RECURSOS */}
           {TABS_RECURSOS.map(t => (
             <button key={t.id} className={cls("tab-btn", tab===t.id && "active")} onClick={() => setTab(t.id)}>
@@ -364,6 +376,24 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
               {t.id==="emergencias"&& stats.incOpen>0 && <span className="badge badge-amber" style={{marginLeft:"0.3rem"}}>{stats.incOpen}</span>}
             </button>
           ))}
+          </div>
+          {/* Gradiente izquierda — indica tabs hacia la izquierda */}
+          {tabsScrolled && (
+            <div style={{ position:"absolute", left:0, top:0, bottom:0, width:28,
+              background:"linear-gradient(to right, var(--surface), transparent)",
+              pointerEvents:"none", zIndex:2 }} />
+          )}
+          {/* Gradiente + flecha derecha — indica más tabs a la derecha */}
+          {tabsHasMore && (
+            <div style={{ position:"absolute", right:0, top:0, bottom:0, width:36,
+              background:"linear-gradient(to left, var(--surface), transparent)",
+              pointerEvents:"none", zIndex:2,
+              display:"flex", alignItems:"center", justifyContent:"flex-end",
+              paddingRight:4 }}>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-md)",
+                color:"var(--text-muted)", fontWeight:700 }}>›</span>
+            </div>
+          )}
         </div>
 
         {/* CONTENIDO */}
@@ -688,13 +718,11 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
             </div>
             <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
           </>)}
-          {!vistaAsig && (
-            <input type="search" className="inp inp-sm"
-              placeholder="Buscar material…"
-              value={busqMat} onChange={e=>setBusqMat(e.target.value)}
-              style={{maxWidth:160,fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)"}}
-            />
-          )}
+          <input type="search" className="inp inp-sm"
+            placeholder="🔍 Buscar material…"
+            value={busqMat} onChange={e=>setBusqMat(e.target.value)}
+            style={{maxWidth:180,fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)"}}
+          />
           <button className="btn btn-primary" onClick={()=>abrirModal({tipo:vistaAsig?"asig":"mat",conceptosPres:conceptosPres})}>+ Añadir</button>
         </div>
       </div>
@@ -994,7 +1022,8 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
   return(
     <>
       <div className="ph">
-        <div><div className="pt">⏱️ Runbook del Evento</div><div className="pd" style={{display:"flex",alignItems:"center",gap:".5rem",flexWrap:"wrap"}}><span style={{background:"rgba(251,191,36,.12)",color:"var(--amber)",border:"1px solid rgba(251,191,36,.25)",borderRadius:99,padding:".1rem .5rem",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700}}>📅 Día del evento</span>{tl.filter(t=>t.estado==="completado").length}/{tl.length} completadas · {config?.fecha ? new Date(config.fecha).toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"}) : eventDateStr(config)}</div></div>
+        <div><div className="pt">⏱️ Runbook del Evento</div>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--cyan-dim)", marginTop:".15rem", opacity:.8 }}>Secuencia de acciones cronológicas para el día D · marcar al ejecutar</div><div className="pd" style={{display:"flex",alignItems:"center",gap:".5rem",flexWrap:"wrap"}}><span style={{background:"rgba(251,191,36,.12)",color:"var(--amber)",border:"1px solid rgba(251,191,36,.25)",borderRadius:99,padding:".1rem .5rem",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700}}>📅 Día del evento</span>{tl.filter(t=>t.estado==="completado").length}/{tl.length} completadas · {config?.fecha ? new Date(config.fecha).toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"}) : eventDateStr(config)}</div></div>
         <div className="fr g1">
           <div className="filter-pill-group">
               <button className={`filter-pill${!vistaKanban ? " active" : ""}`}
@@ -1940,7 +1969,8 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
   return(
     <>
       <div className="ph">
-        <div><div className="pt">✅ Pre-operativo</div><div className="pd" style={{display:"flex",alignItems:"center",gap:".5rem",flexWrap:"wrap"}}><span style={{background:"rgba(167,139,250,.12)",color:"var(--violet)",border:"1px solid rgba(167,139,250,.25)",borderRadius:99,padding:".1rem .5rem",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700}}>📋 Semanas/días antes</span>{ck.filter(c=>c.estado==="completado").length}/{ck.length} completados</div></div>
+        <div><div className="pt">✅ Pre-operativo</div>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--violet-dim)", marginTop:".15rem", opacity:.8 }}>Checklist de preparación previa al evento · verificar antes de la salida</div><div className="pd" style={{display:"flex",alignItems:"center",gap:".5rem",flexWrap:"wrap"}}><span style={{background:"rgba(167,139,250,.12)",color:"var(--violet)",border:"1px solid rgba(167,139,250,.25)",borderRadius:99,padding:".1rem .5rem",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700}}>📋 Semanas/días antes</span>{ck.filter(c=>c.estado==="completado").length}/{ck.length} completados</div></div>
         <div className="fr g1">
           <div style={{display:"flex",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:"var(--r-sm)",overflow:"hidden"}}>
             {[["lista","☰"],["kanban","⬛"]].map(([v,ic])=>(
