@@ -521,7 +521,7 @@ export default function App() {
   };
 
   const addVoluntario = (data) => {
-    const nuevo = { id: genIdNum(voluntarios), ...data };
+    const nuevo = { id: genIdNum(voluntarios), camisetaEntregada: false, enPuesto: false, horaLlegada: null, ...data };
     setVoluntarios(prev => [...prev, nuevo]);
     toast.success("Voluntario añadido");
   };
@@ -1250,11 +1250,20 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
                         cursor:"pointer", borderRadius:4, transition:"background .12s" }}
                       onMouseEnter={e=>e.currentTarget.style.background="var(--surface2)"}
                       onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                      <div style={{ width:26, height:26, borderRadius:"50%",
-                        background:"var(--surface2)", border:"1px solid var(--border)",
-                        display:"flex", alignItems:"center", justifyContent:"center",
-                        fontSize:"var(--fs-xs)", fontWeight:700, color:"var(--cyan)", flexShrink:0 }}>
-                        {(v.nombre||"V").split(" ").map(n=>n[0]).slice(0,2).join("")}
+                      <div style={{ position:"relative", width:26, height:26, flexShrink:0 }}>
+                        <div style={{ width:26, height:26, borderRadius:"50%",
+                          background:"var(--surface2)", border:"1px solid var(--border)",
+                          display:"flex", alignItems:"center", justifyContent:"center",
+                          fontSize:"var(--fs-xs)", fontWeight:700, color:"var(--cyan)" }}>
+                          {(v.nombre||"V").split(" ").map(n=>n[0]).slice(0,2).join("")}
+                        </div>
+                        <span style={{
+                          position:"absolute", bottom:0, right:0,
+                          width:8, height:8, borderRadius:"50%",
+                          background: v.estado==="confirmado" ? "var(--green)" : v.estado==="cancelado" ? "var(--red)" : "var(--amber)",
+                          border:"1.5px solid var(--surface)",
+                          display:"block",
+                        }} title={v.estado} />
                       </div>
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ fontSize:"0.74rem", fontWeight:600,
@@ -1267,6 +1276,15 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
                       <span className={`badge badge-${v.estado==="confirmado"?"green":v.estado==="cancelado"?"red":"amber"}`}>
                         {v.estado}
                       </span>
+                      <div style={{ display:"flex", gap:".2rem", flexShrink:0 }}>
+                        {v.camisetaEntregada && (
+                          <span title="Camiseta entregada" style={{ fontSize:"var(--fs-xs)" }}>🎽</span>
+                        )}
+                        {v.enPuesto && (
+                          <span title={"En puesto" + (v.horaLlegada ? " · " + v.horaLlegada : "")}
+                            style={{ fontSize:"var(--fs-xs)" }}>📍</span>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1318,9 +1336,13 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
 // ─── TAB VOLUNTARIOS ──────────────────────────────────────────────────────────
 function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda, filtroEstado, setFiltroEstado, filtroPuesto, setFiltroPuesto, onUpdate, onBulkUpdate, onDelete, onNuevo, onEditar, onFicha }) {
   const [orden, setOrden]           = useState("nombre");
-  const [colapsados, setColapsados] = useState({ confirmado:true, pendiente:true, cancelado:true }); // todos colapsados por defecto
+  const colapsadoDefault = todosVols.length > 20;
+  const [colapsados, setColapsados] = useState(() => ({
+    confirmado: colapsadoDefault,
+    pendiente:  colapsadoDefault,
+    cancelado:  true, // cancelados siempre colapsados por defecto
+  }));
 
-  const toggleGrupo = (key) => setColapsados(p => ({...p, [key]: !p[key]}));
 
   const volsOrdenados = [...voluntarios].sort((a, b) => {
     if (orden === "nombre") return (a.nombre || "").localeCompare(b.nombre || "", "es");
@@ -1990,6 +2012,19 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
         </div>
         {v.talla && <span className="badge badge-cyan">{v.talla}</span>}
         {v.coche && <span style={{ fontSize: "var(--fs-base)" }} title="Tiene coche">🚗</span>}
+        {v.enPuesto && (
+          <span title={"En puesto" + (v.horaLlegada ? " · " + v.horaLlegada : "")}
+            style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+              color:"var(--green)", background:"rgba(52,211,153,.1)",
+              border:"1px solid rgba(52,211,153,.25)", borderRadius:4,
+              padding:"0 .35rem", flexShrink:0 }}>
+            📍{v.horaLlegada || ""}
+          </span>
+        )}
+        {v.camisetaEntregada && (
+          <span title="Camiseta entregada"
+            style={{ fontSize:"var(--fs-base)", flexShrink:0 }}>🎽</span>
+        )}
         {v.telefono && (
           <a href={`tel:${v.telefono}`}
             style={{ fontSize: "var(--fs-base)", color: "var(--cyan)", textDecoration: "none", flexShrink: 0 }}
@@ -2155,6 +2190,23 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
                   <span style={{ color:estadoColor, fontWeight:700 }}>{v.estado}</span>
                   {v.rol && <> · {v.rol}</>}
                 </div>
+                {/* Badges inline de enPuesto y camiseta */}
+                <div style={{ display:"flex", gap:".3rem", marginTop:".2rem", flexWrap:"wrap" }}>
+                  {v.enPuesto && (
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", fontWeight:700,
+                      color:"var(--green)", background:"rgba(52,211,153,.1)",
+                      border:"1px solid rgba(52,211,153,.25)", borderRadius:4, padding:".05rem .3rem" }}>
+                      📍{v.horaLlegada ? " "+v.horaLlegada : " En puesto"}
+                    </span>
+                  )}
+                  {v.camisetaEntregada && (
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", fontWeight:700,
+                      color:"var(--green)", background:"rgba(52,211,153,.1)",
+                      border:"1px solid rgba(52,211,153,.25)", borderRadius:4, padding:".05rem .3rem" }}>
+                      🎽 Camiseta ✓
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
             <div style={{ display:"flex", gap:".35rem", alignItems:"center" }}>
@@ -2268,6 +2320,22 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
           </div>
         )}
         <div className="modal-footer" style={{ justifyContent:"space-between" }}>
+          {/* ── Entrega de camiseta (toggle organizador) ── */}
+          {onUpdate && (
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+              padding:".55rem .85rem", borderTop:"1px solid var(--border)",
+              background:"var(--surface2)" }}>
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>
+                🎽 Camiseta entregada
+              </div>
+              <button
+                className={`btn btn-sm ${v.camisetaEntregada ? "btn-green" : "btn-ghost"}`}
+                onClick={() => onUpdate(v.id, { camisetaEntregada: !v.camisetaEntregada })}
+                style={{ minWidth:80 }}>
+                {v.camisetaEntregada ? "✓ Entregada" : "Pendiente"}
+              </button>
+            </div>
+          )}
           {!confirmando ? (
             <>
               <button className="btn btn-red" onClick={() => setConfirmando(true)}>🗑 Eliminar</button>
