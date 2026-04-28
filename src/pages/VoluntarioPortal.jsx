@@ -161,8 +161,7 @@ function PinNumpad({ value, onChange, shake, disabled }) {
           k === "" ? <div key={i} /> :
           <button key={i}
             className={`vp-numpad-key${k === "⌫" ? " backspace" : ""}${pressed === k ? " pressed" : ""}`}
-            onMouseDown={() => tap(k)}
-            onTouchStart={(e) => { e.preventDefault(); tap(k); }}
+            onClick={() => tap(k)}
             disabled={disabled}>
             {k}
           </button>

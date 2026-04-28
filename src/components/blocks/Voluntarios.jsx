@@ -1366,11 +1366,9 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
 // ─── TAB VOLUNTARIOS ──────────────────────────────────────────────────────────
 function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda, filtroEstado, setFiltroEstado, filtroPuesto, setFiltroPuesto, onUpdate, onBulkUpdate, onDelete, onNuevo, onEditar, onFicha }) {
   const [orden, setOrden]           = useState("nombre");
-  // Grupos confirmado y pendiente: expandidos siempre al abrir el bloque.
-  // Solo cancelado empieza colapsado. El usuario puede colapsar manualmente.
   const [colapsados, setColapsados] = useState({
-    confirmado: false,
-    pendiente:  false,
+    confirmado: true,
+    pendiente:  true,
     cancelado:  true,
   });
 
@@ -1533,7 +1531,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
       ) : (
         <div style={{ display:"flex", flexDirection:"column", gap:".6rem" }}>
           {GRUPOS_ESTADO.map(grupo => {
-            const items = volsPaginados.filter(v => v.estado === grupo.id);
+            const items = volsOrdenados.filter(v => v.estado === grupo.id);
             if (items.length === 0) return null;
             const collapsed = colapsados[grupo.id];
             return (
