@@ -72,6 +72,7 @@ export const TabPresupuesto = ({
   const [ordenAlfaFijo, setOrdenAlfaFijo] = useState(false);
   const [ordenAlfaVar,  setOrdenAlfaVar]  = useState(false);
   const [editando, setEditando] = useState(null);
+  const [vistaResumen, setVistaResumen]   = useState(false);
 
   const abrirEditar = (c) => {
     const m = document.querySelector("main");
@@ -246,6 +247,26 @@ export const TabPresupuesto = ({
     <>
       <style>{TAB_CSS}</style>
 
+      {/* ── Toggle vista resumen / completa ── */}
+      <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:".5rem" }}>
+        <div style={{ display:"flex", background:"var(--surface2)", borderRadius:8,
+          border:"1px solid var(--border)", overflow:"hidden" }}>
+          <button
+            className={"btn btn-sm" + (!vistaResumen ? " btn-cyan" : "")}
+            style={{ borderRadius:0, border:"none", margin:0, minHeight:36, fontSize:"var(--fs-xs)" }}
+            onClick={() => setVistaResumen(false)}>
+            📊 Vista completa
+          </button>
+          <button
+            className={"btn btn-sm" + (vistaResumen ? " btn-cyan" : "")}
+            style={{ borderRadius:0, border:"none", margin:0, minHeight:36,
+              borderLeft:"1px solid var(--border)", fontSize:"var(--fs-xs)" }}
+            onClick={() => setVistaResumen(true)}>
+            📋 Resumen
+          </button>
+        </div>
+      </div>
+
       {/* COSTES FIJOS */}
       <div className="card">
         <div className="flex-between mb-2">
@@ -259,6 +280,37 @@ export const TabPresupuesto = ({
             <button className="btn btn-cyan" onClick={() => addConcepto("fijo")}>+ Añadir</button>
           </div>
         </div>
+        {/* Vista resumen — solo nombre + total + activo */}
+        {vistaResumen ? (
+          <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
+            {conceptosFijos.map(c => (
+              <div key={c.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+                padding:".4rem .5rem", borderBottom:"1px solid var(--border-light)",
+                opacity: c.activo ? 1 : 0.45 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:".4rem", flex:1, minWidth:0 }}>
+                  <span style={{ width:8, height:8, borderRadius:"50%", flexShrink:0,
+                    background: c.activo ? "var(--green)" : "var(--text-dim)" }} />
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                    overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                    {c.nombre}
+                  </span>
+                </div>
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                  color:"var(--text)", flexShrink:0, marginLeft:".5rem" }}>
+                  {fmtN(c.costeTotal ?? c.total ?? 0)} €
+                </span>
+              </div>
+            ))}
+            <div style={{ display:"flex", justifyContent:"space-between",
+              padding:".45rem .5rem", borderTop:"2px solid var(--border)",
+              background:"var(--surface2)" }}>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:800 }}>TOTAL FIJOS</span>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:800 }}>
+                {fmtN(costesFijos.total ?? 0)} €
+              </span>
+            </div>
+          </div>
+        ) : (
         <div className="overflow-x">
           <table className="tbl">
             <thead>
@@ -298,6 +350,7 @@ export const TabPresupuesto = ({
             </tbody>
           </table>
         </div>
+        )}
       </div>
 
       {/* COSTES VARIABLES */}
@@ -313,6 +366,37 @@ export const TabPresupuesto = ({
             <button className="btn btn-green" onClick={() => addConcepto("variable")}>+ Añadir</button>
           </div>
         </div>
+        {/* Vista resumen variables */}
+        {vistaResumen ? (
+          <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
+            {conceptosVariables.map(c => (
+              <div key={c.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+                padding:".4rem .5rem", borderBottom:"1px solid var(--border-light)",
+                opacity: c.activo ? 1 : 0.45 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:".4rem", flex:1, minWidth:0 }}>
+                  <span style={{ width:8, height:8, borderRadius:"50%", flexShrink:0,
+                    background: c.activo ? "var(--cyan)" : "var(--text-dim)" }} />
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                    overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                    {c.nombre}
+                  </span>
+                </div>
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                  color:"var(--text)", flexShrink:0, marginLeft:".5rem" }}>
+                  {fmtN(c.total ?? 0)} €
+                </span>
+              </div>
+            ))}
+            <div style={{ display:"flex", justifyContent:"space-between",
+              padding:".45rem .5rem", borderTop:"2px solid var(--border)",
+              background:"var(--surface2)" }}>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:800 }}>TOTAL VARIABLES</span>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:800 }}>
+                {fmtN(costesVariables.total ?? 0)} €
+              </span>
+            </div>
+          </div>
+        ) : (
         <div className="overflow-x">
           <table className="tbl">
             <thead>
@@ -346,6 +430,7 @@ export const TabPresupuesto = ({
             </tbody>
           </table>
         </div>
+        )}
       </div>
       {editando && (
         <ModalEditarConcepto

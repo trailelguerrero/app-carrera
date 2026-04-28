@@ -371,6 +371,45 @@ const Presupuesto = () => {
           />
         )}
 
+        {/* ── Insight Punto de Equilibrio ── */}
+        {(() => {
+          const dif = peGlobal?.diferencia ?? null;
+          if (dif === null) return null;
+          const superado  = dif >= 0;
+          const abs = Math.abs(Math.round(dif));
+          return (
+            <div style={{
+              display:"flex", alignItems:"center", gap:".65rem",
+              padding:".55rem .9rem", borderRadius:8, marginBottom:".75rem",
+              background: superado ? "rgba(52,211,153,.07)" : "rgba(248,113,113,.07)",
+              border: superado ? "1px solid rgba(52,211,153,.25)" : "1px solid rgba(248,113,113,.25)",
+            }}>
+              <span style={{ fontSize:"var(--fs-md)", flexShrink:0 }}>
+                {superado ? "✅" : "⚠️"}
+              </span>
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", flex:1 }}>
+                {superado ? (
+                  <span style={{ color:"var(--green)", fontWeight:700 }}>
+                    Punto de equilibrio superado · {abs} inscripciones por encima del PE
+                  </span>
+                ) : (
+                  <span style={{ color:"var(--red)", fontWeight:700 }}>
+                    Faltan {abs} inscripciones para cubrir los costes fijos
+                    <span style={{ fontWeight:400, color:"var(--text-muted)", marginLeft:".3rem" }}>
+                      · PE global: {Math.round(peGlobal?.peGlobal ?? 0)} inscritos
+                    </span>
+                  </span>
+                )}
+              </div>
+              <button className="btn btn-ghost btn-sm"
+                style={{ fontSize:"var(--fs-2xs)", flexShrink:0 }}
+                onClick={() => setTab("equilibrio")}>
+                Ver PE →
+              </button>
+            </div>
+          );
+        })()}
+
         <div className="tabs">
           {TABS.map(t => {
             const isDone = (() => {
