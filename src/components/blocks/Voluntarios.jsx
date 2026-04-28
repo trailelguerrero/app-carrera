@@ -726,6 +726,32 @@ export default function App() {
           )}
         </div>
 
+        {/* ── Banner: cómo acceden los voluntarios al portal ── */}
+        {(() => {
+          const portalUrl = (typeof window !== 'undefined' ? window.location.origin : '') + '/voluntarios/mi-ficha';
+          return (
+            <div style={{
+              marginBottom:".65rem", padding:".5rem .85rem", borderRadius:8,
+              background:"rgba(34,211,238,.06)", border:"1px solid rgba(34,211,238,.18)",
+              display:"flex", alignItems:"center", justifyContent:"space-between",
+              gap:".75rem", flexWrap:"wrap",
+            }}>
+              <div style={{fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", lineHeight:1.6}}>
+                <span style={{color:"var(--cyan)", fontWeight:700}}>📱 Portal del voluntario</span>
+                {" "}· Los voluntarios acceden con su <strong style={{color:"var(--text)"}}>teléfono + últimos 4 dígitos</strong>
+                <br/>Voluntarios ya registrados: pueden entrar directamente, sin configuración extra
+              </div>
+              <button className="btn btn-ghost btn-sm"
+                style={{fontSize:"var(--fs-xs)", flexShrink:0}}
+                onClick={() => {
+                  const url = window.location.origin + '/voluntarios/mi-ficha';
+                  navigator.clipboard?.writeText(url).then(() => toast.success("Enlace al portal copiado ✓"));
+                }}>
+                📋 Copiar enlace
+              </button>
+            </div>
+          );
+        })()}
         {/* TABS */}
         <div className="tabs">
           {TABS_VOL.map(item => (
@@ -1340,12 +1366,13 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
 // ─── TAB VOLUNTARIOS ──────────────────────────────────────────────────────────
 function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda, filtroEstado, setFiltroEstado, filtroPuesto, setFiltroPuesto, onUpdate, onBulkUpdate, onDelete, onNuevo, onEditar, onFicha }) {
   const [orden, setOrden]           = useState("nombre");
-  const colapsadoDefault = todosVols.length > 20;
-  const [colapsados, setColapsados] = useState(() => ({
-    confirmado: colapsadoDefault,
-    pendiente:  colapsadoDefault,
-    cancelado:  true, // cancelados siempre colapsados por defecto
-  }));
+  // Grupos confirmado y pendiente: expandidos siempre al abrir el bloque.
+  // Solo cancelado empieza colapsado. El usuario puede colapsar manualmente.
+  const [colapsados, setColapsados] = useState({
+    confirmado: false,
+    pendiente:  false,
+    cancelado:  true,
+  });
 
 
   const volsOrdenados = [...voluntarios].sort((a, b) => {
@@ -1637,7 +1664,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
                                 onClick={e=>{e.stopPropagation();onEditar(v);}}>✏️</button>
                               <button className="btn btn-red"
                                 style={{ padding:"0.22rem 0.38rem", fontSize:"var(--fs-sm)" }}
-                                onClick={e=>{e.stopPropagation();if(window.confirm("¿Eliminar a "+v.nombre+"? Esta acción no se puede deshacer."))onDelete(v.id);}}>✕</button>
+                                onClick={e=>{e.stopPropagation();onDelete(v.id);}}>✕</button>
                             </div>
                           </div>
                         </div>
@@ -1657,7 +1684,8 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
 }
 // ─── TAB PUESTOS ──────────────────────────────────────────────────────────────
 function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpdatePuesto, onDeletePuesto, onNuevoPuesto, onEditPuesto, onFichaPuesto, onFichaVol }) {
-  const [ordenAlfa, setOrdenAlfa] = useState(false);
+  const [ordenAlfa, setOrdenAlfa]   = useState(false);
+  const [busqPuesto, setBusqPuesto] = useState("");
   const puestosOrdenados = ordenAlfa
     ? [...puestosConStats].sort((a,b) => (a.nombre||"").localeCompare(b.nombre||"","es"))
     : puestosConStats;
