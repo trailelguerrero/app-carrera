@@ -17,6 +17,18 @@
  */
 import { neon } from '@neondatabase/serverless';
 
+function hashPin(pin) {
+  let h = 0;
+  for (let i = 0; i < pin.length; i++) {
+    h = (Math.imul(31, h) + pin.charCodeAt(i)) | 0;
+  }
+  return String(h);
+}
+function pinInicial(telefono) {
+  const digits = (telefono || '').replace(/\D/g, '');
+  return digits.slice(-4) || '0000';
+}
+
 // Lista blanca estricta — cualquier colección fuera de estas listas recibe 403
 const READ_WHITELIST = new Set([
   'teg_voluntarios_v1_puestos',
@@ -131,6 +143,12 @@ export default async function handler(req, res) {
       estado:              'pendiente', // SIEMPRE pendiente desde registro público
       fechaRegistro:       new Date().toISOString(),
       fuenteRegistro:      'formulario_publico',
+      // Portal del voluntario
+      pinHash:             hashPin(pinInicial(String(newVoluntario.telefono || ''))),
+      enPuesto:            false,
+      horaLlegada:         null,
+      camisetaEntregada:   false,
+      sessionToken:        null,
     };
 
     try {

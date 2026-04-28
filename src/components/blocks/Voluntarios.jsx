@@ -520,8 +520,12 @@ export default function App() {
     setTimeout(() => setSaveStatus("idle"), 2500);
   };
 
+  const hashPinLocal = (pin) => { let h=0; for(let i=0;i<pin.length;i++){h=(Math.imul(31,h)+pin.charCodeAt(i))|0;} return String(h); };
+  const pinInicialLocal = (tel) => { const d=(tel||'').replace(/\D/g,''); return d.slice(-4)||'0000'; };
+
   const addVoluntario = (data) => {
-    const nuevo = { id: genIdNum(voluntarios), camisetaEntregada: false, enPuesto: false, horaLlegada: null, ...data };
+    const pinHash = hashPinLocal(pinInicialLocal(data.telefono || ''));
+    const nuevo = { id: genIdNum(voluntarios), camisetaEntregada: false, enPuesto: false, horaLlegada: null, sessionToken: null, pinHash, ...data };
     setVoluntarios(prev => [...prev, nuevo]);
     toast.success("Voluntario añadido");
   };
@@ -2339,7 +2343,36 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
           {!confirmando ? (
             <>
               <button className="btn btn-red" onClick={() => setConfirmando(true)}>🗑 Eliminar</button>
-              <div style={{ display:"flex", gap:"0.4rem" }}>
+              <div style={{ display:"flex", gap:"0.4rem", flexWrap:"wrap" }}>
+                {/* Botones del portal del voluntario */}
+                {v.telefono && (
+                  <button className="btn btn-ghost btn-sm"
+                    title="Copiar enlace al portal del voluntario"
+                    onClick={() => {
+                      const url = window.location.origin + "/voluntarios/mi-ficha";
+                      navigator.clipboard?.writeText(url).then(() => toast.success("Enlace al portal copiado"));
+                    }}>
+                    📱 Portal
+                  </button>
+                )}
+                {v.telefono && onUpdate && (
+                  <button className="btn btn-ghost btn-sm"
+                    title="Resetear PIN al valor inicial (últimos 4 del teléfono)"
+                    onClick={async () => {
+                      try {
+                        const res = await fetch("/api/voluntarios/reset-pin", {
+                          method: "POST",
+                          headers: { "Content-Type":"application/json", "x-api-key": import.meta.env.VITE_API_KEY },
+                          body: JSON.stringify({ voluntarioId: v.id }),
+                        });
+                        const d = await res.json();
+                        if(res.ok) toast.success("PIN reseteado. El voluntario debe usar los últimos 4 dígitos de su teléfono.");
+                        else toast.error(d.error || "Error al resetear PIN");
+                      } catch { toast.error("Error de conexión"); }
+                    }}>
+                    🔑 Reset PIN
+                  </button>
+                )}
                 <button className="btn btn-ghost" onClick={onClose}>Cerrar</button>
                 <button className="btn btn-cyan" onClick={onEditar}>✏️ Editar</button>
               </div>

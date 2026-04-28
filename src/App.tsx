@@ -4,6 +4,7 @@ import Index from "./pages/Index.jsx";
 import Landing from "./pages/Landing.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import PublicVolunteerForm from "./components/PublicVolunteerForm.jsx";
+import VoluntarioPortal from "./pages/VoluntarioPortal.jsx";
 
 const App = () => (
   <ThemeProvider
@@ -17,6 +18,7 @@ const App = () => (
         <Route path="/"                       element={<Landing />} />
         <Route path="/panel"                  element={<Index />} />
         <Route path="/voluntarios/registro"   element={<PublicVolunteerForm />} />
+        <Route path="/voluntarios/mi-ficha"   element={<VoluntarioPortal />} />
         <Route path="*"                       element={<NotFound />} />
       </Routes>
     </BrowserRouter>

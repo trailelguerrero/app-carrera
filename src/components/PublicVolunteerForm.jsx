@@ -229,7 +229,38 @@ export default function PublicVolunteerForm() {
           <div style={{ fontFamily:"var(--font-mono)", fontSize:".72rem", color:"var(--text-muted)", lineHeight:1.7 }}>
             Hemos recibido tu solicitud.<br/>El equipo organizador la revisará y te confirmará por teléfono o email.
           </div>
-          <button onClick={() => window.close()} className="pub-btn-primary" style={{ marginTop:"1.5rem" }}>
+
+          {/* Bloque de acceso al portal */}
+          <div style={{ background:"rgba(34,211,238,.06)", border:"1px solid rgba(34,211,238,.2)",
+            borderRadius:10, padding:".9rem 1rem", marginTop:"1.25rem", textAlign:"left" }}>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:".7rem", fontWeight:800,
+              color:"var(--cyan)", marginBottom:".5rem" }}>
+              📱 Tu ficha personal de voluntario
+            </div>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:".65rem", color:"var(--text-muted)", lineHeight:1.8 }}>
+              Cuando te confirmemos, accede con:<br/>
+              · Tu número de teléfono<br/>
+              · PIN inicial: <strong style={{color:"var(--text)"}}>últimos 4 dígitos de tu teléfono</strong>
+            </div>
+            <div style={{ marginTop:".75rem", display:"flex", gap:".5rem" }}>
+              <button
+                style={{ flex:1, padding:".55rem", background:"var(--cyan)", color:"#0f172a",
+                  border:"none", borderRadius:8, fontWeight:800, fontSize:".72rem",
+                  cursor:"pointer", fontFamily:"var(--font-mono)" }}
+                onClick={() => {
+                  const url = window.location.origin + "/voluntarios/mi-ficha";
+                  navigator.clipboard?.writeText(url).then(() => {
+                    const btn = document.getElementById("copy-portal-btn");
+                    if(btn) { btn.textContent = "✓ Copiado"; setTimeout(() => { btn.textContent = "Guardar enlace"; }, 2000); }
+                  });
+                }}
+                id="copy-portal-btn">
+                Guardar enlace
+              </button>
+            </div>
+          </div>
+
+          <button onClick={() => window.close()} className="pub-btn-primary" style={{ marginTop:"1rem" }}>
             ✕ Cerrar ventana
           </button>
           <div style={{ marginTop:".75rem", fontFamily:"var(--font-mono)",
