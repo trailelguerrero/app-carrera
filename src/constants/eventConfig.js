@@ -15,6 +15,7 @@ export const EVENT_CONFIG_DEFAULT = {
   webEvento:        "",
   volDiasCritico:   7,
   volDiasAviso:     30,
+  autoOpenDia:      false, // Abrir automáticamente DíaCarrera al iniciar la app
 };
 
 export const LS_KEY_CONFIG = "teg_event_config_v1";

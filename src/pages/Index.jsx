@@ -608,7 +608,15 @@ export default function Index() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeBlock, syncTick]); // recalcular al cambiar de bloque o al sincronizar datos
 
-  if (!authed) return <PinScreen onUnlock={() => setAuthed(true)} />;
+  if (!authed) return <PinScreen onUnlock={() => {
+    setAuthed(true);
+    // Modo arranque directo — abrir DíaCarrera si está configurado
+    try {
+      const raw = localStorage.getItem("teg_event_config_v1");
+      const cfg = raw ? JSON.parse(raw) : {};
+      if (cfg.autoOpenDia) setTimeout(() => setShowDiaCarrera(true), 350);
+    } catch {}
+  }} />;
 
   const NAV_H = isMobile ? 68 : 66;
   const diasCarrera = Math.ceil((eventFecha - new Date()) / 86400000);

@@ -46,11 +46,12 @@ export default function DiaCarrera({ onClose }) {
   const [tab, setTab] = useState("timeline");
   const [ahora, setAhora] = useState(new Date());
   const [showInc, setShowInc] = useState(false);
+  const [busPresencia, setBusPresencia] = useState("");
   const [incForm, setIncForm] = useState({ tipo: "médica", gravedad: "media", descripcion: "" });
   const [incGuardado, setIncGuardado] = useState(false);
 
   useEffect(() => {
-    const t = setInterval(() => setAhora(new Date()), 30000);
+    const t = setInterval(() => setAhora(new Date()), 1000); // cada segundo para el reloj
     return () => clearInterval(t);
   }, []);
 
@@ -226,9 +227,37 @@ export default function DiaCarrera({ onClose }) {
               <EmptyState icon="⏱" title="Sin entradas en el Runbook" sub="El Runbook es el guión hora a hora del día del evento. Añade entradas en Logística → Runbook." />
             ) : (
             <>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginBottom:".5rem"}}>
-              {tl.filter(tlDone).length}/{tl.length} completados
+            {/* ── Reloj prominente en el Runbook ── */}
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+              marginBottom:".75rem" }}>
+              <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"var(--fs-xs)",
+                color:"var(--text-muted)" }}>
+                {tl.filter(tlDone).length}/{tl.length} completados
+              </div>
+              <div style={{ fontFamily:"'DM Mono',monospace", fontWeight:800,
+                fontSize:"var(--fs-lg)", color:"var(--cyan)",
+                letterSpacing:".08em",
+                background:"rgba(34,211,238,.07)", border:"1px solid rgba(34,211,238,.2)",
+                borderRadius:8, padding:".2rem .75rem", lineHeight:1.2 }}>
+                {hora}
+              </div>
             </div>
+            {/* ── Próxima acción pendiente ── */}
+            {proxima && !tlDone(proxima) && (
+              <div style={{ marginBottom:".65rem", padding:".5rem .75rem", borderRadius:8,
+                background:"rgba(251,191,36,.08)", border:"1px solid rgba(251,191,36,.25)",
+                display:"flex", alignItems:"center", gap:".6rem" }}>
+                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:"var(--fs-xs)",
+                  color:"var(--amber)", fontWeight:700, flexShrink:0 }}>
+                  ⏭ {proxima.hora}
+                </span>
+                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:"var(--fs-xs)",
+                  color:"var(--text)", flex:1, overflow:"hidden",
+                  textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                  {proxima.accion || proxima.titulo || proxima.label || "Próxima acción"}
+                </span>
+              </div>
+            )}
             {tl.map(item => (
               <div key={item.id} className={`dc-row${tlDone(item)?" done":""}`}>
                 <button className={`dc-chk${tlDone(item)?" on":""}`} onClick={() => toggleTl(item.id)}>
@@ -269,7 +298,22 @@ export default function DiaCarrera({ onClose }) {
             <div style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginBottom:".5rem"}}>
               {presentes} presentes · {confirmados.length - presentes} pendientes
             </div>
-            {confirmados.map(v => {
+            {/* ── Búsqueda rápida de voluntario ── */}
+            <input
+              type="search"
+              className="inp inp-sm"
+              placeholder="🔍 Buscar voluntario…"
+              value={busPresencia}
+              onChange={e => setBusPresencia(e.target.value)}
+              style={{ marginBottom:".5rem", fontFamily:"'DM Mono',monospace",
+                fontSize:"var(--fs-sm)", width:"100%" }}
+            />
+            {confirmados
+              .filter(v => !busPresencia.trim() ||
+                (v.nombre||"").toLowerCase().includes(busPresencia.toLowerCase()) ||
+                (v.apellidos||"").toLowerCase().includes(busPresencia.toLowerCase()) ||
+                (v.telefono||"").includes(busPresencia))
+              .map(v => {
               const puesto = puestos.find(p => p.id === v.puestoId);
               return (
                 <div key={v.id} className="dc-row">
