@@ -33,6 +33,16 @@ const EE = {
 };
 const ESTADOS_PAGO    = ["pendiente","pagado","regalo"];
 const ESTADOS_ENTREGA = ["pendiente","entregado"];
+const estadoCombinado = (lineas=[]) => {
+  if (!lineas.length) return { emoji:"🟡", label:"Sin líneas",      color:"var(--amber)", bg:"var(--amber-dim)" };
+  const allPagado    = lineas.every(l => l.estadoPago    === "pagado"    || l.estadoPago    === "regalo");
+  const allEntregado = lineas.every(l => l.estadoEntrega === "entregado");
+  const anyPagado    = lineas.some(l  => l.estadoPago    === "pagado"    || l.estadoPago    === "regalo");
+  if (allPagado && allEntregado) return { emoji:"🟢", label:"Completado",        color:"var(--green)",  bg:"var(--green-dim)"  };
+  if (allPagado)                  return { emoji:"🔵", label:"Pagado · pendiente", color:"var(--cyan)",   bg:"var(--cyan-dim)"   };
+  if (!anyPagado)                 return { emoji:"🟡", label:"Pendiente pago",    color:"var(--amber)",  bg:"var(--amber-dim)"  };
+  return                                 { emoji:"🟠", label:"Pago parcial",       color:"#fb923c",        bg:"rgba(251,146,60,.1)" };
+};
 
 const PEDIDOS_DEFAULT = [
   {
@@ -89,6 +99,7 @@ export default function App() {
   const [eventCfg, , loadCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
   const [tab,setTab] = useState("dashboard");
+  const [vistaSimpleTallas, setVistaSimpleTallas] = useState(true);
   const [rawP,setPedidos, loadP] = useData(LS+"_pedidos", PEDIDOS_DEFAULT);
   const pedidos = Array.isArray(rawP) ? rawP : [];
   const [coste,setCoste, loadCoste] = useData(LS+"_coste", COSTE_DEFAULT);
@@ -346,7 +357,8 @@ export default function App() {
           {tab==="tallas"    && <TabTallas    pedidos={pedidos} corredoresExt={corredoresExt} setCorredores={setCorredores} voluntariosActivos={voluntariosActivos} fuentesActivas={fuentesActivas}
             voluntariosConfirmados={voluntariosConfirmados} voluntariosPendientes={voluntariosPendientes}
             inclPendientes={inclPendientes} setInclPendientes={setInclPendientes}
-            ninoExt={ninoExt} setNino={setNino} />}
+            ninoExt={ninoExt} setNino={setNino}
+            vistaSimple={vistaSimpleTallas} setVistaSimple={setVistaSimpleTallas} />}
           {tab==="checklist" && <TabChecklist pedidos={pedidos} updateLinea={updateLinea} abrirFicha={abrirFicha} />}
         </div>
       </div>
@@ -368,6 +380,7 @@ export default function App() {
 // ─── TAB DASHBOARD ────────────────────────────────────────────────────────────
 function TabDashboard({ stats, pedidos, coste, setCoste, setTab, goToTab, abrirFicha, precioCorrExt, setPrecioCorrExt, fuentesActivas, setFuentesActivas, ninoExt = {} }) {
   const [editCoste,setEditCoste] = useState(false);
+  const [wizardAbierto2, setWizardAbierto2] = useState(true);
   const [tmpCoste, setTmpCoste]  = useState({...coste});
   const [editPrecioPlat, setEditPrecioPlat] = useState(false);
   const [tmpPrecioPlat, setTmpPrecioPlat] = useState(precioCorrExt ?? 15);
@@ -376,8 +389,24 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, goToTab, abrirF
 
   return (
     <>
-      {/* ── Panel de estado del flujo ── */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:".6rem", marginBottom:"1.25rem" }}>
+      {/* ── Panel de estado del flujo / Setup wizard ── */}
+      <div style={{ marginBottom:"1.25rem", border:"1px solid rgba(34,211,238,.15)", borderRadius:10, overflow:"hidden" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
+          padding:".5rem .85rem", background:"rgba(34,211,238,.04)",
+          borderBottom: wizardAbierto2 ? "1px solid rgba(34,211,238,.12)" : "none",
+          cursor:"pointer" }} onClick={()=>setWizardAbierto2(v=>!v)}>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:800,
+            color:"var(--cyan)", letterSpacing:".06em", textTransform:"uppercase" }}>
+            🧭 Estado de configuración
+            {[coste.corredor !== 8 || coste.voluntario !== 7, stats.uCorExt > 0, stats.totalPedidosExtras > 0].filter(ok=>!ok).length > 0 && (
+              <span style={{ marginLeft:".4rem", color:"var(--amber)" }}>
+                · {[coste.corredor !== 8 || coste.voluntario !== 7, stats.uCorExt > 0, stats.totalPedidosExtras > 0].filter(ok=>!ok).length} pendiente{[coste.corredor !== 8 || coste.voluntario !== 7, stats.uCorExt > 0, stats.totalPedidosExtras > 0].filter(ok=>!ok).length!==1?"s":""}
+              </span>
+            )}
+          </div>
+          <span style={{ fontSize:"var(--fs-sm)", color:"var(--text-dim)" }}>{wizardAbierto2 ? "▲" : "▼"}</span>
+        </div>
+        {wizardAbierto2 && <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:".6rem", padding:".6rem .85rem" }}>
         {[
           { icon:"💶", label:"Costes configurados", ok: coste.corredor !== 8 || coste.voluntario !== 7,
             val: `${fmtEur2(coste.corredor)}/corr · ${fmtEur2(coste.voluntario)}/vol`,
@@ -412,6 +441,7 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, goToTab, abrirF
             )}
           </div>
         ))}
+        </div>}
       </div>
       {/* ── BALANCE ECONÓMICO CONSOLIDADO (Expert view) ── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1rem", marginBottom: "1.25rem" }}>
@@ -773,13 +803,15 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal, filtroExterno, onC
                   <div style={{display:"flex",flexDirection:"column",
                     background:"var(--surface)"}}>
                     {items.map((p,idx)=>{
-                      const {totalVenta}=calcPedido(p,coste); const bp=badgePago(p); const be=badgeEnt(p);
+                      const {totalVenta}=calcPedido(p,coste); const ec=estadoCombinado(p.lineas);
                       return (
                         <div key={p.id} className="cam-row"
                           style={{borderBottom:idx<items.length-1?"1px solid var(--border)":"none",
                             borderRadius:0}}
                           onClick={()=>abrirFicha(p)}>
                           <div style={{display:"flex",alignItems:"center",gap:".6rem",flex:1,minWidth:0}}>
+                            {/* Badge de estado combinado pago+entrega */}
+                            <span title={ec.label} style={{fontSize:"var(--fs-md)",flexShrink:0}}>{ec.emoji}</span>
                             <div style={{flex:1,minWidth:0}}>
                               <div style={{fontWeight:700,fontSize:"var(--fs-md)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
                               <div style={{display:"flex",gap:".3rem",flexWrap:"wrap",marginTop:".15rem"}}>
@@ -794,7 +826,7 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal, filtroExterno, onC
                           </div>
                           <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:".3rem",flexShrink:0}}>
                             <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-md)",fontWeight:800}}>{fmtEur2(totalVenta)}</div>
-                            <span className="badge" style={{background:be.bg,color:be.color,fontSize:"var(--fs-2xs)"}}>{be.icon}</span>
+                            <span className="badge" style={{background:ec.bg,color:ec.color,fontSize:"var(--fs-2xs)"}}>{ec.label}</span>
                           </div>
                         </div>
                       );
@@ -811,7 +843,7 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal, filtroExterno, onC
 }
 
 // ─── TAB TALLAS ───────────────────────────────────────────────────────────────
-function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, fuentesActivas, voluntariosConfirmados, voluntariosPendientes, ninoExt = {}, setNino }) {
+function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, vistaSimple=true, setVistaSimple, fuentesActivas, voluntariosConfirmados, voluntariosPendientes, ninoExt = {}, setNino }) {
   const [editCorredores, setEditCorredores] = useState(false);
   const [tmpCor, setTmpCor] = useState({ ...corredoresExt });
   const [editNino, setEditNino] = useState(false);
@@ -930,6 +962,7 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
           <div className="pd">{grandTotal} unidades totales · {grandTotalCor} corredor · {grandTotalVol} voluntario{grandTotalNino > 0 ? ` · ${grandTotalNino} niño/a` : ""}</div>
         </div>
         {grandTotal > 0 && (
+          <>
           <button
             aria-label="Copiar resumen de tallas para el proveedor"
             onClick={() => {
@@ -947,6 +980,70 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
               alignItems:"center", gap:".35rem", flexShrink:0 }}>
             📋 Copiar para proveedor
           </button>
+          <button
+            aria-label="Exportar pedido al proveedor como PDF"
+            onClick={() => {
+              const ahora = new Date();
+              const fecha = ahora.toLocaleDateString("es-ES", {day:"2-digit",month:"long",year:"numeric"});
+              const lineasPDF = TALLAS.map(t => {
+                const tot = (grandTallasCor[t]||0) + (grandTallasVol[t]||0);
+                const corr = grandTallasCor[t]||0;
+                const vol  = grandTallasVol[t]||0;
+                return tot > 0 ? { talla:t, corr, vol, tot } : null;
+              }).filter(Boolean);
+              const lineasNino = TALLAS_NINO.map(t => {
+                const tot = tallasNinoTotal[t]||0;
+                return tot > 0 ? { talla:t, tot } : null;
+              }).filter(Boolean);
+              const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+                <title>Pedido Camisetas — Trail El Guerrero 2026</title>
+                <style>
+                  *{margin:0;padding:0;box-sizing:border-box}
+                  body{font-family:Arial,sans-serif;font-size:11pt;color:#111;padding:24px;max-width:600px;margin:0 auto}
+                  h1{font-size:15pt;font-weight:900;color:#2B5468;margin-bottom:4px}
+                  .meta{font-size:9pt;color:#555;margin-bottom:20px}
+                  table{width:100%;border-collapse:collapse;margin-bottom:20px}
+                  th{background:#2B5468;color:#fff;padding:6px 10px;text-align:right;font-size:10pt}
+                  th:first-child{text-align:left}
+                  td{padding:5px 10px;border-bottom:1px solid #e5e5e5;text-align:right;font-size:10pt}
+                  td:first-child{text-align:left;font-weight:700;font-family:monospace}
+                  .total-row td{font-weight:800;background:#f9f9f9;border-top:2px solid #2B5468;font-size:12pt}
+                  .section-title{font-size:11pt;font-weight:700;color:#2B5468;margin:16px 0 8px;border-bottom:2px solid #2B5468;padding-bottom:4px}
+                  @media print{body{padding:8px}}
+                </style></head><body>
+                <h1>👕 Pedido de Camisetas — Trail El Guerrero 2026</h1>
+                <div class="meta">Generado el ${fecha} · Referencia: TG2026-CAMISETAS</div>
+                ${lineasPDF.length > 0 ? `
+                  <div class="section-title">Adulto (corredores + voluntarios)</div>
+                  <table>
+                    <thead><tr><th>Talla</th><th>Corredor</th><th>Voluntario</th><th>TOTAL</th></tr></thead>
+                    <tbody>
+                      ${lineasPDF.map(l=>`<tr><td>${l.talla}</td><td>${l.corr||"—"}</td><td>${l.vol||"—"}</td><td>${l.tot}</td></tr>`).join("")}
+                    </tbody>
+                    <tfoot><tr class="total-row"><td>TOTAL ADULTO</td><td>${lineasPDF.reduce((s,l)=>s+l.corr,0)}</td><td>${lineasPDF.reduce((s,l)=>s+l.vol,0)}</td><td>${grandTotal}</td></tr></tfoot>
+                  </table>` : ""}
+                ${lineasNino.length > 0 ? `
+                  <div class="section-title">Infantil</div>
+                  <table>
+                    <thead><tr><th>Talla</th><th colspan="2"></th><th>TOTAL</th></tr></thead>
+                    <tbody>${lineasNino.map(l=>`<tr><td>${l.talla}</td><td colspan="2"></td><td>${l.tot}</td></tr>`).join("")}</tbody>
+                    <tfoot><tr class="total-row"><td>TOTAL INFANTIL</td><td colspan="2"></td><td>${lineasNino.reduce((s,l)=>s+l.tot,0)}</td></tr></tfoot>
+                  </table>` : ""}
+                <div style="margin-top:24px;padding:12px;background:#f5f5f5;border-radius:6px;font-size:9pt;color:#555">
+                  TOTAL UNIDADES: <strong style="font-size:13pt;color:#2B5468">${grandTotal + lineasNino.reduce((s,l)=>s+l.tot,0)}</strong>
+                </div>
+                </body></html>`;
+              const w = window.open("","_blank","width=700,height=800");
+              if(w){ w.document.write(html); w.document.close(); setTimeout(()=>w.print(),400); }
+            }}
+            style={{ display:"flex", alignItems:"center", gap:".35rem", flexShrink:0,
+              fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+              padding:".5rem .85rem", borderRadius:"var(--r-sm)",
+              background:"rgba(99,102,241,.08)", color:"var(--primary)",
+              border:"1px solid rgba(99,102,241,.25)", cursor:"pointer" }}>
+            🖨️ PDF proveedor
+          </button>
+          </>
         )}
       </div>
 
@@ -1002,6 +1099,24 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
         ))}
       </div>
 
+      {/* ── TOGGLE vista simple / desglose ── */}
+      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:".4rem"}}>
+        <div style={{display:"flex",background:"var(--surface2)",borderRadius:8,border:"1px solid var(--border)",overflow:"hidden"}}>
+          <button
+            className={`btn btn-sm${vistaSimple?" btn-cyan":""}`}
+            style={{borderRadius:0,border:"none",margin:0,minHeight:36}}
+            onClick={()=>setVistaSimple(true)}>
+            📊 Resumen
+          </button>
+          <button
+            className={`btn btn-sm${!vistaSimple?" btn-cyan":""}`}
+            style={{borderRadius:0,border:"none",margin:0,minHeight:36,borderLeft:"1px solid var(--border)"}}
+            onClick={()=>setVistaSimple(false)}>
+            🔍 Ver desglose
+          </button>
+        </div>
+      </div>
+
       {/* ── TABLA CONSOLIDADA: colapsable ── */}
       <div style={{borderRadius:10,overflow:"hidden",marginBottom:".85rem",
         border:"1px solid rgba(99,102,241,.25)"}}>
@@ -1025,10 +1140,10 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
             <thead>
               <tr>
                 <th>Talla</th>
-                <th className="text-right" style={{ color: TC.corredor.color, fontSize: 'var(--fs-xs)', opacity: fuentesActivas.corredoresPlat ? 1 : 0.4 }}>🏃 Corredor<br/><span style={{opacity:.65}}>Plat. ext.</span> {!fuentesActivas.corredoresPlat && "🚫"}</th>
-                <th className="text-right" style={{ color: TC.corredor.color, fontSize: 'var(--fs-xs)', opacity: fuentesActivas.extrasCorredor ? 1 : 0.4 }}>👕 Extras<br/><span style={{opacity:.65}}>Corredor</span> {!fuentesActivas.extrasCorredor && "🚫"}</th>
-                <th className="text-right" style={{ color: TC.voluntario.color, fontSize: 'var(--fs-xs)', opacity: fuentesActivas.voluntariosAuto ? 1 : 0.4 }}>👥 Voluntarios<br/><span style={{opacity:.65}}>Automático</span> {!fuentesActivas.voluntariosAuto && "🚫"}</th>
-                <th className="text-right" style={{ color: TC.voluntario.color, fontSize: 'var(--fs-xs)', opacity: fuentesActivas.extrasVoluntario ? 1 : 0.4 }}>👥 Extras<br/><span style={{opacity:.65}}>Voluntario</span> {!fuentesActivas.extrasVoluntario && "🚫"}</th>
+                {!vistaSimple && <th className="text-right" style={{ color: TC.corredor.color, fontSize: 'var(--fs-xs)', opacity: fuentesActivas.corredoresPlat ? 1 : 0.4 }}>🏃 Corredor<br/><span style={{opacity:.65}}>Plat. ext.</span> {!fuentesActivas.corredoresPlat && "🚫"}</th>}
+                {!vistaSimple && <th className="text-right" style={{ color: TC.corredor.color, fontSize: 'var(--fs-xs)', opacity: fuentesActivas.extrasCorredor ? 1 : 0.4 }}>👕 Extras<br/><span style={{opacity:.65}}>Corredor</span> {!fuentesActivas.extrasCorredor && "🚫"}</th>}
+                {!vistaSimple && <th className="text-right" style={{ color: TC.voluntario.color, fontSize: 'var(--fs-xs)', opacity: fuentesActivas.voluntariosAuto ? 1 : 0.4 }}>👥 Voluntarios<br/><span style={{opacity:.65}}>Automático</span> {!fuentesActivas.voluntariosAuto && "🚫"}</th>}
+                {!vistaSimple && <th className="text-right" style={{ color: TC.voluntario.color, fontSize: 'var(--fs-xs)', opacity: fuentesActivas.extrasVoluntario ? 1 : 0.4 }}>👥 Extras<br/><span style={{opacity:.65}}>Voluntario</span> {!fuentesActivas.extrasVoluntario && "🚫"}</th>}
                 <th className="text-right" style={{ fontWeight: 800 }}>TOTAL</th>
               </tr>
             </thead>
@@ -1046,10 +1161,10 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
                 return (
                   <tr key={t}>
                     <td style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{t}</td>
-                    <td className="text-right">{cell(cExt,  TC.corredor.color,   TC.corredor.dim)}</td>
-                    <td className="text-right">{cell(cXtra, TC.corredor.color,   TC.corredor.dim)}</td>
-                    <td className="text-right">{cell(vAuto, TC.voluntario.color, TC.voluntario.dim)}</td>
-                    <td className="text-right">{cell(vXtra, TC.voluntario.color, TC.voluntario.dim)}</td>
+                    {!vistaSimple && <td className="text-right">{cell(cExt,  TC.corredor.color,   TC.corredor.dim)}</td>}
+                    {!vistaSimple && <td className="text-right">{cell(cXtra, TC.corredor.color,   TC.corredor.dim)}</td>}
+                    {!vistaSimple && <td className="text-right">{cell(vAuto, TC.voluntario.color, TC.voluntario.dim)}</td>}
+                    {!vistaSimple && <td className="text-right">{cell(vXtra, TC.voluntario.color, TC.voluntario.dim)}</td>}
                     <td className="text-right"><span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 'var(--fs-md)' }}>{tot}</span></td>
                   </tr>
                 );
@@ -1058,10 +1173,10 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
             <tfoot>
               <tr className="total-row">
                 <td style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>TOTAL</td>
-                <td className="text-right" style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: TC.corredor.color }}>{TALLAS.reduce((s,t)=>s+(corredoresExt[t]||0),0)}</td>
-                <td className="text-right" style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: TC.corredor.color }}>{TALLAS.reduce((s,t)=>s+(tallasExtras[t]?.corredor||0),0)}</td>
-                <td className="text-right" style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: TC.voluntario.color }}>{TALLAS.reduce((s,t)=>s+(tallasVol[t]||0),0)}</td>
-                <td className="text-right" style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: TC.voluntario.color }}>{TALLAS.reduce((s,t)=>s+(tallasExtras[t]?.voluntario||0),0)}</td>
+                {!vistaSimple && <td className="text-right" style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: TC.corredor.color }}>{TALLAS.reduce((s,t)=>s+(corredoresExt[t]||0),0)}</td>}
+                {!vistaSimple && <td className="text-right" style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: TC.corredor.color }}>{TALLAS.reduce((s,t)=>s+(tallasExtras[t]?.corredor||0),0)}</td>}
+                {!vistaSimple && <td className="text-right" style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: TC.voluntario.color }}>{TALLAS.reduce((s,t)=>s+(tallasVol[t]||0),0)}</td>}
+                {!vistaSimple && <td className="text-right" style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: TC.voluntario.color }}>{TALLAS.reduce((s,t)=>s+(tallasExtras[t]?.voluntario||0),0)}</td>}
                 <td className="text-right" style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 'var(--fs-md)' }}>{grandTotal}</td>
               </tr>
               <tr>
@@ -1315,7 +1430,8 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
 // ─── TAB CHECKLIST ────────────────────────────────────────────────────────────
 function TabChecklist({ pedidos, updateLinea, abrirFicha }) {
   const [filtro,setFiltro]   = useState("todos");
-  const [pedColaps, setPedCo] = useState({}); // {} = todos colapsados (collapsed = !pedColaps[id])
+  const [pedColaps, setPedCo] = useState({});
+  const [modoRapido, setModoRapido] = useState(false); // {} = todos colapsados (collapsed = !pedColaps[id])
   const todas = useMemo(()=>pedidos.flatMap(p=>p.lineas.map(l=>({...l,pedNombre:p.nombre,pedId:p.id,ped:p}))),[pedidos]);
   const filtradas = useMemo(()=>todas.filter(l=>{
     const ep=l.estadoPago||"pendiente"; const ee=l.estadoEntrega||"pendiente";
@@ -1339,7 +1455,63 @@ function TabChecklist({ pedidos, updateLinea, abrirFicha }) {
   ];
   return (
     <>
-      <div className="ph"><div><div className="pt">📬 Entrega de camisetas</div><div className="pd">{cPE} líneas por entregar · {cPP} sin cobrar</div></div></div>
+      <div className="ph">
+        <div><div className="pt">📬 Entrega de camisetas</div><div className="pd">{cPE} líneas por entregar · {cPP} sin cobrar</div></div>
+        <button className={`btn btn-sm${modoRapido?" btn-cyan":" btn-ghost"}`}
+          onClick={()=>setModoRapido(v=>!v)}
+          title={modoRapido?"Salir del modo entrega rápida":"Modo entrega rápida: lista plana con botones grandes"}>
+          ⚡ {modoRapido?"Modo normal":"Entrega rápida"}
+        </button>
+      </div>
+
+      {/* ── MODO ENTREGA RÁPIDA ── */}
+      {modoRapido && (() => {
+        const lineasPend = pedidos.flatMap(p =>
+          (p.lineas||[])
+            .filter(l => (l.estadoEntrega||"pendiente") === "pendiente")
+            .map(l => ({ ...l, pedidoId: p.id, nombrePedido: p.nombre }))
+        ).sort((a,b) => a.nombrePedido.localeCompare(b.nombrePedido));
+        return (
+          <div style={{ marginBottom:".85rem" }}>
+            {lineasPend.length === 0 ? (
+              <div style={{ textAlign:"center", padding:"2rem", fontFamily:"var(--font-mono)",
+                fontSize:"var(--fs-sm)", color:"var(--green)" }}>
+                ✅ Todas las camisetas han sido entregadas
+              </div>
+            ) : (
+              <div style={{ display:"flex", flexDirection:"column", gap:".35rem" }}>
+                {lineasPend.map((l,i) => (
+                  <div key={l.pedidoId+"-"+l.id+i}
+                    style={{ display:"flex", alignItems:"center", gap:".75rem",
+                      padding:".65rem .9rem", borderRadius:8,
+                      background:"var(--surface2)", border:"1px solid var(--border)" }}>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontWeight:700, fontSize:"var(--fs-base)",
+                        overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                        {l.nombrePedido}
+                      </div>
+                      <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                        color:"var(--text-muted)", marginTop:".1rem" }}>
+                        {TC[l.tipo]?.icon} {TC[l.tipo]?.label} · Talla {l.talla} · ×{l.cantidad}
+                        {(l.estadoPago||"pendiente") !== "pagado" && l.estadoPago !== "regalo" && (
+                          <span style={{ color:"var(--amber)", marginLeft:".4rem" }}>⚠ Sin cobrar</span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      className="btn btn-green"
+                      style={{ minHeight:52, minWidth:100, fontSize:"var(--fs-base)", fontWeight:800 }}
+                      onClick={() => updateLinea(l.pedidoId, {...l, estadoEntrega:"entregado"})}>
+                      ✓ Entregar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       <div style={{display:"flex",gap:".4rem",flexWrap:"wrap",marginBottom:".85rem"}}>
         {FILTROS.map(f=>(
           <button key={f.id} onClick={()=>setFiltro(f.id)} style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,padding:".28rem .6rem",borderRadius:"var(--r-sm)",border:`1px solid ${filtro===f.id?f.color:"var(--border)"}`,background:filtro===f.id?`${f.color}18`:"transparent",color:filtro===f.id?f.color:"var(--text-muted)",cursor:"pointer",transition:"all .15s"}}>{f.label}</button>
@@ -1570,6 +1742,7 @@ function ModalPedido({
   const delL     = (i)     => setForm(p=>({...p,lineas:p.lineas.filter((_,j)=>j!==i)}));
   const {totalVenta,totalCoste,beneficio,benRealizado,benPotencial,costeRegalos} = calcPedido(form,coste);
   const [intentoGuardar, setIntentoGuardar] = useState(false);
+  const [verAvanzado, setVerAvanzado] = useState(!!data?.id); // edición: mostrar todo
   const valido = form.nombre.trim()&&form.lineas.length>0;
   return (
     <div className={`modal-backdrop${mpedClosing ? " modal-backdrop-closing" : ""}`} onClick={e=>e.target===e.currentTarget&&mpedHandleClose()}>
@@ -1587,8 +1760,10 @@ function ModalPedido({
                 <div className="xs mono" style={{color:"var(--red)",marginTop:".2rem"}}>⚠ El nombre es obligatorio</div>
               )}
             </div>
-            <div><label className="fl">Teléfono</label><input className="inp" value={form.telefono} onChange={e=>upd("telefono",e.target.value)} placeholder="6XX XXX XXX" /></div>
-            <div><label className="fl">Email</label><input className="inp" value={form.email} onChange={e=>upd("email",e.target.value)} placeholder="email@ejemplo.com" /></div>
+            {verAvanzado && <>
+              <div><label className="fl">Teléfono</label><input className="inp" value={form.telefono} onChange={e=>upd("telefono",e.target.value)} placeholder="6XX XXX XXX" /></div>
+              <div><label className="fl">Email</label><input className="inp" value={form.email} onChange={e=>upd("email",e.target.value)} placeholder="email@ejemplo.com" /></div>
+            </>}
           </div>
           <div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".5rem"}}><label className="fl" style={{margin:0}}>Líneas del pedido</label><button className="btn btn-ghost btn-sm" onClick={addL}>+ Añadir línea</button></div>
@@ -1603,13 +1778,13 @@ function ModalPedido({
                       <div><label className="fl">Tipo</label><select className="inp inp-sm" value={l.tipo} onChange={e=>{const newTipo=e.target.value;const defaultTalla=newTipo==="nino"?"4-6":"M";updL(i,"tipo",newTipo);updL(i,"talla",defaultTalla);}}>{TIPOS.map(t=><option key={t} value={t}>{TC[t].icon} {TC[t].label}</option>)}</select></div>
                       <div><label className="fl">Talla</label><select className="inp inp-sm" value={l.talla} onChange={e=>updL(i,"talla",e.target.value)}>{(l.tipo==="nino"?TALLAS_NINO:TALLAS).map(t=><option key={t} value={t}>{t}</option>)}</select></div>
                       <div><label className="fl">Cant.</label><input type="number" min="1" className="inp inp-sm inp-mono" value={l.cantidad} onChange={e=>updL(i,"cantidad",Math.max(1,parseInt(e.target.value)||1))} /></div>
-                      <div><label className="fl">€ Venta</label><input type="number" min="0" step="0.5" className="inp inp-sm inp-mono" value={l.precioVenta||0} onChange={e=>updL(i,"precioVenta",parseFloat(e.target.value)||0)} disabled={esR} style={{opacity:esR?.45:1}} /></div>
+                      {verAvanzado && <div><label className="fl">€ Venta</label><input type="number" min="0" step="0.5" className="inp inp-sm inp-mono" value={l.precioVenta||0} onChange={e=>updL(i,"precioVenta",parseFloat(e.target.value)||0)} disabled={esR} style={{opacity:esR?.45:1}} /></div>}
                       <button className="btn btn-red btn-sm" onClick={()=>delL(i)} disabled={form.lineas.length<=1} style={{marginBottom:1}} aria-label="Cerrar">✕</button>
                     </div>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem",marginBottom:".35rem"}}>
+                    {verAvanzado && <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem",marginBottom:".35rem"}}>
                       <div><label className="fl">Estado de pago</label><select className="inp inp-sm" value={ep} onChange={e=>updL(i,"estadoPago",e.target.value)}>{ESTADOS_PAGO.map(s=><option key={s} value={s}>{EP[s].icon} {EP[s].label}</option>)}</select></div>
                       <div><label className="fl">Estado de entrega</label><select className="inp inp-sm" value={l.estadoEntrega||"pendiente"} onChange={e=>updL(i,"estadoEntrega",e.target.value)}>{ESTADOS_ENTREGA.map(s=><option key={s} value={s}>{EE[s].icon} {EE[s].label}</option>)}</select></div>
-                    </div>
+                    </div>}
                     <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",display:"flex",gap:".75rem",flexWrap:"wrap"}}>
                       <span>Coste: {fmtEur2(subC)}</span><span>Venta: {esR?"🎁 Regalo":fmtEur2(subV)}</span>
                       <span style={{color:margen>=0?"var(--green)":"var(--red)"}}>Margen: {fmtEur2(margen)}</span>
@@ -1624,6 +1799,14 @@ function ModalPedido({
               })}
             </div>
           </div>
+          <button type="button"
+            onClick={()=>setVerAvanzado(v=>!v)}
+            style={{ background:"none", border:"none", cursor:"pointer", width:"100%",
+              fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--cyan)",
+              padding:".3rem 0", textAlign:"left", display:"flex", alignItems:"center", gap:".3rem" }}>
+            {verAvanzado ? "▲ Ocultar opciones avanzadas" : "▼ Precio, pago, entrega y contacto"}
+          </button>
+
           <div style={{background:"var(--surface2)",borderRadius:8,padding:".65rem .85rem",display:"flex",justifyContent:"space-around",gap:".75rem",flexWrap:"wrap"}}>
             {[
               {l:"Total coste",      v:fmtEur2(totalCoste),      c:"var(--red)"},
