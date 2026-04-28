@@ -146,7 +146,19 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
   // 5.1 Scroll indicator para tabs
   const tabsScrollRef = useRef(null);
   const [tabsScrolled, setTabsScrolled] = useState(false);
-  const [tabsHasMore,  setTabsHasMore]  = useState(true); // asumir que hay más al inicio
+  const [tabsHasMore,  setTabsHasMore]  = useState(true); // recalculado en mount+resize
+
+  useEffect(() => {
+    const check = () => {
+      const el = tabsScrollRef.current;
+      if (!el) return;
+      setTabsScrolled(el.scrollLeft > 8);
+      setTabsHasMore(el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
+    };
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };

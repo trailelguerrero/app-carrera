@@ -346,7 +346,7 @@ export const BLOCK_CSS = `
     cursor: pointer;
     white-space: nowrap;
     transition: all 0.15s ease;
-    min-height: 30px;
+    min-height: 44px;
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
@@ -417,7 +417,7 @@ export const BLOCK_CSS = `
     letter-spacing: 0.04em;
     transition: all 0.18s;
     flex-shrink: 0;
-    min-height: 34px;
+    min-height: 44px;
   }
   .tab-btn:hover { color: var(--text); border-color: var(--border-light); }
   .tab-btn:active { transform: scale(0.97); }

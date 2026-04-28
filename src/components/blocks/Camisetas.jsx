@@ -378,7 +378,7 @@ export default function App() {
 }
 
 // ─── TAB DASHBOARD ────────────────────────────────────────────────────────────
-function TabDashboard({ stats, pedidos, coste, setCoste, setTab, goToTab, abrirFicha, precioCorrExt, setPrecioCorrExt, fuentesActivas, setFuentesActivas, ninoExt = {} }) {
+function TabDashboard({ stats, pedidos, coste, setCoste, setTab, goToTab, abrirFicha, precioCorrExt, setPrecioCorrExt, fuentesActivas, setFuentesActivas, ninoExt = {}, corredoresExt = {} }) {
   const [editCoste,setEditCoste] = useState(false);
   const [wizardAbierto2, setWizardAbierto2] = useState(true);
   const [tmpCoste, setTmpCoste]  = useState({...coste});

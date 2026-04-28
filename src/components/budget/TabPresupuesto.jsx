@@ -369,7 +369,12 @@ export const TabPresupuesto = ({
         {/* Vista resumen variables */}
         {vistaResumen ? (
           <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
-            {conceptosVariables.map(c => (
+            {conceptosVariables.map(c => {
+              const totalVar = !c.activo ? 0 : DISTANCIAS.reduce((s, d) => {
+                if (c.activoDistancias && c.activoDistancias[d] === false) return s;
+                return s + (c.costePorDistancia[d] || 0) * (totalInscritos[d] || 0);
+              }, 0);
+              return (
               <div key={c.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
                 padding:".4rem .5rem", borderBottom:"1px solid var(--border-light)",
                 opacity: c.activo ? 1 : 0.45 }}>
@@ -383,10 +388,11 @@ export const TabPresupuesto = ({
                 </div>
                 <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
                   color:"var(--text)", flexShrink:0, marginLeft:".5rem" }}>
-                  {fmtN(c.total ?? 0)} €
+                  {fmtN(totalVar)} €
                 </span>
               </div>
-            ))}
+              );
+            })}
             <div style={{ display:"flex", justifyContent:"space-between",
               padding:".45rem .5rem", borderTop:"2px solid var(--border)",
               background:"var(--surface2)" }}>

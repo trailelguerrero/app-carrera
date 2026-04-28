@@ -426,7 +426,7 @@ export default function App() {
                   <div key={t.id} style={{display:"flex",alignItems:"flex-start",gap:".5rem",
                     padding:".45rem .85rem",borderBottom:"1px solid var(--border-light)",
                     cursor:"pointer"}}
-                    onClick={() => { setGanttPopup(null); setFicha({tipo:"tarea",data:t}); }}>
+                    onClick={() => { setGanttPopup(null); abrirFicha("tarea", t); }}>
                     <span style={{color:col,fontSize:"var(--fs-xs)",marginTop:".1rem",flexShrink:0}}>●</span>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:600,
