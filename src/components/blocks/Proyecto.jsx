@@ -160,6 +160,8 @@ export default function App() {
   const voluntarios = Array.isArray(rawVoluntarios) ? rawVoluntarios : [];
   const contLog     = Array.isArray(rawContLog) ? rawContLog : [];
   const [modal, setModal]     = useState(null);
+  const [quickCreate, setQuickCreate] = useState(false);
+  const [ganttPopup, setGanttPopup] = useState(null); // {area, tareas, x, y}
   const [ficha, setFicha]     = useState(null); // {tipo,data} — vista previa
   const abrirFicha = (tipo, data) => {
     setFicha({ tipo, data });
@@ -380,7 +382,7 @@ export default function App() {
             busqueda={busquedaGlobal || busqueda} setBusqueda={(v)=>{setBusqueda(v); setBusquedaGlobal(v);}}
             updEstado={updEstado} setModal={setModal} setDelConf={setDelConf} setFicha={abrirFicha}
             vista={vistaTablon} setVista={setVistaTablon} />}
-          {tab==="gantt"  && <TabGantt tareas={tareas} hitos={hitos} equipo={equipo} setModal={setModal} setFicha={abrirFicha} setFiltroArea={setFiltroArea} setTabParent={setTab} eventFecha={config?.fecha || EVENT_CONFIG_DEFAULT.fecha} />}
+          {tab==="gantt"  && <TabGantt tareas={tareas} hitos={hitos} equipo={equipo} setModal={setModal} setFicha={abrirFicha} setFiltroArea={setFiltroArea} setTabParent={setTab} eventFecha={config?.fecha || EVENT_CONFIG_DEFAULT.fecha} setGanttPopup={setGanttPopup} />}
           {tab==="equipo" && <TabEquipo equipo={equipo} setEquipo={setEquipo} tareas={tareas} voluntarios={voluntarios} contLog={contLog} setModal={setModal} setDelConf={setDelConf} setFicha={abrirFicha} />}
           {tab==="hitos"  && <TabHitos hitos={hitos} updHito={updHito} setModal={setModal} setDelConf={setDelConf} setFicha={abrirFicha} />}
         </div>
@@ -389,6 +391,73 @@ export default function App() {
       {ficha?.tipo==="tarea"   && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} documentos={documentos} tareas={tareas} onClose={()=>setFicha(null)} onEditar={()=>{setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
       {ficha?.tipo==="hito"    && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} documentos={documentos} tareas={tareas} onClose={()=>setFicha(null)} onEditar={()=>{setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
       {ficha?.tipo==="persona" && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} documentos={documentos} tareas={tareas} onClose={()=>setFicha(null)} onEditar={()=>{setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
+      {/* ── Popup de tareas al tap en barra del Gantt ── */}
+      {ganttPopup && createPortal(
+        <div style={{
+          position:"fixed", inset:0, zIndex:400,
+          background:"transparent",
+        }} onClick={() => setGanttPopup(null)}>
+          <div style={{
+            position:"fixed",
+            left: Math.min(ganttPopup.x, window.innerWidth - 320),
+            top:  Math.min(ganttPopup.y, window.innerHeight - 300),
+            width:300, maxHeight:280,
+            background:"var(--surface)", border:"1px solid var(--border)",
+            borderRadius:12, boxShadow:"0 8px 32px rgba(0,0,0,0.4)",
+            overflow:"hidden", zIndex:401,
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+              padding:".55rem .85rem",borderBottom:"1px solid var(--border)",
+              background:"var(--surface2)"}}>
+              <div style={{display:"flex",alignItems:"center",gap:".5rem"}}>
+                <span style={{color:ganttPopup.area.color,fontSize:"var(--fs-md)"}}>{ganttPopup.area.icon}</span>
+                <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:800,color:"var(--text)"}}>
+                  {ganttPopup.area.label}
+                </span>
+              </div>
+              <button onClick={() => setGanttPopup(null)}
+                style={{background:"none",border:"none",color:"var(--text-dim)",cursor:"pointer",fontSize:"var(--fs-sm)",padding:"0 .2rem"}}>✕</button>
+            </div>
+            <div style={{overflowY:"auto",maxHeight:220}}>
+              {ganttPopup.tareas.sort((a,b) => (a.fechaLimite||"").localeCompare(b.fechaLimite||"")).map(t => {
+                const EST = {pendiente:{color:"var(--amber)"},en_curso:{color:"var(--cyan)"},"en curso":{color:"var(--cyan)"},completado:{color:"var(--green)"},bloqueado:{color:"var(--red)"}};
+                const col = EST[t.estado]?.color || "var(--text-muted)";
+                return (
+                  <div key={t.id} style={{display:"flex",alignItems:"flex-start",gap:".5rem",
+                    padding:".45rem .85rem",borderBottom:"1px solid var(--border-light)",
+                    cursor:"pointer"}}
+                    onClick={() => { setGanttPopup(null); setFicha({tipo:"tarea",data:t}); }}>
+                    <span style={{color:col,fontSize:"var(--fs-xs)",marginTop:".1rem",flexShrink:0}}>●</span>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:600,
+                        overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.titulo}</div>
+                      {t.fechaLimite && <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-2xs)",color:"var(--text-muted)"}}>
+                        {new Date(t.fechaLimite).toLocaleDateString("es-ES",{day:"2-digit",month:"short"})}
+                      </div>}
+                    </div>
+                  </div>
+                );
+              })}
+              {ganttPopup.tareas.length === 0 && (
+                <div style={{padding:"1rem",textAlign:"center",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>Sin tareas asignadas</div>
+              )}
+            </div>
+            <div style={{padding:".45rem .85rem",borderTop:"1px solid var(--border)",background:"var(--surface2)"}}>
+              <button className="btn btn-ghost btn-sm" style={{width:"100%",fontSize:"var(--fs-xs)"}}
+                onClick={() => { setGanttPopup(null); setFiltroArea(ganttPopup.area.id); setTab("tablón"); }}>
+                Ver todas en Tablón →
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+      {quickCreate && createPortal(
+        <QuickCreateTarea
+          areas={AREAS}
+          onSave={(data) => { saveTarea(data); setQuickCreate(false); toast.success("Tarea creada ⚡"); }}
+          onClose={() => setQuickCreate(false)}
+        />, document.body)}
       {modal?.tipo==="tarea"   && <ModalTarea   key={modal.data?.id||"new"} data={modal.data} prefill={modal.prefill} equipo={equipo} tareas={tareas} documentos={documentos} onSave={saveTarea}   onClose={() => setModal(null)} />}
       {modal?.tipo==="hito"    && <ModalHito    key={modal.data?.id||"new"} data={modal.data}                                  onSave={saveHito}    onClose={() => setModal(null)} />}
       {modal?.tipo==="persona" && <ModalPersona key={modal.data?.id||"new"} data={modal.data}                                  onSave={savePersona} onClose={() => setModal(null)} />}
@@ -1046,7 +1115,7 @@ function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, fil
 }
 
 // ─── TAB GANTT ────────────────────────────────────────────────────────────────
-function TabGantt({ tareas, hitos, equipo, setModal, setFicha, setFiltroArea, setTabParent, eventFecha }) {
+function TabGantt({ tareas, hitos, equipo, setModal, setFicha, setFiltroArea, setTabParent, eventFecha, setGanttPopup }) {
   const [filtroGantt, setFiltroGantt] = useState("todas");
 
   // Rango del Gantt: desde 6 meses antes del evento hasta 1 mes después
@@ -1197,6 +1266,8 @@ function TabGantt({ tareas, hitos, equipo, setModal, setFicha, setFiltroArea, se
             }}>
             🖨️ PDF
           </button>
+          <button className="btn btn-sm btn-ghost" onClick={() => setQuickCreate(true)}
+            title="Crear tarea rápida (título + área + fecha)">⚡</button>
           <button className="btn btn-ghost" onClick={() => setModal({tipo:"hito",data:null})}>+ Hito</button>
           <button className="btn btn-primary" onClick={() => setModal({tipo:"tarea",data:null})}>+ Tarea</button>
         </div>
@@ -1231,14 +1302,17 @@ function TabGantt({ tareas, hitos, equipo, setModal, setFicha, setFiltroArea, se
                 <span className="mono xs" style={{color:"var(--text)"}}>{a.label.split(" ")[0]}</span>
                 <span className="mono xs muted">{a.pctDone}%</span>
               </div>
-              <div className="gantt-track" style={{position:"relative",height:32}}>
+              <div className="gantt-track" style={{position:"relative",height:44}}>
                 <div className="gantt-bar" style={{
                   left:`${left}%`, width:`${width}%`,
                   background:`linear-gradient(90deg, ${a.color}cc, ${a.color}66)`,
                   border:`1px solid ${a.color}44`,
                   cursor:"pointer",
                 }} title={`Ver tareas de ${a.label}`}
-                  onClick={() => { setFiltroArea && setFiltroArea(a.id); setTabParent && setTabParent("tablón"); }}>
+                  onClick={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    setGanttPopup({ area: a, tareas: at, x: rect.left, y: rect.bottom + 6 });
+                  }}>
                   <div className="gantt-bar-fill" style={{width:`${a.pctDone}%`,background:a.color+"99"}}/>
                   <span className="gantt-bar-label">{a.done}/{a.total}</span>
                 </div>
@@ -1254,7 +1328,7 @@ function TabGantt({ tareas, hitos, equipo, setModal, setFicha, setFiltroArea, se
           <div className="gantt-label-col">
             <span>🏁</span><span className="mono xs" style={{color:"var(--text)"}}>Hitos</span>
           </div>
-          <div className="gantt-track" style={{position:"relative",height:32}}>
+          <div className="gantt-track" style={{position:"relative",height:44}}>
             {hitos.map(h => (
               <div key={h.id} className="gantt-hito" style={{
                 left:`${pct(h.fecha)}%`,
@@ -1679,6 +1753,61 @@ function validarTarea(formData) {
   const validation = {};
   if (!formData.titulo.trim()) validation.titulo = "Requerido";
   return validation;
+}
+
+// ─── QUICK CREATE TAREA ───────────────────────────────────────────────────────
+function QuickCreateTarea({ onSave, onClose, areas=AREAS, prefillArea="" }) {
+  const [titulo,     setTitulo]     = useState("");
+  const [area,       setArea]       = useState(prefillArea || areas[0]?.id || "permisos");
+  const [fechaLimite,setFechaLimite]= useState("");
+  const [err,        setErr]        = useState("");
+  const inputRef = useRef(null);
+
+  useEffect(() => { setTimeout(() => inputRef.current?.focus(), 60); }, []);
+
+  const handleSave = () => {
+    if (!titulo.trim()) { setErr("El título es obligatorio"); return; }
+    onSave({
+      area, titulo: titulo.trim(), fechaLimite,
+      estado: "pendiente", prioridad: "media",
+      responsableId: null, notas: "", dependeDe: null, documentoId: null,
+    });
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={e => e.target===e.currentTarget && onClose()}>
+      <div className="modal" role="dialog" aria-modal="true" style={{maxWidth:420}}>
+        <div className="modal-header">
+          <span className="modal-title">⚡ Nueva tarea rápida</span>
+          <button className="btn btn-ghost btn-icon" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body" style={{display:"flex",flexDirection:"column",gap:".75rem"}}>
+          <div>
+            <label className="fl">Título *</label>
+            <input ref={inputRef} className={"inp"+(err?" inp-error":"")}
+              placeholder="¿Qué hay que hacer?"
+              value={titulo} onChange={e=>{setTitulo(e.target.value);setErr("");}} />
+            {err && <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--red)",marginTop:".2rem"}}>⚠ {err}</div>}
+          </div>
+          <div>
+            <label className="fl">Área</label>
+            <select className="inp" value={area} onChange={e=>setArea(e.target.value)}>
+              {areas.map(a => <option key={a.id} value={a.id}>{a.icon} {a.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="fl">Fecha límite</label>
+            <input type="date" className="inp" value={fechaLimite}
+              onChange={e=>setFechaLimite(e.target.value)} />
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-cyan" onClick={handleSave}>⚡ Crear tarea</button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function ModalTarea({
@@ -2223,7 +2352,7 @@ const CSS = `
   .gantt-today{position:absolute;top:-4px;bottom:-4px;width:2px;background:rgba(248,113,113,.7);z-index:10}
   .gantt-today-label{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-family:var(--font-mono);font-size:.45rem;color:#f87171;white-space:nowrap;font-weight:700}
   .gantt-row{display:flex;align-items:center;margin-bottom:.5rem;min-height:40px}
-  .gantt-bar{position:absolute;top:50%;transform:translateY(-50%);height:24px;border-radius:6px;display:flex;align-items:center;overflow:hidden;min-width:4px}
+  .gantt-bar{position:absolute;top:50%;transform:translateY(-50%);height:32px;border-radius:8px;display:flex;align-items:center;overflow:hidden;min-width:6px}
   .gantt-bar-fill{position:absolute;top:0;left:0;height:100%;opacity:.5;border-radius:6px}
   .gantt-bar-label{position:relative;font-family:var(--font-mono);font-size:.55rem;font-weight:700;color:rgba(255,255,255,.9);padding:0 .4rem;white-space:nowrap;z-index:1}
   .gantt-hito{position:absolute;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;cursor:default}
