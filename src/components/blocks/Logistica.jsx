@@ -1369,44 +1369,44 @@ function TabEmergencias({cont,inc,setInc,abrirModal,abrirFicha,tiposContacto=[]}
               const ahora = new Date();
               const fecha = ahora.toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"});
               const hora  = ahora.toTimeString().slice(0,5);
-              const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
-                <title>Directorio Emergencias — Trail El Guerrero 2026</title>
-                <style>
-                  *{margin:0;padding:0;box-sizing:border-box}
-                  body{font-family:Arial,sans-serif;font-size:11pt;color:#111;padding:20px;max-width:700px;margin:0 auto}
-                  h1{font-size:16pt;font-weight:900;color:#c00;margin-bottom:4px}
-                  .meta{font-size:9pt;color:#666;margin-bottom:16px}
-                  .alert{background:#fff0f0;border:2px solid #c00;border-radius:6px;padding:8px 12px;margin-bottom:16px;font-weight:700;color:#c00;font-size:12pt;text-align:center}
-                  .grupo{margin-bottom:14px;break-inside:avoid}
-                  .grupo-header{background:#f5f5f5;border-left:4px solid #c00;padding:5px 10px;font-weight:700;font-size:10pt;margin-bottom:6px}
-                  table{width:100%;border-collapse:collapse}
-                  td{padding:5px 8px;border-bottom:1px solid #e5e5e5;font-size:10pt;vertical-align:top}
-                  td.nombre{font-weight:700;width:35%}
-                  td.rol{color:#555;width:30%}
-                  td.tel{font-family:monospace;font-weight:700;font-size:11pt;width:35%}
-                  a{color:#111;text-decoration:none}
-                  .footer{margin-top:20px;padding-top:10px;border-top:1px solid #ccc;font-size:8pt;color:#888;text-align:center}
-                  @media print{body{padding:0}.footer{position:fixed;bottom:0;width:100%}}
-                </style></head><body>
-                <h1>🚨 Directorio de Emergencias</h1>
-                <div class="meta">Trail El Guerrero 2026 · Candeleda, Ávila · Impreso el ${fecha} a las ${hora}</div>
-                <div class="alert">⚠️ EMERGENCIA GRAVE → llama al 112 PRIMERO</div>
-                ${grupos.map(g=>`
-                  <div class="grupo">
-                    <div class="grupo-header">${g.tipo.icono||"📞"} ${g.tipo.nombre||g.tipo.id}</div>
-                    <table>${g.items.map(c=>`
-                      <tr>
-                        <td class="nombre">${c.nombre||"—"}</td>
-                        <td class="rol">${c.rol||""}</td>
-                        <td class="tel"><a href="tel:${(c.telefono||"").replace(/\s/g,"")}">${c.telefono||"—"}</a>${c.email?`<br><span style="font-size:9pt;font-weight:400">${c.email}</span>`:""}</td>
-                      </tr>`).join("")}
-                    </table>
-                  </div>`).join("")}
-                <div class="footer">Trail El Guerrero 2026 · Club Deportivo Trail Candeleda · Documento confidencial para uso interno del equipo organizador</div>
-                </body></html>`;
+
+              const gruposHtml = grupos.map(g => {
+                const rowsHtml = g.items.map(c => {
+                  const telLink = c.telefono ? "<a href=\"tel:" + (c.telefono||"").replace(/\s/g,"") + "\">" + (c.telefono||"—") + "</a>" : "—";
+                  const emailHtml = c.email ? "<br><span style=\"font-size:9pt;font-weight:400\">" + c.email + "</span>" : "";
+                  return "<tr><td class=\"nombre\">" + (c.nombre||"—") + "</td><td class=\"rol\">" + (c.rol||"") + "</td><td class=\"tel\">" + telLink + emailHtml + "</td></tr>";
+                }).join("");
+                return "<div class=\"grupo\"><div class=\"grupo-header\">" + (g.tipo.icono||"📞") + " " + (g.tipo.nombre||g.tipo.id) + "</div><table>" + rowsHtml + "</table></div>";
+              }).join("");
+
+              const html = "<!DOCTYPE html><html lang=\"es\"><head><meta charset=\"UTF-8\">" +
+                "<title>Directorio Emergencias — Trail El Guerrero 2026</title>" +
+                "<style>*{margin:0;padding:0;box-sizing:border-box}" +
+                "body{font-family:Arial,sans-serif;font-size:11pt;color:#111;padding:20px;max-width:700px;margin:0 auto}" +
+                "h1{font-size:16pt;font-weight:900;color:#c00;margin-bottom:4px}" +
+                ".meta{font-size:9pt;color:#666;margin-bottom:16px}" +
+                ".alert{background:#fff0f0;border:2px solid #c00;border-radius:6px;padding:8px 12px;margin-bottom:16px;font-weight:700;color:#c00;font-size:12pt;text-align:center}" +
+                ".grupo{margin-bottom:14px;break-inside:avoid}" +
+                ".grupo-header{background:#f5f5f5;border-left:4px solid #c00;padding:5px 10px;font-weight:700;font-size:10pt;margin-bottom:6px}" +
+                "table{width:100%;border-collapse:collapse}" +
+                "td{padding:5px 8px;border-bottom:1px solid #e5e5e5;font-size:10pt;vertical-align:top}" +
+                "td.nombre{font-weight:700;width:35%}td.rol{color:#555;width:30%}td.tel{font-family:monospace;font-weight:700;font-size:11pt;width:35%}" +
+                "a{color:#111;text-decoration:none}" +
+                ".footer{margin-top:20px;padding-top:10px;border-top:1px solid #ccc;font-size:8pt;color:#888;text-align:center}" +
+                "@media print{body{padding:0}.footer{position:fixed;bottom:0;width:100%}}</style></head><body>" +
+                "<h1>\uD83D\uDEA8 Directorio de Emergencias</h1>" +
+                "<div class=\"meta\">Trail El Guerrero 2026 \u00B7 Candeleda, \u00C1vila \u00B7 Impreso el " + fecha + " a las " + hora + "</div>" +
+                "<div class=\"alert\">\u26A0\uFE0F EMERGENCIA GRAVE \u2192 llama al 112 PRIMERO</div>" +
+                gruposHtml +
+                "<div class=\"footer\">Trail El Guerrero 2026 \u00B7 Club Deportivo Trail Candeleda \u00B7 Documento confidencial para uso interno del equipo organizador</div>" +
+                "</body></html>";
               const w = window.open("","_blank","width=750,height=900");
               if(w){w.document.write(html);w.document.close();setTimeout(()=>w.print(),400);}
-            }}>
+            }}
+            style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+              color:"var(--cyan)", background:"var(--cyan-dim)", border:"1px solid rgba(34,211,238,.25)",
+              borderRadius:6, padding:".35rem .75rem", cursor:"pointer", display:"flex",
+              alignItems:"center", gap:".35rem", flexShrink:0 }}>
             🖨️ PDF emergencias
           </button>
           {sub==="incidencias" && (

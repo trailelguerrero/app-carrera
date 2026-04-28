@@ -995,44 +995,53 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
                 const tot = tallasNinoTotal[t]||0;
                 return tot > 0 ? { talla:t, tot } : null;
               }).filter(Boolean);
-              const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
-                <title>Pedido Camisetas — Trail El Guerrero 2026</title>
-                <style>
-                  *{margin:0;padding:0;box-sizing:border-box}
-                  body{font-family:Arial,sans-serif;font-size:11pt;color:#111;padding:24px;max-width:600px;margin:0 auto}
-                  h1{font-size:15pt;font-weight:900;color:#2B5468;margin-bottom:4px}
-                  .meta{font-size:9pt;color:#555;margin-bottom:20px}
-                  table{width:100%;border-collapse:collapse;margin-bottom:20px}
-                  th{background:#2B5468;color:#fff;padding:6px 10px;text-align:right;font-size:10pt}
-                  th:first-child{text-align:left}
-                  td{padding:5px 10px;border-bottom:1px solid #e5e5e5;text-align:right;font-size:10pt}
-                  td:first-child{text-align:left;font-weight:700;font-family:monospace}
-                  .total-row td{font-weight:800;background:#f9f9f9;border-top:2px solid #2B5468;font-size:12pt}
-                  .section-title{font-size:11pt;font-weight:700;color:#2B5468;margin:16px 0 8px;border-bottom:2px solid #2B5468;padding-bottom:4px}
-                  @media print{body{padding:8px}}
-                </style></head><body>
-                <h1>👕 Pedido de Camisetas — Trail El Guerrero 2026</h1>
-                <div class="meta">Generado el ${fecha} · Referencia: TG2026-CAMISETAS</div>
-                ${lineasPDF.length > 0 ? `
-                  <div class="section-title">Adulto (corredores + voluntarios)</div>
-                  <table>
-                    <thead><tr><th>Talla</th><th>Corredor</th><th>Voluntario</th><th>TOTAL</th></tr></thead>
-                    <tbody>
-                      ${lineasPDF.map(l=>`<tr><td>${l.talla}</td><td>${l.corr||"—"}</td><td>${l.vol||"—"}</td><td>${l.tot}</td></tr>`).join("")}
-                    </tbody>
-                    <tfoot><tr class="total-row"><td>TOTAL ADULTO</td><td>${lineasPDF.reduce((s,l)=>s+l.corr,0)}</td><td>${lineasPDF.reduce((s,l)=>s+l.vol,0)}</td><td>${grandTotal}</td></tr></tfoot>
-                  </table>` : ""}
-                ${lineasNino.length > 0 ? `
-                  <div class="section-title">Infantil</div>
-                  <table>
-                    <thead><tr><th>Talla</th><th colspan="2"></th><th>TOTAL</th></tr></thead>
-                    <tbody>${lineasNino.map(l=>`<tr><td>${l.talla}</td><td colspan="2"></td><td>${l.tot}</td></tr>`).join("")}</tbody>
-                    <tfoot><tr class="total-row"><td>TOTAL INFANTIL</td><td colspan="2"></td><td>${lineasNino.reduce((s,l)=>s+l.tot,0)}</td></tr></tfoot>
-                  </table>` : ""}
-                <div style="margin-top:24px;padding:12px;background:#f5f5f5;border-radius:6px;font-size:9pt;color:#555">
-                  TOTAL UNIDADES: <strong style="font-size:13pt;color:#2B5468">${grandTotal + lineasNino.reduce((s,l)=>s+l.tot,0)}</strong>
-                </div>
-                </body></html>`;
+              const totalNino = lineasNino.reduce((acc,l) => acc+l.tot, 0);
+              const totalFinal = grandTotal + totalNino;
+
+              const rowsAdulto = lineasPDF.map(l =>
+                "<tr><td>" + l.talla + "</td><td>" + (l.corr||"—") + "</td><td>" + (l.vol||"—") + "</td><td>" + l.tot + "</td></tr>"
+              ).join("");
+              const rowsNino = lineasNino.map(l =>
+                "<tr><td>" + l.talla + "</td><td colspan=\"2\"></td><td>" + l.tot + "</td></tr>"
+              ).join("");
+
+              const secAdulto = lineasPDF.length > 0
+                ? "<div class=\"section-title\">Adulto (corredores + voluntarios)</div>" +
+                  "<table><thead><tr><th>Talla</th><th>Corredor</th><th>Voluntario</th><th>TOTAL</th></tr></thead>" +
+                  "<tbody>" + rowsAdulto + "</tbody>" +
+                  "<tfoot><tr class=\"total-row\"><td>TOTAL ADULTO</td><td>" +
+                  lineasPDF.reduce((a,l)=>a+l.corr,0) + "</td><td>" +
+                  lineasPDF.reduce((a,l)=>a+l.vol,0) + "</td><td>" + grandTotal + "</td></tr></tfoot></table>"
+                : "";
+
+              const secNino = lineasNino.length > 0
+                ? "<div class=\"section-title\">Infantil</div>" +
+                  "<table><thead><tr><th>Talla</th><th colspan=\"2\"></th><th>TOTAL</th></tr></thead>" +
+                  "<tbody>" + rowsNino + "</tbody>" +
+                  "<tfoot><tr class=\"total-row\"><td>TOTAL INFANTIL</td><td colspan=\"2\"></td><td>" + totalNino + "</td></tr></tfoot></table>"
+                : "";
+
+              const html = "<!DOCTYPE html><html lang=\"es\"><head><meta charset=\"UTF-8\">" +
+                "<title>Pedido Camisetas — Trail El Guerrero 2026</title>" +
+                "<style>*{margin:0;padding:0;box-sizing:border-box}" +
+                "body{font-family:Arial,sans-serif;font-size:11pt;color:#111;padding:24px;max-width:600px;margin:0 auto}" +
+                "h1{font-size:15pt;font-weight:900;color:#2B5468;margin-bottom:4px}" +
+                ".meta{font-size:9pt;color:#555;margin-bottom:20px}" +
+                "table{width:100%;border-collapse:collapse;margin-bottom:20px}" +
+                "th{background:#2B5468;color:#fff;padding:6px 10px;text-align:right;font-size:10pt}" +
+                "th:first-child{text-align:left}" +
+                "td{padding:5px 10px;border-bottom:1px solid #e5e5e5;text-align:right;font-size:10pt}" +
+                "td:first-child{text-align:left;font-weight:700;font-family:monospace}" +
+                ".total-row td{font-weight:800;background:#f9f9f9;border-top:2px solid #2B5468;font-size:12pt}" +
+                ".section-title{font-size:11pt;font-weight:700;color:#2B5468;margin:16px 0 8px;border-bottom:2px solid #2B5468;padding-bottom:4px}" +
+                "@media print{body{padding:8px}}</style></head><body>" +
+                "<h1>\uD83D\uDC55 Pedido de Camisetas — Trail El Guerrero 2026</h1>" +
+                "<div class=\"meta\">Generado el " + fecha + " \u00B7 Referencia: TG2026-CAMISETAS</div>" +
+                secAdulto + secNino +
+                "<div style=\"margin-top:24px;padding:12px;background:#f5f5f5;border-radius:6px;font-size:9pt;color:#555\">" +
+                "TOTAL UNIDADES: <strong style=\"font-size:13pt;color:#2B5468\">" + totalFinal + "</strong></div>" +
+                "</body></html>";
+
               const w = window.open("","_blank","width=700,height=800");
               if(w){ w.document.write(html); w.document.close(); setTimeout(()=>w.print(),400); }
             }}

@@ -1128,66 +1128,70 @@ function TabGantt({ tareas, hitos, equipo, setModal, setFicha, setFiltroArea, se
                 const hp = Math.max(0,Math.min(100,(new Date(h.fecha)-ganttStart)/86400000/totalDays*100));
                 return { ...h, pct: hp };
               });
-              const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
-                <title>Gantt Trail El Guerrero 2026</title>
-                <style>
-                  *{margin:0;padding:0;box-sizing:border-box}
-                  body{font-family:Arial,sans-serif;font-size:9pt;color:#111;padding:16px}
-                  h1{font-size:14pt;font-weight:900;color:#2B5468;margin-bottom:2px}
-                  .meta{font-size:8pt;color:#666;margin-bottom:12px}
-                  .gantt{width:100%;border-collapse:collapse}
-                  .gantt th{background:#2B5468;color:#fff;padding:4px 6px;font-size:8pt;text-align:center;white-space:nowrap}
-                  .gantt td{padding:3px 6px;border-bottom:1px solid #e5e5e5;vertical-align:middle}
-                  .area-name{font-weight:700;font-size:8.5pt;white-space:nowrap;width:130px;max-width:130px;overflow:hidden;text-overflow:ellipsis}
-                  .track-cell{position:relative;height:18px;padding:0;min-width:400px}
-                  .track-bg{position:absolute;top:6px;left:0;right:0;height:6px;background:#f3f4f6;border-radius:3px}
-                  .track-bar{position:absolute;top:6px;height:6px;border-radius:3px}
-                  .hito-marker{position:absolute;top:2px;width:12px;height:12px;border-radius:50%;margin-left:-6px;font-size:6pt;display:flex;align-items:center;justify-content:center;font-weight:900}
-                  .today-line{position:absolute;top:0;bottom:0;width:1.5px;background:#ef4444;opacity:.7}
-                  .pct{font-size:7.5pt;color:#555;width:35px;text-align:right;padding-right:4px}
-                  .legend{margin-top:10px;display:flex;gap:12px;font-size:8pt;flex-wrap:wrap}
-                  .leg-item{display:flex;align-items:center;gap:4px}
-                  .leg-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
-                  .task-list{font-size:7pt;color:#555;margin-top:1px}
-                  @media print{body{padding:4px 8px}}
-                </style></head><body>
-                <h1>📅 Calendario del Proyecto — Trail El Guerrero 2026</h1>
-                <div class="meta">Exportado el ${fecha} · ${areasRows.length} áreas · ${tareas.length} tareas · ${hitos.length} hitos</div>
-                <table class="gantt">
-                  <thead><tr>
-                    <th style="width:130px;text-align:left">Área</th>
-                    <th class="track-cell" style="min-width:400px;text-align:left;padding:4px 6px">
-                      <div style="display:flex;position:relative;height:14px">
-                        ${meses.map((_,i)=>`<span style="position:absolute;left:${i/meses.length*100}%;font-size:7pt;white-space:nowrap">${meses[i]}</span>`).join("")}
-                      </div>
-                    </th>
-                    <th style="width:35px">%</th>
-                  </tr></thead>
-                  <tbody>
-                  ${areasRows.map(r=>`
-                    <tr style="${r.tieneVencida?"background:#fff5f5":""}">
-                      <td class="area-name">${r.area.icon||""} ${r.area.nombre||r.area.id}</td>
-                      <td class="track-cell">
-                        <div class="track-bg"></div>
-                        <div class="track-bar" style="left:${r.left}%;width:${r.width}%;background:${r.pctDone===100?"#10b981":r.tieneVencida?"#ef4444":"#3b82f6"}"></div>
-                        ${hitosRow.filter(h=>h.area===r.area.id||!h.area).map(h=>`<div class="hito-marker" style="left:${h.pct}%;background:${h.critico?"#f59e0b":"#8b5cf6"};color:#fff" title="${h.nombre}">◆</div>`).join("")}
-                        <div class="today-line" style="left:${Math.max(0,Math.min(100,(ahora-ganttStart)/86400000/totalDays*100))}%"></div>
-                      </td>
-                      <td class="pct">${r.pctDone}%</td>
-                    </tr>
-                    <tr><td></td><td colspan="2" class="task-list">${r.at.slice(0,5).map(t=>`<span style="color:${EST_CFG_LOC[t.estado]?.color||"#888"}">${t.estado==="completado"?"✓":t.estado==="bloqueado"?"✗":"→"}</span> ${t.titulo}`).join(" &nbsp;·&nbsp; ")}${r.at.length>5?` <em>+${r.at.length-5} más</em>`:""}</td></tr>
-                  `).join("")}
-                  </tbody>
-                </table>
-                <div class="legend">
-                  <div class="leg-item"><div class="leg-dot" style="background:#10b981"></div>Completado</div>
-                  <div class="leg-item"><div class="leg-dot" style="background:#3b82f6"></div>En curso/pendiente</div>
-                  <div class="leg-item"><div class="leg-dot" style="background:#ef4444"></div>Con tareas vencidas</div>
-                  <div class="leg-item"><div class="leg-dot" style="background:#f59e0b"></div>◆ Hito crítico</div>
-                  <div class="leg-item"><div class="leg-dot" style="background:#8b5cf6"></div>◆ Hito</div>
-                  <div class="leg-item"><div style="width:10px;height:2px;background:#ef4444;opacity:.7"></div>&nbsp;Hoy</div>
-                </div>
-                </body></html>`;
+              const todayPct = Math.max(0,Math.min(100,(ahora-ganttStart)/86400000/totalDays*100));
+
+              const mesLabels = meses.map((m,i) =>
+                "<span style=\"position:absolute;left:" + (i/meses.length*100) + "%;font-size:7pt;white-space:nowrap\">" + m + "</span>"
+              ).join("");
+
+              const areaRowsHtml = areasRows.map(r => {
+                const barColor = r.pctDone===100 ? "#10b981" : r.tieneVencida ? "#ef4444" : "#3b82f6";
+                const bgRow = r.tieneVencida ? "background:#fff5f5;" : "";
+                const hitosHtml = hitosRow
+                  .filter(h => h.area===r.area.id || !h.area)
+                  .map(h => "<div class=\"hito-marker\" style=\"left:" + h.pct + "%;background:" + (h.critico?"#f59e0b":"#8b5cf6") + ";color:#fff\" title=\"" + (h.nombre||"") + "\">\u25C6</div>")
+                  .join("");
+                const taskListHtml = r.at.slice(0,5).map(t => {
+                  const col = (EST_CFG_LOC[t.estado]||{color:"#888"}).color;
+                  const icon = t.estado==="completado" ? "\u2713" : t.estado==="bloqueado" ? "\u2717" : "\u2192";
+                  return "<span style=\"color:" + col + "\">" + icon + "</span> " + (t.titulo||"");
+                }).join(" &nbsp;\u00B7&nbsp; ");
+                const moreHtml = r.at.length>5 ? " <em>+" + (r.at.length-5) + " m\u00E1s</em>" : "";
+                return "<tr style=\"" + bgRow + "\">" +
+                  "<td class=\"area-name\">" + (r.area.icon||"") + " " + (r.area.nombre||r.area.id) + "</td>" +
+                  "<td class=\"track-cell\">" +
+                    "<div class=\"track-bg\"></div>" +
+                    "<div class=\"track-bar\" style=\"left:" + r.left + "%;width:" + r.width + "%;background:" + barColor + "\"></div>" +
+                    hitosHtml +
+                    "<div class=\"today-line\" style=\"left:" + todayPct + "%\"></div>" +
+                  "</td>" +
+                  "<td class=\"pct\">" + r.pctDone + "%</td>" +
+                  "</tr>" +
+                  "<tr><td></td><td colspan=\"2\" class=\"task-list\">" + taskListHtml + moreHtml + "</td></tr>";
+              }).join("");
+
+              const html = "<!DOCTYPE html><html lang=\"es\"><head><meta charset=\"UTF-8\">" +
+                "<title>Gantt Trail El Guerrero 2026</title>" +
+                "<style>*{margin:0;padding:0;box-sizing:border-box}" +
+                "body{font-family:Arial,sans-serif;font-size:9pt;color:#111;padding:16px}" +
+                "h1{font-size:14pt;font-weight:900;color:#2B5468;margin-bottom:2px}" +
+                ".meta{font-size:8pt;color:#666;margin-bottom:12px}" +
+                ".gantt{width:100%;border-collapse:collapse}" +
+                ".gantt th{background:#2B5468;color:#fff;padding:4px 6px;font-size:8pt;text-align:center;white-space:nowrap}" +
+                ".gantt td{padding:3px 6px;border-bottom:1px solid #e5e5e5;vertical-align:middle}" +
+                ".area-name{font-weight:700;font-size:8.5pt;white-space:nowrap;width:130px;max-width:130px;overflow:hidden;text-overflow:ellipsis}" +
+                ".track-cell{position:relative;height:18px;padding:0;min-width:400px}" +
+                ".track-bg{position:absolute;top:6px;left:0;right:0;height:6px;background:#f3f4f6;border-radius:3px}" +
+                ".track-bar{position:absolute;top:6px;height:6px;border-radius:3px}" +
+                ".hito-marker{position:absolute;top:2px;width:12px;height:12px;border-radius:50%;margin-left:-6px;font-size:6pt;display:flex;align-items:center;justify-content:center;font-weight:900}" +
+                ".today-line{position:absolute;top:0;bottom:0;width:1.5px;background:#ef4444;opacity:.7}" +
+                ".pct{font-size:7.5pt;color:#555;width:35px;text-align:right;padding-right:4px}" +
+                ".task-list{font-size:7pt;color:#555;margin-top:1px}" +
+                "@media print{body{padding:4px 8px}}</style></head><body>" +
+                "<h1>\uD83D\uDCC5 Calendario del Proyecto — Trail El Guerrero 2026</h1>" +
+                "<div class=\"meta\">Exportado el " + fecha + " \u00B7 " + areasRows.length + " \u00E1reas \u00B7 " + tareas.length + " tareas \u00B7 " + hitos.length + " hitos</div>" +
+                "<table class=\"gantt\"><thead><tr>" +
+                "<th style=\"width:130px;text-align:left\">\u00C1rea</th>" +
+                "<th class=\"track-cell\" style=\"min-width:400px;text-align:left;padding:4px 6px\">" +
+                "<div style=\"display:flex;position:relative;height:14px\">" + mesLabels + "</div></th>" +
+                "<th style=\"width:35px\">%</th></tr></thead><tbody>" +
+                areaRowsHtml +
+                "</tbody></table>" +
+                "<div style=\"margin-top:10px;display:flex;gap:12px;font-size:8pt;flex-wrap:wrap\">" +
+                "<div style=\"display:flex;align-items:center;gap:4px\"><div style=\"width:10px;height:10px;border-radius:50%;background:#10b981;display:inline-block\"></div>Completado</div>" +
+                "<div style=\"display:flex;align-items:center;gap:4px\"><div style=\"width:10px;height:10px;border-radius:50%;background:#3b82f6;display:inline-block\"></div>En curso/pendiente</div>" +
+                "<div style=\"display:flex;align-items:center;gap:4px\"><div style=\"width:10px;height:10px;border-radius:50%;background:#ef4444;display:inline-block\"></div>Con tareas vencidas</div>" +
+                "</div></body></html>";
               const w = window.open("","_blank","width=950,height=700");
               if(w){w.document.write(html);w.document.close();setTimeout(()=>w.print(),400);}
             }}>
