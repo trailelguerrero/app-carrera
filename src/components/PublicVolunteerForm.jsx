@@ -240,7 +240,10 @@ export default function PublicVolunteerForm() {
             <div style={{ fontFamily:"var(--font-mono)", fontSize:".65rem", color:"var(--text-muted)", lineHeight:1.8 }}>
               Cuando te confirmemos, accede con:<br/>
               · Tu número de teléfono<br/>
-              · PIN inicial: <strong style={{color:"var(--text)"}}>últimos 4 dígitos de tu teléfono</strong>
+              · PIN inicial: <strong style={{color:"var(--cyan)"}}>
+                {form.telefono ? form.telefono.replace(/\D/g,'').slice(-4) : 'últimos 4 dígitos'}
+              </strong>
+              <span style={{opacity:.7}}> (últimos 4 dígitos de tu teléfono)</span>
             </div>
             <div style={{ marginTop:".75rem", display:"flex", gap:".5rem" }}>
               <button

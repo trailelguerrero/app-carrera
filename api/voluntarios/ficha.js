@@ -67,7 +67,7 @@ export default async function handler(req, res) {
       const companerosEnPuesto = voluntario.puestoId
         ? voluntarios
             .filter(v => v.puestoId === voluntario.puestoId
-                      && v.estado !== 'cancelado'
+                      && (v.estado === 'confirmado' || v.estado === 'pendiente')
                       && String(v.id) !== String(voluntario.id))
             .map(v => ({ nombre: v.nombre, apellidos: v.apellidos || '', telefono: v.telefono || '' }))
         : [];
@@ -85,7 +85,14 @@ export default async function handler(req, res) {
           notas: puesto.notas,
         } : null,
         companerosEnPuesto,
-        config: { nombre: config.nombre, fecha: config.fecha, lugar: config.lugar },
+        config: {
+          nombre:           config.nombre,
+          fecha:            config.fecha,
+          lugar:            config.lugar,
+          organizador:      config.organizador      || '',
+          telefonoContacto: config.telefonoContacto || '',
+          emailContacto:    config.emailContacto    || '',
+        },
       });
     }
 

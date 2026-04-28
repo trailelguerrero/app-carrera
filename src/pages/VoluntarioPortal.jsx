@@ -4,11 +4,22 @@ const API_BASE = "/api/voluntarios";
 const SESSION_KEY = "teg_vol_session";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
+const SESSION_TTL = 7 * 24 * 60 * 60 * 1000; // 7 días en ms
+
 function loadSession() {
-  try { return JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); } catch { return null; }
+  try {
+    const raw = JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
+    if (!raw) return null;
+    // Verificar expiración de 7 días
+    if (raw.ts && Date.now() - raw.ts > SESSION_TTL) {
+      localStorage.removeItem(SESSION_KEY);
+      return null;
+    }
+    return raw;
+  } catch { return null; }
 }
 function saveSession(data) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(data));
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ ...data, ts: Date.now() }));
 }
 function clearSession() {
   localStorage.removeItem(SESSION_KEY);
@@ -270,7 +281,13 @@ function PortalMain({ token, onLogout }) {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
         marginBottom: "1.25rem" }}>
         <div>
-          <div style={{ fontWeight: 800, fontSize: "1.1rem" }}>Hola, {(v?.nombre || "").split(" ")[0]} 👋</div>
+          <div style={{ fontWeight: 800, fontSize: "1.1rem" }}>
+          Hola, {(v?.nombre || "").split(" ")[0]}{v?.apellidos ? "" : ""} 👋
+        </div>
+        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:".72rem", color:"var(--text-muted)",
+          marginTop:".1rem" }}>
+          {v?.nombre}{v?.apellidos ? " " + v.apellidos : ""}
+        </div>
           <div style={{ fontFamily: "'DM Mono',monospace", fontSize: ".65rem", color: "var(--text-muted)", marginTop: ".1rem" }}>
             {config?.nombre || "Trail El Guerrero 2026"}
           </div>
@@ -440,8 +457,32 @@ function PortalMain({ token, onLogout }) {
         Cerrar sesión
       </button>
 
-      {/* Footer */}
-      <div style={{ marginTop: "1.5rem", textAlign: "center", fontFamily: "'DM Mono',monospace",
+      {/* Contacto organizador + Footer */}
+      {(config?.telefonoContacto || config?.organizador) && (
+        <div className="vp-card" style={{ marginBottom:".75rem" }}>
+          <div className="vp-label">Contacto organizador</div>
+          {config?.organizador && (
+            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:".8rem", fontWeight:600,
+              marginBottom:".2rem" }}>{config.organizador}</div>
+          )}
+          {config?.telefonoContacto && (
+            <a href={`tel:${config.telefonoContacto}`}
+              style={{ fontFamily:"'DM Mono',monospace", fontSize:".82rem",
+                color:"var(--cyan)", textDecoration:"none", display:"block" }}>
+              📞 {config.telefonoContacto}
+            </a>
+          )}
+          {config?.emailContacto && (
+            <a href={`mailto:${config.emailContacto}`}
+              style={{ fontFamily:"'DM Mono',monospace", fontSize:".7rem",
+                color:"var(--text-muted)", textDecoration:"none", display:"block",
+                marginTop:".2rem" }}>
+              ✉ {config.emailContacto}
+            </a>
+          )}
+        </div>
+      )}
+      <div style={{ marginTop: ".5rem", textAlign: "center", fontFamily: "'DM Mono',monospace",
         fontSize: ".6rem", color: "var(--text-dim)", lineHeight: 1.7 }}>
         Trail El Guerrero 2026 · Club Deportivo Trail Candeleda<br/>
         {config?.fecha ? `Evento: ${config.fecha}` : ""} {config?.lugar ? `· ${config.lugar}` : ""}
