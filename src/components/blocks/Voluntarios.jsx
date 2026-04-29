@@ -1249,17 +1249,17 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
 
         <div className="card">
           {(() => {
-            const sinPuesto = voluntarios
-              .filter(v => !v.puestoId && v.estado !== "cancelado")
-              .slice(0, 7);
+            const sinPuestoAll = voluntarios
+              .filter(v => !v.puestoId && v.estado !== "cancelado");
+            const sinPuesto = sinPuestoAll;
             const pendConf = voluntarios
               .filter(v => v.estado === "pendiente")
               .sort((a,b) => (a.fechaRegistro||"").localeCompare(b.fechaRegistro||""))
-              .slice(0, 7);
+              .slice(0, 10);
             // Mostrar sin puesto si hay, si no los pendientes de confirmar
             const lista = sinPuesto.length > 0 ? sinPuesto : pendConf;
             const titulo = sinPuesto.length > 0
-              ? `📍 Sin puesto asignado (${sinPuesto.length})`
+              ? `📍 Sin puesto asignado (${sinPuestoAll.length})`
               : `⏳ Pendientes de confirmar (${pendConf.length})`;
             if (lista.length === 0) return (
               <div style={{ textAlign:"center", padding:"1.5rem 0",
@@ -1367,11 +1367,15 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
 function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda, filtroEstado, setFiltroEstado, filtroPuesto, setFiltroPuesto, onUpdate, onBulkUpdate, onDelete, onNuevo, onEditar, onFicha }) {
   const [orden, setOrden]           = useState("nombre");
   const [colapsados, setColapsados] = useState({
-    confirmado: true,
-    pendiente:  true,
+    confirmado: false,
+    pendiente:  false,
     cancelado:  true,
   });
 
+  const toggleGrupo = (id) => setColapsados(prev => ({ ...prev, [id]: !prev[id] }));
+
+  const colapsarTodos   = () => setColapsados({ confirmado: true,  pendiente: true,  cancelado: true  });
+  const descolapsarTodos = () => setColapsados({ confirmado: false, pendiente: false, cancelado: false });
 
   const volsOrdenados = [...voluntarios].sort((a, b) => {
     if (orden === "nombre") return (a.nombre || "").localeCompare(b.nombre || "", "es");
@@ -1384,7 +1388,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
     return 0;
   });
 
-  // Fase F — Paginación Kinetik Ops
+  // Paginación — se aplica al listado por nombre (no agrupado), mantenida para compatibilidad
   const { items: volsPaginados, total: totalVols, PaginadorUI } = usePaginacion(volsOrdenados, 20);
 
   // Grupos para la vista agrupada por estado
@@ -1482,6 +1486,9 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
               ✕ Limpiar
             </button>
           )}
+          <div className="filter-pill-sep" />
+          <button className="filter-pill" onClick={colapsarTodos} title="Colapsar todos los grupos">⊟ Colapsar</button>
+          <button className="filter-pill" onClick={descolapsarTodos} title="Expandir todos los grupos">⊞ Expandir</button>
         </div>
       </div>
 
@@ -1521,7 +1528,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
         </div>
       )}
       {/* Listado agrupado por estado — cada grupo colapsable */}
-      {volsPaginados.length === 0 && volsOrdenados.length === 0 ? (
+      {volsOrdenados.length === 0 ? (
         <EmptyState
           svg="people" color="var(--cyan)"
           title="Sin voluntarios"
@@ -1684,12 +1691,24 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
 function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpdatePuesto, onDeletePuesto, onNuevoPuesto, onEditPuesto, onFichaPuesto, onFichaVol }) {
   const [ordenAlfa, setOrdenAlfa]   = useState(false);
   const [busqPuesto, setBusqPuesto] = useState("");
+  const [vistaAgrupada, setVistaAgrupada] = useState(false);
+  const [colapsadosTipo, setColapsadosTipo] = useState({});
+
+  const toggleTipo = (tipo) => setColapsadosTipo(prev => ({ ...prev, [tipo]: !prev[tipo] }));
+
   const puestosOrdenados = ordenAlfa
     ? [...puestosConStats].sort((a,b) => (a.nombre||"").localeCompare(b.nombre||"","es"))
     : puestosConStats;
   const puestosFiltrados = busqPuesto.trim()
     ? puestosOrdenados.filter(p => p.nombre.toLowerCase().includes(busqPuesto.toLowerCase()))
     : puestosOrdenados;
+
+  // Agrupado por tipo
+  const tiposUnicos = [...new Set(puestosOrdenados.map(p => p.tipo || "Sin tipo"))];
+  const puestosPorTipo = tiposUnicos.map(tipo => ({
+    tipo,
+    items: puestosFiltrados.filter(p => (p.tipo || "Sin tipo") === tipo),
+  })).filter(g => g.items.length > 0);
   return (
     <>
       <div className="page-header">
@@ -1698,6 +1717,7 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
           <div className="page-desc">{puestosConStats.length} puestos definidos</div>
         </div>
         <div style={{display:"flex",gap:".4rem",alignItems:"center"}}>
+          <button className={`btn btn-sm ${vistaAgrupada?"btn-cyan":"btn-ghost"}`} onClick={()=>setVistaAgrupada(v=>!v)} title="Vista agrupada por tipo">⊞ Agrupar</button>
           <button className={`btn btn-sm ${ordenAlfa?"btn-cyan":"btn-ghost"}`} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
           <button className="btn btn-primary" onClick={onNuevoPuesto}>+ Nuevo puesto</button>
         </div>
@@ -1717,7 +1737,59 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-        {puestosFiltrados.map(p => {
+        {vistaAgrupada ? (
+          puestosPorTipo.map(({ tipo, items }) => {
+            const collapsed = colapsadosTipo[tipo] ?? false;
+            const cobTotal = items.reduce((s, p) => s + p.totalAsignados, 0);
+            const necTotal = items.reduce((s, p) => s + (p.necesarios || 0), 0);
+            const pctGrupo = necTotal > 0 ? Math.round((cobTotal / necTotal) * 100) : 0;
+            const colorGrupo = pctGrupo >= 80 ? "var(--green)" : pctGrupo >= 50 ? "var(--amber)" : "var(--red)";
+            return (
+              <div key={tipo} style={{ borderRadius: 10, overflow: "hidden", border: `1px solid ${colorGrupo}28` }}>
+                <button
+                  onClick={() => toggleTipo(tipo)}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: ".65rem",
+                    padding: ".55rem .85rem", background: `${colorGrupo}08`, border: "none",
+                    cursor: "pointer", textAlign: "left",
+                    borderBottom: collapsed ? "none" : `1px solid ${colorGrupo}18` }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700,
+                    fontSize: "var(--fs-base)", color: colorGrupo, flex: 1 }}>
+                    {tipo}
+                  </span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+                    color: colorGrupo, fontWeight: 700, padding: ".1rem .5rem",
+                    borderRadius: 20, background: `${colorGrupo}18`, border: `1px solid ${colorGrupo}30` }}>
+                    {cobTotal}/{necTotal} · {items.length} puestos
+                  </span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)",
+                    color: "var(--text-dim)", flexShrink: 0,
+                    transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)",
+                    transition: "transform .18s" }}>▼</span>
+                </button>
+                {!collapsed && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: ".5rem",
+                    padding: ".5rem", background: "var(--surface)" }}>
+                    {items.map(p => <PuestoCard key={p.id} p={p} locs={locs} matPorLoc={matPorLoc}
+                      onFichaPuesto={onFichaPuesto} onFichaVol={onFichaVol}
+                      onEditPuesto={onEditPuesto} onDeletePuesto={onDeletePuesto} />)}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        ) : (
+          puestosFiltrados.map(p => (
+            <PuestoCard key={p.id} p={p} locs={locs} matPorLoc={matPorLoc}
+              onFichaPuesto={onFichaPuesto} onFichaVol={onFichaVol}
+              onEditPuesto={onEditPuesto} onDeletePuesto={onDeletePuesto} />
+          ))
+        )}
+      </div>
+    </>
+  );
+}
+
+function PuestoCard({ p, locs, matPorLoc, onFichaPuesto, onFichaVol, onEditPuesto, onDeletePuesto }) {
           const pct = Math.min(p.cobertura, 100);
           const color = pct >= 80 ? "var(--green)" : pct >= 50 ? "var(--amber)" : "var(--red)";
           return (
@@ -1830,10 +1902,6 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
               </div>
             </div>
           );
-        })}
-      </div>
-    </>
-  );
 }
 
 // ─── TAB TALLAS ───────────────────────────────────────────────────────────────
