@@ -545,6 +545,7 @@ function LoginScreen({ onLogin, onVolver, telefonoInicial }) {
   const [shake, setShake]       = useState(false);
   const [error, setError]       = useState("");
   const [loading, setLoading]   = useState(false);
+  const [checkingPin, setCheckingPin] = useState(false);
   const [pinCambiado, setPinCambiado] = useState(false);
   const telRef = useRef(null);
 
@@ -556,15 +557,15 @@ function LoginScreen({ onLogin, onVolver, telefonoInicial }) {
   const irAlPin = async (e) => {
     e?.preventDefault();
     if (!telValido) { setError("Introduce tu número de teléfono (mínimo 9 dígitos)"); return; }
-    setError("");
-    // Consultar si el voluntario existe y si cambió su PIN
+    setError(""); setCheckingPin(true);
     try {
-      const res = await fetch();
+      const res = await fetch(`${API_BASE}/check?telefono=${encodeURIComponent(telefono.trim())}`);
       if (res.ok) {
         const d = await res.json();
         setPinCambiado(Boolean(d.pinPersonalizado));
       }
-    } catch { /* silencioso — no bloquea el flujo */ }
+    } catch { /* silencioso */ }
+    setCheckingPin(false);
     setPaso(2);
   };
 
@@ -625,8 +626,8 @@ function LoginScreen({ onLogin, onVolver, telefonoInicial }) {
                 />
                 {error && <div className="vp-error">⚠ {error}</div>}
                 <button type="submit" className="vp-btn vp-btn-primary"
-                  style={{ marginTop:".85rem", fontSize:"1.05rem" }} disabled={!telValido}>
-                  Continuar →
+                  style={{ marginTop:".85rem", fontSize:"1.05rem" }} disabled={!telValido || checkingPin}>
+                  {checkingPin ? "Comprobando…" : "Continuar →"}
                 </button>
               </form>
             </div>
@@ -639,13 +640,21 @@ function LoginScreen({ onLogin, onVolver, telefonoInicial }) {
             <div className="vp-card">
               <div style={{ textAlign:"center", marginBottom:"1.4rem" }}>
                 <div className="vp-step-title">🔑 Introduce tu PIN</div>
-                <div className="vp-step-desc" style={{ marginBottom:".5rem" }}>
-                  Tu PIN de 4 dígitos
-                  {!pinCambiado ? (<> · PIN inicial: los <strong style={{color:"var(--text)"}}>últimos 4 dígitos</strong> de tu teléfono
+                {pinCambiado ? (
+                  <div className="vp-step-desc" style={{ marginBottom:".5rem" }}>
+                    Usa tu <strong style={{color:"var(--text)"}}>PIN personalizado</strong>.<br/>
+                    Si no lo recuerdas, contacta con el organizador para restablecerlo.
+                  </div>
+                ) : (
+                  <div className="vp-step-desc" style={{ marginBottom:".5rem" }}>
+                    Tu PIN son los <strong style={{color:"var(--text)"}}>últimos 4 dígitos</strong> de tu teléfono
                     {telLimpio.length >= 4 && (
-                      <> = <span style={{color:"var(--cyan)",fontWeight:800,fontSize:"1rem"}}>{telLimpio.slice(-4)}</span></>
-                    )}</>) : (<> · Si lo cambiaste, usa tu PIN personalizado. Si no lo recuerdas, contacta con el organizador.</>)}
-                </div>
+                      <>: <span style={{color:"var(--cyan)",fontWeight:800,fontSize:"1.1rem",letterSpacing:".1em"}}>
+                        {telLimpio.slice(-4)}
+                      </span></>
+                    )}
+                  </div>
+                )}
                 <div className="vp-mono" style={{ fontSize:".9rem", color:"var(--text-muted)" }}>
                   {telefono.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")}
                 </div>
