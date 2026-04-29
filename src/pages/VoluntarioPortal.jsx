@@ -816,6 +816,8 @@ function PortalMain({ token, onLogout }) {
         telefonoEmergencia: v.telefonoEmergencia || v.contactoEmergencia || "",
         talla:              v.talla || "M",
         notaVoluntario:     v.notaVoluntario || "",
+        alergias:           v.alergias || "",
+        medicacion:         v.medicacion || "",
       });
     } catch { if (!silencioso) setError("Error de conexión. Tira abajo para recargar."); }
     finally  { if (!silencioso) setLoading(false); }
@@ -848,7 +850,7 @@ function PortalMain({ token, onLogout }) {
     try {
       const res = await fetch(`${API_BASE}/ficha`, {
         method: "PATCH", headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form }),
       });
       if (res.ok) { showMsg("✅ Datos guardados"); setEditando(false); await fetchData(); }
       else showMsg("❌ Error al guardar");
@@ -1087,6 +1089,14 @@ function PortalMain({ token, onLogout }) {
               onChange={e => setForm(f=>({...f,talla:e.target.value}))} style={{marginBottom:".75rem"}}>
               {TALLAS_PORTAL.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
+            <div className="vp-label">⚕️ Alergias relevantes (opcional)</div>
+            <input className="vp-input" placeholder="Polen, frutos secos, picaduras…"
+              value={form.alergias||""} onChange={e => setForm(f=>({...f,alergias:e.target.value}))}
+              maxLength={200} style={{marginBottom:".75rem"}} />
+            <div className="vp-label">💊 Medicación (opcional)</div>
+            <input className="vp-input" placeholder="Insulina, adrenalina, anticoagulantes…"
+              value={form.medicacion||""} onChange={e => setForm(f=>({...f,medicacion:e.target.value}))}
+              maxLength={200} style={{marginBottom:".75rem"}} />
             <div className="vp-label">📝 Nota para el organizador</div>
             <textarea className="vp-textarea"
               placeholder="Ej: Llegaré 15 min antes, traigo equipo de primeros auxilios..."
@@ -1114,6 +1124,16 @@ function PortalMain({ token, onLogout }) {
               <div className="vp-divider"/>
               <div className="vp-row"><span className="vp-row-label">👤 Nombre</span>
                 <span className="vp-value">{v.nombre}{v.apellidos?" "+v.apellidos:""}</span></div>
+            </>)}
+            {v.alergias && (<>
+              <div className="vp-divider"/>
+              <div className="vp-row"><span className="vp-row-label">⚕️ Alergias</span>
+                <span className="vp-value" style={{color:"var(--amber)",textAlign:"right",maxWidth:"65%"}}>{v.alergias}</span></div>
+            </>)}
+            {v.medicacion && (<>
+              <div className="vp-divider"/>
+              <div className="vp-row"><span className="vp-row-label">💊 Medicación</span>
+                <span className="vp-value" style={{color:"var(--amber)",textAlign:"right",maxWidth:"65%"}}>{v.medicacion}</span></div>
             </>)}
             {v.mensajeOrganizador && (<>
               <div className="vp-divider"/>
@@ -1234,7 +1254,7 @@ function CambiarPin({ token, onDone, onCancel }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function StepperForm({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, opcionVehiculo, opcionEmail, opcionEmergencia, onRegistrar, enviando }) {
   const [paso, setPaso]   = useState(1);
-  const [form, setForm]   = useState({ nombre:"", apellidos:"", telefono:"", email:"", talla:"", puestoId:"", coche:false, telefonoEmergencia:"" });
+  const [form, setForm]   = useState({ nombre:"", apellidos:"", telefono:"", email:"", talla:"", puestoId:"", coche:false, telefonoEmergencia:"", alergias:"", medicacion:"" });
   const [errores, setErrores] = useState({});
   const [lightbox, setLightbox]   = useState(null);
   const [guiaTallas, setGuiaTallas] = useState(false);
@@ -1252,7 +1272,7 @@ function StepperForm({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, 
     if (!form.apellidos.trim()) e.apellidos = "Requerido";
     if (!form.telefono.trim() || !/^\d{9}$/.test(form.telefono.replace(/\s/g,""))) e.telefono = "Teléfono de 9 dígitos";
     if (opcionEmail && form.email?.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) e.email = "Email no válido";
-    if (opcionEmergencia && !form.telefonoEmergencia?.trim()) e.telefonoEmergencia = "Requerido";
+    if (!form.telefonoEmergencia?.trim()) e.telefonoEmergencia = "El teléfono de emergencia es obligatorio";
     setErrores(e); return Object.keys(e).length === 0;
   };
   const validarPaso2 = () => {
@@ -1276,7 +1296,10 @@ function StepperForm({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, 
       coche:    form.coche,
       notas:    "",
       fechaRegistro: new Date().toISOString().split("T")[0],
-      ...(opcionEmergencia ? { telefonoEmergencia: form.telefonoEmergencia?.trim()||"", contactoEmergencia: form.telefonoEmergencia?.trim()||"" } : {}),
+      telefonoEmergencia: form.telefonoEmergencia?.trim()||"",
+      contactoEmergencia: form.telefonoEmergencia?.trim()||"",
+      alergias:    form.alergias?.trim()||"",
+      medicacion:  form.medicacion?.trim()||"",
     });
   };
 
@@ -1379,14 +1402,20 @@ function StepperForm({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, 
                   value={form.email||""} onChange={e=>set("email",e.target.value)} />
               </FormField>
             )}
-            {opcionEmergencia && (
-              <FormField label="Teléfono de emergencia" error={errores.telefonoEmergencia}
-                hint="Persona a avisar en caso de incidente">
-                <input className={`pub-input${errores.telefonoEmergencia?" error":""}`}
-                  type="tel" placeholder="612 345 678" inputMode="tel"
-                  value={form.telefonoEmergencia||""} onChange={e=>set("telefonoEmergencia",e.target.value)} />
-              </FormField>
-            )}
+            <FormField label="🚨 Teléfono de emergencia *" error={errores.telefonoEmergencia}
+              hint="Familiar o persona a avisar si ocurre alguna incidencia">
+              <input className={`pub-input${errores.telefonoEmergencia?" error":""}`}
+                type="tel" placeholder="612 345 678" inputMode="tel"
+                value={form.telefonoEmergencia||""} onChange={e=>set("telefonoEmergencia",e.target.value)} />
+            </FormField>
+            <FormField label="⚕️ Alergias (opcional)" hint="Alergias relevantes para la seguridad en carrera">
+              <input className="pub-input" placeholder="Ej: Polen, frutos secos, picaduras de abejas…"
+                value={form.alergias||""} onChange={e=>set("alergias",e.target.value)} maxLength={200} />
+            </FormField>
+            <FormField label="💊 Medicación (opcional)" hint="Medicación que creéis que debemos conocer por seguridad">
+              <input className="pub-input" placeholder="Ej: Adrenalina, insulina, anticoagulantes…"
+                value={form.medicacion||""} onChange={e=>set("medicacion",e.target.value)} maxLength={200} />
+            </FormField>
             <div className="step-nav"><button className="pub-btn-primary" onClick={siguiente}>Continuar →</button></div>
           </div>
         )}
@@ -1489,6 +1518,9 @@ function StepperForm({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, 
                 ["Talla",    form.talla],
                 ...(opcionPuesto && form.puestoId ? [["Puesto",puestos.find(p=>String(p.id)===String(form.puestoId))?.nombre||""]] : []),
                 ...(opcionVehiculo ? [["Vehículo", form.coche?"Sí ✓":"No"]] : []),
+                ["🚨 Tel. emergencia", form.telefonoEmergencia || "—"],
+                ...(form.alergias ? [["⚕️ Alergias", form.alergias.slice(0,40)+(form.alergias.length>40?"…":"")]] : []),
+                ...(form.medicacion ? [["💊 Medicación", form.medicacion.slice(0,40)+(form.medicacion.length>40?"…":"")]] : []),
               ].map(([k,v])=>(
                 <div key={k} className="summary-row">
                   <span className="summary-key">{k}</span>

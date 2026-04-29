@@ -410,10 +410,23 @@ export default function Configuracion() {
               <input className="cfg-input" type="tel" value={form.telefonoContacto||""} onChange={e => upd("telefonoContacto", e.target.value)} placeholder="+34 600 000 000" />
             </div>
             <div className="cfg-field" style={{gridColumn:"1/-1"}}>
-              <label className="cfg-label">👥 Organizadores visibles por voluntarios</label>
-              <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginBottom:".5rem",lineHeight:1.6}}>
-                Los voluntarios verán estos contactos en su portal. Añade nombre + teléfono de cada coordinador.
+              <label className="cfg-label" style={{color:"var(--cyan)", fontSize:".72rem", fontWeight:800}}>
+                👥 Contactos visibles para los voluntarios en su portal
+              </label>
+              <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",
+                marginBottom:".65rem",lineHeight:1.7,
+                background:"rgba(34,211,238,.05)",padding:".5rem .75rem",
+                borderRadius:8,borderLeft:"2px solid var(--cyan)"}}>
+                💡 Los voluntarios verán estos nombres y teléfonos en la sección "📞 Contacto organizadores" de su ficha personal.
+                Añade el nombre y teléfono de cada coordinador.
               </div>
+              {(form.organizadores||[]).length === 0 && (
+                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--amber)",
+                  padding:".4rem .75rem",borderRadius:6,background:"var(--amber-dim)",
+                  border:"1px solid var(--amber-border)",marginBottom:".5rem"}}>
+                  ⚠ Sin contactos configurados — los voluntarios no verán a quién llamar
+                </div>
+              )}
               {(form.organizadores||[]).map((org, i) => (
                 <div key={i} style={{display:"flex",gap:".4rem",marginBottom:".4rem",alignItems:"center",flexWrap:"wrap"}}>
                   <input className="cfg-input" style={{flex:"2 1 120px",minWidth:100}}

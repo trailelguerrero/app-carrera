@@ -136,12 +136,14 @@ export default async function handler(req, res) {
 
     // ── PATCH /api/voluntarios/ficha — editar datos personales ──
     if (req.method === 'PATCH' && !action) {
-      const { telefono, telefonoEmergencia, talla, notaVoluntario } = req.body || {};
+      const { telefono, telefonoEmergencia, talla, notaVoluntario, alergias, medicacion } = req.body || {};
       const update = {};
       if (telefono !== undefined) update.telefono = String(telefono).slice(0, 20);
-      if (telefonoEmergencia !== undefined) update.telefonoEmergencia = String(telefonoEmergencia).slice(0, 20);
+      if (telefonoEmergencia !== undefined) { update.telefonoEmergencia = String(telefonoEmergencia).slice(0, 20); update.contactoEmergencia = String(telefonoEmergencia).slice(0, 20); }
       if (talla !== undefined) update.talla = String(talla).slice(0, 5);
       if (notaVoluntario !== undefined) update.notaVoluntario = String(notaVoluntario).slice(0, 500);
+      if (alergias !== undefined) update.alergias = String(alergias).slice(0, 200);
+      if (medicacion !== undefined) update.medicacion = String(medicacion).slice(0, 200);
 
       const updated = voluntarios.map(v =>
         String(v.id) === String(voluntario.id) ? { ...v, ...update } : v

@@ -534,7 +534,7 @@ export default function App() {
   const [confirmDeletePuesto, setConfirmDeletePuesto] = useState(null);
   const [urlCopiada, setUrlCopiada] = useState(false);
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
-  const [shareMenuPos, setShareMenuPos] = useState({ top:0, right:0 });
+  const [shareMenuPos, setShareMenuPos] = useState({ top:0, left:0, right:'auto' });
   const shareMenuRef = useRef(null);
   const shareBtnRef  = useRef(null);
 
@@ -554,16 +554,35 @@ export default function App() {
     if (shareMenuOpen) { setShareMenuOpen(false); return; }
     if (shareBtnRef.current) {
       const r = shareBtnRef.current.getBoundingClientRect();
-      const menuW = 230;
-      const rightFromViewport = window.innerWidth - r.right;
-      setShareMenuPos({
-        top: r.bottom + 6,
-        right: Math.max(8, rightFromViewport),
-      });
+      const menuW = 240;
+      const vw = window.innerWidth;
+      // Si el botón está en la mitad izquierda, anclar a la izquierda del botón
+      // Si está en la mitad derecha, anclar a la derecha del botón
+      const leftSpace  = r.left;
+      const rightSpace = vw - r.right;
+      let pos;
+      if (rightSpace >= menuW - 20 || rightSpace >= leftSpace) {
+        // Hay espacio a la derecha o es más cómodo abrir hacia la derecha
+        pos = { top: r.bottom + 6, left: Math.min(r.left, vw - menuW - 8), right: 'auto' };
+      } else {
+        // Abrir hacia la izquierda anclado al borde derecho del botón
+        pos = { top: r.bottom + 6, right: Math.max(8, vw - r.right), left: 'auto' };
+      }
+      setShareMenuPos(pos);
     }
     setShareMenuOpen(true);
   };
-  const [qrDataUrl, setQrDataUrl]   = useState(null);
+  // Ref para capturar el ID a eliminar antes de cualquier setState — solución definitiva al bug de eliminación
+  const pendingDeleteRef = useRef(null);
+
+  const ejecutarEliminacion = useCallback((id) => {
+    if (id === null || id === undefined) return;
+    const sid = String(id);
+    setVoluntarios(prev => prev.filter(v => String(v.id) !== sid));
+    setConfirmDelete(null);
+    pendingDeleteRef.current = null;
+    toast.success("Voluntario eliminado");
+  }, []);
   const [qrLoading, setQrLoading]   = useState(false);
   const [ficha, setFicha] = useState(null); // {tipo:'vol'|'puesto', data}
   const abrirFicha = (tipo, data) => { scrollMainToTop(); setFicha({ tipo, data }); };
@@ -759,9 +778,12 @@ export default function App() {
                   ref={shareMenuRef}
                   onClick={e => e.stopPropagation()}
                   style={{
-                    position:"fixed", top:shareMenuPos.top, right:shareMenuPos.right, zIndex:500,
+                    position:"fixed", top:shareMenuPos.top,
+                    left:shareMenuPos.left !== 'auto' ? shareMenuPos.left : undefined,
+                    right:shareMenuPos.right !== 'auto' ? shareMenuPos.right : undefined,
+                    zIndex:500,
                     background:"var(--surface)", border:"1px solid var(--border)",
-                    borderRadius:10, padding:".4rem", minWidth:220, maxWidth:"calc(100vw - 1rem)",
+                    borderRadius:10, padding:".4rem", minWidth:240, maxWidth:"calc(100vw - 1rem)",
                     boxShadow:"0 12px 32px rgba(0,0,0,.55)", display:"flex",
                     flexDirection:"column", gap:".25rem"
                   }}>
@@ -951,22 +973,18 @@ export default function App() {
           onClose={() => setFicha(null)}
           onEditar={() => { const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"}); setFicha(null); setModalVol(ficha.data); }}
           onEliminar={() => {
-            const idToDelete = ficha.data?.id;
-            if (!idToDelete && idToDelete !== 0) return;
-            // Cerrar ficha ANTES de abrir el modal de confirmación
+            const id = ficha.data?.id;
+            if (id === null || id === undefined) return;
+            pendingDeleteRef.current = id;
             setFicha(null);
-            // Pequeño delay para que React procese el cierre antes de abrir el modal
-            setTimeout(() => setConfirmDelete(idToDelete), 30);
+            setTimeout(() => setConfirmDelete(id), 30);
           }}
           onEliminarConfirmado={() => {
-            // Capturar id en variable local ANTES de cualquier setState
-            const id = ficha.data?.id;
-            if (!id && id !== 0) return;
+            const id = ficha.data?.id ?? pendingDeleteRef.current;
+            if (id === null || id === undefined) return;
+            pendingDeleteRef.current = id;
             setFicha(null);
-            // Eliminar directamente sin pasar por ModalConfirm
-            const sid = String(id);
-            setVoluntarios(prev => prev.filter(v => String(v.id) !== sid));
-            toast.success("Voluntario eliminado");
+            setTimeout(() => ejecutarEliminacion(id), 0);
           }}
           onUpdate={(data) => { updateVoluntario(ficha.data.id, data); setFicha(f => ({ ...f, data: { ...f.data, ...data } })); }}
         />
@@ -999,7 +1017,7 @@ export default function App() {
           onClose={() => setModalPuesto(null)}
         />
       , document.body)}
-      {confirmDelete && createPortal(<ModalConfirm zIndex={400} mensaje="¿Eliminar este voluntario? Esta acción no se puede deshacer." onConfirm={() => deleteVoluntario(confirmDelete)} onCancel={() => setConfirmDelete(null)} />, document.body)}
+      {confirmDelete && createPortal(<ModalConfirm zIndex={400} mensaje="¿Eliminar este voluntario? Esta acción no se puede deshacer." onConfirm={() => ejecutarEliminacion(confirmDelete)} onCancel={() => { setConfirmDelete(null); pendingDeleteRef.current = null; }} />, document.body)}
       {confirmDeletePuesto && createPortal(<ModalConfirm zIndex={400} mensaje="¿Eliminar este puesto? Los voluntarios asignados quedarán sin puesto." onConfirm={() => { deletePuesto(confirmDeletePuesto); setConfirmDeletePuesto(null); }} onCancel={() => setConfirmDeletePuesto(null)} />, document.body)}
     </AppShell>
   );
@@ -2768,13 +2786,22 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
               return `${v.fechaNacimiento} (${años} años)`;
             })() : null],
             ["🚨 Emergencia", v.telefonoEmergencia || v.contactoEmergencia],
-          ].filter(([,val]) => val).map(([label, val]) => (
+            ["⚕️ Alergias",  v.alergias || null],
+            ["💊 Medicación", v.medicacion || null],
+          ].filter(([,val]) => val).map(([label, val]) => {
+            const isMedical = label.includes("Alergias") || label.includes("Medicación");
+            return (
             <div key={label} style={{ display:"flex", justifyContent:"space-between",
-              padding:"0.4rem 0", borderBottom:"1px solid rgba(30,45,80,0.3)" }}>
-              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>{label}</span>
-              <span style={{ fontSize:"var(--fs-base)", fontWeight:600 }}>{val}</span>
+              alignItems:"flex-start",
+              padding:"0.4rem 0.4rem", borderBottom:"1px solid rgba(30,45,80,0.3)",
+              background: isMedical ? "rgba(251,191,36,.05)" : undefined,
+              borderLeft: isMedical ? "2px solid var(--amber)" : undefined,
+              borderRadius: isMedical ? 4 : undefined,
+            }}>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color: isMedical ? "var(--amber)" : "var(--text-muted)", flexShrink:0 }}>{label}</span>
+              <span style={{ fontSize:"var(--fs-base)", fontWeight:600, color: isMedical ? "var(--amber)" : undefined, textAlign:"right", marginLeft:".5rem" }}>{val}</span>
             </div>
-          ))}
+          )})}
           {v.notas && (
             <div style={{ background:"var(--surface2)", borderRadius:8, padding:"0.6rem 0.75rem",
               borderLeft:"2px solid var(--border)", marginTop:"0.25rem" }}>
