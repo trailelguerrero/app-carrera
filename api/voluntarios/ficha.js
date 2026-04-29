@@ -96,8 +96,9 @@ export default async function handler(req, res) {
 
       const { pinHash, sessionToken, ...volPublico } = voluntario;
 
+      // Incluir mensajeOrganizador en la respuesta pública
       return res.status(200).json({
-        voluntario: volPublico,
+        voluntario: { ...volPublico, mensajeOrganizador: voluntario.mensajeOrganizador || "" },
         puesto: puesto ? {
           nombre: puesto.nombre,
           tipo: puesto.tipo,

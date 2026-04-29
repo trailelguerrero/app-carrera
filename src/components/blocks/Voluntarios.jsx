@@ -514,13 +514,17 @@ export default function App() {
   const [confirmDeletePuesto, setConfirmDeletePuesto] = useState(null);
   const [urlCopiada, setUrlCopiada] = useState(false);
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
+  const shareMenuRef = useRef(null);
 
-  // Cerrar dropdown al hacer click fuera
+  // Cerrar dropdown al hacer click fuera — setTimeout evita race condition
   useEffect(() => {
     if (!shareMenuOpen) return;
-    const handler = () => setShareMenuOpen(false);
-    document.addEventListener("click", handler);
-    return () => document.removeEventListener("click", handler);
+    const handler = (e) => {
+      if (shareMenuRef.current && shareMenuRef.current.contains(e.target)) return;
+      setShareMenuOpen(false);
+    };
+    const t = setTimeout(() => document.addEventListener("click", handler), 0);
+    return () => { clearTimeout(t); document.removeEventListener("click", handler); };
   }, [shareMenuOpen]);
   const [qrDataUrl, setQrDataUrl]   = useState(null);
   const [qrLoading, setQrLoading]   = useState(false);
@@ -674,7 +678,7 @@ export default function App() {
               📊 Excel
             </button>
             {/* Dropdown Compartir portal — consolida 3 acciones */}
-            <div style={{ position:"relative" }}>
+            <div ref={shareMenuRef} style={{ position:"relative" }}>
               <button
                 className="btn btn-ghost btn-sm"
                 onClick={() => setShareMenuOpen(v => !v)}
@@ -1461,6 +1465,15 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
 
 // ─── TAB VOLUNTARIOS ──────────────────────────────────────────────────────────
 function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda, filtroEstado, setFiltroEstado, filtroPuesto, setFiltroPuesto, onUpdate, onBulkUpdate, onDelete, onNuevo, onEditar, onFicha }) {
+  const [seleccionados, setSeleccionados] = useState([]);
+  const [modoSeleccion, setModoSeleccion] = useState(false);
+
+  const toggleSeleccion = (id) => setSeleccionados(prev =>
+    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+  );
+  const seleccionarTodos = () => setSeleccionados(voluntarios.map(v => v.id));
+  const deseleccionarTodos = () => setSeleccionados([]);
+  const salirModo = () => { setModoSeleccion(false); setSeleccionados([]); };
   const [orden, setOrden]           = useState("nombre");
   const [colapsados, setColapsados] = useState({
     confirmado: false,
@@ -1519,7 +1532,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
                 ]);
               });
               const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
-              const blob = new Blob(["﻿"+csv], { type:"text/csv;charset=utf-8;" });
+              const blob = new Blob(["\uFEFF"+csv], { type:"text/csv;charset=utf-8;" });
               const url = URL.createObjectURL(blob);
               const a = document.createElement("a");
               a.href = url; a.download = "voluntarios_trail_el_guerrero.csv"; a.click();
@@ -1527,9 +1540,62 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
             }}>
             📥 Exportar CSV
           </button>
+          <button className={`btn btn-sm ${modoSeleccion ? "btn-cyan" : "btn-ghost"}`}
+            onClick={() => modoSeleccion ? salirModo() : setModoSeleccion(true)}
+            title="Selección masiva">
+            {modoSeleccion ? `✕ Salir (${seleccionados.length})` : "☑ Seleccionar"}
+          </button>
           <button className="btn btn-primary" onClick={onNuevo}>+ Nuevo voluntario</button>
         </div>
       </div>
+
+      {/* Toolbar de acciones masivas */}
+      {modoSeleccion && (
+        <div style={{
+          display:"flex", alignItems:"center", gap:".5rem", flexWrap:"wrap",
+          padding:".65rem .85rem", background:"var(--cyan-dim)", borderRadius:8,
+          border:"1px solid var(--cyan-border)", marginBottom:".65rem"
+        }}>
+          <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--cyan)", fontWeight:700, flexShrink:0 }}>
+            {seleccionados.length > 0 ? `${seleccionados.length} seleccionados` : "Haz click en filas para seleccionar"}
+          </span>
+          <button className="btn btn-ghost btn-sm" onClick={seleccionarTodos}>Selec. todos ({voluntarios.length})</button>
+          {seleccionados.length > 0 && (<>
+            <div style={{ width:1, height:16, background:"var(--border)" }}/>
+            <button className="btn btn-green btn-sm"
+              onClick={() => { onBulkUpdate(seleccionados, { estado:"confirmado" }); salirModo(); }}>
+              ✓ Confirmar
+            </button>
+            <button className="btn btn-ghost btn-sm"
+              onClick={() => { onBulkUpdate(seleccionados, { estado:"pendiente" }); salirModo(); }}>
+              ⏳ Pendiente
+            </button>
+            <button className="btn btn-red btn-sm"
+              onClick={() => { onBulkUpdate(seleccionados, { estado:"cancelado" }); salirModo(); }}>
+              ✕ Cancelar
+            </button>
+            <div style={{ width:1, height:16, background:"var(--border)" }}/>
+            <button className="btn btn-ghost btn-sm"
+              onClick={() => {
+                // Exportar solo seleccionados
+                const sels = todosVols.filter(v => seleccionados.includes(v.id));
+                const rows = [["Nombre","Teléfono","Estado","Puesto","Talla"]];
+                sels.forEach(v => {
+                  const puesto = puestos.find(p => p.id === v.puestoId);
+                  rows.push([v.nombre||"", v.telefono||"", v.estado||"", puesto?.nombre||"Sin asignar", v.talla||""]);
+                });
+                const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+                const blob = new Blob(["\uFEFF"+csv], { type:"text/csv;charset=utf-8;" });
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                a.download = "seleccion_voluntarios.csv"; a.click();
+                salirModo();
+              }}>
+              📊 Exportar CSV
+            </button>
+          </>)}
+        </div>
+      )}
 
       {/* Filtros + ordenación — Kinetik Ops quick-filter pills */}
       <div style={{ marginBottom:"0.85rem", display:"flex", flexDirection:"column", gap:"0.5rem" }}>
@@ -1691,16 +1757,32 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
                       return (
                         <div key={v.id}
                           className="list-item-anim"
-                          onClick={() => onFicha(v)}
+                          onClick={() => modoSeleccion ? toggleSeleccion(v.id) : onFicha(v)}
                           style={{
-                            background:"var(--surface)", padding:"0.65rem 0.85rem",
+                            background: seleccionados.includes(v.id) ? "rgba(34,211,238,.07)" : "var(--surface)",
+                            padding:"0.65rem 0.85rem",
                             cursor:"pointer", transition:"background .12s",
-                            borderLeft:`3px solid ${grupo.color}`,
+                            borderLeft:`3px solid ${seleccionados.includes(v.id) ? "var(--cyan)" : grupo.color}`,
                             borderBottom: idx < items.length-1 ? "1px solid var(--border)" : "none",
                           }}
-                          onMouseEnter={e=>e.currentTarget.style.background="var(--surface2)"}
-                          onMouseLeave={e=>e.currentTarget.style.background="var(--surface)"}>
+                          onMouseEnter={e=>e.currentTarget.style.background=seleccionados.includes(v.id)?"rgba(34,211,238,.12)":"var(--surface2)"}
+                          onMouseLeave={e=>e.currentTarget.style.background=seleccionados.includes(v.id)?"rgba(34,211,238,.07)":"var(--surface)"}>
                           <div style={{ display:"flex", alignItems:"center", gap:"0.65rem" }}>
+                            {/* Checkbox modo selección */}
+                            {modoSeleccion && (
+                              <div onClick={e => { e.stopPropagation(); toggleSeleccion(v.id); }}
+                                style={{
+                                  width:20, height:20, borderRadius:5, flexShrink:0, cursor:"pointer",
+                                  border:`2px solid ${seleccionados.includes(v.id) ? "var(--cyan)" : "var(--border)"}`,
+                                  background: seleccionados.includes(v.id) ? "var(--cyan)" : "transparent",
+                                  display:"flex", alignItems:"center", justifyContent:"center",
+                                  transition:"all .12s"
+                                }}>
+                                {seleccionados.includes(v.id) && (
+                                  <span style={{ color:"#0f172a", fontSize:"0.6rem", fontWeight:900 }}>✓</span>
+                                )}
+                              </div>
+                            )}
                             {/* Avatar Kinetik Ops — pill cuadrado redondeado con iniciales */}
                             <div style={{ position:"relative", flexShrink:0 }}>
                               <div style={{
@@ -2368,6 +2450,65 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol, diasHastaEvento = 
 }
 
 // ─── FICHA VOLUNTARIO ─────────────────────────────────────────────────────────
+// ─── MENSAJE ORGANIZADOR (editable inline) ────────────────────────────────────
+function MensajeOrganizadorEdit({ valor, onChange }) {
+  const [editando, setEditando] = useState(false);
+  const [draft, setDraft] = useState(valor);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { setDraft(valor); }, [valor]);
+
+  const guardar = async () => {
+    setSaving(true);
+    onChange(draft.trim());
+    setSaving(false);
+    setEditando(false);
+  };
+
+  return (
+    <div style={{ background:"rgba(251,191,36,.05)", borderRadius:8, padding:"0.6rem 0.75rem",
+      borderLeft:"2px solid var(--amber)", marginTop:"0.25rem",
+      border:"1px solid rgba(251,191,36,.2)", borderLeftWidth:2 }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:".3rem" }}>
+        <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--amber)",
+          fontWeight:700, textTransform:"uppercase" }}>
+          📢 Mensaje para el voluntario
+        </div>
+        <button className="btn btn-ghost btn-sm" style={{ padding:".15rem .45rem", fontSize:"var(--fs-xs)" }}
+          onClick={() => { if(editando) { setDraft(valor); setEditando(false); } else setEditando(true); }}>
+          {editando ? "✕" : "✏️"}
+        </button>
+      </div>
+      {editando ? (
+        <>
+          <textarea
+            className="inp"
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            placeholder="Ej: Recuerda traer ropa de abrigo. El acceso al puesto es por la pista forestal."
+            maxLength={300}
+            rows={3}
+            style={{ fontSize:"var(--fs-sm)", marginBottom:".4rem", resize:"vertical" }}
+          />
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>
+              {draft.length}/300 · Visible en el portal del voluntario
+            </span>
+            <button className="btn btn-ghost btn-sm" onClick={guardar} disabled={saving}>
+              {saving ? "…" : "💾 Guardar"}
+            </button>
+          </div>
+        </>
+      ) : (
+        <div style={{ fontSize:"var(--fs-sm)", lineHeight:1.5, color: valor ? "var(--text)" : "var(--text-dim)",
+          fontStyle: valor ? "normal" : "italic" }}>
+          {valor || "Sin mensaje — haz click en ✏️ para añadir uno"}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClose, onEditar, onEliminar, onEliminarConfirmado, onUpdate }) {
   const { closing: fvClosing, handleClose: fvHandleClose } = useModalClose(onClose);
   const [confirmando, setConfirmando] = useState(false);
@@ -2425,6 +2566,23 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
           </div>
         </div>
         <div className="modal-body">
+          {/* ── Indicador de acceso al portal ── */}
+          {(() => {
+            const estadoAcceso = v.sessionToken
+              ? (v.pinPersonalizado ? "🔐 PIN personalizado · Sesión activa" : "🔓 Sesión activa · PIN inicial")
+              : (v.pinHash ? (v.pinPersonalizado ? "🔐 PIN personalizado · Sin sesión" : "⚪ Registrado · Sin sesión") : "⚠️ Sin acceso configurado");
+            const colorAcceso = v.sessionToken ? "var(--green)" : v.pinHash ? "var(--cyan)" : "var(--text-dim)";
+            return (
+              <div style={{ display:"flex", justifyContent:"space-between",
+                padding:".35rem .5rem", marginBottom:".3rem",
+                background:"var(--surface2)", borderRadius:6, alignItems:"center" }}>
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>🌐 Portal</span>
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:colorAcceso, fontWeight:700 }}>
+                  {estadoAcceso}
+                </span>
+              </div>
+            );
+          })()}
           {[
             ["📞 Teléfono",   v.telefono],
             ["✉️ Email",      v.email],
@@ -2452,6 +2610,14 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
                 marginBottom:"0.25rem", textTransform:"uppercase" }}>Notas del organizador</div>
               <div style={{ fontSize:"var(--fs-base)", lineHeight:1.5 }}>{v.notas}</div>
             </div>
+          )}
+
+          {/* Mensaje del organizador visible por el voluntario en su portal */}
+          {onUpdate && (
+            <MensajeOrganizadorEdit
+              valor={v.mensajeOrganizador || ""}
+              onChange={(msg) => onUpdate({ mensajeOrganizador: msg })}
+            />
           )}
 
           {v.notaVoluntario && (
@@ -2790,7 +2956,34 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
 
         <div className="modal-footer" style={{ justifyContent:"space-between" }}>
           <button className="btn btn-red" onClick={onEliminar}>🗑 Eliminar</button>
-          <div style={{ display:"flex", gap:"0.4rem" }}>
+          <div style={{ display:"flex", gap:"0.4rem", flexWrap:"wrap" }}>
+            {asignados.length > 0 && (
+              <button className="btn btn-ghost btn-sm"
+                title="Exportar lista del puesto a CSV"
+                onClick={() => {
+                  const header = ["Nombre","Teléfono","Estado","Talla","Vehículo","En puesto","Hora llegada"];
+                  const rows = asignados.map(v => [
+                    v.nombre || "",
+                    v.telefono || "",
+                    v.estado || "",
+                    v.talla || "",
+                    v.coche ? "Sí" : "No",
+                    v.enPuesto ? "Sí" : "No",
+                    v.horaLlegada || "",
+                  ]);
+                  const csv = [header, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+                  const blob = new Blob([csv], { type:"text/csv;charset=utf-8;" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `voluntarios-${p.nombre.replace(/\s+/g,"-").toLowerCase()}.csv`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                  toast.success("CSV exportado ✓");
+                }}>
+                📊 Exportar CSV
+              </button>
+            )}
             <button className="btn btn-ghost" onClick={onClose}>Cerrar</button>
             <button className="btn btn-cyan" onClick={onEditar}>✏️ Editar</button>
           </div>
@@ -2901,8 +3094,29 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose, onEliminar }) {
                   <label className="field-label">Puesto asignado</label>
                   <select className="inp" value={form.puestoId ?? ""} onChange={e => upd("puestoId", e.target.value || null)}>
                     <option value="">Sin asignar</option>
-                    {puestos.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                    {puestos.map(p => {
+                      const asig = p._totalAsignados ?? 0;
+                      const nec  = p.necesarios ?? 0;
+                      const pct  = nec > 0 ? Math.round(asig / nec * 100) : 0;
+                      const ico  = pct >= 100 ? "🟢" : pct >= 50 ? "🟡" : "🔴";
+                      return (
+                        <option key={p.id} value={p.id}>
+                          {ico} {p.nombre} · {p.horaInicio}-{p.horaFin} · {asig}/{nec}
+                        </option>
+                      );
+                    })}
                   </select>
+                  {form.puestoId && (() => {
+                    const p = puestos.find(x => String(x.id) === String(form.puestoId));
+                    if (!p) return null;
+                    return (
+                      <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)",
+                        marginTop:".3rem", padding:".3rem .5rem", background:"var(--surface2)", borderRadius:5 }}>
+                        🏷 {p.tipo} · {p.distancias?.join(", ")}
+                        {p.notas && <> · {p.notas.slice(0, 60)}{p.notas.length > 60 ? "…" : ""}</>}
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div>
                   <label className="field-label">Rol</label>

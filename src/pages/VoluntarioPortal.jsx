@@ -790,8 +790,11 @@ function PortalMain({ token, onLogout }) {
 
   const showMsg = (m, ms=3500) => { setMsg(m); setTimeout(() => setMsg(""), ms); };
 
-  const fetchData = useCallback(async () => {
-    setLoading(true); setError("");
+  const [ultimaActualizacion, setUltimaActualizacion] = useState(null);
+
+  const fetchData = useCallback(async (silencioso = false) => {
+    if (!silencioso) setLoading(true);
+    setError("");
     try {
       const res = await fetch(`${API_BASE}/ficha`, {
         headers: { "Authorization": `Bearer ${token}` },
@@ -799,6 +802,7 @@ function PortalMain({ token, onLogout }) {
       if (res.status === 401) { clearSession(); onLogout(); return; }
       const json = await res.json();
       setData(json);
+      setUltimaActualizacion(new Date());
       const v = json.voluntario || {};
       setForm({
         telefono:           v.telefono || "",
@@ -806,11 +810,18 @@ function PortalMain({ token, onLogout }) {
         talla:              v.talla || "M",
         notaVoluntario:     v.notaVoluntario || "",
       });
-    } catch { setError("Error de conexión. Tira abajo para recargar."); }
-    finally  { setLoading(false); }
+    } catch { if (!silencioso) setError("Error de conexión. Tira abajo para recargar."); }
+    finally  { if (!silencioso) setLoading(false); }
   }, [token, onLogout]);
 
+  // Carga inicial
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Auto-refresh cada 5 minutos (silencioso — no muestra spinner)
+  useEffect(() => {
+    const interval = setInterval(() => { fetchData(true); }, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
 
   const marcarLlegada = async () => {
     if (data?.voluntario?.enPuesto) return;
@@ -874,9 +885,16 @@ function PortalMain({ token, onLogout }) {
           </div>
         </div>
         <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:".25rem" }}>
-          <span className={`vp-badge ${v.estado==="confirmado"?"vp-badge-green":v.estado==="cancelado"?"vp-badge-red":"vp-badge-amber"}`}>
-            {v.estado==="confirmado" ? "✓ Confirmado" : v.estado==="cancelado" ? "✕ Cancelado" : "⏳ Pendiente"}
-          </span>
+          <div style={{ display:"flex", alignItems:"center", gap:".4rem" }}>
+            <span className={`vp-badge ${v.estado==="confirmado"?"vp-badge-green":v.estado==="cancelado"?"vp-badge-red":"vp-badge-amber"}`}>
+              {v.estado==="confirmado" ? "✓ Confirmado" : v.estado==="cancelado" ? "✕ Cancelado" : "⏳ Pendiente"}
+            </span>
+            <button onClick={() => fetchData(true)}
+              title="Actualizar datos"
+              style={{ background:"none", border:"none", cursor:"pointer",
+                fontFamily:"var(--font-mono)", fontSize:".9rem", color:"var(--text-dim)",
+                padding:".1rem", lineHeight:1 }}>⟳</button>
+          </div>
           {config.fecha && (() => {
             const hoy = new Date();
             const evento = new Date(config.fecha);
@@ -1066,6 +1084,15 @@ function PortalMain({ token, onLogout }) {
               <div className="vp-divider"/>
               <div className="vp-row"><span className="vp-row-label">👤 Nombre</span>
                 <span className="vp-value">{v.nombre}{v.apellidos?" "+v.apellidos:""}</span></div>
+            </>)}
+            {v.mensajeOrganizador && (<>
+              <div className="vp-divider"/>
+              <div style={{paddingTop:".4rem"}}>
+                <div className="vp-label" style={{marginBottom:".3rem", color:"var(--amber)"}}>📢 Mensaje del organizador</div>
+                <div className="vp-mono" style={{fontSize:".8rem",color:"var(--text)",lineHeight:1.7,
+                  background:"rgba(251,191,36,.06)",borderRadius:8,padding:".6rem .75rem",
+                  border:"1px solid rgba(251,191,36,.25)",borderLeft:"3px solid var(--amber)"}}>{v.mensajeOrganizador}</div>
+              </div>
             </>)}
             {v.notaVoluntario && (<>
               <div className="vp-divider"/>
