@@ -27,7 +27,13 @@ async function saveVoluntarios(sql, voluntarios) {
 }
 
 function verifyToken(voluntario, token) {
-  return voluntario && voluntario.sessionToken && voluntario.sessionToken === token;
+  if (!voluntario || !voluntario.sessionToken || voluntario.sessionToken !== token) return false;
+  // Comprobar expiración si existe
+  if (voluntario.sessionTokenExpiry) {
+    const expiry = new Date(voluntario.sessionTokenExpiry);
+    if (isNaN(expiry.getTime()) || expiry < new Date()) return false;
+  }
+  return true;
 }
 
 function findVolByToken(voluntarios, token) {
@@ -70,13 +76,18 @@ export default async function handler(req, res) {
 
       const puesto = puestos.find(p => p.id === voluntario.puestoId) || null;
 
-      // Material del puesto (via localizacion vinculada)
+      // Material del puesto — dual lookup: por localizacionId (robusto) y por nombre (retrocompat)
       let materialPuesto = [];
       if (puesto && puesto.localizacionId) {
         const loc = allLocs.find(l => l.id === puesto.localizacionId);
         if (loc) {
           materialPuesto = allAsig
-            .filter(a => a.puesto === loc.nombre)
+            .filter(a =>
+              // Prioridad: localizacionId (robusto)
+              (a.localizacionId && a.localizacionId === puesto.localizacionId) ||
+              // Fallback: nombre de localización (retrocompatibilidad con datos antiguos)
+              (!a.localizacionId && a.puesto === loc.nombre)
+            )
             .map(a => {
               const item = allMat.find(m => m.id === a.materialId);
               return item ? { nombre: item.nombre, cantidad: a.cantidad, unidad: item.unidad || 'ud' } : null;

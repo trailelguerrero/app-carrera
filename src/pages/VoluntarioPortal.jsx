@@ -71,19 +71,8 @@ const CSS = `
   html { -webkit-text-size-adjust: 100%; }
   body { background: #0f172a; color: #e2e8f0;
     font-family: 'Syne', 'Inter', system-ui, sans-serif; min-height: 100dvh; }
-  :root {
-    --bg: #080c18; --bg2: #0f172a;
-    --cyan:   #22d3ee; --cyan-dim:   rgba(34,211,238,.1);  --cyan-border: rgba(34,211,238,.25);
-    --green:  #34d399; --green-dim:  rgba(52,211,153,.1);  --green-border: rgba(52,211,153,.3);
-    --amber:  #fbbf24; --amber-dim:  rgba(251,191,36,.1);  --amber-border: rgba(251,191,36,.3);
-    --violet: #a78bfa; --violet-dim: rgba(167,139,250,.1); --violet-border: rgba(167,139,250,.3);
-    --red:    #f87171; --red-dim:    rgba(248,113,113,.1); --red-border:   rgba(248,113,113,.3);
-    --surface:  #1e293b; --surface2: #263347; --surface3: #2d3f57;
-    --border: rgba(148,163,184,.15); --border2: rgba(148,163,184,.25); --border-light: #2a3f6a;
-    --text: #e2e8f0; --text-muted: #94a3b8; --text-dim: #475569;
-    --font-display: 'Syne', sans-serif; --font-mono: 'DM Mono', monospace;
-    --r: 12px; --r-sm: 8px;
-  }
+  /* Complementos locales del portal — el resto de tokens heredan de BLOCK_CSS */
+  :root { --bg2: #0f172a; --border2: rgba(148,163,184,.25); }
 
   /* ── Layout ── */
   .vp-page   { min-height: 100dvh; display: flex; flex-direction: column; }
@@ -907,6 +896,29 @@ function PortalMain({ token, onLogout }) {
         </div>
       </div>
 
+      {/* Índice de secciones — navegación rápida móvil */}
+      <div style={{
+        overflowX:"auto", display:"flex", gap:".35rem", padding:".45rem 1rem",
+        background:"var(--surface)", borderBottom:"1px solid var(--border)",
+        scrollbarWidth:"none"
+      }}>
+        {[
+          { id:"sec-puesto",    icon:"📍", label:"Puesto" },
+          { id:"sec-compan",   icon:"👥", label:"Equipo" },
+          { id:"sec-datos",    icon:"👤", label:"Mis datos" },
+          { id:"sec-contacto", icon:"📞", label:"Contacto" },
+        ].map(s => (
+          <button key={s.id}
+            onClick={() => document.getElementById(s.id)?.scrollIntoView({ behavior:"smooth", block:"start" })}
+            style={{ flexShrink:0, background:"var(--surface2)", border:"1px solid var(--border)",
+              borderRadius:20, padding:".25rem .75rem", fontFamily:"var(--font-mono)",
+              fontSize:".65rem", color:"var(--text-muted)", cursor:"pointer", whiteSpace:"nowrap",
+              display:"flex", alignItems:"center", gap:".3rem" }}>
+            {s.icon} {s.label}
+          </button>
+        ))}
+      </div>
+
       <div className="vp-wrap">
         {msg && <div className="vp-toast">{msg}</div>}
 
@@ -1011,7 +1023,7 @@ function PortalMain({ token, onLogout }) {
 
         {/* Compañeros */}
         {companerosEnPuesto.length > 0 && (
-          <div className="vp-card">
+          <div id="sec-compan" className="vp-card">
             <div className="vp-label">👥 Compañeros en tu puesto ({companerosEnPuesto.length})</div>
             {companerosEnPuesto.map((c,i) => {
               const ini = ((c.nombre||"")+" "+(c.apellidos||"")).trim().split(" ").map(n=>n[0]).slice(0,2).join("").toUpperCase();
@@ -1040,7 +1052,7 @@ function PortalMain({ token, onLogout }) {
         )}
 
         {/* Mis datos */}
-        <div className="vp-card">
+        <div id="sec-datos" className="vp-card">
           <div className="vp-card-header">
             <div className="vp-label" style={{marginBottom:0}}>Mis datos</div>
             {!editando && <button className="vp-btn vp-btn-ghost vp-btn-sm" onClick={() => setEditando(true)}>✏️ Editar</button>}
@@ -1126,7 +1138,7 @@ function PortalMain({ token, onLogout }) {
 
         {/* Contacto organizador */}
         {organizadores.length > 0 && (
-          <div className="vp-card" style={{marginBottom:".75rem",borderLeft:"3px solid var(--cyan)"}}>
+          <div id="sec-contacto" className="vp-card" style={{marginBottom:".75rem",borderLeft:"3px solid var(--cyan)"}}>
             <div className="vp-label">📞 Contacto organizadores</div>
             {organizadores.map((org,i) => (
               <div key={i} style={{paddingTop:i>0?".65rem":0,marginTop:i>0?".65rem":0,borderTop:i>0?"1px solid var(--border)":"none"}}>

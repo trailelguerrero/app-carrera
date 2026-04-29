@@ -66,13 +66,14 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Teléfono o PIN incorrecto' });
     }
 
-    // Generar sessionToken
+    // Generar sessionToken con expiración a 30 días
     const sessionToken = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+    const sessionTokenExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    // Guardar sessionToken y pinHash en el voluntario
+    // Guardar sessionToken + expiración + pinHash en el voluntario
     const updatedVols = voluntarios.map(v =>
       String(v.telefono || '').replace(/\D/g, '') === tel
-        ? { ...v, pinHash: pinHashEsperado, sessionToken }
+        ? { ...v, pinHash: pinHashEsperado, sessionToken, sessionTokenExpiry }
         : v
     );
     const jsonValue = JSON.stringify(updatedVols);

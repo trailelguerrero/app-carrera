@@ -15,7 +15,7 @@ import { useData } from "@/lib/dataService";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const TALLAS = ["XXS","XS","S","M","L","XL","XXL","3XL","4XL"];
-const ESTADOS = { pendiente: "Pendiente", confirmado: "Confirmado", cancelado: "Cancelado" };
+const ESTADOS = { pendiente: "Pendiente", confirmado: "Confirmado", cancelado: "Cancelado", ausente: "Ausente" };
 const TIPOS_PUESTO = ["Salida/Meta","Avituallamiento","Control","Seguridad","Señalización","Parking","Organización","Primeros Auxilios"];
 const DISTANCIAS_PUESTO = ["TG7","TG13","TG25","Todas"];
 const DIST_COLORS = { TG7: "#22d3ee", TG13: "#a78bfa", TG25: "#34d399", Todas: "#fbbf24" };
@@ -79,10 +79,10 @@ const VOLUNTARIOS_DEFAULT = [
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
 function estadoColor(e) {
-  return e === "confirmado" ? "var(--green)" : e === "cancelado" ? "var(--red)" : "var(--amber)";
+  return e === "confirmado" ? "var(--green)" : e === "cancelado" ? "var(--red)" : e === "ausente" ? "var(--orange)" : "var(--amber)";
 }
 function estadoBg(e) {
-  return e === "confirmado" ? "var(--green-dim)" : e === "cancelado" ? "var(--red-dim)" : "var(--amber-dim)";
+  return e === "confirmado" ? "var(--green-dim)" : e === "cancelado" ? "var(--red-dim)" : e === "ausente" ? "var(--orange-dim)" : "var(--amber-dim)";
 }
 
 // ─── PUBLIC REGISTRATION FORM ──────────────────────────────────────────────────
@@ -487,16 +487,36 @@ export default function App() {
   const matPorLoc = useMemo(() => {
     const mat   = Array.isArray(rawMat)  ? rawMat  : [];
     const asigs = Array.isArray(rawAsig) ? rawAsig : [];
-    const map = {}; // locNombre → [{nombre, cantidad, unidad}]
+    const lcsArr = Array.isArray(locs)   ? locs    : [];
+    // Construir dos mapas: por localizacionId (ID robusto) y por nombre (fallback)
+    const mapById = {};   // localizacionId → [{nombre, cantidad, unidad}]
+    const mapByName = {}; // locNombre      → [{nombre, cantidad, unidad}]
     asigs.forEach(a => {
-      if (!a.puesto) return;
       const item = mat.find(m => m.id === a.materialId);
       if (!item) return;
-      if (!map[a.puesto]) map[a.puesto] = [];
-      map[a.puesto].push({ nombre: item.nombre, cantidad: a.cantidad, unidad: item.unidad || "ud" });
+      const entry = { nombre: item.nombre, cantidad: a.cantidad, unidad: item.unidad || "ud" };
+      if (a.localizacionId) {
+        if (!mapById[a.localizacionId]) mapById[a.localizacionId] = [];
+        mapById[a.localizacionId].push(entry);
+      }
+      if (a.puesto) {
+        if (!mapByName[a.puesto]) mapByName[a.puesto] = [];
+        mapByName[a.puesto].push(entry);
+      }
+    });
+    // Devolver mapa por nombre para compatibilidad con el código existente,
+    // enriquecido con los datos por ID (si el puesto tiene localizacionId)
+    const map = { ...mapByName };
+    lcsArr.forEach(loc => {
+      if (mapById[loc.id]) {
+        // Fusionar sin duplicados por nombre
+        const existentes = map[loc.nombre] || [];
+        const nuevos = mapById[loc.id].filter(n => !existentes.some(e => e.nombre === n.nombre));
+        map[loc.nombre] = [...existentes, ...nuevos];
+      }
     });
     return map;
-  }, [rawMat, rawAsig]);
+  }, [rawMat, rawAsig, locs]);
   const [saveStatus, setSaveStatus] = useState("idle");
   const [imgFront, setImgFront] = useData(LS_KEY + "_imgFront", SHIRT_PLACEHOLDER_FRONT);
   const [imgBack, setImgBack] = useData(LS_KEY + "_imgBack", SHIRT_PLACEHOLDER_BACK);
@@ -586,7 +606,38 @@ export default function App() {
     return true;
   };
 
-  const updateVoluntario = (id, data) => { setVoluntarios(prev => prev.map(v => v.id === id ? { ...v, ...data } : v)); if(data.estado==="confirmado") toast.success("Voluntario confirmado ✓"); else if(data.estado==="cancelado") toast.warning("Voluntario cancelado"); else if(!Object.prototype.hasOwnProperty.call(data, "estado")) toast.success("Voluntario actualizado"); };
+  // Registrar entrada en el historial de cambios del voluntario
+  const registrarHistorial = (volActual, cambios) => {
+    const ahora = new Date();
+    const fecha = ahora.toLocaleDateString("es-ES", { day:"2-digit", month:"2-digit", year:"numeric" });
+    const hora  = ahora.toLocaleTimeString("es-ES", { hour:"2-digit", minute:"2-digit" });
+    const descripcion = [];
+    if (cambios.estado !== undefined && cambios.estado !== volActual.estado)
+      descripcion.push(`Estado: ${volActual.estado} → ${cambios.estado}`);
+    if (cambios.puestoId !== undefined && cambios.puestoId !== volActual.puestoId)
+      descripcion.push(`Puesto reasignado`);
+    if (cambios.camisetaEntregada !== undefined && cambios.camisetaEntregada !== volActual.camisetaEntregada)
+      descripcion.push(cambios.camisetaEntregada ? "Camiseta entregada" : "Camiseta: pendiente");
+    if (cambios.mensajeOrganizador !== undefined)
+      descripcion.push("Mensaje del organizador actualizado");
+    if (cambios.enPuesto !== undefined && cambios.enPuesto)
+      descripcion.push(`En puesto${cambios.horaLlegada ? " a las "+cambios.horaLlegada : ""}`);
+    if (!descripcion.length) return volActual.historial || [];
+    const entrada = { fecha, hora, texto: descripcion.join(" · ") };
+    const histPrev = Array.isArray(volActual.historial) ? volActual.historial : [];
+    return [entrada, ...histPrev].slice(0, 50); // máximo 50 entradas
+  };
+
+  const updateVoluntario = (id, data) => {
+    setVoluntarios(prev => prev.map(v => {
+      if (v.id !== id) return v;
+      const historial = registrarHistorial(v, data);
+      return { ...v, ...data, historial };
+    }));
+    if(data.estado==="confirmado") toast.success("Voluntario confirmado ✓");
+    else if(data.estado==="cancelado") toast.warning("Voluntario cancelado");
+    else if(!Object.prototype.hasOwnProperty.call(data, "estado")) toast.success("Voluntario actualizado");
+  };
   const bulkUpdateVoluntarios = (ids, data) => {
     setVoluntarios(prev => prev.map(v => ids.includes(v.id) ? { ...v, ...data } : v));
     if (data.estado === "confirmado") toast.success(`${ids.length} voluntarios confirmados ✓`);
@@ -881,17 +932,22 @@ export default function App() {
           onClose={() => setFicha(null)}
           onEditar={() => { const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"}); setFicha(null); setModalVol(ficha.data); }}
           onEliminar={() => {
-            const idToDelete = ficha?.data?.id;
-            if (!idToDelete) return;
-            setConfirmDelete(idToDelete);
+            const idToDelete = ficha.data?.id;
+            if (!idToDelete && idToDelete !== 0) return;
+            // Cerrar ficha ANTES de abrir el modal de confirmación
             setFicha(null);
+            // Pequeño delay para que React procese el cierre antes de abrir el modal
+            setTimeout(() => setConfirmDelete(idToDelete), 30);
           }}
           onEliminarConfirmado={() => {
-            const idToDelete = ficha?.data?.id;
-            if (!idToDelete) return;
-            const snapshot = idToDelete; // capturar antes de limpiar estado
+            // Capturar id en variable local ANTES de cualquier setState
+            const id = ficha.data?.id;
+            if (!id && id !== 0) return;
             setFicha(null);
-            deleteVoluntario(snapshot);
+            // Eliminar directamente sin pasar por ModalConfirm
+            const sid = String(id);
+            setVoluntarios(prev => prev.filter(v => String(v.id) !== sid));
+            toast.success("Voluntario eliminado");
           }}
           onUpdate={(data) => { updateVoluntario(ficha.data.id, data); setFicha(f => ({ ...f, data: { ...f.data, ...data } })); }}
         />
@@ -1476,8 +1532,8 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
   const salirModo = () => { setModoSeleccion(false); setSeleccionados([]); };
   const [orden, setOrden]           = useState("nombre");
   const [colapsados, setColapsados] = useState({
-    confirmado: false,
-    pendiente:  false,
+    confirmado: true,
+    pendiente:  true,
     cancelado:  true,
   });
 
@@ -2220,14 +2276,33 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol, diasHastaEvento = 
   const [busquedaDiaD, setBusquedaDiaD]     = useState("");
 
   const marcarPresencia = (id, presente) => {
-    // "presente" en el checklist = "enPuesto" en el modelo canónico
     const horaLlegada = presente ? new Date().toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' }) : null;
     onUpdateVol(id, { enPuesto: presente, ...(presente && horaLlegada ? { horaLlegada } : { horaLlegada: null }) });
     setUltimoGuardado(id);
     setTimeout(() => setUltimoGuardado(null), 1200);
   };
 
-  const volsBase = voluntarios.filter(v => v.estado === "confirmado" || v.estado === "pendiente");
+  const marcarAusente = (id) => {
+    onUpdateVol(id, { estado: "ausente", enPuesto: false, horaLlegada: null });
+    setUltimoGuardado(id);
+    setTimeout(() => setUltimoGuardado(null), 1200);
+  };
+
+  // Detectar voluntarios confirmados que deberían estar en su puesto pero no han llegado
+  const ahora = new Date();
+  const horaActual = `${String(ahora.getHours()).padStart(2,'0')}:${String(ahora.getMinutes()).padStart(2,'0')}`;
+  const volsRetrasados = voluntarios.filter(v => {
+    if (v.estado !== "confirmado" || v.enPuesto) return false;
+    const puesto = (puestosConStats || []).find(p => p.id === v.puestoId);
+    if (!puesto || !puesto.horaInicio) return false;
+    // Resaltar si han pasado más de 30 min desde el inicio del puesto
+    const [h, m] = puesto.horaInicio.split(":").map(Number);
+    const minutosInicio = h * 60 + m;
+    const minutosActual = ahora.getHours() * 60 + ahora.getMinutes();
+    return minutosActual > minutosInicio + 30;
+  });
+
+  const volsBase = voluntarios.filter(v => v.estado === "confirmado" || v.estado === "pendiente" || v.estado === "ausente");
 
   // Voluntarios filtrados por búsqueda y puesto (para vista por nombre)
   const volsFiltrados = (() => {
@@ -2293,6 +2368,14 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol, diasHastaEvento = 
         </div>
         {v.talla && <span className="badge badge-cyan">{v.talla}</span>}
         {v.coche && <span style={{ fontSize: "var(--fs-base)" }} title="Tiene coche">🚗</span>}
+        {v.estado === "ausente" && (
+          <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+            color:"var(--orange)", background:"var(--orange-dim)",
+            border:"1px solid var(--orange-border)", borderRadius:4,
+            padding:"0 .35rem", flexShrink:0 }}>
+            ⚠ Ausente
+          </span>
+        )}
         {v.enPuesto && (
           <span title={"En puesto" + (v.horaLlegada ? " · " + v.horaLlegada : "")}
             style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
@@ -2305,6 +2388,16 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol, diasHastaEvento = 
         {v.camisetaEntregada && (
           <span title="Camiseta entregada"
             style={{ fontSize:"var(--fs-base)", flexShrink:0 }}>🎽</span>
+        )}
+        {!v.enPuesto && v.estado !== "ausente" && (
+          <button
+            title="Marcar como ausente (no ha aparecido)"
+            onClick={e => { e.stopPropagation(); marcarAusente(v.id); }}
+            style={{ background:"none", border:"1px solid var(--orange-border)", borderRadius:5,
+              color:"var(--orange)", fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+              padding:".1rem .4rem", cursor:"pointer", flexShrink:0, opacity:.7 }}>
+            ⚠
+          </button>
         )}
         {v.telefono && (
           <a href={`tel:${v.telefono}`}
@@ -2323,6 +2416,23 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol, diasHastaEvento = 
           <div className="page-desc">Checklist de asistencia · {diasHastaEvento >= 0 ? `${diasHastaEvento} días para el evento` : "¡Día de carrera!"}</div>
         </div>
         <div style={{ display:"flex", gap:".5rem" }}>
+
+      {/* Alerta voluntarios retrasados */}
+      {volsRetrasados.length > 0 && (
+        <div style={{ background:"var(--orange-dim)", border:"1px solid var(--orange-border)",
+          borderRadius:8, padding:".5rem .85rem", marginBottom:".65rem",
+          display:"flex", alignItems:"center", gap:".65rem" }}>
+          <span style={{ fontSize:"1.1rem" }}>⚠️</span>
+          <div>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700, color:"var(--orange)" }}>
+              {volsRetrasados.length} voluntario{volsRetrasados.length > 1 ? "s" : ""} con más de 30 min de retraso
+            </div>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", lineHeight:1.5 }}>
+              {volsRetrasados.map(v => v.nombre?.split(" ")[0] || "V").join(", ")}
+            </div>
+          </div>
+        </div>
+      )}
           <div className="mono text-xs" style={{ color: "var(--green)", background: "var(--green-dim)",
             border: "1px solid rgba(52,211,153,0.2)", borderRadius: 6, padding: "0.4rem 0.75rem" }}>
             ✓ {presentes} / {totalConf} en su puesto
@@ -2450,6 +2560,49 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol, diasHastaEvento = 
 }
 
 // ─── FICHA VOLUNTARIO ─────────────────────────────────────────────────────────
+// ─── HISTORIAL DE CAMBIOS ─────────────────────────────────────────────────────
+function HistorialCambios({ historial }) {
+  const [expandido, setExpandido] = useState(false);
+  const visible = expandido ? historial : historial.slice(0, 3);
+  return (
+    <div style={{ background:"var(--surface2)", borderRadius:8, padding:"0.6rem 0.75rem",
+      borderLeft:"2px solid var(--border)", marginTop:"0.25rem" }}>
+      <button
+        onClick={() => setExpandido(v => !v)}
+        style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+          width:"100%", background:"none", border:"none", cursor:"pointer", padding:0 }}>
+        <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)",
+          textTransform:"uppercase", fontWeight:700 }}>
+          🕐 Historial de cambios
+        </div>
+        <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)",
+          transform: expandido ? "rotate(0deg)" : "rotate(-90deg)", transition:"transform .15s" }}>▼</span>
+      </button>
+      <div style={{ marginTop:"0.4rem", display:"flex", flexDirection:"column", gap:"0.25rem" }}>
+        {visible.map((e, i) => (
+          <div key={i} style={{ display:"flex", gap:"0.6rem", fontSize:"var(--fs-sm)",
+            padding:"0.25rem 0",
+            borderBottom: i < visible.length - 1 ? "1px solid var(--border)" : "none" }}>
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+              color:"var(--text-dim)", flexShrink:0, minWidth:70 }}>
+              {e.fecha}<br/>{e.hora}
+            </span>
+            <span style={{ color:"var(--text-muted)", lineHeight:1.4 }}>{e.texto}</span>
+          </div>
+        ))}
+        {!expandido && historial.length > 3 && (
+          <button onClick={() => setExpandido(true)}
+            style={{ background:"none", border:"none", cursor:"pointer",
+              fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--cyan)",
+              textAlign:"left", padding:"0.15rem 0" }}>
+            + {historial.length - 3} entradas más…
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── MENSAJE ORGANIZADOR (editable inline) ────────────────────────────────────
 function MensajeOrganizadorEdit({ valor, onChange }) {
   const [editando, setEditando] = useState(false);
@@ -2630,6 +2783,11 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
               </div>
               <div style={{ fontSize:"var(--fs-base)", lineHeight:1.6, color:"var(--text)" }}>{v.notaVoluntario}</div>
             </div>
+          )}
+
+          {/* Historial de cambios */}
+          {Array.isArray(v.historial) && v.historial.length > 0 && (
+            <HistorialCambios historial={v.historial} />
           )}
 
           {/* Material del puesto asignado (desde Logística) */}

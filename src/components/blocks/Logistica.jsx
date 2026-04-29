@@ -53,17 +53,17 @@ const MAT0 = [
   {id:18,nombre:"Trofeos pódium",categoria:"Organización",cantidad:18,unidad:"ud",stock:18},
 ];
 const ASIG0 = [
-  {id:1,materialId:1,puesto:"Avituallamiento KM 4",cantidad:8,estado:"pendiente"},
-  {id:2,materialId:1,puesto:"Avituallamiento KM 9",cantidad:10,estado:"pendiente"},
-  {id:3,materialId:1,puesto:"Avituallamiento KM 16",cantidad:15,estado:"pendiente"},
-  {id:4,materialId:4,puesto:"Avituallamiento KM 9",cantidad:60,estado:"pendiente"},
-  {id:5,materialId:4,puesto:"Avituallamiento KM 16",cantidad:100,estado:"pendiente"},
-  {id:6,materialId:10,puesto:"Control KM 7",cantidad:2,estado:"pendiente"},
-  {id:7,materialId:10,puesto:"Control KM 13",cantidad:2,estado:"pendiente"},
-  {id:8,materialId:10,puesto:"Zona Salida/Meta",cantidad:3,estado:"pendiente"},
-  {id:9,materialId:11,puesto:"Señalización Ruta Alta",cantidad:120,estado:"pendiente"},
-  {id:10,materialId:14,puesto:"Primeros Auxilios Base",cantidad:3,estado:"pendiente"},
-  {id:11,materialId:16,puesto:"Zona Salida/Meta",cantidad:650,estado:"pendiente"},
+  {id:1,materialId:1, localizacionId:2,  puesto:"Avituallamiento KM 4",   cantidad:8,  estado:"pendiente"},
+  {id:2,materialId:1, localizacionId:3,  puesto:"Avituallamiento KM 9",   cantidad:10, estado:"pendiente"},
+  {id:3,materialId:1, localizacionId:4,  puesto:"Avituallamiento KM 16",  cantidad:15, estado:"pendiente"},
+  {id:4,materialId:4, localizacionId:3,  puesto:"Avituallamiento KM 9",   cantidad:60, estado:"pendiente"},
+  {id:5,materialId:4, localizacionId:4,  puesto:"Avituallamiento KM 16",  cantidad:100,estado:"pendiente"},
+  {id:6,materialId:10,localizacionId:5,  puesto:"Control KM 7",           cantidad:2,  estado:"pendiente"},
+  {id:7,materialId:10,localizacionId:6,  puesto:"Control KM 13",          cantidad:2,  estado:"pendiente"},
+  {id:8,materialId:10,localizacionId:1,  puesto:"Zona Salida/Meta",        cantidad:3,  estado:"pendiente"},
+  {id:9,materialId:11,localizacionId:9,  puesto:"Señalización Ruta Alta",  cantidad:120,estado:"pendiente"},
+  {id:10,materialId:14,localizacionId:12,puesto:"Primeros Auxilios Base",  cantidad:3,  estado:"pendiente"},
+  {id:11,materialId:16,localizacionId:1, puesto:"Zona Salida/Meta",        cantidad:650,estado:"pendiente"},
 ];
 const VEH0 = [
   {id:1,nombre:"Furgoneta Organización",matricula:"1234-ABC",conductor:"Javier López",capacidad:"1.5 ton",telefono:"612000001",notas:"Reparto material avituallamiento"},
@@ -2456,7 +2456,10 @@ function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setV
   if(tipo==="asig") return <MF title={data?"✏️ Editar asignación":"📍 Nueva asignación"} onClose={onClose}
     fields={[{k:"materialId",l:"Material",t:"sel",o:material.map(m=>m.id),lb:material.map(m=>m.nombre),num:true},{k:"puesto",l:"Puesto destino",t:"sel",o:locNames},{k:"cantidad",l:"Cantidad",t:"num"},{k:"estado",l:"Estado entrega",t:"sel",o:ESTADO_ENTREGA}]}
     init={data||{materialId:material[0]?.id||1,puesto:locNames[0],cantidad:1,estado:"pendiente"}}
-    onSave={v=>sv(setAsigs,asigs,{...v,materialId:parseInt(v.materialId)},"asig")} />;
+    onSave={v=>{
+      const locObj = locs && locs.find(l => l.nombre === v.puesto);
+      sv(setAsigs,asigs,{...v,materialId:parseInt(v.materialId),localizacionId:locObj?.id||null},"asig");
+    }} />;
 
   if(tipo==="veh") return <MF title={data?"✏️ Editar vehículo":"🚗 Nuevo vehículo"} onClose={onClose}
     fields={[{k:"nombre",l:"Nombre *",t:"text"},{k:"matricula",l:"Matrícula",t:"text"},{k:"conductor",l:"Conductor",t:"text"},{k:"capacidad",l:"Capacidad",t:"text"},{k:"telefono",l:"Teléfono",t:"text"},{k:"notas",l:"Notas",t:"text"}]}

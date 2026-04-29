@@ -16,13 +16,13 @@ export const BLOCK_CSS = `
     --text:         #f0f4ff;
     --text-muted:   #7a8fb0;
     --text-dim:     #4a5e80;
-    --cyan:         #22d3ee;  --cyan-dim:   rgba(34,211,238,0.10);
-    --violet:       #a78bfa;  --violet-dim: rgba(167,139,250,0.10);
-    --green:        #34d399;  --green-dim:  rgba(52,211,153,0.10);
-    --amber:        #fbbf24;  --amber-dim:  rgba(251,191,36,0.10);
-    --red:          #f87171;  --red-dim:    rgba(248,113,113,0.10);
-    --orange:       #fb923c;  --orange-dim: rgba(251,146,60,0.10);
-    --primary:      #6366f1;  --primary-dim:rgba(99,102,241,0.15);
+    --cyan:         #22d3ee;  --cyan-dim:   rgba(34,211,238,0.10);  --cyan-border:   rgba(34,211,238,0.28);
+    --violet:       #a78bfa;  --violet-dim: rgba(167,139,250,0.10); --violet-border: rgba(167,139,250,0.28);
+    --green:        #34d399;  --green-dim:  rgba(52,211,153,0.10);  --green-border:  rgba(52,211,153,0.28);
+    --amber:        #fbbf24;  --amber-dim:  rgba(251,191,36,0.10);  --amber-border:  rgba(251,191,36,0.28);
+    --red:          #f87171;  --red-dim:    rgba(248,113,113,0.10); --red-border:    rgba(248,113,113,0.28);
+    --orange:       #fb923c;  --orange-dim: rgba(251,146,60,0.10);  --orange-border: rgba(251,146,60,0.28);
+    --primary:      #6366f1;  --primary-dim:rgba(99,102,241,0.15);  --primary-border:rgba(99,102,241,0.28);
     --font-display: 'Syne', sans-serif;
     --font-mono:    'DM Mono', 'Space Mono', monospace;
     --r:            14px;
@@ -53,13 +53,13 @@ export const BLOCK_CSS = `
     --text:         #0a0e1a;
     --text-muted:   #4a6080;
     --text-dim:     #6a80a0;
-    --cyan:         #0891b2;  --cyan-dim:   rgba(8,145,178,0.10);
-    --violet:       #7c3aed;  --violet-dim: rgba(124,58,237,0.10);
-    --green:        #059669;  --green-dim:  rgba(5,150,105,0.10);
-    --amber:        #d97706;  --amber-dim:  rgba(217,119,6,0.10);
-    --red:          #dc2626;  --red-dim:    rgba(220,38,38,0.10);
-    --orange:       #ea580c;  --orange-dim: rgba(234,88,12,0.10);
-    --primary:      #4f46e5;  --primary-dim:rgba(79,70,229,0.12);
+    --cyan:         #0891b2;  --cyan-dim:   rgba(8,145,178,0.10);   --cyan-border:   rgba(8,145,178,0.28);
+    --violet:       #7c3aed;  --violet-dim: rgba(124,58,237,0.10);  --violet-border: rgba(124,58,237,0.28);
+    --green:        #059669;  --green-dim:  rgba(5,150,105,0.10);   --green-border:  rgba(5,150,105,0.28);
+    --amber:        #d97706;  --amber-dim:  rgba(217,119,6,0.10);   --amber-border:  rgba(217,119,6,0.28);
+    --red:          #dc2626;  --red-dim:    rgba(220,38,38,0.10);   --red-border:    rgba(220,38,38,0.28);
+    --orange:       #ea580c;  --orange-dim: rgba(234,88,12,0.10);   --orange-border: rgba(234,88,12,0.28);
+    --primary:      #4f46e5;  --primary-dim:rgba(79,70,229,0.12);   --primary-border:rgba(79,70,229,0.28);
     --card-accent-width: 3px;
   }
 
