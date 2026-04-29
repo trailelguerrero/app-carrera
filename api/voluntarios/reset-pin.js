@@ -44,7 +44,7 @@ export default async function handler(req, res) {
 
     const updated = voluntarios.map(v =>
       String(v.id) === String(voluntarioId)
-        ? { ...v, pinHash, sessionToken: null }
+        ? { ...v, pinHash, sessionToken: null, pinPersonalizado: false }
         : v
     );
     const jsonValue = JSON.stringify(updated);

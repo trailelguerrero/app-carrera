@@ -105,6 +105,8 @@ export default async function handler(req, res) {
           horaFin: puesto.horaFin,
           distancias: puesto.distancias,
           notas: puesto.notas,
+          necesarios: puesto.necesarios || null,
+          tiempoLimite: puesto.tiempoLimite || null,
         } : null,
         companerosEnPuesto,
         materialPuesto,
@@ -157,7 +159,7 @@ export default async function handler(req, res) {
       }
       const nuevoHash = hashPin(String(pinNuevo));
       const updated = voluntarios.map(v =>
-        String(v.id) === String(voluntario.id) ? { ...v, pinHash: nuevoHash } : v
+        String(v.id) === String(voluntario.id) ? { ...v, pinHash: nuevoHash, pinPersonalizado: true } : v
       );
       await saveVoluntarios(sql, updated);
       return res.status(200).json({ success: true });

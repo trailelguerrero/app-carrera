@@ -63,6 +63,8 @@ const SHIRT_BACK = "data:image/svg+xml," + encodeURIComponent(
   <text x="200" y="270" text-anchor="middle" fill="#5a6a8a" font-size="12" font-family="monospace">PARTE TRASERA</text></svg>`
 );
 
+const LOGO_TEG = "data:image/webp;base64,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";
+
 // ── CSS unificado ─────────────────────────────────────────────────────────────
 const CSS = `
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -180,8 +182,8 @@ const CSS = `
   .vp-error { background:var(--red-dim); border:1px solid var(--red-border); border-radius:8px;
     padding:.65rem .9rem; font-family:var(--font-mono); font-size:.8rem;
     color:var(--red); text-align:center; margin-top:.75rem; }
-  .vp-hint { font-family:var(--font-mono); font-size:.75rem; color:var(--text-dim);
-    text-align:center; line-height:1.9; margin-top:.85rem; }
+  .vp-hint { font-family:var(--font-mono); font-size:.82rem; color:var(--text-muted);
+    text-align:center; line-height:2; margin-top:.85rem; }
   .vp-toast { background:var(--green-dim); border:1px solid var(--green-border);
     border-radius:8px; padding:.55rem .9rem; margin-bottom:.75rem;
     font-family:var(--font-mono); font-size:.78rem; color:var(--green); }
@@ -282,8 +284,10 @@ function LandingScreen({ onNuevo, onLogin, loadingConfig, config }) {
         background:"radial-gradient(ellipse 80% 50% at 50% 0%, rgba(34,211,238,0.08) 0%, transparent 65%)" }}>
 
         {/* Hero */}
-        <div style={{ textAlign:"center", marginBottom:"3rem", animation:"fadeUp .5s ease both" }}>
-          <div style={{ fontSize:"3.5rem", marginBottom:".75rem" }}>🏔️</div>
+        <div style={{ textAlign:"center", marginBottom:"2.5rem", animation:"fadeUp .5s ease both" }}>
+          <img src={LOGO_TEG} alt="Trail El Guerrero" width={96} height={96}
+            style={{ marginBottom:".85rem", borderRadius:"50%",
+              boxShadow:"0 0 0 3px rgba(34,211,238,.25), 0 8px 32px rgba(0,0,0,.4)" }} />
           <div style={{ fontWeight:800, fontSize:"1.6rem", color:"var(--cyan)",
             fontFamily:"var(--font-display)", marginBottom:".35rem", lineHeight:1.2 }}>
             Trail El Guerrero 2026
@@ -293,7 +297,7 @@ function LandingScreen({ onNuevo, onLogin, loadingConfig, config }) {
             Portal del Voluntario
           </div>
           {config?.fecha && (
-            <div style={{ fontFamily:"var(--font-mono)", fontSize:".75rem", color:"var(--text-dim)" }}>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:".75rem", color:"var(--text-muted)" }}>
               {config.fecha} · {config.lugar || "Candeleda, Ávila"}
             </div>
           )}
@@ -333,7 +337,7 @@ function LandingScreen({ onNuevo, onLogin, loadingConfig, config }) {
 
         {/* Footer */}
         <div style={{ marginTop:"2.5rem", fontFamily:"var(--font-mono)",
-          fontSize:".68rem", color:"var(--text-dim)", textAlign:"center", lineHeight:1.8,
+          fontSize:".8rem", color:"var(--text-muted)", textAlign:"center", lineHeight:2,
           animation:"fadeUp .6s .2s ease both", opacity:0, animationFillMode:"forwards" }}>
           Club Deportivo Trail Candeleda<br/>
           10ª Edición · Candeleda, Ávila
@@ -541,6 +545,7 @@ function LoginScreen({ onLogin, onVolver, telefonoInicial }) {
   const [shake, setShake]       = useState(false);
   const [error, setError]       = useState("");
   const [loading, setLoading]   = useState(false);
+  const [pinCambiado, setPinCambiado] = useState(false);
   const telRef = useRef(null);
 
   useEffect(() => { if (paso === 1) setTimeout(() => telRef.current?.focus(), 100); }, [paso]);
@@ -548,10 +553,19 @@ function LoginScreen({ onLogin, onVolver, telefonoInicial }) {
   const telLimpio = telefono.replace(/\D/g,"");
   const telValido = telLimpio.length >= 9;
 
-  const irAlPin = (e) => {
+  const irAlPin = async (e) => {
     e?.preventDefault();
     if (!telValido) { setError("Introduce tu número de teléfono (mínimo 9 dígitos)"); return; }
-    setError(""); setPaso(2);
+    setError("");
+    // Consultar si el voluntario existe y si cambió su PIN
+    try {
+      const res = await fetch();
+      if (res.ok) {
+        const d = await res.json();
+        setPinCambiado(Boolean(d.pinPersonalizado));
+      }
+    } catch { /* silencioso — no bloquea el flujo */ }
+    setPaso(2);
   };
 
   const handlePinChange = async (newPin) => {
@@ -626,12 +640,11 @@ function LoginScreen({ onLogin, onVolver, telefonoInicial }) {
               <div style={{ textAlign:"center", marginBottom:"1.4rem" }}>
                 <div className="vp-step-title">🔑 Introduce tu PIN</div>
                 <div className="vp-step-desc" style={{ marginBottom:".5rem" }}>
-                  Son los <strong style={{color:"var(--text)"}}>últimos 4 dígitos</strong> de tu teléfono
-                  {telLimpio.length >= 4 && (
-                    <> · <span style={{color:"var(--cyan)",fontWeight:800,fontSize:"1rem"}}>
-                      {telLimpio.slice(-4)}
-                    </span></>
-                  )}
+                  Tu PIN de 4 dígitos
+                  {!pinCambiado ? (<> · PIN inicial: los <strong style={{color:"var(--text)"}}>últimos 4 dígitos</strong> de tu teléfono
+                    {telLimpio.length >= 4 && (
+                      <> = <span style={{color:"var(--cyan)",fontWeight:800,fontSize:"1rem"}}>{telLimpio.slice(-4)}</span></>
+                    )}</>) : (<> · Si lo cambiaste, usa tu PIN personalizado. Si no lo recuerdas, contacta con el organizador.</>)}
                 </div>
                 <div className="vp-mono" style={{ fontSize:".9rem", color:"var(--text-muted)" }}>
                   {telefono.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")}
@@ -655,6 +668,100 @@ function LoginScreen({ onLogin, onVolver, telefonoInicial }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // SCREEN: PORTAL (ficha del voluntario autenticado)
 // ─────────────────────────────────────────────────────────────────────────────
+// ── Componente PuestoDetalle (solo lectura) ──────────────────────────────────
+function PuestoDetalle({ puesto }) {
+  const [expandido, setExpandido] = useState(false);
+  if (!puesto) return (
+    <div className="vp-card" style={{ borderLeft:"3px solid var(--border)" }}>
+      <div className="vp-label">📍 Tu puesto</div>
+      <div className="vp-mono" style={{ fontSize:".82rem", color:"var(--text-dim)" }}>
+        ⏳ Pendiente de asignación. Te informaremos pronto.
+      </div>
+    </div>
+  );
+  return (
+    <div className="vp-card" style={{ borderLeft:"3px solid var(--cyan)", padding:0, overflow:"hidden" }}>
+      {/* Cabecera siempre visible */}
+      <button
+        onClick={() => setExpandido(v => !v)}
+        style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between",
+          padding:"1rem 1.1rem", background:"none", border:"none", cursor:"pointer",
+          textAlign:"left", gap:".75rem" }}>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div className="vp-label" style={{ marginBottom:".2rem" }}>📍 Tu puesto</div>
+          <div style={{ fontWeight:700, fontSize:"1.05rem", color:"var(--text)" }}>{puesto.nombre}</div>
+          <div className="vp-mono" style={{ fontSize:".75rem", color:"var(--text-muted)", marginTop:".2rem" }}>
+            🕗 {puesto.horaInicio}{puesto.horaFin ? ` – ${puesto.horaFin}` : ""}
+            {puesto.tipo ? ` · ${puesto.tipo}` : ""}
+          </div>
+        </div>
+        <span style={{ fontFamily:"var(--font-mono)", fontSize:".75rem", color:"var(--cyan)",
+          flexShrink:0, transition:"transform .18s",
+          transform: expandido ? "rotate(0deg)" : "rotate(-90deg)" }}>▼</span>
+      </button>
+
+      {/* Detalles expandidos */}
+      {expandido && (
+        <div style={{ padding:"0 1.1rem 1rem", borderTop:"1px solid var(--border)" }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:".55rem", paddingTop:".75rem" }}>
+            {puesto.tipo && (
+              <div className="vp-row">
+                <span className="vp-row-label">🏷 Tipo</span>
+                <span className="vp-value">{puesto.tipo}</span>
+              </div>
+            )}
+            {puesto.horaInicio && (
+              <div className="vp-row">
+                <span className="vp-row-label">🕗 Horario</span>
+                <span className="vp-value">{puesto.horaInicio}{puesto.horaFin ? ` – ${puesto.horaFin}` : ""}</span>
+              </div>
+            )}
+            {puesto.distancias?.length > 0 && (
+              <div className="vp-row">
+                <span className="vp-row-label">📏 Distancias</span>
+                <div style={{ display:"flex", gap:".3rem", flexWrap:"wrap", justifyContent:"flex-end" }}>
+                  {puesto.distancias.map(d => (
+                    <span key={d} style={{ fontFamily:"var(--font-mono)", fontSize:".65rem",
+                      padding:".15rem .45rem", borderRadius:4,
+                      background:"rgba(34,211,238,.1)", color:"var(--cyan)",
+                      border:"1px solid rgba(34,211,238,.25)", fontWeight:700 }}>{d}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {puesto.necesarios && (
+              <div className="vp-row">
+                <span className="vp-row-label">👥 Voluntarios</span>
+                <span className="vp-value">{puesto.necesarios} necesarios</span>
+              </div>
+            )}
+            {puesto.tiempoLimite && (
+              <div className="vp-row">
+                <span className="vp-row-label">⏱ Tiempo límite</span>
+                <span className="vp-value" style={{color:"var(--amber)"}}>{puesto.tiempoLimite}</span>
+              </div>
+            )}
+            {puesto.notas && (
+              <div style={{ marginTop:".2rem", padding:".55rem .75rem",
+                background:"var(--surface2)", borderRadius:8,
+                borderLeft:"2px solid var(--cyan-border)" }}>
+                <div className="vp-label" style={{ marginBottom:".25rem", color:"var(--cyan)" }}>📋 Instrucciones</div>
+                <div className="vp-mono" style={{ fontSize:".78rem", color:"var(--text-muted)", lineHeight:1.7 }}>
+                  {puesto.notas}
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="vp-mono" style={{ fontSize:".62rem", color:"var(--text-dim)",
+            marginTop:".75rem", textAlign:"center" }}>
+            Solo lectura · Contacta con el organizador para cambios
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PortalMain({ token, onLogout }) {
   const [data,       setData]       = useState(null);
   const [loading,    setLoading]    = useState(true);
@@ -931,7 +1038,8 @@ function PortalMain({ token, onLogout }) {
           Cerrar sesión
         </button>
 
-        <div className="vp-hint" style={{marginTop:"1rem"}}>
+        <div style={{marginTop:"1rem", fontFamily:"var(--font-mono)", fontSize:".8rem",
+          color:"var(--text-muted)", textAlign:"center", lineHeight:2}}>
           Trail El Guerrero 2026 · Club Deportivo Trail Candeleda
           {config.fecha ? <><br/>Evento: {config.fecha}</> : ""}
           {config.lugar ? <> · {config.lugar}</> : ""}
