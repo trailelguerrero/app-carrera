@@ -53,7 +53,7 @@ export default async function handler(req, res) {
 
     if (!voluntario) return res.status(401).json({ error: 'Sesión inválida o expirada' });
 
-    // ── GET /api/voluntarios/ficha — datos + puesto + compañeros ──
+    // ── GET /api/voluntarios/ficha — datos + puesto + compañeros + material ──
     if (req.method === 'GET') {
       const puestosRes = await sql`SELECT value FROM collections WHERE key = ${LS_PUESTOS}`;
       const puestos = puestosRes.length > 0 && Array.isArray(puestosRes[0].value) ? puestosRes[0].value : [];
@@ -61,18 +61,40 @@ export default async function handler(req, res) {
       const configRes = await sql`SELECT value FROM collections WHERE key = ${LS_CONFIG}`;
       const config = configRes.length > 0 ? configRes[0].value : {};
 
+      const matRes  = await sql`SELECT value FROM collections WHERE key = 'teg_logistica_v1_mat'`;
+      const asigRes = await sql`SELECT value FROM collections WHERE key = 'teg_logistica_v1_asig'`;
+      const locsRes = await sql`SELECT value FROM collections WHERE key = 'teg_localizaciones_v1'`;
+      const allMat  = matRes.length > 0 && Array.isArray(matRes[0].value)  ? matRes[0].value  : [];
+      const allAsig = asigRes.length > 0 && Array.isArray(asigRes[0].value) ? asigRes[0].value : [];
+      const allLocs = locsRes.length > 0 && Array.isArray(locsRes[0].value) ? locsRes[0].value : [];
+
       const puesto = puestos.find(p => p.id === voluntario.puestoId) || null;
 
-      // Compañeros del mismo puesto — solo nombre y teléfono (excluye cancelados)
+      // Material del puesto (via localizacion vinculada)
+      let materialPuesto = [];
+      if (puesto && puesto.localizacionId) {
+        const loc = allLocs.find(l => l.id === puesto.localizacionId);
+        if (loc) {
+          materialPuesto = allAsig
+            .filter(a => a.puesto === loc.nombre)
+            .map(a => {
+              const item = allMat.find(m => m.id === a.materialId);
+              return item ? { nombre: item.nombre, cantidad: a.cantidad, unidad: item.unidad || 'ud' } : null;
+            })
+            .filter(Boolean);
+        }
+      }
+
+      // Compañeros del mismo puesto (excluye cancelados) — incluye estado y enPuesto
       const companerosEnPuesto = voluntario.puestoId
         ? voluntarios
             .filter(v => v.puestoId === voluntario.puestoId
                       && (v.estado === 'confirmado' || v.estado === 'pendiente')
                       && String(v.id) !== String(voluntario.id))
-            .map(v => ({ nombre: v.nombre, apellidos: v.apellidos || '', telefono: v.telefono || '' }))
+            .map(v => ({ nombre: v.nombre, apellidos: v.apellidos || '', telefono: v.telefono || '', estado: v.estado || 'pendiente', enPuesto: v.enPuesto || false, horaLlegada: v.horaLlegada || null }))
         : [];
 
-      const { pinHash, sessionToken, notas, ...volPublico } = voluntario;
+      const { pinHash, sessionToken, ...volPublico } = voluntario;
 
       return res.status(200).json({
         voluntario: volPublico,
@@ -85,6 +107,7 @@ export default async function handler(req, res) {
           notas: puesto.notas,
         } : null,
         companerosEnPuesto,
+        materialPuesto,
         config: {
           nombre:           config.nombre,
           fecha:            config.fecha,
@@ -92,17 +115,19 @@ export default async function handler(req, res) {
           organizador:      config.organizador      || '',
           telefonoContacto: config.telefonoContacto || '',
           emailContacto:    config.emailContacto    || '',
+          organizadores:    Array.isArray(config.organizadores) ? config.organizadores : [],
         },
       });
     }
 
     // ── PATCH /api/voluntarios/ficha — editar datos personales ──
     if (req.method === 'PATCH' && !action) {
-      const { telefono, telefonoEmergencia, talla } = req.body || {};
+      const { telefono, telefonoEmergencia, talla, notaVoluntario } = req.body || {};
       const update = {};
       if (telefono !== undefined) update.telefono = String(telefono).slice(0, 20);
       if (telefonoEmergencia !== undefined) update.telefonoEmergencia = String(telefonoEmergencia).slice(0, 20);
       if (talla !== undefined) update.talla = String(talla).slice(0, 5);
+      if (notaVoluntario !== undefined) update.notaVoluntario = String(notaVoluntario).slice(0, 500);
 
       const updated = voluntarios.map(v =>
         String(v.id) === String(voluntario.id) ? { ...v, ...update } : v

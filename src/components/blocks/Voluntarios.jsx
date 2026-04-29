@@ -125,17 +125,19 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
 
   if (enviado) return (
     <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center", padding: "2rem" }}>
-      <div style={{ maxWidth: 480, textAlign: "center", animation: "fadeUp 0.5s ease both" }}>
+      <div style={{ maxWidth: 500, textAlign: "center", animation: "fadeUp 0.5s ease both" }}>
         <div style={{ fontSize: "4rem", marginBottom: "1rem" }}>🎉</div>
         <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.8rem", fontWeight: 800, color: "var(--green)", marginBottom: "0.75rem" }}>¡Registro completado!</h2>
-        <p style={{ color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: "0.85rem", lineHeight: 1.7, marginBottom: "1.5rem" }}>
+        <p style={{ color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: "0.85rem", lineHeight: 1.7, marginBottom: "1.25rem" }}>
           Gracias por apuntarte como voluntario del <strong style={{ color: "var(--text)" }}>Trail El Guerrero 2026</strong>.<br />
-          El equipo organizador se pondrá en contacto contigo próximamente por WhatsApp o teléfono.
+          El equipo organizador se pondrá en contacto contigo próximamente.
         </p>
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "1rem 1.5rem", marginBottom: "1.5rem", textAlign: "left" }}>
+
+        {/* Resumen del registro */}
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "1rem 1.5rem", marginBottom: "1rem", textAlign: "left" }}>
           <div style={{ fontSize: "var(--fs-sm)", fontFamily: "var(--font-mono)", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.75rem" }}>Tu registro</div>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-            {[["Nombre", `${form.nombre} ${form.apellidos}`], ["Teléfono", form.telefono], ...(opcionEmail ? [["Email", form.email || "—"]] : []), ["Talla camiseta", form.talla], ...(opcionEmergencia ? [["🚨 Tel. emergencia", form.telefonoEmergencia || "—"]] : [])].map(([k, v]) => (
+            {[[`Nombre`, `${form.nombre} ${form.apellidos}`], [`Teléfono`, form.telefono], ...(opcionEmail ? [[`Email`, form.email || "—"]] : []), [`Talla camiseta`, form.talla], ...(opcionEmergencia ? [[`🚨 Tel. emergencia`, form.telefonoEmergencia || "—"]] : [])].map(([k, v]) => (
               <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--fs-base)" }}>
                 <span style={{ color: "var(--text-muted)" }}>{k}</span>
                 <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--text)" }}>{v}</span>
@@ -143,9 +145,40 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
             ))}
           </div>
         </div>
-        <button onClick={() => window.location.href = "/"} style={{ background: "var(--green-dim)", color: "var(--green)", border: "1px solid rgba(52,211,153,0.3)", borderRadius: 8, padding: "0.6rem 1.5rem", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "0.85rem", cursor: "pointer" }}>
-          ← Volver al Inicio
-        </button>
+
+        {/* Instrucciones portal voluntario */}
+        <div style={{ background: "rgba(34,211,238,0.06)", border: "1px solid rgba(34,211,238,0.2)", borderRadius: 12, padding: "1rem 1.5rem", marginBottom: "1.25rem", textAlign: "left" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--cyan)", fontWeight: 700, marginBottom: "0.6rem" }}>
+            📱 Cómo acceder a tu panel de voluntario
+          </div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)", lineHeight: 1.9 }}>
+            <div>1. Abre <strong style={{color:"var(--cyan)"}}>{typeof window !== "undefined" ? window.location.origin : ""}/voluntarios/mi-ficha</strong></div>
+            <div>2. Introduce tu teléfono: <strong style={{color:"var(--text)"}}>{form.telefono}</strong></div>
+            <div>3. PIN inicial: <strong style={{color:"var(--cyan)",fontSize:"var(--fs-md)"}}>
+              {form.telefono.replace(/\D/g,"").slice(-4) || "últimos 4 dígitos"}
+            </strong></div>
+          </div>
+          <button
+            onClick={() => {
+              const url = (typeof window !== "undefined" ? window.location.origin : "") + "/voluntarios/mi-ficha";
+              navigator.clipboard?.writeText(url).then(() => {}).catch(() => {});
+            }}
+            style={{ marginTop: "0.75rem", background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.25)",
+              borderRadius: 8, padding: "0.45rem 1rem", fontFamily: "var(--font-mono)",
+              fontSize: "var(--fs-sm)", color: "var(--cyan)", cursor: "pointer", fontWeight: 700 }}>
+            📋 Copiar enlace del portal
+          </button>
+        </div>
+
+        <div style={{ display: "flex", gap: "0.75rem", justifyContent: "center", flexWrap: "wrap" }}>
+          <button
+            onClick={() => { try { window.close(); } catch(e) {} window.location.href = "/"; }}
+            style={{ background: "var(--green-dim)", color: "var(--green)", border: "1px solid rgba(52,211,153,0.3)",
+              borderRadius: 8, padding: "0.65rem 1.5rem", fontFamily: "var(--font-display)",
+              fontWeight: 700, fontSize: "0.9rem", cursor: "pointer" }}>
+            ✓ Cerrar
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -502,7 +535,8 @@ export default function App() {
       return acc;
     }, {});
     const coberturaGlobal = totalNecesarios > 0 ? Math.round((confirmados / totalNecesarios) * 100) : 0;
-    return { total, confirmados, pendientes, cancelados, totalNecesarios, asignados, conCoche, tallasCount, coberturaGlobal };
+    const enPuesto = vols.filter(v => v?.enPuesto).length;
+    return { total, confirmados, pendientes, cancelados, totalNecesarios, asignados, conCoche, tallasCount, coberturaGlobal, enPuesto };
   }, [voluntarios, puestos]);
 
   const puestosConStats = useMemo(() => (puestos || []).map(p => {
@@ -809,8 +843,8 @@ export default function App() {
           onEliminarConfirmado={() => {
             const idToDelete = ficha?.data?.id;
             if (!idToDelete) return;
-            deleteVoluntario(idToDelete);
             setFicha(null);
+            setTimeout(() => deleteVoluntario(idToDelete), 50);
           }}
           onUpdate={(data) => { updateVoluntario(ficha.data.id, data); setFicha(f => ({ ...f, data: { ...f.data, ...data } })); }}
         />
@@ -1127,7 +1161,8 @@ function AppShell({ children }) {
 
 // ─── TAB DASHBOARD ────────────────────────────────────────────────────────────
 function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol, onEditarPuesto }) {
-  const [alertasColapsadas, setAlertasColapsadas] = useState(true); // colapsado por defecto
+  const [alertasColapsadas, setAlertasColapsadas] = useState(true);
+  const [sinPuestoColapsado, setSinPuestoColapsado] = useState(false);
   const alertas = puestosConStats.filter(p => p.cobertura < 50);
   const cobColor = stats.coberturaGlobal >= 80 ? "c-green" : stats.coberturaGlobal >= 50 ? "c-amber" : "c-red";
 
@@ -1169,6 +1204,13 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
           <div className="kpi-value" style={{color:"var(--amber)"}}>{stats.conCoche}</div>
           <div className="kpi-sub">{stats.total>0?Math.round(stats.conCoche/stats.total*100):0}% del total</div>
         </div>
+        {stats.enPuesto > 0 && (
+          <div className="kpi green cursor-ptr" onClick={() => setTab("dia-d")} title="Ver checklist día de carrera">
+            <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>📍 En su puesto</div>
+            <div className="kpi-value" style={{color:"var(--green)"}}>{stats.enPuesto}</div>
+            <div className="kpi-sub">{stats.total>0?Math.round(stats.enPuesto/stats.total*100):0}% confirmados</div>
+          </div>
+        )}
       </div>
 
       {alertas.length > 0 && (
@@ -1269,7 +1311,17 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
             );
             return (
               <>
-                <div className="card-title">{titulo}</div>
+                <button
+                  onClick={() => setSinPuestoColapsado(v => !v)}
+                  style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+                    width:"100%", background:"none", border:"none", cursor:"pointer", padding:0,
+                    marginBottom: sinPuestoColapsado ? 0 : ".4rem" }}>
+                  <div className="card-title" style={{marginBottom:0}}>{titulo}</div>
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
+                    color:"var(--text-dim)", transition:"transform .18s",
+                    transform: sinPuestoColapsado ? "rotate(-90deg)" : "rotate(0deg)" }}>▼</span>
+                </button>
+                {!sinPuestoColapsado && (
                 <div style={{ display:"flex", flexDirection:"column", gap:"0.35rem" }}>
                   {lista.map(v => (
                     <div key={v.id}
@@ -1318,6 +1370,7 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
                     </div>
                   ))}
                 </div>
+                )}
               </>
             );
           })()}
@@ -2342,8 +2395,17 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
             <div style={{ background:"var(--surface2)", borderRadius:8, padding:"0.6rem 0.75rem",
               borderLeft:"2px solid var(--border)", marginTop:"0.25rem" }}>
               <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)",
-                marginBottom:"0.25rem", textTransform:"uppercase" }}>Notas</div>
+                marginBottom:"0.25rem", textTransform:"uppercase" }}>Notas del organizador</div>
               <div style={{ fontSize:"var(--fs-base)", lineHeight:1.5 }}>{v.notas}</div>
+            </div>
+          )}
+
+          {v.notaVoluntario && (
+            <div style={{ background:"rgba(34,211,238,.05)", borderRadius:8, padding:"0.6rem 0.75rem",
+              borderLeft:"2px solid var(--cyan)", marginTop:"0.25rem" }}>
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--cyan)",
+                marginBottom:"0.25rem", textTransform:"uppercase", fontWeight:700 }}>📝 Nota del voluntario</div>
+              <div style={{ fontSize:"var(--fs-base)", lineHeight:1.5 }}>{v.notaVoluntario}</div>
             </div>
           )}
 

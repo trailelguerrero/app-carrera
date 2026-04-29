@@ -409,6 +409,31 @@ export default function Configuracion() {
               <label className="cfg-label">Teléfono de contacto</label>
               <input className="cfg-input" type="tel" value={form.telefonoContacto||""} onChange={e => upd("telefonoContacto", e.target.value)} placeholder="+34 600 000 000" />
             </div>
+            <div className="cfg-field" style={{gridColumn:"1/-1"}}>
+              <label className="cfg-label">👥 Organizadores visibles por voluntarios</label>
+              <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginBottom:".5rem",lineHeight:1.6}}>
+                Los voluntarios verán estos contactos en su portal. Añade nombre + teléfono de cada coordinador.
+              </div>
+              {(form.organizadores||[]).map((org, i) => (
+                <div key={i} style={{display:"flex",gap:".4rem",marginBottom:".4rem",alignItems:"center",flexWrap:"wrap"}}>
+                  <input className="cfg-input" style={{flex:"2 1 120px",minWidth:100}}
+                    placeholder="Nombre" value={org.nombre||""}
+                    onChange={e => { const arr=[...(form.organizadores||[])]; arr[i]={...arr[i],nombre:e.target.value}; upd("organizadores",arr); }} />
+                  <input className="cfg-input" style={{flex:"2 1 120px",minWidth:100}}
+                    placeholder="Teléfono" type="tel" value={org.telefono||""}
+                    onChange={e => { const arr=[...(form.organizadores||[])]; arr[i]={...arr[i],telefono:e.target.value}; upd("organizadores",arr); }} />
+                  <input className="cfg-input" style={{flex:"3 1 150px",minWidth:120}}
+                    placeholder="Email (opcional)" type="email" value={org.email||""}
+                    onChange={e => { const arr=[...(form.organizadores||[])]; arr[i]={...arr[i],email:e.target.value}; upd("organizadores",arr); }} />
+                  <button className="btn btn-red btn-sm" style={{flexShrink:0,padding:".25rem .5rem"}}
+                    onClick={() => { const arr=[...(form.organizadores||[])]; arr.splice(i,1); upd("organizadores",arr); }}>✕</button>
+                </div>
+              ))}
+              <button className="btn btn-ghost btn-sm" style={{marginTop:".3rem"}}
+                onClick={() => upd("organizadores",[...(form.organizadores||[]),{nombre:"",telefono:"",email:""}])}>
+                + Añadir organizador
+              </button>
+            </div>
             <div className="cfg-field">
               <label className="cfg-label">Web del evento</label>
               <input className="cfg-input" type="url" value={form.webEvento||""} onChange={e => upd("webEvento", e.target.value)} placeholder="https://trailelguerrero.es" />

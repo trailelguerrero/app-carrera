@@ -12,6 +12,7 @@ export const EVENT_CONFIG_DEFAULT = {
   organizador:      "Club Trail El Guerrero",
   emailContacto:    "",
   telefonoContacto: "",
+  organizadores:    [], // Array de { nombre, telefono, email } — contactos visibles por voluntarios
   webEvento:        "",
   volDiasCritico:   7,
   volDiasAviso:     30,
