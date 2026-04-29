@@ -579,7 +579,11 @@ export default function App() {
   const volsFiltrados = useMemo(() => voluntarios.filter(v => {
     const nombreCompleto = (v.nombre + " " + (v.apellidos||"")).toLowerCase();
     const matchBusqueda = !busqueda || nombreCompleto.includes(busqueda.toLowerCase()) || (v.telefono||"").includes(busqueda);
-    const matchEstado = filtroEstado === "todos" || v.estado === filtroEstado;
+    const matchEstado = filtroEstado === "todos"
+      ? true
+      : filtroEstado === "en-puesto"
+        ? Boolean(v.enPuesto)
+        : v.estado === filtroEstado;
     const matchPuesto = filtroPuesto === "todos" || String(v.puestoId) === filtroPuesto || (filtroPuesto === "sin-asignar" && !v.puestoId);
     return matchBusqueda && matchEstado && matchPuesto;
   }), [voluntarios, busqueda, filtroEstado, filtroPuesto]);
@@ -611,7 +615,8 @@ export default function App() {
     { id: "dashboard",  icon: "📊", label: "Dashboard" },
     { id: "voluntarios",icon: "👥", label: "Voluntarios", badge: stats.total },
     { id: "puestos",    icon: "📍", label: "Puestos",     badge: puestos.length },
-    { id: "dia-d",      icon: "🏁", label: esSemanaCarrera ? "🚨 Día de Carrera" : "Día de Carrera" },
+    { id: "dia-d",      icon: "🏁", label: esSemanaCarrera ? "🚨 Día de Carrera" : "Día de Carrera",
+      badge: stats.enPuesto > 0 ? stats.enPuesto : undefined, badgeColor: "badge-green" },
   ];
   // En semana de carrera, Día de Carrera sube a primera posición
   const TABS_VOL = esSemanaCarrera
@@ -790,13 +795,30 @@ export default function App() {
             </div>
           );
         })()}
+        {/* Buscador global — siempre visible */}
+        <div style={{ marginBottom:".6rem", display:"flex", gap:".5rem", alignItems:"center" }}>
+          <div style={{ position:"relative", flex:1, maxWidth:380 }}>
+            <span style={{ position:"absolute", left:".7rem", top:"50%", transform:"translateY(-50%)",
+              fontFamily:"var(--font-mono)", fontSize:"var(--fs-base)", color:"var(--text-dim)",
+              pointerEvents:"none" }}>🔍</span>
+            <input className="inp" value={busqueda}
+              onChange={e => { setBusqueda(e.target.value); if (tab !== "voluntarios") setTab("voluntarios"); }}
+              placeholder="Buscar voluntario por nombre o teléfono…"
+              style={{ paddingLeft:"2.2rem", fontSize:"var(--fs-base)" }} />
+          </div>
+          {busqueda && (
+            <button className="btn btn-ghost btn-sm"
+              onClick={() => setBusqueda("")}
+              style={{ color:"var(--text-muted)", flexShrink:0 }}>✕ Limpiar</button>
+          )}
+        </div>
         {/* TABS */}
         <div className="tabs">
           {TABS_VOL.map(item => (
             <button key={item.id} className={cls("tab-btn", tab===item.id && "active")} onClick={() => setTab(item.id)}>
               {item.icon} {item.label}
               {item.badge !== undefined && (
-                <span className="badge badge-cyan" style={{marginLeft:"0.3rem"}}>{item.badge}</span>
+                <span className={`badge ${item.badgeColor || "badge-cyan"}`} style={{marginLeft:"0.3rem"}}>{item.badge}</span>
               )}
             </button>
           ))}
@@ -827,7 +849,7 @@ export default function App() {
               onFichaVol={(v) => abrirFicha("vol", v)}
             />
           )}
-          {tab==="dia-d"  && <TabDiaD puestosConStats={puestosConStats} voluntarios={voluntarios} onUpdateVol={updateVoluntario} />}
+          {tab==="dia-d"  && <TabDiaD puestosConStats={puestosConStats} voluntarios={voluntarios} onUpdateVol={updateVoluntario} diasHastaEvento={diasHastaEvento} />}
         </div>
       </div>
 
@@ -841,14 +863,15 @@ export default function App() {
           onEliminar={() => {
             const idToDelete = ficha?.data?.id;
             if (!idToDelete) return;
-            setFicha(null);
             setConfirmDelete(idToDelete);
+            setFicha(null);
           }}
           onEliminarConfirmado={() => {
             const idToDelete = ficha?.data?.id;
             if (!idToDelete) return;
+            const snapshot = idToDelete; // capturar antes de limpiar estado
             setFicha(null);
-            setTimeout(() => deleteVoluntario(idToDelete), 50);
+            deleteVoluntario(snapshot);
           }}
           onUpdate={(data) => { updateVoluntario(ficha.data.id, data); setFicha(f => ({ ...f, data: { ...f.data, ...data } })); }}
         />
@@ -1505,7 +1528,8 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
             { id:"confirmado", label:"Confirmados", count: todosVols.filter(v=>v.estado==="confirmado").length, color:"var(--green)",         bg:"rgba(52,211,153,.15)"  },
             { id:"pendiente",  label:"Pendientes",  count: todosVols.filter(v=>v.estado==="pendiente").length,  color:"var(--amber)",         bg:"rgba(251,191,36,.15)"  },
             { id:"cancelado",  label:"Cancelados",  count: todosVols.filter(v=>v.estado==="cancelado").length,  color:"var(--red)",           bg:"rgba(248,113,113,.15)" },
-          ].map(({ id, label, count, color, bg }) => (
+            { id:"en-puesto",  label:"En puesto",   count: todosVols.filter(v=>v.enPuesto).length,               color:"var(--green)",         bg:"rgba(52,211,153,.15)"  },
+          ].filter(pill => pill.id !== "en-puesto" || pill.count > 0).map(({ id, label, count, color, bg }) => (
             <button key={id}
               className={`filter-pill${filtroEstado === id ? " active" : ""}`}
               onClick={() => setFiltroEstado(id)}>
@@ -1691,6 +1715,8 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
                                   {v.rol||"apoyo"}
                                 </span>
                                 {v.coche && <span style={{ fontSize:"var(--fs-sm)" }} title="Tiene vehículo">🚗</span>}
+                                {v.enPuesto && <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.5rem", fontWeight:700, color:"var(--green)", background:"rgba(52,211,153,.12)", border:"1px solid rgba(52,211,153,.25)", borderRadius:3, padding:"0 .3rem" }} title={`En puesto${v.horaLlegada ? " desde las "+v.horaLlegada : ""}`}>📍 EN PUESTO</span>}
+                                {v.notaVoluntario && <span style={{ fontSize:"var(--fs-sm)" }} title={"Nota: "+v.notaVoluntario}>📝</span>}
                               </div>
                               <div style={{ display:"flex", gap:"0.75rem", flexWrap:"wrap" }}>
                                 <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
@@ -2089,14 +2115,16 @@ function TabTallas({ stats, voluntarios }) {
 }
 
 // ─── TAB DÍA D ────────────────────────────────────────────────────────────────
-function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
+function TabDiaD({ puestosConStats, voluntarios, onUpdateVol, diasHastaEvento = 999 }) {
   const [vista, setVista]                   = useState("puesto"); // "puesto" | "nombre"
   const [puestoSeleccionado, setPuestoSeleccionado] = useState("todos");
   const [ultimoGuardado, setUltimoGuardado] = useState(null);
   const [busquedaDiaD, setBusquedaDiaD]     = useState("");
 
   const marcarPresencia = (id, presente) => {
-    onUpdateVol(id, { presente });
+    // "presente" en el checklist = "enPuesto" en el modelo canónico
+    const horaLlegada = presente ? new Date().toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' }) : null;
+    onUpdateVol(id, { enPuesto: presente, ...(presente && horaLlegada ? { horaLlegada } : { horaLlegada: null }) });
     setUltimoGuardado(id);
     setTimeout(() => setUltimoGuardado(null), 1200);
   };
@@ -2119,7 +2147,7 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
   // Datos agrupados por puesto (para vista por puesto)
   const puestosAgrupados = puestosConStats.map(p => {
     const vols = volsBase.filter(v => String(v.puestoId) === String(p.id));
-    const presentes   = vols.filter(v => v.presente).length;
+    const presentes   = vols.filter(v => v.enPuesto).length;
     const confirmados = vols.filter(v => v.estado === "confirmado").length;
     return { puesto: p, vols, presentes, confirmados };
   }).filter(g => g.vols.length > 0)
@@ -2129,27 +2157,27 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
   const sinPuesto = volsBase.filter(v => !v.puestoId ||
     !puestosConStats.find(p => String(p.id) === String(v.puestoId)));
 
-  const presentes = voluntarios.filter(v => v.presente && v.estado === "confirmado").length;
+  const presentes = voluntarios.filter(v => v.enPuesto && v.estado === "confirmado").length;
   const totalConf = voluntarios.filter(v => v.estado === "confirmado").length;
 
   // Fila individual de voluntario reutilizable
   const FilaVol = ({ v, mostrarPuesto = false }) => {
     const puesto = puestosConStats.find(p => p.id === v.puestoId);
     return (
-      <div className={cls("checklist-row", v.presente ? "presente" : "")}
+      <div className={cls("checklist-row", v.enPuesto ? "presente" : "")}
         style={{ borderLeft: v.estado === "pendiente" ? "3px solid var(--amber)" : undefined }}>
-        <button onClick={() => marcarPresencia(v.id, !v.presente)}
+        <button onClick={() => marcarPresencia(v.id, !v.enPuesto)}
           style={{ width: 24, height: 24, borderRadius: 5, flexShrink: 0,
-            border: `2px solid ${v.presente ? "var(--green)" : ultimoGuardado===v.id ? "var(--cyan)" : "var(--border)"}`,
-            background: v.presente ? "var(--green)" : "transparent",
+            border: `2px solid ${v.enPuesto ? "var(--green)" : ultimoGuardado===v.id ? "var(--cyan)" : "var(--border)"}`,
+            background: v.enPuesto ? "var(--green)" : "transparent",
             cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
             transition: "all 0.15s",
             boxShadow: ultimoGuardado===v.id ? "0 0 8px rgba(34,211,238,0.4)" : "none" }}>
-          {v.presente && <span style={{ color: "#000", fontSize: "var(--fs-base)", fontWeight: 700 }}>✓</span>}
+          {v.enPuesto && <span style={{ color: "#000", fontSize: "var(--fs-base)", fontWeight: 700 }}>✓</span>}
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 600, fontSize: "var(--fs-base)",
-            color: v.presente ? "var(--green)" : v.estado === "pendiente" ? "var(--amber)" : "var(--text)" }}>
+            color: v.enPuesto ? "var(--green)" : v.estado === "pendiente" ? "var(--amber)" : "var(--text)" }}>
             {v.nombre}{v.apellidos ? (" " + v.apellidos) : ""}
             {v.estado === "pendiente" && (
               <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
@@ -2196,9 +2224,15 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol }) {
           <div className="page-title">🏁 Día de Carrera</div>
           <div className="page-desc">Checklist de asistencia · {diasHastaEvento >= 0 ? `${diasHastaEvento} días para el evento` : "¡Día de carrera!"}</div>
         </div>
-        <div className="mono text-xs" style={{ color: "var(--green)", background: "var(--green-dim)",
-          border: "1px solid rgba(52,211,153,0.2)", borderRadius: 6, padding: "0.4rem 0.75rem" }}>
-          ✓ {presentes} / {totalConf} presentes
+        <div style={{ display:"flex", gap:".5rem" }}>
+          <div className="mono text-xs" style={{ color: "var(--green)", background: "var(--green-dim)",
+            border: "1px solid rgba(52,211,153,0.2)", borderRadius: 6, padding: "0.4rem 0.75rem" }}>
+            ✓ {presentes} / {totalConf} en su puesto
+          </div>
+          <div className="mono text-xs" style={{ color: "var(--cyan)", background: "var(--cyan-dim)",
+            border: "1px solid rgba(34,211,238,0.2)", borderRadius: 6, padding: "0.4rem 0.75rem" }}>
+            👥 {totalConf} confirmados
+          </div>
         </div>
       </div>
 
@@ -2405,11 +2439,14 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
           )}
 
           {v.notaVoluntario && (
-            <div style={{ background:"rgba(34,211,238,.05)", borderRadius:8, padding:"0.6rem 0.75rem",
-              borderLeft:"2px solid var(--cyan)", marginTop:"0.25rem" }}>
+            <div style={{ background:"rgba(34,211,238,.08)", borderRadius:8, padding:"0.75rem 0.85rem",
+              borderLeft:"3px solid var(--cyan)", marginTop:"0.5rem",
+              border:"1px solid rgba(34,211,238,.2)", borderLeftWidth:3 }}>
               <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--cyan)",
-                marginBottom:"0.25rem", textTransform:"uppercase", fontWeight:700 }}>📝 Nota del voluntario</div>
-              <div style={{ fontSize:"var(--fs-base)", lineHeight:1.5 }}>{v.notaVoluntario}</div>
+                marginBottom:"0.35rem", textTransform:"uppercase", fontWeight:700, letterSpacing:".06em" }}>
+                📝 Nota del voluntario
+              </div>
+              <div style={{ fontSize:"var(--fs-base)", lineHeight:1.6, color:"var(--text)" }}>{v.notaVoluntario}</div>
             </div>
           )}
 
@@ -2487,16 +2524,25 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
           {/* ── Entrega de camiseta (toggle organizador) ── */}
           {onUpdate && (
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
-              padding:".55rem .85rem", borderTop:"1px solid var(--border)",
-              background:"var(--surface2)" }}>
-              <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>
-                🎽 Camiseta entregada
+              padding:".65rem .85rem", borderTop:"1px solid var(--border)",
+              background: v.camisetaEntregada ? "rgba(52,211,153,.06)" : "var(--surface2)",
+              transition:"background .2s" }}>
+              <div>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                  color: v.camisetaEntregada ? "var(--green)" : "var(--text-muted)" }}>
+                  🎽 Camiseta {v.talla ? `(${v.talla})` : ""}
+                </div>
+                {v.camisetaEntregada && (
+                  <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", color:"var(--green)", marginTop:"0.1rem" }}>
+                    Entregada al voluntario
+                  </div>
+                )}
               </div>
               <button
                 className={`btn btn-sm ${v.camisetaEntregada ? "btn-green" : "btn-ghost"}`}
-                onClick={() => onUpdate(v.id, { camisetaEntregada: !v.camisetaEntregada })}
-                style={{ minWidth:80 }}>
-                {v.camisetaEntregada ? "✓ Entregada" : "Pendiente"}
+                onClick={() => onUpdate({ camisetaEntregada: !v.camisetaEntregada })}
+                style={{ minWidth:100, fontWeight:700 }}>
+                {v.camisetaEntregada ? "✓ Entregada" : "Marcar entregada"}
               </button>
             </div>
           )}

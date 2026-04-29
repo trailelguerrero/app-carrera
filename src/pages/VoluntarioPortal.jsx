@@ -694,6 +694,11 @@ function PuestoDetalle({ puesto }) {
             🕗 {puesto.horaInicio}{puesto.horaFin ? ` – ${puesto.horaFin}` : ""}
             {puesto.tipo ? ` · ${puesto.tipo}` : ""}
           </div>
+          {!expandido && (
+            <div className="vp-mono" style={{ fontSize:".65rem", color:"var(--cyan)", marginTop:".2rem" }}>
+              Toca para ver detalles completos →
+            </div>
+          )}
         </div>
         <span style={{ fontFamily:"var(--font-mono)", fontSize:".75rem", color:"var(--cyan)",
           flexShrink:0, transition:"transform .18s",
