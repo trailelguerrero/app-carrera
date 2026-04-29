@@ -652,7 +652,7 @@ export default function App() {
             </button>
             <button
               onClick={() => {
-                const url = window.location.origin + "/voluntarios/registro";
+                const url = window.location.origin + "/voluntarios/mi-ficha";
                 navigator.clipboard.writeText(url).then(() => {
                   setUrlCopiada(true);
                   setTimeout(() => setUrlCopiada(false), 2000);
@@ -660,9 +660,9 @@ export default function App() {
                 });
               }}
               className="btn btn-ghost btn-sm"
-              title={`Copiar enlace del formulario de registro de voluntarios:\n${window.location.origin}/voluntarios/registro`}
+              title={`Copiar enlace del portal de voluntarios:\n${window.location.origin}/voluntarios/mi-ficha`}
               className="mono-sm">
-              {urlCopiada ? "✓ Enlace copiado" : "🔗 Formulario registro"}
+              {urlCopiada ? "✓ Enlace copiado" : "🔗 Portal voluntarios"}
             </button>
             <button
               className="btn btn-ghost btn-sm"
@@ -671,7 +671,7 @@ export default function App() {
                 if (qrDataUrl) { setQrDataUrl(null); return; }
                 setQrLoading(true);
                 try {
-                  const url = window.location.origin + "/voluntarios/registro";
+                  const url = window.location.origin + "/voluntarios/mi-ficha";
                   const QRCode = (await import("qrcode")).default;
                   const dataUrl = await QRCode.toDataURL(url, {
                     width: 256, margin: 2,
@@ -683,8 +683,8 @@ export default function App() {
               }}>
               {qrLoading ? "⏳" : qrDataUrl ? "✕ Cerrar QR" : "🔲 QR"}
             </button>
-            <button className="btn btn-ghost btn-sm" onClick={() => setVista("formulario")}
-              title="Previsualizar el formulario público de registro de voluntarios">
+            <button className="btn btn-ghost btn-sm" onClick={() => window.open(window.location.origin + '/voluntarios/mi-ficha', '_blank')}
+              title="Abrir el portal de voluntarios en nueva pestaña">
               ↗ Previsualizar
             </button>
           </div>
@@ -706,7 +706,7 @@ export default function App() {
               style={{ borderRadius:8, border:"4px solid #fff", width:200, height:200 }} />
             <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)",
               textAlign:"center", wordBreak:"break-all", maxWidth:280 }}>
-              {window.location.origin + "/voluntarios/registro"}
+              {window.location.origin + "/voluntarios/mi-ficha"}
             </div>
             <div style={{ display:"flex", gap:".5rem" }}>
               <a href={qrDataUrl} download="qr-voluntarios-teg.png"
@@ -717,7 +717,7 @@ export default function App() {
               <button
                 className="btn btn-ghost btn-sm"
                 className="mono-sm"
-                onClick={() => navigator.clipboard.writeText(window.location.origin + "/voluntarios/registro").then(() => toast.success("URL copiada al portapapeles"))}>
+                onClick={() => navigator.clipboard.writeText(window.location.origin + "/voluntarios/mi-ficha").then(() => toast.success("URL copiada al portapapeles"))}>
                 📋 Copiar enlace
               </button>
             </div>
@@ -760,29 +760,33 @@ export default function App() {
           )}
         </div>
 
-        {/* ── Banner: cómo acceden los voluntarios al portal ── */}
+        {/* ── Banner: portal unificado ── */}
         {(() => {
           const portalUrl = (typeof window !== 'undefined' ? window.location.origin : '') + '/voluntarios/mi-ficha';
           return (
             <div style={{
-              marginBottom:".65rem", padding:".5rem .85rem", borderRadius:8,
+              marginBottom:".65rem", padding:".6rem .85rem", borderRadius:8,
               background:"rgba(34,211,238,.06)", border:"1px solid rgba(34,211,238,.18)",
               display:"flex", alignItems:"center", justifyContent:"space-between",
               gap:".75rem", flexWrap:"wrap",
             }}>
-              <div style={{fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", lineHeight:1.6}}>
-                <span style={{color:"var(--cyan)", fontWeight:700}}>📱 Portal del voluntario</span>
-                {" "}· Los voluntarios acceden con su <strong style={{color:"var(--text)"}}>teléfono + últimos 4 dígitos</strong>
-                <br/>Voluntarios ya registrados: pueden entrar directamente, sin configuración extra
+              <div style={{fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", lineHeight:1.7, flex:1}}>
+                <span style={{color:"var(--cyan)", fontWeight:700}}>📱 Portal único de voluntarios</span>
+                {" "}·{" "}<span style={{color:"var(--text)", fontWeight:600}}>{portalUrl}</span><br/>
+                Nuevo voluntario → Registro · Ya registrado → Acceder con teléfono + PIN
               </div>
-              <button className="btn btn-ghost btn-sm"
-                style={{fontSize:"var(--fs-xs)", flexShrink:0}}
-                onClick={() => {
-                  const url = window.location.origin + '/voluntarios/mi-ficha';
-                  navigator.clipboard?.writeText(url).then(() => toast.success("Enlace al portal copiado ✓"));
-                }}>
-                📋 Copiar enlace
-              </button>
+              <div style={{display:"flex", gap:".4rem", flexShrink:0}}>
+                <button className="btn btn-ghost btn-sm"
+                  style={{fontSize:"var(--fs-xs)"}}
+                  onClick={() => navigator.clipboard?.writeText(portalUrl).then(() => toast.success("Enlace copiado ✓"))}>
+                  📋 Copiar
+                </button>
+                <a href={portalUrl} target="_blank" rel="noreferrer"
+                  className="btn btn-ghost btn-sm"
+                  style={{fontSize:"var(--fs-xs)", textDecoration:"none"}}>
+                  ↗ Abrir
+                </a>
+              </div>
             </div>
           );
         })()}
