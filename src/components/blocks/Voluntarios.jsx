@@ -534,18 +534,35 @@ export default function App() {
   const [confirmDeletePuesto, setConfirmDeletePuesto] = useState(null);
   const [urlCopiada, setUrlCopiada] = useState(false);
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
+  const [shareMenuPos, setShareMenuPos] = useState({ top:0, right:0 });
   const shareMenuRef = useRef(null);
+  const shareBtnRef  = useRef(null);
 
   // Cerrar dropdown al hacer click fuera — setTimeout evita race condition
   useEffect(() => {
     if (!shareMenuOpen) return;
     const handler = (e) => {
       if (shareMenuRef.current && shareMenuRef.current.contains(e.target)) return;
+      if (shareBtnRef.current && shareBtnRef.current.contains(e.target)) return;
       setShareMenuOpen(false);
     };
     const t = setTimeout(() => document.addEventListener("click", handler), 0);
     return () => { clearTimeout(t); document.removeEventListener("click", handler); };
   }, [shareMenuOpen]);
+
+  const openShareMenu = () => {
+    if (shareMenuOpen) { setShareMenuOpen(false); return; }
+    if (shareBtnRef.current) {
+      const r = shareBtnRef.current.getBoundingClientRect();
+      const menuW = 230;
+      const rightFromViewport = window.innerWidth - r.right;
+      setShareMenuPos({
+        top: r.bottom + 6,
+        right: Math.max(8, rightFromViewport),
+      });
+    }
+    setShareMenuOpen(true);
+  };
   const [qrDataUrl, setQrDataUrl]   = useState(null);
   const [qrLoading, setQrLoading]   = useState(false);
   const [ficha, setFicha] = useState(null); // {tipo:'vol'|'puesto', data}
@@ -731,19 +748,21 @@ export default function App() {
             {/* Dropdown Compartir portal — consolida 3 acciones */}
             <div ref={shareMenuRef} style={{ position:"relative" }}>
               <button
+                ref={shareBtnRef}
                 className="btn btn-ghost btn-sm"
-                onClick={() => setShareMenuOpen(v => !v)}
+                onClick={openShareMenu}
                 title="Compartir portal de voluntarios">
                 🔗 Portal {shareMenuOpen ? "▲" : "▼"}
               </button>
               {shareMenuOpen && (
                 <div
+                  ref={shareMenuRef}
                   onClick={e => e.stopPropagation()}
                   style={{
-                    position:"absolute", top:"calc(100% + 6px)", right:0, zIndex:200,
+                    position:"fixed", top:shareMenuPos.top, right:shareMenuPos.right, zIndex:500,
                     background:"var(--surface)", border:"1px solid var(--border)",
-                    borderRadius:10, padding:".4rem", minWidth:210,
-                    boxShadow:"0 8px 24px rgba(0,0,0,.35)", display:"flex",
+                    borderRadius:10, padding:".4rem", minWidth:220, maxWidth:"calc(100vw - 1rem)",
+                    boxShadow:"0 12px 32px rgba(0,0,0,.55)", display:"flex",
                     flexDirection:"column", gap:".25rem"
                   }}>
                   <button className="btn btn-ghost btn-sm"

@@ -69,10 +69,26 @@ const LOGO_TEG = "data:image/webp;base64,UklGRuAQAABXRUJQVlA4WAoAAAAQAAAAXwAAXwA
 const CSS = `
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html { -webkit-text-size-adjust: 100%; }
-  body { background: #0f172a; color: #e2e8f0;
+  body { background: #08091a; color: #f0f4ff;
     font-family: 'Syne', 'Inter', system-ui, sans-serif; min-height: 100dvh; }
-  /* Complementos locales del portal — el resto de tokens heredan de BLOCK_CSS */
-  :root { --bg2: #0f172a; --border2: rgba(148,163,184,.25); }
+  /* Tokens completos — portal es página independiente sin BLOCK_CSS */
+  :root {
+    --bg: #08091a; --bg2: #0f172a;
+    --surface:  #0d1121; --surface2: #121829; --surface3: #18203a;
+    --border:   #1e2d50; --border-light: #2a4070; --border2: rgba(148,163,184,.25);
+    --text:     #f0f4ff; --text-muted: #7a8fb0; --text-dim: #4a5e80;
+    --cyan:     #22d3ee; --cyan-dim:   rgba(34,211,238,.10);  --cyan-border:   rgba(34,211,238,.28);
+    --green:    #34d399; --green-dim:  rgba(52,211,153,.10);  --green-border:  rgba(52,211,153,.28);
+    --amber:    #fbbf24; --amber-dim:  rgba(251,191,36,.10);  --amber-border:  rgba(251,191,36,.28);
+    --red:      #f87171; --red-dim:    rgba(248,113,113,.10); --red-border:    rgba(248,113,113,.28);
+    --violet:   #a78bfa; --violet-dim: rgba(167,139,250,.10); --violet-border: rgba(167,139,250,.28);
+    --orange:   #fb923c; --orange-dim: rgba(251,146,60,.10);  --orange-border: rgba(251,146,60,.28);
+    --r:   12px; --r-sm: 8px;
+    --font-display: 'Syne', sans-serif;
+    --font-mono:    'DM Mono', 'Courier New', monospace;
+    --fs-xs:   0.78rem; --fs-sm: 0.85rem; --fs-base: 0.95rem;
+    --fs-md:   1.05rem; --fs-lg: 1.25rem; --fs-xl:   1.5rem;
+  }
 
   /* ── Layout ── */
   .vp-page   { min-height: 100dvh; display: flex; flex-direction: column; }
@@ -90,10 +106,10 @@ const CSS = `
   /* ── Typography ── */
   .vp-label     { font-family: var(--font-mono); font-size: .75rem; font-weight: 700;
     letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .45rem; }
-  .vp-step-title { font-family: var(--font-display); font-size: 1.2rem; font-weight: 800;
-    color: var(--text); margin-bottom: .4rem; }
-  .vp-step-desc  { font-family: var(--font-mono); font-size: .85rem; color: var(--text-muted);
-    line-height: 1.7; margin-bottom: 1rem; }
+  .vp-step-title { font-family: var(--font-display); font-size: var(--fs-lg); font-weight: 800;
+    color: var(--text); margin-bottom: .5rem; }
+  .vp-step-desc  { font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--text-muted);
+    line-height: 1.8; margin-bottom: 1rem; }
   .vp-mono  { font-family: var(--font-mono); }
   .vp-value { font-family: var(--font-mono); font-size: .9rem; color: var(--text); }
 
@@ -197,34 +213,36 @@ const CSS = `
   .step-seg.active { background:var(--cyan); opacity:.55; }
   .step-header { display:flex; align-items:center; gap:.85rem; margin-bottom:.25rem; }
   .step-icon  { font-size:1.8rem; line-height:1; }
-  .step-title { font-family:var(--font-display); font-size:1.05rem; font-weight:800; color:var(--text); }
-  .step-sub   { font-family:var(--font-mono); font-size:.7rem; color:var(--text-muted); margin-top:.15rem; }
-  .step-nav   { display:flex; gap:.6rem; margin-top:.5rem; }
-  .step-nav > button { flex:1; }
-  .pub-input  { background:var(--surface2); border:1px solid var(--border-light);
+  .step-title { font-family:var(--font-display); font-size:var(--fs-lg); font-weight:800; color:var(--text); }
+  .step-sub   { font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-muted); margin-top:.2rem; }
+  .step-nav   { display:flex; gap:.75rem; margin-top:1rem; }
+  .step-nav > button { flex:1; min-height:54px; font-size:var(--fs-md) !important; }
+  .pub-input  { background:var(--surface2); border:1.5px solid var(--border-light);
     border-radius:var(--r-sm); color:var(--text); font-family:var(--font-display);
-    font-size:0.85rem; padding:0.55rem 0.75rem; outline:none; width:100%;
+    font-size:var(--fs-base); padding:0.7rem 0.9rem; outline:none; width:100%;
+    min-height:48px; -webkit-appearance:none;
     transition:border-color 0.15s, box-shadow 0.15s; }
   .pub-input:focus { border-color:var(--cyan); box-shadow:0 0 0 3px rgba(34,211,238,0.1); }
   .pub-input::placeholder { color:var(--text-dim); }
   .pub-input.error { border-color:var(--red); }
-  .pub-btn-primary { display:flex; align-items:center; justify-content:center; gap:.4rem;
-    width:100%; padding:.7rem 1rem; border-radius:var(--r);
-    font-family:var(--font-display); font-size:.88rem; font-weight:800;
-    cursor:pointer; border:none; transition:all .15s; min-height:48px;
-    background:var(--cyan); color:#0f172a; }
+  .pub-btn-primary { display:flex; align-items:center; justify-content:center; gap:.5rem;
+    width:100%; padding:.85rem 1rem; border-radius:var(--r);
+    font-family:var(--font-display); font-size:var(--fs-md); font-weight:800;
+    cursor:pointer; border:none; transition:all .15s; min-height:54px;
+    background:var(--cyan); color:#08091a; letter-spacing:.02em; }
+  .pub-btn-primary:not(:disabled):hover { filter:brightness(1.08); }
   .pub-btn-primary:disabled { opacity:.55; cursor:not-allowed; }
-  .pub-btn-ghost { display:flex; align-items:center; justify-content:center; gap:.4rem;
-    width:100%; padding:.7rem 1rem; border-radius:var(--r);
-    font-family:var(--font-display); font-size:.88rem; font-weight:700;
-    cursor:pointer; border:1px solid var(--border2); transition:all .15s; min-height:48px;
+  .pub-btn-ghost { display:flex; align-items:center; justify-content:center; gap:.5rem;
+    width:100%; padding:.85rem 1rem; border-radius:var(--r);
+    font-family:var(--font-display); font-size:var(--fs-base); font-weight:700;
+    cursor:pointer; border:1.5px solid var(--border2); transition:all .15s; min-height:54px;
     background:transparent; color:var(--text-muted); }
   .pub-btn-ghost:hover { border-color:var(--cyan); color:var(--cyan); }
   .summary-row { display:flex; justify-content:space-between; align-items:center;
     padding:.4rem 0; border-bottom:1px solid var(--border); font-size:.82rem; }
   .summary-row:last-child { border-bottom:none; }
-  .summary-key { font-family:var(--font-mono); font-size:.68rem; color:var(--text-muted); }
-  .summary-val { font-family:var(--font-mono); font-size:.78rem; font-weight:700; color:var(--text); }
+  .summary-key { font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-muted); }
+  .summary-val { font-family:var(--font-mono); font-size:var(--fs-sm); font-weight:700; color:var(--text); }
 
   /* ── Animaciones ── */
   @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
@@ -277,16 +295,16 @@ function LandingScreen({ onNuevo, onLogin, loadingConfig, config }) {
           <img src={LOGO_TEG} alt="Trail El Guerrero" width={96} height={96}
             style={{ marginBottom:".85rem", borderRadius:"50%",
               boxShadow:"0 0 0 3px rgba(34,211,238,.25), 0 8px 32px rgba(0,0,0,.4)" }} />
-          <div style={{ fontWeight:800, fontSize:"1.6rem", color:"var(--cyan)",
-            fontFamily:"var(--font-display)", marginBottom:".35rem", lineHeight:1.2 }}>
+          <div style={{ fontWeight:800, fontSize:"1.9rem", color:"var(--cyan)",
+            fontFamily:"var(--font-display)", marginBottom:".4rem", lineHeight:1.15 }}>
             Trail El Guerrero 2026
           </div>
-          <div style={{ fontFamily:"var(--font-mono)", fontSize:".85rem",
-            color:"var(--text-muted)", marginBottom:".2rem" }}>
+          <div style={{ fontFamily:"var(--font-display)", fontSize:"1.05rem", fontWeight:700,
+            color:"var(--text-muted)", marginBottom:".3rem", letterSpacing:".04em" }}>
             Portal del Voluntario
           </div>
           {config?.fecha && (
-            <div style={{ fontFamily:"var(--font-mono)", fontSize:".75rem", color:"var(--text-muted)" }}>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:".85rem", color:"var(--text-muted)" }}>
               {config.fecha} · {config.lugar || "Candeleda, Ávila"}
             </div>
           )}
@@ -299,26 +317,26 @@ function LandingScreen({ onNuevo, onLogin, loadingConfig, config }) {
 
           {/* Nuevo voluntario */}
           <button className="vp-btn vp-btn-primary"
-            style={{ fontSize:"1.05rem", minHeight:62, flexDirection:"column",
-              gap:".2rem", lineHeight:1.3 }}
+            style={{ fontSize:"1.15rem", minHeight:72, flexDirection:"column",
+              gap:".3rem", lineHeight:1.35, padding:"1.1rem" }}
             onClick={onNuevo}>
-            <span style={{ fontSize:"1.4rem" }}>✋</span>
+            <span style={{ fontSize:"1.6rem" }}>✋</span>
             <span>Quiero ser voluntario</span>
-            <span style={{ fontFamily:"var(--font-mono)", fontSize:".72rem",
-              fontWeight:400, opacity:.8 }}>
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:".82rem",
+              fontWeight:400, opacity:.85 }}>
               Registrarme por primera vez
             </span>
           </button>
 
           {/* Ya registrado */}
           <button className="vp-btn vp-btn-outline"
-            style={{ fontSize:"1.05rem", minHeight:62, flexDirection:"column",
-              gap:".2rem", lineHeight:1.3 }}
+            style={{ fontSize:"1.15rem", minHeight:72, flexDirection:"column",
+              gap:".3rem", lineHeight:1.35, padding:"1.1rem" }}
             onClick={onLogin}>
-            <span style={{ fontSize:"1.4rem" }}>👤</span>
+            <span style={{ fontSize:"1.6rem" }}>👤</span>
             <span>Ya soy voluntario</span>
-            <span style={{ fontFamily:"var(--font-mono)", fontSize:".72rem",
-              fontWeight:400, opacity:.8 }}>
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:".82rem",
+              fontWeight:400, opacity:.85 }}>
               Acceder a mi ficha personal
             </span>
           </button>
@@ -477,7 +495,7 @@ function RegistroOkScreen({ telefono, nombre, onAcceder }) {
             <div style={{ fontFamily:"var(--font-mono)", fontSize:".82rem",
               color:"var(--text-muted)", lineHeight:1.7 }}>
               {nombre ? `Hola ${nombre.split(" ")[0]}, ` : ""}hemos recibido tu solicitud.<br/>
-              El equipo te confirmará pronto por teléfono.
+              El equipo organizador se pondrá en contacto contigo próximamente.
             </div>
           </div>
 
@@ -683,8 +701,8 @@ function PuestoDetalle({ puesto }) {
       <button
         onClick={() => setExpandido(v => !v)}
         style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between",
-          padding:"1rem 1.1rem", background:"none", border:"none", cursor:"pointer",
-          textAlign:"left", gap:".75rem" }}>
+          padding:"1rem 1.1rem", background:"transparent", border:"none", cursor:"pointer",
+          textAlign:"left", gap:".75rem", minHeight:70, WebkitTapHighlightColor:"transparent" }}>
         <div style={{ flex:1, minWidth:0 }}>
           <div className="vp-label" style={{ marginBottom:".2rem" }}>📍 Tu puesto</div>
           <div style={{ fontWeight:700, fontSize:"1.05rem", color:"var(--text)" }}>{puesto.nombre}</div>
@@ -1198,10 +1216,12 @@ function CambiarPin({ token, onDone, onCancel }) {
   return (
     <div className="vp-card" style={{marginBottom:".75rem"}}>
       <div className="vp-card-header">
-        <div className="vp-mono" style={{fontWeight:700,fontSize:".88rem"}}>
-          🔐 {step===1?"Nuevo PIN (4 dígitos)":"Repite el PIN"}
+        <div style={{fontFamily:"var(--font-display)", fontWeight:800, fontSize:"var(--fs-md)", color:"var(--text)"}}>
+          🔐 {step===1?"Nuevo PIN":"Confirma el PIN"}
         </div>
-        <button className="vp-btn vp-btn-ghost vp-btn-sm" onClick={onCancel}>✕</button>
+        <button className="vp-btn vp-btn-ghost vp-btn-sm"
+          style={{minHeight:38, minWidth:38, borderRadius:"50%", padding:".3rem", fontSize:"1.1rem"}}
+          onClick={onCancel}>✕</button>
       </div>
       {error && <div className="vp-error" style={{marginBottom:".75rem"}}>⚠ {error}</div>}
       <PinNumpad value={cur} onChange={handleChange} shake={shake} disabled={saving} />
