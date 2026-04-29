@@ -513,6 +513,15 @@ export default function App() {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmDeletePuesto, setConfirmDeletePuesto] = useState(null);
   const [urlCopiada, setUrlCopiada] = useState(false);
+  const [shareMenuOpen, setShareMenuOpen] = useState(false);
+
+  // Cerrar dropdown al hacer click fuera
+  useEffect(() => {
+    if (!shareMenuOpen) return;
+    const handler = () => setShareMenuOpen(false);
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, [shareMenuOpen]);
   const [qrDataUrl, setQrDataUrl]   = useState(null);
   const [qrLoading, setQrLoading]   = useState(false);
   const [ficha, setFicha] = useState(null); // {tipo:'vol'|'puesto', data}
@@ -558,10 +567,19 @@ export default function App() {
   const pinInicialLocal = (tel) => { const d=(tel||'').replace(/\D/g,''); return d.slice(-4)||'0000'; };
 
   const addVoluntario = (data) => {
+    const telNorm = (data.telefono || '').replace(/\D/g, '');
+    if (telNorm.length >= 9) {
+      const dup = voluntarios.find(v => (v.telefono || '').replace(/\D/g, '') === telNorm);
+      if (dup) {
+        toast.error(`Ya existe un voluntario con ese teléfono: ${dup.nombre}`);
+        return false;
+      }
+    }
     const pinHash = hashPinLocal(pinInicialLocal(data.telefono || ''));
     const nuevo = { id: genIdNum(voluntarios), camisetaEntregada: false, enPuesto: false, horaLlegada: null, sessionToken: null, pinHash, ...data };
     setVoluntarios(prev => [...prev, nuevo]);
     toast.success("Voluntario añadido");
+    return true;
   };
 
   const updateVoluntario = (id, data) => { setVoluntarios(prev => prev.map(v => v.id === id ? { ...v, ...data } : v)); if(data.estado==="confirmado") toast.success("Voluntario confirmado ✓"); else if(data.estado==="cancelado") toast.warning("Voluntario cancelado"); else if(!Object.prototype.hasOwnProperty.call(data, "estado")) toast.success("Voluntario actualizado"); };
@@ -655,43 +673,61 @@ export default function App() {
               title="Exportar lista de voluntarios a Excel">
               📊 Excel
             </button>
-            <button
-              onClick={() => {
-                const url = window.location.origin + "/voluntarios/mi-ficha";
-                navigator.clipboard.writeText(url).then(() => {
-                  setUrlCopiada(true);
-                  setTimeout(() => setUrlCopiada(false), 2000);
-                  toast.success("URL del formulario copiada al portapapeles");
-                });
-              }}
-              className="btn btn-ghost btn-sm"
-              title={`Copiar enlace del portal de voluntarios:\n${window.location.origin}/voluntarios/mi-ficha`}
-              className="mono-sm">
-              {urlCopiada ? "✓ Enlace copiado" : "🔗 Portal voluntarios"}
-            </button>
-            <button
-              className="btn btn-ghost btn-sm"
-              className="mono-sm"
-              onClick={async () => {
-                if (qrDataUrl) { setQrDataUrl(null); return; }
-                setQrLoading(true);
-                try {
-                  const url = window.location.origin + "/voluntarios/mi-ficha";
-                  const QRCode = (await import("qrcode")).default;
-                  const dataUrl = await QRCode.toDataURL(url, {
-                    width: 256, margin: 2,
-                    color: { dark: "var(--surface)", light: "#ffffff" },
-                  });
-                  setQrDataUrl(dataUrl);
-                } catch { /* qrcode no instalado — silenciar */ }
-                finally { setQrLoading(false); }
-              }}>
-              {qrLoading ? "⏳" : qrDataUrl ? "✕ Cerrar QR" : "🔲 QR"}
-            </button>
-            <button className="btn btn-ghost btn-sm" onClick={() => window.open(window.location.origin + '/voluntarios/mi-ficha', '_blank')}
-              title="Abrir el portal de voluntarios en nueva pestaña">
-              ↗ Previsualizar
-            </button>
+            {/* Dropdown Compartir portal — consolida 3 acciones */}
+            <div style={{ position:"relative" }}>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setShareMenuOpen(v => !v)}
+                title="Compartir portal de voluntarios">
+                🔗 Portal {shareMenuOpen ? "▲" : "▼"}
+              </button>
+              {shareMenuOpen && (
+                <div
+                  onClick={e => e.stopPropagation()}
+                  style={{
+                    position:"absolute", top:"calc(100% + 6px)", right:0, zIndex:200,
+                    background:"var(--surface)", border:"1px solid var(--border)",
+                    borderRadius:10, padding:".4rem", minWidth:210,
+                    boxShadow:"0 8px 24px rgba(0,0,0,.35)", display:"flex",
+                    flexDirection:"column", gap:".25rem"
+                  }}>
+                  <button className="btn btn-ghost btn-sm"
+                    style={{ justifyContent:"flex-start", gap:".5rem" }}
+                    onClick={() => {
+                      const url = window.location.origin + "/voluntarios/mi-ficha";
+                      navigator.clipboard.writeText(url).then(() => {
+                        setUrlCopiada(true);
+                        setTimeout(() => setUrlCopiada(false), 2000);
+                        toast.success("Enlace copiado ✓");
+                        setShareMenuOpen(false);
+                      });
+                    }}>
+                    📋 {urlCopiada ? "¡Copiado!" : "Copiar enlace"}
+                  </button>
+                  <button className="btn btn-ghost btn-sm"
+                    style={{ justifyContent:"flex-start", gap:".5rem" }}
+                    onClick={async () => {
+                      if (qrDataUrl) { setQrDataUrl(null); setShareMenuOpen(false); return; }
+                      setQrLoading(true);
+                      try {
+                        const url = window.location.origin + "/voluntarios/mi-ficha";
+                        const QRCode = (await import("qrcode")).default;
+                        const dataUrl = await QRCode.toDataURL(url, { width:256, margin:2, color:{ dark:"#0f172a", light:"#ffffff" } });
+                        setQrDataUrl(dataUrl);
+                      } catch { toast.error("Error al generar QR"); }
+                      finally { setQrLoading(false); setShareMenuOpen(false); }
+                    }}>
+                    {qrLoading ? "⏳ Generando…" : "🔲 Ver QR"}
+                  </button>
+                  <div style={{ height:1, background:"var(--border)", margin:".1rem 0" }}/>
+                  <a href={window.location.origin + "/voluntarios/mi-ficha"} target="_blank" rel="noreferrer"
+                    className="btn btn-ghost btn-sm"
+                    style={{ justifyContent:"flex-start", gap:".5rem", textDecoration:"none" }}>
+                    ↗ Abrir en nueva pestaña
+                  </a>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -715,13 +751,11 @@ export default function App() {
             </div>
             <div style={{ display:"flex", gap:".5rem" }}>
               <a href={qrDataUrl} download="qr-voluntarios-teg.png"
-                className="btn btn-ghost btn-sm"
-                className="mono-sm">
+                className="btn btn-ghost btn-sm">
                 ⬇ Descargar PNG
               </a>
               <button
                 className="btn btn-ghost btn-sm"
-                className="mono-sm"
                 onClick={() => navigator.clipboard.writeText(window.location.origin + "/voluntarios/mi-ficha").then(() => toast.success("URL copiada al portapapeles"))}>
                 📋 Copiar enlace
               </button>
@@ -765,36 +799,18 @@ export default function App() {
           )}
         </div>
 
-        {/* ── Banner: portal unificado ── */}
-        {(() => {
-          const portalUrl = (typeof window !== 'undefined' ? window.location.origin : '') + '/voluntarios/mi-ficha';
-          return (
-            <div style={{
-              marginBottom:".65rem", padding:".6rem .85rem", borderRadius:8,
-              background:"rgba(34,211,238,.06)", border:"1px solid rgba(34,211,238,.18)",
-              display:"flex", alignItems:"center", justifyContent:"space-between",
-              gap:".75rem", flexWrap:"wrap",
-            }}>
-              <div style={{fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", lineHeight:1.7, flex:1}}>
-                <span style={{color:"var(--cyan)", fontWeight:700}}>📱 Portal único de voluntarios</span>
-                {" "}·{" "}<span style={{color:"var(--text)", fontWeight:600}}>{portalUrl}</span><br/>
-                Nuevo voluntario → Registro · Ya registrado → Acceder con teléfono + PIN
-              </div>
-              <div style={{display:"flex", gap:".4rem", flexShrink:0}}>
-                <button className="btn btn-ghost btn-sm"
-                  style={{fontSize:"var(--fs-xs)"}}
-                  onClick={() => navigator.clipboard?.writeText(portalUrl).then(() => toast.success("Enlace copiado ✓"))}>
-                  📋 Copiar
-                </button>
-                <a href={portalUrl} target="_blank" rel="noreferrer"
-                  className="btn btn-ghost btn-sm"
-                  style={{fontSize:"var(--fs-xs)", textDecoration:"none"}}>
-                  ↗ Abrir
-                </a>
-              </div>
-            </div>
-          );
-        })()}
+        {/* ── Banner: portal unificado (solo informativo) ── */}
+        <div style={{
+          marginBottom:".6rem", padding:".45rem .85rem", borderRadius:8,
+          background:"rgba(34,211,238,.05)", border:"1px solid rgba(34,211,238,.15)",
+          display:"flex", alignItems:"center", gap:".6rem",
+        }}>
+          <span style={{fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--cyan)", fontWeight:700, flexShrink:0}}>📱 Portal:</span>
+          <span style={{fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)",
+            overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>
+            {(typeof window !== 'undefined' ? window.location.origin : '') + '/voluntarios/mi-ficha'}
+          </span>
+        </div>
         {/* Buscador global — siempre visible */}
         <div style={{ marginBottom:".6rem", display:"flex", gap:".5rem", alignItems:"center" }}>
           <div style={{ position:"relative", flex:1, maxWidth:380 }}>
@@ -1190,7 +1206,7 @@ function AppShell({ children }) {
 function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol, onEditarPuesto }) {
   const [alertasColapsadas, setAlertasColapsadas] = useState(true);
   const [sinPuestoColapsado, setSinPuestoColapsado] = useState(false);
-  const alertas = puestosConStats.filter(p => p.cobertura < 50);
+  const alertas = puestosConStats.filter(p => p.coberturaConf < 50);
   const cobColor = stats.coberturaGlobal >= 80 ? "c-green" : stats.coberturaGlobal >= 50 ? "c-amber" : "c-red";
 
   return (
@@ -1223,7 +1239,7 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
           <div className="kpi-sub">
             {alertas.length>0
               ? `${alertas.length} con cobertura insuficiente`
-              : `${puestosConStats.filter(p=>p.cobertura>=100).length} al 100%`}
+              : `${puestosConStats.filter(p=>p.coberturaConf>=100).length} confirmados al 100%`}
           </div>
         </div>
         <div className="kpi amber cursor-ptr" onClick={() => setTab("voluntarios")} title="Ver voluntarios con vehículo">
@@ -1278,7 +1294,7 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
                   <span>{p.nombre}</span>
                   <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
                     color:"var(--red)",fontWeight:700}}>
-                    {p.totalAsignados}/{p.necesarios} ({p.cobertura}%)
+                    {p.confirmados}/{p.necesarios} conf. · {p.totalAsignados} asig. ({p.coberturaConf}%)
                   </span>
                 </div>
               ))}
@@ -1292,7 +1308,7 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
           <div className="card-title">📍 Cobertura por puesto</div>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
             {puestosConStats.slice(0, 6).map(p => {
-              const pct = Math.min(p.cobertura, 100);
+              const pct = Math.min(p.coberturaConf, 100);
               const color = pct >= 80 ? "var(--green)" : pct >= 50 ? "var(--amber)" : "var(--red)";
               return (
                 <div key={p.id} className="cursor-ptr"
@@ -1873,7 +1889,7 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
 }
 
 function PuestoCard({ p, locs, matPorLoc, onFichaPuesto, onFichaVol, onEditPuesto, onDeletePuesto }) {
-          const pct = Math.min(p.cobertura, 100);
+          const pct = Math.min(p.coberturaConf, 100);
           const color = pct >= 80 ? "var(--green)" : pct >= 50 ? "var(--amber)" : "var(--red)";
           return (
             <div key={p.id} className="card" style={{ padding: "1rem", cursor: "pointer" }}
@@ -1915,7 +1931,7 @@ function PuestoCard({ p, locs, matPorLoc, onFichaPuesto, onFichaVol, onEditPuest
                   </div>
                   <div style={{ display: "flex", gap: "1.25rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
                     <span className="mono text-xs text-muted">🕐 {p.horaInicio} – {p.horaFin}</span>
-                    <span className="mono text-xs" style={{ color }}>👤 {p.totalAsignados}/{p.necesarios} voluntarios</span>
+                    <span className="mono text-xs" style={{ color }}>👤 {p.confirmados}/{p.necesarios} confirmados · {p.totalAsignados} asignados</span>
                     <span className="mono text-xs" style={{ color: "var(--green)" }}>✓ {p.confirmados} confirmados</span>
                   </div>
                   <div className="prog-bar" style={{ marginBottom: "0.4rem" }}>

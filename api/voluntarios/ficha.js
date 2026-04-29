@@ -151,6 +151,18 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, enPuesto: true, horaLlegada });
     }
 
+    // ── POST /api/voluntarios/ficha?action=cancelar ──
+    if (req.method === 'POST' && action === 'cancelar') {
+      const { motivo } = req.body || {};
+      const updated = voluntarios.map(v =>
+        String(v.id) === String(voluntario.id)
+          ? { ...v, estado: 'cancelado', motivoCancelacion: motivo ? String(motivo).slice(0, 300) : '', fechaCancelacion: new Date().toISOString() }
+          : v
+      );
+      await saveVoluntarios(sql, updated);
+      return res.status(200).json({ success: true });
+    }
+
     // ── POST /api/voluntarios/ficha?action=cambiar-pin ──
     if (req.method === 'POST' && action === 'cambiar-pin') {
       const { pinNuevo } = req.body || {};

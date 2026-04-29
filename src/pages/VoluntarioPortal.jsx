@@ -784,8 +784,9 @@ function PortalMain({ token, onLogout }) {
   const [cambiandoPin, setCPin]     = useState(false);
   const [form,       setForm]       = useState({});
   const [saving,     setSaving]     = useState(false);
-  const [marcando,   setMarcando]   = useState(false);
-  const [msg,        setMsg]        = useState("");
+  const [marcando,    setMarcando]    = useState(false);
+  const [confirmLlegada, setConfirmLlegada] = useState(false);
+  const [msg,         setMsg]         = useState("");
 
   const showMsg = (m, ms=3500) => { setMsg(m); setTimeout(() => setMsg(""), ms); };
 
@@ -813,7 +814,7 @@ function PortalMain({ token, onLogout }) {
 
   const marcarLlegada = async () => {
     if (data?.voluntario?.enPuesto) return;
-    setMarcando(true);
+    setMarcando(true); setConfirmLlegada(false);
     try {
       const res = await fetch(`${API_BASE}/ficha?action=presente`, {
         method: "POST", headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
@@ -872,13 +873,53 @@ function PortalMain({ token, onLogout }) {
             {config.nombre || "Trail El Guerrero 2026"}
           </div>
         </div>
-        <span className={`vp-badge ${v.estado==="confirmado"?"vp-badge-green":"vp-badge-amber"}`}>
-          {v.estado==="confirmado" ? "✓ Confirmado" : v.estado || "pendiente"}
-        </span>
+        <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:".25rem" }}>
+          <span className={`vp-badge ${v.estado==="confirmado"?"vp-badge-green":v.estado==="cancelado"?"vp-badge-red":"vp-badge-amber"}`}>
+            {v.estado==="confirmado" ? "✓ Confirmado" : v.estado==="cancelado" ? "✕ Cancelado" : "⏳ Pendiente"}
+          </span>
+          {config.fecha && (() => {
+            const hoy = new Date();
+            const evento = new Date(config.fecha);
+            const dias = Math.ceil((evento - hoy) / 86400000);
+            if (dias < 0) return null;
+            const texto = dias === 0 ? "🏃 ¡Hoy es el día!" : dias === 1 ? "⚡ ¡Mañana!" : dias <= 7 ? `⚡ En ${dias} días` : `📅 ${dias} días`;
+            const color = dias === 0 ? "var(--green)" : dias <= 3 ? "var(--amber)" : "var(--text-dim)";
+            return <span className="vp-mono" style={{ fontSize:".6rem", color, fontWeight:700 }}>{texto}</span>;
+          })()}
+        </div>
       </div>
 
       <div className="vp-wrap">
         {msg && <div className="vp-toast">{msg}</div>}
+
+        {/* Banner PIN temporal */}
+        {!v.pinPersonalizado && v.estado !== "cancelado" && (
+          <div style={{
+            background:"rgba(251,191,36,.08)", border:"1px solid rgba(251,191,36,.3)",
+            borderRadius:8, padding:".6rem .85rem", marginBottom:".75rem",
+            display:"flex", alignItems:"flex-start", gap:".6rem"
+          }}>
+            <span style={{ fontSize:"1.1rem", flexShrink:0 }}>🔐</span>
+            <div style={{ flex:1 }}>
+              <div className="vp-mono" style={{ fontSize:".78rem", fontWeight:700, color:"var(--amber)", marginBottom:".2rem" }}>
+                PIN temporal activo
+              </div>
+              <div className="vp-mono" style={{ fontSize:".7rem", color:"var(--text-muted)", lineHeight:1.65 }}>
+                Tu PIN son los últimos 4 dígitos de tu teléfono. Por seguridad, te recomendamos personalizarlo.
+              </div>
+              <button onClick={() => {
+                document.getElementById("vp-cambiar-pin-btn")?.click();
+              }} style={{
+                marginTop:".45rem", background:"rgba(251,191,36,.12)", color:"var(--amber)",
+                border:"1px solid rgba(251,191,36,.3)", borderRadius:6,
+                fontFamily:"var(--font-mono)", fontSize:".7rem", fontWeight:700,
+                padding:".25rem .65rem", cursor:"pointer"
+              }}>
+                Cambiar PIN ahora →
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Puesto */}
         <div className="vp-card" style={{ borderLeft:`3px solid ${puesto?"var(--cyan)":"var(--border)"}` }}>
@@ -922,8 +963,29 @@ function PortalMain({ token, onLogout }) {
         <div style={{ marginBottom:".85rem" }}>
           {v.enPuesto ? (
             <button className="vp-btn vp-btn-done" disabled>✅ En puesto desde las {v.horaLlegada}</button>
+          ) : confirmLlegada ? (
+            <div style={{ display:"flex", flexDirection:"column", gap:".5rem" }}>
+              <div style={{ background:"rgba(52,211,153,.08)", border:"1px solid var(--green-border)",
+                borderRadius:10, padding:".75rem 1rem", textAlign:"center" }}>
+                <div className="vp-mono" style={{ fontSize:".85rem", fontWeight:700, color:"var(--green)", marginBottom:".3rem" }}>
+                  ¿Confirmas que ya estás en tu puesto?
+                </div>
+                <div className="vp-mono" style={{ fontSize:".72rem", color:"var(--text-muted)" }}>
+                  {puesto ? puesto.nombre : "Puesto pendiente de asignación"}
+                </div>
+              </div>
+              <div style={{ display:"flex", gap:".5rem" }}>
+                <button className="vp-btn vp-btn-ghost" style={{ minHeight:48 }}
+                  onClick={() => setConfirmLlegada(false)}>Cancelar</button>
+                <button className="vp-btn vp-btn-success" style={{ minHeight:48 }}
+                  onClick={marcarLlegada} disabled={marcando}>
+                  {marcando ? "Registrando…" : "✅ Sí, estoy en mi puesto"}
+                </button>
+              </div>
+            </div>
           ) : (
-            <button className="vp-btn vp-btn-success" onClick={marcarLlegada} disabled={marcando}>
+            <button className="vp-btn vp-btn-success"
+              onClick={() => setConfirmLlegada(true)} disabled={marcando}>
               {marcando ? "Registrando…" : "📍 Ya estoy en mi puesto"}
             </button>
           )}
@@ -1023,9 +1085,16 @@ function PortalMain({ token, onLogout }) {
             onDone={() => { setCPin(false); showMsg("✅ PIN actualizado correctamente"); }}
             onCancel={() => setCPin(false)} />
         ) : (
-          <button className="vp-btn vp-btn-ghost" style={{marginBottom:".75rem"}} onClick={() => setCPin(true)}>
+          <button id="vp-cambiar-pin-btn" className="vp-btn vp-btn-ghost" style={{marginBottom:".75rem"}} onClick={() => setCPin(true)}>
             🔐 Cambiar mi PIN
           </button>
+        )}
+
+        {/* Cancelar asistencia */}
+        {v.estado !== "cancelado" && (
+          <CancelarAsistencia token={token}
+            nombreVoluntario={(v.nombre||"").split(" ")[0]}
+            onCancelado={() => { showMsg("Hemos registrado que no podrás asistir. El organizador ha sido notificado."); fetchData(); }} />
         )}
 
         {/* Contacto organizador */}
@@ -1411,6 +1480,72 @@ function FormField({ label, error, hint, children }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // RAÍZ DEL PORTAL — máquina de estados
 // ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// SUBCOMPONENTE: Cancelar asistencia
+// ─────────────────────────────────────────────────────────────────────────────
+function CancelarAsistencia({ token, nombreVoluntario, onCancelado }) {
+  const [open,    setOpen]    = useState(false);
+  const [motivo,  setMotivo]  = useState("");
+  const [saving,  setSaving]  = useState(false);
+  const [error,   setError]   = useState("");
+
+  const cancelar = async () => {
+    setSaving(true); setError("");
+    try {
+      const res = await fetch(`${API_BASE}/ficha?action=cancelar`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ motivo: motivo.trim() }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) { setOpen(false); onCancelado(); }
+      else setError(json.error || "Error al procesar la solicitud.");
+    } catch { setError("Error de conexión. Inténtalo de nuevo."); }
+    finally { setSaving(false); }
+  };
+
+  if (!open) return (
+    <button className="vp-btn vp-btn-ghost"
+      style={{ fontSize:".78rem", minHeight:40, color:"var(--red)", borderColor:"rgba(248,113,113,.25)",
+        marginBottom:".75rem" }}
+      onClick={() => setOpen(true)}>
+      ⚠️ No puedo asistir al evento
+    </button>
+  );
+
+  return (
+    <div className="vp-card" style={{ borderLeft:"3px solid var(--red)", marginBottom:".75rem" }}>
+      <div className="vp-card-header">
+        <div className="vp-mono" style={{ fontWeight:700, fontSize:".88rem", color:"var(--red)" }}>
+          ⚠️ Cancelar asistencia
+        </div>
+        <button className="vp-btn vp-btn-ghost vp-btn-sm" onClick={() => setOpen(false)}>✕</button>
+      </div>
+      <div className="vp-mono" style={{ fontSize:".78rem", color:"var(--text-muted)", lineHeight:1.65, marginBottom:".75rem" }}>
+        Hola {nombreVoluntario}, lamentamos que no puedas asistir. El organizador recibirá un aviso
+        para reorganizar el puesto.
+      </div>
+      <div className="vp-label">Motivo (opcional)</div>
+      <textarea className="vp-textarea"
+        placeholder="Ej: Lesión, compromisos de trabajo, problemas de transporte…"
+        value={motivo}
+        onChange={e => setMotivo(e.target.value)}
+        maxLength={300}
+        style={{ marginBottom:".75rem", minHeight:80 }} />
+      {error && <div className="vp-error" style={{ marginBottom:".75rem" }}>⚠ {error}</div>}
+      <div style={{ display:"flex", gap:".5rem" }}>
+        <button className="vp-btn vp-btn-ghost" style={{ minHeight:48 }}
+          onClick={() => setOpen(false)}>Volver</button>
+        <button className="vp-btn"
+          style={{ minHeight:48, background:"var(--red)", color:"#fff", flex:1 }}
+          onClick={cancelar} disabled={saving}>
+          {saving ? "Procesando…" : "Confirmar — No puedo asistir"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function VoluntarioPortal() {
   // pantalla: 'landing' | 'registro' | 'registro-ok' | 'login' | 'portal'
   const [pantalla, setPantalla] = useState(() => {
