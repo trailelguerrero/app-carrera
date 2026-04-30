@@ -647,6 +647,55 @@ export default function App() {
     return true;
   };
 
+  // Importación masiva desde CSV
+  const importarCSV = async (file) => {
+    const text = await file.text();
+    const lines = text.split(/\r?\n/).filter(Boolean);
+    if (!lines.length) { toast.error("Archivo vacío"); return; }
+    // Detectar separador
+    const sep = lines[0].includes(';') ? ';' : ',';
+    const headers = lines[0].split(sep).map(h => h.trim().toLowerCase().replace(/['"]/g,''));
+    const idx = (names) => names.map(n => headers.findIndex(h => h.includes(n))).find(i => i >= 0) ?? -1;
+    const iNombre = idx(['nombre','name']);
+    const iApel   = idx(['apellido','surname','last']);
+    const iTel    = idx(['telefono','phone','tel','móvil','movil','celular']);
+    const iTalla  = idx(['talla','size']);
+    const iEmail  = idx(['email','correo','mail']);
+    if (iTel === -1) { toast.error("El CSV necesita una columna 'telefono'"); return; }
+
+    let added = 0, dupes = 0;
+    const genId = () => genIdNum([...voluntarios, ...(new Array(added).fill(0).map((_,i) => ({id: Date.now()+i})))]);
+
+    const nuevos = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(sep).map(c => c.trim().replace(/^['"]+|['"]+$/g,''));
+      const tel = cols[iTel] || '';
+      if (!tel) continue;
+      const telNorm = tel.replace(/\D/g,'');
+      const dup = voluntarios.find(v => (v.telefono||'').replace(/\D/g,'') === telNorm) ||
+                  nuevos.find(v => (v.telefono||'').replace(/\D/g,'') === telNorm);
+      if (dup) { dupes++; continue; }
+      const nombre = iNombre >= 0 ? cols[iNombre] : '';
+      const apellidos = iApel >= 0 ? cols[iApel] : '';
+      const talla = iTalla >= 0 ? cols[iTalla].toUpperCase() : '';
+      const email = iEmail >= 0 ? cols[iEmail] : '';
+      const pinHash = hashPinLocal(pinInicialLocal(tel));
+      nuevos.push({
+        id: Date.now() + i,
+        nombre, apellidos, telefono: tel, email, talla,
+        estado: 'pendiente', camisetaEntregada: false,
+        enPuesto: false, horaLlegada: null, sessionToken: null,
+        pinHash, fechaRegistro: new Date().toISOString().split('T')[0],
+        origenImportacion: 'csv',
+      });
+      added++;
+    }
+    if (nuevos.length > 0) {
+      setVoluntarios(prev => [...prev, ...nuevos], { force: true });
+    }
+    toast.success(`Importados: ${added} voluntario${added !== 1 ? "s" : ""}${dupes > 0 ? ` · ${dupes} duplicado${dupes !== 1 ? "s" : ""} omitido${dupes !== 1 ? "s" : ""}` : ""}`);
+  };
+
   // Registrar entrada en el historial de cambios del voluntario
   const registrarHistorial = (volActual, cambios) => {
     const ahora = new Date();
@@ -769,6 +818,13 @@ export default function App() {
               title="Exportar lista de voluntarios a Excel">
               📊 Excel
             </button>
+            <label className="btn btn-ghost btn-sm"
+              title="Importar voluntarios desde un archivo CSV (columnas: nombre, apellidos, telefono, talla, email)"
+              style={{ cursor:"pointer", margin:0 }}>
+              📥 Importar CSV
+              <input type="file" accept=".csv,.txt" style={{ display:"none" }}
+                onChange={e => { if (e.target.files[0]) { importarCSV(e.target.files[0]); e.target.value = ''; } }} />
+            </label>
             {/* Dropdown Compartir portal — consolida 3 acciones */}
             <div ref={shareMenuRef} style={{ position:"relative" }}>
               <button className="btn btn-ghost btn-sm"

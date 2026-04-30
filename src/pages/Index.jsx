@@ -678,43 +678,43 @@ export default function Index() {
           height:48, gap:"0.5rem",
         }}>
 
-          {/* LEFT — Avatar + Brand */}
-          <div style={{ display:"flex", alignItems:"center", gap:"0.55rem", flexShrink:0 }}>
-            {/* Avatar con iniciales del organizador */}
-            <div
-              title={orgNombre}
-              onClick={() => handleBlockChange("configuracion")}
-              style={{
-                width:30, height:30, borderRadius:9,
-                background:"linear-gradient(135deg, rgba(34,211,238,0.2) 0%, rgba(167,139,250,0.15) 100%)",
-                border:"1px solid rgba(34,211,238,0.3)",
-                display:"flex", alignItems:"center", justifyContent:"center",
-                fontFamily:"'Syne',sans-serif", fontWeight:900, fontSize:"var(--fs-xs)",
-                color:"var(--cyan)", cursor:"pointer", flexShrink:0,
-                transition:"all 0.18s", userSelect:"none",
-                boxShadow:"0 0 10px rgba(34,211,238,0.1)",
-              }}
-              onMouseEnter={e => { e.currentTarget.style.boxShadow="0 0 16px rgba(34,211,238,0.2)"; e.currentTarget.style.borderColor="rgba(34,211,238,0.5)"; }}
-              onMouseLeave={e => { e.currentTarget.style.boxShadow="0 0 10px rgba(34,211,238,0.1)"; e.currentTarget.style.borderColor="rgba(34,211,238,0.3)"; }}
-            >
-              {orgIniciales}
+          {/* LEFT — Brand */}
+          <div style={{ display:"flex", alignItems:"center", gap:"0.5rem", flexShrink:0,
+            cursor:"pointer" }}
+            onClick={() => handleBlockChange("configuracion")}
+            title="Configuración del evento">
+            {/* Icono de montaña */}
+            <div style={{
+              width:30, height:30, borderRadius:9, flexShrink:0,
+              background:"linear-gradient(135deg, rgba(34,211,238,0.18) 0%, rgba(167,139,250,0.14) 100%)",
+              border:"1px solid rgba(34,211,238,0.28)",
+              display:"flex", alignItems:"center", justifyContent:"center",
+              fontSize:"1rem", lineHeight:1,
+              boxShadow:"0 0 10px rgba(34,211,238,0.1)",
+              transition:"all 0.18s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.boxShadow="0 0 16px rgba(34,211,238,0.2)"; e.currentTarget.style.borderColor="rgba(34,211,238,0.5)"; }}
+            onMouseLeave={e => { e.currentTarget.style.boxShadow="0 0 10px rgba(34,211,238,0.1)"; e.currentTarget.style.borderColor="rgba(34,211,238,0.28)"; }}>
+              🏔️
             </div>
-
-            {/* Brand text */}
-            {!isMobile && (
-              <div>
-                <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800,
-                  fontSize:"var(--fs-base)", color:"var(--teg-text-primary)", lineHeight:1.1,
-                  letterSpacing:"-0.01em" }}>
-                  Kinetik Ops
-                </div>
-                <div style={{ fontFamily:"'DM Mono', 'Space Mono', monospace,monospace",
-                  fontSize:"0.46rem", color:"var(--teg-text-muted)",
-                  letterSpacing:"0.08em", textTransform:"uppercase" }}>
-                  Trail El Guerrero 2026
-                </div>
-              </div>
-            )}
+            {/* Nombre del evento — siempre visible */}
+            <div style={{ display:"flex", flexDirection:"column", lineHeight:1.15 }}>
+              <span style={{
+                fontFamily:"'Syne',sans-serif", fontWeight:800,
+                fontSize: isMobile ? "0.82rem" : "0.92rem",
+                color:"var(--teg-text-primary)", letterSpacing:"-0.01em",
+                whiteSpace:"nowrap",
+              }}>
+                Trail El Guerrero
+              </span>
+              <span style={{
+                fontFamily:"'DM Mono','Space Mono',monospace",
+                fontSize:"0.52rem", color:"var(--teg-text-muted)",
+                letterSpacing:"0.07em", textTransform:"uppercase",
+              }}>
+                2026 · Candeleda
+              </span>
+            </div>
           </div>
 
           {/* CENTER — Autosave + buscador */}

@@ -244,10 +244,54 @@ export default function App() {
     setModal(null);
   };
   const deletePedido = () => { setPedidos(prev => prev.filter(x => x.id!==delId)); setDelId(null); setFicha(null); toast.success("Pedido eliminado"); };
-  const updateLinea  = (pedidoId,lineaId,campo,valor) =>
-    setPedidos(prev => prev.map(p => p.id!==pedidoId ? p : {
-      ...p, lineas: p.lineas.map(l => l.id!==lineaId ? l : {...l,[campo]:valor})
-    }));
+  const [, setRawVoluntarios] = useData("teg_voluntarios_v1_voluntarios", []);
+
+  const updateLinea = (pedidoId, lineaIdOrObj, campo, valor) => {
+    // Firma dual: (pedidoId, lineaObj) o (pedidoId, lineaId, campo, valor)
+    const esObjeto = typeof lineaIdOrObj === "object" && lineaIdOrObj !== null && campo === undefined;
+    if (esObjeto) {
+      // Modo entrega rápida: reemplaza la línea completa
+      const lineaNueva = lineaIdOrObj;
+      setPedidos(prev => prev.map(p => p.id !== pedidoId ? p : {
+        ...p, lineas: p.lineas.map(l => l.id !== lineaNueva.id ? l : { ...l, ...lineaNueva })
+      }));
+      // Sincronizar con Voluntarios si es tipo voluntario y se marca entregado
+      if ((lineaNueva.tipo === "voluntario" || lineaNueva.tipo === "extra-voluntario") &&
+          lineaNueva.estadoEntrega === "entregado") {
+        const pedido = pedidos.find(p => p.id === pedidoId);
+        if (pedido?.nombre) {
+          setRawVoluntarios(prev => (Array.isArray(prev) ? prev : []).map(v => {
+            const nombreCompleto = ((v.nombre || "") + " " + (v.apellidos || "")).toLowerCase().trim();
+            const nombrePedido = (pedido.nombre || "").toLowerCase().trim();
+            if (nombreCompleto === nombrePedido || nombreCompleto.includes(nombrePedido) || nombrePedido.includes(nombreCompleto)) {
+              return { ...v, camisetaEntregada: true };
+            }
+            return v;
+          }), { force: true });
+        }
+      }
+    } else {
+      const lineaId = lineaIdOrObj;
+      setPedidos(prev => prev.map(p => p.id !== pedidoId ? p : {
+        ...p, lineas: p.lineas.map(l => l.id !== lineaId ? l : { ...l, [campo]: valor })
+      }));
+      // Sincronizar camisetaEntregada con Voluntarios
+      if (campo === "estadoEntrega") {
+        const pedido = pedidos.find(p => p.id === pedidoId);
+        const linea  = pedido?.lineas?.find(l => l.id === lineaId);
+        if (pedido?.nombre && (linea?.tipo === "voluntario" || linea?.tipo === "extra-voluntario")) {
+          setRawVoluntarios(prev => (Array.isArray(prev) ? prev : []).map(v => {
+            const nombreCompleto = ((v.nombre || "") + " " + (v.apellidos || "")).toLowerCase().trim();
+            const nombrePedido = (pedido.nombre || "").toLowerCase().trim();
+            if (nombreCompleto === nombrePedido || nombreCompleto.includes(nombrePedido) || nombrePedido.includes(nombreCompleto)) {
+              return { ...v, camisetaEntregada: valor === "entregado" };
+            }
+            return v;
+          }), { force: true });
+        }
+      }
+    }
+  };
 
   // ── Loading screen (renderizado condicional SIN early return) ────────────
   if (isLoading) {
