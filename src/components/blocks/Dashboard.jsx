@@ -60,7 +60,23 @@ export default function Dashboard() {
   const intervalRef = useRef(null);
 
   const loadData = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true);
+    // Carga optimista: usar localStorage inmediatamente para mostrar algo al usuario
+    if (!silent) {
+      try {
+        const localData = {};
+        let hasLocal = false;
+        for (const [key, def] of Object.entries(ALL_KEYS)) {
+          const raw = localStorage.getItem(key);
+          if (raw) { localData[key] = JSON.parse(raw); hasLocal = true; }
+          else localData[key] = def;
+        }
+        if (hasLocal) {
+          setRawData(localData);
+          setLoading(false); // Mostrar datos locales inmediatamente
+        }
+      } catch {}
+    }
+    if (!silent) setLoading(prev => prev); // mantener loading si no hubo local
     else setRefreshing(true);
     try {
       const data = await dataService.getMultiple(ALL_KEYS);
@@ -77,13 +93,16 @@ export default function Dashboard() {
   useEffect(() => {
     loadData();
 
-    // Refresco silencioso cada 60 segundos
-    // Sin intervalo — app monousuario, refresca al navegar (teg-sync)
-
-    const handler = () => loadData(true);
+    // teg-sync throttled — no recargar más de 1 vez cada 10 segundos
+    let lastSync = 0;
+    const handler = () => {
+      const now = Date.now();
+      if (now - lastSync > 10000) {
+        lastSync = now;
+        loadData(true);
+      }
+    };
     window.addEventListener("teg-sync", handler);
-    // No escuchar teg-save-status: cada guardado dispararía una recarga completa
-    // El refresco cada 5min + teg-sync al navegar entre módulos es suficiente
     return () => {
       clearInterval(intervalRef.current);
       window.removeEventListener("teg-sync", handler);

@@ -71,7 +71,9 @@ const apiAdapter = {
     const lastSave  = parseInt(localStorage.getItem(`__last_save_${collection}`) || '0');
     const lastFetch = parseInt(localStorage.getItem(`__last_fetch_${collection}`) || '0');
     const localData = await localAdapter.get(collection, null);
-    const CACHE_TTL = 2 * 60 * 60 * 1000; // 2 horas — app monousuario, datos estables
+    const CACHE_TTL = 4 * 60 * 60 * 1000; // 4 horas — app monousuario, datos estables
+    const SESSION_KEY = `__session_loaded_${collection}`;
+    const sessionLoaded = sessionStorage.getItem(SESSION_KEY) === '1';
 
     // Usar caché local si:
     // 1. Se guardó hace menos de 5 min (datos propios, frescos)
@@ -79,6 +81,7 @@ const apiAdapter = {
     // 3. Hay escritura reciente (< 2s)
     // Si hay dato local y no hay registro de fetch, asumir dato reciente (evita GET innecesario)
     const cacheValida = localData !== null && (
+      sessionLoaded || // Ya se cargó en esta sesión de navegador
       (Date.now() - lastSave  < CACHE_TTL) ||
       (Date.now() - lastFetch < CACHE_TTL) ||
       (Date.now() - lastSave  < 2000) ||
@@ -96,6 +99,7 @@ const apiAdapter = {
       if (saveTimeouts.has(collection)) return localAdapter.get(collection, defaultValue);
       await localAdapter.set(collection, data);
       localStorage.setItem(`__last_fetch_${collection}`, Date.now().toString());
+      sessionStorage.setItem(SESSION_KEY, '1');
       return data;
     } catch {
       return localData ?? defaultValue;
@@ -115,8 +119,6 @@ const apiAdapter = {
       }
 
       savePromises.set(collection, resolve);
-
-      window.dispatchEvent(new CustomEvent('teg-save-status', { detail: { status: 'saving' } }));
 
       const timeoutId = setTimeout(async () => {
         saveTimeouts.delete(collection);
@@ -145,7 +147,7 @@ const apiAdapter = {
           await localAdapter.set(`__pending_sync_${collection}`, Date.now());
           resolve({ success: true, offline: true });
         }
-      }, 1000);
+      }, 2000); // debounce de 2s — reduce tráfico a la DB
 
       saveTimeouts.set(collection, timeoutId);
     });
@@ -221,8 +223,6 @@ const apiAdapter = {
       }
 
       savePromises.set(collection, resolve);
-
-      window.dispatchEvent(new CustomEvent('teg-save-status', { detail: { status: 'saving' } }));
 
       const timeoutId = setTimeout(async () => {
         saveTimeouts.delete(collection);
@@ -301,12 +301,12 @@ const dataService = {
    * @returns {Function} unsubscribe
    */
   onChange: (callback) => {
+    // Solo 'storage' (cambios desde otras pestañas) — NO teg-sync para evitar bucles
+    // Los bloques se actualizan por setState inmediato en setValue; no necesitan releer
     const handler = () => callback();
     window.addEventListener('storage', handler);
-    window.addEventListener('teg-sync', handler);
     return () => {
       window.removeEventListener('storage', handler);
-      window.removeEventListener('teg-sync', handler);
     };
   },
 
@@ -409,7 +409,8 @@ export function useData(key, defaultValue) {
         stateRef.current = valueToStore;
         setState(valueToStore);
         dataService.set(key, valueToStore);
-        dataService.notify();
+        // NO llamar notify() aquí — cada setValue no debe triggear recarga del Dashboard
+        // notify() solo se llama explícitamente cuando se quiere comunicar a otros bloques
       }
     } catch (e) {
       console.error(e);
