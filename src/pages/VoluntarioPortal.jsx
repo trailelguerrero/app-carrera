@@ -886,6 +886,60 @@ function PortalMain({ token, onLogout }) {
       ? [{ nombre:config.organizador||"Organización", telefono:config.telefonoContacto||"", email:config.emailContacto||"" }]
       : [];
 
+  // Pantalla específica para voluntario con participación cancelada
+  if (v.estado === "cancelado") return (
+    <><style>{CSS}</style>
+      <div style={{ minHeight:"100dvh", display:"flex", flexDirection:"column",
+        alignItems:"center", justifyContent:"center", padding:"2rem 1.5rem",
+        background:"var(--bg2)", textAlign:"center" }}>
+        <div style={{ fontSize:"3rem", marginBottom:".75rem" }}>😔</div>
+        <div style={{ fontWeight:800, fontSize:"var(--fs-xl)", color:"var(--red)",
+          fontFamily:"var(--font-display)", marginBottom:".5rem" }}>
+          Participación cancelada
+        </div>
+        <div className="vp-mono" style={{ fontSize:"var(--fs-sm)", color:"var(--text-muted)",
+          lineHeight:1.8, maxWidth:360, marginBottom:"1.5rem" }}>
+          Hola {(v.nombre||"").split(" ")[0]}, tu participación como voluntario
+          en <strong style={{color:"var(--text)"}}>{config.nombre || "Trail El Guerrero 2026"}</strong> ha
+          sido cancelada.
+        </div>
+        {v.motivoCancelacion && (
+          <div style={{ background:"var(--red-dim)", border:"1px solid var(--red-border)",
+            borderRadius:10, padding:".75rem 1rem", marginBottom:"1.5rem",
+            maxWidth:360, width:"100%" }}>
+            <div className="vp-mono" style={{ fontSize:"var(--fs-xs)", color:"var(--red)",
+              fontWeight:700, marginBottom:".3rem" }}>Motivo indicado</div>
+            <div className="vp-mono" style={{ fontSize:"var(--fs-sm)", color:"var(--text-muted)" }}>
+              {v.motivoCancelacion}
+            </div>
+          </div>
+        )}
+        {organizadores.length > 0 && (
+          <div className="vp-card" style={{ maxWidth:360, width:"100%", marginBottom:"1rem" }}>
+            <div className="vp-label" style={{marginBottom:".5rem"}}>📞 Contacta con el organizador</div>
+            {organizadores.map((org, i) => (
+              <div key={i} style={{ paddingTop:i>0?".5rem":0, borderTop:i>0?"1px solid var(--border)":"none" }}>
+                {org.nombre && <div style={{ fontWeight:700, marginBottom:".2rem" }}>{org.nombre}</div>}
+                {org.telefono && (
+                  <a href={`tel:${org.telefono.replace(/\s/g,"")}`}
+                    style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
+                      color:"var(--cyan)", textDecoration:"none", display:"block" }}>
+                    📞 {org.telefono}
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        <button className="vp-btn vp-btn-ghost"
+          style={{ maxWidth:360, width:"100%", fontSize:"var(--fs-xs)" }}
+          onClick={() => { clearSession(); onLogout(); }}>
+          Cerrar sesión
+        </button>
+      </div>
+    </>
+  );
+
   return (
     <><style>{CSS}</style>
       <div className="vp-topbar">
