@@ -1921,6 +1921,8 @@ function ModalTarea({
 // ─── MODAL HITO ───────────────────────────────────────────────────────────────
 function ModalHito({
  data, onSave, onClose }) {
+  const firstInputRef = useRef(null);
+  useEffect(() => { const t = setTimeout(() => firstInputRef.current?.focus(), 60); return () => clearTimeout(t); }, []);
   const [form, setForm] = useState(data || {nombre:"", fecha:"", critico:false, completado:false});
   const [err, setErr] = useState({});
   const upd = (fkey, fval) => setForm(prev=>({...prev,[fkey]:fval}));
