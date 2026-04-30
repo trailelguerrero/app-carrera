@@ -680,37 +680,43 @@ export default function Index() {
 
           {/* LEFT — Brand */}
           <div style={{ display:"flex", alignItems:"center", gap:"0.5rem", flexShrink:0,
-            cursor:"pointer" }}
+            cursor:"pointer", overflow:"visible" }}
             onClick={() => handleBlockChange("configuracion")}
             title="Configuración del evento">
             {/* Icono de montaña */}
             <div style={{
               width:30, height:30, borderRadius:9, flexShrink:0,
               background:"linear-gradient(135deg, rgba(34,211,238,0.18) 0%, rgba(167,139,250,0.14) 100%)",
-              border:"1px solid rgba(34,211,238,0.28)",
+              border:"1px solid rgba(34,211,238,0.35)",
               display:"flex", alignItems:"center", justifyContent:"center",
               fontSize:"1rem", lineHeight:1,
-              boxShadow:"0 0 10px rgba(34,211,238,0.1)",
+              boxShadow:"0 0 10px rgba(34,211,238,0.15)",
               transition:"all 0.18s",
             }}
-            onMouseEnter={e => { e.currentTarget.style.boxShadow="0 0 16px rgba(34,211,238,0.2)"; e.currentTarget.style.borderColor="rgba(34,211,238,0.5)"; }}
-            onMouseLeave={e => { e.currentTarget.style.boxShadow="0 0 10px rgba(34,211,238,0.1)"; e.currentTarget.style.borderColor="rgba(34,211,238,0.28)"; }}>
+            onMouseEnter={e => { e.currentTarget.style.boxShadow="0 0 16px rgba(34,211,238,0.3)"; e.currentTarget.style.borderColor="rgba(34,211,238,0.6)"; }}
+            onMouseLeave={e => { e.currentTarget.style.boxShadow="0 0 10px rgba(34,211,238,0.15)"; e.currentTarget.style.borderColor="rgba(34,211,238,0.35)"; }}>
               🏔️
             </div>
-            {/* Nombre del evento — siempre visible */}
-            <div style={{ display:"flex", flexDirection:"column", lineHeight:1.15 }}>
+            {/* Nombre del evento — siempre visible, colores directos para evitar dependencia de tokens */}
+            <div style={{ display:"flex", flexDirection:"column", lineHeight:1.2, overflow:"visible" }}>
               <span style={{
-                fontFamily:"'Syne',sans-serif", fontWeight:800,
-                fontSize: isMobile ? "0.82rem" : "0.92rem",
-                color:"var(--teg-text-primary)", letterSpacing:"-0.01em",
+                fontFamily:"'Syne', 'Inter', system-ui, sans-serif",
+                fontWeight:800,
+                fontSize: isMobile ? "0.85rem" : "0.95rem",
+                color:"#f0f4ff",
+                letterSpacing:"-0.01em",
                 whiteSpace:"nowrap",
+                display:"block",
               }}>
                 Trail El Guerrero
               </span>
               <span style={{
-                fontFamily:"'DM Mono','Space Mono',monospace",
-                fontSize:"0.52rem", color:"var(--teg-text-muted)",
-                letterSpacing:"0.07em", textTransform:"uppercase",
+                fontFamily:"'DM Mono', 'Courier New', monospace",
+                fontSize:"0.55rem",
+                color:"rgba(148,163,184,0.9)",
+                letterSpacing:"0.07em",
+                textTransform:"uppercase",
+                display:"block",
               }}>
                 2026 · Candeleda
               </span>

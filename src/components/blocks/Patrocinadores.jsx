@@ -1553,6 +1553,8 @@ function InformePatrocinador({ pat, cfg, config = {} }) {
 function ModalPat({
  data, onSave, onClose }) {
   const { closing: mpClosing, handleClose: mpHandleClose } = useModalClose(onClose);
+  const firstInputRef = useRef(null);
+  useEffect(() => { const t = setTimeout(() => firstInputRef.current?.focus(), 60); return () => clearTimeout(t); }, []);
   const [form, setForm] = useState(data ? { ...data } : {
     nombre: "", sector: SECTORES[0], nivel: "Plata", contacto: "", telefono: "", email: "",
     importe: 0, importeCobrado: 0, especie: 0, estado: "prospecto",
