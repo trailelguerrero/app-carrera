@@ -583,6 +583,7 @@ export default function App() {
     pendingDeleteRef.current = null;
     toast.success("Voluntario eliminado");
   }, []);
+  const [qrDataUrl, setQrDataUrl]   = useState(null);
   const [qrLoading, setQrLoading]   = useState(false);
   const [ficha, setFicha] = useState(null); // {tipo:'vol'|'puesto', data}
   const abrirFicha = (tipo, data) => { scrollMainToTop(); setFicha({ tipo, data }); };
