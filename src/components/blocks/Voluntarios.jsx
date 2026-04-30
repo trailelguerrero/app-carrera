@@ -782,14 +782,22 @@ export default function App() {
                     position:"fixed", top:shareMenuPos.top,
                     left:shareMenuPos.left !== 'auto' ? shareMenuPos.left : undefined,
                     right:shareMenuPos.right !== 'auto' ? shareMenuPos.right : undefined,
-                    zIndex:500,
-                    background:"var(--surface)", border:"1px solid var(--border)",
-                    borderRadius:10, padding:".4rem", minWidth:240, maxWidth:"calc(100vw - 1rem)",
-                    boxShadow:"0 12px 32px rgba(0,0,0,.55)", display:"flex",
-                    flexDirection:"column", gap:".25rem"
+                    zIndex:9999,
+                    background:"#1a2540",
+                    border:"1px solid rgba(148,163,184,.3)",
+                    borderRadius:12, padding:".5rem", minWidth:240, maxWidth:"calc(100vw - 1rem)",
+                    boxShadow:"0 16px 48px rgba(0,0,0,.85), 0 0 0 1px rgba(34,211,238,.12)",
+                    display:"flex", flexDirection:"column", gap:".3rem"
                   }}>
-                  <button className="btn btn-ghost btn-sm"
-                    style={{ justifyContent:"flex-start", gap:".5rem" }}
+                  <button
+                    style={{ justifyContent:"flex-start", gap:".5rem",
+                      display:"flex", alignItems:"center", width:"100%",
+                      padding:".65rem .85rem", background:"transparent", border:"none",
+                      borderRadius:8, cursor:"pointer", color:"#e2e8f0",
+                      fontFamily:"var(--font-mono)", fontSize:".85rem", fontWeight:600,
+                      transition:"background .1s" }}
+                    onMouseEnter={e=>e.currentTarget.style.background="rgba(34,211,238,.1)"}
+                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}
                     onClick={() => {
                       const url = window.location.origin + "/voluntarios/mi-ficha";
                       navigator.clipboard.writeText(url).then(() => {
@@ -801,8 +809,15 @@ export default function App() {
                     }}>
                     📋 {urlCopiada ? "¡Copiado!" : "Copiar enlace"}
                   </button>
-                  <button className="btn btn-ghost btn-sm"
-                    style={{ justifyContent:"flex-start", gap:".5rem" }}
+                  <button
+                    style={{ justifyContent:"flex-start", gap:".5rem",
+                      display:"flex", alignItems:"center", width:"100%",
+                      padding:".65rem .85rem", background:"transparent", border:"none",
+                      borderRadius:8, cursor:"pointer", color:"#e2e8f0",
+                      fontFamily:"var(--font-mono)", fontSize:".85rem", fontWeight:600,
+                      transition:"background .1s" }}
+                    onMouseEnter={e=>e.currentTarget.style.background="rgba(34,211,238,.1)"}
+                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}
                     onClick={async () => {
                       if (qrDataUrl) { setQrDataUrl(null); setShareMenuOpen(false); return; }
                       setQrLoading(true);
@@ -816,10 +831,16 @@ export default function App() {
                     }}>
                     {qrLoading ? "⏳ Generando…" : "🔲 Ver QR"}
                   </button>
-                  <div style={{ height:1, background:"var(--border)", margin:".1rem 0" }}/>
+                  <div style={{ height:1, background:"rgba(148,163,184,.2)", margin:".2rem .2rem" }}/>
                   <a href={window.location.origin + "/voluntarios/mi-ficha"} target="_blank" rel="noreferrer"
-                    className="btn btn-ghost btn-sm"
-                    style={{ justifyContent:"flex-start", gap:".5rem", textDecoration:"none" }}>
+                    style={{ justifyContent:"flex-start", gap:".5rem",
+                      display:"flex", alignItems:"center", width:"100%",
+                      padding:".65rem .85rem", background:"transparent",
+                      borderRadius:8, cursor:"pointer", color:"#22d3ee",
+                      fontFamily:"var(--font-mono)", fontSize:".85rem", fontWeight:600,
+                      textDecoration:"none", transition:"background .1s" }}
+                    onMouseEnter={e=>e.currentTarget.style.background="rgba(34,211,238,.1)"}
+                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                     ↗ Abrir en nueva pestaña
                   </a>
                 </div>
@@ -896,17 +917,28 @@ export default function App() {
           )}
         </div>
 
-        {/* ── Banner: portal unificado (solo informativo) ── */}
+        {/* Banner: portal unificado (solo informativo) */}
         <div style={{
-          marginBottom:".6rem", padding:".45rem .85rem", borderRadius:8,
+          marginBottom:".6rem", padding:".5rem .85rem", borderRadius:8,
           background:"rgba(34,211,238,.05)", border:"1px solid rgba(34,211,238,.15)",
-          display:"flex", alignItems:"center", gap:".6rem",
+          display:"flex", alignItems:"center", justifyContent:"space-between", gap:".6rem", flexWrap:"wrap",
         }}>
-          <span style={{fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--cyan)", fontWeight:700, flexShrink:0}}>📱 Portal:</span>
-          <span style={{fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)",
-            overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>
-            {(typeof window !== 'undefined' ? window.location.origin : '') + '/voluntarios/mi-ficha'}
-          </span>
+          <div style={{display:"flex", alignItems:"center", gap:".6rem"}}>
+            <span style={{fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--cyan)", fontWeight:700, flexShrink:0}}>📱 Portal:</span>
+            <span style={{fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)",
+              overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>
+              {(typeof window !== 'undefined' ? window.location.origin : '') + '/voluntarios/mi-ficha'}
+            </span>
+          </div>
+          <div style={{display:"flex", alignItems:"center", gap:".4rem", flexShrink:0}}>
+            <span style={{fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", color:"var(--text-dim)"}}>Contacto organizador →</span>
+            <button className="btn btn-ghost btn-sm"
+              style={{fontSize:"var(--fs-xs)", padding:".2rem .55rem"}}
+              onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", {detail:{block:"configuracion"}}))}
+              title="Configurar contactos de la organización visibles por los voluntarios">
+              ⚙️ Configuración
+            </button>
+          </div>
         </div>
         {/* Buscador global — siempre visible */}
         <div style={{ marginBottom:".6rem", display:"flex", gap:".5rem", alignItems:"center" }}>
@@ -2959,8 +2991,11 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
                           body: JSON.stringify({ voluntarioId: v.id }),
                         });
                         const d = await res.json();
-                        if(res.ok) toast.success("PIN reseteado. El voluntario debe usar los últimos 4 dígitos de su teléfono.");
-                        else toast.error(d.error || "Error al resetear PIN");
+                        if(res.ok) {
+                          // Actualizar estado local para reflejar el reset inmediatamente
+                          if (onUpdate) onUpdate({ pinPersonalizado: false, sessionToken: null });
+                          toast.success("PIN reseteado. El voluntario debe usar los últimos 4 dígitos de su teléfono.");
+                        } else toast.error(d.error || "Error al resetear PIN");
                       } catch { toast.error("Error de conexión"); }
                     }}>
                     🔑 Reset PIN

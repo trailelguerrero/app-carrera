@@ -76,7 +76,7 @@ const CSS = `
     --bg: #08091a; --bg2: #0f172a;
     --surface:  #0d1121; --surface2: #121829; --surface3: #18203a;
     --border:   #1e2d50; --border-light: #2a4070; --border2: rgba(148,163,184,.25);
-    --text:     #f0f4ff; --text-muted: #7a8fb0; --text-dim: #4a5e80;
+    --text:     #f0f4ff; --text-muted: #96aacf; --text-dim: #6680a8;
     --cyan:     #22d3ee; --cyan-dim:   rgba(34,211,238,.10);  --cyan-border:   rgba(34,211,238,.28);
     --green:    #34d399; --green-dim:  rgba(52,211,153,.10);  --green-border:  rgba(52,211,153,.28);
     --amber:    #fbbf24; --amber-dim:  rgba(251,191,36,.10);  --amber-border:  rgba(251,191,36,.28);
@@ -86,8 +86,8 @@ const CSS = `
     --r:   12px; --r-sm: 8px;
     --font-display: 'Syne', sans-serif;
     --font-mono:    'DM Mono', 'Courier New', monospace;
-    --fs-xs:   0.78rem; --fs-sm: 0.85rem; --fs-base: 0.95rem;
-    --fs-md:   1.05rem; --fs-lg: 1.25rem; --fs-xl:   1.5rem;
+    --fs-xs:   0.85rem; --fs-sm: 0.92rem; --fs-base: 1.02rem;
+    --fs-md:   1.12rem; --fs-lg: 1.3rem;  --fs-xl:   1.6rem;
   }
 
   /* ── Layout ── */
@@ -104,8 +104,8 @@ const CSS = `
     margin-bottom: .65rem; }
 
   /* ── Typography ── */
-  .vp-label     { font-family: var(--font-mono); font-size: .75rem; font-weight: 700;
-    letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .45rem; }
+  .vp-label     { font-family: var(--font-mono); font-size: var(--fs-xs); font-weight: 700;
+    letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .5rem; }
   .vp-step-title { font-family: var(--font-display); font-size: var(--fs-lg); font-weight: 800;
     color: var(--text); margin-bottom: .5rem; }
   .vp-step-desc  { font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--text-muted);
@@ -183,7 +183,7 @@ const CSS = `
   /* ── Misc ── */
   .vp-divider { height: 1px; background: var(--border); margin: .6rem 0; }
   .vp-row { display: flex; align-items: center; justify-content: space-between; padding: .4rem 0; }
-  .vp-row-label { font-family:var(--font-mono); font-size:.72rem; color:var(--text-muted); }
+  .vp-row-label { font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-muted); font-weight:600; }
   .vp-error { background:var(--red-dim); border:1px solid var(--red-border); border-radius:8px;
     padding:.65rem .9rem; font-family:var(--font-mono); font-size:.8rem;
     color:var(--red); text-align:center; margin-top:.75rem; }
@@ -686,7 +686,7 @@ function LoginScreen({ onLogin, onVolver, telefonoInicial }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // ── Componente PuestoDetalle (solo lectura) ──────────────────────────────────
 function PuestoDetalle({ puesto }) {
-  const [expandido, setExpandido] = useState(false);
+  const [expandido, setExpandido] = useState(true); // abierto por defecto
   if (!puesto) return (
     <div className="vp-card" style={{ borderLeft:"3px solid var(--border)" }}>
       <div className="vp-label">📍 Tu puesto</div>
@@ -712,7 +712,7 @@ function PuestoDetalle({ puesto }) {
           </div>
           {!expandido && (
             <div className="vp-mono" style={{ fontSize:".65rem", color:"var(--cyan)", marginTop:".2rem" }}>
-              Toca para ver detalles completos →
+              👆 Toca para ver más detalles
             </div>
           )}
         </div>
@@ -1089,12 +1089,12 @@ function PortalMain({ token, onLogout }) {
               onChange={e => setForm(f=>({...f,talla:e.target.value}))} style={{marginBottom:".75rem"}}>
               {TALLAS_PORTAL.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
-            <div className="vp-label">⚕️ Alergias relevantes (opcional)</div>
-            <input className="vp-input" placeholder="Polen, frutos secos, picaduras…"
+            <div className="vp-label">⚕️ ¿Tienes alguna alergia que debamos conocer?</div>
+            <input className="vp-input" placeholder="Ej: frutos secos, picaduras de abejas, medicamentos…"
               value={form.alergias||""} onChange={e => setForm(f=>({...f,alergias:e.target.value}))}
               maxLength={200} style={{marginBottom:".75rem"}} />
-            <div className="vp-label">💊 Medicación (opcional)</div>
-            <input className="vp-input" placeholder="Insulina, adrenalina, anticoagulantes…"
+            <div className="vp-label">💊 ¿Tomas alguna medicación que debamos conocer?</div>
+            <input className="vp-input" placeholder="Ej: insulina, adrenalina, anticoagulantes…"
               value={form.medicacion||""} onChange={e => setForm(f=>({...f,medicacion:e.target.value}))}
               maxLength={200} style={{marginBottom:".75rem"}} />
             <div className="vp-label">📝 Nota para el organizador</div>
@@ -1125,16 +1125,31 @@ function PortalMain({ token, onLogout }) {
               <div className="vp-row"><span className="vp-row-label">👤 Nombre</span>
                 <span className="vp-value">{v.nombre}{v.apellidos?" "+v.apellidos:""}</span></div>
             </>)}
-            {v.alergias && (<>
-              <div className="vp-divider"/>
-              <div className="vp-row"><span className="vp-row-label">⚕️ Alergias</span>
-                <span className="vp-value" style={{color:"var(--amber)",textAlign:"right",maxWidth:"65%"}}>{v.alergias}</span></div>
-            </>)}
-            {v.medicacion && (<>
-              <div className="vp-divider"/>
-              <div className="vp-row"><span className="vp-row-label">💊 Medicación</span>
-                <span className="vp-value" style={{color:"var(--amber)",textAlign:"right",maxWidth:"65%"}}>{v.medicacion}</span></div>
-            </>)}
+            {(v.alergias || v.medicacion) && (
+              <div style={{ marginTop:".6rem", borderTop:"1px solid var(--border)", paddingTop:".6rem" }}>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                  color:"var(--amber)", fontWeight:700, marginBottom:".5rem",
+                  textTransform:"uppercase", letterSpacing:".05em" }}>
+                  ⚕️ Información médica
+                </div>
+                {v.alergias && (
+                  <div style={{ background:"rgba(251,191,36,.08)", border:"1px solid var(--amber-border)",
+                    borderRadius:8, padding:".6rem .8rem", marginBottom:".4rem" }}>
+                    <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                      color:"var(--amber)", fontWeight:700, marginBottom:".2rem" }}>Alergias</div>
+                    <div style={{ fontSize:"var(--fs-base)", color:"var(--text)", lineHeight:1.5 }}>{v.alergias}</div>
+                  </div>
+                )}
+                {v.medicacion && (
+                  <div style={{ background:"rgba(251,191,36,.08)", border:"1px solid var(--amber-border)",
+                    borderRadius:8, padding:".6rem .8rem" }}>
+                    <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                      color:"var(--amber)", fontWeight:700, marginBottom:".2rem" }}>Medicación</div>
+                    <div style={{ fontSize:"var(--fs-base)", color:"var(--text)", lineHeight:1.5 }}>{v.medicacion}</div>
+                  </div>
+                )}
+              </div>
+            )}
             {v.mensajeOrganizador && (<>
               <div className="vp-divider"/>
               <div style={{paddingTop:".4rem"}}>
@@ -1229,7 +1244,10 @@ function CambiarPin({ token, onDone, onCancel }) {
         method:"POST", headers:{"Authorization":`Bearer ${token}`,"Content-Type":"application/json"},
         body:JSON.stringify({pinNuevo:val}),
       });
-      if (res.ok) onDone(); else { const d=await res.json(); setError(d.error||"Error"); }
+      if (res.ok) {
+        setStep(99); // pantalla de éxito
+        setTimeout(() => onDone(), 1800);
+      } else { const d=await res.json(); setError(d.error||"Error"); }
     } catch { setError("Error de conexión"); }
     finally { setSaving(false); }
   };
@@ -1243,8 +1261,22 @@ function CambiarPin({ token, onDone, onCancel }) {
           style={{minHeight:38, minWidth:38, borderRadius:"50%", padding:".3rem", fontSize:"1.1rem"}}
           onClick={onCancel}>✕</button>
       </div>
+      {step === 99 ? (
+        <div style={{ textAlign:"center", padding:"1.5rem 0" }}>
+          <div style={{ fontSize:"3rem", marginBottom:".6rem" }}>✅</div>
+          <div style={{ fontFamily:"var(--font-display)", fontSize:"var(--fs-lg)", fontWeight:800, color:"var(--green)" }}>
+            ¡PIN cambiado!
+          </div>
+          <div className="vp-mono" style={{ fontSize:"var(--fs-sm)", color:"var(--text-muted)", marginTop:".4rem" }}>
+            Tu nuevo PIN está activo
+          </div>
+        </div>
+      ) : (
+        <>
       {error && <div className="vp-error" style={{marginBottom:".75rem"}}>⚠ {error}</div>}
       <PinNumpad value={cur} onChange={handleChange} shake={shake} disabled={saving} />
+        </>
+      )}
     </div>
   );
 }
@@ -1408,11 +1440,11 @@ function StepperForm({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, 
                 type="tel" placeholder="612 345 678" inputMode="tel"
                 value={form.telefonoEmergencia||""} onChange={e=>set("telefonoEmergencia",e.target.value)} />
             </FormField>
-            <FormField label="⚕️ Alergias (opcional)" hint="Alergias relevantes para la seguridad en carrera">
+            <FormField label="⚕️ ¿Tienes alguna alergia que debamos conocer?" hint="Por seguridad en carrera: alimentos, picaduras, medicamentos... (opcional)">
               <input className="pub-input" placeholder="Ej: Polen, frutos secos, picaduras de abejas…"
                 value={form.alergias||""} onChange={e=>set("alergias",e.target.value)} maxLength={200} />
             </FormField>
-            <FormField label="💊 Medicación (opcional)" hint="Medicación que creéis que debemos conocer por seguridad">
+            <FormField label="💊 ¿Tomas alguna medicación que debamos conocer?" hint="Por seguridad: insulina, adrenalina, anticoagulantes... (opcional)">
               <input className="pub-input" placeholder="Ej: Adrenalina, insulina, anticoagulantes…"
                 value={form.medicacion||""} onChange={e=>set("medicacion",e.target.value)} maxLength={200} />
             </FormField>
@@ -1558,12 +1590,12 @@ function StepperForm({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, 
 // ─────────────────────────────────────────────────────────────────────────────
 function FormField({ label, error, hint, children }) {
   return (
-    <div style={{ display:"flex", flexDirection:"column", gap:".35rem" }}>
-      <label style={{ fontFamily:"var(--font-display)", fontSize:".78rem", fontWeight:600,
+    <div style={{ display:"flex", flexDirection:"column", gap:".5rem" }}>
+      <label style={{ fontFamily:"var(--font-display)", fontSize:"var(--fs-sm)", fontWeight:700,
         color:error?"var(--red)":"var(--text)" }}>{label}</label>
-      {hint && <div style={{ fontFamily:"var(--font-mono)", fontSize:".6rem", color:"var(--text-muted)", marginTop:"-.15rem" }}>{hint}</div>}
+      {hint && <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", marginTop:"-.2rem", lineHeight:1.6 }}>{hint}</div>}
       {children}
-      {error && <div style={{ fontFamily:"var(--font-mono)", fontSize:".62rem", color:"var(--red)" }}>⚠ {error}</div>}
+      {error && <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--red)", fontWeight:700 }}>⚠ {error}</div>}
     </div>
   );
 }
