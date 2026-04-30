@@ -3032,7 +3032,7 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
                     title="Resetear PIN al valor inicial (últimos 4 del teléfono)"
                     onClick={async () => {
                       try {
-                        const res = await fetch("/api/voluntarios/reset-pin", {
+                        const res = await fetch("/api/voluntarios?action=reset-pin", {
                           method: "POST",
                           headers: { "Content-Type":"application/json", "x-api-key": import.meta.env.VITE_API_KEY },
                           body: JSON.stringify({ voluntarioId: v.id }),

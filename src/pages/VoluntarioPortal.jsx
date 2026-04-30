@@ -567,7 +567,7 @@ function LoginScreen({ onLogin, onVolver, telefonoInicial }) {
     if (!telValido) { setError("Introduce tu número de teléfono (mínimo 9 dígitos)"); return; }
     setError(""); setCheckingPin(true);
     try {
-      const res = await fetch(`${API_BASE}/check?telefono=${encodeURIComponent(telefono.trim())}`);
+      const res = await fetch(`${API_BASE}?action=check&telefono=${encodeURIComponent(telefono.trim())}`);
       if (res.ok) {
         const d = await res.json();
         setPinCambiado(Boolean(d.pinPersonalizado));
@@ -585,7 +585,7 @@ function LoginScreen({ onLogin, onVolver, telefonoInicial }) {
   const submit = async (p = pin) => {
     setLoading(true); setError("");
     try {
-      const res = await fetch(`${API_BASE}/auth`, {
+      const res = await fetch(`${API_BASE}?action=auth`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ telefono: telefono.trim(), pin: p }),
@@ -805,7 +805,7 @@ function PortalMain({ token, onLogout }) {
     if (!silencioso) setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${API_BASE}/ficha`, {
+      const res = await fetch(`${API_BASE}?action=ficha`, {
         headers: { "Authorization": `Bearer ${token}` },
       });
       if (res.status === 401) { clearSession(); onLogout(); return; }
@@ -838,7 +838,7 @@ function PortalMain({ token, onLogout }) {
     if (data?.voluntario?.enPuesto) return;
     setMarcando(true); setConfirmLlegada(false);
     try {
-      const res = await fetch(`${API_BASE}/ficha?action=presente`, {
+      const res = await fetch(`${API_BASE}?action=presente`, {
         method: "POST", headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
       });
       const json = await res.json();
@@ -850,7 +850,7 @@ function PortalMain({ token, onLogout }) {
   const guardar = async () => {
     setSaving(true);
     try {
-      const res = await fetch(`${API_BASE}/ficha`, {
+      const res = await fetch(`${API_BASE}?action=ficha`, {
         method: "PATCH", headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ ...form }),
       });
@@ -1299,7 +1299,7 @@ function CambiarPin({ token, onDone, onCancel }) {
       setError("Los PINs no coinciden."); setTimeout(()=>setShake(false),500); return; }
     setSaving(true);
     try {
-      const res = await fetch(`${API_BASE}/ficha?action=cambiar-pin`, {
+      const res = await fetch(`${API_BASE}?action=cambiar-pin`, {
         method:"POST", headers:{"Authorization":`Bearer ${token}`,"Content-Type":"application/json"},
         body:JSON.stringify({pinNuevo:val}),
       });
@@ -1676,7 +1676,7 @@ function CancelarAsistencia({ token, nombreVoluntario, onCancelado }) {
   const cancelar = async () => {
     setSaving(true); setError("");
     try {
-      const res = await fetch(`${API_BASE}/ficha?action=cancelar`, {
+      const res = await fetch(`${API_BASE}?action=cancelar`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ motivo: motivo.trim() }),
