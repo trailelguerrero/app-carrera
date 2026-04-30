@@ -332,7 +332,7 @@ function LandingScreen({ onNuevo, onLogin, loadingConfig, config }) {
           <button className="vp-btn vp-btn-outline"
             style={{ fontSize:"1.15rem", minHeight:72, flexDirection:"column",
               gap:".3rem", lineHeight:1.35, padding:"1.1rem" }}
-            onClick={onLogin}>
+            onClick={() => onLogin("")}>
             <span style={{ fontSize:"1.6rem" }}>👤</span>
             <span>Ya soy voluntario</span>
             <span style={{ fontFamily:"var(--font-mono)", fontSize:".82rem",
@@ -546,8 +546,9 @@ function RegistroOkScreen({ telefono, nombre, onAcceder }) {
 // SCREEN: LOGIN — 2 pasos (teléfono + PIN)
 // ─────────────────────────────────────────────────────────────────────────────
 function LoginScreen({ onLogin, onVolver, telefonoInicial }) {
-  const [paso, setPaso]         = useState(telefonoInicial ? 2 : 1);
-  const [telefono, setTelefono] = useState(telefonoInicial || "");
+  const telInicial = typeof telefonoInicial === "string" ? telefonoInicial : "";
+  const [paso, setPaso]         = useState(telInicial ? 2 : 1);
+  const [telefono, setTelefono] = useState(telInicial);
   const [pin, setPin]           = useState("");
   const [shake, setShake]       = useState(false);
   const [error, setError]       = useState("");
@@ -1688,7 +1689,7 @@ export default function VoluntarioPortal() {
 
   const goLanding  = () => setPantalla("landing");
   const goRegistro = () => setPantalla("registro");
-  const goLogin    = (tel) => { setLoginTelPreload(tel || ""); setPantalla("login"); };
+  const goLogin    = (tel) => { setLoginTelPreload(typeof tel === "string" ? tel : ""); setPantalla("login"); };
   const goPortal   = (tok)    => { setToken(tok); saveSession({ token:tok }); setPantalla("portal"); };
   const goLogout   = () => { clearSession(); setToken(null); setPantalla("landing"); };
 
