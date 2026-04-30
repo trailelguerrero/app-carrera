@@ -578,20 +578,12 @@ export default function App() {
   const ejecutarEliminacion = useCallback((id) => {
     if (id === null || id === undefined) return;
     const sid = String(id);
-    // Leer el estado más reciente directamente desde localStorage para evitar stale closures
-    try {
-      const raw = localStorage.getItem(LS_KEY + '_voluntarios');
-      const vols = raw ? JSON.parse(raw) : [];
-      if (Array.isArray(vols) && vols.length > 0) {
-        const filtrados = vols.filter(v => String(v.id) !== sid);
-        setVoluntarios(filtrados);
-      } else {
-        // Fallback: usar el setter funcional
-        setVoluntarios(prev => prev.filter(v => String(v.id) !== sid));
-      }
-    } catch {
-      setVoluntarios(prev => prev.filter(v => String(v.id) !== sid));
-    }
+    // Usar siempre el setter funcional — React garantiza que prev es el estado actual
+    // NO leer localStorage: con ADAPTER='api' el localStorage puede estar desactualizado
+    setVoluntarios(prev => {
+      const filtrados = Array.isArray(prev) ? prev.filter(v => String(v.id) !== sid) : prev;
+      return filtrados;
+    });
     setConfirmDelete(null);
     pendingDeleteRef.current = null;
     toast.success('Voluntario eliminado');
@@ -943,9 +935,16 @@ export default function App() {
               {(typeof window !== 'undefined' ? window.location.origin : '') + '/voluntarios/mi-ficha'}
             </span>
           </div>
-          <span style={{fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", color:"var(--text-dim)", flexShrink:0}}>
-            📞 Contacto organizador: ve a <strong style={{color:"var(--cyan)"}}>Configuración</strong> en el menú lateral
-          </span>
+          <button className="btn btn-ghost btn-sm"
+            style={{fontSize:"var(--fs-xs)", padding:".25rem .65rem", flexShrink:0, display:"flex", alignItems:"center", gap:".35rem"}}
+            onClick={() => {
+              // Navegar al bloque de configuración
+              try { window.dispatchEvent(new CustomEvent("teg-navigate", {detail:{block:"configuracion"}})); }
+              catch(e) { console.warn("teg-navigate error", e); }
+            }}
+            title="Configurar los datos de contacto del organizador que ven los voluntarios en su portal">
+            ⚙️ Contacto organizadores
+          </button>
         </div>
         {/* Buscador global — siempre visible */}
         <div style={{ marginBottom:".6rem", display:"flex", gap:".5rem", alignItems:"center" }}>
@@ -1034,6 +1033,7 @@ export default function App() {
           puesto={ficha.data} voluntarios={voluntarios}
           locs={locs} matPorLoc={matPorLoc} rutas={rutas}
           onClose={() => setFicha(null)}
+          onFichaVol={(v) => { setFicha(null); setTimeout(() => abrirFicha("vol", v), 50); }}
           onEditar={() => { const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"}); setFicha(null); setModalPuesto(ficha.data); }}
           onEliminar={() => { setFicha(null); setConfirmDeletePuesto(ficha.data.id); }}
         />
@@ -3026,7 +3026,7 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
 }
 
 // ─── FICHA PUESTO ─────────────────────────────────────────────────────────────
-function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], onClose, onEditar, onEliminar }) {
+function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], onClose, onEditar, onEliminar, onFichaVol }) {
   const { closing: fpuClosing, handleClose: fpuHandleClose } = useModalClose(onClose);
   const asignados = voluntarios.filter(v => v.puestoId === p.id && v.estado !== "cancelado");
   const confirmados = asignados.filter(v => v.estado === "confirmado").length;
@@ -3103,13 +3103,49 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
           {asignados.length > 0 && (
             <div style={{ background:"var(--surface2)", borderRadius:8, padding:"0.6rem 0.75rem" }}>
               <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)",
-                marginBottom:"0.4rem", textTransform:"uppercase" }}>Voluntarios asignados</div>
+                marginBottom:"0.4rem", textTransform:"uppercase" }}>
+                Voluntarios asignados ({asignados.length})
+              </div>
               {asignados.map(v => (
-                <div key={v.id} style={{ display:"flex", justifyContent:"space-between",
-                  padding:"0.25rem 0", fontSize:"var(--fs-base)" }}>
-                  <span className="fw-600">{v.nombre}</span>
-                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                    color: v.estado==="confirmado"?"var(--green)":"var(--amber)" }}>{v.estado}</span>
+                <div key={v.id}
+                  onClick={() => onFichaVol && onFichaVol(v)}
+                  style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
+                    padding:"0.45rem 0.5rem", fontSize:"var(--fs-base)",
+                    cursor: onFichaVol ? "pointer" : "default",
+                    borderRadius:6, marginBottom:"0.15rem",
+                    transition:"background .1s",
+                  }}
+                  onMouseEnter={e => { if(onFichaVol) e.currentTarget.style.background="var(--surface3)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background="transparent"; }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:".5rem" }}>
+                    <div style={{ width:28, height:28, borderRadius:"50%", flexShrink:0,
+                      background:"var(--surface3)", border:"1px solid var(--border)",
+                      display:"flex", alignItems:"center", justifyContent:"center",
+                      fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                      color:"var(--cyan)" }}>
+                      {((v.nombre||"V").trim().split(" ").map(n=>n[0]).slice(0,2).join("")).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="fw-600">{v.nombre}</div>
+                      {v.telefono && (
+                        <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                          color:"var(--text-muted)" }}>{v.telefono}</div>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ display:"flex", alignItems:"center", gap:".4rem" }}>
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                      color: v.estado==="confirmado"?"var(--green)":v.estado==="ausente"?"var(--orange)":"var(--amber)" }}>
+                      {v.estado}
+                    </span>
+                    {v.enPuesto && (
+                      <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                        color:"var(--green)", background:"var(--green-dim)",
+                        border:"1px solid var(--green-border)", borderRadius:4,
+                        padding:"0 .3rem" }}>📍 {v.horaLlegada||"En puesto"}</span>
+                    )}
+                    {onFichaVol && <span style={{ color:"var(--text-dim)", fontSize:"var(--fs-xs)" }}>→</span>}
+                  </div>
                 </div>
               ))}
             </div>

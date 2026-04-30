@@ -345,6 +345,8 @@ export function useData(key, defaultValue) {
   });
 
   const stateRef = useRef(state);
+  // Mantener stateRef sincronizado con el estado React en cada render
+  stateRef.current = state;
   const [isLoading, setIsLoading] = useState(ADAPTER === 'api');
 
   useEffect(() => {
