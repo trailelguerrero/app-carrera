@@ -772,7 +772,15 @@ export default function App() {
             </button>
             {/* Dropdown Compartir portal — consolida 3 acciones */}
             <div ref={shareMenuRef} style={{ position:"relative" }}>
-              <button
+              <button className="btn btn-ghost btn-sm"
+              onClick={() => {
+                try { window.dispatchEvent(new CustomEvent("teg-navigate", {detail:{block:"configuracion"}})); }
+                catch(e) {}
+              }}
+              title="Configurar contactos del organizador visibles para los voluntarios">
+              ⚙️ Contacto org.
+            </button>
+            <button
                 ref={shareBtnRef}
                 className="btn btn-ghost btn-sm"
                 onClick={openShareMenu}
@@ -922,30 +930,7 @@ export default function App() {
           )}
         </div>
 
-        {/* Banner: portal unificado (solo informativo) */}
-        <div style={{
-          marginBottom:".6rem", padding:".5rem .85rem", borderRadius:8,
-          background:"rgba(34,211,238,.05)", border:"1px solid rgba(34,211,238,.15)",
-          display:"flex", alignItems:"center", justifyContent:"space-between", gap:".6rem", flexWrap:"wrap",
-        }}>
-          <div style={{display:"flex", alignItems:"center", gap:".6rem"}}>
-            <span style={{fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--cyan)", fontWeight:700, flexShrink:0}}>📱 Portal:</span>
-            <span style={{fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)",
-              overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>
-              {(typeof window !== 'undefined' ? window.location.origin : '') + '/voluntarios/mi-ficha'}
-            </span>
-          </div>
-          <button className="btn btn-ghost btn-sm"
-            style={{fontSize:"var(--fs-xs)", padding:".25rem .65rem", flexShrink:0, display:"flex", alignItems:"center", gap:".35rem"}}
-            onClick={() => {
-              // Navegar al bloque de configuración
-              try { window.dispatchEvent(new CustomEvent("teg-navigate", {detail:{block:"configuracion"}})); }
-              catch(e) { console.warn("teg-navigate error", e); }
-            }}
-            title="Configurar los datos de contacto del organizador que ven los voluntarios en su portal">
-            ⚙️ Contacto organizadores
-          </button>
-        </div>
+
         {/* Buscador global — siempre visible */}
         <div style={{ marginBottom:".6rem", display:"flex", gap:".5rem", alignItems:"center" }}>
           <div style={{ position:"relative", flex:1, maxWidth:380 }}>

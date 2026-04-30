@@ -26,6 +26,8 @@ const BLOCKS = [
   { id: "patrocinadores", icon: "🤝", label: "Patrocinadores", shortLabel: "Pat",   component: Patrocinadores },
   { id: "camisetas",      icon: "👕", label: "Camisetas",      shortLabel: "Cam",   component: Camisetas },
   { id: "documentos",     icon: "📁", label: "Docs",           shortLabel: "Docs",   component: Documentos },
+  // Configuración NO aparece en la nav principal pero sí es navegable via teg-navigate
+  { id: "configuracion",  icon: "⚙️", label: "Configuración",  shortLabel: "Cfg",   component: Configuracion, hidden: true },
 ];
 
 // ── PIN CONFIG ────────────────────────────────────────────────────────────────

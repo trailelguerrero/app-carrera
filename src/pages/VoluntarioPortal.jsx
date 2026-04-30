@@ -900,10 +900,13 @@ function PortalMain({ token, onLogout }) {
               {v.estado==="confirmado" ? "✓ Confirmado" : v.estado==="cancelado" ? "✕ Cancelado" : "⏳ Pendiente"}
             </span>
             <button onClick={() => fetchData(true)}
-              title="Actualizar datos"
+              title="Actualizar mi ficha"
               style={{ background:"none", border:"none", cursor:"pointer",
-                fontFamily:"var(--font-mono)", fontSize:".9rem", color:"var(--text-dim)",
-                padding:".1rem", lineHeight:1 }}>⟳</button>
+                fontFamily:"var(--font-mono)", fontSize:"1rem", color:"var(--text-muted)",
+                padding:".2rem .35rem", lineHeight:1, borderRadius:6,
+                transition:"color .15s" }}
+              onMouseEnter={e=>e.currentTarget.style.color="var(--cyan)"}
+              onMouseLeave={e=>e.currentTarget.style.color="var(--text-muted)"}>⟳</button>
           </div>
           {config.fecha && (() => {
             const hoy = new Date();
@@ -925,9 +928,9 @@ function PortalMain({ token, onLogout }) {
       }}>
         {[
           { id:"sec-puesto",    icon:"📍", label:"Puesto" },
-          { id:"sec-compan",   icon:"👥", label:"Equipo" },
+          ...(companerosEnPuesto.length > 0 ? [{ id:"sec-compan", icon:"👥", label:`Equipo (${companerosEnPuesto.length})` }] : []),
           { id:"sec-datos",    icon:"👤", label:"Mis datos" },
-          { id:"sec-contacto", icon:"📞", label:"Contacto" },
+          ...(organizadores.length > 0 ? [{ id:"sec-contacto", icon:"📞", label:"Contacto" }] : []),
         ].map(s => (
           <button key={s.id}
             onClick={() => document.getElementById(s.id)?.scrollIntoView({ behavior:"smooth", block:"start" })}
@@ -1679,12 +1682,13 @@ export default function VoluntarioPortal() {
     return sess?.token ? "portal" : "landing";
   });
   const [token,    setToken]    = useState(() => loadSession()?.token || null);
-  const [regTel,   setRegTel]   = useState("");  // teléfono usado en el registro
-  const [regNombre,setRegNombre]= useState("");  // nombre para pantalla ok
+  const [regTel,   setRegTel]   = useState("");
+  const [regNombre,setRegNombre]= useState("");
+  const [loginTelPreload, setLoginTelPreload] = useState("");
 
   const goLanding  = () => setPantalla("landing");
   const goRegistro = () => setPantalla("registro");
-  const goLogin    = (telPre) => { setPantalla("login"); };
+  const goLogin    = (tel) => { setLoginTelPreload(tel || ""); setPantalla("login"); };
   const goPortal   = (tok)    => { setToken(tok); saveSession({ token:tok }); setPantalla("portal"); };
   const goLogout   = () => { clearSession(); setToken(null); setPantalla("landing"); };
 
@@ -1697,7 +1701,7 @@ export default function VoluntarioPortal() {
   if (pantalla === "landing")      return <LandingScreen onNuevo={goRegistro} onLogin={goLogin} />;
   if (pantalla === "registro")     return <RegistroScreen onVolver={goLanding} onRegistroOk={onRegistroOk} />;
   if (pantalla === "registro-ok")  return <RegistroOkScreen telefono={regTel} nombre={regNombre} onAcceder={() => goLogin(regTel)} />;
-  if (pantalla === "login")        return <LoginScreen onLogin={goPortal} onVolver={goLanding} telefonoInicial={""} />;
+  if (pantalla === "login")        return <LoginScreen onLogin={goPortal} onVolver={goLanding} telefonoInicial={loginTelPreload} />;
   if (pantalla === "portal")       return <PortalMain token={token} onLogout={goLogout} />;
   return null;
 }
