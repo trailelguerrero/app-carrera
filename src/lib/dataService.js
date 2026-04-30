@@ -398,18 +398,18 @@ export function useData(key, defaultValue) {
     };
   }, [key]);
 
-  const setValue = useCallback((value) => {
+  const setValue = useCallback((value, opts = {}) => {
     try {
       const valueToStore = value instanceof Function ? value(stateRef.current) : value;
-      
-      // Solo actualizar y notificar si el valor ha cambiado realmente
-      const hasChanged = JSON.stringify(stateRef.current) !== JSON.stringify(valueToStore);
-      
+
+      // Permitir forzar el guardado aunque el valor parezca igual (necesario para eliminaciones)
+      const hasChanged = opts.force || JSON.stringify(stateRef.current) !== JSON.stringify(valueToStore);
+
       if (hasChanged) {
         stateRef.current = valueToStore;
         setState(valueToStore);
         dataService.set(key, valueToStore);
-        dataService.notify(); // Notificar a otros bloques en la misma pestaña
+        dataService.notify();
       }
     } catch (e) {
       console.error(e);

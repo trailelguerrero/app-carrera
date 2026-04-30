@@ -578,12 +578,11 @@ export default function App() {
   const ejecutarEliminacion = useCallback((id) => {
     if (id === null || id === undefined) return;
     const sid = String(id);
-    // Usar siempre el setter funcional — React garantiza que prev es el estado actual
-    // NO leer localStorage: con ADAPTER='api' el localStorage puede estar desactualizado
-    setVoluntarios(prev => {
-      const filtrados = Array.isArray(prev) ? prev.filter(v => String(v.id) !== sid) : prev;
-      return filtrados;
-    });
+    // Usar prev para obtener el estado más reciente + force:true para saltarse hasChanged
+    setVoluntarios(
+      prev => Array.isArray(prev) ? prev.filter(v => String(v.id) !== sid) : prev,
+      { force: true }
+    );
     setConfirmDelete(null);
     pendingDeleteRef.current = null;
     toast.success('Voluntario eliminado');
