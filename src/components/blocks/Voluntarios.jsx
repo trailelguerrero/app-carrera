@@ -578,11 +578,24 @@ export default function App() {
   const ejecutarEliminacion = useCallback((id) => {
     if (id === null || id === undefined) return;
     const sid = String(id);
-    setVoluntarios(prev => prev.filter(v => String(v.id) !== sid));
+    // Leer el estado más reciente directamente desde localStorage para evitar stale closures
+    try {
+      const raw = localStorage.getItem(LS_KEY + '_voluntarios');
+      const vols = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(vols) && vols.length > 0) {
+        const filtrados = vols.filter(v => String(v.id) !== sid);
+        setVoluntarios(filtrados);
+      } else {
+        // Fallback: usar el setter funcional
+        setVoluntarios(prev => prev.filter(v => String(v.id) !== sid));
+      }
+    } catch {
+      setVoluntarios(prev => prev.filter(v => String(v.id) !== sid));
+    }
     setConfirmDelete(null);
     pendingDeleteRef.current = null;
-    toast.success("Voluntario eliminado");
-  }, []);
+    toast.success('Voluntario eliminado');
+  }, [setVoluntarios]);
   const [qrDataUrl, setQrDataUrl]   = useState(null);
   const [qrLoading, setQrLoading]   = useState(false);
   const [ficha, setFicha] = useState(null); // {tipo:'vol'|'puesto', data}
@@ -930,15 +943,9 @@ export default function App() {
               {(typeof window !== 'undefined' ? window.location.origin : '') + '/voluntarios/mi-ficha'}
             </span>
           </div>
-          <div style={{display:"flex", alignItems:"center", gap:".4rem", flexShrink:0}}>
-            <span style={{fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", color:"var(--text-dim)"}}>Contacto organizador →</span>
-            <button className="btn btn-ghost btn-sm"
-              style={{fontSize:"var(--fs-xs)", padding:".2rem .55rem"}}
-              onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", {detail:{block:"configuracion"}}))}
-              title="Configurar contactos de la organización visibles por los voluntarios">
-              ⚙️ Configuración
-            </button>
-          </div>
+          <span style={{fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", color:"var(--text-dim)", flexShrink:0}}>
+            📞 Contacto organizador: ve a <strong style={{color:"var(--cyan)"}}>Configuración</strong> en el menú lateral
+          </span>
         </div>
         {/* Buscador global — siempre visible */}
         <div style={{ marginBottom:".6rem", display:"flex", gap:".5rem", alignItems:"center" }}>
@@ -3256,6 +3263,8 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose, onEliminar }) {
     fechaRegistro: voluntario?.fechaRegistro || new Date().toISOString().split("T")[0],
     fechaNacimiento: voluntario?.fechaNacimiento || "",
     telefonoEmergencia: voluntario?.telefonoEmergencia || voluntario?.contactoEmergencia || "",
+    alergias: voluntario?.alergias || "",
+    medicacion: voluntario?.medicacion || "",
   });
   const [errores, setErrores] = useState({});
   const upd = (k, v) => setForm(p => ({ ...p, [k]: v }));
@@ -3440,6 +3449,24 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose, onEliminar }) {
                 <textarea className="inp" rows={3} value={form.notas} onChange={e => upd("notas", e.target.value)}
                   placeholder="Experiencia previa, idiomas, titulaciones especiales, restricciones, observaciones del organizador…"
                   style={{ resize: "vertical", fontFamily: "var(--font-display)" }} />
+              </div>
+              {/* Información médica */}
+              <div style={{ background:"rgba(251,191,36,.05)", border:"1px solid rgba(251,191,36,.2)",
+                borderRadius:8, padding:".75rem", display:"flex", flexDirection:"column", gap:".6rem" }}>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--amber)",
+                  fontWeight:700, textTransform:"uppercase", letterSpacing:".05em" }}>
+                  ⚕️ Información médica (seguridad en carrera)
+                </div>
+                <div>
+                  <label className="field-label">⚕️ Alergias conocidas</label>
+                  <input className="inp" value={form.alergias||""} onChange={e => upd("alergias", e.target.value)}
+                    placeholder="Alimentos, picaduras, medicamentos…" maxLength={200} />
+                </div>
+                <div>
+                  <label className="field-label">💊 Medicación relevante</label>
+                  <input className="inp" value={form.medicacion||""} onChange={e => upd("medicacion", e.target.value)}
+                    placeholder="Insulina, adrenalina, anticoagulantes…" maxLength={200} />
+                </div>
               </div>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import QRCode from "qrcode";
+// QRCode se importa dinámicamente para evitar crash si no está disponible
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 import { useData } from "@/lib/dataService";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";

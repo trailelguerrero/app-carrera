@@ -187,7 +187,7 @@ const CSS = `
   .vp-error { background:var(--red-dim); border:1px solid var(--red-border); border-radius:8px;
     padding:.65rem .9rem; font-family:var(--font-mono); font-size:.8rem;
     color:var(--red); text-align:center; margin-top:.75rem; }
-  .vp-hint { font-family:var(--font-mono); font-size:.82rem; color:var(--text-muted);
+  .vp-hint { font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-muted);
     text-align:center; line-height:2; margin-top:.85rem; }
   .vp-toast { background:var(--green-dim); border:1px solid var(--green-border);
     border-radius:8px; padding:.55rem .9rem; margin-bottom:.75rem;
@@ -347,7 +347,7 @@ function LandingScreen({ onNuevo, onLogin, loadingConfig, config }) {
           fontSize:".8rem", color:"var(--text-muted)", textAlign:"center", lineHeight:2,
           animation:"fadeUp .6s .2s ease both", opacity:0, animationFillMode:"forwards" }}>
           Club Deportivo Trail Candeleda<br/>
-          10ª Edición · Candeleda, Ávila
+          10ª Edición · Candeleda, Ávila · 29 Agosto 2026
         </div>
       </div>
     </div>
@@ -773,9 +773,10 @@ function PuestoDetalle({ puesto }) {
               </div>
             )}
           </div>
-          <div className="vp-mono" style={{ fontSize:".62rem", color:"var(--text-dim)",
-            marginTop:".75rem", textAlign:"center" }}>
-            Solo lectura · Contacta con el organizador para cambios
+          <div className="vp-mono" style={{ fontSize:"var(--fs-xs)", color:"var(--text-muted)",
+            marginTop:".75rem", textAlign:"center",
+            padding:".35rem",background:"rgba(148,163,184,.05)",borderRadius:6 }}>
+            📋 Vista de consulta · Para cambios, contacta con el organizador
           </div>
         </div>
       )}
@@ -1576,10 +1577,12 @@ function StepperForm({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, 
         )}
       </div>
 
-      <div style={{textAlign:"center",marginTop:"1rem",fontFamily:"var(--font-mono)",
-        fontSize:".6rem",color:"var(--text-dim)",lineHeight:1.6}}>
-        Tus datos se usarán exclusivamente para la coordinación del evento.<br/>
-        Organiza: Club Trail El Guerrero · Candeleda, Ávila
+      <div style={{textAlign:"center",marginTop:"1.25rem",fontFamily:"var(--font-mono)",
+        fontSize:"var(--fs-xs)",color:"var(--text-muted)",lineHeight:1.9,
+        padding:".6rem .75rem",background:"rgba(148,163,184,.05)",
+        borderRadius:8,border:"1px solid var(--border)"}}>
+        Tus datos se usan exclusivamente para la coordinación del Trail El Guerrero 2026.<br/>
+        <span style={{color:"var(--text-dim)"}}>Organiza: Club Deportivo Trail Candeleda · Candeleda, Ávila</span>
       </div>
     </div>
   );
