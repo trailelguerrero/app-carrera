@@ -251,3 +251,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Error interno del servidor' });
   }
 }
+/* deploy trigger Thu Apr 30 21:31:06 UTC 2026 */
