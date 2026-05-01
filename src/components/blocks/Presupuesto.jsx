@@ -131,6 +131,7 @@ const Presupuesto = () => {
     puntoEquilibrio,
     peGlobal,
     totalPatConfirmado,
+    totalPatCobrado,
     totalMerchBeneficio,
     syncConfig, setSyncConfig,
     ingresosDesglosados,
@@ -468,6 +469,7 @@ const Presupuesto = () => {
               totalIngresosConMerch={totalIngresosConMerch}
               ingresosPorDistancia={ingresosPorDistancia}
               totalPatConfirmado={totalPatConfirmado}
+              totalPatCobrado={totalPatCobrado}
               totalMerchBeneficio={totalMerchBeneficio}
               syncConfig={syncConfig}
               setSyncConfig={setSyncConfig}

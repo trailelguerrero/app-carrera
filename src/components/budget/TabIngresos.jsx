@@ -13,8 +13,9 @@ export const TabIngresos = ({
   totalIngresosConMerch, 
   ingresosPorDistancia,
   totalPatConfirmado = 0,
+  totalPatCobrado = 0,
   totalMerchBeneficio = 0,
-  syncConfig = { patrocinios: true, camisetas: true },
+  syncConfig = { patrocinios: true, patrociniosCobrado: true, camisetas: true },
   setSyncConfig,
 }) => {
   const addIngresosExtra = () => {
@@ -76,35 +77,86 @@ export const TabIngresos = ({
         </div>
       </div>
 
-      {/* ── PANEL DE CONFIGURACIÓN DE SINCRONIZACIÓN ── */}
+      {/* ── PANEL DE SINCRONIZACIÓN ── */}
       <div className="card" style={{ border: "1px dashed var(--border)", background: "rgba(34,211,238,0.02)" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div>
-            <div style={{ fontSize: "var(--fs-base)", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.4rem" }}>
-              🔗 Configuración de Sincronización Automática
-            </div>
-            <div style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>Simula el impacto de otras fuentes en el balance final</div>
+        <div style={{ marginBottom: "0.75rem" }}>
+          <div style={{ fontSize: "var(--fs-base)", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            🔗 Sincronización automática con otros bloques
           </div>
-          <div style={{ display: "flex", gap: "1rem" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <span style={{ fontSize: "var(--fs-sm)", fontWeight: 600 }}>Patrocinios</span>
-              <Toggle 
-                value={syncConfig.patrocinios} 
-                onChange={v => setSyncConfig({ ...syncConfig, patrocinios: v })} 
-              />
+          <div style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: "0.2rem" }}>
+            Activa qué fuentes se incluyen automáticamente en el balance
+          </div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}>
+          {/* Patrocinios captados */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "0.55rem 0.75rem", borderRadius: 8, background: "var(--surface2)",
+            border: `1px solid ${syncConfig.patrocinios ? "var(--green-border)" : "var(--border)"}` }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: "var(--fs-sm)", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                🤝 Patrocinios captados
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--green)",
+                  background: "var(--green-dim)", padding: "0.1rem 0.35rem", borderRadius: 3 }}>
+                  confirmado + cobrado
+                </span>
+              </div>
+              <div style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: "0.15rem" }}>
+                Total comprometido: acuerdos firmados aunque no ingresados aún
+              </div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap:"wrap" }}>
-              <span style={{ fontSize: "var(--fs-sm)", fontWeight: 600 }}>Merchandising</span>
-              <Toggle 
-                value={syncConfig.camisetas} 
-                onChange={v => setSyncConfig({ ...syncConfig, camisetas: v })} 
-              />
-              <button
-                onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "camisetas" } }))}
-                style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", padding:".15rem .45rem",
-                  borderRadius:4, border:"1px solid rgba(99,102,241,.3)",
-                  background:"rgba(99,102,241,.1)", color:"#c4c6ff", cursor:"pointer" }}>
-                👕 Ver camisetas →
+            <div style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 800,
+                color: syncConfig.patrocinios ? "var(--green)" : "var(--text-dim)" }}>
+                {totalPatConfirmado.toLocaleString("es-ES", { minimumFractionDigits: 0 })} €
+              </span>
+              <Toggle value={syncConfig.patrocinios} onChange={v => setSyncConfig({ ...syncConfig, patrocinios: v })} />
+            </div>
+          </div>
+          {/* Patrocinios cobrados */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "0.55rem 0.75rem", borderRadius: 8, background: "var(--surface2)",
+            border: `1px solid ${syncConfig.patrociniosCobrado ? "var(--cyan-border)" : "var(--border)"}` }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: "var(--fs-sm)", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                💰 Patrocinios cobrados
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--cyan)",
+                  background: "var(--cyan-dim)", padding: "0.1rem 0.35rem", borderRadius: 3 }}>
+                  solo cobrado
+                </span>
+              </div>
+              <div style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: "0.15rem" }}>
+                Dinero real en cuenta — tesorería efectiva
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 800,
+                color: syncConfig.patrociniosCobrado ? "var(--cyan)" : "var(--text-dim)" }}>
+                {totalPatCobrado.toLocaleString("es-ES", { minimumFractionDigits: 0 })} €
+              </span>
+              <Toggle value={syncConfig.patrociniosCobrado} onChange={v => setSyncConfig({ ...syncConfig, patrociniosCobrado: v })} />
+            </div>
+          </div>
+          {/* Camisetas */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "0.55rem 0.75rem", borderRadius: 8, background: "var(--surface2)",
+            border: `1px solid ${syncConfig.camisetas ? "var(--orange-border)" : "var(--border)"}` }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: "var(--fs-sm)" }}>🛍️ Merchandising</div>
+              <div style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: "0.15rem" }}>
+                Beneficio neto venta de productos
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}>
+              <Toggle value={syncConfig.camisetas} onChange={v => setSyncConfig({ ...syncConfig, camisetas: v })} />
+              <button onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "camisetas" } }))}
+                style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", padding:".2rem .55rem",
+                  borderRadius:5, border:"1px solid rgba(251,146,60,.3)", background:"rgba(251,146,60,.08)", color:"var(--orange)", cursor:"pointer" }}>
+                👕 Ver →
+              </button>
+              <button onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "patrocinadores" } }))}
+                style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", padding:".2rem .55rem",
+                  borderRadius:5, border:"1px solid rgba(52,211,153,.3)", background:"rgba(52,211,153,.08)", color:"var(--green)", cursor:"pointer" }}>
+                🤝 Ver patrocinadores →
               </button>
             </div>
           </div>

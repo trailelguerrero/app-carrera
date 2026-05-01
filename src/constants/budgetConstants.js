@@ -64,15 +64,17 @@ export const INSCRITOS_DEFAULT = {
 };
 
 export const INGRESOS_EXTRA_DEFAULT = [
-  { id: 1, nombre: "Patrocinios (Sincronizado)", valor: 0, activo: true, synced: true },
-  { id: 2, nombre: "Merchandising (Sincronizado)", valor: 0, activo: true, synced: true },
+  { id: 1, nombre: "Patrocinios captados (confirmado+cobrado)", valor: 0, activo: true, synced: true, syncKey: "patrocinios" },
+  { id: 3, nombre: "Patrocinios cobrados (tesorería real)", valor: 0, activo: false, synced: true, syncKey: "patrociniosCobrado" },
+  { id: 2, nombre: "Merchandising (Sincronizado)", valor: 0, activo: true, synced: true, syncKey: "camisetas" },
   { id: 10, nombre: "Subvención entidad pública", valor: 0, activo: true },
   { id: 11, nombre: "Colaboradores en especie", valor: 0, activo: true },
   { id: 12, nombre: "Otros ingresos manuales", valor: 0, activo: true },
 ];
 
 export const SYNC_CONFIG_DEFAULT = {
-  patrocinios: true,
+  patrocinios: true,          // Captado (confirmado + cobrado)
+  patrociniosCobrado: true,   // Solo cobrado (tesorería real)
   camisetas: true
 };
 

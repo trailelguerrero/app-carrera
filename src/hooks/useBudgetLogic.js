@@ -43,6 +43,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   const [rawCamPedidos] = useData(LS_CAM_PEDIDOS, []);
   const [rawCamCoste] = useData(LS_CAM_COSTE, { corredor: 7.5, voluntario: 7.5 });
 
+  // Captado: confirmado + cobrado (compromiso firmado, aunque no cobrado aún)
   const totalPatConfirmado = useMemo(() => {
     if (!syncConfig.patrocinios) return 0;
     const pats = Array.isArray(rawPats) ? rawPats : [];
@@ -50,6 +51,15 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       .filter(p => !p.especie && (p.estado === "confirmado" || p.estado === "cobrado"))
       .reduce((s, p) => s + (p.importe || 0), 0);
   }, [rawPats, syncConfig.patrocinios]);
+
+  // Cobrado real: solo estado cobrado (tesorería — dinero ya en cuenta)
+  const totalPatCobrado = useMemo(() => {
+    if (!syncConfig.patrociniosCobrado) return 0;
+    const pats = Array.isArray(rawPats) ? rawPats : [];
+    return pats
+      .filter(p => !p.especie && p.estado === "cobrado")
+      .reduce((s, p) => s + ((p.importeCobrado != null ? p.importeCobrado : p.importe) || 0), 0);
+  }, [rawPats, syncConfig.patrociniosCobrado]);
 
   const totalMerchBeneficio = useMemo(() => {
     if (!syncConfig.camisetas) return 0;
@@ -294,7 +304,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
 
   return {
     tab, setTab, tramos, setTramos,
-    totalPatConfirmado, totalMerchBeneficio,
+    totalPatConfirmado, totalPatCobrado, totalMerchBeneficio,
     syncConfig, setSyncConfig,
     conceptos, setConceptos,
     inscritos, setInscritos,

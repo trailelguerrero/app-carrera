@@ -167,14 +167,19 @@ export default function App() {
     const valid = pats.filter(p => p && p.id);
     const activos = valid.filter(p => p.estado !== "cancelado");
     const confirmados = valid.filter(p => p.estado === "confirmado" || p.estado === "cobrado");
-    const cobrado = valid.filter(p => p.estado === "cobrado").reduce((s, p) => s + (p.importe || 0), 0);
+    // Cobrado real: usa importeCobrado si está disponible, si no el importe
+    const cobrado = valid.filter(p => p.estado === "cobrado")
+      .reduce((s, p) => s + ((p.importeCobrado != null ? p.importeCobrado : p.importe) || 0), 0);
+    // Captado: suma importes de confirmados+cobrados (comprometido)
     const comprometido = confirmados.reduce((s, p) => s + (p.importe || 0), 0);
+    // Pendiente de cobro: comprometido - cobrado
+    const pendienteCobro = comprometido - cobrado;
     const especie = activos.reduce((s, p) => s + (p.especie || 0), 0);
     const pipeline = valid.filter(p => p.estado === "negociando" || p.estado === "prospecto").reduce((s, p) => s + (p.importe || 0), 0);
     const pctObj = objetivo > 0 ? Math.min(Math.round(comprometido / objetivo * 100), 100) : 0;
     const pctCobrado = objetivo > 0 ? Math.min(Math.round(cobrado / objetivo * 100), 100) : 0;
     const contPend = activos.reduce((s, p) => s + (p.contraprestaciones || []).filter(c => c && c.estado === "pendiente").length, 0);
-    return { activos: activos.length, confirmados: confirmados.length, cobrado, comprometido, especie, pipeline, pctObj, pctCobrado, contPend };
+    return { activos: activos.length, confirmados: confirmados.length, cobrado, comprometido, pendienteCobro, especie, pipeline, pctObj, pctCobrado, contPend };
   }, [pats, objetivo]);
 
   const patsFiltrados = useMemo(() => {
@@ -202,13 +207,14 @@ export default function App() {
 
   const savePat = (pat) => {
     if (pat.id) {
-      // Preserve docs, contraprestaciones y especieItems — el modal solo toca metadata
+      // Para edición: el modal ya trae las contraprestaciones actualizadas en form.contraprestaciones
+      // Solo preservar docs y especieItems que el modal no maneja
       setPats(prev => prev.map(p => p.id === pat.id
-        ? { ...pat, docs: p.docs || [], contraprestaciones: p.contraprestaciones || [], especieItems: p.especieItems || [] }
+        ? { ...pat, docs: p.docs || [], especieItems: p.especieItems || [] }
         : p
       ));
     } else {
-      setPats(prev => [...prev, { ...pat, id: genIdNum(pats), contraprestaciones: [], docs: [], especieItems: [] }]);
+      setPats(prev => [...prev, { ...pat, id: genIdNum(pats), docs: [], especieItems: [] }]);
     }
     setModal(null);
     toast.success(pat.id ? "Patrocinador actualizado" : "Patrocinador creado");
@@ -424,27 +430,31 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
         <button className="btn btn-primary" onClick={openNuevo}>+ Nuevo patrocinador</button>
       </div>
 
-      {/* KPIs — clases del sistema BLOCK_CSS */}
+      {/* KPIs */}
       <div className="kpi-grid mb">
-        <div className="kpi amber" style={{cursor:"pointer"}} onClick={()=>setTab("patrocinadores")} title="Ver patrocinadores">
-          <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>💰 Captado<Tooltip text={"Importe comprometido: suma de patrocinadores en estado 'confirmado' o 'cobrado'.\nNo incluye los que están en negociación o prospecto."}><TooltipIcon size={11}/></Tooltip></div>
+        <div className="kpi amber" style={{cursor:"pointer"}} onClick={()=>setTab("patrocinadores")}>
+          <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>🤝 Captado
+            <Tooltip text={"Total comprometido: confirmado + cobrado. Incluye acuerdos firmados aunque no ingresados aún."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value" style={{color:"#f59e0b"}}>{fmtEur(stats.comprometido)}</div>
-          <div className="kpi-sub">comprometido / confirmado</div>
+          <div className="kpi-sub">{stats.pctObj}% del objetivo · {stats.confirmados} patrocinadores</div>
         </div>
-        <div className="kpi green" style={{cursor:"pointer"}} onClick={()=>setTab("patrocinadores")} title="Ver cobrados">
-          <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>✅ Cobrado<Tooltip text={"Importe efectivamente recibido en cuenta: solo patrocinadores en estado 'cobrado'.\nEs el dinero real disponible, a diferencia del comprometido que puede no haberse transferido aún."}><TooltipIcon size={11}/></Tooltip></div>
+        <div className="kpi green" style={{cursor:"pointer"}} onClick={()=>setTab("patrocinadores")}>
+          <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>💰 Cobrado
+            <Tooltip text={"Dinero ya en cuenta: solo patrocinadores en estado cobrado. Tesorería real efectiva."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value" style={{color:"var(--green)"}}>{fmtEur(stats.cobrado)}</div>
           <div className="kpi-sub">{stats.pctCobrado}% del objetivo</div>
         </div>
-        <div className="kpi violet" style={{cursor:"pointer"}} onClick={()=>setTab("patrocinadores")} title="Ver en especie">
-          <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>📦 En especie<Tooltip text={"Valor estimado de las aportaciones no monetarias: material, servicios, productos.\nNo entra en la cuenta bancaria pero reduce costes del evento."}><TooltipIcon size={11}/></Tooltip></div>
+        <div className="kpi cyan" style={{cursor:"pointer"}} onClick={()=>setTab("patrocinadores")}>
+          <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>⏳ Pendiente cobro
+            <Tooltip text={"Importe captado (comprometido) que aún no ha sido ingresado. Captado - Cobrado."}><TooltipIcon size={11}/></Tooltip></div>
+          <div className="kpi-value" style={{color:"var(--cyan)"}}>{fmtEur(stats.pendienteCobro)}</div>
+          <div className="kpi-sub">por ingresar en cuenta</div>
+        </div>
+        <div className="kpi violet" style={{cursor:"pointer"}} onClick={()=>setTab("patrocinadores")}>
+          <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>📦 En especie
+            <Tooltip text={"Valor estimado de aportaciones no monetarias: material, servicios, productos."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value" style={{color:"var(--violet)"}}>{fmtEur(stats.especie)}</div>
           <div className="kpi-sub">valor estimado</div>
-        </div>
-        <div className="kpi cyan" style={{cursor:"pointer"}} onClick={()=>setTab("pipeline")} title="Ver pipeline">
-          <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>🔀 Pipeline<Tooltip text={"Importe potencial de los patrocinadores en estado 'negociando' o 'prospecto'.\nNo está garantizado — es el máximo que podría captarse si todos confirman."}><TooltipIcon size={11}/></Tooltip></div>
-          <div className="kpi-value" style={{color:"var(--cyan)"}}>{fmtEur(stats.pipeline)}</div>
-          <div className="kpi-sub">en negociación/prospecto</div>
         </div>
       </div>
 
@@ -1751,6 +1761,70 @@ function ModalPat({
             <label className="fl">Notas internas</label>
             <textarea className="inp" rows={3} value={form.notas} onChange={e => upd("notas", e.target.value)}
               placeholder="Condiciones especiales, observaciones, historial de contactos..." style={{ resize: "vertical" }} />
+          </div>
+
+          {/* ── Contraprestaciones acordadas ── */}
+          <div style={{ marginTop: ".75rem" }}>
+            <label className="fl" style={{ marginBottom: ".5rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span>🎁 Contraprestaciones acordadas</span>
+              <button type="button" className="btn btn-sm btn-ghost"
+                style={{ fontSize: "var(--fs-xs)" }}
+                onClick={() => {
+                  const nueva = { id: Date.now(), tipo: "Logo en camiseta", detalle: "", estado: "pendiente" };
+                  upd("contraprestaciones", [...(form.contraprestaciones || []), nueva]);
+                }}>
+                + Añadir
+              </button>
+            </label>
+            {(!form.contraprestaciones || form.contraprestaciones.length === 0) ? (
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)",
+                padding: ".5rem .75rem", background: "var(--surface2)", borderRadius: 6 }}>
+                Sin contraprestaciones registradas — pulsa "+ Añadir" para incluir qué recibe este colaborador
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: ".35rem" }}>
+                {(form.contraprestaciones || []).map((c, i) => (
+                  <div key={c.id || i} style={{ display: "flex", gap: ".4rem", alignItems: "center",
+                    padding: ".4rem .55rem", background: "var(--surface2)", borderRadius: 7,
+                    border: "1px solid var(--border)" }}>
+                    <select className="inp" value={c.tipo}
+                      style={{ flex: "0 0 auto", width: 180, fontSize: "var(--fs-xs)" }}
+                      onChange={e => {
+                        const updc = (form.contraprestaciones || []).map((x, j) => j === i ? { ...x, tipo: e.target.value } : x);
+                        upd("contraprestaciones", updc);
+                      }}>
+                      {["Logo en camiseta corredores","Logo en camiseta voluntarios","Banner en zona meta",
+                        "Banner en avituallamiento","Mención en RRSS","Mención en megafonía",
+                        "Logo en web oficial","Logo en díptico/programa","Producto en bolsa corredor",
+                        "Stand en zona exposición","Otro"].map(t => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                    <input className="inp" placeholder="Detalle (tamaño, nº posts, ubicación...)"
+                      value={c.detalle || ""}
+                      style={{ flex: 1, fontSize: "var(--fs-xs)" }}
+                      onChange={e => {
+                        const updc = (form.contraprestaciones || []).map((x, j) => j === i ? { ...x, detalle: e.target.value } : x);
+                        upd("contraprestaciones", updc);
+                      }} />
+                    <select className="inp" value={c.estado || "pendiente"}
+                      style={{ flex: "0 0 auto", width: 100, fontSize: "var(--fs-xs)" }}
+                      onChange={e => {
+                        const updc = (form.contraprestaciones || []).map((x, j) => j === i ? { ...x, estado: e.target.value } : x);
+                        upd("contraprestaciones", updc);
+                      }}>
+                      <option value="pendiente">⏳ Pendiente</option>
+                      <option value="entregado">✅ Entregado</option>
+                      <option value="cancelado">✕ Cancelado</option>
+                    </select>
+                    <button type="button" className="btn btn-red btn-sm"
+                      onClick={() => upd("contraprestaciones", (form.contraprestaciones || []).filter((_, j) => j !== i))}>
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
         <div className="modal-footer">
