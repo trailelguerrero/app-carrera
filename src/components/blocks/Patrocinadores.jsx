@@ -1787,19 +1787,22 @@ function ModalPat({
                   <div key={c.id || i} style={{ display: "flex", gap: ".4rem", alignItems: "center",
                     padding: ".4rem .55rem", background: "var(--surface2)", borderRadius: 7,
                     border: "1px solid var(--border)" }}>
-                    <select className="inp" value={c.tipo}
-                      style={{ flex: "0 0 auto", width: 180, fontSize: "var(--fs-xs)" }}
+                    <input className="inp" placeholder="Tipo de contraprestación (ej: Logo en camiseta, Banner en meta...)"
+                      value={c.tipo || ""}
+                      list={`contra-tipos-${c.id || i}`}
+                      style={{ flex: "0 0 auto", width: 230, fontSize: "var(--fs-xs)" }}
                       onChange={e => {
                         const updc = (form.contraprestaciones || []).map((x, j) => j === i ? { ...x, tipo: e.target.value } : x);
                         upd("contraprestaciones", updc);
-                      }}>
+                      }} />
+                    <datalist id={`contra-tipos-${c.id || i}`}>
                       {["Logo en camiseta corredores","Logo en camiseta voluntarios","Banner en zona meta",
                         "Banner en avituallamiento","Mención en RRSS","Mención en megafonía",
                         "Logo en web oficial","Logo en díptico/programa","Producto en bolsa corredor",
-                        "Stand en zona exposición","Otro"].map(t => (
-                        <option key={t} value={t}>{t}</option>
+                        "Stand en zona exposición"].map(t => (
+                        <option key={t} value={t} />
                       ))}
-                    </select>
+                    </datalist>
                     <input className="inp" placeholder="Detalle (tamaño, nº posts, ubicación...)"
                       value={c.detalle || ""}
                       style={{ flex: 1, fontSize: "var(--fs-xs)" }}
