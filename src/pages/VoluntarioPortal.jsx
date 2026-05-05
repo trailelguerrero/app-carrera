@@ -36,7 +36,7 @@ async function fetchPublic(collection) {
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 const TALLAS = ["XXS","XS","S","M","L","XL","XXL","3XL","4XL"];
-const TALLAS_PORTAL = ["XS","S","M","L","XL","XXL","3XL"];
+const TALLAS_PORTAL = ["XXS","XS","S","M","L","XL","XXL","3XL","4XL"]; // Mismo set que Camisetas.jsx
 
 const GUIA_TALLAS = [
   { talla:"XXS", pecho:"76-80",  largo:"62", hombro:"36" },

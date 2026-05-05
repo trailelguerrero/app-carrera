@@ -44,17 +44,7 @@ const estadoCombinado = (lineas=[]) => {
   return                                 { emoji:"🟠", label:"Pago parcial",       color:"#fb923c",        bg:"rgba(251,146,60,.1)" };
 };
 
-const PEDIDOS_DEFAULT = [
-  {
-    id:1, nombre:"Ejemplo Persona", telefono:"600000001",
-    email:"ejemplo@email.com", notas:"Familiar del organizador",
-    lineas:[
-      { id:1, tipo:"corredor",   talla:"M", cantidad:1, precioVenta:15, estadoPago:"pagado",    estadoEntrega:"pendiente" },
-      { id:2, tipo:"voluntario", talla:"L", cantidad:2, precioVenta:0,  estadoPago:"regalo",    estadoEntrega:"pendiente" },
-      { id:3, tipo:"corredor",   talla:"S", cantidad:1, precioVenta:15, estadoPago:"pendiente", estadoEntrega:"pendiente" },
-    ]
-  },
-];
+const PEDIDOS_DEFAULT = [];
 const COSTE_DEFAULT = { corredor:8, voluntario:7, nino:6 };
 
 const calcPedido = (p, coste) => {
@@ -82,6 +72,31 @@ const badgeEnt = (p) => p.lineas.some(l => (l.estadoEntrega||"pendiente")==="pen
 
 // Default corredor externos: un objeto { XXS:0, XS:0, S:0, M:0, L:0, XL:0, XXL:0, 3XL:0, 4XL:0 }
 const CORREDORES_DEFAULT = Object.fromEntries(TALLAS.map(t => [t, 0]));
+
+/** Exporta la consolidación de tallas como CSV para el proveedor */
+function exportarPedidoProveedor(grandTallasCor, grandTallasVol, ninoExt, margenPct = 5) {
+  const filas = [["Tipo","Talla","Unidades_Base","Margen_%","Total_A_Pedir","Coste_Unitario","Total_Coste"]];
+  const agregar = (tipo, tallas, mapa) => {
+    tallas.forEach(t => {
+      const base = mapa[t] || 0;
+      if (base <= 0) return;
+      const total = Math.ceil(base * (1 + margenPct / 100));
+      filas.push([tipo, t, base, margenPct + "%", total, "", ""]);
+    });
+  };
+  agregar("corredor",   TALLAS,      grandTallasCor);
+  agregar("voluntario", TALLAS,      grandTallasVol);
+  agregar("nino",       TALLAS_NINO, ninoExt);
+  const csv = "﻿" + filas.map(r => r.join(";")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement("a"), {
+    href: url,
+    download: `pedido-proveedor-teg-${new Date().toISOString().slice(0,10)}.csv`,
+  });
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 // Default tallas niño: entrada manual por talla
 const NINO_DEFAULT = Object.fromEntries(TALLAS_NINO.map(t => [t, 0]));
@@ -142,6 +157,44 @@ export default function App() {
   const isLoading = loadCfg || loadP || loadCoste || loadCorredores || loadNino || loadVols || loadInclP || loadMargen || loadFuentes;
 
   // ── Derivados — siempre calculados, antes de cualquier return ────────────
+  // Generar pedidos de voluntarios que no tienen pedido aún
+  const generarPedidosVoluntarios = () => {
+    const nombresConPedido = new Set(
+      pedidos.flatMap(p =>
+        p.lineas.filter(l => l.tipo === "voluntario").map(() =>
+          p.nombre.toLowerCase().trim()
+        )
+      )
+    );
+    const sinPedido = (Array.isArray(rawVols) ? rawVols : [])
+      .filter(v => v.estado !== "cancelado" && v.talla && !nombresConPedido.has(
+        `${v.nombre||""} ${v.apellidos||""}`.toLowerCase().trim()
+      ));
+    if (sinPedido.length === 0) {
+      toast.success("Todos los voluntarios con talla ya tienen pedido");
+      return;
+    }
+    const nuevos = sinPedido.map(v => ({
+      id: Date.now() + (v.id || Math.random()),
+      nombre: `${v.nombre||""} ${v.apellidos||""}`.trim(),
+      telefono: v.telefono || "",
+      email: v.email || "",
+      notas: `Auto-generado desde Voluntarios · ${new Date().toLocaleDateString("es-ES")}`,
+      voluntarioId: v.id,
+      lineas: [{
+        id: Date.now() + (v.id || 1) + 1,
+        tipo: "voluntario",
+        talla: v.talla || "M",
+        cantidad: 1,
+        precioVenta: 0,
+        estadoPago: "regalo",
+        estadoEntrega: "pendiente",
+      }],
+    }));
+    setPedidos(prev => [...prev, ...nuevos]);
+    toast.success(`${nuevos.length} pedidos generados desde voluntarios`);
+  };
+
   const voluntariosConfirmados = Array.isArray(rawVols)
     ? rawVols.filter(vol => vol?.estado === "confirmado" && vol?.talla)
     : [];
@@ -403,7 +456,7 @@ export default function App() {
             inclPendientes={inclPendientes} setInclPendientes={setInclPendientes}
             ninoExt={ninoExt} setNino={setNino}
             vistaSimple={vistaSimpleTallas} setVistaSimple={setVistaSimpleTallas} />}
-          {tab==="checklist" && <TabChecklist pedidos={pedidos} updateLinea={updateLinea} abrirFicha={abrirFicha} />}
+          {tab==="checklist" && <TabChecklist pedidos={pedidos} updateLinea={updateLinea} abrirFicha={abrirFicha} generarPedidosVoluntarios={generarPedidosVoluntarios} />}
         </div>
       </div>
 
@@ -888,6 +941,7 @@ function TabPedidos({ pedidos, coste, abrirFicha, abrirModal, filtroExterno, onC
 
 // ─── TAB TALLAS ───────────────────────────────────────────────────────────────
 function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, vistaSimple=true, setVistaSimple, fuentesActivas, voluntariosConfirmados, voluntariosPendientes, ninoExt = {}, setNino }) {
+  const [margenSeguridad, setMargenSeguridad] = useState(5); // % de buffer sobre el total
   const [editCorredores, setEditCorredores] = useState(false);
   const [tmpCor, setTmpCor] = useState({ ...corredoresExt });
   const [editNino, setEditNino] = useState(false);
@@ -1481,10 +1535,11 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
 }
 
 // ─── TAB CHECKLIST ────────────────────────────────────────────────────────────
-function TabChecklist({ pedidos, updateLinea, abrirFicha }) {
+function TabChecklist({ pedidos, updateLinea, abrirFicha, generarPedidosVoluntarios }) {
   const [filtro,setFiltro]   = useState("todos");
   const [pedColaps, setPedCo] = useState({});
-  const [modoRapido, setModoRapido] = useState(false); // {} = todos colapsados (collapsed = !pedColaps[id])
+  const [modoRapido, setModoRapido] = useState(false);
+  const [busqueda, setBusqueda] = useState("");
   const todas = useMemo(()=>pedidos.flatMap(p=>p.lineas.map(l=>({...l,pedNombre:p.nombre,pedId:p.id,ped:p}))),[pedidos]);
   const filtradas = useMemo(()=>todas.filter(l=>{
     const ep=l.estadoPago||"pendiente"; const ee=l.estadoEntrega||"pendiente";
@@ -1495,7 +1550,12 @@ function TabChecklist({ pedidos, updateLinea, abrirFicha }) {
     if(filtro==="pagado")       return ep==="pagado";
     if(filtro==="regalo")       return ep==="regalo";
     return true;
-  }),[todas,filtro]);
+  }).filter(l => {
+    if (!busqueda.trim()) return true;
+    const q = busqueda.toLowerCase();
+    return (l.pedNombre||"").toLowerCase().includes(q) ||
+           (l.ped?.telefono||"").includes(q);
+  }),[todas,filtro,busqueda]);
   const cPE=todas.filter(l=>(l.estadoEntrega||"pendiente")==="pendiente").length;
   const cPP=todas.filter(l=>(l.estadoPago||"pendiente")==="pendiente").length;
   const FILTROS=[
@@ -1510,11 +1570,32 @@ function TabChecklist({ pedidos, updateLinea, abrirFicha }) {
     <>
       <div className="ph">
         <div><div className="pt">📬 Entrega de camisetas</div><div className="pd">{cPE} líneas por entregar · {cPP} sin cobrar</div></div>
+        <div style={{ display:"flex", gap:".4rem", flexWrap:"wrap" }}>
         <button className={`btn btn-sm${modoRapido?" btn-cyan":" btn-ghost"}`}
           onClick={()=>setModoRapido(v=>!v)}
           title={modoRapido?"Salir del modo entrega rápida":"Modo entrega rápida: lista plana con botones grandes"}>
           ⚡ {modoRapido?"Modo normal":"Entrega rápida"}
         </button>
+        </div>
+      </div>
+      {/* Buscador — crítico para día de carrera */}
+      <div style={{ position:"relative", marginBottom:".75rem" }}>
+        <input
+          className="inp"
+          placeholder="🔍 Buscar por nombre o teléfono..."
+          value={busqueda}
+          onChange={e => setBusqueda(e.target.value)}
+          style={{ paddingLeft:"2.5rem", fontSize:"var(--fs-md)" }}
+        />
+        {busqueda && (
+          <button
+            onClick={() => setBusqueda("")}
+            style={{ position:"absolute", right:".6rem", top:"50%", transform:"translateY(-50%)",
+              background:"none", border:"none", cursor:"pointer", color:"var(--text-muted)",
+              fontSize:"1rem", lineHeight:1 }}>
+            ✕
+          </button>
+        )}
       </div>
 
       {/* ── MODO ENTREGA RÁPIDA ── */}
@@ -1523,7 +1604,14 @@ function TabChecklist({ pedidos, updateLinea, abrirFicha }) {
           (p.lineas||[])
             .filter(l => (l.estadoEntrega||"pendiente") === "pendiente")
             .map(l => ({ ...l, pedidoId: p.id, nombrePedido: p.nombre }))
-        ).sort((a,b) => a.nombrePedido.localeCompare(b.nombrePedido));
+        )
+        .filter(l => {
+          if (!busqueda.trim()) return true;
+          const q = busqueda.toLowerCase();
+          return (l.nombrePedido||"").toLowerCase().includes(q) ||
+                 (pedidos.find(p=>p.id===l.pedidoId)?.telefono||"").includes(q);
+        })
+        .sort((a,b) => a.nombrePedido.localeCompare(b.nombrePedido, "es"));
         return (
           <div style={{ marginBottom:".85rem" }}>
             {lineasPend.length === 0 ? (
