@@ -592,8 +592,14 @@ function LoginScreen({ onLogin, onVolver, telefonoInicial }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        setShake(true); setPin(""); setError(data.error || "Teléfono o PIN incorrecto");
-        setTimeout(() => setShake(false), 500);
+        if (res.status === 429) {
+          // Rate limit alcanzado — no hacer shake, solo mostrar el mensaje
+          setPin("");
+          setError(data.error || "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.");
+        } else {
+          setShake(true); setPin(""); setError(data.error || "Teléfono o PIN incorrecto");
+          setTimeout(() => setShake(false), 500);
+        }
       } else {
         saveSession({ token: data.token });
         onLogin(data.token);
@@ -887,6 +893,40 @@ function PortalMain({ token, onLogout }) {
       : [];
 
   // Pantalla específica para voluntario con participación cancelada
+  if (v.estado === "ausente") return (
+    <><style>{CSS}</style>
+      <div style={{ minHeight:"100dvh", display:"flex", flexDirection:"column",
+        alignItems:"center", justifyContent:"center", padding:"2rem 1.5rem",
+        background:"var(--bg2)", textAlign:"center" }}>
+        <div style={{ fontSize:"3rem", marginBottom:".75rem" }}>📋</div>
+        <div style={{ fontWeight:800, fontSize:"var(--fs-xl)", color:"var(--amber)",
+          fontFamily:"var(--font-display)", marginBottom:".5rem" }}>
+          Registro de asistencia completado
+        </div>
+        <div className="vp-mono" style={{ fontSize:"var(--fs-sm)", color:"var(--text-muted)",
+          maxWidth:340, lineHeight:1.6, marginBottom:"1.25rem" }}>
+          Gracias por tu participación en Trail El Guerrero 2026.
+          Si crees que hay un error, contacta con la organización.
+        </div>
+        {orgs.length > 0 && (
+          <div style={{ width:"100%", maxWidth:340 }}>
+            {orgs.map((o, i) => (
+              <a key={i} href={`tel:${o.telefono}`} className="vp-btn vp-btn-ghost"
+                style={{ display:"block", width:"100%", marginBottom:".5rem", textAlign:"center" }}>
+                📞 {o.nombre || "Organización"} — {o.telefono}
+              </a>
+            ))}
+          </div>
+        )}
+        <button className="vp-btn vp-btn-ghost"
+          style={{ maxWidth:340, width:"100%", marginTop:".5rem" }}
+          onClick={() => { clearSession(); onLogout(); }}>
+          Cerrar sesión
+        </button>
+      </div>
+    </>
+  );
+
   if (v.estado === "cancelado") return (
     <><style>{CSS}</style>
       <div style={{ minHeight:"100dvh", display:"flex", flexDirection:"column",
@@ -954,6 +994,14 @@ function PortalMain({ token, onLogout }) {
             <span className={`vp-badge ${v.estado==="confirmado"?"vp-badge-green":v.estado==="cancelado"?"vp-badge-red":"vp-badge-amber"}`}>
               {v.estado==="confirmado" ? "✓ Confirmado" : v.estado==="cancelado" ? "✕ Cancelado" : "⏳ Pendiente"}
             </span>
+            <button onClick={() => { clearSession(); onLogout(); }}
+              title="Cerrar sesión"
+              style={{ background:"rgba(248,113,113,.1)", border:"1px solid rgba(248,113,113,.25)",
+                borderRadius:6, cursor:"pointer", fontFamily:"var(--font-mono)",
+                fontSize:".62rem", color:"var(--red)", padding:".2rem .45rem",
+                fontWeight:700, letterSpacing:".02em" }}>
+              Salir
+            </button>
             <button onClick={() => fetchData(true)}
               title="Actualizar mi ficha"
               style={{ background:"none", border:"none", cursor:"pointer",
@@ -1026,6 +1074,45 @@ function PortalMain({ token, onLogout }) {
               }}>
                 Cambiar PIN ahora →
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* CTA prominente de llegada — antes que todo cuando confirmar es la acción clave */}
+        {v.estado === "confirmado" && !v.enPuesto && puesto && (
+          <div style={{ background:"linear-gradient(135deg, rgba(52,211,153,.12) 0%, rgba(34,211,238,.08) 100%)",
+            border:"2px solid var(--green-border)", borderRadius:12, padding:"1rem",
+            marginBottom:".85rem", textAlign:"center" }}
+            onClick={() => !confirmLlegada && setConfirmLlegada(true)}>
+            <div style={{ fontSize:"2rem", lineHeight:1, marginBottom:".4rem" }}>🏔️</div>
+            <div style={{ fontWeight:800, fontSize:"var(--fs-md)", color:"var(--green)",
+              fontFamily:"var(--font-display)", marginBottom:".2rem" }}>
+              {confirmLlegada ? "¿Confirmas que estás en tu puesto?" : "¿Ya estás en tu puesto?"}
+            </div>
+            <div className="vp-mono" style={{ fontSize:"var(--fs-xs)", color:"var(--text-muted)", marginBottom:".75rem" }}>
+              {puesto.nombre}
+            </div>
+            {confirmLlegada ? (
+              <div style={{ display:"flex", gap:".5rem", justifyContent:"center" }}>
+                <button className="vp-btn vp-btn-ghost" style={{ flex:1, maxWidth:140 }}
+                  onClick={e => { e.stopPropagation(); setConfirmLlegada(false); }}>Cancelar</button>
+                <button className="vp-btn vp-btn-success" style={{ flex:1, maxWidth:180 }}
+                  onClick={e => { e.stopPropagation(); marcarLlegada(); }} disabled={marcando}>
+                  {marcando ? "Registrando…" : "✅ Confirmar llegada"}
+                </button>
+              </div>
+            ) : (
+              <button className="vp-btn vp-btn-success" style={{ width:"100%", maxWidth:280 }}>
+                ✅ Confirmar llegada al puesto
+              </button>
+            )}
+          </div>
+        )}
+        {v.enPuesto && (
+          <div style={{ background:"rgba(52,211,153,.08)", border:"1px solid var(--green-border)",
+            borderRadius:10, padding:".75rem 1rem", marginBottom:".85rem", textAlign:"center" }}>
+            <div style={{ fontWeight:700, color:"var(--green)", fontSize:"var(--fs-md)" }}>
+              ✅ En puesto desde las {v.horaLlegada}
             </div>
           </div>
         )}
@@ -1178,7 +1265,7 @@ function PortalMain({ token, onLogout }) {
             <div className="vp-divider"/>
             <div className="vp-row"><span className="vp-row-label">🎽 Camiseta</span>
               <span className={`vp-badge ${v.camisetaEntregada?"vp-badge-green":"vp-badge-amber"}`}>
-                {v.camisetaEntregada?"✅ Entregada":"⏳ Pendiente"}</span></div>
+                {v.camisetaEntregada?"✅ Entregada":"📦 Por recoger el día del evento"}</span></div>
             {v.nombre && (<>
               <div className="vp-divider"/>
               <div className="vp-row"><span className="vp-row-label">👤 Nombre</span>
