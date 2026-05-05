@@ -85,3 +85,9 @@ export const MERCHANDISING_DEFAULT = [
   { id: 2, nombre: "Buff / Braga cuello", unidades: 80, costeUnitario: 3.5, precioVenta: 8, activo: true },
   { id: 3, nombre: "Gorra trail", unidades: 30, costeUnitario: 5, precioVenta: 12, activo: true },
 ];
+
+export const MARGEN_CONFIG_DEFAULT = {
+  tipo:         "porcentaje",  // "porcentaje" | "absoluto"
+  valor:        10,            // 10% de los costes totales
+  alertaActiva: true,
+};

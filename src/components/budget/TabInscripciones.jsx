@@ -103,6 +103,7 @@ export const TabInscripciones = ({
   updateTramoPrecio, 
   addTramo, 
   inscritos, 
+  setInscritos,
   updateInscritos, 
   totalInscritos, 
   ingresosPorDistancia, 
@@ -160,7 +161,13 @@ export const TabInscripciones = ({
   };
 
   const handleConfirmDelete = () => {
-    setTramos(prev => prev.filter(x => x.id !== pendingDelete.tramo.id));
+    const id = pendingDelete.tramo.id;
+    setTramos(prev => prev.filter(x => x.id !== id));
+    // Limpiar los inscritos del tramo eliminado para no contaminar totales
+    setInscritos(prev => {
+      const { [id]: _dropped, ...restTramos } = prev.tramos || {};
+      return { ...prev, tramos: restTramos };
+    });
     setPendingDelete(null);
   };
 

@@ -8,7 +8,8 @@ import {
   MERCHANDISING_DEFAULT,
   MAXIMOS_DEFAULT,
   DISTANCIAS,
-  SYNC_CONFIG_DEFAULT
+  SYNC_CONFIG_DEFAULT,
+  MARGEN_CONFIG_DEFAULT
 } from "../constants/budgetConstants";
 const LS_PATS = "teg_patrocinadores_v1_pats";
 const LS_CAM_PEDIDOS = "teg_camisetas_v1_pedidos";
@@ -39,6 +40,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   const [merchandising, setMerchandising] = useState(MERCHANDISING_DEFAULT);
   const [maximos, setMaximos] = useState(MAXIMOS_DEFAULT);
   const [syncConfig, setSyncConfig] = useData("teg_presupuesto_v1_syncConfig", SYNC_CONFIG_DEFAULT);
+  const [margenConfig, setMargenConfig] = useData("teg_presupuesto_v1_margenConfig", MARGEN_CONFIG_DEFAULT);
   const [saveStatus, setSaveStatus] = useState("idle");
 
   const [rawPats] = useData(LS_PATS, []);
@@ -137,6 +139,8 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   };
 
   const saveData = useCallback(async () => {
+    // INC-02 fix: cancelar el debounce del autoSave y ejecutar guardado inmediato
+    if (autoSaveTimer.current) { clearTimeout(autoSaveTimer.current); autoSaveTimer.current = null; }
     setSaveStatus("saving");
     emitSaveStatus("saving");
     try {
@@ -173,8 +177,9 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return; }
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-    emitSaveStatus("saving");
+    // PERF-03 fix: emitir "saving" solo cuando el debounce se dispara, no con cada tecla
     autoSaveTimer.current = setTimeout(async () => {
+      emitSaveStatus("saving");
       try {
         await Promise.all([
           dataService.set("teg_presupuesto_v1_tramos", tramos),
@@ -326,6 +331,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     tab, setTab, tramos, setTramos,
     totalPatConfirmado, totalPatCobrado, totalMerchBeneficio,
     syncConfig, setSyncConfig,
+    margenConfig, setMargenConfig,
     conceptos, setConceptos,
     inscritos, setInscritos,
     ingresosExtra, setIngresosExtra,

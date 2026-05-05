@@ -597,7 +597,12 @@ export default function Index() {
             ss + (c.activoDistancias?.[d] ? (c.costePorDistancia?.[d]||0) * (tramos.reduce((st,t) => st + (inscritos?.tramos?.[t.id]?.[d]||0), 0)) : 0), 0
           );
         }, 0);
-        if (ingresos - costes < 0 && totalIns > 0) badges["presupuesto"] = "!";
+        // INC-01 fix: incluir ingresos extra activos (patrocinios, subvenciones, etc.)
+        const ingresosExtraLS = get("teg_presupuesto_v1_ingresosExtra", []);
+        const totalIngExtra = Array.isArray(ingresosExtraLS)
+          ? ingresosExtraLS.filter(i => i.activo).reduce((s, i) => s + (i.valor || 0), 0)
+          : 0;
+        if ((ingresos + totalIngExtra) - costes < 0 && totalIns > 0) badges["presupuesto"] = "!";
       }
 
       // Logística: incidencias abiertas

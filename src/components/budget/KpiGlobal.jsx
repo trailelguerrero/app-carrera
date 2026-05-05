@@ -7,6 +7,7 @@ const fmt = (n) => Number(n ?? 0).toLocaleString("es-ES", { maximumFractionDigit
 export const KpiGlobal = ({
   totalInscritos, ingresosPorDistancia, costesFijos, costesVariables,
   totalIngresosExtra, merchTotales, totalIngresosConMerch, resultado, maximos,
+  margenConfig,
 }) => {
   const costesCarrera   = (costesFijos?.total ?? 0) + (costesVariables?.total ?? 0);
   const costesMerch     = merchTotales?.costes ?? 0;
@@ -17,6 +18,23 @@ export const KpiGlobal = ({
   const resPositivo     = res >= 0;
   const resColor        = resPositivo ? "var(--green)" : "var(--red)";
   const resColorClass   = resPositivo ? "green" : "red";
+
+  // Semáforo de margen — UX mejora
+  const mc = margenConfig ?? { tipo: "porcentaje", valor: 10, alertaActiva: true };
+  const margenObjetivo = mc.tipo === "porcentaje"
+    ? costesCarrera * (mc.valor / 100)
+    : mc.valor;
+  const margenActual = res;
+  const pctMargen = costesCarrera > 0 ? Math.round(margenActual / costesCarrera * 100) : 0;
+  const estadoMargen = margenActual >= margenObjetivo ? "verde"
+    : margenActual >= margenObjetivo * 0.5 ? "ambar"
+    : "rojo";
+  const COLORES_SEMAFORO = { verde: "var(--green)", ambar: "var(--amber)", rojo: "var(--red)" };
+  const colorMargen = COLORES_SEMAFORO[estadoMargen];
+
+  // Coste por corredor (UX-03)
+  const totalIns = totalInscritos?.total ?? 0;
+  const costePorCorredor = totalIns > 0 ? Math.round(costesCarrera / totalIns * 100) / 100 : null;
 
   return (
     <div className="kpi-grid mb">
@@ -58,6 +76,23 @@ export const KpiGlobal = ({
         <div className="kpi-label"><Tooltip text={"Ingresos inscripciones + Patrocinios + Beneficio merch − Costes fijos − Costes variables.\nPositivo = superávit. Negativo = déficit."}><span>⚖️ Resultado neto</span><TooltipIcon /></Tooltip></div>
         <div className="kpi-value" style={{ color: resColor }}>{res >= 0 ? "+" : ""}{fmt(res)}</div>
         <div className="kpi-sub">{resPositivo ? "✓ Superávit" : "✗ Déficit"} · Ingresos totales: {fmt(ingresosTotal)}</div>
+      </div>
+      {/* Semáforo de margen — semáforo visual sobre el objetivo */}
+      <div className="kpi" style={{ borderColor: colorMargen, background: `${colorMargen}08` }}>
+        <div className="kpi-label">
+          <Tooltip text={`Margen actual sobre los costes totales (${pctMargen}%).
+Objetivo: ${mc.tipo === "porcentaje" ? mc.valor + "%" : fmt(mc.valor)} sobre costes.
+Verde ≥ objetivo · Ámbar ≥ 50% objetivo · Rojo < 50% objetivo.`}>
+            <span>🎯 Margen sobre objetivo</span><TooltipIcon />
+          </Tooltip>
+        </div>
+        <div className="kpi-value" style={{ color: colorMargen }}>
+          {pctMargen >= 0 ? "+" : ""}{pctMargen}%
+        </div>
+        <div className="kpi-sub">
+          {estadoMargen === "verde" ? "✓ Objetivo alcanzado" : estadoMargen === "ambar" ? "⚠ Margen justo" : "✗ Por debajo del objetivo"}
+          {costePorCorredor !== null && ` · ${fmt(costePorCorredor)}/corredor`}
+        </div>
       </div>
     </div>
   );

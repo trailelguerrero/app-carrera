@@ -134,6 +134,7 @@ const Presupuesto = () => {
     totalPatCobrado,
     totalMerchBeneficio,
     syncConfig, setSyncConfig,
+    margenConfig, setMargenConfig,
     ingresosDesglosados,
     realTotalInscritos,
     realResultado,
@@ -498,6 +499,7 @@ const Presupuesto = () => {
               updateTramoPrecio={updateTramoPrecio}
               addTramo={addTramo}
               inscritos={isScenarioMode ? (scenarioInscritos ?? inscritos) : inscritos}
+              setInscritos={setInscritos}
               updateInscritos={isScenarioMode ? updateScenarioInscritos : updateInscritos}
               totalInscritos={totalInscritos}
               ingresosPorDistancia={ingresosPorDistancia}
