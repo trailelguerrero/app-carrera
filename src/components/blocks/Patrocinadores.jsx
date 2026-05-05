@@ -167,9 +167,7 @@ export default function App() {
     const valid = pats.filter(p => p && p.id);
     const activos = valid.filter(p => p.estado !== "cancelado");
     const confirmados = valid.filter(p => p.estado === "confirmado" || p.estado === "cobrado");
-    // Cobrado real: usa importeCobrado si está disponible, si no el importe
-    const cobrado = valid.filter(p => p.estado === "cobrado")
-      .reduce((s, p) => s + ((p.importeCobrado != null ? p.importeCobrado : p.importe) || 0), 0);
+    const cobrado = valid.filter(p => p.estado === "cobrado").reduce((s, p) => s + getImporteCobrado(p), 0);
     // Captado: suma importes de confirmados+cobrados (comprometido)
     const comprometido = confirmados.reduce((s, p) => s + (p.importe || 0), 0);
     // Pendiente de cobro: comprometido - cobrado
@@ -226,7 +224,23 @@ export default function App() {
     toast.success("Patrocinador eliminado");
   };
 
-  const updateEstado = (id, estado) => { setPats(prev => prev.map(p => p.id === id ? { ...p, estado } : p)); if(estado==="cobrado") toast.success("Patrocinador marcado como cobrado ✓"); };
+  const updateEstado = (id, estado) => {
+    setPats(prev => prev.map(p => {
+      if (p.id !== id) return p;
+      // Registrar en historial automáticamente
+      const entrada = {
+        id: String(Date.now()),
+        fecha: new Date().toISOString(),
+        tipo: "estado",
+        texto: `Estado: ${p.estado} → ${estado}`,
+        antes: p.estado,
+        despues: estado,
+      };
+      const historial = [...(Array.isArray(p.historial) ? p.historial : []), entrada].slice(-50);
+      return { ...p, estado, historial };
+    }));
+    if (estado === "cobrado") toast.success("Patrocinador marcado como cobrado ✓");
+  };
 
   const addDoc = (patId, doc) => {
     setPats(prev => prev.map(p => p.id === patId ? { ...p, docs: [...(p.docs||[]), { ...doc, id: genIdNum(p.docs||[]) }] } : p));
@@ -705,6 +719,20 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                         <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-base)",fontWeight:700,color:cfg.color}}>{fmtEur(p.importe)}</span>
                         <span className="badge" style={{background:ecfg.bg,color:ecfg.color,fontSize:"var(--fs-2xs)"}}>{ecfg.label}</span>
+                      {/* Badge incoherencia económica */}
+                      {(() => {
+                        const issues = detectarIncoherencias(p);
+                        if (!issues.length) return null;
+                        return (
+                          <span title={issues.join(" · ")}
+                            style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                              background:"rgba(248,113,113,.12)", color:"var(--red)",
+                              border:"1px solid var(--red-border)", borderRadius:4,
+                              padding:"0 .35rem", cursor:"help" }}>
+                            ⚠ {issues[0].split(" ").slice(0,3).join(" ")}…
+                          </span>
+                        );
+                      })()}
                       {p.proximoContacto && p.estado === "negociando" && (() => {
                         const dias = Math.ceil((new Date(p.proximoContacto) - new Date()) / 86400000);
                         if (dias > 3) return null;
@@ -1156,6 +1184,37 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
             </div>
             <div style={{ display: "flex", gap: ".4rem" }}>
               {subTab === "info" && <button className="btn btn-sm btn-ghost" onClick={onEditar}>✏️ Editar patrocinador</button>}
+              {subTab === "historial" && (() => {
+                const hist = Array.isArray(pat.historial) ? [...pat.historial].reverse() : [];
+                return (
+                  <div>
+                    <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)",
+                      marginBottom:".75rem" }}>
+                      {hist.length} entradas · Los cambios de estado se registran automáticamente
+                    </div>
+                    {hist.length === 0 ? (
+                      <div style={{ color:"var(--text-dim)", fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                        padding:".75rem", background:"var(--surface2)", borderRadius:8 }}>
+                        Sin historial todavía. Los cambios de estado se registrarán automáticamente.
+                      </div>
+                    ) : hist.map(e => (
+                      <div key={e.id} style={{ display:"flex", gap:".75rem", padding:".45rem .5rem",
+                        borderBottom:"1px solid var(--border)", alignItems:"flex-start" }}>
+                        <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                          color:"var(--text-dim)", flexShrink:0, minWidth:120 }}>
+                          {new Date(e.fecha).toLocaleDateString("es-ES")}{" "}
+                          {new Date(e.fecha).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})}
+                        </span>
+                        <span style={{ fontSize:"var(--fs-xs)", color:"var(--text-muted)", lineHeight:1.5 }}>
+                          {e.tipo === "estado" ? "🔄 " :
+                           e.tipo === "nota" ? "📝 " : "ℹ️ "}
+                          {e.texto}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
               {subTab === "informe" && <button className="btn btn-sm btn-ghost" onClick={() => generarInformePDF(pat, config)}>
                 ⬇ Descargar PDF
               </button>}
@@ -1566,9 +1625,11 @@ function ModalPat({
   const firstInputRef = useRef(null);
   useEffect(() => { const t = setTimeout(() => firstInputRef.current?.focus(), 60); return () => clearTimeout(t); }, []);
   const [form, setForm] = useState(data ? { ...data } : {
-    nombre: "", sector: SECTORES[0], nivel: "Plata", contacto: "", telefono: "", email: "",
+    nombre: "", sector: SECTORES[0], nivel: "Plata", tipoAportacion: "monetaria",
+    contacto: "", telefono: "", email: "",
     importe: 0, importeCobrado: 0, especie: 0, estado: "prospecto",
     fechaAcuerdo: "", fechaVencimiento: "", proximoContacto: "", notas: "", docs: [],
+    contraprestaciones: [], proximaAccion: { tipo: "", fecha: "", notas: "" },
   });
   const [err, setErr] = useState({});
   const upd = (k, v) => {
@@ -1757,6 +1818,46 @@ function ModalPat({
             })()}
           </div>
 
+          {/* ── Próxima acción CRM ── */}
+          <div style={{ background:"rgba(34,211,238,.04)", border:"1px solid var(--cyan-border)",
+            borderRadius:8, padding:".75rem", display:"flex", flexDirection:"column", gap:".6rem" }}>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--cyan)",
+              fontWeight:700, textTransform:"uppercase", letterSpacing:".05em" }}>
+              📞 Próxima acción
+            </div>
+            <div className="field-row">
+              <div>
+                <label className="field-label">Tipo de acción</label>
+                <select className="inp" value={form.proximaAccion?.tipo || ""}
+                  onChange={e => upd("proximaAccion", { ...(form.proximaAccion||{}), tipo: e.target.value })}>
+                  <option value="">Sin programar</option>
+                  <option value="llamar">📞 Llamar</option>
+                  <option value="enviar-propuesta">📄 Enviar propuesta</option>
+                  <option value="enviar-contrato">📝 Enviar contrato</option>
+                  <option value="enviar-factura">💶 Enviar factura</option>
+                  <option value="reunion">🤝 Reunión</option>
+                  <option value="enviar-contraprestacion">🎁 Entregar contraprestación</option>
+                  <option value="seguimiento">🔄 Seguimiento general</option>
+                  <option value="otro">💬 Otro</option>
+                </select>
+              </div>
+              <div>
+                <label className="field-label">Fecha</label>
+                <input type="date" className="inp"
+                  value={form.proximaAccion?.fecha || ""}
+                  onChange={e => upd("proximaAccion", { ...(form.proximaAccion||{}), fecha: e.target.value })} />
+              </div>
+            </div>
+            {form.proximaAccion?.tipo && (
+              <div>
+                <label className="field-label">Notas de la acción</label>
+                <input className="inp" placeholder="¿Qué hay que hacer exactamente?"
+                  value={form.proximaAccion?.notas || ""}
+                  onChange={e => upd("proximaAccion", { ...(form.proximaAccion||{}), notas: e.target.value })} />
+              </div>
+            )}
+          </div>
+
           <div>
             <label className="fl">Notas internas</label>
             <textarea className="inp" rows={3} value={form.notas} onChange={e => upd("notas", e.target.value)}
@@ -1808,6 +1909,14 @@ function ModalPat({
                       style={{ flex: 1, fontSize: "var(--fs-xs)" }}
                       onChange={e => {
                         const updc = (form.contraprestaciones || []).map((x, j) => j === i ? { ...x, detalle: e.target.value } : x);
+                        upd("contraprestaciones", updc);
+                      }} />
+                    <input type="date" className="inp"
+                      title="Fecha límite de entrega"
+                      value={c.fechaEntrega || ""}
+                      style={{ flex: "0 0 auto", width: 130, fontSize: "var(--fs-xs)" }}
+                      onChange={e => {
+                        const updc = (form.contraprestaciones || []).map((x, j) => j === i ? { ...x, fechaEntrega: e.target.value } : x);
                         upd("contraprestaciones", updc);
                       }} />
                     <select className="inp" value={c.estado || "pendiente"}

@@ -1,3 +1,46 @@
+/**
+ * Devuelve el importe cobrado real de un patrocinador.
+ * Usa importeCobrado si está definido y > 0, si no usa importe.
+ * Si el estado es cobrado pero importeCobrado = 0, asume que se cobró el importe total.
+ */
+export const getImporteCobrado = (pat) => {
+  if (pat.importeCobrado != null && pat.importeCobrado > 0) return pat.importeCobrado;
+  if (pat.estado === "cobrado") return pat.importe || 0;
+  return 0;
+};
+
+/**
+ * Devuelve el importe comprometido (acordado, puede o no haberse cobrado).
+ * Solo cuenta patrocinadores en estado confirmado o cobrado.
+ */
+export const getImporteComprometido = (pat) =>
+  (pat.estado === "confirmado" || pat.estado === "cobrado") ? (pat.importe || 0) : 0;
+
+/**
+ * Detecta incoherencias entre estado y campos económicos.
+ * Devuelve array de strings con los problemas encontrados.
+ */
+export const detectarIncoherencias = (pat) => {
+  const issues = [];
+  if (pat.estado === "cobrado" && !pat.importeCobrado && !pat.importe) {
+    issues.push("Estado 'cobrado' pero sin importe registrado");
+  }
+  if (pat.importeCobrado > 0 && pat.estado === "prospecto") {
+    issues.push("Tiene importe cobrado pero sigue como prospecto");
+  }
+  if (pat.importeCobrado > (pat.importe || 0) && pat.importe > 0) {
+    issues.push(`Cobrado (${pat.importeCobrado}€) supera el importe acordado (${pat.importe}€)`);
+  }
+  if (pat.importeCobrado > 0 && pat.importeCobrado < (pat.importe || 0) && pat.estado === "cobrado") {
+    issues.push(`Cobro parcial: cobrado ${pat.importeCobrado}€ de ${pat.importe}€ acordados`);
+  }
+  return issues;
+};
+
+/** Calcula valor estimado total en especie a partir del inventario */
+export const calcularTotalEspecie = (especieItems = []) =>
+  especieItems.reduce((s, i) => s + ((i.valorUnitario || 0) * (i.cantidad || 0)), 0);
+
 import { DISTANCIAS } from "../constants/budgetConstants";
 
 export const fmt = (n) => 

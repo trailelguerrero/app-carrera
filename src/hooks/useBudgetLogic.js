@@ -14,6 +14,8 @@ const LS_PATS = "teg_patrocinadores_v1_pats";
 const LS_CAM_PEDIDOS = "teg_camisetas_v1_pedidos";
 const LS_CAM_COSTE = "teg_camisetas_v1_coste";
 import {
+  getImporteCobrado,
+  getImporteComprometido,
   calculateTotalInscritos,
   calculateIngresosPorDistancia,
   calculatePrecioMedioDistancia,
@@ -43,23 +45,24 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   const [rawCamPedidos] = useData(LS_CAM_PEDIDOS, []);
   const [rawCamCoste] = useData(LS_CAM_COSTE, { corredor: 7.5, voluntario: 7.5 });
 
-  // Captado: confirmado + cobrado (compromiso firmado, aunque no cobrado aún)
-  const totalPatConfirmado = useMemo(() => {
-    if (!syncConfig.patrocinios) return 0;
-    const pats = Array.isArray(rawPats) ? rawPats : [];
-    return pats
-      .filter(p => !p.especie && (p.estado === "confirmado" || p.estado === "cobrado"))
-      .reduce((s, p) => s + (p.importe || 0), 0);
-  }, [rawPats, syncConfig.patrocinios]);
+  // Captado: usa el cálculo centralizado (sin condicional de toggle — el toggle controla activo/inactivo del ítem)
+  const totalPatConfirmado = totalPatConfirmadoCalc;
 
-  // Cobrado real: solo estado cobrado (tesorería — dinero ya en cuenta)
+  // Cobrado real: solo estado cobrado (tesorería — usando función utilitaria centralizada)
   const totalPatCobrado = useMemo(() => {
-    if (!syncConfig.patrociniosCobrado) return 0;
     const pats = Array.isArray(rawPats) ? rawPats : [];
     return pats
       .filter(p => !p.especie && p.estado === "cobrado")
-      .reduce((s, p) => s + ((p.importeCobrado != null ? p.importeCobrado : p.importe) || 0), 0);
-  }, [rawPats, syncConfig.patrociniosCobrado]);
+      .reduce((s, p) => s + getImporteCobrado(p), 0);
+  }, [rawPats]);
+
+  // Captado: confirmado + cobrado (usando función utilitaria centralizada)
+  const totalPatConfirmadoCalc = useMemo(() => {
+    const pats = Array.isArray(rawPats) ? rawPats : [];
+    return pats
+      .filter(p => !p.especie)
+      .reduce((s, p) => s + getImporteComprometido(p), 0);
+  }, [rawPats]);
 
   const totalMerchBeneficio = useMemo(() => {
     if (!syncConfig.camisetas) return 0;
