@@ -12,8 +12,8 @@ import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const LS = "teg_proyecto_v1";
-const TODAY = new Date();
-const diasHasta = (fecha) => Math.ceil((new Date(fecha) - TODAY) / 86400000);
+// Fix: función dinámica para que el cálculo de días sea siempre exacto
+const diasHasta = (fecha) => Math.ceil((new Date(fecha) - new Date()) / 86400000);
 const fmt = (d) => d ? new Date(d).toLocaleDateString("es-ES", { day:"2-digit", month:"short" }) : "—";
 
 const AREAS = [
@@ -137,13 +137,9 @@ const iniciales = (nombre) => nombre.split(" ").map(n => n[0]).slice(0,2).join("
 // ─── APP ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const [tab, setTab]         = useState("dashboard");
-  // Guard de inicialización: solo insertar tareas por defecto la primera vez
-  const tareasDefault = (() => {
-    if (typeof window !== "undefined" && localStorage.getItem("teg_proyecto_initialized")) return [];
-    if (typeof window !== "undefined") localStorage.setItem("teg_proyecto_initialized", "1");
-    return TAREAS0;
-  })();
-  const [rawTareas, setTareas]   = useData(LS+"_tareas", tareasDefault);
+  // FIX Guard más robusto: si la BD devuelve datos, usarlos; si no, cargar TAREAS0 como defaults
+  // Esto protege contra el caso de dispositivo nuevo (sin localStorage) que sobreescribía con TAREAS0
+  const [rawTareas, setTareas]   = useData(LS+"_tareas", TAREAS0);
   const [rawHitos, setHitos]     = useData(LS+"_hitos", HITOS0);
   const [rawEquipo, setEquipo]   = useData(LS+"_equipo", EQUIPO0);
   const [eventCfg]               = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
@@ -221,13 +217,14 @@ export default function App() {
       diasHasta(t.fechaLimite) <= 14 && diasHasta(t.fechaLimite) >= 0
     );
     const vencidas = tareas.filter(t =>
-      t.estado !== "completado" && t.fechaLimite && diasHasta(t.fechaLimite) < 0
+      t.estado !== "completado" && t.estado !== "bloqueado" &&
+      t.fechaLimite && diasHasta(t.fechaLimite) < 0
     );
     const porArea = AREAS.map(a => {
       const at = tareas.filter(t => t.area === a.id);
       const done = at.filter(t => t.estado === "completado").length;
       const blk = at.filter(t => t.estado === "bloqueado").length;
-      const venc = at.filter(t => t.estado !== "completado" && t.fechaLimite && diasHasta(t.fechaLimite) < 0).length;
+      const venc = at.filter(t => t.estado !== "completado" && t.estado !== "bloqueado" && t.fechaLimite && diasHasta(t.fechaLimite) < 0).length;
       const semaforo = venc > 0 ? "red" : blk > 0 ? "amber" : done === at.length ? "green" : "blue";
       return { ...a, total:at.length, done, blk, venc, semaforo, pct: at.length ? Math.round(done/at.length*100) : 0 };
     });
@@ -285,7 +282,44 @@ export default function App() {
     if (tipo==="persona") setEquipo(p => p.filter(x => x.id!==id));
     setDelConf(null);
   };
-  const updEstado = (id, estado) => { setTareas(p => p.map(t => t.id===id ? {...t,estado} : t)); if(estado==="completado") toast.success("Tarea completada ✓"); };
+  const updEstado = (id, estado) => {
+    setTareas(prevTareas => {
+      const tarea = prevTareas.find(t => t.id === id);
+      if (!tarea) return prevTareas;
+
+      // Aviso si hay dependencia sin completar
+      if ((estado === "en curso" || estado === "completado") && tarea.dependeDe) {
+        const dep = prevTareas.find(t => t.id === tarea.dependeDe);
+        if (dep && dep.estado !== "completado") {
+          setTimeout(() => toast.warning("\u26a0\ufe0f \"" + dep.titulo + "\" a\xc3\xban no est\xc3\xa1 completada"), 50);
+        }
+      }
+
+      // Registrar en historial automático
+      const entrada = {
+        id:      String(Date.now()),
+        fecha:   new Date().toISOString(),
+        campo:   "estado",
+        antes:   tarea.estado,
+        despues: estado,
+      };
+      const historial = [...(Array.isArray(tarea.historial) ? tarea.historial : []), entrada].slice(-20);
+
+      // Notificar tareas desbloqueadas
+      if (estado === "completado") {
+        const desbloqueadas = prevTareas.filter(t =>
+          t.id !== id && t.dependeDe === id && t.estado === "pendiente"
+        );
+        if (desbloqueadas.length > 0) {
+          setTimeout(() => toast.success("✅ Completada · Ahora puedes iniciar: " + desbloqueadas.slice(0,2).map(t => t.titulo).join(", ") + (desbloqueadas.length>2?" y más...":"")), 300);
+        } else {
+          setTimeout(() => toast.success("Tarea completada ✓"), 50);
+        }
+      }
+
+      return prevTareas.map(t => t.id === id ? { ...t, estado, historial } : t);
+    });
+  };
   const updHito = (id, field, val) => { setHitos(p => p.map(h => h.id===id ? {...h,[field]:val} : h)); if(field==="completado") toast.success(val ? "Hito completado ✓" : "Hito reabierto"); };
 
   const TABS_VISTAS = [
@@ -2239,6 +2273,32 @@ function FichaProyecto({ ficha, equipo, documentos, tareas, onClose, onEditar, o
               <FichaRow label="Teléfono" value={data.telefono} />
               <FichaRow label="Email"    value={data.email} />
             </>)}
+
+            {/* Historial de cambios de estado — solo para tareas */}
+            {tipo === "tarea" && Array.isArray(data.historial) && data.historial.length > 0 && (
+              <div style={{ marginTop:".8rem", borderTop:"1px dashed var(--border)", paddingTop:".7rem" }}>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)",
+                  textTransform:"uppercase", fontWeight:700, letterSpacing:".05em", marginBottom:".5rem" }}>
+                  🕐 Historial de cambios
+                </div>
+                {[...data.historial].reverse().map((e, i) => (
+                  <div key={e.id || i} style={{ display:"flex", gap:".65rem", padding:".35rem 0",
+                    borderBottom:"1px solid var(--border)", alignItems:"flex-start" }}>
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                      color:"var(--text-dim)", flexShrink:0 }}>
+                      {new Date(e.fecha).toLocaleDateString("es-ES", { day:"2-digit", month:"short" })}
+                      {" "}
+                      {new Date(e.fecha).toLocaleTimeString("es-ES", { hour:"2-digit", minute:"2-digit" })}
+                    </span>
+                    <span style={{ fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>
+                      {e.campo === "estado"
+                        ? `${EST_CFG[e.antes]?.label || e.antes} → ${EST_CFG[e.despues]?.label || e.despues}`
+                        : e.texto || `${e.campo}: ${e.antes} → ${e.despues}`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="modal-footer">

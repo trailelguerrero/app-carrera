@@ -549,7 +549,8 @@ export default function Index() {
       // Proyecto: tareas vencidas
       const tareas = get("teg_proyecto_v1_tareas", []);
       const vencidas = Array.isArray(tareas) ? tareas.filter(t =>
-        t.estado !== "completado" && t.fechaLimite &&
+        t.estado !== "completado" && t.estado !== "bloqueado" &&
+        t.fechaLimite &&
         Math.ceil((new Date(t.fechaLimite) - new Date()) / 86400000) < 0
       ).length : 0;
       if (vencidas > 0) badges["proyecto"] = vencidas;
