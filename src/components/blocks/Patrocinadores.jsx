@@ -4,6 +4,7 @@ import { useModalClose } from "@/hooks/useModalClose";
 import { exportarPatrocinadores } from "@/lib/exportUtils";
 import { toast } from "@/lib/toast";
 import { genIdNum, fmtEur, scrollMainToTop } from "@/lib/utils";
+import { getImporteCobrado, detectarIncoherencias, calcularTotalEspecie } from "@/lib/budgetUtils";
 import EmptyState from "@/components/EmptyState";
 import { usePaginacion } from "@/lib/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
@@ -14,6 +15,31 @@ import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 const LS = "teg_patrocinadores_v1";
 
 const NIVELES = ["Oro", "Plata", "Bronce", "Colaborador", "Especie"];
+
+const PLANTILLAS_CONTRAPRESTACION = {
+  "Oro":         [
+    { tipo:"Logo en camiseta corredores", detalle:"Pecho izq. 8×4cm", estado:"pendiente" },
+    { tipo:"Logo en camiseta voluntarios", detalle:"Espalda 6×3cm", estado:"pendiente" },
+    { tipo:"Banner en zona meta", detalle:"Banner 2×1m", estado:"pendiente" },
+    { tipo:"Mención en RRSS", detalle:"5 posts + story Instagram", estado:"pendiente" },
+    { tipo:"Stand en zona exposición", detalle:"3m²", estado:"pendiente" },
+  ],
+  "Plata":       [
+    { tipo:"Logo en camiseta corredores", detalle:"Pecho 6×3cm", estado:"pendiente" },
+    { tipo:"Banner en avituallamiento", detalle:"Roll-up 0.85×2m", estado:"pendiente" },
+    { tipo:"Mención en RRSS", detalle:"3 posts Instagram", estado:"pendiente" },
+    { tipo:"Logo en web oficial", detalle:"Sección patrocinadores", estado:"pendiente" },
+  ],
+  "Bronce":      [
+    { tipo:"Logo en díptico/programa", detalle:"Logo 4×2cm", estado:"pendiente" },
+    { tipo:"Mención en RRSS", detalle:"1 post Instagram", estado:"pendiente" },
+    { tipo:"Logo en web oficial", detalle:"Sección colaboradores", estado:"pendiente" },
+  ],
+  "Colaborador": [
+    { tipo:"Logo en web oficial", detalle:"Sección colaboradores", estado:"pendiente" },
+    { tipo:"Mención en megafonía", detalle:"Mención durante la carrera", estado:"pendiente" },
+  ],
+};
 const NIVEL_CFG = {
   Oro:         { color: "#f59e0b", dim: "rgba(245,158,11,0.12)", border: "rgba(245,158,11,0.35)", icon: "🥇", objetivo: 2000 },
   Plata:       { color: "#94a3b8", dim: "rgba(148,163,184,0.12)", border: "rgba(148,163,184,0.3)", icon: "🥈", objetivo: 1000 },
@@ -203,6 +229,48 @@ export default function App() {
   const openEditar  = (p) => { scrollTop(); setModal({ tipo: "pat",    data: p    }); };
   const openDetalle = (p) => { scrollTop(); setModal({ tipo: "detalle",data: p    }); };
 
+  const importarProspectos = async (file) => {
+    const text = await file.text();
+    const lines = text.split("\n").map(l => l.endsWith("\r") ? l.slice(0,-1) : l).filter(Boolean);
+    if (lines.length < 2) { toast.error("CSV vacío o sin datos"); return; }
+    const sep = lines[0].includes(";") ? ";" : ",";
+    const headers = lines[0].split(sep).map(h => { let s = h.trim().toLowerCase(); while(s.startsWith("'") || s.startsWith('"')) s=s.slice(1); while(s.endsWith("'") || s.endsWith('"')) s=s.slice(0,-1); return s; });
+    const idx = (names) => names.map(n => headers.findIndex(h => h.includes(n))).find(i => i >= 0) ?? -1;
+    const iNombre = idx(["nombre","empresa","company","name"]);
+    const iContacto = idx(["contacto","contact","persona","interlocutor"]);
+    const iEmail = idx(["email","correo","mail"]);
+    const iTel = idx(["telefono","phone","tel","movil"]);
+    const iImporte = idx(["importe","amount","presupuesto"]);
+    const iSector = idx(["sector","industria","industry"]);
+    if (iNombre === -1) { toast.error("El CSV necesita columna 'nombre' o 'empresa'"); return; }
+    let added = 0, dupes = 0;
+    const nuevos = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(sep).map(c => { let s = c.trim(); while(s.startsWith("'") || s.startsWith('"')) s=s.slice(1); while(s.endsWith("'") || s.endsWith('"')) s=s.slice(0,-1); return s; });
+      const nombre = cols[iNombre] || "";
+      if (!nombre) continue;
+      const email = iEmail >= 0 ? cols[iEmail] || "" : "";
+      const dup = pats.find(p => (p.email && p.email === email) || p.nombre.toLowerCase() === nombre.toLowerCase()) ||
+                  nuevos.find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
+      if (dup) { dupes++; continue; }
+      nuevos.push({
+        id: Date.now() + i, nombre,
+        contacto: iContacto >= 0 ? cols[iContacto] || "" : "",
+        email, telefono: iTel >= 0 ? cols[iTel] || "" : "",
+        importe: iImporte >= 0 ? parseFloat(cols[iImporte]) || 0 : 0,
+        importeCobrado: 0, especie: 0,
+        sector: iSector >= 0 ? cols[iSector] || SECTORES[0] : SECTORES[0],
+        nivel: "Colaborador", tipoAportacion: "monetaria", estado: "prospecto",
+        fechaAcuerdo: "", fechaVencimiento: "", proximoContacto: "", notas: "Importado desde CSV",
+        docs: [], contraprestaciones: [], especieItems: [], historial: [],
+        proximaAccion: { tipo: "", fecha: "", notas: "" },
+      });
+      added++;
+    }
+    if (nuevos.length > 0) setPats(prev => [...prev, ...nuevos]);
+    toast.success(`${added} prospectos importados${dupes > 0 ? ` · ${dupes} duplicados omitidos` : ""}`);
+  };
+
   const savePat = (pat) => {
     if (pat.id) {
       // Para edición: el modal ya trae las contraprestaciones actualizadas en form.contraprestaciones
@@ -319,6 +387,12 @@ export default function App() {
               title="Exportar patrocinadores a Excel">
               📊 Excel
             </button>
+            <label className="btn btn-ghost" title="Importar prospectos desde CSV (columnas: nombre, contacto, email, telefono, importe, sector)"
+              style={{ cursor:"pointer", margin:0 }}>
+              📥 CSV
+              <input type="file" accept=".csv,.txt" style={{ display:"none" }}
+                onChange={e => { if (e.target.files[0]) { importarProspectos(e.target.files[0]); e.target.value=""; } }} />
+            </label>
             <button className="btn btn-primary" onClick={openNuevo}>+ Nuevo</button>
           </div>
         </div>
@@ -625,6 +699,65 @@ function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, o
           </div>
         )}
       </div>
+
+      {/* P3-9: Ranking de dependencia económica */}
+      {(() => {
+        const totalIngresos = stats.comprometido + stats.especie;
+        if (totalIngresos === 0) return null;
+        const ranking = pats
+          .filter(p => p.estado !== "cancelado")
+          .map(p => {
+            const aportacion = (p.importe || 0) + (p.especie || 0);
+            const pct = Math.round(aportacion / totalIngresos * 100);
+            const nivel = pct > 20 ? "critica" : pct > 10 ? "alta" : pct > 5 ? "media" : "baja";
+            return { ...p, _aportacion: aportacion, _pct: pct, _dep: nivel };
+          })
+          .sort((a, b) => b._aportacion - a._aportacion)
+          .slice(0, 6);
+        const criticos = ranking.filter(p => p._dep === "critica" || p._dep === "alta");
+        return (
+          <div className="card">
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:".65rem" }}>
+              <div className="ct" style={{ marginBottom:0 }}>📊 Dependencia económica por patrocinador</div>
+              {criticos.length > 0 && (
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                  color:"var(--red)", background:"var(--red-dim)", border:"1px solid var(--red-border)",
+                  borderRadius:4, padding:".1rem .45rem" }}>
+                  ⚠ {criticos.length} con alta dependencia
+                </span>
+              )}
+            </div>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", marginBottom:".65rem" }}>
+              % que representa cada patrocinador sobre el total captado. Alta dependencia = riesgo si cancela.
+            </div>
+            {ranking.map(p => {
+              const cfg = NIVEL_CFG[p.nivel] || NIVEL_CFG["Colaborador"];
+              const depColor = p._dep === "critica" ? "var(--red)" : p._dep === "alta" ? "var(--amber)" : p._dep === "media" ? "var(--cyan)" : "var(--text-muted)";
+              return (
+                <div key={p.id} style={{ display:"flex", alignItems:"center", gap:".6rem",
+                  padding:".4rem .3rem", borderBottom:"1px solid var(--border)", cursor:"pointer" }}
+                  onClick={() => openDetalle(p)}>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:".2rem" }}>
+                      <span style={{ fontWeight:600, fontSize:"var(--fs-sm)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{p.nombre}</span>
+                      <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:depColor, fontWeight:700, flexShrink:0, marginLeft:".4rem" }}>
+                        {p._pct}%
+                      </span>
+                    </div>
+                    <div style={{ height:6, background:"var(--surface3)", borderRadius:3, overflow:"hidden" }}>
+                      <div style={{ width:`${Math.min(p._pct,100)}%`, height:"100%", background:depColor, borderRadius:3, transition:"width .4s" }} />
+                    </div>
+                  </div>
+                  <div style={{ flexShrink:0, textAlign:"right" }}>
+                    <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:cfg.color }}>{cfg.icon} {p.nivel}</div>
+                    <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>{fmtEur(p._aportacion)}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
     </>
   );
 }
