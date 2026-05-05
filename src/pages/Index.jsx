@@ -554,13 +554,14 @@ export default function Index() {
       ).length : 0;
       if (vencidas > 0) badges["proyecto"] = vencidas;
 
-      // Voluntarios: cobertura crítica
+      // Voluntarios: cobertura crítica — usar solo confirmados (coherente con el panel interno)
       const vols    = get("teg_voluntarios_v1_voluntarios", []);
       const puestos = get("teg_voluntarios_v1_puestos", []);
       if (Array.isArray(puestos) && Array.isArray(vols)) {
         const criticos = puestos.filter(p => {
-          const asign = vols.filter(v => v.puestoId === p.id && v.estado !== "cancelado").length;
-          return p.necesarios > 0 && asign / p.necesarios < 0.5;
+          // INC-04 fix: usar solo confirmados igual que el panel interno
+          const confirmados = vols.filter(v => v.puestoId === p.id && v.estado === "confirmado").length;
+          return p.necesarios > 0 && confirmados / p.necesarios < 0.5;
         }).length;
         if (criticos > 0) badges["voluntarios"] = criticos;
       }

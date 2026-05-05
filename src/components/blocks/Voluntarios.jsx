@@ -78,6 +78,9 @@ const VOLUNTARIOS_DEFAULT = [
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
+// ── Helper: nombre completo ─────────────────────────────────────────────────
+const nombreCompleto = (v) => v ? [v.nombre, v.apellidos].filter(Boolean).join(" ") : "—";
+
 function estadoColor(e) {
   return e === "confirmado" ? "var(--green)" : e === "cancelado" ? "var(--red)" : e === "ausente" ? "var(--orange)" : "var(--amber)";
 }
@@ -613,6 +616,45 @@ export default function App() {
     return { total, confirmados, pendientes, cancelados, totalNecesarios, asignados, conCoche, tallasCount, coberturaGlobal, enPuesto };
   }, [voluntarios, puestos]);
 
+  // Sugerencias de reubicación automáticas
+  const sugerenciasReubicacion = useMemo(() => {
+    const stats = (puestos || []).map(p => {
+      const asig = (voluntarios || []).filter(v => v.puestoId === p.id && v.estado !== "cancelado");
+      const conf = asig.filter(v => v.estado === "confirmado");
+      return {
+        ...p,
+        exceso:  Math.max(0, conf.length - p.necesarios),
+        deficit: Math.max(0, p.necesarios - conf.length),
+        confirmados: conf,
+      };
+    });
+    const conExceso  = stats.filter(s => s.exceso > 0).sort((a, b) => b.exceso - a.exceso);
+    const conDeficit = stats.filter(s => s.deficit > 0).sort((a, b) => b.deficit - a.deficit);
+    const sug = [];
+    for (const destino of conDeficit) {
+      for (const origen of conExceso) {
+        if (sug.length >= 5) break;
+        const movibles = Math.min(origen.exceso, destino.deficit);
+        if (movibles > 0) {
+          const candidatos = origen.confirmados
+            .filter(v => origen.responsableId !== v.id)
+            .slice(0, movibles);
+          if (candidatos.length > 0) {
+            sug.push({
+              desde:      origen.nombre,
+              desdeId:    origen.id,
+              hasta:      destino.nombre,
+              hastaId:    destino.id,
+              candidatos: candidatos.map(v => ({ id: v.id, nombre: v.nombre })),
+              n:          candidatos.length,
+            });
+          }
+        }
+      }
+    }
+    return sug;
+  }, [puestos, voluntarios]);
+
   const puestosConStats = useMemo(() => (puestos || []).map(p => {
     const vols = (voluntarios || []).filter(v => v?.puestoId === p?.id && v?.estado !== "cancelado");
     const confirmados = vols.filter(v => v?.estado === "confirmado").length;
@@ -1017,7 +1059,7 @@ export default function App() {
 
         {/* CONTENIDO */}
         <div key={tab}>
-          {tab==="dashboard" && <TabDashboard stats={stats} puestosConStats={puestosConStats} voluntarios={voluntarios} setTab={setTab} onEditarVol={(v) => abrirFicha("vol", v)} onEditarPuesto={(p) => abrirFicha("puesto", p)} />}
+          {tab==="dashboard" && <TabDashboard stats={stats} puestosConStats={puestosConStats} voluntarios={voluntarios} setTab={setTab} onEditarVol={(v) => abrirFicha("vol", v)} onEditarPuesto={(p) => abrirFicha("puesto", p)} sugerenciasReubicacion={sugerenciasReubicacion} onReasignar={(volId, puestoId) => updateVoluntario(volId, { puestoId })} />}
           {tab==="voluntarios" && (
             <TabVoluntarios
               voluntarios={volsFiltrados} todosVols={voluntarios} puestos={puestos}
@@ -1380,7 +1422,7 @@ function AppShell({ children }) {
 }
 
 // ─── TAB DASHBOARD ────────────────────────────────────────────────────────────
-function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol, onEditarPuesto }) {
+function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol, onEditarPuesto, sugerenciasReubicacion = [], onReasignar }) {
   const [alertasColapsadas, setAlertasColapsadas] = useState(true);
   const [sinPuestoColapsado, setSinPuestoColapsado] = useState(false);
   const alertas = puestosConStats.filter(p => p.coberturaConf < 50);
@@ -3380,8 +3422,12 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose, onEliminar }) {
             <div className="form-section-label">👤 Datos personales</div>
             <div style={{display:"flex",flexDirection:"column",gap:".65rem"}}>
               <div>
-                <label className="field-label" style={{ color: errores.nombre ? "var(--red)" : undefined }}>Nombre completo *</label>
-                <input ref={firstInputRef} className="inp" value={form.nombre} onChange={e => upd("nombre", e.target.value)} placeholder="Nombre y apellidos" />
+                <label className="field-label" style={{ color: errores.nombre ? "var(--red)" : undefined }}>Nombre *</label>
+                <input ref={firstInputRef} className="inp" value={form.nombre} onChange={e => upd("nombre", e.target.value)} placeholder="Nombre" />
+              </div>
+              <div>
+                <label className="field-label">Apellidos</label>
+                <input className="inp" value={form.apellidos || ""} onChange={e => upd("apellidos", e.target.value)} placeholder="Apellidos" />
                 {errores.nombre && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--red)", marginTop: "0.2rem" }}>⚠ {errores.nombre}</div>}
               </div>
               <div className="field-row">
