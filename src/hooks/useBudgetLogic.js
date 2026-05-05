@@ -45,7 +45,15 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   const [rawCamPedidos] = useData(LS_CAM_PEDIDOS, []);
   const [rawCamCoste] = useData(LS_CAM_COSTE, { corredor: 7.5, voluntario: 7.5 });
 
-  // Captado: usa el cálculo centralizado (sin condicional de toggle — el toggle controla activo/inactivo del ítem)
+  // Captado: confirmado + cobrado (usando función utilitaria centralizada)
+  const totalPatConfirmadoCalc = useMemo(() => {
+    const pats = Array.isArray(rawPats) ? rawPats : [];
+    return pats
+      .filter(p => !p.especie)
+      .reduce((s, p) => s + getImporteComprometido(p), 0);
+  }, [rawPats]);
+
+  // Alias para retrocompatibilidad con el resto del código
   const totalPatConfirmado = totalPatConfirmadoCalc;
 
   // Cobrado real: solo estado cobrado (tesorería — usando función utilitaria centralizada)
@@ -54,14 +62,6 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     return pats
       .filter(p => !p.especie && p.estado === "cobrado")
       .reduce((s, p) => s + getImporteCobrado(p), 0);
-  }, [rawPats]);
-
-  // Captado: confirmado + cobrado (usando función utilitaria centralizada)
-  const totalPatConfirmadoCalc = useMemo(() => {
-    const pats = Array.isArray(rawPats) ? rawPats : [];
-    return pats
-      .filter(p => !p.especie)
-      .reduce((s, p) => s + getImporteComprometido(p), 0);
   }, [rawPats]);
 
   const totalMerchBeneficio = useMemo(() => {

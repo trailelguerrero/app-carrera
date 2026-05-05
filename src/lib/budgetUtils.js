@@ -1,3 +1,5 @@
+import { DISTANCIAS } from "../constants/budgetConstants";
+
 /**
  * Devuelve el importe cobrado real de un patrocinador.
  * Usa importeCobrado si está definido y > 0, si no usa importe.
@@ -40,8 +42,6 @@ export const detectarIncoherencias = (pat) => {
 /** Calcula valor estimado total en especie a partir del inventario */
 export const calcularTotalEspecie = (especieItems = []) =>
   especieItems.reduce((s, i) => s + ((i.valorUnitario || 0) * (i.cantidad || 0)), 0);
-
-import { DISTANCIAS } from "../constants/budgetConstants";
 
 export const fmt = (n) => 
   n === 0 ? "0,00 €" : `${n.toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".")} €`;
