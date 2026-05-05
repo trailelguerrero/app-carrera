@@ -7,8 +7,9 @@ import {
   calculateCostesFijos,
   calculateCostesVariables,
   calculateResultadoFinanciero,
+  getImporteCobrado,
 } from "@/lib/budgetUtils";
-import { EVENT_DATE } from "@/constants/budgetConstants";
+import { EVENT_DATE, COSTE_DEFAULT } from "@/constants/budgetConstants";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 
 import dataService from "@/lib/dataService";
@@ -139,7 +140,8 @@ export default function Dashboard() {
     // Camisetas: leer pedidos y coste directamente (igual que useBudgetLogic)
     // teg_camisetas_v1_stats nunca se escribe — se calcula aquí en tiempo real
     const camPedidos     = get("teg_camisetas_v1_pedidos", []);
-    const camCoste       = get("teg_camisetas_v1_coste", { corredor: 7.5, voluntario: 7.5 });
+    // INC-04 fix: usar COSTE_DEFAULT coherente con el bloque Camisetas
+    const camCoste       = get("teg_camisetas_v1_coste", COSTE_DEFAULT);
     // Cálculo de camisetas delegado a calculateResultadoFinanciero
     const pats           = get("teg_patrocinadores_v1_pats", []);
     const ingresosExtra  = get("teg_presupuesto_v1_ingresosExtra", []);
@@ -174,7 +176,7 @@ export default function Dashboard() {
       totalOtrosIngresos, resultado, roiGlobal,
     } = calculateResultadoFinanciero({
       totalIngresos, totalCostesFijos, totalCostesVars,
-      pats, ingresosExtra, camPedidos, camCoste: camCoste || { corredor: 7.5, voluntario: 7.5 },
+      pats, ingresosExtra, camPedidos, camCoste: camCoste || COSTE_DEFAULT,
       merchandising, syncConfig,
     });
 
@@ -198,7 +200,8 @@ export default function Dashboard() {
     // PATROCINADORES
     const objetivo        = get("teg_patrocinadores_v1_obj", 8000);
     const patComprometido = pats.filter(p => p.estado==="confirmado"||p.estado==="cobrado").reduce((s,p) => s+(p.importe||0), 0);
-    const patCobrado      = pats.filter(p => p.estado==="cobrado").reduce((s,p) => s+(p.importe||0), 0);
+    // BUG-01 fix: usar getImporteCobrado para manejar cobros parciales
+    const patCobrado      = pats.filter(p => p.estado==="cobrado").reduce((s,p) => s + getImporteCobrado(p), 0);
     const patPipeline     = pats.filter(p => p.estado==="negociando"||p.estado==="prospecto").reduce((s,p) => s+(p.importe||0), 0);
     const contPendientes  = pats.reduce((s,p) => s+(p.contraprestaciones||[]).filter(c=>c.estado==="pendiente").length, 0);
     const patsSinSeguimiento = pats.filter(p =>
@@ -596,9 +599,28 @@ export default function Dashboard() {
                     </div>
                   </div>
                   {!saludExpandida && (
-                    <div className="mono xs" style={{ color: saludColor }}>
-                      {saludLabel}
-                    </div>
+                    <>
+                      <div className="mono xs" style={{ color: saludColor, marginBottom: ".35rem" }}>
+                        {saludLabel}
+                      </div>
+                      {/* UX-03: mostrar siempre los módulos en rojo/ámbar aunque esté colapsado */}
+                      {d.saludModulos.filter(m => m.color === "var(--red)" || m.color === "var(--amber)").length > 0 && (
+                        <div style={{ display:"flex", flexWrap:"wrap", gap:".3rem", marginTop:".25rem" }}>
+                          {d.saludModulos.filter(m => m.color === "var(--red)" || m.color === "var(--amber)").map(m => (
+                            <span key={m.label}
+                              onClick={(e) => { e.stopPropagation(); navigate(m.bloque); }}
+                              style={{
+                                fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                                color: m.color, background: `${m.color}14`,
+                                border: `1px solid ${m.color}44`,
+                                borderRadius:4, padding:".1rem .35rem", cursor:"pointer",
+                              }}>
+                              {m.icon} {m.label} {m.score}%
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </>
                   )}
                 </button>
                 {saludExpandida && (
@@ -638,6 +660,10 @@ export default function Dashboard() {
           // No las duplicamos aquí porque ya aparecen en el panel de alertas.
           // Solo añadimos la más crítica si no hay ninguna otra acción concreta.
 
+          // INC-05 fix: evitar duplicación con alertasCriticas
+          // Construir un set de módulos ya cubiertos por alertas críticas para no duplicar
+          const modulosEnCriticas = new Set((d.alertasCriticas || []).map(a => a.modulo));
+
           // 2. Tramo de inscripción cerrando pronto
           const hoy = new Date();
           const tramosAbiertos = (d.tramos||[]).filter(t => {
@@ -656,8 +682,8 @@ export default function Dashboard() {
             });
           });
 
-          // 3. Voluntarios pendientes de confirmar
-          if (d.volPendientes > 0 && d.diasHasta <= 30) {
+          // 3. Voluntarios pendientes de confirmar — solo si no hay alerta crítica ya
+          if (d.volPendientes > 0 && d.diasHasta <= 30 && !modulosEnCriticas.has("voluntarios")) {
             acciones.push({
               prioridad: d.diasHasta <= 7 ? "critica" : "alta",
               icon: "👥",
@@ -667,8 +693,8 @@ export default function Dashboard() {
             });
           }
 
-          // 4. Puestos sin cubrir
-          if (d.puestosAlerta?.length > 0 && d.diasHasta <= 45) {
+          // 4. Puestos sin cubrir — solo si no hay alerta crítica ya
+          if (d.puestosAlerta?.length > 0 && d.diasHasta <= 45 && !modulosEnCriticas.has("voluntarios")) {
             const pp = d.puestosAlerta[0];
             acciones.push({
               prioridad: "alta",

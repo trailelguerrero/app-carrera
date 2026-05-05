@@ -91,3 +91,6 @@ export const MARGEN_CONFIG_DEFAULT = {
   valor:        10,            // 10% de los costes totales
   alertaActiva: true,
 };
+
+// Coste de fabricación por tipo de camiseta — compartido con Camisetas.jsx y Dashboard
+export const COSTE_DEFAULT = { corredor: 8, voluntario: 7, nino: 6 };
