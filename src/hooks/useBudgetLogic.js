@@ -73,13 +73,27 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     return ingresos - costeFab;
   }, [rawCamPedidos, rawCamCoste, syncConfig.camisetas]);
 
+  // ── Sincronización: actualizar ingresosExtra con valores calculados de otros bloques ──
+  // Se ejecuta cuando cambian los totales O la configuración de sync
   useEffect(() => {
     setIngresosExtra(prev => prev.map(ie => {
-      if (ie.id === 1 && syncConfig.patrocinios) return { ...ie, valor: totalPatConfirmado, synced: true };
-      if (ie.id === 2 && syncConfig.camisetas)   return { ...ie, valor: totalMerchBeneficio, synced: true };
-      return ie;
+      // Routing por syncKey (nuevo) o por id (legado)
+      const key = ie.syncKey || (ie.id === 1 ? "patrocinios" : ie.id === 2 ? "camisetas" : null);
+
+      if (key === "patrocinios") {
+        // Siempre actualizar el valor calculado; el toggle activo/inactivo lo controla el usuario
+        return { ...ie, valor: totalPatConfirmado, synced: true };
+      }
+      if (key === "patrociniosCobrado") {
+        return { ...ie, valor: totalPatCobrado, synced: true };
+      }
+      if (key === "camisetas") {
+        return { ...ie, valor: totalMerchBeneficio, synced: true };
+      }
+      // Para ítems manuales: nunca tocar el valor ni marcar synced
+      return { ...ie, synced: false };
     }));
-  }, [totalPatConfirmado, totalMerchBeneficio, syncConfig]);
+  }, [totalPatConfirmado, totalPatCobrado, totalMerchBeneficio]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -124,12 +138,12 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     emitSaveStatus("saving");
     try {
       await Promise.all([
-        dataService.set("teg_presupuesto_v1_tramos", tramos),
-        dataService.set("teg_presupuesto_v1_conceptos", conceptos),
-        dataService.set("teg_presupuesto_v1_inscritos", inscritos),
-        dataService.set("teg_presupuesto_v1_ingresosExtra", ingresosExtra),
-        dataService.set("teg_presupuesto_v1_merchandising", merchandising),
-        dataService.set("teg_presupuesto_v1_maximos", maximos)
+        dataService.set("teg_presupuesto_v1_tramos",       tramos),
+        dataService.set("teg_presupuesto_v1_conceptos",    conceptos),
+        dataService.set("teg_presupuesto_v1_inscritos",    inscritos),
+        dataService.set("teg_presupuesto_v1_ingresosExtra",ingresosExtra),
+        dataService.set("teg_presupuesto_v1_merchandising",merchandising),
+        dataService.set("teg_presupuesto_v1_maximos",      maximos),
       ]);
       setSaveStatus("saved");
       emitSaveStatus("saved");
@@ -280,7 +294,10 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   const totalIngresosExtra = useMemo(() =>
     _ingresosExtra.filter(i => i.activo).reduce((s, i) => s + i.valor, 0), [_ingresosExtra]);
 
-  const totalIngresosConMerch = useMemo(() => totalIngresosExtra + merchTotales.beneficio, [totalIngresosExtra, merchTotales]);
+  // totalIngresosExtra ya incluye el valor de merchandising cuando está sincronizado (id=2 activo)
+  // Para evitar doble contabilización, totalIngresosConMerch = totalIngresosExtra
+  // El beneficio de merch NO se suma por separado — ya está dentro de ingresosExtra id=2
+  const totalIngresosConMerch = useMemo(() => totalIngresosExtra, [totalIngresosExtra]);
 
   const resultado = useMemo(() =>
     calculateResultado(totalInscritos, ingresosPorDistancia, costesFijos, costesVariables, totalIngresosConMerch),

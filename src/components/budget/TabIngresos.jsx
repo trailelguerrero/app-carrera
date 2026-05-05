@@ -31,9 +31,10 @@ export const TabIngresos = ({
   const removeMerch = (id) => setMerchandising(prev => prev.filter(m => m.id !== id));
   const updateMerch = (id, field, value) => setMerchandising(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
 
+  // totalIngresosConMerch ya incluye el beneficio de merch (via ingresosExtra id=2)
+  // El total real = inscripciones + ingresosExtra (que incluye merch sincronizado)
   const totalIngresosTodos = ingresosPorDistancia.total + totalIngresosConMerch;
-  const pctPatrocinios = totalIngresosTodos > 0 ? (totalIngresosExtra / totalIngresosTodos * 100) : 0;
-  const pctMerch = totalIngresosTodos > 0 ? (merchTotales.beneficio / totalIngresosTodos * 100) : 0;
+  const pctOtros = totalIngresosTodos > 0 ? (totalIngresosConMerch / totalIngresosTodos * 100) : 0;
   const pctInscripciones = totalIngresosTodos > 0 ? (ingresosPorDistancia.total / totalIngresosTodos * 100) : 0;
 
   return (
@@ -47,32 +48,25 @@ export const TabIngresos = ({
             <div className="kpi-sub">{pctInscripciones.toFixed(1)}% del total</div>
           </div>
           <div className="kpi green">
-            <div className="kpi-label">Patrocinios y extras</div>
-            <div className="kpi-value">{totalIngresosExtra.toFixed(0)} €</div>
-            <div className="kpi-sub">{pctPatrocinios.toFixed(1)}% del total</div>
-          </div>
-          <div className="kpi orange">
-            <div className="kpi-label">Merchandising (neto)</div>
-            <div className="kpi-value">{merchTotales.beneficio.toFixed(0)} €</div>
-            <div className="kpi-sub">{pctMerch.toFixed(1)}% del total</div>
+            <div className="kpi-label">Patrocinios y otros</div>
+            <div className="kpi-value">{totalIngresosConMerch.toFixed(0)} €</div>
+            <div className="kpi-sub">{pctOtros.toFixed(1)}% del total</div>
           </div>
           <div className="kpi cyan">
             <div className="kpi-label">Total ingresos</div>
             <div className="kpi-value">{totalIngresosTodos.toFixed(0)} €</div>
-            <div className="kpi-sub">Todas las fuentes combinadas</div>
+            <div className="kpi-sub">Todas las fuentes · sin duplicados</div>
           </div>
         </div>
 
         <div style={{ marginTop: "1rem" }}>
           <div style={{ display: "flex", height: 12, borderRadius: 6, overflow: "hidden", background: "var(--surface3)" }}>
             {pctInscripciones > 0 && <div style={{ width: `${pctInscripciones}%`, background: "var(--violet)", transition: "width 0.4s" }} />}
-            {pctPatrocinios > 0 && <div style={{ width: `${pctPatrocinios}%`, background: "var(--green)", transition: "width 0.4s" }} />}
-            {pctMerch > 0 && <div style={{ width: `${pctMerch}%`, background: "var(--orange)", transition: "width 0.4s" }} />}
+            {pctOtros > 0 && <div style={{ width: `${pctOtros}%`, background: "var(--green)", transition: "width 0.4s" }} />}
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: "0.4rem", fontSize: "var(--fs-xs)", fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
             <span>🟣 Inscripciones {pctInscripciones.toFixed(0)}%</span>
-            <span>🟢 Patrocinios {pctPatrocinios.toFixed(0)}%</span>
-            <span>🟠 Merch {pctMerch.toFixed(0)}%</span>
+            <span>🟢 Patrocinios y otros {pctOtros.toFixed(0)}%</span>
           </div>
         </div>
       </div>
@@ -196,7 +190,8 @@ export const TabIngresos = ({
                           onChange={e => setIngresosExtra(prev => prev.map(x => x.id === ie.id ? { ...x, nombre: e.target.value } : x))}
                         />
                       )}
-                      {isSynced && <span style={{ fontSize: "var(--fs-xs)", color: "var(--cyan)", fontFamily: "var(--font-mono)", background: "var(--cyan-dim)", padding: "0.1rem 0.35rem", borderRadius: 3, whiteSpace: "nowrap" }}>🔗 auto</span>}
+                      {isSynced && <span style={{ fontSize: "var(--fs-xs)", color: "var(--cyan)", fontFamily: "var(--font-mono)", background: "var(--cyan-dim)", padding: "0.1rem 0.35rem", borderRadius: 3, whiteSpace: "nowrap",
+                        title: "Valor calculado automáticamente. Actívalo/desactívalo con el toggle de la sección de sincronización." }}>🔗 auto</span>}
                     </div>
                   </td>
                   <td className="text-right">
@@ -224,7 +219,7 @@ export const TabIngresos = ({
               );
             })}
             <tr className="total-row">
-              <td colSpan={2}>Subtotal Patrocinios y Otros</td>
+              <td colSpan={2}>Total otros ingresos activos</td>
               <td className="text-right mono" style={{ color: "var(--violet)" }}>{totalIngresosExtra.toFixed(2)} €</td>
               <td className="text-right mono">100%</td>
               <td></td>
