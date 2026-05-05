@@ -415,7 +415,7 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
           {tab==="vehiculos" && <TabVeh veh={veh} setVeh={setVeh} rutas={rutas} setRutas={setRutas} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenVeh} setOrdenAlfa={setOrdenVeh} voluntariosConCoche={voluntariosConCoche} />}
           {tab==="timeline" && <TabTL tl={tl} setTl={setTl} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenTL} setOrdenAlfa={setOrdenTL} config={config} />}
           {tab==="contactos"   && <TabDirectorio cont={cont} setCont={setCont} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCont} setOrdenAlfa={setOrdenCont} tiposContacto={tiposContacto} setTiposContacto={setTiposContacto} />}
-          {tab==="emergencias" && <TabEmergencias cont={cont} inc={inc} setInc={setInc} abrirModal={abrirModal} abrirFicha={abrirFicha} setInc2={setInc} tiposContacto={tiposContacto} />}
+          {tab==="emergencias" && <TabEmergencias cont={cont} inc={inc} setInc={setInc} abrirModal={abrirModal} abrirFicha={abrirFicha} tiposContacto={tiposContacto} />}
           {tab==="checklist" && <TabCK ck={ck} setCk={setCk} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCK} setOrdenAlfa={setOrdenCK} config={config} tareasProyecto={tareasProyecto} setTareasProyecto={(fn)=>{ const next=typeof fn==="function"?fn(tareasProyecto):fn; import("@/lib/dataService").then(m=>m.default.set("teg_proyecto_v1_tareas",next)); }} />}
           {tab==="localizaciones" && <TabLocalizaciones locs={locs} setLocs={setLocs} volsPorLoc={volsPorLoc} />}
           {tab==="pedidos" && <TabPedidosProv
@@ -1568,34 +1568,67 @@ function TabEmergencias({cont,inc,setInc,abrirModal,abrirFicha,tiposContacto=[]}
             {inc.length} incidencia{inc.length!==1?"s":""} · {incAbiertas} abierta{incAbiertas!==1?"s":""}
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:".5rem"}}>
-            {inc.map(ic=>(
+            {[...inc].sort((a,b)=>{
+                const G={alta:0,media:1,baja:2};
+                const byEstado = a.estado==="abierta"&&b.estado!=="abierta" ? -1 : b.estado==="abierta"&&a.estado!=="abierta" ? 1 : 0;
+                return byEstado || (G[a.gravedad]??1)-(G[b.gravedad]??1);
+              }).map(ic=>{
+              const puestoLabel = ic.puestoNombre && ic.puestoNombre !== "— Sin puesto específico" ? ic.puestoNombre : null;
+              const SLA_MIN={alta:15,media:30,baja:60};
+              const minAbierta = ic.creadaEn && ic.estado==="abierta"
+                ? Math.floor((Date.now()-new Date(ic.creadaEn))/60000) : null;
+              const slaExcedido = minAbierta !== null && minAbierta > (SLA_MIN[ic.gravedad]||30);
+              const tiempoResolucion = ic.creadaEn && ic.resueltaEn
+                ? Math.floor((new Date(ic.resueltaEn)-new Date(ic.creadaEn))/60000) : null;
+              return (
               <div key={ic.id} className={cls("icard",ic.estado==="resuelta"&&"ires")}
                 style={{cursor:"pointer"}} onClick={()=>abrirFicha("inc",ic)}>
                 <div className="ich">
                   <div className="fr g1">
                     <span className="mono" style={{fontSize:"var(--fs-sm)",color:"var(--amber)"}}>{ic.hora}</span>
+                    {puestoLabel && (
+                      <span className="badge" style={{background:"var(--surface3)",color:"var(--text-muted)",
+                        maxWidth:110,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                        📍 {puestoLabel}
+                      </span>
+                    )}
                     <span className="badge" style={{
                       background:ic.gravedad==="alta"?"var(--red-dim)":ic.gravedad==="media"?"var(--amber-dim)":"var(--green-dim)",
                       color:ic.gravedad==="alta"?"var(--red)":ic.gravedad==="media"?"var(--amber)":"var(--green)"}}>
                       {ic.gravedad}
                     </span>
                     <span className="badge" style={{background:"var(--cyan-dim)",color:"var(--cyan)"}}>{ic.tipo}</span>
+                    {minAbierta !== null && minAbierta >= 1 && (
+                      <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
+                        color:slaExcedido?"var(--red)":"var(--text-muted)",
+                        background:slaExcedido?"var(--red-dim)":"var(--surface3)",
+                        padding:"0.1rem 0.35rem",borderRadius:4}}>
+                        ⏱ {minAbierta}min{slaExcedido?" ⚠":""}
+                      </span>
+                    )}
                   </div>
                   <div className="fr g1" onClick={e=>e.stopPropagation()}>
                     <button className="btn btn-sm"
                       style={{background:"var(--green-dim)",color:"var(--green)",
                         border:"1px solid rgba(52,211,153,.2)"}}
                       onClick={()=>setInc(p=>p.map(x=>x.id===ic.id
-                        ?{...x,estado:x.estado==="resuelta"?"abierta":"resuelta"}:x))}>
+                        ?{...x,
+                          estado:     x.estado==="resuelta"?"abierta":"resuelta",
+                          resueltaEn: x.estado!=="resuelta" ? new Date().toISOString() : null,
+                        }:x))}>
                       {ic.estado==="resuelta"?"✓ Resuelta":"Marcar resuelta"}
                     </button>
                   </div>
                 </div>
                 <div style={{fontWeight:600,fontSize:"var(--fs-base)",margin:".3rem 0"}}>{ic.descripcion}</div>
                 {ic.responsable&&<div className="muted xs mono">👤 {ic.responsable}</div>}
+                {tiempoResolucion !== null && (
+                  <div className="muted xs mono">✓ Resuelto en {tiempoResolucion}min</div>
+                )}
                 {ic.resolucion&&<div className="ires-txt">✓ {ic.resolucion}</div>}
               </div>
-            ))}
+              );
+            })}
             {inc.length===0&&<div className="empty">✅ Sin incidencias registradas</div>}
           </div>
         </>
@@ -1676,10 +1709,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
             />
           )}
           <button className="btn btn-primary" onClick={()=>abrirModal({tipo:"cont"})}>+ Contacto</button>
-          {sub==="incidencias" && (
-            <button className="btn btn-sm" style={{background:"var(--red-dim)",color:"var(--red)",border:"1px solid rgba(248,113,113,0.2)"}}
-              onClick={()=>abrirModal({tipo:"inc"})}>+ Incidencia</button>
-          )}
+
         </div>
       </div>
 
@@ -2495,10 +2525,45 @@ function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setV
       onSave={v=>sv(setCont,cont,v,"cont")} />;
   }
 
-  if(tipo==="inc") return <MF title={data?"✏️ Editar incidencia":"⚠️ Registrar incidencia"} onClose={onClose}
-    fields={[{k:"hora",l:"Hora",t:"time"},{k:"tipo",l:"Tipo",t:"sel",o:["médica","señalización","avituallamiento","corredor perdido","meteorológica","otra"]},{k:"gravedad",l:"Gravedad",t:"sel",o:["baja","media","alta"]},{k:"descripcion",l:"Descripción *",t:"text"},{k:"responsable",l:"Responsable",t:"text"},{k:"estado",l:"Estado",t:"sel",o:["abierta","resuelta"]},{k:"resolucion",l:"Resolución",t:"text"}]}
-    init={data||{hora:new Date().toTimeString().slice(0,5),tipo:"médica",gravedad:"media",descripcion:"",responsable:"",estado:"abierta",resolucion:""}}
-    onSave={v=>sv(setInc,inc,v,"inc")} />;
+  if(tipo==="inc") {
+    const esNueva = !data;
+    const locOpts = (locs && locs.length > 0 ? locs.map(l=>l.nombre) : PUESTOS_REF);
+    const puestosOpts = ["— Sin puesto específico", ...locOpts];
+    return <MF title={esNueva?"⚠️ Registrar incidencia":"✏️ Editar incidencia"} onClose={onClose}
+      fields={[
+        {k:"hora",        l:"Hora",           t:"time"},
+        {k:"puestoNombre",l:"Puesto",          t:"sel", o:puestosOpts},
+        {k:"tipo",        l:"Tipo",            t:"sel", o:["médica","señalización","avituallamiento","corredor perdido","meteorológica","otra"]},
+        {k:"gravedad",    l:"Gravedad",        t:"sel", o:["baja","media","alta"]},
+        {k:"descripcion", l:"Descripción *",   t:"text"},
+        {k:"responsable", l:"Responsable",     t:"text"},
+        ...(esNueva ? [] : [
+          {k:"estado",    l:"Estado",          t:"sel", o:["abierta","resuelta"]},
+          {k:"resolucion",l:"Resolución",       t:"text"},
+        ]),
+      ]}
+      init={data || {
+        hora:         new Date().toTimeString().slice(0,5),
+        creadaEn:     new Date().toISOString(),
+        puestoNombre: "— Sin puesto específico",
+        tipo:         "médica",
+        gravedad:     "media",
+        descripcion:  "",
+        responsable:  "",
+        estado:       "abierta",
+        resolucion:   "",
+      }}
+      onSave={v=>{
+        const loc = locs && locs.find(l => l.nombre === v.puestoNombre);
+        const resueltaAhora = v.estado === "resuelta" && !data?.resueltaEn;
+        sv(setInc, inc, {
+          ...v,
+          puestoId:   loc?.id || null,
+          creadaEn:   data?.creadaEn || v.creadaEn || new Date().toISOString(),
+          resueltaEn: resueltaAhora ? new Date().toISOString() : (data?.resueltaEn || null),
+        }, "inc");
+      }} />;
+  }
 
   if(tipo==="ck") {
     const tareasProy = Array.isArray(modal.tareasProyecto) ? modal.tareasProyecto : [];
