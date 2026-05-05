@@ -105,14 +105,15 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       try {
         const [
           savedTramos, savedConceptos, savedInscritos,
-          savedIngresos, savedMerch, savedMaximos
+          savedIngresos, savedMerch, savedMaximos, savedSyncConfig
         ] = await Promise.all([
           dataService.get("teg_presupuesto_v1_tramos"),
           dataService.get("teg_presupuesto_v1_conceptos"),
           dataService.get("teg_presupuesto_v1_inscritos"),
           dataService.get("teg_presupuesto_v1_ingresosExtra"),
           dataService.get("teg_presupuesto_v1_merchandising"),
-          dataService.get("teg_presupuesto_v1_maximos")
+          dataService.get("teg_presupuesto_v1_maximos"),
+          dataService.get("teg_presupuesto_v1_syncConfig")
         ]);
         if (savedTramos) setTramos(savedTramos);
         if (savedConceptos) {
@@ -124,7 +125,17 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
           })));
         }
         if (savedInscritos) setInscritos(savedInscritos);
-        if (savedIngresos) setIngresosExtra(savedIngresos);
+        if (savedIngresos) {
+          // Normalizar al cargar: alinear ie.activo con syncConfig para evitar estado inconsistente
+          // Si un toggle del panel está activo, la línea debe estar activa y viceversa
+          const sc = savedSyncConfig ?? SYNC_CONFIG_DEFAULT;
+          const normalized = savedIngresos.map(ie => {
+            if (!ie.syncKey) return ie; // manuales: no tocar
+            const syncActive = sc[ie.syncKey] ?? false;
+            return { ...ie, activo: syncActive };
+          });
+          setIngresosExtra(normalized);
+        }
         if (savedMerch) setMerchandising(savedMerch);
         if (savedMaximos) setMaximos(savedMaximos);
       } catch (error) {
