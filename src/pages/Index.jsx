@@ -571,12 +571,14 @@ export default function Index() {
       const docs  = get("teg_documentos_v1", []);
       const gests = get("teg_documentos_v1_gestiones", []);
       const docsV = Array.isArray(docs) ? docs.filter(d =>
-        d.fechaVencimiento && d.estado !== "vigente" &&
+        d.fechaVencimiento && d.estado !== "vigente" && d.estado !== "aprobado" &&
         Math.ceil((new Date(d.fechaVencimiento) - new Date()) / 86400000) < 0
       ).length : 0;
       const gestV = Array.isArray(gests) ? gests.filter(g =>
-        g.estado !== "aprobado" && g.estado !== "denegado" && g.fechaVencimiento &&
-        Math.ceil((new Date(g.fechaVencimiento) - new Date()) / 86400000) < 0
+        // INC-02 fix: incluir denegadas (gestión rechazada = alerta de mayor urgencia)
+        g.estado === "denegado" ||
+        (g.estado !== "aprobado" && g.fechaVencimiento &&
+         Math.ceil((new Date(g.fechaVencimiento) - new Date()) / 86400000) < 0)
       ).length : 0;
       if (docsV + gestV > 0) badges["documentos"] = docsV + gestV;
 

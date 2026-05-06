@@ -38,15 +38,15 @@ const SUBCATEGORIAS = {
 // Gestiones legales predefinidas (registro sin archivo)
 const GESTIONES_DEFAULT = [
   { id:"g1", nombre:"Autorización Ayuntamiento Candeleda", subcategoria:"Ayuntamiento",
-    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Solicitud prevista reunión con alcaldía. Renovar anualmente.", url:"", fechaSubida: new Date(0).toISOString() },
+    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Solicitud prevista reunión con alcaldía. Renovar anualmente.", url:"", fechaSubida: "" },
   { id:"g2", nombre:"Licencia federativa colectiva (FEMM)", subcategoria:"Federación",
-    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Federación Española Montaña y Escalada. Requiere seguro RC previo.", url:"", fechaSubida: new Date(0).toISOString() },
+    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Federación Española Montaña y Escalada. Requiere seguro RC previo.", url:"", fechaSubida: "" },
   { id:"g3", nombre:"Seguro Responsabilidad Civil", subcategoria:"Seguro RC",
-    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Mínimo 600.000 € cobertura. Pedir presupuesto a Mapfre y Allianz.", url:"", fechaSubida: new Date(0).toISOString() },
+    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Mínimo 600.000 € cobertura. Pedir presupuesto a Mapfre y Allianz.", url:"", fechaSubida: "" },
   { id:"g4", nombre:"Autorización Medio Ambiente / JCYL", subcategoria:"Medio Ambiente",
-    estado:"pendiente", fechaVencimiento:"2026-06-30", nota:"Necesaria para uso de montes de utilidad pública.", url:"", fechaSubida: new Date(0).toISOString() },
+    estado:"pendiente", fechaVencimiento:"2026-06-30", nota:"Necesaria para uso de montes de utilidad pública.", url:"", fechaSubida: "" },
   { id:"g5", nombre:"Protocolo Cruz Roja / Servicio médico", subcategoria:"Cruz Roja",
-    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Ambulancia + 2 sanitarios titulados. Confirmar antes del 15 mayo.", url:"", fechaSubida: new Date(0).toISOString() },
+    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Ambulancia + 2 sanitarios titulados. Confirmar antes del 15 mayo.", url:"", fechaSubida: "" },
 ];
 
 // Estados del documento con colores
@@ -56,7 +56,9 @@ const ESTADOS_DOC = [
   { id: "enviado",    label: "Enviado",    color: "#60a5fa", bg: "rgba(96,165,250,0.12)"   },
   { id: "firmado",    label: "Firmado",    color: "#a78bfa", bg: "var(--violet-dim)" },
   { id: "aprobado",   label: "Aprobado",   color: "#34d399", bg: "var(--green-dim)"  },
+  { id: "vigente",    label: "Vigente",    color: "#34d399", bg: "var(--green-dim)"  },
   { id: "denegado",   label: "Denegado",   color: "#f87171", bg: "var(--red-dim)" },
+  { id: "vencido",    label: "Vencido",    color: "#fb923c", bg: "rgba(251,146,60,0.12)" },
 ];
 
 const getEstadoCfg = (id) => ESTADOS_DOC.find(e => e.id === id) || ESTADOS_DOC[0];
@@ -415,6 +417,23 @@ export default function Documentos() {
   });
   const gestionesCriticas = gestiones.filter(g => g.estado === "denegado");
 
+  // Semáforo de riesgo legal global
+  const semaforoRiesgo = (() => {
+    const GESTIONES_CRITICAS_IDS = ["g1","g2","g3"]; // Ayuntamiento, RFEA, Seguro RC
+    const criticas = gestiones.filter(g => GESTIONES_CRITICAS_IDS.includes(g.id));
+    if (criticas.some(g => g.estado === "denegado")) return "rojo";
+    if (criticas.some(g => {
+      const nd = diasHasta(g.fechaVencimiento);
+      return g.estado !== "aprobado" && (nd === null || nd < 0);
+    })) return "rojo";
+    if (criticas.some(g => {
+      const nd = diasHasta(g.fechaVencimiento);
+      return g.estado !== "aprobado" && nd !== null && nd <= 30;
+    })) return "ambar";
+    if (criticas.every(g => g.estado === "aprobado")) return "verde";
+    return "ambar";
+  })();
+
   // Documentos por vencer en <30 días (para alertas)
   const proxVencer = docs.filter(doc => {
     const ndias = diasHasta(doc.fechaVencimiento);
@@ -574,6 +593,20 @@ export default function Documentos() {
             <div className="block-title-sub">{config.nombre} {config.edicion} · Gestión documental</div>
           </div>
           <div className="block-actions">
+            {/* Semáforo de riesgo legal */}
+            <span title={
+              semaforoRiesgo==="verde"?"✅ Permisos críticos OK (Ayuntamiento, RFEA, Seguro RC)":
+              semaforoRiesgo==="ambar"?"⚠️ Algún permiso crítico pendiente o próximo a vencer":
+              "🚨 Permiso crítico denegado o vencido — revisar urgente"
+            } style={{
+              fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,cursor:"help",
+              color: semaforoRiesgo==="verde"?"var(--green)":semaforoRiesgo==="ambar"?"var(--amber)":"var(--red)",
+              background: semaforoRiesgo==="verde"?"var(--green-dim)":semaforoRiesgo==="ambar"?"rgba(251,191,36,.15)":"var(--red-dim)",
+              border:`1px solid ${semaforoRiesgo==="verde"?"rgba(52,211,153,.3)":semaforoRiesgo==="ambar"?"rgba(251,191,36,.3)":"rgba(248,113,113,.3)"}`,
+              borderRadius:6,padding:".2rem .55rem",
+            }}>
+              {semaforoRiesgo==="verde"?"✅ Permisos OK":semaforoRiesgo==="ambar"?"⚠️ Atención":"🚨 Riesgo legal"}
+            </span>
             {/* Alertas de vencimiento en el header */}
             {(vencidos.length + gestionesVencidas.length + gestionesCriticas.length) > 0 && (
               <span className="badge badge-red">
@@ -1247,7 +1280,19 @@ export default function Documentos() {
                     <div style={{display:"flex",gap:".4rem"}}>
                       <button className="btn btn-primary btn-sm" onClick={()=>{
                         if(!gForm.nombre.trim()) return;
-                        saveGestiones(gestiones.map(x=>x.id===g.id?{...x,...gForm}:x));
+                        const prev = gestiones.find(x => x.id === g.id);
+                        const cambioEstado = prev && prev.estado !== gForm.estado;
+                        const entradaHist = cambioEstado ? [{
+                          id:      String(Date.now()),
+                          fecha:   new Date().toISOString(),
+                          campo:   "estado",
+                          antes:   prev.estado,
+                          despues: gForm.estado,
+                        }] : [];
+                        saveGestiones(gestiones.map(x => x.id === g.id
+                          ? { ...x, ...gForm, historial: [...(x.historial||[]), ...entradaHist].slice(-30) }
+                          : x
+                        ));
                         setGEditId(null);
                       }}>✅ Guardar</button>
                       <button className="btn btn-ghost btn-sm" onClick={()=>setGEditId(null)}>Cancelar</button>
