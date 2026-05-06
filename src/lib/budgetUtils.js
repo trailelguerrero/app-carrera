@@ -264,46 +264,55 @@ export const calculateResultadoFinanciero = ({
   pats = [], ingresosExtra = [],
   camPedidos = [], camCoste = { corredor: 7.5, voluntario: 7.5 },
   merchandising = [],
-  syncConfig = { patrocinios: true, patrociniosCobrado: false, camisetas: true },
+  syncConfig = { patrocinios: true, patrociniosCobrado: false, camisetas: true, subvencionPublica: true },
 }) => {
-  // ── Patrocinios + ingresos extra ─────────────────────────────────────────
-  // BUG-02 fix: respetar también el toggle patrociniosCobrado
-  // Si patrociniosCobrado está activo, usar importeCobrado real (tesorería exacta)
-  // Si patrocinios está activo, usar importe comprometido (confirmado + cobrado)
-  // Replica exactamente la lógica de useBudgetLogic:
-  // - línea id=1 (patrocinios synced): si syncConfig.patrocinios, valor = suma de pats confirmados/cobrados
-  // - línea id=2 (camisetas synced): gestionado más abajo via totalMerchBeneficio
-  // - líneas manuales (id≥10): se suman siempre si están activas y tienen valor
-  let patSyncado = 0;
-  if (syncConfig.patrociniosCobrado) {
-    patSyncado = pats
-      .filter(p => !p.especie && p.estado === "cobrado")
-      .reduce((s, p) => s + getImporteCobrado(p), 0);
-  } else if (syncConfig.patrocinios) {
-    patSyncado = pats
-      .filter(p => !p.especie && (p.estado === "cobrado" || p.estado === "confirmado"))
-      .reduce((s, p) => s + (p.importe || 0), 0);
-  } else {
-    patSyncado = ingresosExtra.find(i => i.id === 1 && i.activo)?.valor || 0;
-  }
-  const ingresosManuales = ingresosExtra
-    .filter(i => i.activo && !i.synced && i.id !== 1 && i.id !== 2 && i.id !== 3)
-    .reduce((s, i) => s + (i.valor || 0), 0);
-  const totalIngresosExtra = patSyncado + ingresosManuales;
+  // ── Fuente única de verdad: se usa ingresosExtra.activo como campo canónico ──
+  // ingresosExtra.activo ES la fuente de verdad del toggle del usuario
+  // toggleSync actualiza ie.activo Y syncConfig a la vez (via TabIngresos.toggleSync)
+  // Dashboard lee ingresosExtra de localStorage que ya tiene activo correcto
+  
+  // Calcular valores actualizados para líneas sincronizadas (en caso de que venga desde Dashboard
+  // donde ingresosExtra puede estar desactualizado respecto a los cálculos en vivo)
+  const getSyncedValor = (ie) => {
+    if (!ie.syncKey) return ie.valor;
+    if (ie.syncKey === "patrocinios") {
+      return pats.filter(p => !p.especie).reduce((s, p) => s + getImporteComprometido(p), 0);
+    }
+    if (ie.syncKey === "patrociniosCobrado") {
+      return pats.filter(p => !p.especie && p.estado === "cobrado").reduce((s, p) => s + getImporteCobrado(p), 0);
+    }
+    if (ie.syncKey === "subvencionPublica") {
+      return pats.filter(p => p.sector === "Administración pública" && !p.especie).reduce((s, p) => s + getImporteComprometido(p), 0);
+    }
+    if (ie.syncKey === "camisetas") {
+      // Se calcula abajo con la lógica de camisetas
+      return ie.valor; // placeholder, se recalcula abajo
+    }
+    return ie.valor;
+  };
 
-  // ── Camisetas (merchandising) ─────────────────────────────────────────────
+  // ── Suma todos los ingresos extra activos (respetando ie.activo del usuario) ──
+  const totalIngresosExtra = ingresosExtra
+    .filter(ie => ie.activo && ie.syncKey !== "camisetas") // camisetas se suma por separado
+    .reduce((s, ie) => s + getSyncedValor(ie), 0);
+
+  // ── Camisetas (merchandising) — solo si syncKey="camisetas" activo ────────
+  const camisetasIe = ingresosExtra.find(ie => ie.syncKey === "camisetas");
+  const camisetasActivo = camisetasIe ? camisetasIe.activo : (syncConfig.camisetas ?? true);
   let totalMerchBeneficio = 0;
-  if (syncConfig.camisetas) {
-    const lineas     = (Array.isArray(camPedidos) ? camPedidos : []).flatMap(p => Array.isArray(p.lineas) ? p.lineas : []);
-    const ingresos   = lineas.filter(l => l.estadoPago === "pagado").reduce((s, l) => s + (l.precioVenta || 0) * (l.cantidad || 0), 0);
-    const costes     = lineas.filter(l => l.estadoPago === "pagado" || l.estadoPago === "pendiente")
-                             .reduce((s, l) => s + ((camCoste[l.tipo] ?? 7.5) * (l.cantidad || 0)), 0);
+  if (camisetasActivo) {
+    const lineas   = (Array.isArray(camPedidos) ? camPedidos : []).flatMap(p => Array.isArray(p.lineas) ? p.lineas : []);
+    const ingresos = lineas.filter(l => l.estadoPago === "pagado").reduce((s, l) => s + (l.precioVenta || 0) * (l.cantidad || 0), 0);
+    const costes   = lineas.filter(l => l.estadoPago === "pagado" || l.estadoPago === "pendiente")
+                           .reduce((s, l) => s + ((camCoste[l.tipo] ?? 7.5) * (l.cantidad || 0)), 0);
     totalMerchBeneficio = ingresos - costes;
-  } else {
-    const merch = Array.isArray(merchandising) ? merchandising : [];
-    const ingresos = merch.filter(m => m.activo).reduce((s, m) => s + m.unidades * m.precioVenta, 0);
-    const costes   = merch.filter(m => m.activo).reduce((s, m) => s + m.unidades * m.costeUnitario, 0);
-    totalMerchBeneficio = ingresos - costes;
+    // Fallback: si no hay pedidos, usar el modelo simple de merchandising
+    if (totalMerchBeneficio === 0 && Array.isArray(merchandising) && merchandising.length > 0) {
+      const merch = merchandising.filter(m => m.activo);
+      const mi = merch.reduce((s, m) => s + m.unidades * m.precioVenta, 0);
+      const mc = merch.reduce((s, m) => s + m.unidades * m.costeUnitario, 0);
+      totalMerchBeneficio = mi - mc;
+    }
   }
 
   const totalOtrosIngresos  = totalIngresosExtra + totalMerchBeneficio;

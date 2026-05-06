@@ -86,31 +86,33 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     return ingresos - costeFab;
   }, [rawCamPedidos, rawCamCoste, syncConfig.camisetas]);
 
-  // ── Sincronización: actualizar ingresosExtra con valores calculados de otros bloques ──
-  // Se ejecuta cuando cambian los totales O la configuración de sync
+  // ── Sincronización: actualizar ingresosExtra con valores Y activo desde syncConfig ──
+  // Se ejecuta cuando cambian los valores calculados O la configuración de sync
+  // syncConfig es la fuente de verdad del toggle — ie.activo debe ser coherente con él
   useEffect(() => {
     setIngresosExtra(prev => prev.map(ie => {
       // Routing por syncKey (nuevo) o por id (legado)
       const key = ie.syncKey || (ie.id === 1 ? "patrocinios" : ie.id === 2 ? "camisetas" : null);
+      if (!key) return { ...ie, synced: false }; // manual: no tocar
+      
+      // Alinear activo con syncConfig (fuente de verdad del toggle del usuario)
+      const syncActivo = syncConfig[key] ?? ie.activo;
 
       if (key === "patrocinios") {
-        // Siempre actualizar el valor calculado; el toggle activo/inactivo lo controla el usuario
-        return { ...ie, valor: totalPatConfirmado, synced: true };
+        return { ...ie, valor: totalPatConfirmado, activo: syncActivo, synced: true };
       }
       if (key === "patrociniosCobrado") {
-        return { ...ie, valor: totalPatCobrado, synced: true };
+        return { ...ie, valor: totalPatCobrado, activo: syncActivo, synced: true };
       }
       if (key === "camisetas") {
-        return { ...ie, valor: totalMerchBeneficio, synced: true };
+        return { ...ie, valor: totalMerchBeneficio, activo: syncActivo, synced: true };
       }
       if (key === "subvencionPublica") {
-        // Sincronizado desde Patrocinadores: sector "Administración pública"
-        return { ...ie, valor: totalSubvencionPublica, synced: true };
+        return { ...ie, valor: totalSubvencionPublica, activo: syncActivo, synced: true };
       }
-      // Para ítems manuales: nunca tocar el valor ni marcar synced
       return { ...ie, synced: false };
     }));
-  }, [totalPatConfirmado, totalPatCobrado, totalMerchBeneficio, totalSubvencionPublica]);
+  }, [totalPatConfirmado, totalPatCobrado, totalMerchBeneficio, totalSubvencionPublica, syncConfig]);
 
   useEffect(() => {
     const loadData = async () => {

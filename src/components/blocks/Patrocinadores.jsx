@@ -444,6 +444,7 @@ export default function App() {
         <ModalDetalle key={modal.data.id} pat={pats.find(p=>p.id===modal.data.id)||modal.data}
           onClose={() => setModal(null)}
           onEditar={() => setModal({tipo:"pat",data:pats.find(p=>p.id===modal.data.id)||modal.data})}
+          onDelete={(id) => { setModal(null); setDelId(id); }}
           updateContraprestacion={updateContraprestacion} addContraprestacion={addContraprestacion}
           deleteContraprestacion={deleteContraprestacion} updateEstado={updateEstado}
           addDoc={addDoc} deleteDoc={deleteDoc}
@@ -955,6 +956,13 @@ function TabPatrocinadores({ pats, todosLen, search, setSearch, filtroNivel, set
                       + Contraprestación
                     </button>
                   )}
+                  {onDelete && (
+                    <button className="btn btn-sm btn-red"
+                      title="Eliminar patrocinador"
+                      onClick={e=>{e.stopPropagation();onDelete(p.id);}}>
+                      🗑 Eliminar
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -1287,7 +1295,7 @@ function TabContraprestaciones({ pats, updateContraprestacion, addContraprestaci
 }
 
 // ─── MODAL DETALLE ────────────────────────────────────────────────────────────
-function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContraprestacion, deleteContraprestacion, updateEstado, addDoc, deleteDoc, addEspecieItem, updateEspecieItem, deleteEspecieItem, config = {} }) {
+function ModalDetalle({ pat, onClose, onEditar, onDelete, updateContraprestacion, addContraprestacion, deleteContraprestacion, updateEstado, addDoc, deleteDoc, addEspecieItem, updateEspecieItem, deleteEspecieItem, config = {} }) {
   const { closing: detClosing, handleClose: detHandleClose } = useModalClose(onClose);
   const cfg = getCfg(pat.nivel);
   const ecfg = ESTADO_CFG[pat.estado];
@@ -1317,6 +1325,7 @@ function ModalDetalle({ pat, onClose, onEditar, updateContraprestacion, addContr
             </div>
             <div style={{ display: "flex", gap: ".4rem" }}>
               {subTab === "info" && <button className="btn btn-sm btn-ghost" onClick={onEditar}>✏️ Editar patrocinador</button>}
+              {subTab === "info" && onDelete && <button className="btn btn-sm btn-red" onClick={() => onDelete(pat.id)} style={{marginLeft:".3rem"}}>🗑 Eliminar</button>}
               {subTab === "historial" && (() => {
                 const hist = Array.isArray(pat.historial) ? [...pat.historial].reverse() : [];
                 return (
