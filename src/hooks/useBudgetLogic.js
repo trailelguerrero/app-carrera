@@ -66,6 +66,14 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       .reduce((s, p) => s + getImporteCobrado(p), 0);
   }, [rawPats]);
 
+  // Subvenciones de entidad pública: suma de patrocinadores con sector "Administración pública"
+  const totalSubvencionPublica = useMemo(() => {
+    const pats = Array.isArray(rawPats) ? rawPats : [];
+    return pats
+      .filter(p => p.sector === "Administración pública" && !p.especie)
+      .reduce((s, p) => s + getImporteComprometido(p), 0);
+  }, [rawPats]);
+
   const totalMerchBeneficio = useMemo(() => {
     if (!syncConfig.camisetas) return 0;
     const pedidos = Array.isArray(rawCamPedidos) ? rawCamPedidos : [];
@@ -95,10 +103,14 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       if (key === "camisetas") {
         return { ...ie, valor: totalMerchBeneficio, synced: true };
       }
+      if (key === "subvencionPublica") {
+        // Sincronizado desde Patrocinadores: sector "Administración pública"
+        return { ...ie, valor: totalSubvencionPublica, synced: true };
+      }
       // Para ítems manuales: nunca tocar el valor ni marcar synced
       return { ...ie, synced: false };
     }));
-  }, [totalPatConfirmado, totalPatCobrado, totalMerchBeneficio]);
+  }, [totalPatConfirmado, totalPatCobrado, totalMerchBeneficio, totalSubvencionPublica]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -342,6 +354,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     tab, setTab, tramos, setTramos,
     totalPatConfirmado, totalPatCobrado, totalMerchBeneficio,
     syncConfig, setSyncConfig,
+    totalSubvencionPublica,
     margenConfig, setMargenConfig,
     conceptos, setConceptos,
     inscritos, setInscritos,

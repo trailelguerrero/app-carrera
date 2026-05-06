@@ -69,7 +69,8 @@ export const INGRESOS_EXTRA_DEFAULT = [
   { id: 3,  nombre: "Patrocinios cobrados (tesorería real)",     valor: 0, activo: false, synced: true,  syncKey: "patrociniosCobrado" },
   { id: 2,  nombre: "Merchandising (neto de ventas)",            valor: 0, activo: true,  synced: true,  syncKey: "camisetas" },
   // ── Ingresos manuales — editar directamente ────────────────────────────────
-  { id: 10, nombre: "Subvención entidad pública",                valor: 0, activo: true,  synced: false },
+  // Sincronizada desde patrocinadores con sector "Administración pública"
+  { id: 10, nombre: "Subvención entidad pública",                valor: 0, activo: true,  synced: true,  syncKey: "subvencionPublica" },
   { id: 11, nombre: "Colaboradores en especie (valor estimado)", valor: 0, activo: false, synced: false },
   { id: 12, nombre: "Otros ingresos",                           valor: 0, activo: false, synced: false },
 ];
@@ -77,7 +78,8 @@ export const INGRESOS_EXTRA_DEFAULT = [
 export const SYNC_CONFIG_DEFAULT = {
   patrocinios: true,          // Captado (confirmado + cobrado)
   patrociniosCobrado: true,   // Solo cobrado (tesorería real)
-  camisetas: true
+  camisetas: true,
+  subvencionPublica: true   // Patrocinadores con sector "Administración pública"
 };
 
 export const MERCHANDISING_DEFAULT = [

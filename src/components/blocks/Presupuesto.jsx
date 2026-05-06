@@ -133,6 +133,7 @@ const Presupuesto = () => {
     totalPatConfirmado,
     totalPatCobrado,
     totalMerchBeneficio,
+    totalSubvencionPublica,
     syncConfig, setSyncConfig,
     margenConfig, setMargenConfig,
     ingresosDesglosados,
@@ -472,6 +473,7 @@ const Presupuesto = () => {
               totalPatConfirmado={totalPatConfirmado}
               totalPatCobrado={totalPatCobrado}
               totalMerchBeneficio={totalMerchBeneficio}
+              totalSubvencionPublica={totalSubvencionPublica}
               syncConfig={syncConfig}
               setSyncConfig={setSyncConfig}
             />

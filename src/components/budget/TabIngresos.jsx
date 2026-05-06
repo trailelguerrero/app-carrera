@@ -15,7 +15,8 @@ export const TabIngresos = ({
   totalPatConfirmado = 0,
   totalPatCobrado = 0,
   totalMerchBeneficio = 0,
-  syncConfig = { patrocinios: true, patrociniosCobrado: true, camisetas: true },
+  totalSubvencionPublica = 0,
+  syncConfig = { patrocinios: true, patrociniosCobrado: true, camisetas: true, subvencionPublica: true },
   setSyncConfig,
 }) => {
   // Helper: sincronizar el toggle del panel con ie.activo en la tabla
@@ -163,6 +164,30 @@ export const TabIngresos = ({
               </button>
             </div>
           </div>
+          {/* Subvención entidad pública */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "0.55rem 0.75rem", borderRadius: 8, background: "var(--surface2)",
+            border: `1px solid ${syncConfig.subvencionPublica ? "var(--violet-border)" : "var(--border)"}` }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: "var(--fs-sm)", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                🏛️ Subvenciones entidad pública
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--violet)",
+                  background: "var(--violet-dim)", padding: "0.1rem 0.35rem", borderRadius: 3 }}>
+                  Administración pública
+                </span>
+              </div>
+              <div style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: "0.15rem" }}>
+                Suma de patrocinadores con sector "Administración pública"
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 800,
+                color: syncConfig.subvencionPublica ? "var(--violet)" : "var(--text-dim)" }}>
+                {totalSubvencionPublica.toLocaleString("es-ES", { minimumFractionDigits: 0 })} €
+              </span>
+              <Toggle value={syncConfig.subvencionPublica} onChange={v => toggleSync("subvencionPublica", v)} />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -217,6 +242,7 @@ export const TabIngresos = ({
                         const origenLabel = ie.syncKey === "patrocinios" ? "Bloque Patrocinadores (captado)"
                           : ie.syncKey === "patrociniosCobrado" ? "Bloque Patrocinadores (cobrado real)"
                           : ie.syncKey === "camisetas" ? "Bloque Camisetas"
+                          : ie.syncKey === "subvencionPublica" ? "Patrocinadores — sector Administración pública"
                           : "Sincronizado";
                         return (
                           <span title={`Valor calculado automáticamente desde: ${origenLabel}.\nActívalo/desactívalo con el toggle del panel de Sincronización de arriba o con este mismo toggle.`}
@@ -236,6 +262,7 @@ export const TabIngresos = ({
                             const origen = ie.syncKey === 'patrocinios' ? 'Patrocinadores (total captado: confirmado+cobrado)'
                               : ie.syncKey === 'patrociniosCobrado' ? 'Patrocinadores (solo cobrado: tesorería real)'
                               : ie.syncKey === 'camisetas' ? 'Camisetas (beneficio neto de ventas)'
+                              : ie.syncKey === 'subvencionPublica' ? 'Patrocinadores con sector Administración pública'
                               : 'otro bloque';
                             return `Valor sincronizado desde ${origen}.\nPuedes desactivarlo aquí o en el panel de Sincronización.`;
                           })()}
