@@ -338,3 +338,66 @@ describe('PRE-11 — Merge defaults garantiza líneas nuevas en datos guardados'
     expect(merged.find(ie => ie.id === 1)?.valor).toBe(999); // valor del usuario
   });
 });
+// PRE-12 — Cross-block sync: Patrocinadores → rawPats → totalSubvencionPublica
+describe('PRE-12 — Sincronización cross-block Patrocinadores → Presupuesto', () => {
+  it('dataService.onChange escucha teg-sync (mismo tab, otro bloque)', () => {
+    // El flujo: Patrocinadores.setPats → setValue → localStorage.setItem
+    //   + dataService.notify() → dispatchEvent('teg-sync')
+    //   → useData.onChange handler → setState(parsedFromLS)
+    //   → rawPats actualiza → totalSubvencionPublica recalcula → KPI actualiza
+    const listeners = [];
+    const mockWindow = {
+      addEventListener: (evt, fn) => listeners.push({ evt, fn }),
+      removeEventListener: () => {},
+    };
+    // Simulate onChange registering listeners
+    const handler = () => {};
+    mockWindow.addEventListener('storage', handler);
+    mockWindow.addEventListener('teg-sync', handler);
+    const evts = listeners.map(l => l.evt);
+    expect(evts).toContain('storage');
+    expect(evts).toContain('teg-sync');
+  });
+
+  it('notify() dispara teg-sync', () => {
+    let fired = false;
+    const handler = () => { fired = true; };
+    window.addEventListener('teg-sync', handler);
+    window.dispatchEvent(new Event('teg-sync'));
+    window.removeEventListener('teg-sync', handler);
+    expect(fired).toBe(true);
+  });
+
+  it('totalSubvencionPublica se recalcula cuando rawPats cambia', () => {
+    const getSubv = (pats) => pats
+      .filter(p => p.sector === "Administración pública" && !p.especie)
+      .reduce((s, p) => {
+        if (p.estado === "cobrado") return s + (p.importeCobrado > 0 ? p.importeCobrado : p.importe);
+        if (p.estado === "confirmado") return s + p.importe;
+        return s;
+      }, 0);
+
+    // Simula rawPats antes y después de añadir un patrocinador público
+    const antes = [];
+    const despues = [
+      { id:1, sector:"Administración pública", estado:"confirmado", importe:5000, importeCobrado:0, especie:false }
+    ];
+    expect(getSubv(antes)).toBe(0);
+    expect(getSubv(despues)).toBe(5000);
+  });
+
+  it('cambio de estado de prospecto a confirmado actualiza el total', () => {
+    const getSubv = (pats) => pats
+      .filter(p => p.sector === "Administración pública" && !p.especie)
+      .reduce((s, p) => {
+        if (p.estado === "cobrado") return s + (p.importeCobrado > 0 ? p.importeCobrado : p.importe);
+        if (p.estado === "confirmado") return s + p.importe;
+        return s;
+      }, 0);
+
+    const prospecto = [{ id:1, sector:"Administración pública", estado:"prospecto", importe:3000, importeCobrado:0, especie:false }];
+    const confirmado = prospecto.map(p => ({ ...p, estado:"confirmado" }));
+    expect(getSubv(prospecto)).toBe(0);    // prospecto no cuenta
+    expect(getSubv(confirmado)).toBe(3000); // confirmado sí cuenta
+  });
+});

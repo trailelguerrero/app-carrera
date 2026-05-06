@@ -301,12 +301,15 @@ const dataService = {
    * @returns {Function} unsubscribe
    */
   onChange: (callback) => {
-    // Solo 'storage' (cambios desde otras pestañas) — NO teg-sync para evitar bucles
-    // Los bloques se actualizan por setState inmediato en setValue; no necesitan releer
+    // Escuchar tanto 'storage' (otras pestañas) como 'teg-sync' (mismo tab, otro bloque)
+    // teg-sync se dispara cuando un bloque llama dataService.notify()
+    // Necesario para que rawPats en useBudgetLogic se actualice cuando Patrocinadores guarda
     const handler = () => callback();
     window.addEventListener('storage', handler);
+    window.addEventListener('teg-sync', handler);
     return () => {
       window.removeEventListener('storage', handler);
+      window.removeEventListener('teg-sync', handler);
     };
   },
 

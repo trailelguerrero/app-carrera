@@ -290,6 +290,7 @@ export default function App() {
     setPats(prev => prev.filter(p => p.id !== delId));
     setDelId(null);
     toast.success("Patrocinador eliminado");
+    dataService.notify(); // Sincronizar con Presupuesto tras eliminación
   };
 
   const updateEstado = (id, estado) => {
