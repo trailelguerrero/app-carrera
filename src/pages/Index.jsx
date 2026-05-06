@@ -133,9 +133,9 @@ function useMobileKeyboardScroll() {
 // ── AUTOSAVE INDICATOR ─────────────────────────────────────────────────────────
 function AutosaveIndicator({ status }) {
   const cfg = {
-    saving: { color: "#d97706", border: "rgba(217,119,6,0.25)",  bg: "rgba(217,119,6,0.07)",   text: "Guardando…",      pulse: true },
-    saved:  { color: "#059669", border: "rgba(5,150,105,0.25)",  bg: "rgba(5,150,105,0.07)",   text: "✓ Guardado",      pulse: false },
-    error:  { color: "#dc2626", border: "rgba(220,38,38,0.25)",  bg: "rgba(220,38,38,0.07)",   text: "Error al guardar", pulse: false },
+    saving: { color: "var(--amber)", border: "var(--amber-border)",  bg: "var(--amber-dim)",   text: "Guardando…",      pulse: true },
+    saved:  { color: "var(--green)", border: "rgba(5,150,105,0.25)",  bg: "rgba(5,150,105,0.07)",   text: "✓ Guardado",      pulse: false },
+    error:  { color: "var(--red)", border: "rgba(220,38,38,0.25)",  bg: "rgba(220,38,38,0.07)",   text: "Error al guardar", pulse: false },
   };
   const c = cfg[status];
   if (!c) return null;
@@ -290,7 +290,7 @@ function PinScreen({ onUnlock }) {
         </div>
 
         <div style={{ height: "1.2rem", fontFamily: "var(--font-mono)",
-          fontSize: "var(--fs-xs)", color: "#dc2626", marginBottom: "1.5rem" }}>{hint}</div>
+          fontSize: "var(--fs-xs)", color: "var(--red)", marginBottom: "1.5rem" }}>{hint}</div>
 
         <Numpad onDigit={handleDigit} onBackspace={handleBackspace} />
 
@@ -366,7 +366,7 @@ function ChangePinModal({ onClose }) {
         {ok ? (
           <div style={{ animation: "teg-fadein-scale 0.25s ease" }}>
             <div style={{ fontSize: "var(--fs-xl)", marginBottom: "0.5rem" }}>✅</div>
-            <div style={{ color: "#059669", fontWeight: 800, fontSize: "var(--fs-md)" }}>PIN actualizado</div>
+            <div style={{ color: "var(--green)", fontWeight: 800, fontSize: "var(--fs-md)" }}>PIN actualizado</div>
           </div>
         ) : (
           <>
@@ -380,7 +380,7 @@ function ChangePinModal({ onClose }) {
               <PinDots count={4} filled={input.length} />
             </div>
             <div style={{ height: "1rem", fontFamily: "var(--font-mono)",
-              fontSize: "var(--fs-xs)", color: "#dc2626", marginBottom: "1rem" }}>{error}</div>
+              fontSize: "var(--fs-xs)", color: "var(--red)", marginBottom: "1rem" }}>{error}</div>
             <Numpad onDigit={handleDigit} onBackspace={handleBackspace} />
             <button onClick={onClose} style={{ marginTop: "1.25rem", background: "none",
               border: "none", color: "var(--teg-text-muted)", cursor: "pointer", fontFamily: "var(--font-mono)",
@@ -712,7 +712,7 @@ export default function Index() {
                 fontFamily:"'Syne', 'Inter', system-ui, sans-serif",
                 fontWeight:800,
                 fontSize: isMobile ? "0.85rem" : "0.95rem",
-                color:"#f0f4ff",
+                color:"var(--text)",
                 letterSpacing:"-0.01em",
                 whiteSpace:"nowrap",
                 display:"block",
@@ -744,7 +744,7 @@ export default function Index() {
 
             {(mostrarBtnDiaD || mostrarBtnDiaDProminente) && (
               <button onClick={() => setShowDiaCarrera(true)} style={{
-                background:"rgba(248,113,113,0.12)", color:"#f87171",
+                background:"rgba(248,113,113,0.12)", color:"var(--red)",
                 border:"1px solid rgba(248,113,113,0.3)", borderRadius:8,
                 padding:"0.2rem 0.45rem",
                 fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
@@ -894,11 +894,11 @@ export default function Index() {
                     <span style={{
                       position:"absolute", top:-3, right:-5,
                       minWidth:13, height:13, borderRadius:7,
-                      background:"#f87171", color:"#fff",
+                      background:"var(--red)", color:"#fff",
                       fontSize:"var(--fs-2xs)", fontWeight:800,
                       display:"flex", alignItems:"center", justifyContent:"center",
                       padding:"0 3px", lineHeight:1,
-                      fontFamily:"monospace", border:"1.5px solid var(--bg)",
+                      fontFamily:"var(--font-mono)", border:"1.5px solid var(--bg)",
                       zIndex:10,
                     }}>
                       {typeof alertasBadges[b.id] === "number" ? alertasBadges[b.id] : "!"}
@@ -921,6 +921,36 @@ export default function Index() {
               </button>
             );
           })}
+
+          {/* Botón DÍA D directo en la nav inferior cuando es inminente */}
+          {isMobile && mostrarBtnDiaD && (
+            <button
+              onClick={() => setShowDiaCarrera(true)}
+              aria-label="Abrir DíaCarrera"
+              style={{
+                position:"relative", outline:"none", background:"none", border:"none",
+                WebkitTapHighlightColor:"transparent",
+                minHeight: NAV_H - 4, cursor:"pointer",
+                display:"flex", flexDirection:"column", alignItems:"center",
+                justifyContent:"center", gap:2, padding:"0 .5rem", flexShrink:0,
+              }}
+            >
+              <span style={{
+                fontSize:"1.35rem",
+                filter: mostrarBtnDiaDProminente
+                  ? "drop-shadow(0 0 6px rgba(34,211,238,0.7))"
+                  : "grayscale(0.3) opacity(0.75)",
+                transition:"all 0.25s", position:"relative", zIndex:1,
+              }}>🏔️</span>
+              <span style={{
+                fontFamily:"var(--font-mono)", fontSize:"0.48rem",
+                fontWeight:800, letterSpacing:"0.07em", textTransform:"uppercase",
+                color: mostrarBtnDiaDProminente ? "var(--cyan)" : "var(--text-muted)",
+                textShadow: mostrarBtnDiaDProminente ? "0 0 10px rgba(34,211,238,0.45)" : "none",
+                transition:"color 0.2s", position:"relative", zIndex:1,
+              }}>DÍA D</span>
+            </button>
+          )}
 
           {/* Botón "Más" — solo en mobile */}
           {isMobile && navMore.length > 0 && (
@@ -1022,11 +1052,11 @@ export default function Index() {
                            <span style={{
                              position:"absolute", top:-2, right:-4,
                              minWidth:13, height:13, borderRadius:7,
-                             background:"#f87171", color:"#fff",
+                             background:"var(--red)", color:"#fff",
                              fontSize:"var(--fs-2xs)", fontWeight:800,
                              display:"flex", alignItems:"center", justifyContent:"center",
                              padding:"0 3px", lineHeight:1,
-                             fontFamily:"monospace", border:"1.5px solid var(--bg)",
+                             fontFamily:"var(--font-mono)", border:"1.5px solid var(--bg)",
                            }}>
                              {typeof alertasBadges[b.id] === "number" ? alertasBadges[b.id] : "!"}
                            </span>

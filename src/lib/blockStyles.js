@@ -15,7 +15,7 @@ export const BLOCK_CSS = `
     --border-light: #2a4070;
     --text:         #f0f4ff;
     --text-muted:   #7a8fb0;
-    --text-dim:     #4a5e80;
+    --text-dim:     #7a92b8;  /* ratio >= 4.5:1 sobre surface2 */
     --cyan:         #22d3ee;  --cyan-dim:   rgba(34,211,238,0.10);  --cyan-border:   rgba(34,211,238,0.28);
     --violet:       #a78bfa;  --violet-dim: rgba(167,139,250,0.10); --violet-border: rgba(167,139,250,0.28);
     --green:        #34d399;  --green-dim:  rgba(52,211,153,0.10);  --green-border:  rgba(52,211,153,0.28);
@@ -30,13 +30,13 @@ export const BLOCK_CSS = `
     /* Kinetik: acento de línea en cards */
     --card-accent-width: 3px;
     /* ── Escala tipográfica 7 pasos — fuente única de verdad ──────────── */
-    --fs-2xs: 0.62rem;  /* badges, separadores ultra-pequeños            */
-    --fs-xs:  0.70rem;  /* metadatos, timestamps, help text               */
-    --fs-sm:  0.75rem;  /* labels de formulario, celdas de tabla          */
-    --fs-base:0.82rem;  /* texto de contenido, listas, descripciones      */
-    --fs-md:  0.95rem;  /* títulos de sección secundaria, botones         */
-    --fs-lg:  1.20rem;  /* títulos de módulo, KPI labels                  */
-    --fs-xl:  2.20rem;  /* KPI values grandes, métricas destacadas        */
+    --fs-2xs: 0.68rem;  /* badges, separadores ultra-pequeños (antes 0.62) */
+    --fs-xs:  0.75rem;  /* metadatos, timestamps, help text (antes 0.70)   */
+    --fs-sm:  0.82rem;  /* labels de formulario, celdas de tabla (antes 0.75) */
+    --fs-base:0.90rem;  /* texto de contenido, listas, descripciones (antes 0.82) */
+    --fs-md:  1.00rem;  /* títulos de sección secundaria, botones (antes 0.95) */
+    --fs-lg:  1.25rem;  /* títulos de módulo, KPI labels                   */
+    --fs-xl:  2.20rem;  /* KPI values grandes, métricas destacadas         */
   }
 
 
@@ -571,6 +571,15 @@ export const BLOCK_CSS = `
     min-height: 44px;
     position: relative;
     -webkit-tap-highlight-color: transparent;
+  }
+  /* Focus-visible accesible — outline cyan en lugar del default del navegador */
+  .btn:focus-visible,
+  .inp:focus-visible,
+  .tab-btn:focus-visible,
+  .filter-pill:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 2px;
   }
   .btn:active:not(:disabled) { transform: scale(0.96); }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }

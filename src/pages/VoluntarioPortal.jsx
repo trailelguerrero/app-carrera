@@ -71,6 +71,9 @@ const CSS = `
   html { -webkit-text-size-adjust: 100%; }
   body { background: #08091a; color: #f0f4ff;
     font-family: 'Syne', 'Inter', system-ui, sans-serif; min-height: 100dvh; }
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--cyan); outline-offset: 2px;
+  }
   /* Tokens completos — portal es página independiente sin BLOCK_CSS */
   :root {
     --bg: #08091a; --bg2: #0f172a;
@@ -86,8 +89,8 @@ const CSS = `
     --r:   12px; --r-sm: 8px;
     --font-display: 'Syne', sans-serif;
     --font-mono:    'DM Mono', 'Courier New', monospace;
-    --fs-xs:   0.85rem; --fs-sm: 0.92rem; --fs-base: 1.02rem;
-    --fs-md:   1.12rem; --fs-lg: 1.3rem;  --fs-xl:   1.6rem;
+    --fs-xs:   0.875rem; --fs-sm: 0.9375rem; --fs-base: 1.0rem;
+    --fs-md:   1.125rem; --fs-lg: 1.3rem;   --fs-xl:   1.6rem;
   }
 
   /* ── Layout ── */
@@ -997,9 +1000,10 @@ function PortalMain({ token, onLogout }) {
             <button onClick={() => { clearSession(); onLogout(); }}
               title="Cerrar sesión"
               style={{ background:"rgba(248,113,113,.1)", border:"1px solid rgba(248,113,113,.25)",
-                borderRadius:6, cursor:"pointer", fontFamily:"var(--font-mono)",
-                fontSize:".62rem", color:"var(--red)", padding:".2rem .45rem",
-                fontWeight:700, letterSpacing:".02em" }}>
+                borderRadius:8, cursor:"pointer", fontFamily:"var(--font-mono)",
+                fontSize:".7rem", color:"var(--red)", padding:".4rem .7rem",
+                fontWeight:700, letterSpacing:".02em",
+                minHeight:"44px", display:"flex", alignItems:"center" }}>
               Salir
             </button>
             <button onClick={() => fetchData(true)}
