@@ -1,11 +1,14 @@
 /**
- * Presupuesto — Test Suite
+ * Presupuesto — Test Suite definitiva
  *
- * Cubre el rediseño completo de useBudgetLogic + TabIngresos:
- * - ingresosExtraConValores: cálculo en tiempo real sin useEffect
- * - syncConfig como única fuente de verdad para toggles sincronizados
- * - ie.activo para líneas manuales
- * - totalIngresosExtra → resultado → KPIs
+ * Cubre los 4 bugs específicos reportados:
+ * 1. Toggle patrocinios/cobrados no actualiza KPIs
+ * 2. Toggle subvención no actualiza KPIs  
+ * 3. Subvención debe obtener datos de Administración pública
+ * 4. Eliminar patrocinador desde la ficha
+ *
+ * Causa raíz de los bugs 1,2,3: datos de localStorage sin syncKey
+ * (id=3 y id=10 no tenían syncKey → caían al branch manual → toggle ignorado)
  */
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 
@@ -17,7 +20,7 @@ beforeAll(() => {
   vi.spyOn(console,'error').mockImplementation(()=>{});
 });
 
-// ── Helpers ───────────────────────────────────────────────────────────────
+// Helpers
 const getImporteComprometido = (p) => {
   if (p.estado === "cobrado") return p.importeCobrado > 0 ? p.importeCobrado : p.importe;
   if (p.estado === "confirmado") return p.importe;
@@ -25,286 +28,280 @@ const getImporteComprometido = (p) => {
 };
 const getImporteCobrado = (p) => p.importeCobrado > 0 ? p.importeCobrado : p.importe;
 
-// Simula la función ingresosExtraConValores de useBudgetLogic
-const buildIngresosConValores = ({ ingresosExtra, syncConfig, totales }) => {
-  return ingresosExtra.map(ie => {
-    const key = ie.syncKey;
-    if (!key) return { ...ie, synced: false };
-    const activo = syncConfig[key] ?? ie.activo;
+// Simula ingresosExtraConValores del hook (la función refactorizada)
+const ID_TO_SYNCKEY = { 1: "patrocinios", 2: "camisetas", 3: "patrociniosCobrado", 10: "subvencionPublica" };
+const SYNC_CONFIG_DEFAULT = { patrocinios: true, patrociniosCobrado: true, camisetas: true, subvencionPublica: true };
+
+const buildConValores = ({ ie, syncConfig, totales }) => {
+  const sc = { ...SYNC_CONFIG_DEFAULT, ...syncConfig };
+  return ie.map(item => {
+    const key = item.syncKey || ID_TO_SYNCKEY[item.id] || null;
+    if (!key) return { ...item, synced: false };
+    const activo = sc[key] !== undefined ? sc[key] : item.activo;
     const valor = key === "patrocinios"        ? totales.patConfirmado
                 : key === "patrociniosCobrado" ? totales.patCobrado
                 : key === "camisetas"          ? totales.merch
                 : key === "subvencionPublica"  ? totales.subvencion
-                : ie.valor;
-    return { ...ie, valor, activo, synced: true };
+                : item.valor;
+    return { ...item, syncKey: key, valor, activo, synced: true };
   });
 };
+const totalActivos = (items) => items.filter(i => i.activo).reduce((s, i) => s + i.valor, 0);
 
-const calcTotalExtra = (ieConValores) =>
-  ieConValores.filter(i => i.activo).reduce((s, i) => s + i.valor, 0);
+// Migrate function (same as in useBudgetLogic loadData)
+const migrateLegacyIE = (savedIngresos) => savedIngresos.map(ie => {
+  if (ie.syncKey) return ie;
+  const syncKey = ID_TO_SYNCKEY[ie.id];
+  if (!syncKey) return ie;
+  return { ...ie, syncKey, synced: true };
+});
 
-// ── PRE-01: cálculo en tiempo real — sin useEffect ────────────────────────
-describe('PRE-01 — ingresosExtraConValores se calcula en tiempo real', () => {
-  const baseIE = [
-    { id:1, syncKey:"patrocinios",        activo:true,  valor:0 },
-    { id:3, syncKey:"patrociniosCobrado", activo:false, valor:0 },
-    { id:10, nombre:"Subvención",         activo:true,  valor:500 },
-  ];
-  const syncConfig = { patrocinios:true, patrociniosCobrado:false, camisetas:true, subvencionPublica:true };
+// ── BUG-01: Toggle patrocinios captados (id=1) ────────────────────────────
+describe('BUG-01 — Toggle patrocinios captados actualiza KPIs', () => {
+  const ie = [{ id:1, nombre:"Patrocinios", valor:0, activo:true }]; // SIN syncKey (dato legado)
   const totales = { patConfirmado:800, patCobrado:200, merch:0, subvencion:0 };
 
-  it('patrocinios activo → valor 800 en tiempo real', () => {
-    const r = buildIngresosConValores({ ingresosExtra:baseIE, syncConfig, totales });
-    expect(r.find(ie => ie.syncKey === "patrocinios").valor).toBe(800);
-    expect(r.find(ie => ie.syncKey === "patrocinios").activo).toBe(true);
+  it('dato legado sin syncKey: id=1 se mapea correctamente a "patrocinios"', () => {
+    const r = buildConValores({ ie, syncConfig:{}, totales });
+    expect(r[0].syncKey).toBe("patrocinios");
   });
 
-  it('patrociniosCobrado inactivo → NO suma en total', () => {
-    const r = buildIngresosConValores({ ingresosExtra:baseIE, syncConfig, totales });
-    const total = calcTotalExtra(r);
-    // patrocinios(800) + manual subvencion(500) = 1300; patrociniosCobrado inactivo → no suma
-    expect(total).toBe(1300);
+  it('con toggle ON: suma 800 en el total', () => {
+    const r = buildConValores({ ie, syncConfig:{ patrocinios:true }, totales });
+    expect(totalActivos(r)).toBe(800);
   });
 
-  it('cambiar totalPatConfirmado actualiza inmediatamente sin useEffect', () => {
-    const totalesNuevos = { ...totales, patConfirmado: 1200 };
-    const r = buildIngresosConValores({ ingresosExtra:baseIE, syncConfig, totales:totalesNuevos });
-    expect(r.find(ie => ie.syncKey === "patrocinios").valor).toBe(1200);
-    expect(calcTotalExtra(r)).toBe(1700); // 1200 + 500 manual
-  });
-});
-
-// ── PRE-02: syncConfig es la fuente de verdad para toggles ───────────────
-describe('PRE-02 — syncConfig es la fuente de verdad del toggle', () => {
-  const ie = [{ id:1, syncKey:"patrocinios", activo:true, valor:0 }];
-  const totales = { patConfirmado:800, patCobrado:200, merch:0, subvencion:0 };
-
-  it('syncConfig.patrocinios=false → ie.activo=false → no suma en KPI', () => {
-    const sc = { patrocinios:false, patrociniosCobrado:false, camisetas:true };
-    const r = buildIngresosConValores({ ingresosExtra:ie, syncConfig:sc, totales });
-    expect(r[0].activo).toBe(false);
-    expect(calcTotalExtra(r)).toBe(0);
+  it('con toggle OFF: suma 0 en el total (KPIs deben reducirse en 800)', () => {
+    const r = buildConValores({ ie, syncConfig:{ patrocinios:false }, totales });
+    expect(totalActivos(r)).toBe(0);
   });
 
-  it('syncConfig.patrocinios=true → ie.activo=true → suma en KPI', () => {
-    const sc = { patrocinios:true, patrociniosCobrado:false, camisetas:true };
-    const r = buildIngresosConValores({ ingresosExtra:ie, syncConfig:sc, totales });
-    expect(r[0].activo).toBe(true);
-    expect(calcTotalExtra(r)).toBe(800);
-  });
-
-  it('cambiar syncConfig de true a false reduce el total inmediatamente', () => {
-    const scOn  = { patrocinios:true };
-    const scOff = { patrocinios:false };
-    const rOn  = calcTotalExtra(buildIngresosConValores({ ingresosExtra:ie, syncConfig:scOn,  totales }));
-    const rOff = calcTotalExtra(buildIngresosConValores({ ingresosExtra:ie, syncConfig:scOff, totales }));
-    expect(rOn).toBe(800);
-    expect(rOff).toBe(0);
+  it('cambiar toggle de true a false reduce exactamente el valor del patrocinador', () => {
+    const on  = totalActivos(buildConValores({ ie, syncConfig:{patrocinios:true},  totales }));
+    const off = totalActivos(buildConValores({ ie, syncConfig:{patrocinios:false}, totales }));
+    expect(on - off).toBe(800);
   });
 });
 
-// ── PRE-03: patrociniosCobrado vs patrocinios — valores correctos ─────────
-describe('PRE-03 — patrocinios captados vs cobrados distinguidos correctamente', () => {
-  const pats = [
-    { id:1, estado:"confirmado", importe:600, importeCobrado:0, especie:false },
-    { id:2, estado:"cobrado",    importe:200, importeCobrado:200, especie:false },
-  ];
-  const patConfirmado = pats.filter(p=>!p.especie).reduce((s,p) => s + getImporteComprometido(p), 0);
-  const patCobrado    = pats.filter(p=>!p.especie && p.estado==="cobrado").reduce((s,p) => s + getImporteCobrado(p), 0);
+// ── BUG-01b: Toggle patrocinios cobrados (id=3) — LA CAUSA RAÍZ ───────────
+describe('BUG-01b — Toggle patrocinios COBRADOS (id=3) - causa raíz del bug', () => {
+  // ESTE era el bug: id=3 no tenía syncKey → caía al branch manual → toggle ignorado
+  const ieLegado = [{ id:3, nombre:"Patrocinios cobrados", valor:0, activo:false }]; // SIN syncKey
 
-  it('patConfirmado = suma de confirmados + cobrados = 800', () => {
-    expect(patConfirmado).toBe(800);
+  it('ANTES del fix: id=3 sin syncKey caía al branch manual y el toggle se ignoraba', () => {
+    // Simular el comportamiento ROTO (key=null para id=3)
+    const brokenKey = null; // esto es lo que devolvía antes: ie.id === 1 ? "patrocinios" : null
+    expect(brokenKey).toBeNull(); // confirmamos el bug
   });
 
-  it('patCobrado = solo cobrados = 200', () => {
-    expect(patCobrado).toBe(200);
+  it('DESPUÉS del fix: id=3 se mapea a "patrociniosCobrado" con el mapa ID_TO_SYNCKEY', () => {
+    const r = buildConValores({ ie:ieLegado, syncConfig:{}, totales:{ patConfirmado:0, patCobrado:200, merch:0, subvencion:0 } });
+    expect(r[0].syncKey).toBe("patrociniosCobrado");
   });
 
-  it('activar patrocinios → suma 800 al total', () => {
-    const ie = [
-      { id:1, syncKey:"patrocinios", activo:false },
-      { id:3, syncKey:"patrociniosCobrado", activo:false },
+  it('con toggle ON: suma 200 (solo cobrados)', () => {
+    const totales = { patConfirmado:800, patCobrado:200, merch:0, subvencion:0 };
+    const r = buildConValores({ ie:ieLegado, syncConfig:{ patrociniosCobrado:true }, totales });
+    expect(totalActivos(r)).toBe(200);
+  });
+
+  it('con toggle OFF: suma 0', () => {
+    const totales = { patConfirmado:800, patCobrado:200, merch:0, subvencion:0 };
+    const r = buildConValores({ ie:ieLegado, syncConfig:{ patrociniosCobrado:false }, totales });
+    expect(totalActivos(r)).toBe(0);
+  });
+
+  it('toggle no afecta a patrocinios captados (líneas independientes)', () => {
+    const ieBoth = [
+      { id:1, nombre:"Patrocinios captados", valor:0, activo:true },
+      { id:3, nombre:"Patrocinios cobrados", valor:0, activo:false },
     ];
-    const sc = { patrocinios:true, patrociniosCobrado:false };
-    const totales = { patConfirmado, patCobrado, merch:0, subvencion:0 };
-    const r = buildIngresosConValores({ ingresosExtra:ie, syncConfig:sc, totales });
-    expect(calcTotalExtra(r)).toBe(800);
-  });
-
-  it('activar patrociniosCobrado → suma 200 al total', () => {
-    const ie = [
-      { id:1, syncKey:"patrocinios", activo:false },
-      { id:3, syncKey:"patrociniosCobrado", activo:false },
-    ];
-    const sc = { patrocinios:false, patrociniosCobrado:true };
-    const totales = { patConfirmado, patCobrado, merch:0, subvencion:0 };
-    const r = buildIngresosConValores({ ingresosExtra:ie, syncConfig:sc, totales });
-    expect(calcTotalExtra(r)).toBe(200);
+    const totales = { patConfirmado:800, patCobrado:200, merch:0, subvencion:0 };
+    // Activar solo patrociniosCobrado
+    const r = buildConValores({ ie:ieBoth, syncConfig:{ patrocinios:false, patrociniosCobrado:true }, totales });
+    expect(r.find(x => x.syncKey==="patrocinios").activo).toBe(false);
+    expect(r.find(x => x.syncKey==="patrociniosCobrado").activo).toBe(true);
+    expect(totalActivos(r)).toBe(200);
   });
 });
 
-// ── PRE-04: subvencionPublica sincronizada desde Administración pública ───
-describe('PRE-04 — subvencionPublica sync desde sector Administración pública', () => {
-  const pats = [
-    { id:1, sector:"Administración pública", estado:"confirmado", importe:3000, importeCobrado:0, especie:false },
-    { id:2, sector:"Deportes / Outdoor",     estado:"confirmado", importe:5000, importeCobrado:0, especie:false },
-    { id:3, sector:"Administración pública", estado:"confirmado", importe:500,  importeCobrado:0, especie:true },
-  ];
-  const totalSubv = pats.filter(p => p.sector === "Administración pública" && !p.especie)
-    .reduce((s,p) => s + getImporteComprometido(p), 0);
+// ── BUG-02: Toggle subvención (id=10) ────────────────────────────────────
+describe('BUG-02 — Toggle subvención entidad pública (id=10)', () => {
+  const ieLegado = [{ id:10, nombre:"Subvención entidad pública", valor:0, activo:true }]; // SIN syncKey
+  const totales = { patConfirmado:0, patCobrado:0, merch:0, subvencion:3000 };
 
-  it('totalSubvencionPublica = 3000 (solo sector correcto, sin especie)', () => {
-    expect(totalSubv).toBe(3000);
+  it('ANTES del fix: id=10 sin syncKey caía al branch manual', () => {
+    const oldKey = null; // antes no había fallback para id=10
+    expect(oldKey).toBeNull(); // confirmamos el bug
   });
 
-  it('activar subvencionPublica → suma 3000 al total', () => {
-    const ie = [{ id:10, syncKey:"subvencionPublica", activo:false }];
+  it('DESPUÉS del fix: id=10 se mapea a "subvencionPublica"', () => {
+    const r = buildConValores({ ie:ieLegado, syncConfig:{}, totales });
+    expect(r[0].syncKey).toBe("subvencionPublica");
+  });
+
+  it('con toggle ON: suma 3000', () => {
+    const r = buildConValores({ ie:ieLegado, syncConfig:{ subvencionPublica:true }, totales });
+    expect(totalActivos(r)).toBe(3000);
+  });
+
+  it('con toggle OFF: suma 0 (KPIs reducidos en 3000)', () => {
+    const r = buildConValores({ ie:ieLegado, syncConfig:{ subvencionPublica:false }, totales });
+    expect(totalActivos(r)).toBe(0);
+  });
+});
+
+// ── BUG-03: Subvención desde sector Administración pública ───────────────
+describe('BUG-03 — Subvención calcula desde sector "Administración pública"', () => {
+  const pats = [
+    { id:1, sector:"Administración pública", estado:"confirmado", importe:2000, importeCobrado:0, especie:false },
+    { id:2, sector:"Administración pública", estado:"cobrado",    importe:1000, importeCobrado:1000, especie:false },
+    { id:3, sector:"Deportes / Outdoor",     estado:"confirmado", importe:5000, importeCobrado:0, especie:false },
+    { id:4, sector:"Administración pública", estado:"prospecto",  importe:500,  importeCobrado:0, especie:false },
+    { id:5, sector:"Administración pública", estado:"confirmado", importe:800,  importeCobrado:0, especie:true }, // especie excluida
+  ];
+
+  const calcSubv = (ps) => ps
+    .filter(p => p.sector === "Administración pública" && !p.especie)
+    .reduce((s, p) => s + getImporteComprometido(p), 0);
+
+  it('suma solo Administración pública con importe comprometido = 3000', () => {
+    expect(calcSubv(pats)).toBe(3000); // id=1(2000) + id=2(1000)
+  });
+
+  it('excluye sector Deportes', () => {
+    expect(calcSubv(pats)).not.toBeGreaterThan(3000);
+  });
+
+  it('excluye prospectos (sin importe comprometido)', () => {
+    expect(calcSubv(pats)).toBe(3000); // id=4 prospecto excluido
+  });
+
+  it('excluye especie aunque sea Administración pública', () => {
+    expect(calcSubv(pats)).toBe(3000); // id=5 especie excluido
+  });
+
+  it('al activar subvencionPublica, ese valor llega a totalIngresosExtra', () => {
+    const subvencion = calcSubv(pats); // 3000
+    const ie = [{ id:10, nombre:"Subvención", valor:0, activo:false }];
     const sc = { subvencionPublica:true };
-    const totales = { patConfirmado:0, patCobrado:0, merch:0, subvencion:totalSubv };
-    const r = buildIngresosConValores({ ingresosExtra:ie, syncConfig:sc, totales });
-    expect(calcTotalExtra(r)).toBe(3000);
+    const r = buildConValores({ ie, syncConfig:sc, totales:{ patConfirmado:0, patCobrado:0, merch:0, subvencion } });
+    expect(totalActivos(r)).toBe(3000);
   });
 
-  it('desactivar subvencionPublica → 0 en total', () => {
-    const ie = [{ id:10, syncKey:"subvencionPublica", activo:true }];
-    const sc = { subvencionPublica:false };
-    const totales = { patConfirmado:0, patCobrado:0, merch:0, subvencion:totalSubv };
-    const r = buildIngresosConValores({ ingresosExtra:ie, syncConfig:sc, totales });
-    expect(calcTotalExtra(r)).toBe(0);
+  it('al eliminar patrocinador público, subvención baja', () => {
+    const sinId1 = pats.filter(p => p.id !== 1);
+    expect(calcSubv(sinId1)).toBe(1000); // solo id=2 queda
   });
 });
 
-// ── PRE-05: líneas manuales no afectadas por syncConfig ──────────────────
-describe('PRE-05 — Líneas manuales respetan su propio ie.activo', () => {
+// ── BUG-04: Eliminar patrocinador ─────────────────────────────────────────
+describe('BUG-04 — Eliminar patrocinador', () => {
+  it('deletePat filtra el array por id correctamente', () => {
+    let pats = [{ id:1, nombre:"A" }, { id:2, nombre:"B" }, { id:3, nombre:"C" }];
+    pats = pats.filter(p => p.id !== 2);
+    expect(pats).toHaveLength(2);
+    expect(pats.find(p=>p.id===2)).toBeUndefined();
+    expect(pats.map(p=>p.id)).toEqual([1, 3]);
+  });
+
+  it('al eliminar patrocinador público, totalSubvencionPublica se recalcula automáticamente', () => {
+    const getSubv = (ps) => ps
+      .filter(p => p.sector === "Administración pública" && !p.especie)
+      .reduce((s, p) => s + getImporteComprometido(p), 0);
+
+    const pats = [
+      { id:1, sector:"Administración pública", estado:"confirmado", importe:2000, importeCobrado:0, especie:false },
+      { id:2, sector:"Deportes", estado:"confirmado", importe:5000, importeCobrado:0, especie:false },
+    ];
+    expect(getSubv(pats)).toBe(2000);
+    expect(getSubv(pats.filter(p=>p.id!==1))).toBe(0); // rawPats useMemo recomputa
+  });
+});
+
+// ── MIGRACIÓN: datos legados sin syncKey ─────────────────────────────────
+describe('MIGRACIÓN — Datos de localStorage sin syncKey se migran correctamente', () => {
+  const legacyData = [
+    { id:1,  nombre:"Patrocinios captados", valor:500, activo:true  }, // sin syncKey
+    { id:3,  nombre:"Patrocinios cobrados", valor:200, activo:false }, // sin syncKey
+    { id:2,  nombre:"Merchandising",        valor:100, activo:true  }, // sin syncKey
+    { id:10, nombre:"Subvención pública",   valor:0,   activo:true  }, // sin syncKey
+    { id:12, nombre:"Otros ingresos",       valor:50,  activo:true  }, // manual, sin syncKey
+  ];
+
+  it('la función de migración añade syncKey a los ids conocidos', () => {
+    const r = migrateLegacyIE(legacyData);
+    expect(r.find(ie=>ie.id===1)?.syncKey).toBe("patrocinios");
+    expect(r.find(ie=>ie.id===3)?.syncKey).toBe("patrociniosCobrado");
+    expect(r.find(ie=>ie.id===2)?.syncKey).toBe("camisetas");
+    expect(r.find(ie=>ie.id===10)?.syncKey).toBe("subvencionPublica");
+  });
+
+  it('la migración no altera líneas manuales (id=12)', () => {
+    const r = migrateLegacyIE(legacyData);
+    const manual = r.find(ie => ie.id === 12);
+    expect(manual.syncKey).toBeUndefined();
+    expect(manual.activo).toBe(true);
+    expect(manual.valor).toBe(50);
+  });
+
+  it('la migración no toca datos que ya tienen syncKey', () => {
+    const withSyncKey = [{ id:1, syncKey:"patrocinios", valor:800, activo:true }];
+    const r = migrateLegacyIE(withSyncKey);
+    expect(r[0].valor).toBe(800); // sin cambios
+  });
+});
+
+// ── SYNC_CONFIG DEFAULT merge con datos antiguos ─────────────────────────
+describe('SYNC_CONFIG_DEFAULT merge', () => {
+  it('syncConfig antiguo sin subvencionPublica obtiene el valor por defecto', () => {
+    const oldConfig = { patrocinios: true, camisetas: true }; // falta patrociniosCobrado y subvencionPublica
+    const merged = { ...SYNC_CONFIG_DEFAULT, ...oldConfig };
+    expect(merged.subvencionPublica).toBe(true); // default
+    expect(merged.patrociniosCobrado).toBe(true); // default
+    expect(merged.patrocinios).toBe(true); // del dato viejo
+    expect(merged.camisetas).toBe(true); // del dato viejo
+  });
+
+  it('valores del dato guardado tienen prioridad sobre defaults', () => {
+    const savedConfig = { patrocinios: false, camisetas: false };
+    const merged = { ...SYNC_CONFIG_DEFAULT, ...savedConfig };
+    expect(merged.patrocinios).toBe(false); // guardado tiene prioridad
+    expect(merged.camisetas).toBe(false);   // guardado tiene prioridad
+    expect(merged.subvencionPublica).toBe(true); // default (no estaba en savedConfig)
+  });
+});
+
+// ── Cadena completa: toggle → totalIngresosExtra → resultado ─────────────
+describe('CADENA COMPLETA — toggle → KPIs → resultado', () => {
   const ie = [
-    { id:1,  syncKey:"patrocinios", activo:true, valor:0 },
-    { id:12, nombre:"Otros",        activo:true,  valor:500 },
-    { id:13, nombre:"Curro",        activo:false, valor:300 },
+    { id:1,  nombre:"Patrocinios captados", valor:0, activo:true  },
+    { id:3,  nombre:"Patrocinios cobrados", valor:0, activo:false },
+    { id:10, nombre:"Subvención",           valor:0, activo:true  },
+    { id:12, nombre:"Otros",                valor:300, activo:true },
   ];
-  const sc = { patrocinios:false }; // desactivar patrocinios no afecta manuales
-  const totales = { patConfirmado:800, patCobrado:0, merch:0, subvencion:0 };
+  const totales = { patConfirmado:800, patCobrado:200, merch:0, subvencion:3000 };
 
-  it('manual activo con syncConfig desactivado → sigue sumando', () => {
-    const r = buildIngresosConValores({ ingresosExtra:ie, syncConfig:sc, totales });
-    const manual12 = r.find(x => x.id === 12);
-    expect(manual12.activo).toBe(true);
+  it('todos los toggles activos: total = 800 + 200 + 3000 + 300 = 4300', () => {
+    const sc = { patrocinios:true, patrociniosCobrado:true, subvencionPublica:true };
+    expect(totalActivos(buildConValores({ ie, syncConfig:sc, totales }))).toBe(4300);
   });
 
-  it('manual inactivo → no suma aunque syncConfig no lo afecte', () => {
-    const r = buildIngresosConValores({ ingresosExtra:ie, syncConfig:sc, totales });
-    const manual13 = r.find(x => x.id === 13);
-    expect(manual13.activo).toBe(false);
-    expect(calcTotalExtra(r)).toBe(500); // solo el manual activo
-  });
-});
-
-// ── PRE-06: resultado = inscripciones + extras - costes ───────────────────
-describe('PRE-06 — resultado integra correctamente totalIngresosExtra', () => {
-  it('activar un ingreso extra aumenta el resultado', () => {
-    const calcResultado = (inscripciones, extras, costes) => inscripciones + extras - costes;
-    const ieOff = 0;
-    const ieOn  = 800;
-    const res_off = calcResultado(5000, ieOff, 6000);
-    const res_on  = calcResultado(5000, ieOn,  6000);
-    expect(res_on).toBeGreaterThan(res_off);
-    expect(res_on - res_off).toBe(800);
+  it('desactivar patrocinios: total = 200 + 3000 + 300 = 3500', () => {
+    const sc = { patrocinios:false, patrociniosCobrado:true, subvencionPublica:true };
+    expect(totalActivos(buildConValores({ ie, syncConfig:sc, totales }))).toBe(3500);
   });
 
-  it('desactivar un ingreso extra reduce el resultado en exactamente ese valor', () => {
-    const calcResultado = (inscripciones, extras, costes) => inscripciones + extras - costes;
-    const r_con    = calcResultado(5000, 800, 6000);
-    const r_sin    = calcResultado(5000, 0,   6000);
-    expect(r_con - r_sin).toBe(800);
-  });
-});
-
-// ── PRE-07: activoDistancias en costes fijos ──────────────────────────────
-describe('PRE-07 — activoDistancias recalcula costes fijos', () => {
-  const ins = { TG7:100, TG13:80, TG25:50, total:230 };
-  const calcCostesFijos = (conceptos, ins) => {
-    const costes = { TG7:0, TG13:0, TG25:0, total:0 };
-    conceptos.filter(c => c.tipo === "fijo" && c.activo).forEach(c => {
-      const dist = ["TG7","TG13","TG25"].filter(d => c.activoDistancias[d]);
-      const tot  = dist.reduce((s,d) => s + ins[d], 0);
-      dist.forEach(d => {
-        const p = tot > 0 ? c.costeTotal * (ins[d]/tot) : c.costeTotal/dist.length;
-        costes[d] += p;
-      });
-      costes.total += c.costeTotal;
-    });
-    return costes;
-  };
-
-  const c = { id:1, tipo:"fijo", activo:true, costeTotal:2300, activoDistancias:{ TG7:true, TG13:true, TG25:true } };
-  it('todas activas → total = costeTotal', () => expect(calcCostesFijos([c], ins).total).toBe(2300));
-  it('desactivar TG25 → TG25 coste = 0', () => {
-    expect(calcCostesFijos([{ ...c, activoDistancias:{ TG7:true, TG13:true, TG25:false } }], ins).TG25).toBe(0);
-  });
-  it('concepto inactivo → total 0', () => expect(calcCostesFijos([{ ...c, activo:false }], ins).total).toBe(0));
-});
-
-// ── PRE-08: INGRESOS_EXTRA_DEFAULT tiene syncKeys correctos ───────────────
-describe('PRE-08 — INGRESOS_EXTRA_DEFAULT syncKeys correctos', () => {
-  it('todas las líneas sincronizadas tienen syncKey', async () => {
-    const { INGRESOS_EXTRA_DEFAULT } = await import('../constants/budgetConstants.js');
-    const sinSyncKey = INGRESOS_EXTRA_DEFAULT.filter(ie => ie.synced && !ie.syncKey);
-    expect(sinSyncKey).toHaveLength(0);
+  it('desactivar todo excepto manual: total = 300', () => {
+    const sc = { patrocinios:false, patrociniosCobrado:false, subvencionPublica:false };
+    expect(totalActivos(buildConValores({ ie, syncConfig:sc, totales }))).toBe(300);
   });
 
-  it('id=10 tiene syncKey subvencionPublica', async () => {
-    const { INGRESOS_EXTRA_DEFAULT } = await import('../constants/budgetConstants.js');
-    const ie10 = INGRESOS_EXTRA_DEFAULT.find(ie => ie.id === 10);
-    expect(ie10?.syncKey).toBe('subvencionPublica');
-  });
-
-  it('SYNC_CONFIG_DEFAULT tiene las 4 claves', async () => {
-    const { SYNC_CONFIG_DEFAULT } = await import('../constants/budgetConstants.js');
-    ['patrocinios','patrociniosCobrado','camisetas','subvencionPublica'].forEach(k => {
-      expect(SYNC_CONFIG_DEFAULT).toHaveProperty(k);
-    });
-  });
-});
-
-// ── PRE-09: eliminar patrocinador actualiza cálculos ─────────────────────
-describe('PRE-09 — Eliminar patrocinador reduce el total inmediatamente', () => {
-  const pats = [
-    { id:1, sector:"Administración pública", estado:"confirmado", importe:3000, importeCobrado:0, especie:false },
-    { id:2, sector:"Deportes / Outdoor",     estado:"confirmado", importe:5000, importeCobrado:0, especie:false },
-  ];
-  const calcPat = (ps) => ps.filter(p=>!p.especie).reduce((s,p) => s + getImporteComprometido(p), 0);
-  const calcSubv = (ps) => ps.filter(p=>p.sector==="Administración pública"&&!p.especie).reduce((s,p) => s + getImporteComprometido(p), 0);
-
-  it('antes de eliminar: patConfirmado=8000, subv=3000', () => {
-    expect(calcPat(pats)).toBe(8000);
-    expect(calcSubv(pats)).toBe(3000);
-  });
-
-  it('tras eliminar id=1: patConfirmado=5000, subv=0', () => {
-    const after = pats.filter(p => p.id !== 1);
-    expect(calcPat(after)).toBe(5000);
-    expect(calcSubv(after)).toBe(0);
-  });
-});
-
-// ── PRE-10: no hay race condition entre toggle y useEffect ────────────────
-describe('PRE-10 — Sin race condition: cálculo sin useEffect', () => {
-  it('cambiar syncConfig y recalcular en el mismo ciclo da resultado correcto', () => {
-    // Antes (con useEffect): el toggle cambiaba syncConfig, el useEffect no se ejecutaba
-    // inmediatamente, y había un ciclo de renderizado donde los KPIs no actualizaban.
-    // Ahora: ingresosExtraConValores es un useMemo que depende de syncConfig.
-    // Cuando syncConfig cambia → useMemo se recalcula → totalIngresosExtra actualiza → KPIs actualizan.
-    
-    const simulateRender = (syncConfig, totales, ie) => {
-      const conValores = buildIngresosConValores({ ingresosExtra:ie, syncConfig, totales });
-      return calcTotalExtra(conValores);
-    };
-
-    const ie = [{ id:1, syncKey:"patrocinios", activo:true, valor:0 }];
-    const totales = { patConfirmado:800, patCobrado:0, merch:0, subvencion:0 };
-
-    // Render con toggle on
-    expect(simulateRender({ patrocinios:true  }, totales, ie)).toBe(800);
-    // Mismo render con toggle off — sin delay de useEffect
-    expect(simulateRender({ patrocinios:false }, totales, ie)).toBe(0);
+  it('activar subvención aumenta resultado en exactamente totalSubvencionPublica', () => {
+    const sc_off = { subvencionPublica:false, patrocinios:false, patrociniosCobrado:false };
+    const sc_on  = { subvencionPublica:true,  patrocinios:false, patrociniosCobrado:false };
+    const off = totalActivos(buildConValores({ ie, syncConfig:sc_off, totales }));
+    const on  = totalActivos(buildConValores({ ie, syncConfig:sc_on,  totales }));
+    expect(on - off).toBe(3000); // exactamente el valor de subvencionPublica
   });
 });

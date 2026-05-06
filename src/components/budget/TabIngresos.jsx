@@ -31,14 +31,20 @@ export const TabIngresos = ({
   const lineasSync   = ingresosExtra.filter(ie => !!ie.syncKey);
   const lineasManual = ingresosExtra.filter(ie => !ie.syncKey);
 
-  // Toggle de una línea sincronizada: actualiza syncConfig (fuente de verdad)
-  // ingresosExtraConValores en useBudgetLogic lo leerá automáticamente
+  // Toggle de una línea sincronizada
+  // setSyncConfig es la ÚNICA fuente de verdad para toggles sincronizados
+  // ingresosExtraConValores en useBudgetLogic lee syncConfig en cada render
   const toggleSync = (syncKey, value) => {
+    // 1. Actualizar syncConfig (fuente de verdad - useMemo lo leerá en el mismo render)
     setSyncConfig(prev => ({ ...prev, [syncKey]: value }));
-    // También actualizar ie.activo en el estado por si TabIngresos lee ingresosExtra directamente
-    setIngresosExtra(prev => prev.map(ie =>
-      ie.syncKey === syncKey ? { ...ie, activo: value } : ie
-    ));
+    // 2. Actualizar ie.activo en el estado base por consistencia al guardar
+    //    También asegurar que syncKey esté en el dato (migración de datos sin syncKey)
+    setIngresosExtra(prev => prev.map(ie => {
+      const ID_SK = { 1: "patrocinios", 2: "camisetas", 3: "patrociniosCobrado", 10: "subvencionPublica" };
+      const ieKey = ie.syncKey || ID_SK[ie.id] || null;
+      if (ieKey !== syncKey) return ie;
+      return { ...ie, syncKey: ieKey, activo: value, synced: true };
+    }));
   };
 
   // Toggle de una línea manual

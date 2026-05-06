@@ -41,7 +41,21 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   const [ingresosExtra, setIngresosExtra] = useState(INGRESOS_EXTRA_DEFAULT);
   const [merchandising, setMerchandising] = useState(MERCHANDISING_DEFAULT);
   const [maximos, setMaximos] = useState(MAXIMOS_DEFAULT);
-  const [syncConfig, setSyncConfig] = useData("teg_presupuesto_v1_syncConfig", SYNC_CONFIG_DEFAULT);
+  // Usar useData con defaultValue que se merge con cualquier valor guardado en LS
+  // para garantizar que nuevas claves (subvencionPublica) existan aunque el dato sea antiguo
+  const [syncConfigRaw, setSyncConfigRaw] = useData("teg_presupuesto_v1_syncConfig", SYNC_CONFIG_DEFAULT);
+
+  // Merge con defaults para añadir claves nuevas que no existían en datos guardados
+  const syncConfig = { ...SYNC_CONFIG_DEFAULT, ...(syncConfigRaw || {}) };
+
+  // setSyncConfig actualiza el estado raw (que también persiste en LS)
+  const setSyncConfig = (updater) => {
+    setSyncConfigRaw(prev => {
+      const prevMerged = { ...SYNC_CONFIG_DEFAULT, ...(prev || {}) };
+      const next = updater instanceof Function ? updater(prevMerged) : updater;
+      return next;
+    });
+  };
   const [margenConfig, setMargenConfig] = useData("teg_presupuesto_v1_margenConfig", MARGEN_CONFIG_DEFAULT);
   const [saveStatus, setSaveStatus] = useState("idle");
 
@@ -93,21 +107,28 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   // ── ingresosExtraConValores: array con valores en tiempo real ────────────
   // No es estado — se calcula en cada render. Esto GARANTIZA que los KPIs
   // son coherentes con los toggles sin depender de efectos asíncronos.
+  // Mapa canónico id → syncKey para migrar datos antiguos sin syncKey
+  const ID_TO_SYNCKEY = { 1: "patrocinios", 2: "camisetas", 3: "patrociniosCobrado", 10: "subvencionPublica" };
+
   const ingresosExtraConValores = useMemo(() => {
     const base = scenarioIngresosExtra ?? ingresosExtra;
     return base.map(ie => {
-      const key = ie.syncKey || (ie.id === 1 ? "patrocinios" : ie.id === 2 ? "camisetas" : null);
-      if (!key) return { ...ie, synced: false }; // manual
-      // Para líneas sincronizadas, el toggle es syncConfig[key]
-      const activo = syncConfig[key] ?? ie.activo;
-      const valor = (() => {
-        if (key === "patrocinios")        return totalPatConfirmado;
-        if (key === "patrociniosCobrado") return totalPatCobrado;
-        if (key === "camisetas")          return totalMerchBeneficio;
-        if (key === "subvencionPublica")  return totalSubvencionPublica;
-        return ie.valor;
-      })();
-      return { ...ie, valor, activo, synced: true };
+      // Routing: primero syncKey del dato, luego fallback por id para datos legados
+      const key = ie.syncKey || ID_TO_SYNCKEY[ie.id] || null;
+      if (!key) return { ...ie, synced: false }; // línea manual: respeta ie.activo
+
+      // Para líneas sincronizadas: activo viene de syncConfig (fuente de verdad del toggle)
+      // syncConfig se actualiza síncronamente vía useData.setValue → setState
+      const activo = syncConfig[key] !== undefined ? syncConfig[key] : ie.activo;
+
+      // Valor calculado en tiempo real desde otros bloques
+      const valor = key === "patrocinios"        ? totalPatConfirmado
+                  : key === "patrociniosCobrado" ? totalPatCobrado
+                  : key === "camisetas"          ? totalMerchBeneficio
+                  : key === "subvencionPublica"  ? totalSubvencionPublica
+                  : ie.valor;
+
+      return { ...ie, syncKey: key, valor, activo, synced: true };
     });
   }, [ingresosExtra, scenarioIngresosExtra, syncConfig,
       totalPatConfirmado, totalPatCobrado, totalMerchBeneficio, totalSubvencionPublica]);
@@ -137,7 +158,17 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
           })));
         }
         if (savedInscritos) setInscritos(savedInscritos);
-        if (savedIngresos) setIngresosExtra(savedIngresos);
+        if (savedIngresos) {
+          // Migrar datos legados: añadir syncKey si falta (versiones antiguas no lo tenían)
+          const ID_TO_SYNCKEY_LOAD = { 1: "patrocinios", 2: "camisetas", 3: "patrociniosCobrado", 10: "subvencionPublica" };
+          const migrated = savedIngresos.map(ie => {
+            if (ie.syncKey) return ie; // ya tiene syncKey, no migrar
+            const syncKey = ID_TO_SYNCKEY_LOAD[ie.id];
+            if (!syncKey) return ie; // línea manual, dejar como está
+            return { ...ie, syncKey, synced: true }; // migrar
+          });
+          setIngresosExtra(migrated);
+        }
         if (savedMerch) setMerchandising(savedMerch);
         if (savedMaximos) setMaximos(savedMaximos);
       } catch (error) {
