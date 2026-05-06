@@ -43,17 +43,36 @@ const CSS = `
 `;
 
 export default function DiaCarrera({ onClose }) {
-  const [tab, setTab] = useState("timeline");
+  const [tab, setTab] = useState("ahora"); // Iniciar en Mission Control
   const [ahora, setAhora] = useState(new Date());
   const [showInc, setShowInc] = useState(false);
   const [busPresencia, setBusPresencia] = useState("");
-  const [incForm, setIncForm] = useState({ tipo: "médica", gravedad: "media", descripcion: "" });
+  const [incForm, setIncForm] = useState({ tipo: "médica", gravedad: "media", descripcion: "", puestoNombre: "— Sin puesto específico" });
   const [incGuardado, setIncGuardado] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => setAhora(new Date()), 1000); // cada segundo para el reloj
     return () => clearInterval(t);
   }, []);
+
+  // INC-03: escuchar teg-sync para actualizar datos en tiempo real (colaboración multi-dispositivo)
+  useEffect(() => {
+    let debounce = null;
+    const handler = () => {
+      if (debounce) clearTimeout(debounce);
+      debounce = setTimeout(() => {
+        if (typeof loadVols  === "function") loadVols();
+        if (typeof loadInc   === "function") loadInc();
+        if (typeof loadTl    === "function") loadTl();
+        if (typeof loadCk    === "function") loadCk();
+      }, 300);
+    };
+    window.addEventListener("teg-sync", handler);
+    return () => {
+      if (debounce) clearTimeout(debounce);
+      window.removeEventListener("teg-sync", handler);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [eventCfg, , loadCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
   const config     = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
@@ -98,27 +117,38 @@ export default function DiaCarrera({ onClose }) {
 
   const hora = ahora.toLocaleTimeString("es-ES", { hour:"2-digit", minute:"2-digit" });
   const confirmados = vols.filter(v => v.estado === "confirmado");
-  const presentes   = vols.filter(v => v.presente).length;
+  const presentes   = vols.filter(v => v.enPuesto).length; // INC-01: campo canónico enPuesto
 
   const proxima = useMemo(() =>
     tl.find(t => !tlDone(t) && t.hora >= hora) || null
   , [tl, hora]);
 
   const toggleTl  = id => { const now = new Date().toTimeString().slice(0,5); setTl(prev => prev.map(t => t.id===id ? {...t, estado:(t.estado==="completado"||t.done)?"pendiente":"completado", done:false, completadoEn:(t.estado==="completado"||t.done)?undefined:now} : t)); dataService.notify(); };
-  const toggleVol = id => { setVols(prev => prev.map(v => v.id===id ? {...v, presente:!v.presente} : v)); dataService.notify(); };
+  // INC-01 fix: usar enPuesto+horaLlegada (campo canónico del VoluntarioPortal) en lugar de v.enPuesto
+  const toggleVol = id => {
+    setVols(prev => prev.map(v => {
+      if (v.id !== id) return v;
+      const llegando = !v.enPuesto;
+      return { ...v, enPuesto: llegando, horaLlegada: llegando ? new Date().toTimeString().slice(0,5) : null };
+    }));
+    dataService.notify();
+  };
   const toggleCk  = id => { const now = new Date().toTimeString().slice(0,5); setCk(prev => prev.map(t => t.id===id ? {...t, estado: t.estado==="completado" ? "pendiente" : "completado", completadoEn: t.estado==="completado" ? undefined : now} : t)); dataService.notify(); };
 
   const guardarIncidencia = () => {
     if (!incForm.descripcion.trim()) return;
     const nueva = {
-      id: `inc_${Date.now()}`,
-      hora: new Date().toTimeString().slice(0, 5),
-      tipo: incForm.tipo,
-      gravedad: incForm.gravedad,
+      id: Date.now(),                              // INC-06: id numérico coherente con Logística
+      hora:        new Date().toTimeString().slice(0, 5),
+      creadaEn:    new Date().toISOString(),        // INC-02: para SLA visual en Logística
+      puestoNombre: incForm.puestoNombre || "— Sin puesto específico",
+      tipo:        incForm.tipo,
+      gravedad:    incForm.gravedad,
       descripcion: incForm.descripcion.trim(),
       responsable: "Día de Carrera",
-      estado: "abierta",
-      resolucion: "",
+      estado:      "abierta",
+      resolucion:  "",
+      resueltaEn:  null,
     };
     setInc(prev => [...(Array.isArray(prev) ? prev : []), nueva]);
     dataService.notify();
@@ -127,7 +157,7 @@ export default function DiaCarrera({ onClose }) {
     setTimeout(() => {
       setShowInc(false);
       setIncGuardado(false);
-      setIncForm({ tipo: "médica", gravedad: "media", descripcion: "" });
+      setIncForm({ tipo: "médica", gravedad: "media", descripcion: "", puestoNombre: "— Sin puesto específico" });
     }, 1000);
   };
 
@@ -137,6 +167,7 @@ export default function DiaCarrera({ onClose }) {
   const proximaSig    = tl.find(t => !tlDone(t));
 
   const TABS = [
+    {id:"ahora",       label:"🎯 Ahora"},
     {id:"timeline",    label:"⏱ Runbook"},
     {id:"voluntarios", label:"👥 Voluntarios"},
     {id:"puestos",     label:"📍 Puestos"},
@@ -220,6 +251,112 @@ export default function DiaCarrera({ onClose }) {
 
       {/* Contenido */}
       <div className="dc-body">
+
+        {tab === "ahora" && (() => {
+          const incAbiertas = incidencias.filter(i => i.estado === "abierta");
+          const incAltas    = incAbiertas.filter(i => i.gravedad === "alta");
+          const puestosAlerta = puestos.map(p => {
+            const asig = vols.filter(v => v.puestoId === p.id && v.enPuesto);
+            return { ...p, presentes: asig.length, pct: p.necesarios > 0 ? asig.length / p.necesarios : 1 };
+          }).filter(p => p.pct < 1).sort((a,b) => a.pct - b.pct);
+          const tareaActual = tl.find(t => !tlDone(t) && t.hora >= hora) || tl.find(t => !tlDone(t));
+          return (
+            <div style={{ display:"flex", flexDirection:"column", gap:".75rem" }}>
+              {/* Tarea actual del runbook */}
+              {tareaActual ? (
+                <div style={{
+                  background:"linear-gradient(135deg,rgba(52,211,153,.12),rgba(34,211,238,.08))",
+                  border:"2px solid rgba(52,211,153,.35)", borderRadius:12, padding:"1rem",
+                }}>
+                  <div style={{ fontFamily:"var(--font-mono)", fontSize:".6rem", color:"var(--green)",
+                    fontWeight:700, textTransform:"uppercase", letterSpacing:".05em", marginBottom:".35rem" }}>
+                    ⏱ AHORA — {tareaActual.hora}
+                  </div>
+                  <div style={{ fontWeight:800, fontSize:"var(--fs-md)", lineHeight:1.3 }}>{tareaActual.titulo}</div>
+                  {tareaActual.responsable && (
+                    <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", marginTop:".3rem" }}>
+                      👤 {tareaActual.responsable}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ background:"var(--green-dim)", border:"1px solid rgba(52,211,153,.3)",
+                  borderRadius:10, padding:".75rem", textAlign:"center" }}>
+                  <div style={{ color:"var(--green)", fontWeight:700 }}>✅ Runbook completado</div>
+                </div>
+              )}
+
+              {/* Incidencias activas */}
+              {incAbiertas.length > 0 && (
+                <div style={{ background:"var(--red-dim)", border:"1px solid rgba(248,113,113,.3)",
+                  borderRadius:10, padding:".75rem", cursor:"pointer" }}
+                  onClick={() => setShowInc(true)}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:".35rem" }}>
+                    <span style={{ fontWeight:700, color:"var(--red)", fontSize:"var(--fs-sm)" }}>
+                      🚨 {incAbiertas.length} incidencia{incAbiertas.length!==1?"s":""} abierta{incAbiertas.length!==1?"s":""}
+                    </span>
+                    {incAltas.length > 0 && (
+                      <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                        background:"var(--red)", color:"white", borderRadius:4, padding:".1rem .4rem" }}>
+                        {incAltas.length} ALTA{incAltas.length!==1?"S":""}
+                      </span>
+                    )}
+                  </div>
+                  {incAbiertas.slice(0,2).map(i => (
+                    <div key={i.id} style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                      color:"var(--text-muted)" }}>
+                      · {i.descripcion.slice(0,70)}{i.descripcion.length>70?"...":""}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Puestos sin cobertura */}
+              {puestosAlerta.length > 0 && (
+                <div style={{ background:"rgba(251,191,36,.08)", border:"1px solid rgba(251,191,36,.3)",
+                  borderRadius:10, padding:".75rem", cursor:"pointer" }}
+                  onClick={() => setTab("puestos")}>
+                  <div style={{ fontWeight:700, color:"var(--amber)", marginBottom:".35rem", fontSize:"var(--fs-sm)" }}>
+                    ⚠️ {puestosAlerta.length} puesto{puestosAlerta.length!==1?"s":""} sin cobertura completa
+                  </div>
+                  {puestosAlerta.slice(0,3).map(p => (
+                    <div key={p.id} style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                      color:"var(--text-muted)" }}>
+                      📍 {p.nombre} — {p.presentes}/{p.necesarios||"?"} presentes
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Todo OK */}
+              {incAbiertas.length === 0 && puestosAlerta.length === 0 && (
+                <div style={{ textAlign:"center", color:"var(--green)", fontFamily:"var(--font-mono)",
+                  fontSize:"var(--fs-sm)", padding:"1rem 0" }}>
+                  ✅ Sin alertas activas — todo operativo
+                </div>
+              )}
+
+              {/* Resumen de presencia */}
+              <div style={{ background:"var(--surface2)", border:"1px solid var(--border)",
+                borderRadius:10, padding:".75rem", display:"flex", justifyContent:"space-around",
+                cursor:"pointer" }}
+                onClick={() => setTab("voluntarios")}>
+                <div style={{ textAlign:"center" }}>
+                  <div style={{ fontWeight:800, fontSize:"var(--fs-xl)", color:"var(--green)" }}>{presentes}</div>
+                  <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>En puesto</div>
+                </div>
+                <div style={{ textAlign:"center" }}>
+                  <div style={{ fontWeight:800, fontSize:"var(--fs-xl)", color:"var(--amber)" }}>{confirmados.length - presentes}</div>
+                  <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>Pendientes</div>
+                </div>
+                <div style={{ textAlign:"center" }}>
+                  <div style={{ fontWeight:800, fontSize:"var(--fs-xl)", color:"var(--cyan)" }}>{confirmados.length}</div>
+                  <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>Confirmados</div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {tab === "timeline" && (
           <>
@@ -317,11 +454,11 @@ export default function DiaCarrera({ onClose }) {
               const puesto = puestos.find(p => p.id === v.puestoId);
               return (
                 <div key={v.id} className="dc-row">
-                  <button className={`dc-chk${v.presente?" on":""}`} onClick={() => toggleVol(v.id)}>
-                    {v.presente && <span style={{color:"#000",fontSize:"var(--fs-sm)",fontWeight:700}}>✓</span>}
+                  <button className={`dc-chk${v.enPuesto?" on":""}`} onClick={() => toggleVol(v.id)}>
+                    {v.enPuesto && <span style={{color:"#000",fontSize:"var(--fs-sm)",fontWeight:700}}>✓</span>}
                   </button>
                   <div className="flex-1">
-                    <div style={{fontWeight:700,fontSize:"var(--fs-base)",color:v.presente?"var(--green)":"var(--text)"}}>
+                    <div style={{fontWeight:700,fontSize:"var(--fs-base)",color:v.enPuesto?"var(--green)":"var(--text)"}}>
                       {v.nombre}
                     </div>
                     <div className="mono-xs text-muted">
@@ -343,7 +480,7 @@ export default function DiaCarrera({ onClose }) {
           <>
             {puestos.map(p => {
               const asig = vols.filter(v => v.puestoId===p.id && v.estado==="confirmado");
-              const pres = asig.filter(v => v.presente).length;
+              const pres = asig.filter(v => v.enPuesto).length;
               const color = pres >= (p.necesarios||1) ? "var(--green)" : pres > 0 ? "var(--amber)" : "var(--red)";
               return (
                 <div key={p.id} style={{padding:".7rem .85rem",borderRadius:10,
@@ -364,8 +501,8 @@ export default function DiaCarrera({ onClose }) {
                     <div key={v.id} style={{display:"flex",alignItems:"center",gap:".4rem",
                       padding:".2rem 0",borderTop:"1px solid var(--border)"}}>
                       <span style={{width:7,height:7,borderRadius:"50%",flexShrink:0,
-                        background:v.presente?"var(--green)":"var(--border)"}} />
-                      <span style={{fontSize:"var(--fs-base)",flex:1,color:v.presente?"var(--text)":"var(--text-muted)"}}>
+                        background:v.enPuesto?"var(--green)":"var(--border)"}} />
+                      <span style={{fontSize:"var(--fs-base)",flex:1,color:v.enPuesto?"var(--text)":"var(--text-muted)"}}>
                         {v.nombre}
                       </span>
                       {v.telefono && (
@@ -544,6 +681,23 @@ export default function DiaCarrera({ onClose }) {
                     .map(([g, ic]) => <option key={g} value={g}>{ic} {g}</option>)}
                 </select>
               </div>
+            </div>
+
+            {/* Selector de puesto */}
+            <div style={{ marginBottom:".85rem" }}>
+              <label style={{ display:"block", fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                fontWeight:700, color:"var(--text-muted)", marginBottom:".3rem",
+                textTransform:"uppercase", letterSpacing:".04em" }}>Puesto (opcional)</label>
+              <select
+                value={incForm.puestoNombre}
+                onChange={e => setIncForm(p => ({...p, puestoNombre: e.target.value}))}
+                style={{ width:"100%", background:"var(--surface2)", border:"1px solid var(--border)",
+                  borderRadius:8, color:"var(--text)", padding:".45rem .6rem",
+                  fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", outline:"none" }}
+              >
+                <option value="— Sin puesto específico">— Sin puesto específico</option>
+                {puestos.map(p => <option key={p.id} value={p.nombre}>{p.nombre}</option>)}
+              </select>
             </div>
 
             <div style={{ marginBottom:".85rem" }}>
