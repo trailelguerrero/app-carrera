@@ -82,15 +82,48 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   }, [rawPats]);
 
   const totalMerchBeneficio = useMemo(() => {
+    // Parte 1: Pedidos del bloque Camisetas (teg_camisetas_v1_pedidos)
     const pedidos = Array.isArray(rawCamPedidos) ? rawCamPedidos : [];
     const coste = rawCamCoste || { corredor: 7.5, voluntario: 7.5 };
     const lineas = pedidos.flatMap(p => p.lineas || []);
-    const ingresos = lineas.filter(l => l.estadoPago === "pagado")
-                           .reduce((s, l) => s + (l.cantidad * (l.precioVenta || 0)), 0);
-    const costeFab = lineas.filter(l => l.estadoPago === "pagado" || l.estadoPago === "pendiente")
-                           .reduce((s, l) => s + (l.cantidad * (coste[l.tipo] || 7.5)), 0);
-    return ingresos - costeFab;
-  }, [rawCamPedidos, rawCamCoste]);
+    const ingPedidos = lineas.filter(l => l.estadoPago === "pagado")
+                             .reduce((s, l) => s + (l.cantidad * (l.precioVenta || 0)), 0);
+    const costePedidos = lineas.filter(l => l.estadoPago === "pagado" || l.estadoPago === "pendiente")
+                               .reduce((s, l) => s + (l.cantidad * (coste[l.tipo] || 7.5)), 0);
+    const beneficioPedidos = ingPedidos - costePedidos;
+
+    // Parte 2: Merchandising local (TabIngresos — "Venta de Productos")
+    const merch = Array.isArray(merchandising) ? merchandising.filter(m => m.activo) : [];
+    const ingMerch = merch.reduce((s, m) => s + m.unidades * (m.precioVenta || 0), 0);
+    const costeMerch = merch.reduce((s, m) => s + m.unidades * (m.costeUnitario || 0), 0);
+    const beneficioMerch = ingMerch - costeMerch;
+
+    // Total combinado: ambas fuentes
+    return beneficioPedidos + beneficioMerch;
+  }, [rawCamPedidos, rawCamCoste, merchandising]);
+
+  // Balance de camisetas técnicas: unidades corredor del bloque Camisetas
+  // + unidades de items "Camiseta técnica" del merchandising local
+  const totalBalanceCamisetasTecnicas = useMemo(() => {
+    // Beneficio neto de camisetas técnicas (tipo corredor) del bloque Camisetas
+    const pedidos = Array.isArray(rawCamPedidos) ? rawCamPedidos : [];
+    const coste = rawCamCoste || { corredor: 7.5, voluntario: 7.5 };
+    const lineasCorredor = pedidos.flatMap(p => p.lineas || []).filter(l => l.tipo === "corredor");
+    const ingCorredor = lineasCorredor.filter(l => l.estadoPago === "pagado")
+                                      .reduce((s, l) => s + (l.cantidad * (l.precioVenta || 0)), 0);
+    const costeCorredor = lineasCorredor.filter(l => l.estadoPago === "pagado" || l.estadoPago === "pendiente")
+                                        .reduce((s, l) => s + (l.cantidad * (coste.corredor || 7.5)), 0);
+    const beneficioPedidosCor = ingCorredor - costeCorredor;
+
+    // Beneficio neto de "Camiseta técnica" del merchandising local (nombre contiene "camiseta")
+    const merch = Array.isArray(merchandising) ? merchandising.filter(m => m.activo) : [];
+    const camisetasMerch = merch.filter(m => m.nombre?.toLowerCase().includes("camiseta"));
+    const ingCamisetasMerch = camisetasMerch.reduce((s, m) => s + m.unidades * (m.precioVenta || 0), 0);
+    const costeCamisetasMerch = camisetasMerch.reduce((s, m) => s + m.unidades * (m.costeUnitario || 0), 0);
+    const beneficioCamisetasMerch = ingCamisetasMerch - costeCamisetasMerch;
+
+    return beneficioPedidosCor + beneficioCamisetasMerch;
+  }, [rawCamPedidos, rawCamCoste, merchandising]);
 
   // ── Función que devuelve el valor actualizado de una línea sincronizada ──
   // Esta función es la ÚNICA fuente de verdad para los valores de las líneas
@@ -108,7 +141,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   // No es estado — se calcula en cada render. Esto GARANTIZA que los KPIs
   // son coherentes con los toggles sin depender de efectos asíncronos.
   // Mapa canónico id → syncKey para migrar datos antiguos sin syncKey
-  const ID_TO_SYNCKEY = { 1: "patrocinios", 2: "camisetas", 3: "patrociniosCobrado", 10: "subvencionPublica" };
+  const ID_TO_SYNCKEY = { 1: "patrocinios", 2: "camisetas", 3: "patrociniosCobrado", 10: "subvencionPublica", 13: "balanceCamisetasTecnicas" };
 
   const ingresosExtraConValores = useMemo(() => {
     const base = scenarioIngresosExtra ?? ingresosExtra;
@@ -122,16 +155,18 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       const activo = syncConfig[key] !== undefined ? syncConfig[key] : ie.activo;
 
       // Valor calculado en tiempo real desde otros bloques
-      const valor = key === "patrocinios"        ? totalPatConfirmado
-                  : key === "patrociniosCobrado" ? totalPatCobrado
-                  : key === "camisetas"          ? totalMerchBeneficio
-                  : key === "subvencionPublica"  ? totalSubvencionPublica
+      const valor = key === "patrocinios"            ? totalPatConfirmado
+                  : key === "patrociniosCobrado"     ? totalPatCobrado
+                  : key === "camisetas"              ? totalMerchBeneficio
+                  : key === "subvencionPublica"      ? totalSubvencionPublica
+                  : key === "balanceCamisetasTecnicas" ? totalBalanceCamisetasTecnicas
                   : ie.valor;
 
       return { ...ie, syncKey: key, valor, activo, synced: true };
     });
   }, [ingresosExtra, scenarioIngresosExtra, syncConfig,
-      totalPatConfirmado, totalPatCobrado, totalMerchBeneficio, totalSubvencionPublica]);
+      totalPatConfirmado, totalPatCobrado, totalMerchBeneficio,
+    totalBalanceCamisetasTecnicas, totalSubvencionPublica, totalBalanceCamisetasTecnicas]);
 
   // ── Carga inicial ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -160,7 +195,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
         if (savedInscritos) setInscritos(savedInscritos);
         if (savedIngresos) {
           // Migrar datos legados: añadir syncKey si falta (versiones antiguas no lo tenían)
-          const ID_TO_SYNCKEY_LOAD = { 1: "patrocinios", 2: "camisetas", 3: "patrociniosCobrado", 10: "subvencionPublica" };
+          const ID_TO_SYNCKEY_LOAD = { 1: "patrocinios", 2: "camisetas", 3: "patrociniosCobrado", 10: "subvencionPublica", 13: "balanceCamisetasTecnicas" };
           const migrated = savedIngresos.map(ie => {
             if (ie.syncKey) return ie; // ya tiene syncKey, no migrar
             const syncKey = ID_TO_SYNCKEY_LOAD[ie.id];
@@ -368,6 +403,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   return {
     tab, setTab, tramos, setTramos,
     totalPatConfirmado, totalPatCobrado, totalMerchBeneficio,
+    totalBalanceCamisetasTecnicas,
     syncConfig, setSyncConfig,
     totalSubvencionPublica,
     margenConfig, setMargenConfig,

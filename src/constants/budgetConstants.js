@@ -67,7 +67,8 @@ export const INGRESOS_EXTRA_DEFAULT = [
   // ── Sincronizados automáticamente desde otros bloques ──────────────────────
   { id: 1,  nombre: "Patrocinios captados (confirmado+cobrado)", valor: 0, activo: true,  synced: true,  syncKey: "patrocinios" },
   { id: 3,  nombre: "Patrocinios cobrados (tesorería real)",     valor: 0, activo: false, synced: true,  syncKey: "patrociniosCobrado" },
-  { id: 2,  nombre: "Merchandising (neto de ventas)",            valor: 0, activo: true,  synced: true,  syncKey: "camisetas" },
+  { id: 2,  nombre: "Merchandising total (camisetas + productos)", valor: 0, activo: true,  synced: true,  syncKey: "camisetas" },
+  { id: 13, nombre: "Balance camisetas técnicas",                valor: 0, activo: false, synced: true,  syncKey: "balanceCamisetasTecnicas" },
   // ── Ingresos manuales — editar directamente ────────────────────────────────
   // Sincronizada desde patrocinadores con sector "Administración pública"
   { id: 10, nombre: "Subvención entidad pública",                valor: 0, activo: true,  synced: true,  syncKey: "subvencionPublica" },
@@ -79,7 +80,8 @@ export const SYNC_CONFIG_DEFAULT = {
   patrocinios: true,          // Captado (confirmado + cobrado)
   patrociniosCobrado: true,   // Solo cobrado (tesorería real)
   camisetas: true,
-  subvencionPublica: true   // Patrocinadores con sector "Administración pública"
+  subvencionPublica: true,          // Patrocinadores con sector "Administración pública"
+  balanceCamisetasTecnicas: false   // Beneficio neto de camisetas técnicas (Camisetas + Merchandising)
 };
 
 export const MERCHANDISING_DEFAULT = [

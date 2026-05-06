@@ -5,10 +5,11 @@ import { Toggle } from "./common/Toggle";
 
 // Configuración visual por syncKey
 const SYNC_CFG = {
-  patrocinios:        { icon:"🤝", label:"Patrocinios captados",        sublabel:"confirmado + cobrado",  color:"var(--green)",  dim:"var(--green-dim)",  border:"var(--green-border)",  desc:"Acuerdos firmados aunque no ingresados aún" },
-  patrociniosCobrado: { icon:"💰", label:"Patrocinios cobrados",        sublabel:"solo cobrado",          color:"var(--cyan)",   dim:"var(--cyan-dim)",   border:"var(--cyan-border)",   desc:"Dinero real en cuenta — tesorería efectiva" },
-  camisetas:          { icon:"🛍️", label:"Merchandising",               sublabel:"beneficio neto",        color:"var(--orange)", dim:"var(--orange-dim)", border:"var(--orange-border)", desc:"Beneficio neto venta de productos" },
-  subvencionPublica:  { icon:"🏛️", label:"Subvenciones entidad pública",sublabel:"Administración pública",color:"var(--violet)", dim:"var(--violet-dim)", border:"var(--violet-border)",desc:"Suma de patrocinadores con sector \"Administración pública\"" },
+  patrocinios:              { icon:"🤝", label:"Patrocinios captados",          sublabel:"confirmado + cobrado",   color:"var(--green)",  dim:"var(--green-dim)",  border:"var(--green-border)",  desc:"Acuerdos firmados con importe comprometido, aunque no cobrados aún" },
+  patrociniosCobrado:       { icon:"💰", label:"Patrocinios cobrados",          sublabel:"tesorería real",         color:"var(--cyan)",   dim:"var(--cyan-dim)",   border:"var(--cyan-border)",   desc:"Dinero efectivamente cobrado — refleja el estado real de la caja" },
+  camisetas:                { icon:"🛍️", label:"Merchandising total",           sublabel:"camisetas + productos",  color:"var(--orange)", dim:"var(--orange-dim)", border:"var(--orange-border)", desc:"Beneficio neto combinado: bloque Camisetas + Venta de Productos" },
+  subvencionPublica:        { icon:"🏛️", label:"Subvenciones entidad pública",  sublabel:"Administración pública", color:"var(--violet)", dim:"var(--violet-dim)", border:"var(--violet-border)", desc:"Suma de patrocinadores con sector \"Administración pública\"" },
+  balanceCamisetasTecnicas: { icon:"👕", label:"Balance camisetas técnicas",    sublabel:"corredor + técnica",     color:"var(--amber)",  dim:"var(--amber-dim)",  border:"var(--amber-border)",  desc:"Beneficio neto de camisetas técnicas del bloque Camisetas + ítems \"camiseta\" del merchandising local" },
 };
 
 export const TabIngresos = ({
@@ -24,6 +25,7 @@ export const TabIngresos = ({
   totalPatCobrado = 0,
   totalMerchBeneficio = 0,
   totalSubvencionPublica = 0,
+  totalBalanceCamisetasTecnicas = 0,
   syncConfig = SYNC_CFG,
   setSyncConfig,
 }) => {
@@ -40,7 +42,7 @@ export const TabIngresos = ({
     // 2. Actualizar ie.activo en el estado base por consistencia al guardar
     //    También asegurar que syncKey esté en el dato (migración de datos sin syncKey)
     setIngresosExtra(prev => prev.map(ie => {
-      const ID_SK = { 1: "patrocinios", 2: "camisetas", 3: "patrociniosCobrado", 10: "subvencionPublica" };
+      const ID_SK = { 1: "patrocinios", 2: "camisetas", 3: "patrociniosCobrado", 10: "subvencionPublica", 13: "balanceCamisetasTecnicas" };
       const ieKey = ie.syncKey || ID_SK[ie.id] || null;
       if (ieKey !== syncKey) return ie;
       return { ...ie, syncKey: ieKey, activo: value, synced: true };
@@ -177,6 +179,12 @@ export const TabIngresos = ({
                   <button onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "patrocinadores" } }))}
                     style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", padding: ".2rem .45rem", borderRadius: 5, border: `1px solid ${cfg.border}`, background: cfg.dim, color: cfg.color, cursor: "pointer", flexShrink: 0 }}>
                     🤝 →
+                  </button>
+                )}
+                {ie.syncKey === "balanceCamisetasTecnicas" && (
+                  <button onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "camisetas" } }))}
+                    style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", padding: ".2rem .45rem", borderRadius: 5, border: `1px solid ${cfg.border}`, background: cfg.dim, color: cfg.color, cursor: "pointer", flexShrink: 0 }}>
+                    👕 →
                   </button>
                 )}
               </div>
