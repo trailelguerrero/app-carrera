@@ -36,6 +36,8 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   const [tramos, setTramos] = useState(TRAMOS_DEFAULT);
   const [conceptos, setConceptos] = useState(CONCEPTOS_DEFAULT);
   const [inscritos, setInscritos] = useState(INSCRITOS_DEFAULT);
+  // ingresosExtra: solo almacena datos de líneas manuales + nombre de las sincronizadas
+  // los valores de líneas sincronizadas se calculan en tiempo real en el useMemo abajo
   const [ingresosExtra, setIngresosExtra] = useState(INGRESOS_EXTRA_DEFAULT);
   const [merchandising, setMerchandising] = useState(MERCHANDISING_DEFAULT);
   const [maximos, setMaximos] = useState(MAXIMOS_DEFAULT);
@@ -47,26 +49,17 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   const [rawCamPedidos] = useData(LS_CAM_PEDIDOS, []);
   const [rawCamCoste] = useData(LS_CAM_COSTE, { corredor: 7.5, voluntario: 7.5 });
 
-  // Captado: confirmado + cobrado (usando función utilitaria centralizada)
-  const totalPatConfirmadoCalc = useMemo(() => {
+  // ── Valores calculados en tiempo real desde otros bloques ────────────────
+  const totalPatConfirmado = useMemo(() => {
     const pats = Array.isArray(rawPats) ? rawPats : [];
-    return pats
-      .filter(p => !p.especie)
-      .reduce((s, p) => s + getImporteComprometido(p), 0);
+    return pats.filter(p => !p.especie).reduce((s, p) => s + getImporteComprometido(p), 0);
   }, [rawPats]);
 
-  // Alias para retrocompatibilidad con el resto del código
-  const totalPatConfirmado = totalPatConfirmadoCalc;
-
-  // Cobrado real: solo estado cobrado (tesorería — usando función utilitaria centralizada)
   const totalPatCobrado = useMemo(() => {
     const pats = Array.isArray(rawPats) ? rawPats : [];
-    return pats
-      .filter(p => !p.especie && p.estado === "cobrado")
-      .reduce((s, p) => s + getImporteCobrado(p), 0);
+    return pats.filter(p => !p.especie && p.estado === "cobrado").reduce((s, p) => s + getImporteCobrado(p), 0);
   }, [rawPats]);
 
-  // Subvenciones de entidad pública: suma de patrocinadores con sector "Administración pública"
   const totalSubvencionPublica = useMemo(() => {
     const pats = Array.isArray(rawPats) ? rawPats : [];
     return pats
@@ -75,51 +68,57 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   }, [rawPats]);
 
   const totalMerchBeneficio = useMemo(() => {
-    if (!syncConfig.camisetas) return 0;
     const pedidos = Array.isArray(rawCamPedidos) ? rawCamPedidos : [];
     const coste = rawCamCoste || { corredor: 7.5, voluntario: 7.5 };
-    const lineas = pedidos.flatMap(p => p.lineas);
+    const lineas = pedidos.flatMap(p => p.lineas || []);
     const ingresos = lineas.filter(l => l.estadoPago === "pagado")
                            .reduce((s, l) => s + (l.cantidad * (l.precioVenta || 0)), 0);
     const costeFab = lineas.filter(l => l.estadoPago === "pagado" || l.estadoPago === "pendiente")
                            .reduce((s, l) => s + (l.cantidad * (coste[l.tipo] || 7.5)), 0);
     return ingresos - costeFab;
-  }, [rawCamPedidos, rawCamCoste, syncConfig.camisetas]);
+  }, [rawCamPedidos, rawCamCoste]);
 
-  // ── Sincronización: actualizar ingresosExtra con valores Y activo desde syncConfig ──
-  // Se ejecuta cuando cambian los valores calculados O la configuración de sync
-  // syncConfig es la fuente de verdad del toggle — ie.activo debe ser coherente con él
-  useEffect(() => {
-    setIngresosExtra(prev => prev.map(ie => {
-      // Routing por syncKey (nuevo) o por id (legado)
+  // ── Función que devuelve el valor actualizado de una línea sincronizada ──
+  // Esta función es la ÚNICA fuente de verdad para los valores de las líneas
+  const getValorSincronizado = useCallback((ie) => {
+    const key = ie.syncKey || (ie.id === 1 ? "patrocinios" : ie.id === 2 ? "camisetas" : null);
+    if (!key) return ie.valor; // manual: valor del estado
+    if (key === "patrocinios")        return totalPatConfirmado;
+    if (key === "patrociniosCobrado") return totalPatCobrado;
+    if (key === "camisetas")          return totalMerchBeneficio;
+    if (key === "subvencionPublica")  return totalSubvencionPublica;
+    return ie.valor;
+  }, [totalPatConfirmado, totalPatCobrado, totalMerchBeneficio, totalSubvencionPublica]);
+
+  // ── ingresosExtraConValores: array con valores en tiempo real ────────────
+  // No es estado — se calcula en cada render. Esto GARANTIZA que los KPIs
+  // son coherentes con los toggles sin depender de efectos asíncronos.
+  const ingresosExtraConValores = useMemo(() => {
+    const base = scenarioIngresosExtra ?? ingresosExtra;
+    return base.map(ie => {
       const key = ie.syncKey || (ie.id === 1 ? "patrocinios" : ie.id === 2 ? "camisetas" : null);
-      if (!key) return { ...ie, synced: false }; // manual: no tocar
-      
-      // Alinear activo con syncConfig (fuente de verdad del toggle del usuario)
-      const syncActivo = syncConfig[key] ?? ie.activo;
+      if (!key) return { ...ie, synced: false }; // manual
+      // Para líneas sincronizadas, el toggle es syncConfig[key]
+      const activo = syncConfig[key] ?? ie.activo;
+      const valor = (() => {
+        if (key === "patrocinios")        return totalPatConfirmado;
+        if (key === "patrociniosCobrado") return totalPatCobrado;
+        if (key === "camisetas")          return totalMerchBeneficio;
+        if (key === "subvencionPublica")  return totalSubvencionPublica;
+        return ie.valor;
+      })();
+      return { ...ie, valor, activo, synced: true };
+    });
+  }, [ingresosExtra, scenarioIngresosExtra, syncConfig,
+      totalPatConfirmado, totalPatCobrado, totalMerchBeneficio, totalSubvencionPublica]);
 
-      if (key === "patrocinios") {
-        return { ...ie, valor: totalPatConfirmado, activo: syncActivo, synced: true };
-      }
-      if (key === "patrociniosCobrado") {
-        return { ...ie, valor: totalPatCobrado, activo: syncActivo, synced: true };
-      }
-      if (key === "camisetas") {
-        return { ...ie, valor: totalMerchBeneficio, activo: syncActivo, synced: true };
-      }
-      if (key === "subvencionPublica") {
-        return { ...ie, valor: totalSubvencionPublica, activo: syncActivo, synced: true };
-      }
-      return { ...ie, synced: false };
-    }));
-  }, [totalPatConfirmado, totalPatCobrado, totalMerchBeneficio, totalSubvencionPublica, syncConfig]);
-
+  // ── Carga inicial ────────────────────────────────────────────────────────
   useEffect(() => {
     const loadData = async () => {
       try {
         const [
           savedTramos, savedConceptos, savedInscritos,
-          savedIngresos, savedMerch, savedMaximos, savedSyncConfig
+          savedIngresos, savedMerch, savedMaximos
         ] = await Promise.all([
           dataService.get("teg_presupuesto_v1_tramos"),
           dataService.get("teg_presupuesto_v1_conceptos"),
@@ -127,7 +126,6 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
           dataService.get("teg_presupuesto_v1_ingresosExtra"),
           dataService.get("teg_presupuesto_v1_merchandising"),
           dataService.get("teg_presupuesto_v1_maximos"),
-          dataService.get("teg_presupuesto_v1_syncConfig")
         ]);
         if (savedTramos) setTramos(savedTramos);
         if (savedConceptos) {
@@ -139,17 +137,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
           })));
         }
         if (savedInscritos) setInscritos(savedInscritos);
-        if (savedIngresos) {
-          // Normalizar al cargar: alinear ie.activo con syncConfig para evitar estado inconsistente
-          // Si un toggle del panel está activo, la línea debe estar activa y viceversa
-          const sc = savedSyncConfig ?? SYNC_CONFIG_DEFAULT;
-          const normalized = savedIngresos.map(ie => {
-            if (!ie.syncKey) return ie; // manuales: no tocar
-            const syncActive = sc[ie.syncKey] ?? false;
-            return { ...ie, activo: syncActive };
-          });
-          setIngresosExtra(normalized);
-        }
+        if (savedIngresos) setIngresosExtra(savedIngresos);
         if (savedMerch) setMerchandising(savedMerch);
         if (savedMaximos) setMaximos(savedMaximos);
       } catch (error) {
@@ -164,7 +152,6 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   };
 
   const saveData = useCallback(async () => {
-    // INC-02 fix: cancelar el debounce del autoSave y ejecutar guardado inmediato
     if (autoSaveTimer.current) { clearTimeout(autoSaveTimer.current); autoSaveTimer.current = null; }
     setSaveStatus("saving");
     emitSaveStatus("saving");
@@ -173,8 +160,8 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
         dataService.set("teg_presupuesto_v1_tramos",       tramos),
         dataService.set("teg_presupuesto_v1_conceptos",    conceptos),
         dataService.set("teg_presupuesto_v1_inscritos",    inscritos),
-        dataService.set("teg_presupuesto_v1_ingresosExtra",ingresosExtra),
-        dataService.set("teg_presupuesto_v1_merchandising",merchandising),
+        dataService.set("teg_presupuesto_v1_ingresosExtra", ingresosExtra),
+        dataService.set("teg_presupuesto_v1_merchandising", merchandising),
         dataService.set("teg_presupuesto_v1_maximos",      maximos),
       ]);
       setSaveStatus("saved");
@@ -193,7 +180,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     setInscritos(INSCRITOS_DEFAULT);
     setIngresosExtra(INGRESOS_EXTRA_DEFAULT);
     setMerchandising(MERCHANDISING_DEFAULT);
-    setMaximos(MAXIMOS_DEFAULT); // C1 fix: restablecer aforos máximos
+    setMaximos(MAXIMOS_DEFAULT);
   }, []);
 
   const autoSaveTimer = useRef(null);
@@ -202,7 +189,6 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return; }
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-    // PERF-03 fix: emitir "saving" solo cuando el debounce se dispara, no con cada tecla
     autoSaveTimer.current = setTimeout(async () => {
       emitSaveStatus("saving");
       try {
@@ -228,26 +214,21 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       body: JSON.stringify({
         conceptoId: concepto.id,
         concepto:   concepto.nombre || `#${concepto.id}`,
-        campo,
-        valorAntes: String(valorAntes ?? ""),
-        valorNuevo: String(valorNuevo ?? ""),
-        tipo:       concepto.tipo ?? null,
+        campo, valorAntes: String(valorAntes ?? ""), valorNuevo: String(valorNuevo ?? ""),
+        tipo: concepto.tipo ?? null,
       }),
     }).catch(() => {});
   };
 
   const updateConcepto = (id, field, value) => {
-    setConceptos(prev => {
-      const next = prev.map(c => {
-        if (c.id !== id) return c;
-        const camposLog = ["nombre","activo","costeTotal","modoUniforme",
-                           "estadoPago","estadoPedido","proveedor","contacto",
-                           "fechaPago","fechaEntrega","costeUnitarioReal"];
-        if (camposLog.includes(field) && c[field] !== value) logCambio(c, field, c[field], value);
-        return { ...c, [field]: value };
-      });
-      return next;
-    });
+    setConceptos(prev => prev.map(c => {
+      if (c.id !== id) return c;
+      const camposLog = ["nombre","activo","costeTotal","modoUniforme",
+                         "estadoPago","estadoPedido","proveedor","contacto",
+                         "fechaPago","fechaEntrega","costeUnitarioReal"];
+      if (camposLog.includes(field) && c[field] !== value) logCambio(c, field, c[field], value);
+      return { ...c, [field]: value };
+    }));
   };
 
   const updateCostePorDistancia = (id, dist, value) => {
@@ -309,9 +290,10 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     setInscritos(prev => ({ ...prev, tramos: { ...prev.tramos, [tramoId]: { ...prev.tramos[tramoId], [dist]: value } } }));
   };
 
+  // ── Valores base (con soporte de escenarios) ────────────────────────────
   const _inscritos = scenarioInscritos ?? inscritos;
   const _conceptos = scenarioConceptos ?? conceptos;
-  const _ingresosExtra = scenarioIngresosExtra ?? ingresosExtra;
+  // _ingresosExtra = ingresosExtraConValores (ya tiene escenario aplicado y valores en tiempo real)
   const _merchandising = scenarioMerchandising ?? merchandising;
 
   const totalInscritos = useMemo(() => calculateTotalInscritos(tramos, _inscritos), [tramos, _inscritos]);
@@ -324,13 +306,13 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   const merchTotales = useMemo(() => calculateMerchTotales(_merchandising), [_merchandising]);
   const ingresosDesglosados = useMemo(() => calculateIngresosDesglosados(tramos, _inscritos), [tramos, _inscritos]);
 
+  // totalIngresosExtra se calcula directamente de ingresosExtraConValores
+  // que ya tiene los valores en tiempo real y respeta ie.activo/syncConfig
   const totalIngresosExtra = useMemo(() =>
-    _ingresosExtra.filter(i => i.activo).reduce((s, i) => s + i.valor, 0), [_ingresosExtra]);
+    ingresosExtraConValores.filter(i => i.activo).reduce((s, i) => s + i.valor, 0),
+    [ingresosExtraConValores]);
 
-  // totalIngresosExtra ya incluye el valor de merchandising cuando está sincronizado (id=2 activo)
-  // Para evitar doble contabilización, totalIngresosConMerch = totalIngresosExtra
-  // El beneficio de merch NO se suma por separado — ya está dentro de ingresosExtra id=2
-  const totalIngresosConMerch = useMemo(() => totalIngresosExtra, [totalIngresosExtra]);
+  const totalIngresosConMerch = totalIngresosExtra;
 
   const resultado = useMemo(() =>
     calculateResultado(totalInscritos, ingresosPorDistancia, costesFijos, costesVariables, totalIngresosConMerch),
@@ -360,7 +342,8 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     margenConfig, setMargenConfig,
     conceptos, setConceptos,
     inscritos, setInscritos,
-    ingresosExtra, setIngresosExtra,
+    ingresosExtra: ingresosExtraConValores, // exponer la versión con valores en tiempo real
+    setIngresosExtra,
     merchandising, setMerchandising,
     maximos, setMaximos,
     saveStatus, saveData, resetAllData,
@@ -371,7 +354,8 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     costesFijos, costesVariables, costesVarPorCorredor, costesFijoPorCorredor,
     merchTotales, totalIngresosExtra, totalIngresosConMerch,
     resultado, puntoEquilibrio, peGlobal,
-    ingresosDesglosados, // C2 fix
-    realTotalInscritos, realResultado
+    ingresosDesglosados,
+    realTotalInscritos, realResultado,
+    getValorSincronizado,
   };
 };
