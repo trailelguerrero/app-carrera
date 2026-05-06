@@ -281,3 +281,60 @@ describe('PRE-10 — Cadena completa: toggle → totalIngresosExtra → resultad
     expect(on - off).toBe(3000);
   });
 });
+// PRE-11 — Merge defaults garantiza que id=10 y id=13 siempre aparecen
+describe('PRE-11 — Merge defaults garantiza líneas nuevas en datos guardados', () => {
+  const DEFAULTS = [
+    { id:1,  syncKey:"patrocinios",             activo:true,  valor:0 },
+    { id:3,  syncKey:"patrociniosCobrado",       activo:false, valor:0 },
+    { id:2,  syncKey:"camisetas",               activo:true,  valor:0 },
+    { id:10, syncKey:"subvencionPublica",        activo:true,  valor:0 },
+    { id:13, syncKey:"balanceCamisetasTecnicas", activo:false, valor:0 },
+    { id:11, nombre:"Colaboradores especie",     activo:false, valor:0 },
+    { id:12, nombre:"Otros ingresos",            activo:false, valor:0 },
+  ];
+
+  const mergeWithDefaults = (savedIngresos, defaults) => {
+    const savedIds = new Set(savedIngresos.map(ie => ie.id));
+    const missing = defaults.filter(ie => !savedIds.has(ie.id));
+    return [...savedIngresos, ...missing];
+  };
+
+  it('datos sin id=10 → merge añade id=10 (subvencionPublica)', () => {
+    const saved = [
+      { id:1, nombre:"Patrocinios captados", activo:true, valor:800 },
+      { id:2, nombre:"Merchandising", activo:true, valor:0 },
+      { id:3, nombre:"Patrocinios cobrados", activo:false, valor:0 },
+    ];
+    const merged = mergeWithDefaults(saved, DEFAULTS);
+    expect(merged.find(ie => ie.id === 10)).toBeTruthy();
+    expect(merged.find(ie => ie.id === 10)?.syncKey).toBe("subvencionPublica");
+  });
+
+  it('datos sin id=13 → merge añade id=13 (balanceCamisetasTecnicas)', () => {
+    const saved = [{ id:1, activo:true, valor:800 }];
+    const merged = mergeWithDefaults(saved, DEFAULTS);
+    expect(merged.find(ie => ie.id === 13)).toBeTruthy();
+    expect(merged.find(ie => ie.id === 13)?.syncKey).toBe("balanceCamisetasTecnicas");
+  });
+
+  it('datos que ya tienen id=10 no se duplican', () => {
+    const saved = [
+      { id:10, nombre:"Subvención personalizada", activo:true, valor:3000, syncKey:"subvencionPublica" },
+    ];
+    const merged = mergeWithDefaults(saved, DEFAULTS);
+    const id10s = merged.filter(ie => ie.id === 10);
+    expect(id10s).toHaveLength(1);
+    expect(id10s[0].valor).toBe(3000); // el del usuario, no el default
+  });
+
+  it('datos vacíos → se cargan todos los defaults', () => {
+    const merged = mergeWithDefaults([], DEFAULTS);
+    expect(merged).toHaveLength(DEFAULTS.length);
+  });
+
+  it('el merge preserva los valores del usuario en los ids existentes', () => {
+    const saved = [{ id:1, syncKey:"patrocinios", activo:true, valor:999 }];
+    const merged = mergeWithDefaults(saved, DEFAULTS);
+    expect(merged.find(ie => ie.id === 1)?.valor).toBe(999); // valor del usuario
+  });
+});

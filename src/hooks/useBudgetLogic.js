@@ -194,15 +194,24 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
         }
         if (savedInscritos) setInscritos(savedInscritos);
         if (savedIngresos) {
-          // Migrar datos legados: añadir syncKey si falta (versiones antiguas no lo tenían)
           const ID_TO_SYNCKEY_LOAD = { 1: "patrocinios", 2: "camisetas", 3: "patrociniosCobrado", 10: "subvencionPublica", 13: "balanceCamisetasTecnicas" };
+
+          // 1. Migrar datos legados: añadir syncKey si falta
           const migrated = savedIngresos.map(ie => {
-            if (ie.syncKey) return ie; // ya tiene syncKey, no migrar
+            if (ie.syncKey) return ie;
             const syncKey = ID_TO_SYNCKEY_LOAD[ie.id];
-            if (!syncKey) return ie; // línea manual, dejar como está
-            return { ...ie, syncKey, synced: true }; // migrar
+            if (!syncKey) return ie;
+            return { ...ie, syncKey, synced: true };
           });
-          setIngresosExtra(migrated);
+
+          // 2. Garantizar que todos los ítems del DEFAULT existan en los datos guardados
+          //    Si el usuario nunca ha tenido id=10 (subvencionPublica) o id=13 (balanceCamisetasTecnicas),
+          //    se añaden desde INGRESOS_EXTRA_DEFAULT para que siempre aparezcan en la UI
+          const savedIds = new Set(migrated.map(ie => ie.id));
+          const missingDefaults = INGRESOS_EXTRA_DEFAULT.filter(ie => !savedIds.has(ie.id));
+          const merged = [...migrated, ...missingDefaults];
+
+          setIngresosExtra(merged);
         }
         if (savedMerch) setMerchandising(savedMerch);
         if (savedMaximos) setMaximos(savedMaximos);
