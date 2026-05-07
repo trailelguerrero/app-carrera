@@ -5,6 +5,7 @@ import { toast } from "@/lib/toast";
 import EmptyState from "@/components/EmptyState";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { getEventDate } from "@/lib/eventUtils";
+import { LOCS_KEY, LOCS_DEFAULT } from "@/constants/localizaciones"; // CONN-01: mapa de puestos
 
 const LS_LOG = "teg_logistica_v1";
 const LS_VOL = "teg_voluntarios_v1";
@@ -80,6 +81,7 @@ export default function DiaCarrera({ onClose }) {
   const [rawCont, , loadCont]         = useData(LS_LOG + "_cont", []);
   const [rawCk,  setCk, loadCk]   = useData(LS_LOG + "_ck",  []);
   const [rawPuestos, , loadPuestos]      = useData(LS_VOL + "_puestos", []);
+  const [locs,    ,]             = useData(LOCS_KEY, LOCS_DEFAULT); // CONN-01: localizaciones GPS
   const [rawVols, setVols, loadVols]= useData(LS_VOL + "_voluntarios", []);
   const [rawInc,  setInc, loadInc] = useData(LS_LOG + "_inc", []);
 
@@ -482,6 +484,9 @@ export default function DiaCarrera({ onClose }) {
               const asig = vols.filter(v => v.puestoId===p.id && v.estado==="confirmado");
               const pres = asig.filter(v => v.enPuesto).length;
               const color = pres >= (p.necesarios||1) ? "var(--green)" : pres > 0 ? "var(--amber)" : "var(--red)";
+              // CONN-01: buscar localización maestra para mostrar icono y descripción
+              const locMatch = locs.find(l => l.id === p.locId || l.nombre === p.nombre);
+              const locIcons = {meta:"🎏",avituallamiento:"🍎",control:"📍",seguridad:"🦸",señalización:"⚠️",parking:"🅿️",sanidad:"🚑"};
               return (
                 <div key={p.id} style={{padding:".7rem .85rem",borderRadius:10,
                   background:"var(--surface)",border:"1px solid var(--border)",
@@ -492,6 +497,12 @@ export default function DiaCarrera({ onClose }) {
                       <div className="mono-xs text-muted">
                         {p.horaInicio}–{p.horaFin} · necesarios: {p.necesarios||1}
                       </div>
+                      {/* CONN-01: descripción de la localización maestra si existe */}
+                      {locMatch && (
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--cyan)",marginTop:".15rem"}}>
+                          {locIcons[locMatch.tipo]||"📌"} {locMatch.tipo} · {locMatch.descripcion}
+                        </div>
+                      )}
                     </div>
                     <span style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-base)",fontWeight:800,color,flexShrink:0}}>
                       {pres}/{asig.length}

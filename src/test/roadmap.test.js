@@ -645,3 +645,131 @@ describe('SP2-02 — Logistica.jsx reducido por extracción de sub-componentes',
     expect(log).toContain('@/components/logistica/FichaLogistica');
   });
 });
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SPRINT 3 — Funcionalidades de alto valor
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('SP3-01 — CONN-01: DíaCarrera conectado con localizaciones GPS', () => {
+  it('DiaCarrera.jsx importa LOCS_KEY y LOCS_DEFAULT', () => {
+    const dc = read('src/components/blocks/DiaCarrera.jsx');
+    expect(dc).toContain('LOCS_KEY');
+    expect(dc).toContain('LOCS_DEFAULT');
+    expect(dc).toContain('localizaciones');
+  });
+  it('DiaCarrera.jsx carga locs via useData', () => {
+    const dc = read('src/components/blocks/DiaCarrera.jsx');
+    expect(dc).toContain('useData(LOCS_KEY');
+  });
+  it('tab puestos muestra info de localización', () => {
+    const dc = read('src/components/blocks/DiaCarrera.jsx');
+    expect(dc).toContain('CONN-01');
+    expect(dc).toContain('locMatch.tipo'); // CONN-01 implemented via locMatch
+  });
+});
+
+describe('SP3-02 — CONN-04: budget-log TabHistorial funcional', () => {
+  it('TabHistorial fetch GET no tiene x-api-key (público)', () => {
+    const tab = read('src/components/budget/TabHistorial.jsx');
+    const getIdx = tab.indexOf('/api/budget-log?limit=100');
+    const getCtx = tab.slice(Math.max(0, getIdx-30), getIdx+100);
+    expect(getCtx).not.toContain('x-api-key');
+  });
+  it('api/budget-log GET es público', () => {
+    const api = read('api/budget-log/index.js');
+    expect(api).toContain("req.method !== 'GET'");
+  });
+});
+
+describe('SP3-03 — FRAG-DASH-01: indicador datos provisionales en Dashboard', () => {
+  it('Dashboard muestra indicador cuando isRefreshing', () => {
+    const dash = read('src/components/blocks/Dashboard.jsx');
+    expect(dash).toContain('isRefreshing');
+    expect(dash).toContain('Actualizando datos');
+    expect(dash).toContain('FRAG-DASH-01');
+  });
+  it('indicador usa color ámbar (informativo, no error)', () => {
+    const dash = read('src/components/blocks/Dashboard.jsx');
+    const idx = dash.indexOf('FRAG-DASH-01');
+    const ctx = dash.slice(idx, idx + 400);
+    expect(ctx).toContain('amber');
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SPRINT 2 — Refactor modular
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('SP2-01 — Voluntarios.jsx refactorizado en módulos', () => {
+  it('Voluntarios.jsx tiene menos de 1100 líneas', () => {
+    const v = read('src/components/blocks/Voluntarios.jsx');
+    expect(v.split('\n').length).toBeLessThan(1100);
+  });
+  it('TabDashboardVol.jsx extraído', () => {
+    expect(exists('src/components/voluntarios/TabDashboardVol.jsx')).toBe(true);
+  });
+  it('TabVoluntariosList.jsx extraído', () => {
+    expect(exists('src/components/voluntarios/TabVoluntariosList.jsx')).toBe(true);
+  });
+  it('TabPuestosVol.jsx extraído', () => {
+    expect(exists('src/components/voluntarios/TabPuestosVol.jsx')).toBe(true);
+  });
+  it('TabTallasVol.jsx extraído', () => {
+    expect(exists('src/components/voluntarios/TabTallasVol.jsx')).toBe(true);
+  });
+  it('TabDiaDVol.jsx extraído', () => {
+    expect(exists('src/components/voluntarios/TabDiaDVol.jsx')).toBe(true);
+  });
+  it('FichaVoluntario.jsx extraído', () => {
+    expect(exists('src/components/voluntarios/FichaVoluntario.jsx')).toBe(true);
+  });
+  it('FichaPuesto.jsx extraído', () => {
+    expect(exists('src/components/voluntarios/FichaPuesto.jsx')).toBe(true);
+  });
+  it('ModalVoluntario.jsx extraído', () => {
+    expect(exists('src/components/voluntarios/ModalVoluntario.jsx')).toBe(true);
+  });
+  it('Voluntarios.jsx importa desde los módulos extraídos', () => {
+    const v = read('src/components/blocks/Voluntarios.jsx');
+    expect(v).toContain('@/components/voluntarios/TabDashboardVol');
+    expect(v).toContain('@/components/voluntarios/TabVoluntariosList');
+    expect(v).toContain('@/components/voluntarios/FichaVoluntario');
+  });
+});
+
+describe('SP2-02 — Logistica.jsx refactorizado en módulos', () => {
+  it('Logistica.jsx tiene menos de 700 líneas', () => {
+    const l = read('src/components/blocks/Logistica.jsx');
+    expect(l.split('\n').length).toBeLessThan(700);
+  });
+  it('TabDashLog.jsx extraído', () => {
+    expect(exists('src/components/logistica/TabDashLog.jsx')).toBe(true);
+  });
+  it('TabMaterial.jsx extraído', () => {
+    expect(exists('src/components/logistica/TabMaterial.jsx')).toBe(true);
+  });
+  it('TabVehiculos.jsx extraído', () => {
+    expect(exists('src/components/logistica/TabVehiculos.jsx')).toBe(true);
+  });
+  it('TabTimeline.jsx extraído', () => {
+    expect(exists('src/components/logistica/TabTimeline.jsx')).toBe(true);
+  });
+  it('TabDirectorio.jsx extraído', () => {
+    expect(exists('src/components/logistica/TabDirectorio.jsx')).toBe(true);
+  });
+  it('TabEmergencias.jsx extraído', () => {
+    expect(exists('src/components/logistica/TabEmergencias.jsx')).toBe(true);
+  });
+  it('TabComunicaciones.jsx extraído', () => {
+    expect(exists('src/components/logistica/TabComunicaciones.jsx')).toBe(true);
+  });
+  it('FichaLogistica.jsx extraído', () => {
+    expect(exists('src/components/logistica/FichaLogistica.jsx')).toBe(true);
+  });
+  it('Logistica.jsx importa desde los módulos extraídos', () => {
+    const l = read('src/components/blocks/Logistica.jsx');
+    expect(l).toContain('@/components/logistica/TabDashLog');
+    expect(l).toContain('@/components/logistica/TabMaterial');
+    expect(l).toContain('@/components/logistica/FichaLogistica');
+  });
+});

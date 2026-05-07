@@ -462,6 +462,20 @@ export default function Dashboard() {
       <div className="block-container">
 
         {/* ── HEADER ── */}
+        {/* FRAG-DASH-01: indicador sutil de actualización de datos en curso */}
+        {isRefreshing && (
+          <div style={{
+            fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+            color:"var(--amber)", background:"rgba(251,191,36,.08)",
+            border:"1px solid rgba(251,191,36,.2)",
+            borderRadius:6, padding:".25rem .6rem",
+            marginBottom:".5rem", display:"inline-flex",
+            alignItems:"center", gap:".35rem",
+          }}>
+            <span style={{animation:"spin 1s linear infinite",display:"inline-block"}}>↻</span>
+            Actualizando datos…
+          </div>
+        )}
         <div className="block-header">
           <div>
             <h1 className="block-title">📊 Dashboard</h1>
