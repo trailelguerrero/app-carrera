@@ -316,6 +316,17 @@ export default function Index() {
   const navMore      = isMobile ? navBlocks.filter(b => NAV_MORE_IDS.includes(b.id)) : [];
   const moreIsActive = navMore.some(b => b.id === activeBlock);
 
+  // MISSING-02: Detector de conflictos entre dispositivos (teg-conflict)
+  useEffect(() => {
+    const onConflict = (e) => {
+      const { collection, message } = e.detail || {};
+      const label = (collection || '').replace('teg_', '').replace(/_v\d+_?/g, ' ').trim() || 'datos';
+      toast.warning(`⚠️ Conflicto en ${label}: ${message || 'Otro dispositivo guardó cambios más recientes.'}`);
+    };
+    window.addEventListener('teg-conflict', onConflict);
+    return () => window.removeEventListener('teg-conflict', onConflict);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <>
       <style>{`
@@ -704,19 +715,7 @@ export default function Index() {
               <div style={{ display:"flex", gap:"0.5rem" }}>
                 {navMore.map(b => {
                   const isActive = activeBlock === b.id;
-                
-  // ── MISSING-02: Listener de conflicto entre dispositivos ──────────────────
-  useEffect(() => {
-    const handler = (e) => {
-      const { collection, message } = e.detail || {};
-      const colLabel = collection?.replace('teg_', '').replace(/_v\d+_?/g, ' ').trim() || 'datos';
-      toast.warning(`⚠️ Conflicto en ${colLabel}: ${message || 'Otro dispositivo guardó cambios más recientes.'}`);
-    };
-    window.addEventListener('teg-conflict', handler);
-    return () => window.removeEventListener('teg-conflict', handler);
-  }, []);
-
-  return (
+                  return (
                     <button
                       key={b.id}
                       onClick={() => { handleBlockChange(b.id); setShowMoreNav(false); }}

@@ -846,3 +846,72 @@ describe('SP5-03 — tailwindcss-animate eliminado del config', () => {
     expect(cfg).not.toContain('tailwindcss-animate');
   });
 });
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SPRINT 6 — Corrección de bugs críticos: drawer crash + API versioning
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('SP6-01 — Drawer "Más" no causa pantalla negra', () => {
+  it('Index.jsx: useEffect MISSING-02 NO está dentro del keyboard handler useEffect', () => {
+    const idx = read('src/pages/Index.jsx');
+    // El keyboard shortcuts useEffect debe tener "if (!authed)" como primer statement
+    const keyboardIdx = idx.indexOf('// Keyboard shortcuts');
+    const keyboardBlock = idx.slice(keyboardIdx, keyboardIdx + 200);
+    // El MISSING-02 NO debe estar dentro del keyboard block
+    expect(keyboardBlock).not.toContain('MISSING-02');
+    expect(keyboardBlock).not.toContain("window.addEventListener('teg-conflict'");
+  });
+
+  it('Index.jsx: MISSING-02 useEffect está correctamente al nivel del componente', () => {
+    const idx = read('src/pages/Index.jsx');
+    const conflictIdx = idx.indexOf('MISSING-02');
+    expect(conflictIdx).toBeGreaterThan(-1);
+    // Debe aparecer justo antes del return principal
+    const afterConflict = idx.slice(conflictIdx, conflictIdx + 800);
+    expect(afterConflict).toContain('teg-conflict');  // simplified check
+    expect(afterConflict).toContain('}, []');  // close of the useEffect deps array // eslint or without comment
+    // Also accept with comment
+    const hasClose = afterConflict.includes('}, []);') || afterConflict.includes('}, []); //');
+    // El return ( de la UI debe aparecer después
+    expect(afterConflict).toContain('\n  return (');
+  });
+
+  it('Index.jsx: navMore.map tiene return ( antes del <button>', () => {
+    const idx = read('src/pages/Index.jsx');
+    const navMoreIdx = idx.indexOf('navMore.map(b => {');
+    const mapBlock = idx.slice(navMoreIdx, navMoreIdx + 300);
+    expect(mapBlock).toContain('return (');
+    expect(mapBlock).toContain('<button');
+  });
+
+  it('Index.jsx: no tiene hooks inválidos (useEffect anidado en useEffect)', () => {
+    const idx = read('src/pages/Index.jsx');
+    // Verificar que ningún useEffect contiene otro useEffect en su cuerpo
+    // Pattern: useEffect(() => {\n...useEffect
+    const nestedPattern = /useEffect\(\(\) => \{[^}]*useEffect\(/s;
+    expect(nestedPattern.test(idx)).toBe(false);
+  });
+});
+
+describe('SP6-02 — apiAdapter.get unwrapea respuesta versionada', () => {
+  it('dataService.get unwrapea {data, version} correctamente', () => {
+    const ds = read('src/lib/dataService.js');
+    expect(ds).toContain('response?.data !== undefined');
+    expect(ds).toContain('response.data : response');
+  });
+  it('dataService.get guarda __version_ en localStorage', () => {
+    const ds = read('src/lib/dataService.js');
+    expect(ds).toContain('__version_${collection}');
+  });
+});
+
+describe('SP6-03 — tailwind.config.ts no usa plugins eliminados', () => {
+  it('tailwind.config.ts no referencia tailwindcss-animate', () => {
+    const cfg = read('tailwind.config.ts');
+    expect(cfg).not.toContain('tailwindcss-animate');
+  });
+  it('tailwind.config.ts tiene plugins vacío o válido', () => {
+    const cfg = read('tailwind.config.ts');
+    expect(cfg).toContain('plugins');
+  });
+});

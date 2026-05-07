@@ -95,10 +95,16 @@ const apiAdapter = {
         headers: { 'x-api-key': import.meta.env.VITE_API_KEY }
       });
       if (!res.ok) return localData ?? defaultValue;
-      const data = await res.json();
+      const response = await res.json();
+      // MISSING-02: unwrap versioned response { data, version } or raw data (legacy)
+      const data = response?.data !== undefined ? response.data : response;
+      const version = response?.version;
       if (saveTimeouts.has(collection)) return localAdapter.get(collection, defaultValue);
       await localAdapter.set(collection, data);
       localStorage.setItem(`__last_fetch_${collection}`, Date.now().toString());
+      if (version !== undefined) {
+        localStorage.setItem(`__version_${collection}`, String(version));
+      }
       sessionStorage.setItem(SESSION_KEY, '1');
       return data;
     } catch {
