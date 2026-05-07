@@ -135,7 +135,24 @@ const apiAdapter = {
             },
             body: JSON.stringify(data),
           });
+          if (res.status === 409) {
+            // MISSING-02: conflict — otro dispositivo guardó cambios más recientes
+            const conflictData = await res.json().catch(() => ({}));
+            window.dispatchEvent(new CustomEvent('teg-conflict', {
+              detail: { collection, serverVersion: conflictData.serverVersion, message: conflictData.message }
+            }));
+            resolve({ success: false, conflict: true, serverVersion: conflictData.serverVersion });
+            return;
+          }
           if (!res.ok) throw new Error(`API error: ${res.status}`);
+          
+          // MISSING-02: actualizar versión local desde la respuesta del servidor
+          try {
+            const resData = await res.json();
+            if (resData?.version !== undefined) {
+              localStorage.setItem(`__version_${collection}`, String(resData.version));
+            }
+          } catch { /* ignore */ }
           
           // Marcar éxito y timestamp
           localStorage.setItem(`__last_save_${collection}`, Date.now().toString());

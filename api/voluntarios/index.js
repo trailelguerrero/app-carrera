@@ -13,16 +13,35 @@
  */
 import { neon } from '@neondatabase/serverless';
 
+import bcrypt from 'bcryptjs';
+
 const LS_KEY    = 'teg_voluntarios_v1_voluntarios';
 const LS_PUESTOS = 'teg_voluntarios_v1_puestos';
 const LS_CONFIG  = 'teg_event_config_v1';
 
-function hashPin(pin) {
+// SEC-01: hashPin uses bcrypt (PBKDF2-like, replaces djb2)
+// hashPinLegacy kept for transparent migration of existing hashes
+function hashPinLegacy(pin) {
   let h = 0;
   for (let i = 0; i < pin.length; i++) {
     h = (Math.imul(31, h) + pin.charCodeAt(i)) | 0;
   }
   return String(h);
+}
+function hashPin(pin) {
+  return bcrypt.hashSync(String(pin), 10);
+}
+// Verify PIN against stored hash (supports both bcrypt and legacy djb2)
+// Returns: { valid: boolean, needsUpgrade: boolean }
+function verifyPinCompat(pin, storedHash) {
+  if (!storedHash) return { valid: false, needsUpgrade: false };
+  // bcrypt hashes always start with $2b$ or $2a$
+  if (storedHash.startsWith('$2')) {
+    return { valid: bcrypt.compareSync(String(pin), storedHash), needsUpgrade: false };
+  }
+  // Legacy djb2 hash
+  const valid = hashPinLegacy(String(pin)) === storedHash;
+  return { valid, needsUpgrade: valid }; // if valid, upgrade to bcrypt
 }
 function pinInicial(telefono) {
   const digits = (telefono || '').replace(/\D/g, '');
@@ -82,7 +101,15 @@ export default async function handler(req, res) {
       if (!v) return res.status(401).json({ error: 'Teléfono o PIN incorrecto' });
 
       const pinHashEsperado = v.pinHash || hashPin(pinInicial(v.telefono));
-      if (hashPin(String(pin)) !== pinHashEsperado) return res.status(401).json({ error: 'Teléfono o PIN incorrecto' });
+      // SEC-01: verifyPinCompat soporta bcrypt y legacy djb2 (migración transparente)
+      const { valid: pinCorrecto, needsUpgrade } = verifyPinCompat(String(pin), pinHashEsperado);
+      // Auto-upgrade: si el hash es legacy djb2 y el PIN es correcto, actualizar a bcrypt
+      if (pinCorrecto && needsUpgrade) {
+        const upgradedHash = hashPin(String(pin)); // bcrypt
+        await saveVols(sql, vols.map(x => String(x.id) === String(v.id)
+          ? { ...x, pinHash: upgradedHash } : x));
+      }
+      if (!pinCorrecto) return res.status(401).json({ error: 'Teléfono o PIN incorrecto' });
 
       const sessionToken = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
       const sessionTokenExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();

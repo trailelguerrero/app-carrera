@@ -704,7 +704,19 @@ export default function Index() {
               <div style={{ display:"flex", gap:"0.5rem" }}>
                 {navMore.map(b => {
                   const isActive = activeBlock === b.id;
-                  return (
+                
+  // ── MISSING-02: Listener de conflicto entre dispositivos ──────────────────
+  useEffect(() => {
+    const handler = (e) => {
+      const { collection, message } = e.detail || {};
+      const colLabel = collection?.replace('teg_', '').replace(/_v\d+_?/g, ' ').trim() || 'datos';
+      toast.warning(`⚠️ Conflicto en ${colLabel}: ${message || 'Otro dispositivo guardó cambios más recientes.'}`);
+    };
+    window.addEventListener('teg-conflict', handler);
+    return () => window.removeEventListener('teg-conflict', handler);
+  }, []);
+
+  return (
                     <button
                       key={b.id}
                       onClick={() => { handleBlockChange(b.id); setShowMoreNav(false); }}

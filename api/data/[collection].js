@@ -17,9 +17,10 @@ export default async function handler(req, res) {
     const sql = neon(process.env.DATABASE_URL);
 
     if (req.method === 'GET') {
-      const result = await sql`SELECT value FROM collections WHERE key = ${collection}`;
+      const result = await sql`SELECT value, version FROM collections WHERE key = ${collection}`;
       if (result.length > 0) {
-        return res.status(200).json(result[0].value);
+        // MISSING-02: devolver version junto con el valor para detección de conflictos
+        return res.status(200).json({ data: result[0].value, version: result[0].version || 1 });
       } else {
         return res.status(404).json({ error: 'Not found' });
       }
@@ -27,14 +28,47 @@ export default async function handler(req, res) {
     
     if (req.method === 'PUT') {
       const body = req.body;
+      // MISSING-02: soporte opcional de version para detección de conflictos
+      // Si el cliente envía { __version: N }, verificamos que coincide con la BD
+      // Si no coincide → 409 Conflict. Si no envía version → last-write-wins.
+      const clientVersion = body?.__version;
       const jsonValue = JSON.stringify(body);
-      
-      await sql`
-        INSERT INTO collections (key, value) 
-        VALUES (${collection}, ${jsonValue}::jsonb)
-        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
-      `;
-      return res.status(200).json({ success: true });
+
+      if (clientVersion !== undefined) {
+        // Leer versión actual
+        const current = await sql`SELECT version FROM collections WHERE key = ${collection}`;
+        const serverVersion = current[0]?.version || 0;
+        if (serverVersion > 0 && clientVersion !== serverVersion) {
+          return res.status(409).json({
+            error: 'Conflict',
+            serverVersion,
+            clientVersion,
+            message: 'Los datos fueron modificados por otro dispositivo. Recarga para ver los cambios.',
+          });
+        }
+        // Versión coincide o es nueva: guardar con version+1
+        await sql`
+          INSERT INTO collections (key, value, version)
+          VALUES (${collection}, ${jsonValue}::jsonb, 1)
+          ON CONFLICT (key) DO UPDATE
+          SET value = EXCLUDED.value,
+              version = collections.version + 1,
+              updated_at = CURRENT_TIMESTAMP
+        `;
+      } else {
+        // Sin versión: last-write-wins (comportamiento original)
+        await sql`
+          INSERT INTO collections (key, value, version)
+          VALUES (${collection}, ${jsonValue}::jsonb, 1)
+          ON CONFLICT (key) DO UPDATE
+          SET value = EXCLUDED.value,
+              version = collections.version + 1,
+              updated_at = CURRENT_TIMESTAMP
+        `;
+      }
+      // Devolver la versión nueva para que el cliente la actualice
+      const updated = await sql`SELECT version FROM collections WHERE key = ${collection}`;
+      return res.status(200).json({ success: true, version: updated[0]?.version || 1 });
     }
 
     if (req.method === 'DELETE') {

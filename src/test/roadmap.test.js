@@ -773,3 +773,76 @@ describe('SP2-02 — Logistica.jsx refactorizado en módulos', () => {
     expect(l).toContain('@/components/logistica/FichaLogistica');
   });
 });
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SPRINT 5 — Seguridad y multiusuario
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('SP5-01 — SEC-01: hashPin migrado a bcryptjs', () => {
+  it('api/voluntarios importa bcryptjs', () => {
+    const api = read('api/voluntarios/index.js');
+    expect(api).toContain("from 'bcryptjs'");
+  });
+  it('hashPin usa bcrypt.hashSync', () => {
+    const api = read('api/voluntarios/index.js');
+    expect(api).toContain('bcrypt.hashSync');
+  });
+  it('hashPinLegacy preservado para migración transparente (djb2)', () => {
+    const api = read('api/voluntarios/index.js');
+    expect(api).toContain('hashPinLegacy');
+    expect(api).toContain('Math.imul');
+  });
+  it('verifyPinCompat soporta ambos formatos', () => {
+    const api = read('api/voluntarios/index.js');
+    expect(api).toContain('verifyPinCompat');
+    expect(api).toContain("startsWith('$2')");
+  });
+  it('login auto-upgrades hash legacy a bcrypt', () => {
+    const api = read('api/voluntarios/index.js');
+    expect(api).toContain('needsUpgrade');
+    expect(api).toContain('upgradedHash');
+  });
+  it('bcryptjs en package.json dependencies', async () => {
+    const { readFileSync } = await import('fs');
+    const { resolve } = await import('path');
+    const pkg = JSON.parse(readFileSync(resolve(process.cwd(), 'package.json'), 'utf-8'));
+    const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
+    expect(allDeps['bcryptjs']).toBeDefined();
+  });
+});
+
+describe('SP5-02 — MISSING-02: detección de conflictos entre dispositivos', () => {
+  it('api/data/[collection].js devuelve version en GET', () => {
+    const api = read('api/data/[collection].js');
+    expect(api).toContain('version');
+    expect(api).toContain('MISSING-02');
+  });
+  it('PUT devuelve 409 si versión no coincide', () => {
+    const api = read('api/data/[collection].js');
+    expect(api).toContain('409');
+    expect(api).toContain('Conflict');
+    expect(api).toContain('serverVersion');
+  });
+  it('dataService.set maneja 409 y emite teg-conflict', () => {
+    const ds = read('src/lib/dataService.js');
+    expect(ds).toContain('409');
+    expect(ds).toContain('teg-conflict');
+    expect(ds).toContain('MISSING-02');
+  });
+  it('Index.jsx escucha teg-conflict y muestra toast', () => {
+    const idx = read('src/pages/Index.jsx');
+    expect(idx).toContain('teg-conflict');
+    expect(idx).toContain('MISSING-02');
+  });
+  it('version counter se guarda en localStorage', () => {
+    const ds = read('src/lib/dataService.js');
+    expect(ds).toContain('__version_');
+  });
+});
+
+describe('SP5-03 — tailwindcss-animate eliminado del config', () => {
+  it('tailwind.config.ts no referencia tailwindcss-animate', () => {
+    const cfg = read('tailwind.config.ts');
+    expect(cfg).not.toContain('tailwindcss-animate');
+  });
+});

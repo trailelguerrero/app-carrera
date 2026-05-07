@@ -18,9 +18,15 @@ export default async function handler(req, res) {
       CREATE TABLE IF NOT EXISTS collections (
         key VARCHAR(255) PRIMARY KEY,
         value JSONB NOT NULL,
+        version BIGINT NOT NULL DEFAULT 1,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `;
+    -- Add version column if table exists without it (migration)
+    await sql`
+      ALTER TABLE collections
+      ADD COLUMN IF NOT EXISTS version BIGINT NOT NULL DEFAULT 1;
+    `.catch(() => {}); -- ignore if column already exists
 
     return res.status(200).json({ message: 'Database setup successful!' });
   } catch (error) {
