@@ -321,6 +321,52 @@ const dataService = {
 };
 
 export default dataService;
+
+// ── T4.1 — Sincronización offline: cola de reintentos ─────────────────────────
+// Cuando la conexión se recupera, reintenta sincronizar todas las colecciones
+// que fallaron y quedaron marcadas con __pending_sync_* en localStorage.
+// Implementa MISSING-01: el banner "sin conexión" ya no miente.
+if (typeof window !== 'undefined' && ADAPTER === 'api') {
+  const syncPendingQueue = async () => {
+    const pendingKeys = Object.keys(localStorage)
+      .filter(k => k.startsWith('__pending_sync_'));
+    if (pendingKeys.length === 0) return;
+
+    console.log(`[dataService] Conexión recuperada — reintentando ${pendingKeys.length} colección(es) pendiente(s)`);
+    window.dispatchEvent(new CustomEvent('teg-save-status', { detail: { status: 'saving' } }));
+
+    let synced = 0;
+    for (const pendingKey of pendingKeys) {
+      const collection = pendingKey.replace('__pending_sync_', '');
+      try {
+        const raw = localStorage.getItem(collection);
+        if (!raw) { localStorage.removeItem(pendingKey); continue; }
+        const data = JSON.parse(raw);
+        const res = await fetch(`${API_BASE_URL}/data/${collection}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': '' },
+          body: JSON.stringify(data),
+        });
+        if (res.ok) {
+          localStorage.removeItem(pendingKey);
+          localStorage.setItem(`__last_save_${collection}`, Date.now().toString());
+          synced++;
+        }
+      } catch { /* seguir con la siguiente */ }
+    }
+
+    window.dispatchEvent(new CustomEvent('teg-save-status', { detail: { status: synced > 0 ? 'saved' : 'error' } }));
+    if (synced > 0) {
+      console.log(`[dataService] Sincronizadas ${synced} colección(es) pendiente(s)`);
+      dataService.notify();
+    }
+  };
+
+  window.addEventListener('online', () => {
+    // Pequeño delay para asegurar conectividad real
+    setTimeout(syncPendingQueue, 1500);
+  });
+}
 export { dataService };
 
 

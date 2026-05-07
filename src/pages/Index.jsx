@@ -1,3 +1,7 @@
+import PinScreen from "@/components/auth/PinScreen";
+import ChangePinModal from "@/components/auth/ChangePinModal";
+import { useAlertasBadges } from "@/hooks/useAlertasBadges.js";
+import { checkSession, createSession } from "@/components/auth/pinAuth.js";
 import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from "react";
 import ErrorBoundary from "../components/ErrorBoundary";
 const DiaCarrera = lazy(() => import("../components/blocks/DiaCarrera"));
@@ -29,21 +33,6 @@ const BLOCKS = [
   // Configuración NO aparece en la nav principal pero sí es navegable via teg-navigate
   { id: "configuracion",  icon: "⚙️", label: "Configuración",  shortLabel: "Cfg",   component: Configuracion, hidden: true },
 ];
-
-// ── PIN CONFIG ────────────────────────────────────────────────────────────────
-const PIN_KEY        = "teg_panel_pin_hash";
-const AUTH_KEY       = "teg_panel_authed";
-const SESSION_VER    = "teg_panel_session_ver";
-const CURRENT_VER    = "2";          // Incrementar para invalidar todas las sesiones
-const DEFAULT_PIN    = "1975";
-
-function hashPin(pin) {
-  let h = 0;
-  for (let i = 0; i < pin.length; i++) {
-    h = (Math.imul(31, h) + pin.charCodeAt(i)) | 0;
-  }
-  return String(h);
-}
 
 // ── TOAST SYSTEM ──────────────────────────────────────────────────────────────
 function useToastSystem() {
@@ -161,236 +150,6 @@ function AutosaveIndicator({ status }) {
   );
 }
 
-// ── PIN NUMPAD (shared) ────────────────────────────────────────────────────────
-function Numpad({ onDigit, onBackspace }) {
-  const haptic = (type = 'light') => {
-    if (!navigator.vibrate) return;
-    if (type === 'light')  navigator.vibrate(8);
-    if (type === 'error')  navigator.vibrate([30, 10, 30]);
-    if (type === 'success')navigator.vibrate(50);
-  };
-
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.6rem" }}>
-      {["1","2","3","4","5","6","7","8","9","","0","⌫"].map((k, i) => (
-        <button
-          key={i}
-          onClick={() => {
-            if (k === "⌫") { haptic('light'); onBackspace(); }
-            else if (k !== "") { haptic('light'); onDigit(k); }
-          }}
-          disabled={k === ""}
-          aria-label={k === "⌫" ? "Borrar" : k === "" ? undefined : `Número ${k}`}
-          style={{
-            padding: "0.9rem 0", borderRadius: 10,
-            border: `1px solid ${k === "" ? "transparent" : "var(--teg-border)"}`,
-            fontFamily: "var(--font-mono)",
-            fontSize: k === "⌫" ? "1rem" : "1.2rem",
-            fontWeight: 700, cursor: k === "" ? "default" : "pointer",
-            background: k === "" ? "transparent" : "var(--teg-surface)",
-            color: k === "" ? "transparent" : "var(--teg-text-primary)",
-            transition: "all 0.15s",
-            WebkitTapHighlightColor: "transparent",
-            minHeight: 52,
-          }}
-          onMouseEnter={e => { if (k && k !== "") { e.currentTarget.style.background = "var(--teg-cyan-subtle)"; e.currentTarget.style.borderColor = "var(--teg-cyan-border)"; }}}
-          onMouseLeave={e => { if (k && k !== "") { e.currentTarget.style.background = "var(--teg-surface)"; e.currentTarget.style.borderColor = "var(--teg-border)"; }}}
-        >{k}</button>
-      ))}
-    </div>
-  );
-}
-
-function PinDots({ count, filled }) {
-  return (
-    <div
-      style={{ display: "flex", justifyContent: "center", gap: "0.9rem" }}
-      role="status"
-      aria-label={`PIN: ${filled} de ${count} dígitos introducidos`}
-    >
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} style={{
-          width: 13, height: 13, borderRadius: "50%",
-          background: i < filled ? "var(--teg-cyan)" : "transparent",
-          border: `2px solid ${i < filled ? "var(--teg-cyan)" : "var(--teg-border)"}`,
-          transition: "all 0.15s",
-          boxShadow: i < filled ? "0 0 8px var(--teg-cyan-subtle)" : "none",
-        }} />
-      ))}
-    </div>
-  );
-}
-
-// ── PIN SCREEN ─────────────────────────────────────────────────────────────────
-function PinScreen({ onUnlock }) {
-  const [digits, setDigits] = useState("");
-  const [shake, setShake]   = useState(false);
-  const [hint, setHint]     = useState("");
-
-  const storedHash = localStorage.getItem(PIN_KEY) || hashPin(DEFAULT_PIN);
-
-  const tryPin = useCallback((pin) => {
-    if (hashPin(pin) === storedHash) {
-      localStorage.setItem(AUTH_KEY, String(Date.now() + 8 * 3600 * 1000));
-      localStorage.setItem(SESSION_VER, CURRENT_VER);
-      if (navigator.vibrate) navigator.vibrate(50); // haptic éxito
-      onUnlock();
-    } else {
-      if (navigator.vibrate) navigator.vibrate([30, 10, 30]); // haptic error
-      setShake(true);
-      setHint("PIN incorrecto");
-      setTimeout(() => { setShake(false); setHint(""); setDigits(""); }, 900);
-    }
-  }, [storedHash, onUnlock]);
-
-  const handleDigit = useCallback((d) => {
-    setDigits(prev => {
-      const next = (prev + d).slice(0, 6);
-      if (next.length >= 4) setTimeout(() => tryPin(next), 80);
-      return next;
-    });
-  }, [tryPin]);
-
-  const handleBackspace = useCallback(() => setDigits(p => p.slice(0, -1)), []);
-
-  useEffect(() => {
-    const h = (e) => {
-      if (e.key >= "0" && e.key <= "9") handleDigit(e.key);
-      else if (e.key === "Backspace") handleBackspace();
-    };
-    window.addEventListener("keydown", h);
-    return () => window.removeEventListener("keydown", h);
-  }, [handleDigit, handleBackspace]);
-
-  return (
-    <div style={{
-      minHeight: "100dvh", background: "var(--teg-bg)",
-      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      padding: "2rem", fontFamily: "'Syne', sans-serif",
-      backgroundImage: "radial-gradient(ellipse 60% 40% at 50% 0%, var(--teg-cyan-subtle) 0%, transparent 60%)",
-    }}>
-      <div style={{
-        width: "100%", maxWidth: 300, textAlign: "center",
-        animation: "teg-fadein 0.45s ease-out",
-      }}>
-        <div style={{ fontSize: "var(--fs-xl)", marginBottom: "0.4rem" }}>🏔️</div>
-        <div style={{ fontWeight: 800, fontSize: "var(--fs-lg)", color: "var(--teg-text-primary)", marginBottom: "0.2rem" }}>
-          Trail El Guerrero
-        </div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
-          color: "var(--teg-text-muted)", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "2.5rem" }}>
-          Panel de gestión · 2026
-        </div>
-
-        <div style={{
-          marginBottom: "0.75rem",
-          animation: shake ? "teg-shake 0.5s ease" : "none",
-        }}>
-          <PinDots count={4} filled={digits.length} />
-        </div>
-
-        <div style={{ height: "1.2rem", fontFamily: "var(--font-mono)",
-          fontSize: "var(--fs-xs)", color: "var(--red)", marginBottom: "1.5rem" }}>{hint}</div>
-
-        <Numpad onDigit={handleDigit} onBackspace={handleBackspace} />
-
-        <div style={{ marginTop: "2rem", fontFamily: "var(--font-mono)",
-          fontSize: "0.54rem", color: "var(--teg-text-muted)", lineHeight: 1.7 }}>
-          Contacta con el organizador si no tienes el PIN<br />
-          Cámbialo desde el icono 🔐 en el panel
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── CHANGE PIN MODAL ───────────────────────────────────────────────────────────
-function ChangePinModal({ onClose }) {
-  const [step, setStep]     = useState("current");
-  const [input, setInput]   = useState("");
-  const [newPin, setNewPin] = useState("");
-  const [error, setError]   = useState("");
-  const [ok, setOk]         = useState(false);
-
-  const storedHash = localStorage.getItem(PIN_KEY) || hashPin(DEFAULT_PIN);
-  const STEP_LABEL = { current: "Introduce el PIN actual", new: "Nuevo PIN (mín. 4 dígitos)", confirm: "Confirma el nuevo PIN" };
-
-  const handleDigit = useCallback((d) => {
-    const next = (input + d).slice(0, 6);
-    setInput(next);
-    setError("");
-    if (next.length < 4) return;
-
-    if (step === "current") {
-      if (hashPin(next) === storedHash) { setStep("new"); setInput(""); }
-      else { setError("PIN incorrecto"); setTimeout(() => { setError(""); setInput(""); }, 800); }
-    } else if (step === "new") {
-      setNewPin(next); setStep("confirm"); setInput("");
-    } else if (step === "confirm") {
-      if (next === newPin) {
-        localStorage.setItem(PIN_KEY, hashPin(next));
-        setOk(true);
-        setTimeout(onClose, 1500);
-      } else {
-        setError("No coincide"); setTimeout(() => { setError(""); setInput(""); setStep("new"); setNewPin(""); }, 800);
-      }
-    }
-  }, [input, step, newPin, storedHash, onClose]);
-
-  const handleBackspace = useCallback(() => setInput(p => p.slice(0, -1)), []);
-
-  useEffect(() => {
-    const h = (e) => {
-      if (e.key >= "0" && e.key <= "9") handleDigit(e.key);
-      else if (e.key === "Backspace") handleBackspace();
-      else if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", h);
-    return () => window.removeEventListener("keydown", h);
-  }, [handleDigit, handleBackspace, onClose]);
-
-  return (
-    <div
-      onClick={onClose}
-      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)",
-        zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center",
-        backdropFilter: "blur(10px)", padding: "1rem",
-        animation: "teg-fadein-scale 0.18s ease" }}
-    >
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{ background: "var(--teg-surface)", border: "1px solid var(--teg-border)", borderRadius: 18,
-          padding: "2rem 1.75rem", width: "100%", maxWidth: 290, textAlign: "center",
-          animation: "teg-fadein 0.2s ease" }}
-      >
-        {ok ? (
-          <div style={{ animation: "teg-fadein-scale 0.25s ease" }}>
-            <div style={{ fontSize: "var(--fs-xl)", marginBottom: "0.5rem" }}>✅</div>
-            <div style={{ color: "var(--green)", fontWeight: 800, fontSize: "var(--fs-md)" }}>PIN actualizado</div>
-          </div>
-        ) : (
-          <>
-            <div style={{ fontWeight: 800, fontSize: "var(--fs-md)", color: "var(--teg-text-primary)", marginBottom: "0.3rem" }}>
-              🔐 Cambiar PIN
-            </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--teg-text-muted)", marginBottom: "1.5rem" }}>
-              {STEP_LABEL[step]}
-            </div>
-            <div style={{ marginBottom: "0.5rem" }}>
-              <PinDots count={4} filled={input.length} />
-            </div>
-            <div style={{ height: "1rem", fontFamily: "var(--font-mono)",
-              fontSize: "var(--fs-xs)", color: "var(--red)", marginBottom: "1rem" }}>{error}</div>
-            <Numpad onDigit={handleDigit} onBackspace={handleBackspace} />
-            <button onClick={onClose} style={{ marginTop: "1.25rem", background: "none",
-              border: "none", color: "var(--teg-text-muted)", cursor: "pointer", fontFamily: "var(--font-mono)",
-              fontSize: "var(--fs-xs)" }}>Cancelar</button>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // ── MAIN EXPORT ────────────────────────────────────────────────────────────────
 // ─── ScrollToTop — aparece al hacer scroll hacia abajo ───────────────────────
@@ -433,16 +192,7 @@ function ScrollToTop() {
 }
 
 export default function Index() {
-  const [authed, setAuthed] = useState(() => {
-    const exp = Number(localStorage.getItem(AUTH_KEY) || 0);
-    const ver = localStorage.getItem(SESSION_VER);
-    // Sesión válida solo si no ha expirado Y tiene la versión actual
-    if (exp > Date.now() && ver === CURRENT_VER) return true;
-    // Limpiar sesión inválida o de versión anterior
-    localStorage.removeItem(AUTH_KEY);
-    localStorage.removeItem(SESSION_VER);
-    return false;
-  });
+  const [authed, setAuthed] = useState(() => checkSession());
 
   // Leer config completo para header Kinetik Ops
   const headerCfg = (() => {
@@ -540,83 +290,8 @@ export default function Index() {
   }, [authed, handleBlockChange]);
 
   // ── Badges de alertas en nav — calculados desde localStorage ────────────
-  const alertasBadges = useMemo(() => {
-    try {
-      const badges = {};
-      const get = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
-      
-      // Proyecto: tareas vencidas
-      const tareas = get("teg_proyecto_v1_tareas", []);
-      const vencidas = Array.isArray(tareas) ? tareas.filter(t =>
-        t.estado !== "completado" && t.estado !== "bloqueado" &&
-        t.fechaLimite &&
-        Math.ceil((new Date(t.fechaLimite) - new Date()) / 86400000) < 0
-      ).length : 0;
-      if (vencidas > 0) badges["proyecto"] = vencidas;
-
-      // Voluntarios: cobertura crítica — usar solo confirmados (coherente con el panel interno)
-      const vols    = get("teg_voluntarios_v1_voluntarios", []);
-      const puestos = get("teg_voluntarios_v1_puestos", []);
-      if (Array.isArray(puestos) && Array.isArray(vols)) {
-        const criticos = puestos.filter(p => {
-          // INC-04 fix: usar solo confirmados igual que el panel interno
-          const confirmados = vols.filter(v => v.puestoId === p.id && v.estado === "confirmado").length;
-          return p.necesarios > 0 && confirmados / p.necesarios < 0.5;
-        }).length;
-        if (criticos > 0) badges["voluntarios"] = criticos;
-      }
-
-      // Documentos: vencidos o denegados
-      const docs  = get("teg_documentos_v1", []);
-      const gests = get("teg_documentos_v1_gestiones", []);
-      const docsV = Array.isArray(docs) ? docs.filter(d =>
-        d.fechaVencimiento && d.estado !== "vigente" && d.estado !== "aprobado" &&
-        Math.ceil((new Date(d.fechaVencimiento) - new Date()) / 86400000) < 0
-      ).length : 0;
-      const gestV = Array.isArray(gests) ? gests.filter(g =>
-        // INC-02 fix: incluir denegadas (gestión rechazada = alerta de mayor urgencia)
-        g.estado === "denegado" ||
-        (g.estado !== "aprobado" && g.fechaVencimiento &&
-         Math.ceil((new Date(g.fechaVencimiento) - new Date()) / 86400000) < 0)
-      ).length : 0;
-      if (docsV + gestV > 0) badges["documentos"] = docsV + gestV;
-
-      // Presupuesto: resultado negativo
-      const conceptos = get("teg_presupuesto_v1_conceptos", []);
-      const tramos    = get("teg_presupuesto_v1_tramos", []);
-      const inscritos = get("teg_presupuesto_v1_inscritos", { tramos: {} });
-      const maximos   = get("teg_presupuesto_v1_maximos", {});
-      if (Array.isArray(conceptos) && Array.isArray(tramos)) {
-        const totalIns = ["TG7","TG13","TG25"].reduce((s,d) =>
-          s + tramos.reduce((ss,t) => ss + (inscritos?.tramos?.[t.id]?.[d]||0), 0), 0
-        );
-        const ingresos = tramos.reduce((s,t) =>
-          s + ["TG7","TG13","TG25"].reduce((ss,d) =>
-            ss + (inscritos?.tramos?.[t.id]?.[d]||0) * (t.precios?.[d]||0), 0
-          ), 0);
-        const costes = conceptos.filter(c => c.activo).reduce((s,c) => {
-          if (c.tipo === "fijo") return s + (c.costeTotal || 0);
-          return s + ["TG7","TG13","TG25"].reduce((ss,d) =>
-            ss + (c.activoDistancias?.[d] ? (c.costePorDistancia?.[d]||0) * (tramos.reduce((st,t) => st + (inscritos?.tramos?.[t.id]?.[d]||0), 0)) : 0), 0
-          );
-        }, 0);
-        // INC-01 fix: incluir ingresos extra activos (patrocinios, subvenciones, etc.)
-        const ingresosExtraLS = get("teg_presupuesto_v1_ingresosExtra", []);
-        const totalIngExtra = Array.isArray(ingresosExtraLS)
-          ? ingresosExtraLS.filter(i => i.activo).reduce((s, i) => s + (i.valor || 0), 0)
-          : 0;
-        if ((ingresos + totalIngExtra) - costes < 0 && totalIns > 0) badges["presupuesto"] = "!";
-      }
-
-      // Logística: incidencias abiertas
-      const incidencias = get("teg_logistica_v1_inc", []);
-      const incAbiertas = Array.isArray(incidencias) ? incidencias.filter(i => i.estado === "abierta").length : 0;
-      if (incAbiertas > 0) badges["logistica"] = incAbiertas;
-
-      return badges;
-    } catch { return {}; }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeBlock, syncTick]); // recalcular al cambiar de bloque o al sincronizar datos
+  // T3.2: alertasBadges ahora usa dataService en lugar de localStorage directo
+  const alertasBadges = useAlertasBadges({ activeBlock, syncTick });
 
   if (!authed) return <PinScreen onUnlock={() => {
     setAuthed(true);

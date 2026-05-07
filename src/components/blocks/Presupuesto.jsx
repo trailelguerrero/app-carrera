@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import ConfirmModal from "@/components/common/ConfirmModal";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { useData } from "@/lib/dataService";
@@ -89,6 +90,7 @@ const Presupuesto = () => {
   const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
   const [confirmReset, setConfirmReset] = useState(false);
+  const [delConceptoId, setDelConceptoId] = useState(null); // T5.2
 
   const [scenarioOverrides, setScenarioOverrides] = useState({
     scenarioInscritos: null,
@@ -457,7 +459,7 @@ const Presupuesto = () => {
               updateCostePorDistancia={handleUpdateCostePorDistancia}
               updateActivoDistancia={handleUpdateActivoDistancia}
               addConcepto={addConcepto}
-              removeConcepto={removeConcepto}
+              removeConcepto={(id) => setDelConceptoId(id)}
               reorderConceptos={reorderConceptos}
             />
           )}
@@ -569,8 +571,20 @@ const Presupuesto = () => {
           </div>
         </div>
       )}
+      <ConfirmModal
+        open={!!delConceptoId}
+        title="Eliminar concepto"
+        message={(() => {
+          const c = conceptos.find(x => x.id === delConceptoId);
+          return c ? `¿Eliminar "${c.nombre}"? Esta acción no se puede deshacer.` : undefined;
+        })()}
+        confirmLabel="Eliminar"
+        variant="danger"
+        onConfirm={() => { removeConcepto(delConceptoId); setDelConceptoId(null); }}
+        onCancel={() => setDelConceptoId(null)}
+      />
     </>
   );
 };
 
-export default Presupuesto;
+export default Presupuesto; 

@@ -199,3 +199,159 @@ describe('Integridad de datos de las constantes', () => {
     expect(decodeURIComponent(SHIRT_PLACEHOLDER_BACK.split(',')[1])).toContain('TRASERA');
   });
 });
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FASE 3 — Separación de responsabilidades
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── T3.1 — Auth extraída de Index.jsx ─────────────────────────────────────
+describe('T3.1 — pinAuth.js: módulo de autenticación separado', () => {
+  it('existe src/components/auth/pinAuth.js', () => {
+    expect(exists('src/components/auth/pinAuth.js')).toBe(true);
+  });
+  it('existe PinScreen.jsx separado', () => {
+    expect(exists('src/components/auth/PinScreen.jsx')).toBe(true);
+  });
+  it('existe ChangePinModal.jsx separado', () => {
+    expect(exists('src/components/auth/ChangePinModal.jsx')).toBe(true);
+  });
+  it('pinAuth exporta hashPin, checkSession, verifyPin, savePin', async () => {
+    const mod = await import('../components/auth/pinAuth.js');
+    expect(typeof mod.hashPin).toBe('function');
+    expect(typeof mod.checkSession).toBe('function');
+    expect(typeof mod.verifyPin).toBe('function');
+    expect(typeof mod.savePin).toBe('function');
+  });
+  it('hashPin es determinista', async () => {
+    const { hashPin } = await import('../components/auth/pinAuth.js');
+    expect(hashPin('1234')).toBe(hashPin('1234'));
+    expect(hashPin('1234')).not.toBe(hashPin('5678'));
+  });
+  it('Index.jsx ya no define AUTH_KEY ni hashPin localmente', () => {
+    const idx = read('src/pages/Index.jsx');
+    expect(idx).not.toContain("const AUTH_KEY");
+    expect(idx).not.toContain("function hashPin");
+    expect(idx).not.toContain("const DEFAULT_PIN");
+  });
+  it('Index.jsx importa checkSession desde auth/', () => {
+    const idx = read('src/pages/Index.jsx');
+    expect(idx).toContain('from "@/components/auth/pinAuth.js"');
+  });
+});
+
+// ── T3.2 — useAlertasBadges hook separado ────────────────────────────────
+describe('T3.2 — useAlertasBadges: hook separado que usa dataService', () => {
+  it('existe src/hooks/useAlertasBadges.js', () => {
+    expect(exists('src/hooks/useAlertasBadges.js')).toBe(true);
+  });
+  it('useAlertasBadges usa dataService, no localStorage directamente', () => {
+    const hook = read('src/hooks/useAlertasBadges.js');
+    expect(hook).toContain('dataService');
+    expect(hook).not.toContain('localStorage.getItem');
+  });
+  it('Index.jsx ya no tiene alertasBadges inline (useMemo enorme)', () => {
+    const idx = read('src/pages/Index.jsx');
+    expect(idx).toContain('useAlertasBadges');
+    // El useMemo inline tenía "teg_proyecto_v1_tareas" hardcodeado
+    expect(idx).not.toContain('"teg_proyecto_v1_tareas"');
+  });
+  it('el hook calcula badges para voluntarios, documentos, presupuesto y logistica', () => {
+    const hook = read('src/hooks/useAlertasBadges.js');
+    expect(hook).toContain('"proyecto"');
+    expect(hook).toContain('"voluntarios"');
+    expect(hook).toContain('"documentos"');
+    expect(hook).toContain('"presupuesto"');
+    expect(hook).toContain('"logistica"');
+  });
+});
+
+// ── T3.5 — ConfirmModal compartido ────────────────────────────────────────
+describe('T3.5 — ConfirmModal: componente de confirmación compartido', () => {
+  it('existe src/components/common/ConfirmModal.jsx', () => {
+    expect(exists('src/components/common/ConfirmModal.jsx')).toBe(true);
+  });
+  it('acepta props: open, title, message, confirmLabel, cancelLabel, variant', () => {
+    const modal = read('src/components/common/ConfirmModal.jsx');
+    expect(modal).toContain('open');
+    expect(modal).toContain('title');
+    expect(modal).toContain('message');
+    expect(modal).toContain('confirmLabel');
+    expect(modal).toContain('variant');
+  });
+  it('tiene variantes danger, warning, default', () => {
+    const modal = read('src/components/common/ConfirmModal.jsx');
+    expect(modal).toContain("danger");
+    expect(modal).toContain("warning");
+    expect(modal).toContain("default");
+  });
+  it('cierra con Escape', () => {
+    const modal = read('src/components/common/ConfirmModal.jsx');
+    expect(modal).toContain('Escape');
+    expect(modal).toContain('onCancel');
+  });
+  it('Presupuesto usa ConfirmModal para eliminar conceptos', () => {
+    const pres = read('src/components/blocks/Presupuesto.jsx');
+    expect(pres).toContain('ConfirmModal');
+    expect(pres).toContain('delConceptoId');
+  });
+});
+
+// ── T4.1 — Sincronización offline real ────────────────────────────────────
+describe('T4.1 — Sincronización offline: cola de reintentos', () => {
+  it('dataService tiene listener online para sincronizar pendientes', () => {
+    const ds = read('src/lib/dataService.js');
+    expect(ds).toContain("window.addEventListener('online'");
+    expect(ds).toContain('__pending_sync_');
+  });
+  it('el retry lee los pending y los reenvía al API', () => {
+    const ds = read('src/lib/dataService.js');
+    expect(ds).toContain('syncPendingQueue');
+    expect(ds).toContain('startsWith(\'__pending_sync_\')');
+  });
+  it('reintenta solo cuando el adapter es API', () => {
+    const ds = read('src/lib/dataService.js');
+    expect(ds).toContain("ADAPTER === 'api'");
+  });
+  it('dispara notify() tras sincronizar para actualizar la UI', () => {
+    const ds = read('src/lib/dataService.js');
+    // syncPendingQueue y notify() están en el mismo bloque de código (IIFE)
+    const syncIdx = ds.indexOf('syncPendingQueue');
+    const syncBlock = ds.slice(syncIdx, syncIdx + 1500);
+    expect(syncBlock).toContain('notify()');
+  });
+});
+
+// ── T4.2 — useData separado de dataService ───────────────────────────────
+describe('T4.2 — useData: separado en hooks/useData.js', () => {
+  it('existe src/hooks/useData.js', () => {
+    expect(exists('src/hooks/useData.js')).toBe(true);
+  });
+  it('hooks/useData.js re-exporta useData y saveAll', () => {
+    const hook = read('src/hooks/useData.js');
+    expect(hook).toContain('useData');
+    expect(hook).toContain('saveAll');
+  });
+  it('los imports desde @/lib/dataService siguen funcionando (compat)', async () => {
+    const { useData, saveAll } = await import('../lib/dataService.js');
+    expect(typeof useData).toBe('function');
+    expect(typeof saveAll).toBe('function');
+  });
+});
+
+// ── T5.2 — Confirmaciones destructivas ───────────────────────────────────
+describe('T5.2 — Confirmaciones destructivas en eliminaciones', () => {
+  it('Presupuesto tiene confirmación antes de removeConcepto', () => {
+    const pres = read('src/components/blocks/Presupuesto.jsx');
+    expect(pres).toContain('ConfirmModal');
+    expect(pres).toContain('Esta acción no se puede deshacer');
+  });
+});
+
+// ── T5.3 — mensajeOrganizador ya estaba implementado ─────────────────────
+describe('T5.3 — mensajeOrganizador en ficha del voluntario', () => {
+  it('Voluntarios.jsx tiene MensajeOrganizadorEdit', () => {
+    const vols = read('src/components/blocks/Voluntarios.jsx');
+    expect(vols).toContain('MensajeOrganizadorEdit');
+    expect(vols).toContain('mensajeOrganizador');
+  });
+});
