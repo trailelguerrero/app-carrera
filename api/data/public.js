@@ -139,7 +139,8 @@ export default async function handler(req, res) {
       puestoId:            newVoluntario.puestoId        || null,
       coche:               Boolean(newVoluntario.coche),
       notas:               String(newVoluntario.notas    || '').slice(0, 500),
-      contactoEmergencia:  String(newVoluntario.contactoEmergencia || '').slice(0, 200),
+      telefonoEmergencia:  String(newVoluntario.telefonoEmergencia || newVoluntario.contactoEmergencia || '').slice(0, 200), // T1.4: campo canónico
+      contactoEmergencia:  String(newVoluntario.telefonoEmergencia || newVoluntario.contactoEmergencia || '').slice(0, 200), // T1.4: compat legacy
       estado:              'pendiente', // SIEMPRE pendiente desde registro público
       fechaRegistro:       new Date().toISOString(),
       fuenteRegistro:      'formulario_publico',

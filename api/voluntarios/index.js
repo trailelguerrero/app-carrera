@@ -128,7 +128,10 @@ export default async function handler(req, res) {
     if (action === 'delete') {
       if (req.method !== 'POST') return res.status(405).end();
       const apiKey = req.headers['x-api-key'];
-      if (!apiKey || apiKey !== (process.env.API_KEY || 'teg-admin-2026')) return res.status(401).json({ error: 'Unauthorized' });
+      // SEC-04 fix: never fall back to a hardcoded key
+    const configuredKey = process.env.API_KEY;
+    if (!configuredKey) return res.status(503).json({ error: 'Admin endpoint not configured' });
+    if (!apiKey || apiKey !== configuredKey) return res.status(401).json({ error: 'Unauthorized' });
       const { nombre, id } = req.body || {};
       if (!nombre && !id) return res.status(400).json({ error: 'Falta nombre o id' });
       const vols = await getVols(sql);

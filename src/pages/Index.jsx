@@ -458,7 +458,6 @@ export default function Index() {
   })();
   // Iniciales del organizador para el avatar
   const orgNombre = headerCfg?.organizador || EVENT_CONFIG_DEFAULT.organizador || "Trail El Guerrero";
-  const orgIniciales = orgNombre.split(" ").filter(Boolean).slice(0,2).map(w => w[0].toUpperCase()).join("");
   const [showChangePin, setShowChangePin]   = useState(false);
   const [showMoreNav, setShowMoreNav]       = useState(false);
   const [activeBlock, setActiveBlock]       = useState("dashboard");
@@ -1087,4 +1086,3 @@ export default function Index() {
     </>
   );
 }
-// build 1777572365

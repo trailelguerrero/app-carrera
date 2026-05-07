@@ -27,7 +27,6 @@ const ALL_KEYS = {
   "teg_presupuesto_v1_ingresosExtra": [],
   "teg_presupuesto_v1_merchandising": [],
   "teg_presupuesto_v1_syncConfig":    {},
-  "teg_camisetas_v1_stats":          {},
   "teg_presupuesto_v1_maximos":       {},
   "teg_voluntarios_v1_voluntarios":   [],
   "teg_voluntarios_v1_puestos":       [],
@@ -138,7 +137,6 @@ export default function Dashboard() {
     const syncConfig     = get("teg_presupuesto_v1_syncConfig", { patrocinios: true, camisetas: true });
     const scenarioActivo = get("teg_scenario_active_name", null);
     // Camisetas: leer pedidos y coste directamente (igual que useBudgetLogic)
-    // teg_camisetas_v1_stats nunca se escribe — se calcula aquí en tiempo real
     const camPedidos     = get("teg_camisetas_v1_pedidos", []);
     // INC-04 fix: usar COSTE_DEFAULT coherente con el bloque Camisetas
     const camCoste       = get("teg_camisetas_v1_coste", COSTE_DEFAULT);
@@ -235,7 +233,8 @@ export default function Dashboard() {
 
 
     // ── DOCUMENTOS — vencidos y próximos ─────────────────────────────────
-    const documentos     = Array.isArray(get("teg_documentos_v1", [])) ? get("teg_documentos_v1", []) : [];
+    const _rawDocumentos = get("teg_documentos_v1", []);
+    const documentos     = Array.isArray(_rawDocumentos) ? _rawDocumentos : []; // DUP-DASH-02 fix: single get() call
     const diasHastaDoc   = (iso) => iso ? Math.ceil((new Date(iso) - TODAY) / 86400000) : null;
     const docsVencidos   = documentos.filter(d => {
       const dias = diasHastaDoc(d.fechaVencimiento);
