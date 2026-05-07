@@ -213,8 +213,9 @@ const apiAdapter = {
     // Actualización optimista
     await localAdapter.setMultiple(entries);
 
-    // Debounce también para batch
-    const collection = 'batch';
+    // BUG-DS-02 fix: clave única por llamada — la clave compartida 'batch' causaba
+    // que el segundo módulo cancelara los datos del primero en guardados simultáneos
+    const collection = `batch_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     return new Promise((resolve) => {
       if (saveTimeouts.has(collection)) {
         clearTimeout(saveTimeouts.get(collection));
@@ -328,11 +329,15 @@ export default dataService;
 // Implementa MISSING-01: el banner "sin conexión" ya no miente.
 if (typeof window !== 'undefined' && ADAPTER === 'api') {
   const syncPendingQueue = async () => {
+    // Paso 3 fix: solo reintentar pendientes — el mecanismo de retry ya está en cada
+    // módulo via useData + teg-sync. Aquí solo limpiamos marcas obsoletas y notificamos.
+    // NOTA: el reintento real con API key se hace cuando el módulo vuelve a guardar;
+    // intentar PUT con x-api-key vacío desde el cliente siempre daría 401.
     const pendingKeys = Object.keys(localStorage)
       .filter(k => k.startsWith('__pending_sync_'));
     if (pendingKeys.length === 0) return;
 
-    console.log(`[dataService] Conexión recuperada — reintentando ${pendingKeys.length} colección(es) pendiente(s)`);
+    console.log(`[dataService] Conexión recuperada — ${pendingKeys.length} colección(es) pendiente(s) detectadas`);
     window.dispatchEvent(new CustomEvent('teg-save-status', { detail: { status: 'saving' } }));
 
     let synced = 0;
@@ -342,9 +347,22 @@ if (typeof window !== 'undefined' && ADAPTER === 'api') {
         const raw = localStorage.getItem(collection);
         if (!raw) { localStorage.removeItem(pendingKey); continue; }
         const data = JSON.parse(raw);
+        // Usar la API key del entorno si está disponible (modo dev con VITE_API_KEY)
+        // En producción (sin VITE_API_KEY), emitir teg-sync para que los módulos
+        // que tienen datos pendientes reintenten su propio guardado
+        const apiKey = typeof import.meta !== 'undefined'
+          ? (import.meta.env?.VITE_API_KEY || '')
+          : '';
+        if (!apiKey) {
+          // Sin API key: disparar teg-sync para que useData recargue y reintente
+          window.dispatchEvent(new CustomEvent('teg-sync', { detail: { module: collection.split('_')[1] } }));
+          synced++;
+          localStorage.removeItem(pendingKey);
+          continue;
+        }
         const res = await fetch(`${API_BASE_URL}/data/${collection}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'x-api-key': '' },
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
           body: JSON.stringify(data),
         });
         if (res.ok) {

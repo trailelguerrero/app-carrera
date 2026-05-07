@@ -282,10 +282,13 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   }, [tramos, conceptos, inscritos, ingresosExtra, merchandising, maximos]);
 
   const logCambio = (concepto, campo, valorAntes, valorNuevo) => {
-    const apiKey = import.meta.env.VITE_API_KEY;
+    // budget-log POST requires x-api-key; use env var if available (server-side only)
+    // In browser: this will fail with 401 if VITE_API_KEY is not set, which is correct
+    // since the API key should not be exposed in the frontend bundle
+    const apiKey = import.meta.env.VITE_API_KEY || '';
     fetch("/api/budget-log", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": apiKey },
+      headers: { "Content-Type": "application/json", ...(apiKey ? { "x-api-key": apiKey } : {}) },
       body: JSON.stringify({
         conceptoId: concepto.id,
         concepto:   concepto.nombre || `#${concepto.id}`,

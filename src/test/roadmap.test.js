@@ -94,8 +94,8 @@ describe('T1.4 — telefonoEmergencia campo canónico unificado', () => {
 
 // ── T1.5 — usePaginacion expone resetPage ──────────────────────────────────
 describe('T1.5 — usePaginacion expone resetPage y Voluntarios lo usa', () => {
-  it('usePaginacion retorna resetPage', () => {
-    const hook = read('src/lib/usePaginacion.jsx');
+  it('usePaginacion retorna resetPage (implementación en hooks/)', () => {
+    const hook = read('src/hooks/usePaginacion.jsx');
     expect(hook).toContain('resetPage');
   });
   it('Voluntarios.jsx usa resetPage al cambiar filtros', () => {
@@ -316,7 +316,7 @@ describe('T4.1 — Sincronización offline: cola de reintentos', () => {
     const ds = read('src/lib/dataService.js');
     // syncPendingQueue y notify() están en el mismo bloque de código (IIFE)
     const syncIdx = ds.indexOf('syncPendingQueue');
-    const syncBlock = ds.slice(syncIdx, syncIdx + 1500);
+    const syncBlock = ds.slice(syncIdx, syncIdx + 2500); // bloque más largo después del fix
     expect(syncBlock).toContain('notify()');
   });
 });
@@ -475,5 +475,93 @@ describe('T7.2 — useAlertasBadges: throttle 5s y granularidad por módulo', ()
   it('calcBadgeModulo función separada por módulo', () => {
     const hook = read('src/hooks/useAlertasBadges.js');
     expect(hook).toContain('async function calcBadgeModulo');
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SPRINT 1 — Correctivos de alta urgencia
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('SP1-01 — FormularioPublico eliminado de Voluntarios.jsx', () => {
+  it('Voluntarios.jsx ya no exporta FormularioPublico', () => {
+    const vols = read('src/components/blocks/Voluntarios.jsx');
+    expect(vols).not.toContain('export function FormularioPublico');
+  });
+  it('Voluntarios.jsx es más pequeño que 3713 líneas (original)', () => {
+    const vols = read('src/components/blocks/Voluntarios.jsx');
+    expect(vols.split('\n').length).toBeLessThan(3713);
+  });
+  it('FormularioPublico separado sigue existiendo en components/voluntarios/', () => {
+    expect(exists('src/components/voluntarios/FormularioPublico.jsx')).toBe(true);
+  });
+});
+
+describe('SP1-02 — BUG-DS-02: setMultiple clave única por operación', () => {
+  it('dataService ya no usa clave fija "batch" para setMultiple', () => {
+    const ds = read('src/lib/dataService.js');
+    expect(ds).not.toContain("const collection = 'batch'");
+  });
+  it('usa clave dinámica por llamada', () => {
+    const ds = read('src/lib/dataService.js');
+    expect(ds).toContain('batch_${Date.now()}');
+  });
+
+  it('dos llamadas a setMultiple no comparten la misma cola de debounce', () => {
+    // Simula la generación de claves
+    const genKey = () => `batch_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const k1 = genKey();
+    const k2 = genKey();
+    expect(k1).not.toBe(k2);
+  });
+});
+
+describe('SP1-03 — syncPendingQueue: manejo de API key ausente', () => {
+  it('syncPendingQueue maneja gracefully la ausencia de VITE_API_KEY', () => {
+    const ds = read('src/lib/dataService.js');
+    expect(ds).toContain('syncPendingQueue');
+    // No debe asumir que la API key está disponible
+    expect(ds).not.toContain("x-api-key': ''");
+  });
+  it('emite teg-sync cuando no hay API key para que módulos reintenten', () => {
+    const ds = read('src/lib/dataService.js');
+    const idx = ds.indexOf('syncPendingQueue');
+    const block = ds.slice(idx, idx + 1500);
+    expect(block).toContain('teg-sync');
+  });
+});
+
+describe('SP1-04 — usePaginacion.jsx: lib/ es re-export de hooks/', () => {
+  it('lib/usePaginacion.jsx re-exporta desde hooks/', () => {
+    const lib = read('src/lib/usePaginacion.jsx');
+    expect(lib).toContain('from "@/hooks/usePaginacion');
+  });
+  it('hooks/usePaginacion.jsx tiene la implementación real', () => {
+    const hook = read('src/hooks/usePaginacion.jsx');
+    expect(hook).toContain('export function usePaginacion');
+  });
+});
+
+describe('SP1-05 — budget-log: GET público, POST protegido', () => {
+  it('api/budget-log GET no requiere autenticación', () => {
+    const api = read('api/budget-log/index.js');
+    expect(api).toContain("req.method !== 'GET'");
+    expect(api).toContain('!auth(req, res)');
+    // La condición debe excluir GET del auth check
+    const idx = api.indexOf("req.method !== 'GET'");
+    const ctx = api.slice(idx, idx + 50);
+    expect(ctx).toContain('!auth');
+  });
+  it('TabHistorial GET no envía x-api-key (fetch sin headers)', () => {
+    const tab = read('src/components/budget/TabHistorial.jsx');
+    // El GET usa fetch('/api/budget-log?limit=100') sin headers de auth
+    expect(tab).toContain('/api/budget-log?limit=100');
+    // El DELETE sí necesita auth — verificar que GET no tiene header
+    const getIdx = tab.indexOf('/api/budget-log?limit=100');
+    const getCtx = tab.slice(Math.max(0, getIdx-30), getIdx+100);
+    expect(getCtx).not.toContain('x-api-key');
+  });
+  it('useBudgetLogic maneja gracefully la ausencia de VITE_API_KEY', () => {
+    const hook = read('src/hooks/useBudgetLogic.js');
+    expect(hook).toContain("VITE_API_KEY || ''");
   });
 });

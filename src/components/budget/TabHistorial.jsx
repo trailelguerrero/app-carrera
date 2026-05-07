@@ -76,9 +76,8 @@ export function TabHistorial() {
   const load = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const res = await fetch("/api/budget-log?limit=100", {
-        headers: { "x-api-key": import.meta.env.VITE_API_KEY },
-      });
+      // budget-log GET is public (no auth required) — see api/budget-log/index.js
+      const res = await fetch("/api/budget-log?limit=100");
       if (!res.ok) throw new Error(`Error ${res.status}`);
       setLog(await res.json());
     } catch (e) {
