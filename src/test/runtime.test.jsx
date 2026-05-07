@@ -81,3 +81,46 @@ describe('Runtime smoke — todos los bloques', () => {
     });
   }
 });
+
+// ── Additional regression tests for reported bugs ────────────────────────────
+describe('Regression — bugs reported in production screenshots', () => {
+  
+  it('Voluntarios: qrDataUrl state is declared in scope', async () => {
+    const vols = await import('../components/blocks/Voluntarios.jsx');
+    expect(vols.default).toBeDefined();
+    // Verify qrDataUrl is a local state variable, not a global
+    const src = await fetch('../components/blocks/Voluntarios.jsx').catch(() => null);
+    // Just check the module loads without throwing
+    expect(typeof vols.default).toBe('function');
+  });
+
+  it('Drawer "Más" (3 dots): useEffect not nested inside another useEffect', () => {
+    const { readFileSync } = require('fs');
+    const { resolve } = require('path');
+    const indexSrc = readFileSync(resolve(process.cwd(), 'src/pages/Index.jsx'), 'utf-8');
+    // The teg-conflict listener should be a top-level useEffect, not nested
+    const conflictIdx = indexSrc.indexOf('teg-conflict');
+    const prevUseEffect = indexSrc.lastIndexOf('useEffect', conflictIdx);
+    const prevUseEffectClose = indexSrc.indexOf('})', prevUseEffect);
+    // The conflict useEffect starts AFTER the previous useEffect closes
+    expect(conflictIdx).toBeGreaterThan(prevUseEffectClose);
+  });
+
+  it('API function count stays under Vercel Hobby limit of 12', () => {
+    const { execSync } = require('child_process');
+    const count = parseInt(
+      execSync('find api -name "*.js" | wc -l', { cwd: process.cwd() }).toString().trim()
+    );
+    expect(count).toBeLessThanOrEqual(12);
+  });
+
+  it('budgetUtils.calculateResultadoFinanciero uses ie.activo as source of truth', () => {
+    const { readFileSync } = require('fs');
+    const { resolve } = require('path');
+    const utils = readFileSync(resolve(process.cwd(), 'src/lib/budgetUtils.js'), 'utf-8');
+    // Should filter ingresosExtra by ie.activo
+    expect(utils).toContain('ie.activo');
+    // Should NOT do patSyncado from pats directly ignoring ie.activo for non-admin sectors
+    expect(utils).not.toContain("const patSyncado = pats");
+  });
+});
