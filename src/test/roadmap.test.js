@@ -98,10 +98,11 @@ describe('T1.5 — usePaginacion expone resetPage y Voluntarios lo usa', () => {
     const hook = read('src/hooks/usePaginacion.jsx');
     expect(hook).toContain('resetPage');
   });
-  it('Voluntarios.jsx usa resetPage al cambiar filtros', () => {
-    const vols = read('src/components/blocks/Voluntarios.jsx');
-    expect(vols).toContain('resetPage');
-    expect(vols).toContain('busqueda, filtroEstado, filtroPuesto');
+  it('TabVoluntariosList.jsx usa resetPage al cambiar filtros (Sprint 2: extraído)', () => {
+    // Post Sprint 2: resetPage está en el componente extraído TabVoluntariosList
+    const tabVols = read('src/components/voluntarios/TabVoluntariosList.jsx');
+    expect(tabVols).toContain('resetPage');
+    expect(tabVols).toContain('busqueda, filtroEstado, filtroPuesto');
   });
 });
 
@@ -563,5 +564,84 @@ describe('SP1-05 — budget-log: GET público, POST protegido', () => {
   it('useBudgetLogic maneja gracefully la ausencia de VITE_API_KEY', () => {
     const hook = read('src/hooks/useBudgetLogic.js');
     expect(hook).toContain("VITE_API_KEY || ''");
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SPRINT 2 — Refactor modular
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('SP2-01 — Voluntarios.jsx reducido por extracción de sub-componentes', () => {
+  it('Voluntarios.jsx tiene menos de 1100 líneas (era 3713)', () => {
+    const vols = read('src/components/blocks/Voluntarios.jsx');
+    expect(vols.split('\n').length).toBeLessThan(1100);
+  });
+  it('TabDashboardVol.jsx extraído existe', () => {
+    expect(exists('src/components/voluntarios/TabDashboardVol.jsx')).toBe(true);
+  });
+  it('TabVoluntariosList.jsx extraído existe', () => {
+    expect(exists('src/components/voluntarios/TabVoluntariosList.jsx')).toBe(true);
+  });
+  it('TabPuestosVol.jsx extraído existe', () => {
+    expect(exists('src/components/voluntarios/TabPuestosVol.jsx')).toBe(true);
+  });
+  it('TabTallasVol.jsx extraído existe', () => {
+    expect(exists('src/components/voluntarios/TabTallasVol.jsx')).toBe(true);
+  });
+  it('TabDiaDVol.jsx extraído existe', () => {
+    expect(exists('src/components/voluntarios/TabDiaDVol.jsx')).toBe(true);
+  });
+  it('FichaVoluntario.jsx extraído existe', () => {
+    expect(exists('src/components/voluntarios/FichaVoluntario.jsx')).toBe(true);
+  });
+  it('FichaPuesto.jsx extraído existe', () => {
+    expect(exists('src/components/voluntarios/FichaPuesto.jsx')).toBe(true);
+  });
+  it('ModalVoluntario.jsx extraído existe', () => {
+    expect(exists('src/components/voluntarios/ModalVoluntario.jsx')).toBe(true);
+  });
+  it('Voluntarios.jsx importa desde components/voluntarios/', () => {
+    const vols = read('src/components/blocks/Voluntarios.jsx');
+    expect(vols).toContain('@/components/voluntarios/TabDashboardVol');
+    expect(vols).toContain('@/components/voluntarios/TabVoluntariosList');
+  });
+});
+
+describe('SP2-02 — Logistica.jsx reducido por extracción de sub-componentes', () => {
+  it('Logistica.jsx tiene menos de 700 líneas (era 2890)', () => {
+    const log = read('src/components/blocks/Logistica.jsx');
+    expect(log.split('\n').length).toBeLessThan(700);
+  });
+  it('TabDashLog.jsx extraído existe', () => {
+    expect(exists('src/components/logistica/TabDashLog.jsx')).toBe(true);
+  });
+  it('TabMaterial.jsx extraído existe', () => {
+    expect(exists('src/components/logistica/TabMaterial.jsx')).toBe(true);
+  });
+  it('TabVehiculos.jsx extraído existe', () => {
+    expect(exists('src/components/logistica/TabVehiculos.jsx')).toBe(true);
+  });
+  it('TabTimeline.jsx extraído existe', () => {
+    expect(exists('src/components/logistica/TabTimeline.jsx')).toBe(true);
+  });
+  it('TabDirectorio.jsx extraído existe', () => {
+    expect(exists('src/components/logistica/TabDirectorio.jsx')).toBe(true);
+  });
+  it('TabEmergencias.jsx extraído existe', () => {
+    expect(exists('src/components/logistica/TabEmergencias.jsx')).toBe(true);
+  });
+  it('TabComunicaciones.jsx extraído existe', () => {
+    expect(exists('src/components/logistica/TabComunicaciones.jsx')).toBe(true);
+  });
+  it('FichaLogistica.jsx extraído existe', () => {
+    expect(exists('src/components/logistica/FichaLogistica.jsx')).toBe(true);
+  });
+  it('logisticaConstants.js con constantes compartidas existe', () => {
+    expect(exists('src/components/logistica/logisticaConstants.js')).toBe(true);
+  });
+  it('Logistica.jsx importa desde components/logistica/', () => {
+    const log = read('src/components/blocks/Logistica.jsx');
+    expect(log).toContain('@/components/logistica/TabDashLog');
+    expect(log).toContain('@/components/logistica/FichaLogistica');
   });
 });
