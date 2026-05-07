@@ -355,3 +355,125 @@ describe('T5.3 — mensajeOrganizador en ficha del voluntario', () => {
     expect(vols).toContain('mensajeOrganizador');
   });
 });
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FASE 5 + 7 — UX, optimización y deuda técnica
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── T5.4 — Recuperación de PIN en VoluntarioPortal ───────────────────────
+describe('T5.4 — Recuperación de PIN para voluntarios', () => {
+  it('el portal tiene enlace Restablecer PIN', () => {
+    const portal = read('src/pages/VoluntarioPortal.jsx');
+    expect(portal).toContain('Restablecer PIN');
+  });
+  it('el portal tiene estado showRecoverPin', () => {
+    const portal = read('src/pages/VoluntarioPortal.jsx');
+    expect(portal).toContain('showRecoverPin');
+  });
+  it('el portal llama a action=recover-pin', () => {
+    const portal = read('src/pages/VoluntarioPortal.jsx');
+    expect(portal).toContain('action=recover-pin');
+  });
+  it('el backend tiene endpoint recover-pin', () => {
+    const api = read('api/voluntarios/index.js');
+    expect(api).toContain("action === 'recover-pin'");
+  });
+  it('recover-pin no requiere autenticación (es público)', () => {
+    const api = read('api/voluntarios/index.js');
+    const idx = api.indexOf("action === 'recover-pin'");
+    const block = api.slice(idx, idx + 400);
+    // No debe tener x-api-key check dentro del bloque
+    expect(block).not.toContain('x-api-key');
+    expect(block).not.toContain('Unauthorized');
+  });
+  it('recover-pin verifica email y resetea al PIN inicial', () => {
+    const api = read('api/voluntarios/index.js');
+    const idx = api.indexOf("action === 'recover-pin'");
+    const block = api.slice(idx, idx + 1000); // bloque completo
+    expect(block).toContain('email');
+    expect(block).toContain('pinInicial');
+    expect(block).toContain('pinPersonalizado: false');
+  });
+  it('la respuesta es genérica (no revela si el email existe)', () => {
+    const api = read('api/voluntarios/index.js');
+    const idx = api.indexOf("action === 'recover-pin'");
+    const block = api.slice(idx, idx + 600);
+    expect(block).toContain('Si el email está registrado');
+  });
+});
+
+// ── T7.1 — Eliminar dependencias no usadas ───────────────────────────────
+describe('T7.1 — Dependencias no usadas eliminadas de package.json', () => {
+  let pkg;
+  beforeAll(async () => {
+    const { readFileSync } = await import('fs');
+    const { resolve } = await import('path');
+    pkg = JSON.parse(readFileSync(resolve(process.cwd(), 'package.json'), 'utf-8'));
+  });
+
+  const depsToRemove = [
+    'framer-motion', '@tanstack/react-query', 'cmdk', 'vaul',
+    'embla-carousel-react', 'react-day-picker', 'input-otp',
+    'react-resizable-panels', 'class-variance-authority',
+    'clsx', 'tailwind-merge', 'tailwindcss-animate',
+  ];
+
+  it('framer-motion eliminado', () => {
+    const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
+    expect(allDeps['framer-motion']).toBeUndefined();
+  });
+  it('@tanstack/react-query eliminado', () => {
+    const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
+    expect(allDeps['@tanstack/react-query']).toBeUndefined();
+  });
+  it('todas las radix no usadas eliminadas', () => {
+    const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
+    const radixUnused = [
+      '@radix-ui/react-accordion', '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu', '@radix-ui/react-toast',
+    ];
+    radixUnused.forEach(dep => {
+      expect(allDeps[dep]).toBeUndefined();
+    });
+  });
+  it('next-themes conservado (usado por ThemeToggle)', () => {
+    const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
+    expect(allDeps['next-themes']).toBeDefined();
+  });
+  it('@neondatabase/serverless conservado (usado en api/)', () => {
+    const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
+    expect(allDeps['@neondatabase/serverless']).toBeDefined();
+  });
+});
+
+// ── T7.2 — throttle y granularidad en useAlertasBadges ───────────────────
+describe('T7.2 — useAlertasBadges: throttle 5s y granularidad por módulo', () => {
+  it('THROTTLE_MS = 5000', () => {
+    const hook = read('src/hooks/useAlertasBadges.js');
+    expect(hook).toContain('THROTTLE_MS = 5000');
+  });
+  it('escucha teg-sync con detail.module', () => {
+    const hook = read('src/hooks/useAlertasBadges.js');
+    expect(hook).toContain('detail');
+    expect(hook).toContain('.module');
+    expect(hook).toContain('addEventListener') && expect(hook).toContain('teg-sync');
+  });
+  it('solo recalcula el módulo afectado cuando detail.module está presente', () => {
+    const hook = read('src/hooks/useAlertasBadges.js');
+    const idx = hook.indexOf('detail?.module');
+    const ctx = hook.slice(idx, idx + 200);
+    expect(ctx).toContain('calcModulos([modulo])');
+  });
+  it('recalcula todos si no hay detail.module (comportamiento conservador)', () => {
+    const hook = read('src/hooks/useAlertasBadges.js');
+    expect(hook).toContain('calcModulos(TODOS_MODULOS)');
+  });
+  it('excluye tareas bloqueadas del badge de proyecto', () => {
+    const hook = read('src/hooks/useAlertasBadges.js');
+    expect(hook).toContain('"bloqueado"');
+  });
+  it('calcBadgeModulo función separada por módulo', () => {
+    const hook = read('src/hooks/useAlertasBadges.js');
+    expect(hook).toContain('async function calcBadgeModulo');
+  });
+});

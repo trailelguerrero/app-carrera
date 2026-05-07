@@ -107,6 +107,24 @@ export default async function handler(req, res) {
       return res.status(200).json({ existe: true, pinPersonalizado: Boolean(pinPersonalizado) });
     }
 
+    // ── RECOVER-PIN: POST ?action=recover-pin (portal público) ─────────────
+    // T5.4: sin autenticación — el voluntario verifica con su email y recupera el PIN inicial
+    if (action === 'recover-pin') {
+      if (req.method !== 'POST') return res.status(405).end();
+      const { email } = req.body || {};
+      if (!email) return res.status(400).json({ error: 'Email requerido' });
+      const vols = await getVols(sql);
+      const normalEmail = String(email).toLowerCase().trim();
+      const v = vols.find(x => String(x.email || '').toLowerCase().trim() === normalEmail);
+      // Respuesta genérica para no revelar si el email existe (seguridad)
+      if (!v) return res.status(200).json({ success: true, message: 'Si el email está registrado, el PIN ha sido restablecido.' });
+      // Resetear al PIN inicial (últimos 4 dígitos del teléfono)
+      const pinReset = pinInicial(v.telefono);
+      await saveVols(sql, vols.map(x => String(x.id) === String(v.id)
+        ? { ...x, pinHash: hashPin(pinReset), sessionToken: null, pinPersonalizado: false } : x));
+      return res.status(200).json({ success: true, message: 'Si el email está registrado, el PIN ha sido restablecido.' });
+    }
+
     // ── RESET-PIN: POST ?action=reset-pin (organizador) ───────────────────
     if (action === 'reset-pin') {
       if (req.method !== 'POST') return res.status(405).end();

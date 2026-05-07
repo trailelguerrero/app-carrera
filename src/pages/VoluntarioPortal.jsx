@@ -534,6 +534,9 @@ function LoginScreen({ onLogin, onVolver, telefonoInicial }) {
   const [loading, setLoading]   = useState(false);
   const [checkingPin, setCheckingPin] = useState(false);
   const [pinCambiado, setPinCambiado] = useState(false);
+  const [showRecoverPin, setShowRecoverPin] = useState(false);
+  const [recoverEmail, setRecoverEmail] = useState('');
+  const [recoverStatus, setRecoverStatus] = useState(null); // null | 'sending' | 'done' | 'error'
   const telRef = useRef(null);
 
   useEffect(() => { if (paso === 1) setTimeout(() => telRef.current?.focus(), 100); }, [paso]);
@@ -659,7 +662,72 @@ function LoginScreen({ onLogin, onVolver, telefonoInicial }) {
                 Verificando…
               </div>}
             </div>
-            <div className="vp-hint">¿Problemas? Contacta con el organizador</div>
+            {/* T5.4: Recuperación de PIN */}
+            {!showRecoverPin ? (
+              <div className="vp-hint">
+                ¿Olvidaste tu PIN?{' '}
+                <button
+                  onClick={() => { setShowRecoverPin(true); setRecoverStatus(null); }}
+                  style={{ background:'none', border:'none', color:'var(--cyan)', cursor:'pointer',
+                    fontFamily:'var(--font-mono)', fontSize:'inherit', textDecoration:'underline', padding:0 }}
+                >
+                  Restablecer PIN
+                </button>
+              </div>
+            ) : (
+              <div className="vp-card" style={{ marginTop:'.75rem' }}>
+                {recoverStatus === 'done' ? (
+                  <div style={{ textAlign:'center', padding:'.5rem 0' }}>
+                    <div style={{ fontSize:'1.5rem', marginBottom:'.4rem' }}>✅</div>
+                    <div style={{ fontFamily:'var(--font-mono)', fontSize:'var(--fs-sm)', color:'var(--green)' }}>
+                      Si el email está registrado, tu PIN ha sido restablecido al PIN inicial (últimos 4 dígitos de tu teléfono).
+                    </div>
+                    <button className="vp-btn vp-btn-ghost" style={{ marginTop:'.75rem', minHeight:40, fontSize:'.82rem' }}
+                      onClick={() => { setShowRecoverPin(false); setRecoverStatus(null); setRecoverEmail(''); }}>
+                      ← Volver al login
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="vp-label">🔑 Restablecer PIN</div>
+                    <div style={{ fontFamily:'var(--font-mono)', fontSize:'var(--fs-xs)', color:'var(--text-muted)', marginBottom:'.75rem', lineHeight:1.7 }}>
+                      Introduce el email con el que te registraste. Tu PIN se restablecerá a los últimos 4 dígitos de tu teléfono.
+                    </div>
+                    <input
+                      className="vp-input" type="email" placeholder="tu@email.com"
+                      value={recoverEmail}
+                      onChange={e => setRecoverEmail(e.target.value)}
+                      style={{ marginBottom:'.75rem' }}
+                    />
+                    {recoverStatus === 'error' && (
+                      <div className="vp-error" style={{ marginBottom:'.5rem' }}>Error al procesar la solicitud. Inténtalo de nuevo.</div>
+                    )}
+                    <button
+                      className="vp-btn vp-btn-primary"
+                      disabled={!recoverEmail.includes('@') || recoverStatus === 'sending'}
+                      onClick={async () => {
+                        setRecoverStatus('sending');
+                        try {
+                          const res = await fetch(`${API_BASE}?action=recover-pin`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: recoverEmail }),
+                          });
+                          if (res.ok) setRecoverStatus('done');
+                          else setRecoverStatus('error');
+                        } catch { setRecoverStatus('error'); }
+                      }}
+                    >
+                      {recoverStatus === 'sending' ? 'Enviando…' : 'Restablecer PIN'}
+                    </button>
+                    <button className="vp-btn vp-btn-ghost" style={{ marginTop:'.5rem', minHeight:40, fontSize:'.82rem' }}
+                      onClick={() => { setShowRecoverPin(false); setRecoverStatus(null); setRecoverEmail(''); }}>
+                      Cancelar
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
