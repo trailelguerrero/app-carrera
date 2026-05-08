@@ -16,14 +16,10 @@
  *   - teg_voluntarios_v1_voluntarios  (solo APPEND, nunca sobreescribe el array)
  */
 import { neon } from '@neondatabase/serverless';
+import bcrypt from 'bcryptjs';
 
-function hashPin(pin) {
-  let h = 0;
-  for (let i = 0; i < pin.length; i++) {
-    h = (Math.imul(31, h) + pin.charCodeAt(i)) | 0;
-  }
-  return String(h);
-}
+const BCRYPT_SALT_ROUNDS = 10;
+
 function pinInicial(telefono) {
   const digits = (telefono || '').replace(/\D/g, '');
   return digits.slice(-4) || '0000';
@@ -45,12 +41,21 @@ const WRITE_WHITELIST = new Set([
   'teg_voluntarios_v1_voluntarios',
 ]);
 
-// CORS: solo GET y POST, sin credenciales
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
+// SEC-03: Lista blanca de orígenes — misma lógica que proxy.js y voluntarios/index.js
+function setCorsHeaders(req, res) {
+  const origin = req.headers.origin || '';
+  const allowed = [
+    process.env.ALLOWED_ORIGIN || '',
+    'http://localhost:5173',
+    'http://localhost:4173',
+  ].filter(Boolean);
+  if (origin && allowed.some(o => origin.startsWith(o))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
 
 // ── Rate limiting en memoria por IP ──────────────────────────────────────────
 // Se resetea en cada redeploy — suficiente para el volumen de un evento hobby
@@ -69,12 +74,12 @@ function isRateLimited(ip) {
 export default async function handler(req, res) {
   // CORS preflight
   if (req.method === 'OPTIONS') {
-    res.writeHead(204, CORS_HEADERS);
-    return res.end();
+    setCorsHeaders(req, res);
+    return res.status(204).end();
   }
 
   // Añadir headers CORS a todas las respuestas
-  Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
+  setCorsHeaders(req, res);
 
   const { collection } = req.query;
 
@@ -129,6 +134,10 @@ export default async function handler(req, res) {
     }
 
     // Sanitizar — solo campos permitidos en el modelo público
+    // PIN inicial = últimos 4 dígitos del teléfono (o '0000')
+    const pinRaw = pinInicial(String(newVoluntario.telefono || ''));
+    const pinHashValue = await bcrypt.hash(pinRaw, BCRYPT_SALT_ROUNDS);
+
     const sanitized = {
       id:                  newVoluntario.id              || `pub_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,
       nombre:              String(newVoluntario.nombre   || '').slice(0, 100),
@@ -144,8 +153,8 @@ export default async function handler(req, res) {
       estado:              'pendiente', // SIEMPRE pendiente desde registro público
       fechaRegistro:       new Date().toISOString(),
       fuenteRegistro:      'formulario_publico',
-      // Portal del voluntario
-      pinHash:             hashPin(pinInicial(String(newVoluntario.telefono || ''))),
+      // Portal del voluntario — hash bcrypt ($2b$...)
+      pinHash:             pinHashValue,
       enPuesto:            false,
       horaLlegada:         null,
       camisetaEntregada:   false,

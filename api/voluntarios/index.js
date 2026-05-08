@@ -76,10 +76,24 @@ function isRateLimited(ip) {
   r.count++; intentos.set(ip, r); return false;
 }
 
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+// SEC-03: Lista blanca de orígenes — nunca wildcard en endpoints con autenticación
+function setCorsHeaders(req, res) {
+  const origin = req.headers.origin || '';
+  const allowed = [
+    process.env.ALLOWED_ORIGIN || '',
+    'http://localhost:5173',
+    'http://localhost:4173',
+  ].filter(Boolean);
+  if (origin && allowed.some(o => origin.startsWith(o))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-key');
+}
+
+export default async function handler(req, res) {
+  setCorsHeaders(req, res);
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const { action } = req.query;
