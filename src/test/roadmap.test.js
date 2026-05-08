@@ -542,28 +542,31 @@ describe('SP1-04 — usePaginacion.jsx: lib/ es re-export de hooks/', () => {
   });
 });
 
-describe('SP1-05 — budget-log: GET público, POST protegido', () => {
-  it('api/budget-log GET no requiere autenticación', () => {
+describe('SP1-05 — budget-log: SEC-04 todos los métodos protegidos', () => {
+  // SEC-04 (sesión 2026-05-08): GET también requiere autenticación — datos financieros sensibles
+  it('api/budget-log requiere autenticación en TODOS los métodos (incluido GET)', () => {
     const api = read('api/budget-log/index.js');
-    expect(api).toContain("req.method !== 'GET'");
-    expect(api).toContain('!auth(req, res)');
-    // La condición debe excluir GET del auth check
-    const idx = api.indexOf("req.method !== 'GET'");
-    const ctx = api.slice(idx, idx + 50);
-    expect(ctx).toContain('!auth');
+    // auth() se llama incondicionalmente antes de cualquier método
+    expect(api).toContain('if (!auth(req, res)) return;');
+    // NO debe existir la excepción anterior para GET
+    expect(api).not.toContain("req.method !== 'GET'");
   });
-  it('TabHistorial GET no envía x-api-key (fetch sin headers)', () => {
+  it('api/budget-log GET responde 401 sin x-api-key', () => {
+    const api = read('api/budget-log/index.js');
+    expect(api).toContain('401');
+    expect(api).toContain('Unauthorized');
+  });
+  it('TabHistorial usa el proxy BFF para el GET (no llama a /api/budget-log directamente)', () => {
     const tab = read('src/components/budget/TabHistorial.jsx');
-    // El GET usa fetch('/api/budget-log?limit=100') sin headers de auth
-    expect(tab).toContain('/api/budget-log?limit=100');
-    // El DELETE sí necesita auth — verificar que GET no tiene header
-    const getIdx = tab.indexOf('/api/budget-log?limit=100');
-    const getCtx = tab.slice(Math.max(0, getIdx-30), getIdx+100);
-    expect(getCtx).not.toContain('x-api-key');
+    // Debe usar el proxy BFF que inyecta x-api-key server-side
+    expect(tab).toContain('/api/proxy/budget-log');
+    // NO debe llamar directamente al endpoint sin protección
+    expect(tab).not.toContain("fetch(\"/api/budget-log");
+    expect(tab).not.toContain("fetch('/api/budget-log");
   });
-  it('useBudgetLogic maneja gracefully la ausencia de VITE_API_KEY', () => {
-    const hook = read('src/hooks/useBudgetLogic.js');
-    expect(hook).toContain("VITE_API_KEY || ''");
+  it('api/budget-log tiene comentario SEC-04 documentando la decisión', () => {
+    const api = read('api/budget-log/index.js');
+    expect(api).toContain('SEC-04');
   });
 });
 
@@ -668,16 +671,23 @@ describe('SP3-01 — CONN-01: DíaCarrera conectado con localizaciones GPS', () 
   });
 });
 
-describe('SP3-02 — CONN-04: budget-log TabHistorial funcional', () => {
-  it('TabHistorial fetch GET no tiene x-api-key (público)', () => {
+describe('SP3-02 — CONN-04: budget-log TabHistorial funcional via proxy BFF', () => {
+  // Actualizado en sesión 2026-05-08: SEC-04 protege el GET; el frontend usa el proxy BFF
+  it('TabHistorial carga el historial a través del proxy BFF', () => {
     const tab = read('src/components/budget/TabHistorial.jsx');
-    const getIdx = tab.indexOf('/api/budget-log?limit=100');
-    const getCtx = tab.slice(Math.max(0, getIdx-30), getIdx+100);
-    expect(getCtx).not.toContain('x-api-key');
+    // El proxy inyecta x-api-key server-side, sin exponerla al cliente
+    expect(tab).toContain('/api/proxy/budget-log');
   });
-  it('api/budget-log GET es público', () => {
+  it('TabHistorial NO llama directamente a /api/budget-log (sin protección)', () => {
+    const tab = read('src/components/budget/TabHistorial.jsx');
+    expect(tab).not.toContain("fetch(\"/api/budget-log");
+    expect(tab).not.toContain("fetch('/api/budget-log");
+  });
+  it('api/budget-log GET está protegido (no es público)', () => {
     const api = read('api/budget-log/index.js');
-    expect(api).toContain("req.method !== 'GET'");
+    // auth() se llama antes de cualquier verificación de método
+    expect(api).toContain('if (!auth(req, res)) return;');
+    expect(api).not.toContain("req.method !== 'GET'");
   });
 });
 
