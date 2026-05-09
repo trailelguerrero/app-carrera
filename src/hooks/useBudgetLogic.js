@@ -8,13 +8,9 @@ import {
   INGRESOS_EXTRA_DEFAULT,
   MERCHANDISING_DEFAULT,
   MAXIMOS_DEFAULT,
-  DISTANCIAS,
   SYNC_CONFIG_DEFAULT,
   MARGEN_CONFIG_DEFAULT
 } from "../constants/budgetConstants";
-const LS_PATS = "teg_patrocinadores_v1_pats";
-const LS_CAM_PEDIDOS = "teg_camisetas_v1_pedidos";
-const LS_CAM_COSTE = "teg_camisetas_v1_coste";
 import {
   getImporteCobrado,
   getImporteComprometido,
@@ -31,6 +27,15 @@ import {
   calculatePuntoEquilibrio,
   calculatePEGlobal
 } from "../lib/budgetUtils";
+import { SK_CAM_PEDIDOS, SK_CAM_COSTE } from "../constants/storageKeys";
+
+// Claves de persistencia propias del módulo de presupuesto
+const LS_PATS = "teg_patrocinadores_v1_pats";
+
+// Mapa canónico id → syncKey para migrar datos legados sin syncKey.
+// Constante de módulo (estática) — no debe declararse dentro del hook
+// para evitar advertencias de react-hooks/exhaustive-deps.
+const ID_TO_SYNCKEY = { 1: "patrocinios", 2: "camisetas", 3: "patrociniosCobrado", 10: "subvencionPublica", 13: "balanceCamisetasTecnicas" };
 
 export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioIngresosExtra, scenarioMerchandising } = {}) => {
   const [tab, setTab] = useState("inscripciones");
@@ -61,8 +66,8 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   const [saveStatus, setSaveStatus] = useState("idle");
 
   const [rawPats] = useData(LS_PATS, []);
-  const [rawCamPedidos] = useData(LS_CAM_PEDIDOS, []);
-  const [rawCamCoste] = useData(LS_CAM_COSTE, { corredor: 7.5, voluntario: 7.5 });
+  const [rawCamPedidos] = useData(SK_CAM_PEDIDOS, []);
+  const [rawCamCoste] = useData(SK_CAM_COSTE, { corredor: 7.5, voluntario: 7.5 });
 
   // ── Valores calculados en tiempo real desde otros bloques ────────────────
   const totalPatConfirmado = useMemo(() => {
@@ -141,8 +146,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   // ── ingresosExtraConValores: array con valores en tiempo real ────────────
   // No es estado — se calcula en cada render. Esto GARANTIZA que los KPIs
   // son coherentes con los toggles sin depender de efectos asíncronos.
-  // Mapa canónico id → syncKey para migrar datos antiguos sin syncKey
-  const ID_TO_SYNCKEY = { 1: "patrocinios", 2: "camisetas", 3: "patrociniosCobrado", 10: "subvencionPublica", 13: "balanceCamisetasTecnicas" };
+  // ID_TO_SYNCKEY se declara a nivel de módulo (ver arriba) para evitar exhaustive-deps.
 
   const ingresosExtraConValores = useMemo(() => {
     const base = scenarioIngresosExtra ?? ingresosExtra;

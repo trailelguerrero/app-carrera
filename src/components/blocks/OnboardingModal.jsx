@@ -6,29 +6,49 @@
 
 const PASOS = [
   {
-    n: 1, id: "proyecto", icon: "🏔️", color: "#a78bfa",
+    n: 1, id: "dashboard", icon: "📊", color: "#6366f1",
+    titulo: "Dashboard",
+    desc: "Resumen ejecutivo del evento: inscripciones por distancia y tramo, ingresos vs. costes, cobertura de voluntarios y alertas activas. Acceso rápido a Día D desde aquí.",
+  },
+  {
+    n: 2, id: "proyecto", icon: "🏔️", color: "#a78bfa",
     titulo: "Proyecto",
-    desc: "Define el equipo, los hitos clave y las tareas por área. Es el punto de control de todo lo demás.",
+    desc: "Planificación completa: equipo y roles, cronograma de hitos, tareas por área (secretaría, señalización, avituallamiento…) y contactos clave. Navega directo a Logística o Voluntarios desde las tareas.",
   },
   {
-    n: 2, id: "presupuesto", icon: "💰", color: "#34d399",
+    n: 3, id: "presupuesto", icon: "💰", color: "#34d399",
     titulo: "Presupuesto",
-    desc: "Configura los tramos de precio, los inscritos estimados y todos los costes. El P&L y el punto de equilibrio se calculan solos.",
+    desc: "Tramos de precio por distancia (TG7/TG13/TG25), inscritos estimados, costes fijos y variables. Ingresos extra (patrocinios, camisetas, subvenciones) sincronizados automáticamente. Calcula el P&L, el punto de equilibrio y permite simular escenarios hipotéticos.",
   },
   {
-    n: 3, id: "voluntarios", icon: "👥", color: "#22d3ee",
+    n: 4, id: "voluntarios", icon: "👥", color: "#22d3ee",
     titulo: "Voluntarios",
-    desc: "Crea los puestos antes de abrir el formulario público. Así los voluntarios ya pueden elegir dónde quieren ayudar.",
+    desc: "Crea los puestos de trabajo antes de abrir el formulario público. Gestiona la lista de voluntarios, asígnales puesto y talla de camiseta, y consulta la cobertura por puesto. En Día de Carrera: control de asistencia y QR de acceso personal.",
   },
   {
-    n: 4, id: "logistica", icon: "📦", color: "#fbbf24",
+    n: 5, id: "logistica", icon: "📦", color: "#fbbf24",
     titulo: "Logística",
-    desc: "Inventario de material, vehículos, timeline del día y checklist por fases. Lo último en configurar, lo primero en usar el día de carrera.",
+    desc: "Inventario de material por categoría, gestión de vehículos y conductores, localizaciones GPS del recorrido (avituallamientos, puntos de control), timeline del día de carrera y checklist por fases. Se conecta con Voluntarios para asignar material por puesto.",
   },
   {
-    n: 5, id: "patrocinadores", icon: "🤝", color: "#fb923c",
+    n: 6, id: "patrocinadores", icon: "🤝", color: "#fb923c",
     titulo: "Patrocinadores",
-    desc: "Pipeline comercial. Los importes confirmados se sincronizan automáticamente con el Presupuesto.",
+    desc: "Pipeline comercial completo: prospectos, comprometidos y cobrados. Distingue entre patrocinadores en especie y monetarios. Los importes comprometidos se sincronizan automáticamente con el Presupuesto (patrocinios + subvenciones públicas).",
+  },
+  {
+    n: 7, id: "camisetas", icon: "👕", color: "#f472b6",
+    titulo: "Camisetas",
+    desc: "Consolida tallas de corredores (por distancia), voluntarios y extras (no-corredores con precio de venta editable). Calcula automáticamente el pedido al proveedor con margen de seguridad. El balance de camisetas técnicas se sincroniza con el Presupuesto.",
+  },
+  {
+    n: 8, id: "documentos", icon: "📁", color: "#94a3b8",
+    titulo: "Documentos",
+    desc: "Repositorio de archivos del evento: autorizaciones, seguros, reglamentos, planos del recorrido y cualquier documento del equipo. Organiza por categorías y busca por nombre. Soporta subida de PDFs, imágenes y otros formatos.",
+  },
+  {
+    n: 9, id: "configuracion", icon: "⚙️", color: "#64748b",
+    titulo: "Configuración",
+    desc: "Ajusta los datos del evento (nombre, fecha, distancias disponibles), parámetros globales de la app y opciones de exportación. Desde aquí también puedes resetear los datos de cualquier módulo o exportar un backup completo.",
   },
 ];
 
@@ -54,8 +74,8 @@ export default function OnboardingModal({ onClose, onNavigate }) {
 
       <div style={{
         background: "var(--bg)", border: "1px solid #243460",
-        borderRadius: 18, width: "100%", maxWidth: 500,
-        maxHeight: "90vh", overflow: "hidden",
+        borderRadius: 18, width: "100%", maxWidth: 520,
+        maxHeight: "92vh", overflow: "hidden",
         display: "flex", flexDirection: "column",
         boxShadow: "0 32px 80px rgba(0,0,0,0.75)",
         animation: "ob-slide 0.28s ease",
@@ -90,7 +110,7 @@ export default function OnboardingModal({ onClose, onNavigate }) {
             color: "#3a4a6a", textTransform: "uppercase", letterSpacing: ".1em",
             marginBottom: ".65rem",
           }}>
-            Orden de configuración recomendado
+            Módulos disponibles — haz clic para ir directamente
           </div>
 
           {PASOS.map((p, i) => (
@@ -161,7 +181,7 @@ export default function OnboardingModal({ onClose, onNavigate }) {
             fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
             color: "#3a4a6a",
           }}>
-            Haz clic en un paso para ir directamente
+            {PASOS.length} módulos · Haz clic en uno para ir directamente
           </span>
           <button
             onClick={onClose}
