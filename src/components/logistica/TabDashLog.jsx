@@ -1,6 +1,6 @@
 // Auto-extracted from Logistica.jsx — Sprint 2 refactor
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { FASES_CHECKLIST, ESTADO_ENTREGA, ESTADO_TAREA, ESTADO_COLORES, PUESTOS_REF, TIPOS_LOC, LOC_ICONS, LOC_COLORS } from "./logisticaConstants.js";
+import { FASES_CHECKLIST, ESTADO_ENTREGA, ESTADO_TAREA, ESTADO_COLORES, PUESTOS_REF, TIPOS_LOC, LOC_ICONS, LOC_COLORS, TLC } from "./logisticaConstants.js";
 import { createPortal } from "react-dom";
 import { toast } from "@/lib/toast";
 import { genIdNum } from "@/lib/utils";
@@ -9,6 +9,7 @@ import EmptyState from "@/components/EmptyState";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 import { useData } from "@/hooks/useData";
+import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [], asigs = [] }) {
@@ -227,8 +228,6 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
   );
 }
 
-const TLC = {logistica:"var(--amber)",organizacion:"var(--violet)",voluntarios:"var(--green)",carrera:"var(--cyan)",comunicacion:"var(--orange)"};
-const TLI = {logistica:"🚚",organizacion:"📋",voluntarios:"👥",carrera:"🏃",comunicacion:"📡"};
 
 
 // Exports

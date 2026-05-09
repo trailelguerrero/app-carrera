@@ -10,6 +10,7 @@ import { usePaginacion } from "@/hooks/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
+import { ESTADOS, estadoColor, estadoBg } from "@/constants/voluntariosConstants";
 
 // ─── MODAL VOLUNTARIO ─────────────────────────────────────────────────────────
 function ModalVoluntario({ voluntario, puestos, onSave, onClose, onEliminar }) {

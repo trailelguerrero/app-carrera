@@ -10,6 +10,7 @@ import { usePaginacion } from "@/hooks/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
+import { TIPOS_PUESTO, DISTANCIAS_PUESTO, DIST_COLORS } from "@/constants/voluntariosConstants";
 
 // ─── MODAL PUESTO ─────────────────────────────────────────────────────────────
 function ModalPuesto({ puesto, locs, onSave, onClose }) {

@@ -1,6 +1,6 @@
 // Auto-extracted from Logistica.jsx — Sprint 2 refactor
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { FASES_CHECKLIST, ESTADO_ENTREGA, ESTADO_TAREA, ESTADO_COLORES, PUESTOS_REF, TIPOS_LOC, LOC_ICONS, LOC_COLORS } from "./logisticaConstants.js";
+import { FASES_CHECKLIST, ESTADO_ENTREGA, ESTADO_TAREA, ESTADO_COLORES, PUESTOS_REF, TIPOS_LOC, LOC_ICONS, LOC_COLORS, CATS_MATERIAL, CAT_COLORS, CAT_ICONS } from "./logisticaConstants.js";
 import { createPortal } from "react-dom";
 import { toast } from "@/lib/toast";
 import { genIdNum } from "@/lib/utils";

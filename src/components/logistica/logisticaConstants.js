@@ -1,4 +1,20 @@
 // Shared constants and defaults extracted from Logistica.jsx — Sprint 2
+// ─── MATERIAL ─────────────────────────────────────────────────────────────────
+const CATS_MATERIAL = ["Avituallamiento","Señalización","Seguridad","Comunicación","Médico","Organización","Infraestructura"];
+const CAT_ICONS = { Avituallamiento:"🍎", Señalización:"🚩", Seguridad:"🦺", Comunicación:"📡", Médico:"🏥", Organización:"📋", Infraestructura:"⛺" };
+const CAT_COLORS = { Avituallamiento:"var(--green)", Señalización:"var(--amber)", Seguridad:"var(--orange)", Comunicación:"var(--cyan)", Médico:"var(--red)", Organización:"var(--violet)", Infraestructura:"var(--cyan)" };
+
+// ─── TIMELINE ─────────────────────────────────────────────────────────────────
+const TLC = {logistica:"var(--amber)",organizacion:"var(--violet)",voluntarios:"var(--green)",carrera:"var(--cyan)",comunicacion:"var(--orange)"};
+const TLI = {logistica:"🚚",organizacion:"📋",voluntarios:"👥",carrera:"🏃",comunicacion:"📡"};
+
+// ─── PROTOCOLOS DE EMERGENCIA ──────────────────────────────────────────────────
+const PROTO_PASOS=[
+  {id:1,titulo:"Accidente de corredor en ruta",icon:"🏃",pasos:["Recibir aviso por walkie del puesto más cercano","Confirmar ubicación exacta (KM de ruta + puesto)","Contactar inmediatamente con Cruz Roja: 920 350 033","Notificar a Dirección de carrera","Si hay riesgo vital: llamar al 112","Enviar vehículo todoterreno si es necesario acceder","Registrar incidencia en el módulo"]},
+  {id:2,titulo:"Corredor desaparecido / extraviado",icon:"❓",pasos:["Confirmar último control donde fue visto (hora, KM)","Contactar con delegado de la distancia correspondiente","Activar protocolo búsqueda: recorrer tramo a pie/vehículo","Contactar con Guardia Civil Candeleda: 920 380 100","No cerrar el puesto hasta localizar al corredor","Registrar toda la información en incidencias"]},
+  {id:3,titulo:"Incidencia meteorológica grave",icon:"⛈️",pasos:["Evaluar gravedad con meteorología local","Consultar con organización y juez árbitro","Si hay peligro: detener la prueba por walkie general","Reunir a corredores en el punto de control más cercano","Activar vehículos de recogida para tramos lejanos","Decisión final de suspensión: Dirección + Juez árbitro"]},
+  {id:4,titulo:"Problema en avituallamiento",icon:"🍎",pasos:["Identificar qué falta (agua, isotónico, otro)","Contactar con furgoneta de reparto","Si urgente: enviar voluntario con coche propio","Alternativa: reducir raciones hasta reponer","Registrar en incidencias para próxima edición"]},
+];
 const ESTADO_ENTREGA = ["pendiente","en tránsito","entregado","recogido"];
 const ESTADO_TAREA = ["pendiente","en curso","completado","bloqueado"];
 const ESTADO_COLORES = { pendiente:"var(--amber)","en tránsito":"var(--cyan)",entregado:"var(--green)",recogido:"var(--text-muted)","en curso":"var(--cyan)",completado:"var(--green)",bloqueado:"var(--red)" };
@@ -122,5 +138,7 @@ const CK0 = [
 export {
   ESTADO_ENTREGA, ESTADO_TAREA, ESTADO_COLORES, FASES_CHECKLIST,
   PUESTOS_REF, TIPOS_LOC, LOC_ICONS, LOC_COLORS,
-  MAT0, ASIG0, VEH0, RUTAS0, TL0, CONT0, INC0, CK0
+  MAT0, ASIG0, VEH0, RUTAS0, TL0, CONT0, INC0, CK0,
+  CATS_MATERIAL, CAT_ICONS, CAT_COLORS,
+  TLC, TLI, PROTO_PASOS
 };

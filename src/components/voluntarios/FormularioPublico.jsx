@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { TALLAS, SHIRT_PLACEHOLDER_FRONT, SHIRT_PLACEHOLDER_BACK, GUIA_TALLAS } from "@/constants/camisetasConstants";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
+import { DIST_COLORS } from "@/constants/voluntariosConstants";
 
 export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: imgF, imgBack: imgB, imgGuiaTallas, opcionPuesto, opcionVehiculo, opcionEmail, opcionEmergencia, config: cfgProp }) {
   const config = cfgProp || EVENT_CONFIG_DEFAULT;

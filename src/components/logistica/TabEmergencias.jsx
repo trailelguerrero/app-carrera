@@ -1,5 +1,6 @@
 // Auto-extracted from Logistica.jsx — Sprint 2 refactor
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { PROTO_PASOS } from "./logisticaConstants.js";
 import { createPortal } from "react-dom";
 import { toast } from "@/lib/toast";
 import { genIdNum } from "@/lib/utils";
