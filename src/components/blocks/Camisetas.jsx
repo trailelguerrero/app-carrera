@@ -142,6 +142,12 @@ export default function App() {
   const [precioPlatExt, setPrecioPlatExt] = useData(LS+"_precio_plataforma", { precio: 15 });
   const precioCorrExt = (precioPlatExt?.precio ?? 15);
 
+  // Precio venta al público (no corredores): precio editable + cantidad editable
+  const [rawVentaPublico, setVentaPublico, loadVentaPublico] = useData(LS+"_venta_publico", { precio: 20, cantidad: 0 });
+  const ventaPublico = (rawVentaPublico && typeof rawVentaPublico === 'object')
+    ? { precio: rawVentaPublico.precio ?? 20, cantidad: rawVentaPublico.cantidad ?? 0 }
+    : { precio: 20, cantidad: 0 };
+
   // Tallas de voluntarios: lectura automática (solo confirmados/pendientes, excluye cancelados)
   const [rawVols, , loadVols] = useData("teg_voluntarios_v1_voluntarios", []);
 
@@ -154,7 +160,7 @@ export default function App() {
     ? { ...FUENTES_DEFAULT, ...rawFuentes }
     : FUENTES_DEFAULT;
 
-  const isLoading = loadCfg || loadP || loadCoste || loadCorredores || loadNino || loadVols || loadInclP || loadMargen || loadFuentes;
+  const isLoading = loadCfg || loadP || loadCoste || loadCorredores || loadNino || loadVols || loadInclP || loadMargen || loadFuentes || loadVentaPublico;
 
   // ── Derivados — siempre calculados, antes de cualquier return ────────────
   // Generar pedidos de voluntarios que no tienen pedido aún
@@ -224,18 +230,24 @@ export default function App() {
     
     const extrasPagados = extrasLineas.filter(l => l.estadoPago === "pagado" && (
       (l.tipo === "corredor" && fuentesActivas.extrasCorredor) || 
-      (l.tipo === "voluntario" && fuentesActivas.extrasVoluntario)
+      (l.tipo === "voluntario" && fuentesActivas.extrasVoluntario) ||
+      (l.tipo === "nino" && fuentesActivas.extrasNino)
     ));
     const iExtrasReal = extrasPagados.reduce((s,l) => s + l.cantidad * (l.precioVenta || 0), 0);
     
     const extrasProyectados = extrasLineas.filter(l => (l.estadoPago === "pagado" || l.estadoPago === "pendiente") && (
       (l.tipo === "corredor" && fuentesActivas.extrasCorredor) || 
-      (l.tipo === "voluntario" && fuentesActivas.extrasVoluntario)
+      (l.tipo === "voluntario" && fuentesActivas.extrasVoluntario) ||
+      (l.tipo === "nino" && fuentesActivas.extrasNino)
     ));
     const iExtrasProyectado = extrasProyectados.reduce((s,l) => s + l.cantidad * (l.precioVenta || 0), 0);
 
-    const totalIngresosReal = (fuentesActivas.corredoresPlat ? iCorExt : 0) + iExtrasReal;
-    const totalIngresosProyectado = (fuentesActivas.corredoresPlat ? iCorExt : 0) + iExtrasProyectado;
+    // 2b. Ingresos venta pública (no corredores)
+    const iVentaPublico = ventaPublico.cantidad * ventaPublico.precio;
+    const gVentaPublico = ventaPublico.cantidad * (coste.corredor || 0); // coste de producción de las de venta
+
+    const totalIngresosReal = (fuentesActivas.corredoresPlat ? iCorExt : 0) + iExtrasReal + iVentaPublico;
+    const totalIngresosProyectado = (fuentesActivas.corredoresPlat ? iCorExt : 0) + iExtrasProyectado + iVentaPublico;
 
     // 3. Gastos por fuente
     const gCorExt  = uCorExt  * (coste.corredor   || 0);
@@ -245,19 +257,21 @@ export default function App() {
     const gExtrasVol  = uExtrasVol  * (coste.voluntario  || 0);
     const gExtrasNino = uExtrasNino * (coste.nino         || 0);
 
-    const totalGastos = gCorExt + gVolAuto + gExtrasCor + gExtrasVol + gNinoExt + gExtrasNino;
+    const totalGastos = gCorExt + gVolAuto + gExtrasCor + gExtrasVol + gNinoExt + gExtrasNino + gVentaPublico;
 
     const beneficioNetoReal = totalIngresosReal - totalGastos;
     const beneficioNetoProyectado = totalIngresosProyectado - totalGastos;
 
     const gRegalos = extrasLineas.filter(l => l.estadoPago === "regalo" && (
       (l.tipo === "corredor" && fuentesActivas.extrasCorredor) || 
-      (l.tipo === "voluntario" && fuentesActivas.extrasVoluntario)
+      (l.tipo === "voluntario" && fuentesActivas.extrasVoluntario) ||
+      (l.tipo === "nino" && fuentesActivas.extrasNino)
     )).reduce((s,l) => s + l.cantidad * (coste[l.tipo] || 0), 0);
 
     const cPendCobro = extrasLineas.filter(l => l.estadoPago === "pendiente" && (
       (l.tipo === "corredor" && fuentesActivas.extrasCorredor) || 
-      (l.tipo === "voluntario" && fuentesActivas.extrasVoluntario)
+      (l.tipo === "voluntario" && fuentesActivas.extrasVoluntario) ||
+      (l.tipo === "nino" && fuentesActivas.extrasNino)
     )).reduce((s,l) => s + l.cantidad * (l.precioVenta || 0), 0);
 
     return {
@@ -268,13 +282,13 @@ export default function App() {
       beneficioNetoReal,
       beneficioNetoProyectado,
       uCorExt, uVolAuto, uExtrasCor, uExtrasVol, uNinoExt, uExtrasNino,
-      iCorExt, iExtrasReal, iExtrasProyectado,
+      iCorExt, iExtrasReal, iExtrasProyectado, iVentaPublico,
       gRegalos,
       cPendCobro,
       totalPedidosExtras: pedidos.length,
       pendEnt: extrasLineas.filter(l => l.estadoEntrega === "pendiente").reduce((s,l) => s + l.cantidad, 0)
     };
-  }, [pedidos, coste, corredoresExt, voluntariosActivos, precioCorrExt, fuentesActivas]);
+  }, [pedidos, coste, corredoresExt, voluntariosActivos, precioCorrExt, fuentesActivas, ventaPublico]);
 
   // Detectar estado inicial para mostrar el panel de configuración
   const totalCorredoresConf = TALLAS.reduce((s,t) => s + (corredoresExt[t]||0), 0);
@@ -446,6 +460,7 @@ export default function App() {
             fechaPedido={fechaPedido} setFechaPedido={setFechaPedido}
             estadoPedido={estadoPedido} setEstadoPedido={setEstadoPedido}
             precioCorrExt={precioCorrExt} setPrecioCorrExt={(v) => setPrecioPlatExt({ precio: v })}
+            ventaPublico={ventaPublico} setVentaPublico={setVentaPublico}
             fuentesActivas={fuentesActivas} setFuentesActivas={setFuentesActivas}
             corredoresExt={corredoresExt} voluntariosActivos={voluntariosActivos}
             voluntariosConfirmados={voluntariosConfirmados} voluntariosPendientes={voluntariosPendientes}
@@ -475,12 +490,14 @@ export default function App() {
 }
 
 // ─── TAB DASHBOARD ────────────────────────────────────────────────────────────
-function TabDashboard({ stats, pedidos, coste, setCoste, setTab, goToTab, abrirFicha, precioCorrExt, setPrecioCorrExt, fuentesActivas, setFuentesActivas, ninoExt = {}, corredoresExt = {} }) {
+function TabDashboard({ stats, pedidos, coste, setCoste, setTab, goToTab, abrirFicha, precioCorrExt, setPrecioCorrExt, ventaPublico, setVentaPublico, fuentesActivas, setFuentesActivas, ninoExt = {}, corredoresExt = {} }) {
   const [editCoste,setEditCoste] = useState(false);
   const [wizardAbierto2, setWizardAbierto2] = useState(true);
   const [tmpCoste, setTmpCoste]  = useState({...coste});
   const [editPrecioPlat, setEditPrecioPlat] = useState(false);
   const [tmpPrecioPlat, setTmpPrecioPlat] = useState(precioCorrExt ?? 15);
+  const [editVentaPublico, setEditVentaPublico] = useState(false);
+  const [tmpVentaPublico, setTmpVentaPublico] = useState({ precio: ventaPublico.precio, cantidad: ventaPublico.cantidad });
 
   const toggleFuente = (f) => setFuentesActivas(p => ({ ...p, [f]: !p[f] }));
 
@@ -657,7 +674,7 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, goToTab, abrirF
           <div className="flex-between">
             <div>
               <div style={{ fontWeight: 700, fontSize: "var(--fs-base)", marginBottom: ".15rem" }}>
-                <Tooltip text="Precio de venta en plataforma externa."><span style={{ color: "var(--cyan)" }}>🏃 Precio plataforma</span><TooltipIcon /></Tooltip>
+                <Tooltip text="Precio de venta de la camiseta para corredores inscritos en plataforma externa."><span style={{ color: "var(--cyan)" }}>🏃 Precio corredores</span><TooltipIcon /></Tooltip>
               </div>
             </div>
             {editPrecioPlat ? (
@@ -670,6 +687,54 @@ function TabDashboard({ stats, pedidos, coste, setCoste, setTab, goToTab, abrirF
                 <span className="mono">{fmtNum2(precioCorrExt)}€</span>
                 <button className="btn btn-ghost btn-sm" onClick={() => setEditPrecioPlat(true)} aria-label="Editar">✏️</button>
               </div>
+            )}
+          </div>
+        </div>
+        {/* Tarjeta: Precio venta pública (no corredores) */}
+        <div className="card" style={{ borderLeft: "3px solid var(--violet)", cursor:"pointer", transition:"box-shadow .12s", gridColumn: "1 / -1" }}
+          onClick={() => !editVentaPublico && setEditVentaPublico(true)}
+          onMouseEnter={e=>e.currentTarget.style.boxShadow="0 2px 12px rgba(167,139,250,.12)"}
+          onMouseLeave={e=>e.currentTarget.style.boxShadow=""}>
+          <div className="flex-between" style={{flexWrap:"wrap",gap:".5rem"}}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: "var(--fs-base)", marginBottom: ".15rem" }}>
+                <Tooltip text="Camisetas que se venden al público general (no corredores). Edita el precio y la cantidad estimada.">
+                  <span style={{ color: "var(--violet)" }}>🛍️ Precio venta pública</span><TooltipIcon />
+                </Tooltip>
+              </div>
+              {!editVentaPublico && (
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", marginTop:".2rem" }}>
+                  {ventaPublico.cantidad} ud × {fmtNum2(ventaPublico.precio)}€ = <span style={{color:"var(--violet)",fontWeight:700}}>{fmtNum2(ventaPublico.cantidad * ventaPublico.precio)}€</span>
+                  {ventaPublico.cantidad === 0 && <span style={{marginLeft:".5rem",color:"var(--amber)"}}>⚠️ Sin unidades configuradas</span>}
+                </div>
+              )}
+            </div>
+            {editVentaPublico ? (
+              <div style={{ display:"flex", gap:".5rem", alignItems:"center", flexWrap:"wrap" }}>
+                <div>
+                  <label className="fl" style={{color:"var(--violet)"}}>Precio venta (€)</label>
+                  <input type="number" min="0" step="0.5"
+                    value={tmpVentaPublico.precio}
+                    onChange={e => setTmpVentaPublico(p => ({...p, precio: parseFloat(e.target.value)||0}))}
+                    style={{ width:70, background:"var(--surface2)", border:"1px solid rgba(167,139,250,.4)", color:"var(--violet)", borderRadius:4, padding:".25rem .4rem", fontSize:"var(--fs-sm)" }} />
+                </div>
+                <div>
+                  <label className="fl" style={{color:"var(--violet)"}}>Nº unidades</label>
+                  <input type="number" min="0" step="1"
+                    value={tmpVentaPublico.cantidad}
+                    onChange={e => setTmpVentaPublico(p => ({...p, cantidad: parseInt(e.target.value)||0}))}
+                    style={{ width:70, background:"var(--surface2)", border:"1px solid rgba(167,139,250,.4)", color:"var(--violet)", borderRadius:4, padding:".25rem .4rem", fontSize:"var(--fs-sm)" }} />
+                </div>
+                <div style={{display:"flex",gap:".35rem",alignItems:"flex-end",paddingBottom:1}}>
+                  <button className="btn btn-primary btn-sm"
+                    onClick={() => { setVentaPublico({ precio: tmpVentaPublico.precio, cantidad: tmpVentaPublico.cantidad }); setEditVentaPublico(false); }}>
+                    Guardar
+                  </button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => { setTmpVentaPublico({precio:ventaPublico.precio,cantidad:ventaPublico.cantidad}); setEditVentaPublico(false); }}>Cancelar</button>
+                </div>
+              </div>
+            ) : (
+              <button className="btn btn-ghost btn-sm" onClick={() => { setTmpVentaPublico({precio:ventaPublico.precio,cantidad:ventaPublico.cantidad}); setEditVentaPublico(true); }} aria-label="Editar venta pública">✏️</button>
             )}
           </div>
         </div>
@@ -1915,11 +1980,15 @@ function ModalPedido({
                 const margen=esR?-subC:subV-subC;
                 return (
                   <div key={i} style={{background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:8,padding:".65rem .75rem"}}>
+                    {/* Fila superior: Tipo · Talla · Cant. · € P.Corredores · € P.Venta · ✕ */}
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 56px 76px 32px",gap:".4rem",alignItems:"end",marginBottom:".4rem"}}>
                       <div><label className="fl">Tipo</label><select className="inp inp-sm" value={l.tipo} onChange={e=>{const newTipo=e.target.value;const defaultTalla=newTipo==="nino"?"4-6":"M";updL(i,"tipo",newTipo);updL(i,"talla",defaultTalla);}}>{TIPOS.map(t=><option key={t} value={t}>{TC[t].icon} {TC[t].label}</option>)}</select></div>
                       <div><label className="fl">Talla</label><select className="inp inp-sm" value={l.talla} onChange={e=>updL(i,"talla",e.target.value)}>{(l.tipo==="nino"?TALLAS_NINO:TALLAS).map(t=><option key={t} value={t}>{t}</option>)}</select></div>
                       <div><label className="fl">Cant.</label><input type="number" min="1" className="inp inp-sm inp-mono" value={l.cantidad} onChange={e=>updL(i,"cantidad",Math.max(1,parseInt(e.target.value)||1))} /></div>
-                      {verAvanzado && <div><label className="fl">€ Venta</label><input type="number" min="0" step="0.5" className="inp inp-sm inp-mono" value={l.precioVenta||0} onChange={e=>updL(i,"precioVenta",parseFloat(e.target.value)||0)} disabled={esR} style={{opacity:esR?.45:1}} /></div>}
+                      <div>
+                        <label className="fl" style={{color:"var(--cyan)"}}>€ Precio venta</label>
+                        <input type="number" min="0" step="0.5" className="inp inp-sm inp-mono" value={l.precioVenta||0} onChange={e=>updL(i,"precioVenta",parseFloat(e.target.value)||0)} disabled={esR} style={{opacity:esR?.45:1,borderColor:"rgba(34,211,238,.3)"}} />
+                      </div>
                       <button className="btn btn-red btn-sm" onClick={()=>delL(i)} disabled={form.lineas.length<=1} style={{marginBottom:1}} aria-label="Cerrar">✕</button>
                     </div>
                     {verAvanzado && <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem",marginBottom:".35rem"}}>
@@ -1927,7 +1996,7 @@ function ModalPedido({
                       <div><label className="fl">Estado de entrega</label><select className="inp inp-sm" value={l.estadoEntrega||"pendiente"} onChange={e=>updL(i,"estadoEntrega",e.target.value)}>{ESTADOS_ENTREGA.map(s=><option key={s} value={s}>{EE[s].icon} {EE[s].label}</option>)}</select></div>
                     </div>}
                     <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",display:"flex",gap:".75rem",flexWrap:"wrap"}}>
-                      <span>Coste: {fmtEur2(subC)}</span><span>Venta: {esR?"🎁 Regalo":fmtEur2(subV)}</span>
+                      <span>Coste fabricación: {fmtEur2(subC)}</span><span>Venta: {esR?"🎁 Regalo":fmtEur2(subV)}</span>
                       <span style={{color:margen>=0?"var(--green)":"var(--red)"}}>Margen: {fmtEur2(margen)}</span>
                     </div>
                     {!esR && (l.precioVenta||0)===0 && (
