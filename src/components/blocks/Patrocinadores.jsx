@@ -18,6 +18,7 @@ import TabDocumentos from "./patrocinadores/TabDocumentos";
 import TabDashboard from "./patrocinadores/TabDashboard";
 import TabPatrocinadores from "./patrocinadores/TabPatrocinadores";
 import TabPipeline from "./patrocinadores/TabPipeline";
+import { dataService } from "@/lib/dataService";
 import TabContraprestaciones from "./patrocinadores/TabContraprestaciones";
 import { LS, NIVELES, PLANTILLAS_CONTRAPRESTACION, NIVEL_CFG, getCfg, ESTADOS, ESTADO_CFG, CONTRAPRESTACIONES_TIPO, TIPOS_DOC, SECTORES, PAT0 } from "./patrocinadores/constants";
 // ─── APP ──────────────────────────────────────────────────────────────────────
@@ -27,7 +28,8 @@ export default function App() {
   const [tab, setTab] = useState("dashboard");
   const [rawPats, setPats] = useData(LS + "_pats", PAT0);
   const [objetivo, setObjetivo] = useData(LS + "_obj", 8000);
-  const pats = Array.isArray(rawPats) ? rawPats : [];
+  // useMemo ensures pats is a stable reference — avoids exhaustive-deps re-computation on every render
+  const pats = useMemo(() => (Array.isArray(rawPats) ? rawPats : []), [rawPats]);
   const [saved, setSaved] = useState(false);
   const [modal, setModal] = useState(null);
   const [delId, setDelId] = useState(null);

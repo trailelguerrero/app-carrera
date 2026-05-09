@@ -5,9 +5,6 @@ import { TIPOS_DOC } from "./constants";
 // SEC-01: la API key la inyecta el proxy BFF server-side; no se expone al cliente
 export default function DocManager({ pat, addDoc, deleteDoc, cfg }) {
   const [uploadError, setUploadError] = useState(null);
-  const API  = "/api/proxy/docs/" + pat.id;
-  const headers = { "Content-Type": "application/json" };
-
   const [docs,   setDocs]   = useState([]);
   const [loading,setLoading]= useState(true);
   const [uploading,setUploading] = useState(false);
@@ -15,8 +12,14 @@ export default function DocManager({ pat, addDoc, deleteDoc, cfg }) {
   const [tipo,   setTipo]   = useState(TIPOS_DOC[0]);
   const [preview,setPreview]= useState(null);
 
+  // API and headers are derived from pat.id; defined inside the effect to satisfy exhaustive-deps
+  const API  = "/api/proxy/docs/" + pat.id;
+  const headers = { "Content-Type": "application/json" };
+
   useEffect(() => {
-    fetch(API, { headers })
+    const _api = "/api/proxy/docs/" + pat.id;
+    const _headers = { "Content-Type": "application/json" };
+    fetch(_api, { headers: _headers })
       .then(r => r.ok ? r.json() : [])
       .then(rows => { setDocs(rows); setLoading(false); })
       .catch(() => setLoading(false));
