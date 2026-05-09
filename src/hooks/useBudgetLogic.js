@@ -184,7 +184,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
           dataService.get("teg_presupuesto_v1_merchandising"),
           dataService.get("teg_presupuesto_v1_maximos"),
         ]);
-        if (savedTramos) setTramos(savedTramos);
+        if (Array.isArray(savedTramos) && savedTramos.length > 0) setTramos(savedTramos);
         if (savedConceptos) {
           setConceptos(savedConceptos.map(c => ({
             ...c,

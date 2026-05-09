@@ -52,7 +52,7 @@ export const cls = (...args) => args.filter(Boolean).join(" ");
 
 export const calculateTotalInscritos = (tramos, inscritos) => {
   const tot = { TG7: 0, TG13: 0, TG25: 0, total: 0 };
-  tramos.forEach(t => {
+  (Array.isArray(tramos) ? tramos : []).forEach(t => {
     DISTANCIAS.forEach(d => {
       const n = inscritos.tramos[t.id]?.[d] || 0;
       tot[d] += n; tot.total += n;
@@ -63,7 +63,7 @@ export const calculateTotalInscritos = (tramos, inscritos) => {
 
 export const calculateIngresosPorDistancia = (tramos, inscritos) => {
   const ing = { TG7: 0, TG13: 0, TG25: 0, total: 0 };
-  tramos.forEach(t => {
+  (Array.isArray(tramos) ? tramos : []).forEach(t => {
     DISTANCIAS.forEach(d => {
       const n = inscritos.tramos[t.id]?.[d] || 0;
       const precio = t.precios[d] || 0;
@@ -144,7 +144,7 @@ export const calculateIngresosDesglosados = (tramos, inscritos) => {
   const est  = { TG7: 0, TG13: 0, TG25: 0, total: 0 };
   const inscReal = { TG7: 0, TG13: 0, TG25: 0, total: 0 };
   const inscEst  = { TG7: 0, TG13: 0, TG25: 0, total: 0 };
-  tramos.forEach(t => {
+  (Array.isArray(tramos) ? tramos : []).forEach(t => {
     const cerrado = new Date(t.fechaFin) < hoy;
     const bucket  = cerrado ? real : est;
     const bucketI = cerrado ? inscReal : inscEst;

@@ -147,7 +147,7 @@ export default function Documentos() {
         dataService.get(LS_KEY, []).then(d => setDocs(Array.isArray(d) ? d : []));
       }
       // Gestiones siguen en colección JSON normal
-      dataService.get(LS_KEY + "_gestiones", GESTIONES_DEFAULT).then(setGestiones);
+      dataService.get(LS_KEY + "_gestiones", GESTIONES_DEFAULT).then(v => setGestiones(Array.isArray(v) ? v : GESTIONES_DEFAULT));
     };
     load();
   }, []);
