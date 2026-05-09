@@ -447,7 +447,12 @@ export function useData(key, defaultValue) {
       } catch {}
     });
     return () => { mounted = false; unsubscribe(); };
-  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  // `defaultValue` se omite intencionalmente del array de dependencias.
+  // Si el caller pasa un literal objeto/array, sería una nueva referencia
+  // en cada render y provocaría un bucle infinito. Se usa [key] como única dep.
+  // Para la versión canónica con useRef ver hooks/useData.js.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
 
   const setValue = useCallback((value, opts = {}) => {
     try {
