@@ -18,7 +18,7 @@ import TabDocumentos from "./patrocinadores/TabDocumentos";
 import TabDashboard from "./patrocinadores/TabDashboard";
 import TabPatrocinadores from "./patrocinadores/TabPatrocinadores";
 import TabPipeline from "./patrocinadores/TabPipeline";
-import { dataService } from "@/lib/dataService";
+import dataService from "@/lib/dataService";
 import TabContraprestaciones from "./patrocinadores/TabContraprestaciones";
 import { LS, NIVELES, PLANTILLAS_CONTRAPRESTACION, NIVEL_CFG, getCfg, ESTADOS, ESTADO_CFG, CONTRAPRESTACIONES_TIPO, TIPOS_DOC, SECTORES, PAT0 } from "./patrocinadores/constants";
 // ─── APP ──────────────────────────────────────────────────────────────────────

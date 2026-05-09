@@ -882,8 +882,9 @@ describe('SP6-01 — Drawer "Más" no causa pantalla negra', () => {
     expect(afterConflict).toContain('}, []');  // close of the useEffect deps array // eslint or without comment
     // Also accept with comment
     const hasClose = afterConflict.includes('}, []);') || afterConflict.includes('}, []); //');
-    // El return ( de la UI debe aparecer después
-    expect(afterConflict).toContain('\n  return (');
+    // El return ( de la UI debe aparecer después (slice ampliado para tolerar líneas intermedias como `if (!authed)`)
+    const hasReturn = idx.slice(conflictIdx, conflictIdx + 1200).includes('\n  return (');
+    expect(hasReturn).toBe(true);
   });
 
   it('Index.jsx: navMore.map tiene return ( antes del <button>', () => {
