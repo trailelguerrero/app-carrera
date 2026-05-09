@@ -31,6 +31,8 @@ export const SK_PPTO_INGRESOS_EXTRA   = "teg_presupuesto_v1_ingresosExtra";
 export const SK_PPTO_MERCHANDISING    = "teg_presupuesto_v1_merchandising";
 export const SK_PPTO_SYNC_CONFIG      = "teg_presupuesto_v1_syncConfig";
 export const SK_PPTO_MAXIMOS          = "teg_presupuesto_v1_maximos";
+export const SK_PPTO_MARGEN_CONFIG    = "teg_presupuesto_v1_margenConfig";
+export const SK_PPTO_SCENARIO_ACTIVE  = "teg_scenario_active_name";
 
 // ── Camisetas ─────────────────────────────────────────────────────────────────
 export const SK_CAM_PEDIDOS = "teg_camisetas_v1_pedidos";
@@ -41,12 +43,15 @@ export const SK_DOC_DOCS      = "teg_documentos_v1";
 export const SK_DOC_GESTIONES = "teg_documentos_v1_gestiones";
 
 // ── Logística ─────────────────────────────────────────────────────────────────
+export const SK_LOG_MAT        = "teg_logistica_v1_mat";
 export const SK_LOG_ASIG       = "teg_logistica_v1_asig";
+export const SK_LOG_TL         = "teg_logistica_v1_tl";
 export const SK_LOG_CK         = "teg_logistica_v1_ck";
 export const SK_LOG_INC        = "teg_logistica_v1_inc";
 
 // ── Proyecto / Tareas ─────────────────────────────────────────────────────────
 export const SK_PROY_TAREAS = "teg_proyecto_v1_tareas";
+export const SK_PROY_HITOS  = "teg_proyecto_v1_hitos";
 
 // ── Voluntarios ───────────────────────────────────────────────────────────────
 export const SK_VOL_VOLUNTARIOS = "teg_voluntarios_v1_voluntarios";
@@ -55,6 +60,7 @@ export const SK_VOL_SESSION     = "teg_vol_session";
 
 // ── Patrocinadores ────────────────────────────────────────────────────────────
 export const SK_PAT_PATS        = "teg_patrocinadores_v1_pats";
+export const SK_PAT_OBJ         = "teg_patrocinadores_v1_obj";
 /** Prefijo dinámico: SK_PAT_LOG_PREFIX + <id> */
 export const SK_PAT_LOG_PREFIX  = "teg_pat_log_";
 
@@ -86,6 +92,8 @@ export const SK = {
   PPTO_MERCHANDISING:  SK_PPTO_MERCHANDISING,
   PPTO_SYNC_CONFIG:    SK_PPTO_SYNC_CONFIG,
   PPTO_MAXIMOS:        SK_PPTO_MAXIMOS,
+  PPTO_MARGEN_CONFIG:  SK_PPTO_MARGEN_CONFIG,
+  PPTO_SCENARIO_ACTIVE: SK_PPTO_SCENARIO_ACTIVE,
 
   // Camisetas
   CAM_PEDIDOS: SK_CAM_PEDIDOS,
@@ -96,12 +104,15 @@ export const SK = {
   DOC_GESTIONES: SK_DOC_GESTIONES,
 
   // Logística
+  LOG_MAT:  SK_LOG_MAT,
   LOG_ASIG: SK_LOG_ASIG,
+  LOG_TL:   SK_LOG_TL,
   LOG_CK:   SK_LOG_CK,
   LOG_INC:  SK_LOG_INC,
 
   // Proyecto
   PROY_TAREAS: SK_PROY_TAREAS,
+  PROY_HITOS:  SK_PROY_HITOS,
 
   // Voluntarios
   VOL_VOLUNTARIOS: SK_VOL_VOLUNTARIOS,
@@ -110,6 +121,7 @@ export const SK = {
 
   // Patrocinadores
   PAT_PATS:       SK_PAT_PATS,
+  PAT_OBJ:        SK_PAT_OBJ,
   PAT_LOG_PREFIX: SK_PAT_LOG_PREFIX,
 };
 

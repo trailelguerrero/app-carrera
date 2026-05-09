@@ -244,7 +244,15 @@ export default function Index() {
   }, []);
 
   const handleBlockChange = useCallback((id) => {
-    window.dispatchEvent(new Event("teg-sync"));
+    window.dispatchEvent(new CustomEvent("teg-sync", { detail: {} })); // INC-06: CustomEvent uniforme
+    // INC-03: limpiar subtab pendiente si el destino cambia de bloque
+    // (el subtab sólo es válido para el bloque al que iba destinado;
+    //  si el usuario navega a otro lugar, lo descartamos para evitar
+    //  que se propague en visitas futuras al bloque incorrecto)
+    setPendingSubtab(prev => {
+      if (prev !== null) return null;
+      return prev;
+    });
     setActiveBlock(id);
   }, []);
 

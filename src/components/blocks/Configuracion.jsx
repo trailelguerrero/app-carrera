@@ -309,7 +309,7 @@ export default function Configuracion() {
     }
     setImportPreview(null);
     setImportMsg({ tipo: "ok", texto: `✓ Backup restaurado — ${count} colecciones importadas. Recarga la app para ver los cambios.` });
-    window.dispatchEvent(new Event("teg-sync"));
+    window.dispatchEvent(new CustomEvent("teg-sync", { detail: {} })); // INC-06: CustomEvent uniforme
   };
 
   const fechaEvento = form.fecha ? new Date(form.fecha) : null;

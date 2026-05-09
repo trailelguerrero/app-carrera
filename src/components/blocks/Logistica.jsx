@@ -1,4 +1,5 @@
 import { createPortal } from "react-dom";
+import { SK_PROY_TAREAS } from "@/constants/storageKeys";
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useModalClose } from "@/hooks/useModalClose";
 import { exportarMaterial } from "@/lib/exportUtils";
@@ -180,7 +181,7 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
       setTab(initialSubtab);
       if (onSubtabConsumed) onSubtabConsumed();
     }
-  }, [initialSubtab]);
+  }, [initialSubtab, onSubtabConsumed]);
   const [rawMaterial, setMaterial] = useData(LS+"_mat", MAT0);
   const material = Array.isArray(rawMaterial) ? rawMaterial : [];
   const [rawAsigs, setAsigs] = useData(LS+"_asig", ASIG0);
@@ -428,7 +429,7 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
           {tab==="timeline" && <TabTL tl={tl} setTl={setTl} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenTL} setOrdenAlfa={setOrdenTL} config={config} />}
           {tab==="contactos"   && <TabDirectorio cont={cont} setCont={setCont} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCont} setOrdenAlfa={setOrdenCont} tiposContacto={tiposContacto} setTiposContacto={setTiposContacto} />}
           {tab==="emergencias" && <TabEmergencias cont={cont} inc={inc} setInc={setInc} abrirModal={abrirModal} abrirFicha={abrirFicha} tiposContacto={tiposContacto} />}
-          {tab==="checklist" && <TabCK ck={ck} setCk={setCk} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCK} setOrdenAlfa={setOrdenCK} config={config} tareasProyecto={tareasProyecto} setTareasProyecto={(fn)=>{ const next=typeof fn==="function"?fn(tareasProyecto):fn; import("@/lib/dataService").then(m=>m.default.set("teg_proyecto_v1_tareas",next)); }} />}
+          {tab==="checklist" && <TabCK ck={ck} setCk={setCk} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCK} setOrdenAlfa={setOrdenCK} config={config} tareasProyecto={tareasProyecto} setTareasProyecto={(fn)=>{ const next=typeof fn==="function"?fn(tareasProyecto):fn; import("@/lib/dataService").then(m=>{ m.default.set(SK_PROY_TAREAS, next); m.default.notify(); /* INC-05: notificar a Proyecto.jsx del cambio externo */ }); }} />}
           {tab==="localizaciones" && <TabLocalizaciones locs={locs} setLocs={setLocs} volsPorLoc={volsPorLoc} />}
           {tab==="pedidos" && <TabPedidosProv
             pedidos={pedidosProv} setPedidos={setPedidosProv}

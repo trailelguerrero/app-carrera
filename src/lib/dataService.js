@@ -318,7 +318,7 @@ const dataService = {
    * Notificar a otros bloques que los datos han cambiado
    */
   notify: () => {
-    window.dispatchEvent(new Event('teg-sync'));
+    window.dispatchEvent(new CustomEvent('teg-sync', { detail: {} })); // INC-06: CustomEvent uniforme con el resto de emisores
   },
 
   /**

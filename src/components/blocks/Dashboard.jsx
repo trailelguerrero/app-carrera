@@ -11,7 +11,17 @@ import {
 } from "@/lib/budgetUtils";
 import { EVENT_DATE, COSTE_DEFAULT } from "@/constants/budgetConstants";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
-
+import {
+  SK_PPTO_CONCEPTOS, SK_PPTO_TRAMOS, SK_PPTO_INSCRITOS, SK_PPTO_INGRESOS_EXTRA,
+  SK_PPTO_MERCHANDISING, SK_PPTO_SYNC_CONFIG, SK_PPTO_MAXIMOS, SK_PPTO_SCENARIO_ACTIVE,
+  SK_VOL_VOLUNTARIOS, SK_VOL_PUESTOS,
+  SK_PAT_PATS, SK_PAT_OBJ,
+  SK_LOG_MAT, SK_LOG_ASIG, SK_LOG_TL, SK_LOG_CK,
+  SK_PROY_TAREAS, SK_PROY_HITOS,
+  SK_DOC_DOCS, SK_DOC_GESTIONES,
+  SK_UI_DASH_ALERTAS_OPEN,
+  SK_CAM_PEDIDOS, SK_CAM_COSTE,
+} from "@/constants/storageKeys";
 import dataService from "@/lib/dataService";
 import {
   ResponsiveContainer,
@@ -21,27 +31,27 @@ import {
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 
 const ALL_KEYS = {
-  "teg_presupuesto_v1_conceptos": [],
-  "teg_presupuesto_v1_tramos": [],
-  "teg_presupuesto_v1_inscritos": { tramos: {} },
-  "teg_presupuesto_v1_ingresosExtra": [],
-  "teg_presupuesto_v1_merchandising": [],
-  "teg_presupuesto_v1_syncConfig": {},
-  "teg_presupuesto_v1_maximos": {},
-  "teg_voluntarios_v1_voluntarios": [],
-  "teg_voluntarios_v1_puestos": [],
-  "teg_patrocinadores_v1_pats": [],
-  "teg_patrocinadores_v1_obj": 8000,
-  "teg_logistica_v1_mat": [],
-  "teg_logistica_v1_asig": [],
-  "teg_logistica_v1_tl": [],
-  "teg_logistica_v1_ck": [],
-  "teg_proyecto_v1_tareas": [],
-  "teg_proyecto_v1_hitos": [],
-  "teg_documentos_v1": [],
-  "teg_documentos_v1_gestiones": [],
-  [LS_KEY_CONFIG]: EVENT_CONFIG_DEFAULT,
-  "teg_scenario_active_name": null,
+  [SK_PPTO_CONCEPTOS]:      [],
+  [SK_PPTO_TRAMOS]:         [],
+  [SK_PPTO_INSCRITOS]:      { tramos: {} },
+  [SK_PPTO_INGRESOS_EXTRA]: [],
+  [SK_PPTO_MERCHANDISING]:  [],
+  [SK_PPTO_SYNC_CONFIG]:    {},
+  [SK_PPTO_MAXIMOS]:        {},
+  [SK_VOL_VOLUNTARIOS]:     [],
+  [SK_VOL_PUESTOS]:         [],
+  [SK_PAT_PATS]:            [],
+  [SK_PAT_OBJ]:             8000,
+  [SK_LOG_MAT]:             [],
+  [SK_LOG_ASIG]:            [],
+  [SK_LOG_TL]:              [],
+  [SK_LOG_CK]:              [],
+  [SK_PROY_TAREAS]:         [],
+  [SK_PROY_HITOS]:          [],
+  [SK_DOC_DOCS]:            [],
+  [SK_DOC_GESTIONES]:       [],
+  [LS_KEY_CONFIG]:          EVENT_CONFIG_DEFAULT,
+  [SK_PPTO_SCENARIO_ACTIVE]: null,
 };
 
 const fmtD = (iso) => new Date(iso).toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
@@ -62,7 +72,7 @@ export default function Dashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);  // refresco silencioso (indicador ámbar)
   const [lastUpdated, setLastUpdated] = useState(null);
   const [alertasExpandidas, setAlertasExpandidas] = useState(
-    () => localStorage.getItem("teg_dash_alertas_open") === "1"
+    () => localStorage.getItem(SK_UI_DASH_ALERTAS_OPEN) === "1"
   ); // avisos: colapsados por defecto, persiste si el usuario los abre
   const [saludExpandida, setSaludExpandida] = useState(false); // colapsada por defecto
   const intervalRef = useRef(null);
@@ -187,8 +197,8 @@ export default function Dashboard() {
     });
 
     // VOLUNTARIOS
-    const voluntarios = get("teg_voluntarios_v1_voluntarios", []);
-    const puestos = get("teg_voluntarios_v1_puestos", []);
+    const voluntarios = get(SK_VOL_VOLUNTARIOS, []);
+    const puestos = get(SK_VOL_PUESTOS, []);
     const volConfirmados = voluntarios.filter(v => v.estado === "confirmado").length;
     const volPendientes = voluntarios.filter(v => v.estado === "pendiente").length;
     const totalNecesarios = puestos.reduce((s, p) => s + p.necesarios, 0);
@@ -204,7 +214,7 @@ export default function Dashboard() {
     const puestosBajos = puestosConCobertura.filter(p => p.pct >= 50 && p.pct < 100);
 
     // PATROCINADORES
-    const objetivo = get("teg_patrocinadores_v1_obj", 8000);
+    const objetivo = get(SK_PAT_OBJ, 8000);
     const patComprometido = pats.filter(p => p.estado === "confirmado" || p.estado === "cobrado").reduce((s, p) => s + (p.importe || 0), 0);
     // BUG-01 fix: usar getImporteCobrado para manejar cobros parciales
     const patCobrado = pats.filter(p => p.estado === "cobrado").reduce((s, p) => s + getImporteCobrado(p), 0);
@@ -217,10 +227,10 @@ export default function Dashboard() {
     );
 
     // LOGÍSTICA
-    const material = get("teg_logistica_v1_mat", []);
-    const asigs = get("teg_logistica_v1_asig", []);
-    const tl = get("teg_logistica_v1_tl", []);
-    const ck = get("teg_logistica_v1_ck", []);
+    const material = get(SK_LOG_MAT, []);
+    const asigs = get(SK_LOG_ASIG, []);
+    const tl = get(SK_LOG_TL, []);
+    const ck = get(SK_LOG_CK, []);
     const tlDone = tl.filter(t => t.estado === "completado").length;
     const ckDone = ck.filter(c => c.estado === "completado").length;
     const stockAlerts = material.filter(m => {
@@ -230,8 +240,8 @@ export default function Dashboard() {
     const materialesBajoMinimo = material.filter(m => m.stockMinimo > 0 && m.stock < m.stockMinimo);
 
     // PROYECTO
-    const tareas = get("teg_proyecto_v1_tareas", []);
-    const hitos = get("teg_proyecto_v1_hitos", []);
+    const tareas = get(SK_PROY_TAREAS, []);
+    const hitos = get(SK_PROY_HITOS, []);
     const tareasTotal = tareas.length;
     const tareasCompletadas = tareas.filter(t => t.estado === "completado").length;
     const tareasBloqueadas = tareas.filter(t => t.estado === "bloqueado").length;
@@ -241,7 +251,7 @@ export default function Dashboard() {
 
 
     // ── DOCUMENTOS — vencidos y próximos ─────────────────────────────────
-    const _rawDocumentos = get("teg_documentos_v1", []);
+    const _rawDocumentos = get(SK_DOC_DOCS, []);
     const documentos = Array.isArray(_rawDocumentos) ? _rawDocumentos : []; // DUP-DASH-02 fix: single get() call
     const diasHastaDoc = (iso) => iso ? Math.ceil((new Date(iso) - TODAY) / 86400000) : null;
     const docsVencidos = documentos.filter(d => {
@@ -254,7 +264,7 @@ export default function Dashboard() {
     });
 
     // ── GESTIONES LEGALES — permisos, licencias, seguros ──────────────────
-    const gestiones = Array.isArray(get("teg_documentos_v1_gestiones", [])) ? get("teg_documentos_v1_gestiones", []) : [];
+    const gestiones = Array.isArray(get(SK_DOC_GESTIONES, [])) ? get(SK_DOC_GESTIONES, []) : [];
     const gestionesDenegadas = gestiones.filter(g => g.estado === "denegado");
     const gestionesVencidas = gestiones.filter(g => {
       const dias = diasHastaDoc(g.fechaVencimiento);
@@ -923,7 +933,7 @@ export default function Dashboard() {
               onClick={() => {
                 const next = !alertasExpandidas;
                 setAlertasExpandidas(next);
-                localStorage.setItem("teg_dash_alertas_open", next ? "1" : "0");
+                localStorage.setItem(SK_UI_DASH_ALERTAS_OPEN, next ? "1" : "0");
               }}>
               <div style={{ display: "flex", alignItems: "center", gap: ".45rem" }}>
                 <div className="dash-alert-warning-icon dash-alert-warning-icon-amber">⚡</div>
