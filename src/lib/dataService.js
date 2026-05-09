@@ -1,18 +1,19 @@
 /**
  * DATA SERVICE — Capa de abstracción para persistencia.
- * 
- * ACTUAL: localStorage
- * FUTURO: Neon PostgreSQL via API REST (Vercel)
- * 
- * Para migrar a Neon:
- * 1. Cambiar el adapter de 'localStorage' a 'api'
- * 2. Configurar API_BASE_URL
- * 3. Los bloques no necesitan cambios — usan este servicio
+ *
+ * Adapter seleccionado vía variable de entorno VITE_ADAPTER:
+ *   VITE_ADAPTER=localStorage  → almacenamiento local (offline/dev)
+ *   VITE_ADAPTER=api           → Neon PostgreSQL via Vercel (producción)
+ *
+ * Si VITE_ADAPTER no está definida, el fallback es 'api'.
+ * Cambia el adapter en .env.local o en las variables de entorno de Vercel
+ * sin necesidad de modificar el código fuente.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-const ADAPTER = 'api'; // 'localStorage' | 'api'
+// ENV-02 fix: adapter configurable via variable de entorno — sin hardcode
+const ADAPTER = import.meta.env.VITE_ADAPTER ?? 'api'; // 'localStorage' | 'api'
 // SEC-01 fix: el frontend llama al BFF proxy (/api/proxy/*) que inyecta API_KEY
 // server-side. Nunca se expone la key en el bundle del cliente.
 const API_BASE_URL = '/api/proxy';
