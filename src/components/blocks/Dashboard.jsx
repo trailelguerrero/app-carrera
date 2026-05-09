@@ -154,10 +154,14 @@ export default function Dashboard() {
     const inscritos = get("teg_presupuesto_v1_inscritos", { tramos: {} });
     const syncConfig = get("teg_presupuesto_v1_syncConfig", { patrocinios: true, camisetas: true });
     const scenarioActivo = get("teg_scenario_active_name", null);
-    // Camisetas: leer pedidos y coste directamente (igual que useBudgetLogic)
+    // Camisetas: leer pedidos, coste y datos auxiliares directamente
     const camPedidos = get("teg_camisetas_v1_pedidos", []);
     // INC-04 fix: usar COSTE_DEFAULT coherente con el bloque Camisetas
     const camCoste = get("teg_camisetas_v1_coste", COSTE_DEFAULT);
+    // Datos de fuentes externas de camisetas (para cálculo completo de coste)
+    const camCorredoresExt = get("teg_camisetas_v1_corredores", {});
+    const camPrecioCorrExt = get("teg_camisetas_v1_precio_plataforma", { precio: 0 })?.precio ?? 0;
+    const camNinoExt = get("teg_camisetas_v1_nino", {});
     // Cálculo de camisetas delegado a calculateResultadoFinanciero
     const pats = get("teg_patrocinadores_v1_pats", []);
     const ingresosExtra = get("teg_presupuesto_v1_ingresosExtra", []);
@@ -187,12 +191,19 @@ export default function Dashboard() {
     const ocupacionGlobal = totalMaximos > 0 ? Math.round(totalInscritos / totalMaximos * 100) : null;
 
     // ── Resultado financiero — fuente única de verdad via calculateResultadoFinanciero
+    // Voluntarios activos con talla (para coste camiseta voluntario)
+    const _rawVols = get(SK_VOL_VOLUNTARIOS, []);
+    const camVoluntarios = Array.isArray(_rawVols)
+      ? _rawVols.filter(v => (v.estado === "confirmado" || v.estado === "pendiente") && v.talla)
+      : [];
+
     const {
       totalIngresosExtra, totalMerchBeneficio: merchBeneficio,
-      totalOtrosIngresos, resultado, roiGlobal,
+      totalOtrosIngresos, resultado, roiGlobal, camisetasDesglose,
     } = calculateResultadoFinanciero({
       totalIngresos, totalCostesFijos, totalCostesVars,
       pats, ingresosExtra, camPedidos, camCoste: camCoste || COSTE_DEFAULT,
+      camCorredoresExt, camPrecioCorrExt, camNinoExt, camVoluntarios,
       merchandising, syncConfig,
     });
 
@@ -407,7 +418,7 @@ export default function Dashboard() {
       eventoFecha,
       diasHasta, yaFue, esSemana,
       totalInscritos, inscritosPorDist, totalIngresos, totalCostesFijos, totalCostesVars,
-      totalIngresosExtra, merchBeneficio, totalOtrosIngresos, resultado, roiGlobal,
+      totalIngresosExtra, merchBeneficio, totalOtrosIngresos, resultado, roiGlobal, camisetasDesglose,
       maximosPorDist, ocupacionPorDist, ocupacionGlobal, totalMaximos,
       voluntarios: voluntarios.length, volConfirmados, volPendientes, totalNecesarios, coberturaVol, puestosAlerta,
       pats: pats.length, patComprometido, patCobrado, patPipeline, objetivo, contPendientes, patsSinSeguimiento,
@@ -1138,7 +1149,7 @@ export default function Dashboard() {
           <MiniDesglose
             totalIngresos={d.totalIngresos}
             totalIngresosExtra={d.totalIngresosExtra}
-            merchBeneficio={d.merchBeneficio}
+            camisetasDesglose={d.camisetasDesglose}
             totalCostesFijos={d.totalCostesFijos}
             totalCostesVars={d.totalCostesVars}
             resultado={d.resultado}
@@ -1198,13 +1209,17 @@ export default function Dashboard() {
             {d.totalIngresos === 0 && d.totalCostesFijos === 0
               ? <EmptyChart mensaje="Sin datos económicos" sub="Configura costes e inscritos en Presupuesto" />
               : (() => {
+                const cam = d.camisetasDesglose || {};
                 const items = [
                   { label: "Inscripciones", val: d.totalIngresos, color: "#22d3ee", tipo: "+" },
                   { label: "Patrocinios", val: d.totalIngresosExtra, color: "#34d399", tipo: "+" },
-                  { label: "Merch", val: d.merchBeneficio, color: "#a78bfa", tipo: "+" },
+                  // Camisetas desglosadas
+                  cam.ingresosExterno > 0 && { label: `👕 Cam. corredor (${cam.unidCorredor || 0}u)`, val: cam.ingresosExterno, color: "#c084fc", tipo: "+" },
+                  cam.ingresosPedidos > 0 && { label: `📦 Cam. pedidos extra`, val: cam.ingresosPedidos, color: "#a78bfa", tipo: "+" },
+                  cam.costeTotal > 0 && { label: `👕 Coste camisetas`, val: cam.costeTotal, color: "#f472b6", tipo: "-" },
                   { label: "C. Fijos", val: d.totalCostesFijos, color: "#f87171", tipo: "-" },
                   { label: "C. Variables", val: d.totalCostesVars, color: "#fb923c", tipo: "-" },
-                ];
+                ].filter(Boolean);
                 const maxVal = Math.max(...items.map(i => i.val), 1);
                 return (
                   <div style={{ display: "flex", flexDirection: "column", gap: ".5rem", marginTop: ".25rem" }}>
@@ -1320,10 +1335,13 @@ export default function Dashboard() {
 }
 
 // ─── Sprint 2.2: Mini-desglose económico ────────────────────────────────────
-function MiniDesglose({ totalIngresos, totalIngresosExtra, merchBeneficio, totalCostesFijos, totalCostesVars, resultado, roiGlobal, navigate }) {
+function MiniDesglose({ totalIngresos, totalIngresosExtra, camisetasDesglose, totalCostesFijos, totalCostesVars, resultado, roiGlobal, navigate }) {
   const [open, setOpen] = useState(false);
-  const totalIng = totalIngresos + totalIngresosExtra + merchBeneficio;
-  const totalCostes = totalCostesFijos + totalCostesVars;
+  const cam = camisetasDesglose || {};
+  const camIngresos = (cam.ingresosExterno || 0) + (cam.ingresosPedidos || 0);
+  const camCoste = cam.costeTotal || 0;
+  const totalIng = totalIngresos + totalIngresosExtra + camIngresos;
+  const totalCostes = totalCostesFijos + totalCostesVars + camCoste;
   const resColor = resultado >= 0 ? "var(--green)" : "var(--red)";
 
   return (
@@ -1358,10 +1376,17 @@ function MiniDesglose({ totalIngresos, totalIngresosExtra, merchBeneficio, total
           {[
             { label: "Inscripciones", val: totalIngresos, color: "#22d3ee", tipo: "+" },
             { label: "Patrocinios", val: totalIngresosExtra, color: "#34d399", tipo: "+" },
-            { label: "Merchandising", val: merchBeneficio, color: "#a78bfa", tipo: "+" },
+            cam.ingresosExterno > 0 && { label: `👕 Cam. corredor (${cam.unidCorredor || 0}u)`, val: cam.ingresosExterno, color: "#c084fc", tipo: "+" },
+            cam.ingresosPedidos > 0 && { label: "📦 Cam. extra pedidos", val: cam.ingresosPedidos, color: "#a78bfa", tipo: "+" },
+            camCoste > 0 && {
+              label: `👕 Coste total cam. (${(cam.unidCorredor || 0) + (cam.unidVoluntario || 0) + (cam.unidNino || 0) + (cam.unidExtras || 0)}u)`,
+              val: camCoste, color: "#f472b6", tipo: "-",
+            },
+            camCoste > 0 && cam.costeVoluntario > 0 && { label: `  ↳ Voluntarios (${cam.unidVoluntario || 0}u)`, val: cam.costeVoluntario, color: "#fb7185", tipo: "-" },
+            camCoste > 0 && cam.costeNino > 0 && { label: `  ↳ Niños (${cam.unidNino || 0}u)`, val: cam.costeNino, color: "#fda4af", tipo: "-" },
             { label: "Costes fijos", val: totalCostesFijos, color: "#f87171", tipo: "-" },
             { label: "Costes var.", val: totalCostesVars, color: "#fb923c", tipo: "-" },
-          ].map(item => {
+          ].filter(Boolean).map(item => {
             const max = Math.max(totalIngresos, totalCostes, 1);
             const pct = Math.min(Math.round(item.val / max * 100), 100);
             return (
@@ -1612,8 +1637,9 @@ function EmptyChart({ mensaje, sub }) {
 
 // ─── Estilos ──────────────────────────────────────────────────────────────────
 const TOOLTIP_STYLE = {
-  background: "var(--bg)", border: "1px solid #1e2d50",
+  background: "rgba(15,23,42,0.95)", border: "1px solid #334155",
   borderRadius: 8, fontSize: "var(--fs-sm)", fontFamily: "var(--font-mono)",
+  color: "#e2e8f0", boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
 };
 
 const DASH_EXTRA_CSS = `

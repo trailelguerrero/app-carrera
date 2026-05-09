@@ -243,6 +243,73 @@ export const calculatePEGlobal = (totalInscritos, precioMedioDistancia, costesVa
 };
 
 /**
+ * calculateCosteCamisetasDesglosado — calcula el coste total de camisetas desglosado por tipo.
+ *
+ * Incluye:
+ *  - Camisetas de corredor (plataforma externa × precio externo) → coste de fabricación
+ *  - Camisetas de voluntario (regalo automático)
+ *  - Camisetas de niño (regalo / venta externa)
+ *  - Extras (pedidos adicionales con cualquier estado de pago)
+ *
+ * @param {object} p
+ * @param {object}  p.camCoste          - { corredor, voluntario, nino } coste unitario
+ * @param {Array}   p.camPedidos        - Pedidos del módulo Camisetas
+ * @param {object}  p.corredoresExt     - { XXS:n, XS:n, ... } tallas de corredores plataforma
+ * @param {number}  p.precioCorrExt     - Precio venta por corredor externo (para calcular ingresos)
+ * @param {object}  p.ninoExt           - { '4-6':n, '6-8':n, ... } tallas de niño manual
+ * @param {Array}   p.voluntariosActivos - Array de voluntarios activos con talla
+ * @returns {{
+ *   costeCorredor, costeVoluntario, costeNino, costeExtras,
+ *   ingresosExterno, ingresosPedidos,
+ *   costeTotal, ingresoTotal, beneficioNeto,
+ *   unidCorredor, unidVoluntario, unidNino, unidExtras
+ * }}
+ */
+export const calculateCosteCamisetasDesglosado = ({
+  camCoste = { corredor: 8, voluntario: 7, nino: 6 },
+  camPedidos = [],
+  corredoresExt = {},
+  precioCorrExt = 0,
+  ninoExt = {},
+  voluntariosActivos = [],
+} = {}) => {
+  const costeCU = { corredor: camCoste.corredor || 8, voluntario: camCoste.voluntario || 7, nino: camCoste.nino || 6 };
+
+  // Unidades por fuente
+  const unidCorrExt = Object.values(corredoresExt).reduce((s, n) => s + (n || 0), 0);
+  const unidNino    = Object.values(ninoExt).reduce((s, n) => s + (n || 0), 0);
+  const unidVol     = voluntariosActivos.length;
+
+  // Líneas de pedidos
+  const lineas = camPedidos.flatMap(p => Array.isArray(p.lineas) ? p.lineas : []);
+  const extrasLineas = lineas; // todos los pedidos manuales son "extras"
+  const unidExtras = extrasLineas.reduce((s, l) => s + (l.cantidad || 0), 0);
+
+  // Costes por tipo
+  const costeCorredor   = unidCorrExt * costeCU.corredor;
+  const costeVoluntario = unidVol * costeCU.voluntario;
+  const costeNino       = unidNino * costeCU.nino;
+  const costeExtras     = extrasLineas.reduce((s, l) => s + (l.cantidad || 0) * (costeCU[l.tipo] || costeCU.corredor), 0);
+
+  // Ingresos: corredor externo (precio plataforma × unidades) + líneas pagadas de pedidos
+  const ingresosExterno  = unidCorrExt * (precioCorrExt || 0);
+  const ingresosPedidos  = extrasLineas
+    .filter(l => l.estadoPago === "pagado")
+    .reduce((s, l) => s + (l.cantidad || 0) * (l.precioVenta || 0), 0);
+
+  const costeTotal    = costeCorredor + costeVoluntario + costeNino + costeExtras;
+  const ingresoTotal  = ingresosExterno + ingresosPedidos;
+  const beneficioNeto = ingresoTotal - costeTotal;
+
+  return {
+    costeCorredor, costeVoluntario, costeNino, costeExtras,
+    ingresosExterno, ingresosPedidos,
+    costeTotal, ingresoTotal, beneficioNeto,
+    unidCorredor: unidCorrExt, unidVoluntario: unidVol, unidNino, unidExtras,
+  };
+};
+
+/**
  * calculateResultadoFinanciero — fuente única de verdad para el resultado económico.
  * Usada por useBudgetLogic Y Dashboard, evitando duplicación de lógica.
  *
@@ -253,16 +320,22 @@ export const calculatePEGlobal = (totalInscritos, precioMedioDistancia, costesVa
  * @param {Array}   p.pats               - Array de patrocinadores
  * @param {Array}   p.ingresosExtra      - Líneas de ingresos extra manuales
  * @param {Array}   p.camPedidos         - Pedidos de camisetas
- * @param {object}  p.camCoste           - { corredor, voluntario } coste unitario
+ * @param {object}  p.camCoste           - { corredor, voluntario, nino } coste unitario
+ * @param {object}  p.camCorredoresExt   - Tallas de corredores externos { XXS:n, … }
+ * @param {number}  p.camPrecioCorrExt   - Precio venta corredor externo
+ * @param {object}  p.camNinoExt         - Tallas de niño { '4-6':n, … }
+ * @param {Array}   p.camVoluntarios      - Voluntarios activos con talla
  * @param {Array}   p.merchandising      - Líneas de merchandising manuales
  * @param {object}  p.syncConfig         - { patrocinios: bool, camisetas: bool }
  * @returns {{ totalIngresosExtra, totalMerchBeneficio, totalOtrosIngresos,
- *             resultado, roiGlobal, totalIngresosBrutos }}
+ *             resultado, roiGlobal, totalIngresosBrutos,
+ *             camisetasDesglose }}
  */
 export const calculateResultadoFinanciero = ({
   totalIngresos, totalCostesFijos, totalCostesVars,
   pats = [], ingresosExtra = [],
-  camPedidos = [], camCoste = { corredor: 7.5, voluntario: 7.5 },
+  camPedidos = [], camCoste = { corredor: 8, voluntario: 7, nino: 6 },
+  camCorredoresExt = {}, camPrecioCorrExt = 0, camNinoExt = {}, camVoluntarios = [],
   merchandising = [],
   syncConfig = { patrocinios: true, patrociniosCobrado: false, camisetas: true, subvencionPublica: true },
 }) => {
@@ -296,22 +369,29 @@ export const calculateResultadoFinanciero = ({
     .filter(ie => ie.activo && ie.syncKey !== "camisetas") // camisetas se suma por separado
     .reduce((s, ie) => s + getSyncedValor(ie), 0);
 
-  // ── Camisetas (merchandising) — solo si syncKey="camisetas" activo ────────
+  // ── Camisetas — cálculo completo con desglose (corredor+regalo+niño) ─────
   const camisetasIe = ingresosExtra.find(ie => ie.syncKey === "camisetas");
   const camisetasActivo = camisetasIe ? camisetasIe.activo : (syncConfig.camisetas ?? true);
   let totalMerchBeneficio = 0;
+  let camisetasDesglose = null;
   if (camisetasActivo) {
-    const lineas   = (Array.isArray(camPedidos) ? camPedidos : []).flatMap(p => Array.isArray(p.lineas) ? p.lineas : []);
-    const ingresos = lineas.filter(l => l.estadoPago === "pagado").reduce((s, l) => s + (l.precioVenta || 0) * (l.cantidad || 0), 0);
-    const costes   = lineas.filter(l => l.estadoPago === "pagado" || l.estadoPago === "pendiente")
-                           .reduce((s, l) => s + ((camCoste[l.tipo] ?? 7.5) * (l.cantidad || 0)), 0);
-    totalMerchBeneficio = ingresos - costes;
-    // Fallback: si no hay pedidos, usar el modelo simple de merchandising
-    if (totalMerchBeneficio === 0 && Array.isArray(merchandising) && merchandising.length > 0) {
+    camisetasDesglose = calculateCosteCamisetasDesglosado({
+      camCoste,
+      camPedidos: Array.isArray(camPedidos) ? camPedidos : [],
+      corredoresExt: camCorredoresExt,
+      precioCorrExt: camPrecioCorrExt,
+      ninoExt: camNinoExt,
+      voluntariosActivos: camVoluntarios,
+    });
+    totalMerchBeneficio = camisetasDesglose.beneficioNeto;
+    // Fallback: si no hay datos de camisetas, usar modelo simple de merchandising
+    if (camisetasDesglose.costeTotal === 0 && camisetasDesglose.ingresoTotal === 0
+        && Array.isArray(merchandising) && merchandising.length > 0) {
       const merch = merchandising.filter(m => m.activo);
       const mi = merch.reduce((s, m) => s + m.unidades * m.precioVenta, 0);
       const mc = merch.reduce((s, m) => s + m.unidades * m.costeUnitario, 0);
       totalMerchBeneficio = mi - mc;
+      camisetasDesglose = null; // sin desglose en modo legado
     }
   }
 
@@ -327,5 +407,6 @@ export const calculateResultadoFinanciero = ({
     totalIngresosExtra, totalMerchBeneficio,
     totalOtrosIngresos, totalIngresosBrutos,
     resultado, roiGlobal,
+    camisetasDesglose, // null si camisetas inactivo o modo legado
   };
 };
