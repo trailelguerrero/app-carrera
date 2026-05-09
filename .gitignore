@@ -26,5 +26,23 @@ dist-ssr
 *.bak
 *.bak2
 
-# Antigravity agent skills (local only, do not commit)
-.agents/skills/
+# ── Agentes IA / Antigravity (solo local, nunca commitear) ───────────────────
+.agents/
+.antigravity/
+.gemini/
+
+# Archivos de misión, tareas y auditorías del agente (locales)
+mission.md
+tasks.md
+AUDIT_REPORT*.md
+00_AUDITOR_PROMPT.md
+00_PROTOCOLO_MAESTRO.md
+01_SKILLS_ACTIVADOS.md
+roadmap_mejoras_ux_generales.md
+roadmap_portal_voluntario.md
+
+# Carpeta docs/ — auditorías y reviews generados por el agente (no son docs de usuario)
+docs/
+
+# Archivos temporales de LibreOffice y editores
+.~lock.*
