@@ -45,7 +45,15 @@ const ALL_KEYS = {
 };
 
 const fmtD = (iso) => new Date(iso).toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
-const navigate = (block, subtab) => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block, subtab } }));
+const navigate = (block, subtab) => {
+  // diaCarrera es un modal flotante (no un bloque registrado en BLOCKS[])
+  // → se abre con su propio evento dedicado
+  if (block === "diaCarrera") {
+    window.dispatchEvent(new CustomEvent("teg-open-diacarrera"));
+  } else {
+    window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block, subtab } }));
+  }
+};
 
 // ─── Componente ──────────────────────────────────────────────────────────────
 export default function Dashboard() {
@@ -546,7 +554,7 @@ export default function Dashboard() {
         {/* ── SPRINT 2.3: Botón DíaCarrera prominente ≤7 días ── */}
         {d.esSemana && !d.yaFue && (
           <div
-            onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "diaCarrera" } }))}
+            onClick={() => window.dispatchEvent(new CustomEvent("teg-open-diacarrera"))}
             style={{
               display: "flex", alignItems: "center", gap: ".75rem",
               padding: ".85rem 1rem", marginBottom: ".85rem",
