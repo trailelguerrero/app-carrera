@@ -187,7 +187,7 @@ const apiAdapter = {
         method: 'DELETE',
         // SEC-01: sin x-api-key — el proxy BFF lo inyecta server-side
       });
-    } catch {}
+    } catch { /* ignore DELETE errors */ }
     return { success: true };
   },
 
@@ -444,7 +444,7 @@ export function useData(key, defaultValue) {
           const parsed = JSON.parse(raw);
           setState(prev => JSON.stringify(prev) !== raw ? parsed : prev);
         }
-      } catch {}
+      } catch { /* ignore parse errors */ }
     });
     return () => { mounted = false; unsubscribe(); };
   // `defaultValue` se omite intencionalmente del array de dependencias.

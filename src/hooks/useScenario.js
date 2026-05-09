@@ -40,8 +40,6 @@ export const useScenario = (realInscritos, realConceptos, realIngresosExtra, rea
       ...(activeScenario.conceptosOverride?.[c.id] ?? {}),
       activo: !(activeScenario.conceptosExcluidos ?? []).includes(c.id),
     }));
-    // Usar activeScenario completo — evita que optional chaining enmascare cambios
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isScenarioMode, realConceptos, activeScenario]);
 
   const scenarioIngresosExtra = isScenarioMode
@@ -84,7 +82,7 @@ export const useScenario = (realInscritos, realConceptos, realIngresosExtra, rea
       const sc = savedScenarios.find((s) => s.id === id);
       if (sc) {
         setActiveScenario(JSON.parse(JSON.stringify(sc)));
-        try { localStorage.setItem(LS_ACTIVE_SCENARIO, sc.nombre || sc.id); } catch { }
+        try { localStorage.setItem(LS_ACTIVE_SCENARIO, sc.nombre || sc.id); } catch { /* ignore */ }
       }
     },
     [savedScenarios]
@@ -93,7 +91,7 @@ export const useScenario = (realInscritos, realConceptos, realIngresosExtra, rea
   /** Descarta el draft y vuelve a datos reales. */
   const exitScenario = useCallback(() => {
     setActiveScenario(null);
-    try { localStorage.removeItem(LS_ACTIVE_SCENARIO); } catch { }
+    try { localStorage.removeItem(LS_ACTIVE_SCENARIO); } catch { /* ignore */ }
   }, []);
 
   /** Actualiza los inscritos del draft. */

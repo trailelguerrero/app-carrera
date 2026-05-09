@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useModalClose } from "@/hooks/useModalClose";
 import { fmtEur } from "@/lib/utils";
 import { toast } from "@/lib/toast";
+import { blockCls as cls } from "@/lib/blockStyles";
 import { CONTRAPRESTACIONES_TIPO, ESTADOS, ESTADO_CFG } from "./constants";
 import DocManager from "./DocManager";
 import LogContactos from "./LogContactos";

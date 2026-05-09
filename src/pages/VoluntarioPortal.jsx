@@ -990,9 +990,9 @@ function PortalMain({ token, onLogout }) {
           Gracias por tu participación en Trail El Guerrero 2026.
           Si crees que hay un error, contacta con la organización.
         </div>
-        {orgs.length > 0 && (
+        {organizadores.length > 0 && (
           <div style={{ width:"100%", maxWidth:340 }}>
-            {orgs.map((o, i) => (
+            {organizadores.map((o, i) => (
               <a key={i} href={`tel:${o.telefono}`} className="vp-btn vp-btn-ghost"
                 style={{ display:"block", width:"100%", marginBottom:".5rem", textAlign:"center" }}>
                 📞 {o.nombre || "Organización"} — {o.telefono}

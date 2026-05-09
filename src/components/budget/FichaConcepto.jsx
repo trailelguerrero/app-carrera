@@ -21,30 +21,33 @@ const estadoCfg = (val, lista) => lista.find(e => e.id === val) || lista[0];
 
 // ─── MODAL DE EDICIÓN ─────────────────────────────────────────────────────────
 export function ModalEditarConcepto({ concepto: c, totalInscritos, onSave, onClose }) {
-  if (!c) return null;
-  const esFijo = c.tipo === "fijo";
+  // ⚠️ Hooks must always be called — guard moved below all hook declarations
+  const esFijo = c ? c.tipo === "fijo" : false;
   const accentColor = esFijo ? "var(--cyan)" : "var(--green)";
   const estadoLista = esFijo ? ESTADOS_PAGO : ESTADOS_PEDIDO;
 
   const [form, setForm] = useState({
-    nombre:           c.nombre    || "",
-    activo:           c.activo    ?? true,
-    costeTotal:       c.costeTotal || 0,
-    activoDistancias: { ...c.activoDistancias },
-    costePorDistancia:{ ...c.costePorDistancia },
-    modoUniforme:     c.modoUniforme ?? true,
-    proveedor:        c.proveedor        || "",
-    contacto:         c.contacto         || "",
-    notas:            c.notas            || "",
-    estadoPago:       c.estadoPago       || "pendiente_presupuesto",
-    fechaPago:        c.fechaPago        || "",
-    numFactura:       c.numFactura       || "",
-    estadoPedido:     c.estadoPedido     || "pendiente",
-    fechaEntrega:     c.fechaEntrega     || "",
-    costeUnitarioReal: c.costeUnitarioReal ?? "",
+    nombre:           c?.nombre    || "",
+    activo:           c?.activo    ?? true,
+    costeTotal:       c?.costeTotal || 0,
+    activoDistancias: { ...(c?.activoDistancias || {}) },
+    costePorDistancia:{ ...(c?.costePorDistancia || {}) },
+    modoUniforme:     c?.modoUniforme ?? true,
+    proveedor:        c?.proveedor        || "",
+    contacto:         c?.contacto         || "",
+    notas:            c?.notas            || "",
+    estadoPago:       c?.estadoPago       || "pendiente_presupuesto",
+    fechaPago:        c?.fechaPago        || "",
+    numFactura:       c?.numFactura       || "",
+    estadoPedido:     c?.estadoPedido     || "pendiente",
+    fechaEntrega:     c?.fechaEntrega     || "",
+    costeUnitarioReal: c?.costeUnitarioReal ?? "",
   });
 
   const [guardado, setGuardado] = useState(false);
+
+  // Guard after hooks — safe to return early here
+  if (!c) return null;
   const upd = (k, v) => setForm(p => ({ ...p, [k]: v }));
   const updDist = (k, d, v) => setForm(p => ({ ...p, [k]: { ...p[k], [d]: v } }));
 

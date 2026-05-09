@@ -151,7 +151,7 @@ export const TabInscripciones = ({
         {id:"UUCTJWSV",  codigo:"UUCTJWSV", distancia:"TG25", estado:"disponible",usadoPor:null,fechaUso:null},
       ]);
     }
-  }, []);
+  }, [setCodigos]);
 
   const fmtDate = (iso) => iso ? iso.split("T")[0] : "—";
 

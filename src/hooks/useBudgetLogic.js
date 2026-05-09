@@ -51,8 +51,13 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   // para garantizar que nuevas claves (subvencionPublica) existan aunque el dato sea antiguo
   const [syncConfigRaw, setSyncConfigRaw] = useData("teg_presupuesto_v1_syncConfig", SYNC_CONFIG_DEFAULT);
 
-  // Merge con defaults para añadir claves nuevas que no existían en datos guardados
-  const syncConfig = { ...SYNC_CONFIG_DEFAULT, ...(syncConfigRaw || {}) };
+  // Merge con defaults para añadir claves nuevas que no existían en datos guardados.
+  // useMemo estabiliza la referencia para que los useMemo hijos no se re-ejecuten
+  // innecesariamente cuando syncConfigRaw no ha cambiado.
+  const syncConfig = useMemo(
+    () => ({ ...SYNC_CONFIG_DEFAULT, ...(syncConfigRaw || {}) }),
+    [syncConfigRaw]
+  );
 
   // setSyncConfig actualiza el estado raw (que también persiste en LS)
   const setSyncConfig = (updater) => {

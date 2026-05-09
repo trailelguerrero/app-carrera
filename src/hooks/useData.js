@@ -79,7 +79,7 @@ export function useData(key, defaultValue) {
             return prev;
           });
         }
-      } catch {}
+      } catch { /* ignore parse errors from other tabs */ }
     });
 
     return () => {

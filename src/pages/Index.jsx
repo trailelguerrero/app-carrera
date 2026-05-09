@@ -9,6 +9,7 @@ import OnboardingModal from "../components/blocks/OnboardingModal";
 import { ThemeToggle } from "../components/ui/ThemeToggle";
 import { LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { toast } from "@/lib/toast";
 
 // Lazy-style imports for blocks
 const Dashboard = lazy(() => import("../components/blocks/Dashboard"));

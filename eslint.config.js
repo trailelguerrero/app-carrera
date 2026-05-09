@@ -35,6 +35,7 @@ export default tseslint.config(
   {
     extends: [js.configs.recommended],
     files: ["src/**/*.{js,jsx}"],
+    ignores: ["src/test/**"],
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
@@ -49,6 +50,29 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+      "no-unused-vars": "off",
+    },
+  },
+
+  // ── Tests (src/test/) ───────────────────────────────────────────────────────
+  // Fix NEW-04: los archivos de test usan globals de Node.js (global, process)
+  // y Jest (describe, it, expect, beforeEach, afterEach, jest).
+  // Sin este bloque ESLint los reporta como "not defined".
+  {
+    extends: [js.configs.recommended],
+    files: ["src/test/**/*.{js,jsx,ts,tsx}", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: {
+        ...globals.node,
+        ...globals.jest,
+        ...globals.browser, // JSDOM exposes window, document, etc. in test env
+      },
+      parserOptions: {
+        ecmaFeatures: { jsx: true },
+      },
+    },
+    rules: {
       "no-unused-vars": "off",
     },
   },

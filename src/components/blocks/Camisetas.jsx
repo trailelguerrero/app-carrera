@@ -288,7 +288,7 @@ export default function App() {
       totalPedidosExtras: pedidos.length,
       pendEnt: extrasLineas.filter(l => l.estadoEntrega === "pendiente").reduce((s,l) => s + l.cantidad, 0)
     };
-  }, [pedidos, coste, corredoresExt, voluntariosActivos, precioCorrExt, fuentesActivas, ventaPublico]);
+  }, [pedidos, coste, corredoresExt, ninoExt, voluntariosActivos, precioCorrExt, fuentesActivas, ventaPublico]);
 
   // Detectar estado inicial para mostrar el panel de configuración
   const totalCorredoresConf = TALLAS.reduce((s,t) => s + (corredoresExt[t]||0), 0);
@@ -1155,7 +1155,7 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
                 return tot > 0 ? { talla:t, corr, vol, tot } : null;
               }).filter(Boolean);
               const lineasNino = TALLAS_NINO.map(t => {
-                const tot = tallasNinoTotal[t]||0;
+                const tot = ninoExt[t]||0;
                 return tot > 0 ? { talla:t, tot } : null;
               }).filter(Boolean);
               const totalNino = lineasNino.reduce((acc,l) => acc+l.tot, 0);

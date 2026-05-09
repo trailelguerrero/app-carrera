@@ -217,7 +217,7 @@ export default function Documentos() {
     if (subidos.length > 0) toast.success(subidos.length === 1 ? "Documento subido correctamente" : `${subidos.length} documentos subidos`);
     setNota(""); setSubcat(""); setVencNuevo(""); setEstadoNuevo("pendiente"); setEmisorNuevo("");
     setUploading(false);
-  }, [docs, tab, subcat, nota, estadoNuevo, vencNuevo, uploading, save]);
+  }, [docs, tab, subcat, nota, estadoNuevo, vencNuevo, emisorNuevo, uploading, save]);
 
   const fileToBase64 = (file) => new Promise((res, rej) => {
     const r = new FileReader();

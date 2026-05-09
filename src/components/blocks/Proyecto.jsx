@@ -236,7 +236,7 @@ export default function App() {
     }).sort((a,b) => b.urgentes - a.urgentes);
     const hitosProx = [...hitos].filter(h => !h.completado).sort((a,b) => a.fecha.localeCompare(b.fecha)).slice(0,5);
     return { diasEvento, total, completadas, bloqueadas, enCurso, pct, criticas, vencidas, porArea, porPersona, hitosProx };
-  }, [tareas, hitos, equipo]);
+  }, [tareas, hitos, equipo, eventCfg]);
 
   // ── Tareas filtradas ───────────────────────────────────────────────────────
   const tareasFiltradas = useMemo(() => {
@@ -1189,7 +1189,7 @@ function TabGantt({ tareas, hitos, equipo, setModal, setFicha, setFiltroArea, se
     : filtroGantt === "completadas" ? areaRanges_all.filter(a => a.todasCompletadas)
     : areaRanges_all;
 
-  const todayPct = pct(TODAY.toISOString().split("T")[0]);
+  const todayPct = pct(TODAY_g.toISOString().split("T")[0]);
 
   return (
     <>
@@ -1301,8 +1301,7 @@ function TabGantt({ tareas, hitos, equipo, setModal, setFicha, setFiltroArea, se
             }}>
             🖨️ PDF
           </button>
-          <button className="btn btn-sm btn-ghost" onClick={() => setQuickCreate(true)}
-            title="Crear tarea rápida (título + área + fecha)">⚡</button>
+          {/* ⚡ Quick-create lives in the parent — setQuickCreate is not in TabGantt scope */}
           <button className="btn btn-ghost" onClick={() => setModal({tipo:"hito",data:null})}>+ Hito</button>
           <button className="btn btn-primary" onClick={() => setModal({tipo:"tarea",data:null})}>+ Tarea</button>
         </div>
@@ -1346,7 +1345,7 @@ function TabGantt({ tareas, hitos, equipo, setModal, setFicha, setFiltroArea, se
                 }} title={`Ver tareas de ${a.label}`}
                   onClick={(e) => {
                     const rect = e.currentTarget.getBoundingClientRect();
-                    setGanttPopup({ area: a, tareas: at, x: rect.left, y: rect.bottom + 6 });
+                    setGanttPopup({ area: a, tareas: tareas.filter(t => t.area === a.id), x: rect.left, y: rect.bottom + 6 });
                   }}>
                   <div className="gantt-bar-fill" style={{width:`${a.pctDone}%`,background:a.color+"99"}}/>
                   <span className="gantt-bar-label">{a.done}/{a.total}</span>
@@ -1724,7 +1723,7 @@ function TabHitos({ hitos, updHito, setModal, setDelConf, setFicha }) {
               alignItems:"center",marginBottom:".35rem"}}>
               <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                 color:"var(--text-muted)"}}>
-                {hitosComp}/{hitos.length} hitos completados
+                {hitosCompletados}/{hitos.length} hitos completados
               </span>
               <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
                 fontWeight:700,

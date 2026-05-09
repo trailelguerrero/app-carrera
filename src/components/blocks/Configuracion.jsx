@@ -122,7 +122,7 @@ export default function Configuracion() {
       setCodigos(CODIGOS_INICIALES);
       localStorage.setItem("teg_codigos_initialized", "1");
     }
-  }, []); // Solo al montar
+  }, [setCodigos]); // setCodigos es estable; codigosRef.current evita re-ejecución por cambios de estado
 
   const handleSave = async () => {
     const merged = { ...EVENT_CONFIG_DEFAULT, ...form };

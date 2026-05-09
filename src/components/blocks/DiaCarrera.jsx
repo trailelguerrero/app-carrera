@@ -89,7 +89,9 @@ export default function DiaCarrera({ onClose }) {
   const isLoading = loadCfg || loadTl || loadCont || loadCk || loadPuestos || loadVols || loadInc;
 
   // Derivaciones de arrays — siempre antes de cualquier retorno anticipado
-  const tl       = Array.isArray(rawTl)      ? [...rawTl].sort((a,b)=>a.hora.localeCompare(b.hora)) : [];
+  const tl       = useMemo(() =>
+    Array.isArray(rawTl) ? [...rawTl].sort((a,b) => a.hora.localeCompare(b.hora)) : []
+  , [rawTl]);
   const contactos= Array.isArray(rawCont)    ? rawCont : [];
   const ck       = Array.isArray(rawCk)      ? rawCk  : [];
   const incidencias = Array.isArray(rawInc) ? rawInc : [];

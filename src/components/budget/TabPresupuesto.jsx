@@ -369,7 +369,7 @@ export const TabPresupuesto = ({
         {/* Vista resumen variables */}
         {vistaResumen ? (
           <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
-            {conceptosVariables.map(c => {
+            {conceptosVar.map(c => {
               const totalVar = !c.activo ? 0 : DISTANCIAS.reduce((s, d) => {
                 if (c.activoDistancias && c.activoDistancias[d] === false) return s;
                 return s + (c.costePorDistancia[d] || 0) * (totalInscritos[d] || 0);
