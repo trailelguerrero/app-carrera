@@ -220,11 +220,15 @@ const Presupuesto = () => {
                   : saveStatus === "error"  ? "✗ Error"
                   : "Guardar";
 
+  // BUG-P6 fix: eliminado argumento innecesario `true`
+  // INC-P3 fix: persiste el estado tras el reset para evitar reversión si el autosave tarda
   const handleReset = () => {
-    resetAllData(true);
+    resetAllData();
     // Eliminar escenarios guardados — sus datos base ya no existen tras el reset
     deleteScenario && savedScenarios?.forEach(sc => deleteScenario(sc.id));
     setConfirmReset(false);
+    // Persistir inmediatamente sin esperar al autosave de 2s
+    setTimeout(() => saveData(), 50);
   };
 
   useEffect(() => {
@@ -247,47 +251,27 @@ const Presupuesto = () => {
             <h1 className="block-title">💰 Presupuesto</h1>
             <div className="block-title-sub">
               {config.nombre} {config.edicion} · Gestión económica
-              {conceptos.length > 0 && (
-                <span style={{
-                  marginLeft:".6rem", padding:".08rem .45rem",
-                  borderRadius:10, fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                  background: (() => {
-                    const c = conceptos.filter(c => c.activo !== false);
-                    // A2 fix: los conceptos variables no tienen costeTotal, usan costePorDistancia
-                    const tieneCoste = (c) => c.tipo === 'fijo'
-                      ? c.costeTotal > 0
-                      : Object.values(c.costePorDistancia || {}).some(v => v > 0);
-                    const conReal = c.filter(tieneCoste).length;
-                    return conReal === c.length ? "var(--green-dim)" : "var(--amber-dim)";
-                  })(),
-                  color: (() => {
-                    const c = conceptos.filter(c => c.activo !== false);
-                    const tieneCoste = (c) => c.tipo === 'fijo'
-                      ? c.costeTotal > 0
-                      : Object.values(c.costePorDistancia || {}).some(v => v > 0);
-                    const conReal = c.filter(tieneCoste).length;
-                    return conReal === c.length ? "var(--green)" : "var(--amber)";
-                  })(),
-                  border: "1px solid",
-                  borderColor: (() => {
-                    const c = conceptos.filter(c => c.activo !== false);
-                    const tieneCoste = (c) => c.tipo === 'fijo'
-                      ? c.costeTotal > 0
-                      : Object.values(c.costePorDistancia || {}).some(v => v > 0);
-                    const conReal = c.filter(tieneCoste).length;
-                    return conReal === c.length ? "rgba(52,211,153,.3)" : "rgba(251,191,36,.3)";
-                  })(),
-                }}>
-                  {(() => {
-                    const c = conceptos.filter(c => c.activo !== false);
-                    const tieneCoste = (c) => c.tipo === 'fijo'
-                      ? c.costeTotal > 0
-                      : Object.values(c.costePorDistancia || {}).some(v => v > 0);
-                    const conReal = c.filter(tieneCoste).length;
-                    return `${conReal}/${c.length} conceptos con coste`;
-                  })()}
-                </span>
-              )}
+              {conceptos.length > 0 && (() => {
+                // INC-P2 fix: extraer lógica tieneCoste/conReal a variables únicas
+                const conceptosActivos = conceptos.filter(c => c.activo !== false);
+                const tieneCoste = (c) => c.tipo === 'fijo'
+                  ? c.costeTotal > 0
+                  : Object.values(c.costePorDistancia || {}).some(v => v > 0);
+                const conReal = conceptosActivos.filter(tieneCoste).length;
+                const isComplete = conReal === conceptosActivos.length;
+                return (
+                  <span style={{
+                    marginLeft:".6rem", padding:".08rem .45rem",
+                    borderRadius:10, fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                    background: isComplete ? "var(--green-dim)" : "var(--amber-dim)",
+                    color: isComplete ? "var(--green)" : "var(--amber)",
+                    border: "1px solid",
+                    borderColor: isComplete ? "rgba(52,211,153,.3)" : "rgba(251,191,36,.3)",
+                  }}>
+                    {`${conReal}/${conceptosActivos.length} conceptos con coste`}
+                  </span>
+                );
+              })()}
             </div>
           </div>
           <div className="block-actions">
@@ -460,7 +444,8 @@ const Presupuesto = () => {
               updateActivoDistancia={handleUpdateActivoDistancia}
               addConcepto={addConcepto}
               removeConcepto={(id) => setDelConceptoId(id)}
-              reorderConceptos={reorderConceptos}
+              isScenarioMode={isScenarioMode}
+              reorderConceptos={isScenarioMode ? () => {} : reorderConceptos}
             />
           )}
           {tab === "ingresos" && (
@@ -482,7 +467,7 @@ const Presupuesto = () => {
               setSyncConfig={setSyncConfig}
             />
           )}
-          {isScenarioMode && (tab === "inscripciones" || tab === "presupuesto") && (
+          {isScenarioMode && (tab === "inscripciones" || tab === "presupuesto" || tab === "ingresos") && (
             <div style={{
               display:"flex", alignItems:"center", gap:".6rem",
               padding:".5rem .85rem", marginBottom:".65rem",

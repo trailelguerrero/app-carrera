@@ -165,9 +165,10 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
 
       return { ...ie, syncKey: key, valor, activo, synced: true };
     });
+  // BUG-P1 fix: eliminada la dependencia duplicada totalBalanceCamisetasTecnicas
   }, [ingresosExtra, scenarioIngresosExtra, syncConfig,
     totalPatConfirmado, totalPatCobrado, totalMerchBeneficio,
-    totalBalanceCamisetasTecnicas, totalSubvencionPublica, totalBalanceCamisetasTecnicas]);
+    totalBalanceCamisetasTecnicas, totalSubvencionPublica]);
 
   // ── Carga inicial ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -250,6 +251,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     }
   }, [tramos, conceptos, inscritos, ingresosExtra, merchandising, maximos]);
 
+  // BUG-P4 fix: resetAllData ahora también limpia syncConfig y margenConfig
   const resetAllData = useCallback(() => {
     setTramos(TRAMOS_DEFAULT);
     setConceptos(CONCEPTOS_DEFAULT);
@@ -257,7 +259,9 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     setIngresosExtra(INGRESOS_EXTRA_DEFAULT);
     setMerchandising(MERCHANDISING_DEFAULT);
     setMaximos(MAXIMOS_DEFAULT);
-  }, []);
+    setSyncConfigRaw(SYNC_CONFIG_DEFAULT);
+    setMargenConfig(MARGEN_CONFIG_DEFAULT);
+  }, [setSyncConfigRaw, setMargenConfig]);
 
   const autoSaveTimer = useRef(null);
   const isFirstRender = useRef(true);
@@ -406,9 +410,34 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   const realIngresosPorDistancia = useMemo(() => calculateIngresosPorDistancia(tramos, inscritos), [tramos, inscritos]);
   const realCostesFijos = useMemo(() => calculateCostesFijos(conceptos, realTotalInscritos), [conceptos, realTotalInscritos]);
   const realCostesVariables = useMemo(() => calculateCostesVariables(conceptos, realTotalInscritos), [conceptos, realTotalInscritos]);
+
+  // BUG-P3 fix: calcular ingresos extra "reales" independientemente del escenario activo
+  // Así realResultado no se contamina con los valores del escenario hipotético
+  const realIngresosExtraConValores = useMemo(() =>
+    ingresosExtra.map(ie => {
+      const key = ie.syncKey || ID_TO_SYNCKEY[ie.id] || null;
+      if (!key) return { ...ie };
+      const activo = syncConfig[key] !== undefined ? syncConfig[key] : ie.activo;
+      const valor = key === "patrocinios" ? totalPatConfirmado
+        : key === "patrociniosCobrado" ? totalPatCobrado
+        : key === "camisetas" ? totalMerchBeneficio
+        : key === "subvencionPublica" ? totalSubvencionPublica
+        : key === "balanceCamisetasTecnicas" ? totalBalanceCamisetasTecnicas
+        : ie.valor;
+      return { ...ie, syncKey: key, valor, activo, synced: true };
+    }),
+    [ingresosExtra, syncConfig, totalPatConfirmado, totalPatCobrado,
+     totalMerchBeneficio, totalSubvencionPublica, totalBalanceCamisetasTecnicas]
+  );
+
+  const realTotalIngresosExtra = useMemo(() =>
+    realIngresosExtraConValores.filter(i => i.activo).reduce((s, i) => s + i.valor, 0),
+    [realIngresosExtraConValores]
+  );
+
   const realResultado = useMemo(() =>
-    calculateResultado(realTotalInscritos, realIngresosPorDistancia, realCostesFijos, realCostesVariables, totalIngresosConMerch),
-    [realTotalInscritos, realIngresosPorDistancia, realCostesFijos, realCostesVariables, totalIngresosConMerch]);
+    calculateResultado(realTotalInscritos, realIngresosPorDistancia, realCostesFijos, realCostesVariables, realTotalIngresosExtra),
+    [realTotalInscritos, realIngresosPorDistancia, realCostesFijos, realCostesVariables, realTotalIngresosExtra]);
 
   return {
     tab, setTab, tramos, setTramos,
