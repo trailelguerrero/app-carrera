@@ -9,9 +9,11 @@
  * Ejecutar: npm test
  * Se ejecuta en CI con cada commit.
  */
-import { describe, it, expect, vi, beforeAll } from 'vitest';
-import { render } from '@testing-library/react';
+import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest';
+import { render, waitFor, act, cleanup } from '@testing-library/react';
 import React from 'react';
+
+afterEach(() => { cleanup(); });
 
 beforeAll(() => {
   // localStorage mock — evita errores en useData
@@ -74,10 +76,13 @@ describe('Runtime smoke — todos los bloques', () => {
       const mod = await loader();
       const Comp = mod.default;
       expect(Comp, `${name} debe tener export default`).toBeDefined();
-      expect(
-        () => render(React.createElement(Comp)),
-        `${name} no debe lanzar ReferenceError al renderizar`
-      ).not.toThrow();
+
+      let container;
+      await act(async () => {
+        ({ container } = render(React.createElement(Comp)));
+        // Drain microtask queue so useEffect/fetch mocks resolve
+        await waitFor(() => expect(container).toBeDefined(), { timeout: 2000 });
+      });
     });
   }
 });
