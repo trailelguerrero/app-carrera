@@ -3,6 +3,9 @@
  * Usa ExcelJS en lugar de SheetJS/xlsx para evitar CVE HIGH conocidos
  * (GHSA-4r6h-8v6p-xvw6 Prototype Pollution, GHSA-5pgg-2g8v-p4x9 ReDoS).
  *
+ * NEW-02 fix: ExcelJS se carga con import() dinámico para evitar incluirlo
+ * en el bundle inicial (~800 KB). Solo se descarga cuando el usuario exporta.
+ *
  * Todas las funciones son async porque ExcelJS usa una API basada en Promises.
  *
  * Funciones exportadas:
@@ -10,7 +13,6 @@
  *   exportarPatrocinadores(pats)                → async
  *   exportarMaterial(material, asigs, locs)     → async
  */
-import ExcelJS from 'exceljs';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -57,20 +59,22 @@ async function downloadWorkbook(workbook, filename) {
 // ─── Voluntarios ──────────────────────────────────────────────────────────────
 
 export async function exportarVoluntarios(voluntarios = [], puestos = []) {
+  const { default: ExcelJS } = await import('exceljs');
+
   const activos = voluntarios.filter((v) => v.estado !== 'cancelado');
   const data = activos.map((v) => ({
-    Nombre:              v.nombre || '',
-    Teléfono:            v.telefono || '',
-    Email:               v.email || '',
-    Puesto:              puestos.find((p) => p.id === v.puestoId)?.nombre || '—',
-    Rol:                 v.rol || '',
-    Estado:              v.estado || '',
-    Talla:               v.talla || '',
-    Coche:               v.coche ? 'Sí' : 'No',
-    'Tel. emergencia':   v.telefonoEmergencia || v.contactoEmergencia || '',
-    'Fecha nacimiento':  v.fechaNacimiento || '',
-    'Fecha registro':    v.fechaRegistro || '',
-    Notas:               v.notas || '',
+    Nombre:             v.nombre || '',
+    Teléfono:           v.telefono || '',
+    Email:              v.email || '',
+    Puesto:             puestos.find((p) => p.id === v.puestoId)?.nombre || '—',
+    Rol:                v.rol || '',
+    Estado:             v.estado || '',
+    Talla:              v.talla || '',
+    Coche:              v.coche ? 'Sí' : 'No',
+    'Tel. emergencia':  v.telefonoEmergencia || v.contactoEmergencia || '',
+    'Fecha nacimiento': v.fechaNacimiento || '',
+    'Fecha registro':   v.fechaRegistro || '',
+    Notas:              v.notas || '',
   }));
 
   const wb = new ExcelJS.Workbook();
@@ -81,6 +85,8 @@ export async function exportarVoluntarios(voluntarios = [], puestos = []) {
 // ─── Patrocinadores ───────────────────────────────────────────────────────────
 
 export async function exportarPatrocinadores(pats = []) {
+  const { default: ExcelJS } = await import('exceljs');
+
   const data = pats.map((p) => ({
     Nombre:               p.nombre || '',
     Nivel:                p.nivel || '',
@@ -105,11 +111,11 @@ export async function exportarPatrocinadores(pats = []) {
   pats.forEach((p) => {
     (p.contraprestaciones || []).forEach((c) => {
       contData.push({
-        Patrocinador:   p.nombre || '',
-        Nivel:          p.nivel || '',
-        Tipo:           c.tipo || '',
-        Detalle:        c.detalle || '',
-        Estado:         c.estado || '',
+        Patrocinador:    p.nombre || '',
+        Nivel:           p.nivel || '',
+        Tipo:            c.tipo || '',
+        Detalle:         c.detalle || '',
+        Estado:          c.estado || '',
         'Fecha entrega': c.fechaEntrega || '',
       });
     });
@@ -124,6 +130,8 @@ export async function exportarPatrocinadores(pats = []) {
 // ─── Material de Logística ────────────────────────────────────────────────────
 
 export async function exportarMaterial(material = [], asigs = [], locs = []) {
+  const { default: ExcelJS } = await import('exceljs');
+
   const data = material.map((m) => {
     const asigTotal = asigs
       .filter((a) => String(a.materialId) === String(m.id))

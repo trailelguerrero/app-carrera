@@ -1,4 +1,5 @@
 import { neon } from '@neondatabase/serverless';
+import { checkRateLimit } from '../lib/rateLimiter.js';
 
 export default async function handler(req, res) {
   // Security check: API Key authorization
@@ -6,6 +7,15 @@ export default async function handler(req, res) {
   if (!apiKey || apiKey !== process.env.API_KEY) {
     return res.status(401).json({ error: 'Unauthorized: Invalid or missing API Key' });
   }
+
+  // Rate limiting: 60 peticiones/minuto por IP
+  const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket?.remoteAddress || 'unknown';
+  try {
+    if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set');
+    const sqlInit = neon(process.env.DATABASE_URL);
+    const limited = await checkRateLimit(sqlInit, ip, 'data-batch', { max: 60, windowMs: 60_000 });
+    if (limited) return res.status(429).json({ error: 'Demasiadas peticiones. Intenta en un momento.' });
+  } catch (_) { /* Si falla el rate limiter no bloqueamos la petición */ }
 
   try {
     if (!process.env.DATABASE_URL) {
