@@ -22,16 +22,16 @@ const Camisetas = lazy(() => import("../components/blocks/Camisetas"));
 const Configuracion = lazy(() => import("../components/blocks/Configuracion"));
 
 const BLOCKS = [
-  { id: "dashboard",      icon: "📊", label: "Dashboard",      shortLabel: "Dash",   component: Dashboard },
-  { id: "proyecto",       icon: "🏔️", label: "Proyecto",       shortLabel: "Proy",  component: Proyecto },
-  { id: "presupuesto",    icon: "💰", label: "Presupuesto",    shortLabel: "Pres", component: Presupuesto },
-  { id: "voluntarios",    icon: "👥", label: "Voluntarios",    shortLabel: "Vols", component: Voluntarios },
-  { id: "logistica",      icon: "📦", label: "Logística",      shortLabel: "Log",   component: Logistica },
-  { id: "patrocinadores", icon: "🤝", label: "Patrocinadores", shortLabel: "Pat",   component: Patrocinadores },
-  { id: "camisetas",      icon: "👕", label: "Camisetas",      shortLabel: "Cam",   component: Camisetas },
-  { id: "documentos",     icon: "📁", label: "Docs",           shortLabel: "Docs",   component: Documentos },
+  { id: "dashboard", icon: "📊", label: "Dashboard", shortLabel: "Dash", component: Dashboard },
+  { id: "proyecto", icon: "🏔️", label: "Proyecto", shortLabel: "Proy", component: Proyecto },
+  { id: "presupuesto", icon: "💰", label: "Presupuesto", shortLabel: "Pres", component: Presupuesto },
+  { id: "voluntarios", icon: "👥", label: "Voluntarios", shortLabel: "Vols", component: Voluntarios },
+  { id: "logistica", icon: "📦", label: "Logística", shortLabel: "Log", component: Logistica },
+  { id: "patrocinadores", icon: "🤝", label: "Patrocinadores", shortLabel: "Pat", component: Patrocinadores },
+  { id: "camisetas", icon: "👕", label: "Camisetas", shortLabel: "Cam", component: Camisetas },
+  { id: "documentos", icon: "📁", label: "Docs", shortLabel: "Docs", component: Documentos },
   // Configuración NO aparece en la nav principal pero sí es navegable via teg-navigate
-  { id: "configuracion",  icon: "⚙️", label: "Configuración",  shortLabel: "Cfg",   component: Configuracion, hidden: true },
+  { id: "configuracion", icon: "⚙️", label: "Configuración", shortLabel: "Cfg", component: Configuracion, hidden: true },
 ];
 
 // ── TOAST SYSTEM ──────────────────────────────────────────────────────────────
@@ -122,9 +122,9 @@ function useMobileKeyboardScroll() {
 // ── AUTOSAVE INDICATOR ─────────────────────────────────────────────────────────
 function AutosaveIndicator({ status }) {
   const cfg = {
-    saving: { color: "var(--amber)", border: "var(--amber-border)",  bg: "var(--amber-dim)",   text: "Guardando…",      pulse: true },
-    saved:  { color: "var(--green)", border: "rgba(5,150,105,0.25)",  bg: "rgba(5,150,105,0.07)",   text: "✓ Guardado",      pulse: false },
-    error:  { color: "var(--red)", border: "rgba(220,38,38,0.25)",  bg: "rgba(220,38,38,0.07)",   text: "Error al guardar", pulse: false },
+    saving: { color: "var(--amber)", border: "var(--amber-border)", bg: "var(--amber-dim)", text: "Guardando…", pulse: true },
+    saved: { color: "var(--green)", border: "rgba(5,150,105,0.25)", bg: "rgba(5,150,105,0.07)", text: "✓ Guardado", pulse: false },
+    error: { color: "var(--red)", border: "rgba(220,38,38,0.25)", bg: "rgba(220,38,38,0.07)", text: "Error al guardar", pulse: false },
   };
   const c = cfg[status];
   if (!c) return null;
@@ -208,9 +208,9 @@ export default function Index() {
   })();
   // Iniciales del organizador para el avatar
   const orgNombre = headerCfg?.organizador || EVENT_CONFIG_DEFAULT.organizador || "Trail El Guerrero";
-  const [showChangePin, setShowChangePin]   = useState(false);
-  const [showMoreNav, setShowMoreNav]       = useState(false);
-  const [activeBlock, setActiveBlock]       = useState("dashboard");
+  const [showChangePin, setShowChangePin] = useState(false);
+  const [showMoreNav, setShowMoreNav] = useState(false);
+  const [activeBlock, setActiveBlock] = useState("dashboard");
   const [showDiaCarrera, setShowDiaCarrera] = useState(false);
   const [pendingSubtab, setPendingSubtab] = useState(null);
   const [readmeBlock, setReadmeBlock] = useState(null);
@@ -230,9 +230,9 @@ export default function Index() {
     return () => window.removeEventListener("resize", h);
   }, []);
 
-  const saveStatus  = useGlobalSaveStatus();
+  const saveStatus = useGlobalSaveStatus();
   const { toasts, dismiss } = useToastSystem();
-  const isOnline    = useOnlineStatus();
+  const isOnline = useOnlineStatus();
   useMobileKeyboardScroll();
 
   // Sync counter — increments on every teg-sync so badges recalculate
@@ -292,17 +292,6 @@ export default function Index() {
   // ── Badges de alertas en nav — calculados desde localStorage ────────────
   // T3.2: alertasBadges ahora usa dataService en lugar de localStorage directo
   const alertasBadges = useAlertasBadges({ activeBlock, syncTick });
-
-  if (!authed) return <PinScreen onUnlock={() => {
-    setAuthed(true);
-    // Modo arranque directo — abrir DíaCarrera si está configurado
-    try {
-      const raw = localStorage.getItem("teg_event_config_v1");
-      const cfg = raw ? JSON.parse(raw) : {};
-      if (cfg.autoOpenDia) setTimeout(() => setShowDiaCarrera(true), 350);
-    } catch {}
-  }} />;
-
   const NAV_H = isMobile ? 68 : 66;
   const diasCarrera = Math.ceil((eventFecha - new Date()) / 86400000);
   const mostrarBtnDiaDProminente = diasCarrera >= 0 && diasCarrera <= 7;
@@ -311,22 +300,25 @@ export default function Index() {
   // Nav: en mobile mostramos 5 principales + "Más" para los extra
   const NAV_MAIN_IDS = ["dashboard", "proyecto", "presupuesto", "voluntarios", "logistica"];
   const NAV_MORE_IDS = ["patrocinadores", "camisetas", "documentos"];
-  const navBlocks    = BLOCKS.filter(b => b.id !== "configuracion");
-  const navMain      = isMobile ? navBlocks.filter(b => NAV_MAIN_IDS.includes(b.id)) : navBlocks;
-  const navMore      = isMobile ? navBlocks.filter(b => NAV_MORE_IDS.includes(b.id)) : [];
+  const navBlocks = BLOCKS.filter(b => b.id !== "configuracion");
+  const navMain = isMobile ? navBlocks.filter(b => NAV_MAIN_IDS.includes(b.id)) : navBlocks;
+  const navMore = isMobile ? navBlocks.filter(b => NAV_MORE_IDS.includes(b.id)) : [];
   const moreIsActive = navMore.some(b => b.id === activeBlock);
 
-  // MISSING-02: Detector de conflictos entre dispositivos (teg-conflict)
+  // MISSING-02: teg-conflict detector — nivel componente (Rules of Hooks)
   useEffect(() => {
     const onConflict = (e) => {
       const { collection, message } = e.detail || {};
       const label = (collection || '').replace('teg_', '').replace(/_v\d+_?/g, ' ').trim() || 'datos';
-      toast.warning(`⚠️ Conflicto en ${label}: ${message || 'Otro dispositivo guardó cambios más recientes.'}`);
+      toast.warning(`⚠️ Conflicto en ${label}: ${message || 'Datos remotos más recientes.'}`);
     };
     window.addEventListener('teg-conflict', onConflict);
     return () => window.removeEventListener('teg-conflict', onConflict);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
+  }, []);
+  if (!authed) return <PinScreen onUnlock={() => {
+    setAuthed(true);
+    try { const r=localStorage.getItem("teg_event_config_v1"); const c=r?JSON.parse(r):{}; if(c.autoOpenDia)setTimeout(()=>setShowDiaCarrera(true),350); } catch {}
+  }} />;
   return (
     <>
       <style>{`
@@ -359,58 +351,62 @@ export default function Index() {
         </div>
       )}
 
-      <div style={{ minHeight:"100vh", display:"flex", flexDirection:"column", background:"var(--teg-bg)",
-          backgroundImage:"radial-gradient(ellipse 90% 45% at 15% -5%, rgba(34,211,238,0.065) 0%, transparent 50%), radial-gradient(ellipse 60% 30% at 85% 105%, rgba(167,139,250,0.045) 0%, transparent 48%), radial-gradient(ellipse 30% 20% at 50% 50%, rgba(34,211,238,0.02) 0%, transparent 55%)" }}>
+      <div style={{
+        minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--teg-bg)",
+        backgroundImage: "radial-gradient(ellipse 90% 45% at 15% -5%, rgba(34,211,238,0.065) 0%, transparent 50%), radial-gradient(ellipse 60% 30% at 85% 105%, rgba(167,139,250,0.045) 0%, transparent 48%), radial-gradient(ellipse 30% 20% at 50% 50%, rgba(34,211,238,0.02) 0%, transparent 55%)"
+      }}>
 
         {/* TOP BAR — Kinetik Ops style */}
         <header style={{
-          background:"var(--teg-surface-header, rgba(13,17,33,0.88))", backdropFilter:"blur(20px) saturate(180%)",
-          WebkitBackdropFilter:"blur(20px) saturate(180%)",
-          borderBottom:"1px solid rgba(34,211,238,0.08)",
-          padding:"0 0.75rem", display:"flex", alignItems:"center",
-          justifyContent:"space-between", position:"sticky", top:0, zIndex:50,
-          height:48, gap:"0.5rem",
+          background: "var(--teg-surface-header, rgba(13,17,33,0.88))", backdropFilter: "blur(20px) saturate(180%)",
+          WebkitBackdropFilter: "blur(20px) saturate(180%)",
+          borderBottom: "1px solid rgba(34,211,238,0.08)",
+          padding: "0 0.75rem", display: "flex", alignItems: "center",
+          justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50,
+          height: 48, gap: "0.5rem",
         }}>
 
           {/* LEFT — Brand */}
-          <div style={{ display:"flex", alignItems:"center", gap:"0.5rem", flexShrink:0,
-            cursor:"pointer", overflow:"visible" }}
+          <div style={{
+            display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0,
+            cursor: "pointer", overflow: "visible"
+          }}
             onClick={() => handleBlockChange("configuracion")}
             title="Configuración del evento">
             {/* Icono de montaña */}
             <div style={{
-              width:30, height:30, borderRadius:9, flexShrink:0,
-              background:"linear-gradient(135deg, rgba(34,211,238,0.18) 0%, rgba(167,139,250,0.14) 100%)",
-              border:"1px solid rgba(34,211,238,0.35)",
-              display:"flex", alignItems:"center", justifyContent:"center",
-              fontSize:"1rem", lineHeight:1,
-              boxShadow:"0 0 10px rgba(34,211,238,0.15)",
-              transition:"all 0.18s",
+              width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+              background: "linear-gradient(135deg, rgba(34,211,238,0.18) 0%, rgba(167,139,250,0.14) 100%)",
+              border: "1px solid rgba(34,211,238,0.35)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: "1rem", lineHeight: 1,
+              boxShadow: "0 0 10px rgba(34,211,238,0.15)",
+              transition: "all 0.18s",
             }}
-            onMouseEnter={e => { e.currentTarget.style.boxShadow="0 0 16px rgba(34,211,238,0.3)"; e.currentTarget.style.borderColor="rgba(34,211,238,0.6)"; }}
-            onMouseLeave={e => { e.currentTarget.style.boxShadow="0 0 10px rgba(34,211,238,0.15)"; e.currentTarget.style.borderColor="rgba(34,211,238,0.35)"; }}>
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 0 16px rgba(34,211,238,0.3)"; e.currentTarget.style.borderColor = "rgba(34,211,238,0.6)"; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 0 10px rgba(34,211,238,0.15)"; e.currentTarget.style.borderColor = "rgba(34,211,238,0.35)"; }}>
               🏔️
             </div>
             {/* Nombre del evento — siempre visible, colores directos para evitar dependencia de tokens */}
-            <div style={{ display:"flex", flexDirection:"column", lineHeight:1.2, overflow:"visible" }}>
+            <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.2, overflow: "visible" }}>
               <span style={{
-                fontFamily:"'Syne', 'Inter', system-ui, sans-serif",
-                fontWeight:800,
+                fontFamily: "'Syne', 'Inter', system-ui, sans-serif",
+                fontWeight: 800,
                 fontSize: isMobile ? "0.85rem" : "0.95rem",
-                color:"var(--text)",
-                letterSpacing:"-0.01em",
-                whiteSpace:"nowrap",
-                display:"block",
+                color: "var(--text)",
+                letterSpacing: "-0.01em",
+                whiteSpace: "nowrap",
+                display: "block",
               }}>
                 Trail El Guerrero
               </span>
               <span style={{
-                fontFamily:"'DM Mono', 'Courier New', monospace",
-                fontSize:"0.55rem",
-                color:"rgba(148,163,184,0.9)",
-                letterSpacing:"0.07em",
-                textTransform:"uppercase",
-                display:"block",
+                fontFamily: "'DM Mono', 'Courier New', monospace",
+                fontSize: "0.55rem",
+                color: "rgba(148,163,184,0.9)",
+                letterSpacing: "0.07em",
+                textTransform: "uppercase",
+                display: "block",
               }}>
                 2026 · Candeleda
               </span>
@@ -418,24 +414,24 @@ export default function Index() {
           </div>
 
           {/* CENTER — Autosave + buscador */}
-          <div style={{ flex:1, display:"flex", justifyContent:"center", alignItems:"center", gap:"0.5rem", minWidth:0 }}>
+          <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
             <AutosaveIndicator status={saveStatus} />
           </div>
 
           {/* RIGHT — Actions */}
-          <div style={{ display:"flex", gap:"0.25rem", alignItems:"center", flexShrink:0 }}>
+          <div style={{ display: "flex", gap: "0.25rem", alignItems: "center", flexShrink: 0 }}>
 
             <ThemeToggle size={28} />
 
             {(mostrarBtnDiaD || mostrarBtnDiaDProminente) && (
               <button onClick={() => setShowDiaCarrera(true)} style={{
-                background:"rgba(248,113,113,0.12)", color:"var(--red)",
-                border:"1px solid rgba(248,113,113,0.3)", borderRadius:8,
-                padding:"0.2rem 0.45rem",
-                fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                fontWeight:700, cursor:"pointer", height:28,
-                display:"flex", alignItems:"center", gap:"0.25rem",
-              }}>🏁{!isMobile && <span style={{letterSpacing:".04em"}}>DÍA D</span>}</button>
+                background: "rgba(248,113,113,0.12)", color: "var(--red)",
+                border: "1px solid rgba(248,113,113,0.3)", borderRadius: 8,
+                padding: "0.2rem 0.45rem",
+                fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+                fontWeight: 700, cursor: "pointer", height: 28,
+                display: "flex", alignItems: "center", gap: "0.25rem",
+              }}>🏁{!isMobile && <span style={{ letterSpacing: ".04em" }}>DÍA D</span>}</button>
             )}
 
 
@@ -446,23 +442,23 @@ export default function Index() {
               title="Configuración"
               aria-label="Configuración"
               style={{
-                background: activeBlock==="configuracion" ? "rgba(167,139,250,0.12)" : "transparent",
-                border: `1px solid ${activeBlock==="configuracion" ? "rgba(167,139,250,0.4)" : "var(--teg-border)"}`,
-                color: activeBlock==="configuracion" ? "var(--violet)" : "var(--teg-text-muted)",
-                cursor:"pointer", width:30, height:30, borderRadius:8,
-                display:"flex", alignItems:"center", justifyContent:"center",
-                fontSize:"var(--fs-base)", transition:"all 0.15s",
-                boxShadow: activeBlock==="configuracion" ? "0 0 10px rgba(167,139,250,0.15)" : "none",
+                background: activeBlock === "configuracion" ? "rgba(167,139,250,0.12)" : "transparent",
+                border: `1px solid ${activeBlock === "configuracion" ? "rgba(167,139,250,0.4)" : "var(--teg-border)"}`,
+                color: activeBlock === "configuracion" ? "var(--violet)" : "var(--teg-text-muted)",
+                cursor: "pointer", width: 30, height: 30, borderRadius: 8,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: "var(--fs-base)", transition: "all 0.15s",
+                boxShadow: activeBlock === "configuracion" ? "0 0 10px rgba(167,139,250,0.15)" : "none",
               }}
-              onMouseEnter={e => { if(activeBlock!=="configuracion") { e.currentTarget.style.borderColor="rgba(167,139,250,0.35)"; e.currentTarget.style.color="var(--violet)"; }}}
-              onMouseLeave={e => { if(activeBlock!=="configuracion") { e.currentTarget.style.borderColor="var(--teg-border)"; e.currentTarget.style.color="var(--teg-text-muted)"; }}}
+              onMouseEnter={e => { if (activeBlock !== "configuracion") { e.currentTarget.style.borderColor = "rgba(167,139,250,0.35)"; e.currentTarget.style.color = "var(--violet)"; } }}
+              onMouseLeave={e => { if (activeBlock !== "configuracion") { e.currentTarget.style.borderColor = "var(--teg-border)"; e.currentTarget.style.color = "var(--teg-text-muted)"; } }}
             >⚙️</button>
           </div>
         </header>
 
         {/* CONTENT */}
         <main style={{
-          flex:1, overflow:"auto",
+          flex: 1, overflow: "auto",
           paddingBottom: `calc(${NAV_H}px + 8px + env(safe-area-inset-bottom, 0px))`,
         }}>
           <style>{`
@@ -473,36 +469,36 @@ export default function Index() {
             .module-enter { animation: module-enter 0.22s cubic-bezier(0.34,1.1,0.64,1) both; }
           `}</style>
           <div className="module-enter">
-          <ErrorBoundary
-            key={activeBlock}
-            blockName={BLOCKS.find(b => b.id === activeBlock)?.label}
-            onNavigate={handleBlockChange}
-          >
-            <Suspense fallback={
-              <div style={{
-                display:"flex", flexDirection:"column", alignItems:"center",
-                justifyContent:"center", minHeight:"60vh", gap:"1rem",
-              }}>
-                <div style={{
-                  width:36, height:36, borderRadius:"50%",
-                  border:"3px solid var(--teg-border)",
-                  borderTopColor:"var(--teg-cyan)",
-                  animation:"teg-spin 0.7s linear infinite",
-                }} />
-                <div style={{
-                  fontFamily:"'DM Mono', 'Space Mono', monospace,monospace", fontSize:"var(--fs-xs)",
-                  color:"var(--teg-text-muted)", letterSpacing:"0.1em",
-                }}>Cargando módulo…</div>
-                <style>{`@keyframes teg-spin { to { transform: rotate(360deg); } }`}</style>
-              </div>
-            }>
-              {ActiveComponent && <ActiveComponent
+            <ErrorBoundary
               key={activeBlock}
-              initialSubtab={pendingSubtab}
-              onSubtabConsumed={() => setPendingSubtab(null)}
-            />}
-            </Suspense>
-          </ErrorBoundary>
+              blockName={BLOCKS.find(b => b.id === activeBlock)?.label}
+              onNavigate={handleBlockChange}
+            >
+              <Suspense fallback={
+                <div style={{
+                  display: "flex", flexDirection: "column", alignItems: "center",
+                  justifyContent: "center", minHeight: "60vh", gap: "1rem",
+                }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: "50%",
+                    border: "3px solid var(--teg-border)",
+                    borderTopColor: "var(--teg-cyan)",
+                    animation: "teg-spin 0.7s linear infinite",
+                  }} />
+                  <div style={{
+                    fontFamily: "'DM Mono', 'Space Mono', monospace,monospace", fontSize: "var(--fs-xs)",
+                    color: "var(--teg-text-muted)", letterSpacing: "0.1em",
+                  }}>Cargando módulo…</div>
+                  <style>{`@keyframes teg-spin { to { transform: rotate(360deg); } }`}</style>
+                </div>
+              }>
+                {ActiveComponent && <ActiveComponent
+                  key={activeBlock}
+                  initialSubtab={pendingSubtab}
+                  onSubtabConsumed={() => setPendingSubtab(null)}
+                />}
+              </Suspense>
+            </ErrorBoundary>
           </div>
         </main>
 
@@ -513,14 +509,14 @@ export default function Index() {
         <nav
           aria-label="Navegación principal"
           style={{
-            position:"fixed", bottom:0, left:0, right:0,
-            background:"var(--teg-surface-header, rgba(13,17,33,0.88))", backdropFilter:"blur(20px) saturate(180%)",
-            WebkitBackdropFilter:"blur(20px) saturate(180%)",
-            borderTop:"1px solid rgba(34,211,238,0.07)",
-            display:"flex", justifyContent:"space-around", alignItems:"center",
+            position: "fixed", bottom: 0, left: 0, right: 0,
+            background: "var(--teg-surface-header, rgba(13,17,33,0.88))", backdropFilter: "blur(20px) saturate(180%)",
+            WebkitBackdropFilter: "blur(20px) saturate(180%)",
+            borderTop: "1px solid rgba(34,211,238,0.07)",
+            display: "flex", justifyContent: "space-around", alignItems: "center",
             height: NAV_H,
-            paddingBottom:"env(safe-area-inset-bottom,0px)",
-            zIndex:50,
+            paddingBottom: "env(safe-area-inset-bottom,0px)",
+            zIndex: 50,
           }}
         >
           {/* Ítems principales */}
@@ -534,71 +530,71 @@ export default function Index() {
                 aria-current={isActive ? "page" : undefined}
                 title={`${b.label} (${idx + 1})`}
                 style={{
-                  background:"none", border:"none", cursor:"pointer",
-                  display:"flex", flexDirection:"column", alignItems:"center",
-                  justifyContent:"center", gap:"0.18rem",
+                  background: "none", border: "none", cursor: "pointer",
+                  display: "flex", flexDirection: "column", alignItems: "center",
+                  justifyContent: "center", gap: "0.18rem",
                   padding: isMobile ? "0.35rem 0.4rem" : "0.35rem 0.6rem",
-                  borderRadius:10,
-                  transition:"opacity 0.2s",
+                  borderRadius: 10,
+                  transition: "opacity 0.2s",
                   opacity: isActive ? 1 : 0.38,
                   flex: 1,
-                  position:"relative", outline:"none",
-                  WebkitTapHighlightColor:"transparent",
+                  position: "relative", outline: "none",
+                  WebkitTapHighlightColor: "transparent",
                   minHeight: NAV_H - 4,
                 }}
               >
                 {/* Blob activo estilo iOS/Figma con spring */}
                 <div style={{
-                  position:"absolute",
-                  top:"50%", left:"50%",
-                  transform:`translate(-50%, -50%) scale(${isActive ? 1 : 0})`,
-                  width:44, height:36, borderRadius:12,
-                  background:"rgba(34,211,238,0.12)",
+                  position: "absolute",
+                  top: "50%", left: "50%",
+                  transform: `translate(-50%, -50%) scale(${isActive ? 1 : 0})`,
+                  width: 44, height: 36, borderRadius: 12,
+                  background: "rgba(34,211,238,0.12)",
                   boxShadow: isActive ? "0 0 18px rgba(34,211,238,0.22)" : "none",
-                  transition:"transform 0.35s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease",
-                  pointerEvents:"none",
+                  transition: "transform 0.35s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease",
+                  pointerEvents: "none",
                 }} />
                 {/* Franja inferior indicador activo */}
                 <div style={{
-                  position:"absolute", bottom:2, left:"50%",
-                  transform:`translateX(-50%) scaleX(${isActive ? 1 : 0})`,
-                  width:22, height:3, borderRadius:2,
-                  background:"var(--cyan)",
-                  transition:"transform 0.3s cubic-bezier(0.34,1.56,0.64,1)",
-                  pointerEvents:"none",
+                  position: "absolute", bottom: 2, left: "50%",
+                  transform: `translateX(-50%) scaleX(${isActive ? 1 : 0})`,
+                  width: 22, height: 3, borderRadius: 2,
+                  background: "var(--cyan)",
+                  transition: "transform 0.3s cubic-bezier(0.34,1.56,0.64,1)",
+                  pointerEvents: "none",
                 }} />
                 <span style={{
                   fontSize: isMobile ? "1.35rem" : "1.15rem",
                   filter: isActive ? "none" : "grayscale(0.6) opacity(0.6)",
                   transform: isActive ? "scale(1.05)" : "scale(1)",
-                  transition:"all 0.2s",
-                  pointerEvents:"none", position:"relative", zIndex:1,
+                  transition: "all 0.2s",
+                  pointerEvents: "none", position: "relative", zIndex: 1,
                 }}>
                   {b.icon}
                   {alertasBadges[b.id] && (
                     <span style={{
-                      position:"absolute", top:-3, right:-5,
-                      minWidth:13, height:13, borderRadius:7,
-                      background:"var(--red)", color:"#fff",
-                      fontSize:"var(--fs-2xs)", fontWeight:800,
-                      display:"flex", alignItems:"center", justifyContent:"center",
-                      padding:"0 3px", lineHeight:1,
-                      fontFamily:"var(--font-mono)", border:"1.5px solid var(--bg)",
-                      zIndex:10,
+                      position: "absolute", top: -3, right: -5,
+                      minWidth: 13, height: 13, borderRadius: 7,
+                      background: "var(--red)", color: "#fff",
+                      fontSize: "var(--fs-2xs)", fontWeight: 800,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      padding: "0 3px", lineHeight: 1,
+                      fontFamily: "var(--font-mono)", border: "1.5px solid var(--bg)",
+                      zIndex: 10,
                     }}>
                       {typeof alertasBadges[b.id] === "number" ? alertasBadges[b.id] : "!"}
                     </span>
                   )}
                 </span>
                 <span style={{
-                  fontFamily:"'DM Mono', 'Space Mono', monospace,monospace",
-                  fontSize:"0.48rem",
-                  fontWeight: isActive ? 800 : 600, letterSpacing:"0.07em", textTransform:"uppercase",
+                  fontFamily: "'DM Mono', 'Space Mono', monospace,monospace",
+                  fontSize: "0.48rem",
+                  fontWeight: isActive ? 800 : 600, letterSpacing: "0.07em", textTransform: "uppercase",
                   color: isActive ? "var(--cyan)" : "var(--teg-text-muted)",
                   textShadow: isActive ? "0 0 10px rgba(34,211,238,0.45)" : "none",
-                  transition:"color 0.2s, text-shadow 0.2s",
-                  pointerEvents:"none", whiteSpace:"nowrap",
-                  position:"relative", zIndex:1,
+                  transition: "color 0.2s, text-shadow 0.2s",
+                  pointerEvents: "none", whiteSpace: "nowrap",
+                  position: "relative", zIndex: 1,
                 }}>
                   {isMobile ? b.shortLabel : b.shortLabel}
                 </span>
@@ -613,26 +609,26 @@ export default function Index() {
               onClick={() => setShowDiaCarrera(true)}
               aria-label="Abrir DíaCarrera"
               style={{
-                position:"relative", outline:"none", background:"none", border:"none",
-                WebkitTapHighlightColor:"transparent",
-                minHeight: NAV_H - 4, cursor:"pointer",
-                display:"flex", flexDirection:"column", alignItems:"center",
-                justifyContent:"center", gap:2, padding:"0 .5rem", flexShrink:0,
+                position: "relative", outline: "none", background: "none", border: "none",
+                WebkitTapHighlightColor: "transparent",
+                minHeight: NAV_H - 4, cursor: "pointer",
+                display: "flex", flexDirection: "column", alignItems: "center",
+                justifyContent: "center", gap: 2, padding: "0 .5rem", flexShrink: 0,
               }}
             >
               <span style={{
-                fontSize:"1.35rem",
+                fontSize: "1.35rem",
                 filter: mostrarBtnDiaDProminente
                   ? "drop-shadow(0 0 6px rgba(34,211,238,0.7))"
                   : "grayscale(0.3) opacity(0.75)",
-                transition:"all 0.25s", position:"relative", zIndex:1,
+                transition: "all 0.25s", position: "relative", zIndex: 1,
               }}>🏔️</span>
               <span style={{
-                fontFamily:"var(--font-mono)", fontSize:"0.48rem",
-                fontWeight:800, letterSpacing:"0.07em", textTransform:"uppercase",
+                fontFamily: "var(--font-mono)", fontSize: "0.48rem",
+                fontWeight: 800, letterSpacing: "0.07em", textTransform: "uppercase",
                 color: mostrarBtnDiaDProminente ? "var(--cyan)" : "var(--text-muted)",
                 textShadow: mostrarBtnDiaDProminente ? "0 0 10px rgba(34,211,238,0.45)" : "none",
-                transition:"color 0.2s", position:"relative", zIndex:1,
+                transition: "color 0.2s", position: "relative", zIndex: 1,
               }}>DÍA D</span>
             </button>
           )}
@@ -645,38 +641,38 @@ export default function Index() {
               aria-expanded={showMoreNav}
               aria-haspopup="true"
               style={{
-                background:"none", border:"none", cursor:"pointer",
-                display:"flex", flexDirection:"column", alignItems:"center",
-                justifyContent:"center", gap:"0.18rem",
-                padding:"0.35rem 0.4rem",
-                borderRadius:10,
-                transition:"opacity 0.2s",
+                background: "none", border: "none", cursor: "pointer",
+                display: "flex", flexDirection: "column", alignItems: "center",
+                justifyContent: "center", gap: "0.18rem",
+                padding: "0.35rem 0.4rem",
+                borderRadius: 10,
+                transition: "opacity 0.2s",
                 opacity: (showMoreNav || moreIsActive) ? 1 : 0.42,
-                flex:1, position:"relative", outline:"none",
-                WebkitTapHighlightColor:"transparent",
+                flex: 1, position: "relative", outline: "none",
+                WebkitTapHighlightColor: "transparent",
                 minHeight: NAV_H - 4,
               }}
             >
               {(showMoreNav || moreIsActive) && (
                 <div style={{
-                    position:"absolute", inset:0, borderRadius:10,
-                    background:"rgba(34,211,238,0.07)",
-                    border:"1px solid rgba(34,211,238,0.18)",
-                  }} />
+                  position: "absolute", inset: 0, borderRadius: 10,
+                  background: "rgba(34,211,238,0.07)",
+                  border: "1px solid rgba(34,211,238,0.18)",
+                }} />
               )}
               <span style={{
-                fontSize:"var(--fs-lg)",
+                fontSize: "var(--fs-lg)",
                 filter: (showMoreNav || moreIsActive) ? "none" : "grayscale(0.55)",
-                transform:(showMoreNav || moreIsActive) ? "scale(1.1)" : "scale(1)",
-                transition:"all 0.2s", position:"relative", zIndex:1,
+                transform: (showMoreNav || moreIsActive) ? "scale(1.1)" : "scale(1)",
+                transition: "all 0.2s", position: "relative", zIndex: 1,
               }}>{"•••"}</span>
               <span style={{
-                fontFamily:"'DM Mono', 'Space Mono', monospace,monospace",
-                fontSize:"0.52rem", fontWeight:700,
-                color:(showMoreNav || moreIsActive) ? "var(--teg-cyan)" : "var(--teg-text-muted)",
-                transition:"color 0.2s",
-                pointerEvents:"none", whiteSpace:"nowrap",
-                position:"relative", zIndex:1,
+                fontFamily: "'DM Mono', 'Space Mono', monospace,monospace",
+                fontSize: "0.52rem", fontWeight: 700,
+                color: (showMoreNav || moreIsActive) ? "var(--teg-cyan)" : "var(--teg-text-muted)",
+                transition: "color 0.2s",
+                pointerEvents: "none", whiteSpace: "nowrap",
+                position: "relative", zIndex: 1,
               }}>Más</span>
             </button>
           )}
@@ -689,30 +685,32 @@ export default function Index() {
             <div
               onClick={() => setShowMoreNav(false)}
               style={{
-                position:"fixed", inset:0, zIndex:48,
-                background:"rgba(0,0,0,0.35)",
-                backdropFilter:"blur(4px)",
-                animation:"teg-fadein 0.15s ease",
+                position: "fixed", inset: 0, zIndex: 48,
+                background: "rgba(0,0,0,0.35)",
+                backdropFilter: "blur(4px)",
+                animation: "teg-fadein 0.15s ease",
               }}
             />
             {/* Drawer en sí */}
             <div style={{
-              position:"fixed", bottom: NAV_H, left:0, right:0, zIndex:49,
-              background:"var(--teg-surface)",
-              borderTop:"1px solid var(--teg-border)",
-              borderRadius:"16px 16px 0 0",
-              padding:"0.75rem 1rem",
-              paddingBottom:"0.5rem",
-              boxShadow:"0 -8px 32px rgba(0,0,0,0.3)",
-              animation:"slideUp 0.22s cubic-bezier(0.34,1.56,0.64,1)",
+              position: "fixed", bottom: NAV_H, left: 0, right: 0, zIndex: 49,
+              background: "var(--teg-surface)",
+              borderTop: "1px solid var(--teg-border)",
+              borderRadius: "16px 16px 0 0",
+              padding: "0.75rem 1rem",
+              paddingBottom: "0.5rem",
+              boxShadow: "0 -8px 32px rgba(0,0,0,0.3)",
+              animation: "slideUp 0.22s cubic-bezier(0.34,1.56,0.64,1)",
             }}>
               {/* Handle visual */}
-              <div style={{ width:36, height:4, background:"var(--teg-border)", borderRadius:2, margin:"0 auto 0.75rem" }} />
-              <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--teg-text-muted)",
-                textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:"0.5rem", paddingLeft:"0.25rem" }}>
+              <div style={{ width: 36, height: 4, background: "var(--teg-border)", borderRadius: 2, margin: "0 auto 0.75rem" }} />
+              <div style={{
+                fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--teg-text-muted)",
+                textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.5rem", paddingLeft: "0.25rem"
+              }}>
                 Más secciones
               </div>
-              <div style={{ display:"flex", gap:"0.5rem" }}>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
                 {navMore.map(b => {
                   const isActive = activeBlock === b.id;
                   return (
@@ -722,37 +720,37 @@ export default function Index() {
                       aria-label={b.label}
                       aria-current={isActive ? "page" : undefined}
                       style={{
-                        flex:1, background: isActive ? "rgba(34,211,238,0.08)" : "var(--teg-surface2)",
+                        flex: 1, background: isActive ? "rgba(34,211,238,0.08)" : "var(--teg-surface2)",
                         border: isActive ? "1px solid rgba(34,211,238,0.25)" : "1px solid var(--teg-border)",
-                        borderRadius:12, padding:"0.75rem 0.5rem",
-                        cursor:"pointer", display:"flex", flexDirection:"column",
-                        alignItems:"center", gap:"0.3rem",
-                        WebkitTapHighlightColor:"transparent",
-                        transition:"all 0.15s",
+                        borderRadius: 12, padding: "0.75rem 0.5rem",
+                        cursor: "pointer", display: "flex", flexDirection: "column",
+                        alignItems: "center", gap: "0.3rem",
+                        WebkitTapHighlightColor: "transparent",
+                        transition: "all 0.15s",
                       }}
                     >
-                       <span style={{ position:"relative", fontSize:"1.6rem" }}>
-                         {b.icon}
-                         {alertasBadges[b.id] && (
-                           <span style={{
-                             position:"absolute", top:-2, right:-4,
-                             minWidth:13, height:13, borderRadius:7,
-                             background:"var(--red)", color:"#fff",
-                             fontSize:"var(--fs-2xs)", fontWeight:800,
-                             display:"flex", alignItems:"center", justifyContent:"center",
-                             padding:"0 3px", lineHeight:1,
-                             fontFamily:"var(--font-mono)", border:"1.5px solid var(--bg)",
-                           }}>
-                             {typeof alertasBadges[b.id] === "number" ? alertasBadges[b.id] : "!"}
-                           </span>
-                         )}
-                       </span>
-                       <span style={{
-                         fontFamily:"'DM Mono','Space Mono',monospace",
-                         fontSize:"var(--fs-xs)", fontWeight:700,
-                         color: isActive ? "var(--teg-cyan)" : "var(--teg-text-muted)",
-                         whiteSpace:"nowrap",
-                       }}>{b.label}</span>
+                      <span style={{ position: "relative", fontSize: "1.6rem" }}>
+                        {b.icon}
+                        {alertasBadges[b.id] && (
+                          <span style={{
+                            position: "absolute", top: -2, right: -4,
+                            minWidth: 13, height: 13, borderRadius: 7,
+                            background: "var(--red)", color: "#fff",
+                            fontSize: "var(--fs-2xs)", fontWeight: 800,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            padding: "0 3px", lineHeight: 1,
+                            fontFamily: "var(--font-mono)", border: "1.5px solid var(--bg)",
+                          }}>
+                            {typeof alertasBadges[b.id] === "number" ? alertasBadges[b.id] : "!"}
+                          </span>
+                        )}
+                      </span>
+                      <span style={{
+                        fontFamily: "'DM Mono','Space Mono',monospace",
+                        fontSize: "var(--fs-xs)", fontWeight: 700,
+                        color: isActive ? "var(--teg-cyan)" : "var(--teg-text-muted)",
+                        whiteSpace: "nowrap",
+                      }}>{b.label}</span>
                     </button>
                   );
                 })}
@@ -762,7 +760,7 @@ export default function Index() {
         )}
 
         {/* MODALS */}
-          {showDiaCarrera && <DiaCarrera onClose={() => setShowDiaCarrera(false)} />}
+        {showDiaCarrera && <DiaCarrera onClose={() => setShowDiaCarrera(false)} />}
         {showOnboarding && <OnboardingModal onClose={cerrarOnboarding} onNavigate={(id) => { handleBlockChange(id); cerrarOnboarding(); }} />}
         {showChangePin && <ChangePinModal onClose={() => setShowChangePin(false)} />}
 

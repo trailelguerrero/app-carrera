@@ -2,11 +2,12 @@ import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useModalClose } from "@/hooks/useModalClose";
 import EmptyState from "@/components/EmptyState";
-import { usePaginacion } from "@/lib/usePaginacion.jsx";
+import { usePaginacion } from "@/hooks/usePaginacion.jsx";
 import { toast } from "@/lib/toast";
 import { genIdNum } from "@/lib/utils";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
-import dataService, { useData } from "@/lib/dataService";
+import dataService from "@/lib/dataService";
+import { useData } from "@/hooks/useData";
 
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";

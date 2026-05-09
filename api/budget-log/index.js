@@ -27,8 +27,8 @@ const ensureTable = async (sql) => {
 };
 
 export default async function handler(req, res) {
-  // GET is public (read-only audit log); POST requires API key
-  if (req.method !== 'GET' && !auth(req, res)) return;
+  // SEC-04: todos los métodos requieren API key — el GET expone datos financieros sensibles
+  if (!auth(req, res)) return;
   try {
     const sql = neon(process.env.DATABASE_URL);
     if (!tableReady) { await ensureTable(sql); tableReady = true; }

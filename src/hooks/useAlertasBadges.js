@@ -14,16 +14,16 @@ const THROTTLE_MS = 5000; // T7.2: no recalcular más de 1 vez cada 5s por módu
 
 // Mapeo clave de localStorage → módulo que la usa
 const KEY_MODULE = {
-  teg_proyecto_v1_tareas:           "proyecto",
-  teg_voluntarios_v1_voluntarios:   "voluntarios",
-  teg_voluntarios_v1_puestos:       "voluntarios",
-  teg_documentos_v1:                "documentos",
-  teg_documentos_v1_gestiones:      "documentos",
-  teg_presupuesto_v1_conceptos:     "presupuesto",
-  teg_presupuesto_v1_tramos:        "presupuesto",
-  teg_presupuesto_v1_inscritos:     "presupuesto",
+  teg_proyecto_v1_tareas: "proyecto",
+  teg_voluntarios_v1_voluntarios: "voluntarios",
+  teg_voluntarios_v1_puestos: "voluntarios",
+  teg_documentos_v1: "documentos",
+  teg_documentos_v1_gestiones: "documentos",
+  teg_presupuesto_v1_conceptos: "presupuesto",
+  teg_presupuesto_v1_tramos: "presupuesto",
+  teg_presupuesto_v1_inscritos: "presupuesto",
   teg_presupuesto_v1_ingresosExtra: "presupuesto",
-  teg_logistica_v1_inc:             "logistica",
+  teg_logistica_v1_inc: "logistica",
 };
 
 async function calcBadgeModulo(modulo) {
@@ -39,7 +39,7 @@ async function calcBadgeModulo(modulo) {
         return vencidas > 0 ? { proyecto: vencidas } : {};
       }
       case "voluntarios": {
-        const vols    = await dataService.get("teg_voluntarios_v1_voluntarios", []);
+        const vols = await dataService.get("teg_voluntarios_v1_voluntarios", []);
         const puestos = await dataService.get("teg_voluntarios_v1_puestos", []);
         if (!Array.isArray(puestos) || !Array.isArray(vols)) return {};
         const criticos = puestos.filter(p => {
@@ -49,7 +49,7 @@ async function calcBadgeModulo(modulo) {
         return criticos > 0 ? { voluntarios: criticos } : {};
       }
       case "documentos": {
-        const docs  = await dataService.get("teg_documentos_v1", []);
+        const docs = await dataService.get("teg_documentos_v1", []);
         const gests = await dataService.get("teg_documentos_v1_gestiones", []);
         const docsV = Array.isArray(docs) ? docs.filter(d =>
           d.fechaVencimiento && d.estado !== "vigente" && d.estado !== "aprobado" &&
@@ -58,27 +58,27 @@ async function calcBadgeModulo(modulo) {
         const gestV = Array.isArray(gests) ? gests.filter(g =>
           g.estado === "denegado" ||
           (g.estado !== "aprobado" && g.fechaVencimiento &&
-           Math.ceil((new Date(g.fechaVencimiento) - new Date()) / 86400000) < 0)
+            Math.ceil((new Date(g.fechaVencimiento) - new Date()) / 86400000) < 0)
         ).length : 0;
         return docsV + gestV > 0 ? { documentos: docsV + gestV } : {};
       }
       case "presupuesto": {
         const conceptos = await dataService.get("teg_presupuesto_v1_conceptos", []);
-        const tramos    = await dataService.get("teg_presupuesto_v1_tramos", []);
+        const tramos = await dataService.get("teg_presupuesto_v1_tramos", []);
         const inscritos = await dataService.get("teg_presupuesto_v1_inscritos", { tramos: {} });
-        const ingExt    = await dataService.get("teg_presupuesto_v1_ingresosExtra", []);
+        const ingExt = await dataService.get("teg_presupuesto_v1_ingresosExtra", []);
         if (!Array.isArray(conceptos) || !Array.isArray(tramos)) return {};
-        const DIST = ["TG7","TG13","TG25"];
-        const totalIns = DIST.reduce((s,d) =>
-          s + tramos.reduce((ss,t) => ss + (inscritos?.tramos?.[t.id]?.[d]||0), 0), 0);
-        const ingresos = tramos.reduce((s,t) =>
-          s + DIST.reduce((ss,d) =>
-            ss + (inscritos?.tramos?.[t.id]?.[d]||0) * (t.precios?.[d]||0), 0), 0);
-        const costes = conceptos.filter(c => c.activo).reduce((s,c) => {
+        const DIST = ["TG7", "TG13", "TG25"];
+        const totalIns = DIST.reduce((s, d) =>
+          s + tramos.reduce((ss, t) => ss + (inscritos?.tramos?.[t.id]?.[d] || 0), 0), 0);
+        const ingresos = tramos.reduce((s, t) =>
+          s + DIST.reduce((ss, d) =>
+            ss + (inscritos?.tramos?.[t.id]?.[d] || 0) * (t.precios?.[d] || 0), 0), 0);
+        const costes = conceptos.filter(c => c.activo).reduce((s, c) => {
           if (c.tipo === "fijo") return s + (c.costeTotal || 0);
-          return s + DIST.reduce((ss,d) =>
-            ss + (c.activoDistancias?.[d] ? (c.costePorDistancia?.[d]||0) *
-              (tramos.reduce((st,t) => st + (inscritos?.tramos?.[t.id]?.[d]||0), 0)) : 0), 0);
+          return s + DIST.reduce((ss, d) =>
+            ss + (c.activoDistancias?.[d] ? (c.costePorDistancia?.[d] || 0) *
+              (tramos.reduce((st, t) => st + (inscritos?.tramos?.[t.id]?.[d] || 0), 0)) : 0), 0);
         }, 0);
         const totalIngExtra = Array.isArray(ingExt)
           ? ingExt.filter(i => i.activo).reduce((s, i) => s + (i.valor || 0), 0) : 0;
@@ -96,8 +96,8 @@ async function calcBadgeModulo(modulo) {
 }
 
 export function useAlertasBadges({ activeBlock, syncTick }) {
-  const [badges, setBadges]           = useState({});
-  const lastCalcRef                   = useRef({}); // { modulo: timestamp }
+  const [badges, setBadges] = useState({});
+  const lastCalcRef = useRef({}); // { modulo: timestamp }
   const TODOS_MODULOS = ["proyecto", "voluntarios", "documentos", "presupuesto", "logistica"];
 
   const calcModulos = useCallback(async (modulos) => {

@@ -10,8 +10,12 @@
  * 3. Los bloques no necesitan cambios — usan este servicio
  */
 
+import { useState, useEffect, useCallback, useRef } from 'react';
+
 const ADAPTER = 'api'; // 'localStorage' | 'api'
-const API_BASE_URL = '/api'; // Para cuando se despliegue en Vercel con Neon
+// SEC-01 fix: el frontend llama al BFF proxy (/api/proxy/*) que inyecta API_KEY
+// server-side. Nunca se expone la key en el bundle del cliente.
+const API_BASE_URL = '/api/proxy';
 
 // ─── LOCAL STORAGE ADAPTER ──────────────────────────────────────────────────
 const localAdapter = {
@@ -92,7 +96,8 @@ const apiAdapter = {
 
     try {
       const res = await fetch(`${API_BASE_URL}/data/${collection}`, {
-        headers: { 'x-api-key': import.meta.env.VITE_API_KEY }
+        headers: { 'Content-Type': 'application/json' }
+        // SEC-01: sin x-api-key — el proxy BFF lo inyecta server-side
       });
       if (!res.ok) return localData ?? defaultValue;
       const response = await res.json();
@@ -130,14 +135,12 @@ const apiAdapter = {
         saveTimeouts.delete(collection);
         savePromises.delete(collection);
         try {
-          const apiKey = import.meta.env.VITE_API_KEY;
-          if (!apiKey) throw new Error('VITE_API_KEY no configurada en Vercel');
-
+          // SEC-01: sin VITE_API_KEY — la key la inyecta el proxy BFF server-side
           const res = await fetch(`${API_BASE_URL}/data/${collection}`, {
             method: 'PUT',
             headers: { 
               'Content-Type': 'application/json',
-              'x-api-key': apiKey
+              // x-api-key eliminado del cliente (SEC-01)
             },
             body: JSON.stringify(data),
           });
@@ -181,9 +184,7 @@ const apiAdapter = {
     try {
       await fetch(`${API_BASE_URL}/data/${collection}`, { 
         method: 'DELETE',
-        headers: {
-          'x-api-key': import.meta.env.VITE_API_KEY
-        }
+        // SEC-01: sin x-api-key — el proxy BFF lo inyecta server-side
       });
     } catch {}
     return { success: true };
@@ -213,7 +214,7 @@ const apiAdapter = {
     try {
       const params = new URLSearchParams({ keys: Object.keys(keys).join(',') });
       const res = await fetch(`${API_BASE_URL}/data/batch?${params}`, {
-        headers: { 'x-api-key': import.meta.env.VITE_API_KEY }
+        // SEC-01: sin x-api-key — el proxy BFF lo inyecta server-side
       });
       if (!res.ok) throw new Error();
       const data = await res.json();
@@ -256,7 +257,7 @@ const apiAdapter = {
             method: 'PUT',
             headers: { 
               'Content-Type': 'application/json',
-              'x-api-key': import.meta.env.VITE_API_KEY
+              // SEC-01: sin x-api-key — el proxy BFF lo inyecta server-side
             },
             body: JSON.stringify(entries),
           });
@@ -370,22 +371,11 @@ if (typeof window !== 'undefined' && ADAPTER === 'api') {
         const raw = localStorage.getItem(collection);
         if (!raw) { localStorage.removeItem(pendingKey); continue; }
         const data = JSON.parse(raw);
-        // Usar la API key del entorno si está disponible (modo dev con VITE_API_KEY)
-        // En producción (sin VITE_API_KEY), emitir teg-sync para que los módulos
-        // que tienen datos pendientes reintenten su propio guardado
-        const apiKey = typeof import.meta !== 'undefined'
-          ? (import.meta.env?.VITE_API_KEY || '')
-          : '';
-        if (!apiKey) {
-          // Sin API key: disparar teg-sync para que useData recargue y reintente
-          window.dispatchEvent(new CustomEvent('teg-sync', { detail: { module: collection.split('_')[1] } }));
-          synced++;
-          localStorage.removeItem(pendingKey);
-          continue;
-        }
+        // SEC-01: el reintento va al proxy BFF — sin x-api-key en el cliente
+        // El proxy inyecta API_KEY server-side, nunca expuesto en el bundle
         const res = await fetch(`${API_BASE_URL}/data/${collection}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data),
         });
         if (res.ok) {
@@ -410,109 +400,69 @@ if (typeof window !== 'undefined' && ADAPTER === 'api') {
 }
 export { dataService };
 
+// ── Compatibilidad ARQ-04: shims locales (sin re-export circular) ──────────────
+// IMPORTANTE: NO importar '@/hooks/useData' aquí — crearía un ciclo:
+//   dataService → useData → dataService
+// En su lugar definimos versiones mínimas que delegan en la instancia local.
+// La fuente canónica con lógica completa sigue siendo hooks/useData.js.
 
-/**
- * Hook para React — reemplaza useLS/useLocalStorage en los bloques.
- * 
- * USO:
- *   import { useData } from '@/lib/dataService';
- *   const [puestos, setPuestos] = useData('teg_voluntarios_v1_puestos', DEFAULTS);
- * 
- * Cuando se migre a API, este hook se encarga de todo automáticamente.
- */
-import { useState, useEffect, useCallback, useRef } from 'react';
+const _ADAPTER = dataService.getAdapterInfo().type;
 
+/** Shim de compatibilidad — idéntico en comportamiento a hooks/useData#useData */
 export function useData(key, defaultValue) {
   const [state, setState] = useState(() => {
-    // Sync initial load (localStorage es síncrono)
     try {
       const raw = localStorage.getItem(key);
       const parsed = raw ? JSON.parse(raw) : null;
       return parsed !== null ? parsed : defaultValue;
-    } catch {
-      return defaultValue;
-    }
+    } catch { return defaultValue; }
   });
 
   const stateRef = useRef(state);
-  // Mantener stateRef sincronizado con el estado React en cada render
   stateRef.current = state;
-  const [isLoading, setIsLoading] = useState(ADAPTER === 'api');
+  const [isLoading, setIsLoading] = useState(_ADAPTER === 'api');
 
   useEffect(() => {
     let mounted = true;
-    
-    // Si usamos API, traemos la versión más reciente silenciada en background
-    if (ADAPTER === 'api') {
-      dataService.get(key, defaultValue).then(apiData => {
-        if (mounted) {
-          setState(prev => {
-            const isDifferent = JSON.stringify(prev) !== JSON.stringify(apiData);
-            if (isDifferent) {
-              stateRef.current = apiData;
-              return apiData;
-            }
-            return prev;
-          });
-          setIsLoading(false);
-        }
-      }).catch(() => {
-        if (mounted) setIsLoading(false);
-      });
+    if (_ADAPTER === 'api') {
+      dataService.get(key, defaultValue)
+        .then(apiData => {
+          if (mounted) {
+            setState(prev => JSON.stringify(prev) !== JSON.stringify(apiData) ? apiData : prev);
+            setIsLoading(false);
+          }
+        })
+        .catch(() => { if (mounted) setIsLoading(false); });
     } else {
       setIsLoading(false);
     }
-
-    // Suscribirse a cambios desde otros bloques o pestañas
     const unsubscribe = dataService.onChange(() => {
       try {
         const raw = localStorage.getItem(key);
         if (raw) {
           const parsed = JSON.parse(raw);
-          setState(prev => {
-            // Solo actualizar si el dato es realmente diferente (evita loops infinitos)
-            const currentRaw = JSON.stringify(prev);
-            if (currentRaw !== raw) {
-              stateRef.current = parsed;
-              return parsed;
-            }
-            return prev;
-          });
+          setState(prev => JSON.stringify(prev) !== raw ? parsed : prev);
         }
       } catch {}
     });
-
-    return () => {
-      mounted = false;
-      unsubscribe();
-    };
-  }, [key]);
+    return () => { mounted = false; unsubscribe(); };
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setValue = useCallback((value, opts = {}) => {
     try {
-      const valueToStore = value instanceof Function ? value(stateRef.current) : value;
-
-      // Permitir forzar el guardado aunque el valor parezca igual (necesario para eliminaciones)
-      const hasChanged = opts.force || JSON.stringify(stateRef.current) !== JSON.stringify(valueToStore);
-
-      if (hasChanged) {
-        stateRef.current = valueToStore;
-        setState(valueToStore);
-        dataService.set(key, valueToStore);
-        // NO llamar notify() aquí — cada setValue no debe triggear recarga del Dashboard
-        // notify() solo se llama explícitamente cuando se quiere comunicar a otros bloques
+      const v = value instanceof Function ? value(stateRef.current) : value;
+      if (opts.force || JSON.stringify(stateRef.current) !== JSON.stringify(v)) {
+        stateRef.current = v;
+        setState(v);
+        dataService.set(key, v);
       }
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
   }, [key]);
 
   return [state, setValue, isLoading];
 }
 
-/**
- * Guardar múltiples claves de una vez
- */
+/** Shim de compatibilidad — idéntico en comportamiento a hooks/useData#saveAll */
 export async function saveAll(entries) {
   const result = await dataService.setMultiple(entries);
   dataService.notify();

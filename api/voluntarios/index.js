@@ -12,6 +12,7 @@
  * action=delete    POST  Eliminar voluntario (admin, requiere x-api-key)
  */
 import { neon } from '@neondatabase/serverless';
+import { checkRateLimit } from '../lib/rateLimiter.js';
 
 import bcrypt from 'bcryptjs';
 
@@ -66,15 +67,8 @@ async function saveVols(sql, vols) {
   `;
 }
 
-// Rate limiting básico
-const intentos = new Map();
-function isRateLimited(ip) {
-  const ahora = Date.now();
-  const r = intentos.get(ip) || { count: 0, resetAt: ahora + 10 * 60 * 1000 };
-  if (ahora > r.resetAt) { intentos.set(ip, { count: 1, resetAt: ahora + 10 * 60 * 1000 }); return false; }
-  if (r.count >= 5) return true;
-  r.count++; intentos.set(ip, r); return false;
-}
+// SEC-05: Rate limiting persistente en PostgreSQL (ver api/lib/rateLimiter.js)
+// Reemplaza el Map en memoria que se reseteaba en cada deploy/cold-start.
 
 // SEC-03: Lista blanca de orígenes — nunca wildcard en endpoints con autenticación
 function setCorsHeaders(req, res) {
@@ -104,7 +98,10 @@ export default async function handler(req, res) {
     if (action === 'auth') {
       if (req.method !== 'POST') return res.status(405).end();
       const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
-      if (isRateLimited(ip)) return res.status(429).json({ error: 'Demasiados intentos. Espera unos minutos.' });
+      // SEC-05: rate limiting persistente — survives deploys y múltiples instancias serverless
+      if (await checkRateLimit(sql, ip, 'auth', { max: 5, windowMs: 10 * 60 * 1000 })) {
+        return res.status(429).json({ error: 'Demasiados intentos. Espera unos minutos.' });
+      }
 
       const { telefono, pin } = req.body || {};
       if (!telefono || !pin) return res.status(400).json({ error: 'Teléfono o PIN incorrecto' });

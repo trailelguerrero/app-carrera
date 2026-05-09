@@ -5,12 +5,12 @@ import { exportarMaterial } from "@/lib/exportUtils";
 import { toast } from "@/lib/toast";
 import { genIdNum } from "@/lib/utils";
 import EmptyState from "@/components/EmptyState";
-import { usePaginacion } from "@/lib/usePaginacion.jsx";
+import { usePaginacion } from "@/hooks/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { eventDateStr } from "@/lib/eventUtils";
 import { LOCS_DEFAULT as LOCS_DEFAULT_SHARED, LOCS_KEY } from "@/constants/localizaciones";
-import { useData } from "@/lib/dataService";
+import { useData } from "@/hooks/useData";
 import { TabPedidosProv } from "./LogisticaPedidos";
 
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";

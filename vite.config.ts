@@ -3,6 +3,12 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
+// El target del proxy se configura por entorno para evitar que dev apunte a producción.
+// En local: añade VITE_API_PROXY_TARGET=https://appcarrera.vercel.app en .env.local
+// si quieres enrutar a producción, o déjalo vacío para trabajar offline (localStorage).
+const API_PROXY_TARGET =
+  process.env.VITE_API_PROXY_TARGET ?? "http://localhost:3000";
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
@@ -13,9 +19,9 @@ export default defineConfig(({ mode }) => ({
     },
     proxy: {
       "/api": {
-        target: "https://appcarrera.vercel.app",
+        target: API_PROXY_TARGET,
         changeOrigin: true,
-        secure: false, // In case of localhost routing issues
+        secure: false,
       },
     },
   },

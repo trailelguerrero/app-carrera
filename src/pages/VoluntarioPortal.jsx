@@ -844,6 +844,8 @@ function PortalMain({ token, onLogout }) {
   const [error,      setError]      = useState("");
   const [editando,   setEditando]   = useState(false);
   const [cambiandoPin, setCPin]     = useState(false);
+  // SEC-06: forzar cambio de PIN en el primer login (PIN = últimos 4 dígitos del teléfono)
+  const [mustChangePin, setMustChangePin] = useState(false);
   const [form,       setForm]       = useState({});
   const [saving,     setSaving]     = useState(false);
   const [marcando,    setMarcando]    = useState(false);
@@ -865,6 +867,10 @@ function PortalMain({ token, onLogout }) {
       const json = await res.json();
       setData(json);
       setUltimaActualizacion(new Date());
+      // SEC-06: si el PIN no ha sido personalizado, forzar cambio inmediato
+      if (json.voluntario && json.voluntario.pinPersonalizado === false) {
+        setMustChangePin(true);
+      }
       const v = json.voluntario || {};
       setForm({
         telefono:           v.telefono || "",
@@ -929,6 +935,35 @@ function PortalMain({ token, onLogout }) {
         <div className="vp-mono" style={{ fontSize:".8rem", color:"var(--red)", marginBottom:"1.5rem" }}>{error}</div>
         <button className="vp-btn vp-btn-ghost" onClick={fetchData}>Reintentar</button>
       </div></>
+  );
+
+  // SEC-06: pantalla bloqueante de cambio de PIN obligatorio (primer login)
+  if (mustChangePin) return (
+    <><style>{CSS}</style>
+      <div className="vp-page" style={{ minHeight:"100dvh", display:"flex", flexDirection:"column",
+        alignItems:"center", justifyContent:"center",
+        background:"radial-gradient(ellipse 60% 40% at 50% 0%, rgba(251,191,36,0.08) 0%, transparent 60%)" }}>
+        <div style={{ maxWidth:420, width:"100%", padding:"1.5rem 1.25rem", animation:"fadeUp .4s ease both" }}>
+          <div style={{ textAlign:"center", marginBottom:"1.5rem" }}>
+            <div style={{ fontSize:"2.5rem", marginBottom:".6rem" }}>🔐</div>
+            <div style={{ fontWeight:800, fontSize:"1.35rem", color:"var(--amber)",
+              fontFamily:"var(--font-display)", marginBottom:".5rem" }}>
+              Personaliza tu PIN
+            </div>
+            <div className="vp-mono" style={{ fontSize:".8rem", color:"var(--text-muted)", lineHeight:1.7 }}>
+              Por seguridad, debes establecer un PIN personal antes de acceder a tu ficha.
+              <br/>Tu PIN provisional eran los <strong style={{color:"var(--text)"}}>últimos 4 dígitos de tu teléfono</strong>.
+            </div>
+          </div>
+          <CambiarPin
+            token={token}
+            hideCancel={true}
+            onDone={() => { setMustChangePin(false); fetchData(true); }}
+            onCancel={null}
+          />
+        </div>
+      </div>
+    </>
   );
 
   const { voluntario:v={}, puesto, companerosEnPuesto=[], materialPuesto=[], config={} } = data || {};
@@ -1421,7 +1456,7 @@ function PortalMain({ token, onLogout }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // SUBCOMPONENTE: Cambiar PIN
 // ─────────────────────────────────────────────────────────────────────────────
-function CambiarPin({ token, onDone, onCancel }) {
+function CambiarPin({ token, onDone, onCancel, hideCancel = false }) {
   const [step, setStep]   = useState(1);
   const [pin1, setPin1]   = useState(""); const [pin2, setPin2] = useState("");
   const [shake, setShake] = useState(false);
@@ -1451,9 +1486,11 @@ function CambiarPin({ token, onDone, onCancel }) {
         <div style={{fontFamily:"var(--font-display)", fontWeight:800, fontSize:"var(--fs-md)", color:"var(--text)"}}>
           🔐 {step===1?"Nuevo PIN":"Confirma el PIN"}
         </div>
-        <button className="vp-btn vp-btn-ghost vp-btn-sm"
-          style={{minHeight:38, minWidth:38, borderRadius:"50%", padding:".3rem", fontSize:"1.1rem"}}
-          onClick={onCancel}>✕</button>
+        {!hideCancel && (
+          <button className="vp-btn vp-btn-ghost vp-btn-sm"
+            style={{minHeight:38, minWidth:38, borderRadius:"50%", padding:".3rem", fontSize:"1.1rem"}}
+            onClick={onCancel}>✕</button>
+        )}
       </div>
       {step === 99 ? (
         <div style={{ textAlign:"center", padding:"1.5rem 0" }}>

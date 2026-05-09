@@ -5,10 +5,11 @@ import { createPortal } from "react-dom";
 import { toast } from "@/lib/toast";
 import { genIdNum } from "@/lib/utils";
 import { useModalClose } from "@/hooks/useModalClose";
+import { usePaginacion } from "@/hooks/usePaginacion.jsx";
 import EmptyState from "@/components/EmptyState";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
-import { useData } from "@/lib/dataService";
+import { useData } from "@/hooks/useData";
 
 // ─── MATERIAL ─────────────────────────────────────────────────────────────────
 function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,locs,patsConEspecie,totalInscritos=0,totalMaximos=0,rawInscritos={},rawTramos=[],conceptosPres=[]}) {

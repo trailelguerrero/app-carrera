@@ -6,12 +6,12 @@ import { toast } from "@/lib/toast";
 import { genIdNum, scrollMainToTop } from "@/lib/utils";
 import { useModalClose } from "@/hooks/useModalClose";
 import EmptyState from "@/components/EmptyState";
-import { usePaginacion } from "@/lib/usePaginacion.jsx";
+import { usePaginacion } from "@/hooks/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { getEventDate } from "@/lib/eventUtils";
 import { LOCS_DEFAULT, LOCS_KEY } from "@/constants/localizaciones";
-import { useData } from "@/lib/dataService";
+import { useData } from "@/hooks/useData";
 
 
 // Sprint 2: sub-components extracted to src/components/voluntarios/

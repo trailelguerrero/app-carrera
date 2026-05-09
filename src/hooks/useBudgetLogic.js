@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import dataService, { useData } from "../lib/dataService";
-import { 
-  TRAMOS_DEFAULT, 
-  CONCEPTOS_DEFAULT, 
-  INSCRITOS_DEFAULT, 
-  INGRESOS_EXTRA_DEFAULT, 
+import dataService from "@/lib/dataService";
+import { useData } from "@/hooks/useData";
+import {
+  TRAMOS_DEFAULT,
+  CONCEPTOS_DEFAULT,
+  INSCRITOS_DEFAULT,
+  INGRESOS_EXTRA_DEFAULT,
   MERCHANDISING_DEFAULT,
   MAXIMOS_DEFAULT,
   DISTANCIAS,
@@ -87,9 +88,9 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     const coste = rawCamCoste || { corredor: 7.5, voluntario: 7.5 };
     const lineas = pedidos.flatMap(p => p.lineas || []);
     const ingPedidos = lineas.filter(l => l.estadoPago === "pagado")
-                             .reduce((s, l) => s + (l.cantidad * (l.precioVenta || 0)), 0);
+      .reduce((s, l) => s + (l.cantidad * (l.precioVenta || 0)), 0);
     const costePedidos = lineas.filter(l => l.estadoPago === "pagado" || l.estadoPago === "pendiente")
-                               .reduce((s, l) => s + (l.cantidad * (coste[l.tipo] || 7.5)), 0);
+      .reduce((s, l) => s + (l.cantidad * (coste[l.tipo] || 7.5)), 0);
     const beneficioPedidos = ingPedidos - costePedidos;
 
     // Parte 2: Merchandising local (TabIngresos — "Venta de Productos")
@@ -110,9 +111,9 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     const coste = rawCamCoste || { corredor: 7.5, voluntario: 7.5 };
     const lineasCorredor = pedidos.flatMap(p => p.lineas || []).filter(l => l.tipo === "corredor");
     const ingCorredor = lineasCorredor.filter(l => l.estadoPago === "pagado")
-                                      .reduce((s, l) => s + (l.cantidad * (l.precioVenta || 0)), 0);
+      .reduce((s, l) => s + (l.cantidad * (l.precioVenta || 0)), 0);
     const costeCorredor = lineasCorredor.filter(l => l.estadoPago === "pagado" || l.estadoPago === "pendiente")
-                                        .reduce((s, l) => s + (l.cantidad * (coste.corredor || 7.5)), 0);
+      .reduce((s, l) => s + (l.cantidad * (coste.corredor || 7.5)), 0);
     const beneficioPedidosCor = ingCorredor - costeCorredor;
 
     // Beneficio neto de "Camiseta técnica" del merchandising local (nombre contiene "camiseta")
@@ -130,10 +131,10 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   const getValorSincronizado = useCallback((ie) => {
     const key = ie.syncKey || (ie.id === 1 ? "patrocinios" : ie.id === 2 ? "camisetas" : null);
     if (!key) return ie.valor; // manual: valor del estado
-    if (key === "patrocinios")        return totalPatConfirmado;
+    if (key === "patrocinios") return totalPatConfirmado;
     if (key === "patrociniosCobrado") return totalPatCobrado;
-    if (key === "camisetas")          return totalMerchBeneficio;
-    if (key === "subvencionPublica")  return totalSubvencionPublica;
+    if (key === "camisetas") return totalMerchBeneficio;
+    if (key === "subvencionPublica") return totalSubvencionPublica;
     return ie.valor;
   }, [totalPatConfirmado, totalPatCobrado, totalMerchBeneficio, totalSubvencionPublica]);
 
@@ -155,17 +156,17 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       const activo = syncConfig[key] !== undefined ? syncConfig[key] : ie.activo;
 
       // Valor calculado en tiempo real desde otros bloques
-      const valor = key === "patrocinios"            ? totalPatConfirmado
-                  : key === "patrociniosCobrado"     ? totalPatCobrado
-                  : key === "camisetas"              ? totalMerchBeneficio
-                  : key === "subvencionPublica"      ? totalSubvencionPublica
-                  : key === "balanceCamisetasTecnicas" ? totalBalanceCamisetasTecnicas
-                  : ie.valor;
+      const valor = key === "patrocinios" ? totalPatConfirmado
+        : key === "patrociniosCobrado" ? totalPatCobrado
+          : key === "camisetas" ? totalMerchBeneficio
+            : key === "subvencionPublica" ? totalSubvencionPublica
+              : key === "balanceCamisetasTecnicas" ? totalBalanceCamisetasTecnicas
+                : ie.valor;
 
       return { ...ie, syncKey: key, valor, activo, synced: true };
     });
   }, [ingresosExtra, scenarioIngresosExtra, syncConfig,
-      totalPatConfirmado, totalPatCobrado, totalMerchBeneficio,
+    totalPatConfirmado, totalPatCobrado, totalMerchBeneficio,
     totalBalanceCamisetasTecnicas, totalSubvencionPublica, totalBalanceCamisetasTecnicas]);
 
   // ── Carga inicial ────────────────────────────────────────────────────────
@@ -232,12 +233,12 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     emitSaveStatus("saving");
     try {
       await Promise.all([
-        dataService.set("teg_presupuesto_v1_tramos",       tramos),
-        dataService.set("teg_presupuesto_v1_conceptos",    conceptos),
-        dataService.set("teg_presupuesto_v1_inscritos",    inscritos),
+        dataService.set("teg_presupuesto_v1_tramos", tramos),
+        dataService.set("teg_presupuesto_v1_conceptos", conceptos),
+        dataService.set("teg_presupuesto_v1_inscritos", inscritos),
         dataService.set("teg_presupuesto_v1_ingresosExtra", ingresosExtra),
         dataService.set("teg_presupuesto_v1_merchandising", merchandising),
-        dataService.set("teg_presupuesto_v1_maximos",      maximos),
+        dataService.set("teg_presupuesto_v1_maximos", maximos),
       ]);
       setSaveStatus("saved");
       emitSaveStatus("saved");
@@ -282,28 +283,25 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   }, [tramos, conceptos, inscritos, ingresosExtra, merchandising, maximos]);
 
   const logCambio = (concepto, campo, valorAntes, valorNuevo) => {
-    // budget-log POST requires x-api-key; use env var if available (server-side only)
-    // In browser: this will fail with 401 if VITE_API_KEY is not set, which is correct
-    // since the API key should not be exposed in the frontend bundle
-    const apiKey = import.meta.env.VITE_API_KEY || '';
-    fetch("/api/budget-log", {
+    // SEC-01: el proxy BFF inyecta la x-api-key server-side
+    fetch("/api/proxy/budget-log", {
       method: "POST",
-      headers: { "Content-Type": "application/json", ...(apiKey ? { "x-api-key": apiKey } : {}) },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         conceptoId: concepto.id,
-        concepto:   concepto.nombre || `#${concepto.id}`,
+        concepto: concepto.nombre || `#${concepto.id}`,
         campo, valorAntes: String(valorAntes ?? ""), valorNuevo: String(valorNuevo ?? ""),
         tipo: concepto.tipo ?? null,
       }),
-    }).catch(() => {});
+    }).catch(() => { });
   };
 
   const updateConcepto = (id, field, value) => {
     setConceptos(prev => prev.map(c => {
       if (c.id !== id) return c;
-      const camposLog = ["nombre","activo","costeTotal","modoUniforme",
-                         "estadoPago","estadoPedido","proveedor","contacto",
-                         "fechaPago","fechaEntrega","costeUnitarioReal"];
+      const camposLog = ["nombre", "activo", "costeTotal", "modoUniforme",
+        "estadoPago", "estadoPedido", "proveedor", "contacto",
+        "fechaPago", "fechaEntrega", "costeUnitarioReal"];
       if (camposLog.includes(field) && c[field] !== value) logCambio(c, field, c[field], value);
       return { ...c, [field]: value };
     }));
@@ -315,7 +313,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       if (c.modoUniforme) {
         const antes = c.costePorDistancia.TG7;
         if (antes !== value) logCambio(c, "precio (todas las distancias)", antes, value);
-        return { ...c, costePorDistancia: Object.fromEntries(["TG7","TG13","TG25"].map(d => [d, value])) };
+        return { ...c, costePorDistancia: Object.fromEntries(["TG7", "TG13", "TG25"].map(d => [d, value])) };
       }
       const antes = c.costePorDistancia[dist];
       if (antes !== value) logCambio(c, `precio ${dist}`, antes, value);

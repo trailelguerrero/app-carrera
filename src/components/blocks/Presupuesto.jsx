@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import ConfirmModal from "@/components/common/ConfirmModal";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
-import { useData } from "@/lib/dataService";
+import { useData } from "@/hooks/useData";
 import { useBudgetLogic } from "../../hooks/useBudgetLogic";
 import { useScenario }    from "../../hooks/useScenario";
 import { KpiGlobal }      from "../budget/KpiGlobal";

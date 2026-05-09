@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback, useEffect, useRef } from "react"
 import { useModalClose } from "@/hooks/useModalClose";
 import { toast } from "@/lib/toast";
 import { genIdNum } from "@/lib/utils";
-import { usePaginacion } from "@/lib/usePaginacion.jsx";
+import { usePaginacion } from "@/hooks/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 

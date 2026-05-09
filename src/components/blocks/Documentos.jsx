@@ -3,7 +3,8 @@ import EmptyState from "@/components/EmptyState";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { createPortal } from "react-dom";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
-import dataService, { useData } from "@/lib/dataService";
+import dataService from "@/lib/dataService";
+import { useData } from "@/hooks/useData";
 import { genIdStr } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
@@ -122,10 +123,9 @@ export default function Documentos() {
   useEffect(() => {
     const load = async () => {
       try {
-        // Documentos desde tabla dedicada (sin data base64 — solo metadatos)
-        const apiKey = import.meta.env.VITE_API_KEY;
-        const res = await fetch("/api/documents", {
-          headers: { "x-api-key": apiKey }
+        // SEC-01: llamada al proxy BFF — sin x-api-key en el cliente
+        const res = await fetch("/api/proxy/documents", {
+          headers: { "Content-Type": "application/json" }
         });
         if (res.ok) {
           const rows = await res.json();
@@ -191,14 +191,13 @@ export default function Documentos() {
         fechaModificacion: new Date().toISOString(),
       });
     }
-    // Subir cada documento a la API
-    const apiKey = import.meta.env.VITE_API_KEY;
+    // SEC-01: subida al proxy BFF — sin x-api-key en el cliente
     const subidos = [];
     for (const doc of newDocs) {
       try {
-        const res = await fetch("/api/documents", {
+        const res = await fetch("/api/proxy/documents", {
           method: "POST",
-          headers: { "Content-Type": "application/json", "x-api-key": apiKey },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(doc),
         });
         if (res.ok) {
@@ -245,9 +244,9 @@ export default function Documentos() {
       toast.success("Gestión eliminada");
     } else {
       try {
-        await fetch(`/api/documents?id=${id}`, {
+        // SEC-01: proxy BFF — sin x-api-key en el cliente
+        await fetch(`/api/proxy/documents?id=${id}`, {
           method: "DELETE",
-          headers: { "x-api-key": import.meta.env.VITE_API_KEY }
         });
       } catch (e) { console.error("Error eliminando:", e); }
       save(docs.filter(d => d.id !== id));
@@ -355,9 +354,10 @@ export default function Documentos() {
 
   const saveEdit = async () => {
     try {
-      await fetch(`/api/documents?id=${editId}`, {
+      // SEC-01: proxy BFF — sin x-api-key en el cliente
+      await fetch(`/api/proxy/documents?id=${editId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-api-key": import.meta.env.VITE_API_KEY },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editForm),
       });
     } catch (e) { console.error("Error actualizando:", e); }
@@ -372,9 +372,10 @@ export default function Documentos() {
 
   const updateEstado = async (id, estado) => {
     try {
-      await fetch(`/api/documents?id=${id}`, {
+      // SEC-01: proxy BFF — sin x-api-key en el cliente
+      await fetch(`/api/proxy/documents?id=${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-api-key": import.meta.env.VITE_API_KEY },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ estado }),
       });
     } catch (e) { console.error("Error actualizando estado:", e); }

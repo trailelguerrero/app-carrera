@@ -7,8 +7,8 @@
  * Para PIN de 4-6 dígitos es suficiente para protección casual del panel.
  */
 
-export const PIN_KEY     = "teg_panel_pin_hash";
-export const AUTH_KEY    = "teg_panel_authed";
+export const PIN_KEY = "teg_panel_pin_hash";
+export const AUTH_KEY = "teg_panel_authed";
 export const SESSION_VER = "teg_panel_session_ver";
 /** Incrementar para invalidar todas las sesiones activas */
 export const CURRENT_VER = "2";

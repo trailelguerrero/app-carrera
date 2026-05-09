@@ -17,6 +17,7 @@
  */
 import { neon } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
+import { checkRateLimit } from '../lib/rateLimiter.js';
 
 const BCRYPT_SALT_ROUNDS = 10;
 
@@ -57,19 +58,8 @@ function setCorsHeaders(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
 
-// ── Rate limiting en memoria por IP ──────────────────────────────────────────
-// Se resetea en cada redeploy — suficiente para el volumen de un evento hobby
-const ipRegistry = new Map();
-const RL_MAX_REQUESTS = 3;    // máx 3 registros por IP
-const RL_WINDOW_MS    = 5 * 60 * 1000; // en una ventana de 5 minutos
-
-function isRateLimited(ip) {
-  const now  = Date.now();
-  const hist = (ipRegistry.get(ip) || []).filter(t => now - t < RL_WINDOW_MS);
-  if (hist.length >= RL_MAX_REQUESTS) return true;
-  ipRegistry.set(ip, [...hist, now]);
-  return false;
-}
+// SEC-05: Rate limiting persistente en PostgreSQL (ver api/lib/rateLimiter.js)
+// Reemplaza el sliding-window Map en memoria que no sobrevivía deploys.
 
 export default async function handler(req, res) {
   // CORS preflight
@@ -112,9 +102,10 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'Forbidden: escritura no permitida en esta colección' });
     }
 
-    // Rate limiting por IP
+    // SEC-05: Rate limiting persistente en PostgreSQL (survives deploys y múltiples instancias)
     const clientIp = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
-    if (isRateLimited(clientIp)) {
+    const sqlRl = neon(process.env.DATABASE_URL);
+    if (await checkRateLimit(sqlRl, clientIp, 'register', { max: 3, windowMs: 5 * 60 * 1000 })) {
       return res.status(429).json({ error: 'Demasiadas solicitudes. Inténtalo en unos minutos.' });
     }
 

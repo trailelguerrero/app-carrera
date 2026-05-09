@@ -2,7 +2,7 @@ import { createPortal } from "react-dom";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useModalClose } from "@/hooks/useModalClose";
 import EmptyState from "@/components/EmptyState";
-import { useData } from "@/lib/dataService";
+import { useData } from "@/hooks/useData";
 import { toast } from "@/lib/toast";
 import { genIdNum, fmtEur2, fmtNum2, scrollMainToTop } from "@/lib/utils";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";

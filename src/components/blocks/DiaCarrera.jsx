@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { useData, dataService } from "@/lib/dataService";
+import dataService from "@/lib/dataService";
+import { useData } from "@/hooks/useData";
 import { toast } from "@/lib/toast";
 import EmptyState from "@/components/EmptyState";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";

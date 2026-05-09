@@ -7,7 +7,7 @@ import { useModalClose } from "@/hooks/useModalClose";
 import EmptyState from "@/components/EmptyState";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
-import { useData } from "@/lib/dataService";
+import { useData } from "@/hooks/useData";
 
 // ─── EMERGENCIAS — solo urgencias reales: directorio urgente + protocolo + incidencias
 function TabEmergencias({cont,inc,setInc,abrirModal,abrirFicha,tiposContacto=[]}) {

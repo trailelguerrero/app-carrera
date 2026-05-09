@@ -8,7 +8,7 @@ import { useModalClose } from "@/hooks/useModalClose";
 import EmptyState from "@/components/EmptyState";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
-import { useData } from "@/lib/dataService";
+import { useData } from "@/hooks/useData";
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [], asigs = [] }) {

@@ -925,3 +925,229 @@ describe('SP6-03 — tailwind.config.ts no usa plugins eliminados', () => {
     expect(cfg).toContain('plugins');
   });
 });
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SPRINT 7 — Hardening de seguridad (continuación)
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('SP7-01 — SEC-05: Rate limiting persistente en PostgreSQL', () => {
+  // SEC-05 (sesión 2026-05-08): reemplaza los Map() en memoria que no
+  // sobrevivían deploys ni funcionaban con múltiples instancias serverless.
+
+  it('existe api/lib/rateLimiter.js', () => {
+    expect(exists('api/lib/rateLimiter.js')).toBe(true);
+  });
+
+  it('rateLimiter exporta checkRateLimit', () => {
+    const rl = read('api/lib/rateLimiter.js');
+    expect(rl).toContain('export async function checkRateLimit');
+  });
+
+  it('rateLimiter usa tabla rate_limit en PostgreSQL (CREATE TABLE IF NOT EXISTS)', () => {
+    const rl = read('api/lib/rateLimiter.js');
+    expect(rl).toContain('CREATE TABLE IF NOT EXISTS rate_limit');
+    expect(rl).toContain('ip');
+    expect(rl).toContain('scope');
+    expect(rl).toContain('window_end');
+    expect(rl).toContain('count');
+  });
+
+  it('rateLimiter usa UPSERT atómico para evitar race conditions', () => {
+    const rl = read('api/lib/rateLimiter.js');
+    expect(rl).toContain('ON CONFLICT');
+    expect(rl).toContain('DO UPDATE SET');
+  });
+
+  it('api/voluntarios NO tiene Map() de rate limiting en memoria', () => {
+    const vol = read('api/voluntarios/index.js');
+    // El Map antiguo se llamaba "intentos"
+    expect(vol).not.toContain('const intentos = new Map()');
+    expect(vol).not.toContain('intentos.get(ip)');
+  });
+
+  it('api/voluntarios importa checkRateLimit desde lib/rateLimiter', () => {
+    const vol = read('api/voluntarios/index.js');
+    expect(vol).toContain("from '../lib/rateLimiter.js'");
+    expect(vol).toContain('checkRateLimit');
+  });
+
+  it('api/voluntarios usa await checkRateLimit en action=auth', () => {
+    const vol = read('api/voluntarios/index.js');
+    const idx = vol.indexOf("action === 'auth'");
+    const block = vol.slice(idx, idx + 400);
+    expect(block).toContain('await checkRateLimit');
+    expect(block).toContain("'auth'");
+  });
+
+  it('api/data/public.js NO tiene ipRegistry Map() en memoria', () => {
+    const pub = read('api/data/public.js');
+    expect(pub).not.toContain('const ipRegistry = new Map()');
+    expect(pub).not.toContain('ipRegistry.get(ip)');
+  });
+
+  it('api/data/public.js importa checkRateLimit desde lib/rateLimiter', () => {
+    const pub = read('api/data/public.js');
+    expect(pub).toContain("from '../lib/rateLimiter.js'");
+    expect(pub).toContain('checkRateLimit');
+  });
+
+  it('api/data/public.js usa await checkRateLimit en POST con scope register', () => {
+    const pub = read('api/data/public.js');
+    expect(pub).toContain('await checkRateLimit');
+    expect(pub).toContain("'register'");
+  });
+
+  it('rateLimiter limpia filas expiradas para no acumular basura', () => {
+    const rl = read('api/lib/rateLimiter.js');
+    expect(rl).toContain('DELETE FROM rate_limit WHERE window_end < NOW()');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SP7-02 — SEC-06: Cambio de PIN forzado en el primer login
+// PIN inicial = últimos 4 dígitos del teléfono.
+// El portal bloquea el acceso a la ficha hasta que se cambie.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('SP7-02 — SEC-06: Cambio de PIN forzado en primer login', () => {
+  it('api/voluntarios tiene función pinInicial que usa los últimos 4 dígitos', () => {
+    const api = read('api/voluntarios/index.js');
+    expect(api).toContain('function pinInicial(telefono)');
+    expect(api).toContain('.slice(-4)');
+  });
+
+  it('api/voluntarios devuelve pinPersonalizado en la respuesta auth', () => {
+    const api = read('api/voluntarios/index.js');
+    // La respuesta de auth incluye el objeto voluntario completo (pub) que contiene pinPersonalizado
+    // La desestructuración elimina solo pinHash y sessionToken
+    expect(api).toContain('pinHash: _ph, sessionToken: _st, ...pub');
+    // pinPersonalizado queda en pub → se incluye en la respuesta
+    expect(api).toContain('voluntario: { ...pub, sessionToken }');
+  });
+
+  it('api/voluntarios acción cambiar-pin marca pinPersonalizado: true', () => {
+    const api = read('api/voluntarios/index.js');
+    expect(api).toContain("pinPersonalizado: true");
+    expect(api).toContain("action === 'cambiar-pin'");
+  });
+
+  it('api/voluntarios acción reset-pin resetea pinPersonalizado: false', () => {
+    const api = read('api/voluntarios/index.js');
+    // reset-pin y recover-pin deben poner pinPersonalizado: false al resetear
+    expect(api).toContain("pinPersonalizado: false");
+  });
+
+  it('VoluntarioPortal tiene estado mustChangePin', () => {
+    const portal = read('src/pages/VoluntarioPortal.jsx');
+    expect(portal).toContain('mustChangePin');
+    expect(portal).toContain('setMustChangePin');
+  });
+
+  it('VoluntarioPortal activa mustChangePin cuando pinPersonalizado === false', () => {
+    const portal = read('src/pages/VoluntarioPortal.jsx');
+    expect(portal).toContain('pinPersonalizado === false');
+    expect(portal).toContain('setMustChangePin(true)');
+  });
+
+  it('VoluntarioPortal muestra pantalla bloqueante cuando mustChangePin es true', () => {
+    const portal = read('src/pages/VoluntarioPortal.jsx');
+    expect(portal).toContain('if (mustChangePin) return');
+    // La pantalla debe contener un mensaje explicativo
+    expect(portal).toContain('Personaliza tu PIN');
+  });
+
+  it('VoluntarioPortal usa CambiarPin con hideCancel=true en modo forzado', () => {
+    const portal = read('src/pages/VoluntarioPortal.jsx');
+    expect(portal).toContain('hideCancel={true}');
+  });
+
+  it('CambiarPin acepta prop hideCancel y oculta el botón cancelar', () => {
+    const portal = read('src/pages/VoluntarioPortal.jsx');
+    expect(portal).toContain('hideCancel = false');
+    expect(portal).toContain('!hideCancel &&');
+  });
+
+  it('VoluntarioPortal llama fetchData tras cambio de PIN forzado', () => {
+    const portal = read('src/pages/VoluntarioPortal.jsx');
+    // onDone del CambiarPin forzado debe desactivar mustChangePin y recargar datos
+    expect(portal).toContain('setMustChangePin(false)');
+    expect(portal).toContain('fetchData(true)');
+  });
+
+  it('Banner de PIN temporal sigue presente en la ficha normal', () => {
+    const portal = read('src/pages/VoluntarioPortal.jsx');
+    expect(portal).toContain('PIN temporal activo');
+    expect(portal).toContain('!v.pinPersonalizado');
+  });
+});
+
+// ─── SEC-07: Content-Security-Policy en vercel.json ─────────────────────────
+describe('SEC-07 · Content-Security-Policy en vercel.json', () => {
+  const getCSP = () => {
+    const vercelJson = JSON.parse(read('vercel.json'));
+    const catchAll = vercelJson.headers.find(r => r.source === '/(.*)');
+    if (!catchAll) throw new Error('No existe la regla de headers "/(.*)" en vercel.json');
+    const cspHeader = catchAll.headers.find(h => h.key === 'Content-Security-Policy');
+    if (!cspHeader) throw new Error('No existe la cabecera Content-Security-Policy');
+    return cspHeader.value;
+  };
+
+  it('vercel.json es JSON válido y contiene la sección headers', () => {
+    const vercelJson = JSON.parse(read('vercel.json'));
+    expect(Array.isArray(vercelJson.headers)).toBe(true);
+  });
+
+  it('La regla catch-all /(.*) incluye Content-Security-Policy', () => {
+    const csp = getCSP();
+    expect(typeof csp).toBe('string');
+    expect(csp.length).toBeGreaterThan(0);
+  });
+
+  it('CSP define default-src restringido a self', () => {
+    const csp = getCSP();
+    expect(csp).toMatch(/default-src\s+'self'/);
+  });
+
+  it('CSP define script-src sin unsafe-eval', () => {
+    const csp = getCSP();
+    expect(csp).toContain('script-src');
+    expect(csp).not.toContain("'unsafe-eval'");
+  });
+
+  it('CSP define script-src sin unsafe-inline', () => {
+    const csp = getCSP();
+    expect(csp).not.toMatch(/script-src[^;]*'unsafe-inline'/);
+  });
+
+  it('CSP permite Google Fonts en style-src y font-src', () => {
+    const csp = getCSP();
+    expect(csp).toContain('fonts.googleapis.com');
+    expect(csp).toContain('fonts.gstatic.com');
+  });
+
+  it('CSP permite chart.googleapis.com solo en img-src', () => {
+    const csp = getCSP();
+    expect(csp).toMatch(/img-src[^;]*chart\.googleapis\.com/);
+    // No debe aparecer en script-src ni default-src
+    expect(csp).not.toMatch(/script-src[^;]*chart\.googleapis\.com/);
+  });
+
+  it('CSP incluye frame-ancestors para bloquear clickjacking (refuerza X-Frame-Options)', () => {
+    const csp = getCSP();
+    expect(csp).toContain("frame-ancestors 'none'");
+  });
+
+  it('CSP incluye upgrade-insecure-requests para forzar HTTPS', () => {
+    const csp = getCSP();
+    expect(csp).toContain('upgrade-insecure-requests');
+  });
+
+  it('CSP incluye base-uri para prevenir inyección de base tag', () => {
+    const csp = getCSP();
+    expect(csp).toContain("base-uri 'self'");
+  });
+
+  it('CSP incluye form-action para limitar destinos de formularios', () => {
+    const csp = getCSP();
+    expect(csp).toContain("form-action 'self'");
+  });
+});

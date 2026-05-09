@@ -13,6 +13,7 @@
  * PORTAL-10  Validación de registro — campos requeridos
  */
 import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest';
+import { SK_VOL_SESSION } from '../constants/storageKeys.js';
 
 beforeAll(() => {
   const s = {};
@@ -99,7 +100,7 @@ describe('PORTAL-02 — Estado ausente manejado', () => {
 describe('PORTAL-03 — Botón cerrar sesión visible en topbar', () => {
   it('clearSession elimina la sesión del localStorage', () => {
     const store = {};
-    const SESSION_KEY = "teg_vol_session";
+    const SESSION_KEY = SK_VOL_SESSION;
     const lsMock = {
       setItem: (k,v) => { store[k] = v; },
       removeItem: (k) => { delete store[k]; },
@@ -197,7 +198,7 @@ describe('PORTAL-06 — Normalización teléfono en login', () => {
 
 // ── PORTAL-07: Gestión de sesión ──────────────────────────────────────────
 describe('PORTAL-07 — Gestión de sesión loadSession/saveSession/clearSession', () => {
-  const SESSION_KEY = "teg_vol_session";
+  const SESSION_KEY = SK_VOL_SESSION;
   const SESSION_TTL = 7 * 24 * 60 * 60 * 1000;
   const store = {};
   

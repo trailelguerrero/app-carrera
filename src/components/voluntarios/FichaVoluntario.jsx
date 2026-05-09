@@ -6,7 +6,7 @@ import { toast } from "@/lib/toast";
 import { genIdNum } from "@/lib/utils";
 import { useModalClose } from "@/hooks/useModalClose";
 import EmptyState from "@/components/EmptyState";
-import { usePaginacion } from "@/lib/usePaginacion.jsx";
+import { usePaginacion } from "@/hooks/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
@@ -367,9 +367,10 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
                     title="Resetear PIN al valor inicial (últimos 4 del teléfono)"
                     onClick={async () => {
                       try {
-                        const res = await fetch("/api/voluntarios?action=reset-pin", {
+                        // SEC-01: el proxy BFF inyecta la x-api-key server-side
+                        const res = await fetch("/api/proxy/voluntarios?action=reset-pin", {
                           method: "POST",
-                          headers: { "Content-Type":"application/json", "x-api-key": import.meta.env.VITE_API_KEY },
+                          headers: { "Content-Type":"application/json" },
                           body: JSON.stringify({ voluntarioId: v.id }),
                         });
                         const d = await res.json();

@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
-import { useData } from "../lib/dataService";
+import { useData } from "@/hooks/useData";
 
 const LS_KEY = "teg_scenarios_v1";
 const LS_ACTIVE_SCENARIO = "teg_scenario_active_name";
@@ -40,8 +40,8 @@ export const useScenario = (realInscritos, realConceptos, realIngresosExtra, rea
       ...(activeScenario.conceptosOverride?.[c.id] ?? {}),
       activo: !(activeScenario.conceptosExcluidos ?? []).includes(c.id),
     }));
-  // Usar activeScenario completo — evita que optional chaining enmascare cambios
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Usar activeScenario completo — evita que optional chaining enmascare cambios
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isScenarioMode, realConceptos, activeScenario]);
 
   const scenarioIngresosExtra = isScenarioMode
@@ -59,7 +59,7 @@ export const useScenario = (realInscritos, realConceptos, realIngresosExtra, rea
     (nombre, nota = "") => {
       if (!nombre) {
         const ahora = new Date();
-        nombre = "Escenario " + ahora.toLocaleDateString("es-ES", { day:"2-digit", month:"short" }) + " " + ahora.toTimeString().slice(0,5);
+        nombre = "Escenario " + ahora.toLocaleDateString("es-ES", { day: "2-digit", month: "short" }) + " " + ahora.toTimeString().slice(0, 5);
       }
       setActiveScenario({
         id: null, // null = no guardado aún
@@ -84,7 +84,7 @@ export const useScenario = (realInscritos, realConceptos, realIngresosExtra, rea
       const sc = savedScenarios.find((s) => s.id === id);
       if (sc) {
         setActiveScenario(JSON.parse(JSON.stringify(sc)));
-        try { localStorage.setItem(LS_ACTIVE_SCENARIO, sc.nombre || sc.id); } catch {}
+        try { localStorage.setItem(LS_ACTIVE_SCENARIO, sc.nombre || sc.id); } catch { }
       }
     },
     [savedScenarios]
@@ -93,7 +93,7 @@ export const useScenario = (realInscritos, realConceptos, realIngresosExtra, rea
   /** Descarta el draft y vuelve a datos reales. */
   const exitScenario = useCallback(() => {
     setActiveScenario(null);
-    try { localStorage.removeItem(LS_ACTIVE_SCENARIO); } catch {}
+    try { localStorage.removeItem(LS_ACTIVE_SCENARIO); } catch { }
   }, []);
 
   /** Actualiza los inscritos del draft. */
@@ -210,7 +210,7 @@ export const useScenario = (realInscritos, realConceptos, realIngresosExtra, rea
     if (!activeScenario) return;
     if (!activeScenario.nombre?.trim()) {
       const ahora = new Date();
-      setActiveScenario(prev => prev ? {...prev, nombre: "Escenario " + ahora.toLocaleDateString("es-ES",{day:"2-digit",month:"short"}) + " " + ahora.toTimeString().slice(0,5)} : prev);
+      setActiveScenario(prev => prev ? { ...prev, nombre: "Escenario " + ahora.toLocaleDateString("es-ES", { day: "2-digit", month: "short" }) + " " + ahora.toTimeString().slice(0, 5) } : prev);
       return; // dejar al usuario que lo nombre antes de guardar
     }
 

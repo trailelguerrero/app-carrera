@@ -21,37 +21,37 @@ import {
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 
 const ALL_KEYS = {
-  "teg_presupuesto_v1_conceptos":    [],
-  "teg_presupuesto_v1_tramos":        [],
-  "teg_presupuesto_v1_inscritos":     { tramos: {} },
+  "teg_presupuesto_v1_conceptos": [],
+  "teg_presupuesto_v1_tramos": [],
+  "teg_presupuesto_v1_inscritos": { tramos: {} },
   "teg_presupuesto_v1_ingresosExtra": [],
   "teg_presupuesto_v1_merchandising": [],
-  "teg_presupuesto_v1_syncConfig":    {},
-  "teg_presupuesto_v1_maximos":       {},
-  "teg_voluntarios_v1_voluntarios":   [],
-  "teg_voluntarios_v1_puestos":       [],
-  "teg_patrocinadores_v1_pats":       [],
-  "teg_patrocinadores_v1_obj":        8000,
-  "teg_logistica_v1_mat":             [],
-  "teg_logistica_v1_asig":            [],
-  "teg_logistica_v1_tl":              [],
-  "teg_logistica_v1_ck":              [],
-  "teg_proyecto_v1_tareas":           [],
-  "teg_proyecto_v1_hitos":            [],
-  "teg_documentos_v1":                [],
-  "teg_documentos_v1_gestiones":       [],
-  [LS_KEY_CONFIG]:                      EVENT_CONFIG_DEFAULT,
-  "teg_scenario_active_name":            null,
+  "teg_presupuesto_v1_syncConfig": {},
+  "teg_presupuesto_v1_maximos": {},
+  "teg_voluntarios_v1_voluntarios": [],
+  "teg_voluntarios_v1_puestos": [],
+  "teg_patrocinadores_v1_pats": [],
+  "teg_patrocinadores_v1_obj": 8000,
+  "teg_logistica_v1_mat": [],
+  "teg_logistica_v1_asig": [],
+  "teg_logistica_v1_tl": [],
+  "teg_logistica_v1_ck": [],
+  "teg_proyecto_v1_tareas": [],
+  "teg_proyecto_v1_hitos": [],
+  "teg_documentos_v1": [],
+  "teg_documentos_v1_gestiones": [],
+  [LS_KEY_CONFIG]: EVENT_CONFIG_DEFAULT,
+  "teg_scenario_active_name": null,
 };
 
-const fmtD  = (iso) => new Date(iso).toLocaleDateString("es-ES", { day:"2-digit", month:"short" });
+const fmtD = (iso) => new Date(iso).toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
 const navigate = (block, subtab) => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block, subtab } }));
 
 // ─── Componente ──────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const [rawData,     setRawData]     = useState(null);
-  const [loading,     setLoading]     = useState(true);
-  const [refreshing,  setRefreshing]  = useState(false);  // refresco silencioso
+  const [rawData, setRawData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);  // refresco silencioso (indicador ámbar)
   const [lastUpdated, setLastUpdated] = useState(null);
   const [alertasExpandidas, setAlertasExpandidas] = useState(
     () => localStorage.getItem("teg_dash_alertas_open") === "1"
@@ -74,10 +74,10 @@ export default function Dashboard() {
           setRawData(localData);
           setLoading(false); // Mostrar datos locales inmediatamente
         }
-      } catch {}
+      } catch { }
     }
     if (!silent) setLoading(prev => prev); // mantener loading si no hubo local
-    else setRefreshing(true);
+    else setIsRefreshing(true);
     try {
       const data = await dataService.getMultiple(ALL_KEYS);
       setRawData(data);
@@ -86,7 +86,7 @@ export default function Dashboard() {
       console.error("Dashboard: error cargando datos", err);
     } finally {
       setLoading(false);
-      setRefreshing(false);
+      setIsRefreshing(false);
     }
   }, []);
 
@@ -119,54 +119,54 @@ export default function Dashboard() {
       return v;
     };
 
-    const TODAY    = new Date();
+    const TODAY = new Date();
     const cfg = { ...EVENT_CONFIG_DEFAULT, ...(get(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT) || {}) };
-    const eventoFecha    = cfg.fecha ? new Date(cfg.fecha) : EVENT_DATE;
-    const diasHasta      = Math.ceil((eventoFecha - TODAY) / 86400000);
-    const yaFue          = diasHasta < 0;
-    const esSemana       = diasHasta >= 0 && diasHasta <= cfg.volDiasCritico;
+    const eventoFecha = cfg.fecha ? new Date(cfg.fecha) : EVENT_DATE;
+    const diasHasta = Math.ceil((eventoFecha - TODAY) / 86400000);
+    const yaFue = diasHasta < 0;
+    const esSemana = diasHasta >= 0 && diasHasta <= cfg.volDiasCritico;
     const volDiasCritico = cfg.volDiasCritico;
-    const volDiasAviso   = cfg.volDiasAviso;
-    const eventoNombre   = cfg.nombre;
-    const eventoEdicion  = cfg.edicion;
+    const volDiasAviso = cfg.volDiasAviso;
+    const eventoNombre = cfg.nombre;
+    const eventoEdicion = cfg.edicion;
 
     // PRESUPUESTO
-    const conceptos    = get("teg_presupuesto_v1_conceptos", []);
-    const tramos       = get("teg_presupuesto_v1_tramos", []);
-    const inscritos    = get("teg_presupuesto_v1_inscritos", { tramos: {} });
-    const syncConfig     = get("teg_presupuesto_v1_syncConfig", { patrocinios: true, camisetas: true });
+    const conceptos = get("teg_presupuesto_v1_conceptos", []);
+    const tramos = get("teg_presupuesto_v1_tramos", []);
+    const inscritos = get("teg_presupuesto_v1_inscritos", { tramos: {} });
+    const syncConfig = get("teg_presupuesto_v1_syncConfig", { patrocinios: true, camisetas: true });
     const scenarioActivo = get("teg_scenario_active_name", null);
     // Camisetas: leer pedidos y coste directamente (igual que useBudgetLogic)
-    const camPedidos     = get("teg_camisetas_v1_pedidos", []);
+    const camPedidos = get("teg_camisetas_v1_pedidos", []);
     // INC-04 fix: usar COSTE_DEFAULT coherente con el bloque Camisetas
-    const camCoste       = get("teg_camisetas_v1_coste", COSTE_DEFAULT);
+    const camCoste = get("teg_camisetas_v1_coste", COSTE_DEFAULT);
     // Cálculo de camisetas delegado a calculateResultadoFinanciero
-    const pats           = get("teg_patrocinadores_v1_pats", []);
-    const ingresosExtra  = get("teg_presupuesto_v1_ingresosExtra", []);
-    const merchandising  = get("teg_presupuesto_v1_merchandising", []);
-    const maximos        = get("teg_presupuesto_v1_maximos", {});
+    const pats = get("teg_patrocinadores_v1_pats", []);
+    const ingresosExtra = get("teg_presupuesto_v1_ingresosExtra", []);
+    const merchandising = get("teg_presupuesto_v1_merchandising", []);
+    const maximos = get("teg_presupuesto_v1_maximos", {});
 
     // ── Cálculos financieros — usando budgetUtils (fuente única de verdad)
     // Misma lógica que useBudgetLogic.js para garantizar consistencia con Presupuesto
-    const inscritosBU    = calculateTotalInscritos(tramos, inscritos);
-    const ingresosBU     = calculateIngresosPorDistancia(tramos, inscritos);
-    const costesFijosBU  = calculateCostesFijos(conceptos, inscritosBU);
-    const costesVarsBU   = calculateCostesVariables(conceptos, inscritosBU);
+    const inscritosBU = calculateTotalInscritos(tramos, inscritos);
+    const ingresosBU = calculateIngresosPorDistancia(tramos, inscritos);
+    const costesFijosBU = calculateCostesFijos(conceptos, inscritosBU);
+    const costesVarsBU = calculateCostesVariables(conceptos, inscritosBU);
 
-    const totalInscritos   = inscritosBU.total;
+    const totalInscritos = inscritosBU.total;
     const inscritosPorDist = { TG7: inscritosBU.TG7, TG13: inscritosBU.TG13, TG25: inscritosBU.TG25 };
-    const totalIngresos    = ingresosBU.total;
+    const totalIngresos = ingresosBU.total;
     const totalCostesFijos = costesFijosBU.total;
-    const totalCostesVars  = costesVarsBU.total;
+    const totalCostesVars = costesVarsBU.total;
 
-    const maximosPorDist   = { TG7: maximos?.TG7||0, TG13: maximos?.TG13||0, TG25: maximos?.TG25||0 };
-    const totalMaximos     = maximosPorDist.TG7 + maximosPorDist.TG13 + maximosPorDist.TG25;
+    const maximosPorDist = { TG7: maximos?.TG7 || 0, TG13: maximos?.TG13 || 0, TG25: maximos?.TG25 || 0 };
+    const totalMaximos = maximosPorDist.TG7 + maximosPorDist.TG13 + maximosPorDist.TG25;
     const ocupacionPorDist = {
-      TG7:  maximosPorDist.TG7  > 0 ? Math.round(inscritosPorDist.TG7  / maximosPorDist.TG7  * 100) : null,
+      TG7: maximosPorDist.TG7 > 0 ? Math.round(inscritosPorDist.TG7 / maximosPorDist.TG7 * 100) : null,
       TG13: maximosPorDist.TG13 > 0 ? Math.round(inscritosPorDist.TG13 / maximosPorDist.TG13 * 100) : null,
       TG25: maximosPorDist.TG25 > 0 ? Math.round(inscritosPorDist.TG25 / maximosPorDist.TG25 * 100) : null,
     };
-    const ocupacionGlobal  = totalMaximos > 0 ? Math.round(totalInscritos / totalMaximos * 100) : null;
+    const ocupacionGlobal = totalMaximos > 0 ? Math.round(totalInscritos / totalMaximos * 100) : null;
 
     // ── Resultado financiero — fuente única de verdad via calculateResultadoFinanciero
     const {
@@ -179,29 +179,29 @@ export default function Dashboard() {
     });
 
     // VOLUNTARIOS
-    const voluntarios      = get("teg_voluntarios_v1_voluntarios", []);
-    const puestos          = get("teg_voluntarios_v1_puestos", []);
-    const volConfirmados   = voluntarios.filter(v => v.estado==="confirmado").length;
-    const volPendientes    = voluntarios.filter(v => v.estado==="pendiente").length;
-    const totalNecesarios  = puestos.reduce((s,p) => s+p.necesarios, 0);
-    const coberturaVol     = totalNecesarios > 0 ? Math.round(volConfirmados/totalNecesarios*100) : 0;
+    const voluntarios = get("teg_voluntarios_v1_voluntarios", []);
+    const puestos = get("teg_voluntarios_v1_puestos", []);
+    const volConfirmados = voluntarios.filter(v => v.estado === "confirmado").length;
+    const volPendientes = voluntarios.filter(v => v.estado === "pendiente").length;
+    const totalNecesarios = puestos.reduce((s, p) => s + p.necesarios, 0);
+    const coberturaVol = totalNecesarios > 0 ? Math.round(volConfirmados / totalNecesarios * 100) : 0;
     const puestosConCobertura = puestos.map(p => {
-      const asig = voluntarios.filter(v => v.puestoId===p.id && v.estado!=="cancelado").length;
-      const confirmados = voluntarios.filter(v => v.puestoId===p.id && v.estado==="confirmado").length;
+      const asig = voluntarios.filter(v => v.puestoId === p.id && v.estado !== "cancelado").length;
+      const confirmados = voluntarios.filter(v => v.puestoId === p.id && v.estado === "confirmado").length;
       const deficit = Math.max(0, p.necesarios - asig);
-      const pct = p.necesarios > 0 ? Math.round(asig/p.necesarios*100) : 100;
+      const pct = p.necesarios > 0 ? Math.round(asig / p.necesarios * 100) : 100;
       return { ...p, asig, confirmados, deficit, pct };
     });
-    const puestosAlerta    = puestosConCobertura.filter(p => p.pct < 50);
-    const puestosBajos     = puestosConCobertura.filter(p => p.pct >= 50 && p.pct < 100);
+    const puestosAlerta = puestosConCobertura.filter(p => p.pct < 50);
+    const puestosBajos = puestosConCobertura.filter(p => p.pct >= 50 && p.pct < 100);
 
     // PATROCINADORES
-    const objetivo        = get("teg_patrocinadores_v1_obj", 8000);
-    const patComprometido = pats.filter(p => p.estado==="confirmado"||p.estado==="cobrado").reduce((s,p) => s+(p.importe||0), 0);
+    const objetivo = get("teg_patrocinadores_v1_obj", 8000);
+    const patComprometido = pats.filter(p => p.estado === "confirmado" || p.estado === "cobrado").reduce((s, p) => s + (p.importe || 0), 0);
     // BUG-01 fix: usar getImporteCobrado para manejar cobros parciales
-    const patCobrado      = pats.filter(p => p.estado==="cobrado").reduce((s,p) => s + getImporteCobrado(p), 0);
-    const patPipeline     = pats.filter(p => p.estado==="negociando"||p.estado==="prospecto").reduce((s,p) => s+(p.importe||0), 0);
-    const contPendientes  = pats.reduce((s,p) => s+(p.contraprestaciones||[]).filter(c=>c.estado==="pendiente").length, 0);
+    const patCobrado = pats.filter(p => p.estado === "cobrado").reduce((s, p) => s + getImporteCobrado(p), 0);
+    const patPipeline = pats.filter(p => p.estado === "negociando" || p.estado === "prospecto").reduce((s, p) => s + (p.importe || 0), 0);
+    const contPendientes = pats.reduce((s, p) => s + (p.contraprestaciones || []).filter(c => c.estado === "pendiente").length, 0);
     const patsSinSeguimiento = pats.filter(p =>
       p.estado === "negociando" &&
       p.proximoContacto &&
@@ -209,34 +209,34 @@ export default function Dashboard() {
     );
 
     // LOGÍSTICA
-    const material   = get("teg_logistica_v1_mat", []);
-    const asigs      = get("teg_logistica_v1_asig", []);
-    const tl         = get("teg_logistica_v1_tl", []);
-    const ck         = get("teg_logistica_v1_ck", []);
-    const tlDone     = tl.filter(t => t.estado==="completado").length;
-    const ckDone     = ck.filter(c => c.estado==="completado").length;
+    const material = get("teg_logistica_v1_mat", []);
+    const asigs = get("teg_logistica_v1_asig", []);
+    const tl = get("teg_logistica_v1_tl", []);
+    const ck = get("teg_logistica_v1_ck", []);
+    const tlDone = tl.filter(t => t.estado === "completado").length;
+    const ckDone = ck.filter(c => c.estado === "completado").length;
     const stockAlerts = material.filter(m => {
-      const asig = asigs.filter(a => a.materialId===m.id).reduce((s,a) => s+a.cantidad, 0);
+      const asig = asigs.filter(a => a.materialId === m.id).reduce((s, a) => s + a.cantidad, 0);
       return asig > m.stock;
     });
     const materialesBajoMinimo = material.filter(m => m.stockMinimo > 0 && m.stock < m.stockMinimo);
 
     // PROYECTO
-    const tareas          = get("teg_proyecto_v1_tareas", []);
-    const hitos           = get("teg_proyecto_v1_hitos", []);
-    const tareasTotal     = tareas.length;
-    const tareasCompletadas = tareas.filter(t => t.estado==="completado").length;
-    const tareasBloqueadas  = tareas.filter(t => t.estado==="bloqueado").length;
-    const tareasVencidas    = tareas.filter(t => t.estado!=="completado" && t.fechaLimite && new Date(t.fechaLimite)<TODAY).length;
-    const progresoGlobal  = tareasTotal > 0 ? Math.round(tareasCompletadas/tareasTotal*100) : 0;
-    const hitosProximos   = hitos.filter(h => !h.completado && h.fecha).sort((a,b) => a.fecha.localeCompare(b.fecha)).slice(0,5);
+    const tareas = get("teg_proyecto_v1_tareas", []);
+    const hitos = get("teg_proyecto_v1_hitos", []);
+    const tareasTotal = tareas.length;
+    const tareasCompletadas = tareas.filter(t => t.estado === "completado").length;
+    const tareasBloqueadas = tareas.filter(t => t.estado === "bloqueado").length;
+    const tareasVencidas = tareas.filter(t => t.estado !== "completado" && t.fechaLimite && new Date(t.fechaLimite) < TODAY).length;
+    const progresoGlobal = tareasTotal > 0 ? Math.round(tareasCompletadas / tareasTotal * 100) : 0;
+    const hitosProximos = hitos.filter(h => !h.completado && h.fecha).sort((a, b) => a.fecha.localeCompare(b.fecha)).slice(0, 5);
 
 
     // ── DOCUMENTOS — vencidos y próximos ─────────────────────────────────
     const _rawDocumentos = get("teg_documentos_v1", []);
-    const documentos     = Array.isArray(_rawDocumentos) ? _rawDocumentos : []; // DUP-DASH-02 fix: single get() call
-    const diasHastaDoc   = (iso) => iso ? Math.ceil((new Date(iso) - TODAY) / 86400000) : null;
-    const docsVencidos   = documentos.filter(d => {
+    const documentos = Array.isArray(_rawDocumentos) ? _rawDocumentos : []; // DUP-DASH-02 fix: single get() call
+    const diasHastaDoc = (iso) => iso ? Math.ceil((new Date(iso) - TODAY) / 86400000) : null;
+    const docsVencidos = documentos.filter(d => {
       const dias = diasHastaDoc(d.fechaVencimiento);
       return dias !== null && dias < 0 && d.estado !== "aprobado";
     });
@@ -246,13 +246,13 @@ export default function Dashboard() {
     });
 
     // ── GESTIONES LEGALES — permisos, licencias, seguros ──────────────────
-    const gestiones          = Array.isArray(get("teg_documentos_v1_gestiones", [])) ? get("teg_documentos_v1_gestiones", []) : [];
+    const gestiones = Array.isArray(get("teg_documentos_v1_gestiones", [])) ? get("teg_documentos_v1_gestiones", []) : [];
     const gestionesDenegadas = gestiones.filter(g => g.estado === "denegado");
-    const gestionesVencidas  = gestiones.filter(g => {
+    const gestionesVencidas = gestiones.filter(g => {
       const dias = diasHastaDoc(g.fechaVencimiento);
       return dias !== null && dias < 0 && g.estado !== "aprobado" && g.estado !== "denegado";
     });
-    const gestionesUrgentes  = gestiones.filter(g => {
+    const gestionesUrgentes = gestiones.filter(g => {
       const dias = diasHastaDoc(g.fechaVencimiento);
       return dias !== null && dias >= 0 && dias <= 30 && g.estado !== "aprobado";
     });
@@ -261,39 +261,51 @@ export default function Dashboard() {
     // Cada módulo aporta un % ponderado a la "salud" total del evento
     const saludModulos = [
       // ── Módulos principales (en orden de criticidad operativa) ───────────
-      { label:"Proyecto",      icon:"🏔️", bloque:"proyecto",
+      {
+        label: "Proyecto", icon: "🏔️", bloque: "proyecto",
         score: progresoGlobal,
-        color: progresoGlobal >= 80 ? "var(--green)" : progresoGlobal >= 50 ? "var(--amber)" : "var(--red)" },
-      { label:"Voluntarios",   icon:"👥", bloque:"voluntarios",
+        color: progresoGlobal >= 80 ? "var(--green)" : progresoGlobal >= 50 ? "var(--amber)" : "var(--red)"
+      },
+      {
+        label: "Voluntarios", icon: "👥", bloque: "voluntarios",
         score: coberturaVol,
-        color: coberturaVol >= 80 ? "var(--green)" : coberturaVol >= 50 ? "var(--amber)" : "var(--red)" },
-      { label:"Logística",     icon:"📦", bloque:"logistica",
-        score: ck.length > 0 ? Math.round(ckDone/ck.length*100) : 0,
-        color: ck.length === 0 ? "var(--text-muted)" : ckDone >= ck.length*0.8 ? "var(--green)" : ckDone >= ck.length*0.5 ? "var(--amber)" : "var(--red)" },
-      { label:"Documentos",    icon:"📁", bloque:"documentos",
+        color: coberturaVol >= 80 ? "var(--green)" : coberturaVol >= 50 ? "var(--amber)" : "var(--red)"
+      },
+      {
+        label: "Logística", icon: "📦", bloque: "logistica",
+        score: ck.length > 0 ? Math.round(ckDone / ck.length * 100) : 0,
+        color: ck.length === 0 ? "var(--text-muted)" : ckDone >= ck.length * 0.8 ? "var(--green)" : ckDone >= ck.length * 0.5 ? "var(--amber)" : "var(--red)"
+      },
+      {
+        label: "Documentos", icon: "📁", bloque: "documentos",
         score: (() => {
           const total = documentos.length + gestiones.length;
           if (total === 0) return 100;
           const problemas = docsVencidos.length + gestionesDenegadas.length + gestionesVencidas.length;
           return Math.max(0, Math.round((1 - problemas / total) * 100));
         })(),
-        color: docsVencidos.length > 0 || gestionesDenegadas.length > 0 ? "var(--red)" : docsProxVencer.length > 0 || gestionesUrgentes.length > 0 ? "var(--amber)" : "var(--green)" },
+        color: docsVencidos.length > 0 || gestionesDenegadas.length > 0 ? "var(--red)" : docsProxVencer.length > 0 || gestionesUrgentes.length > 0 ? "var(--amber)" : "var(--green)"
+      },
       // ── Indicadores financieros ──────────────────────────────────────────
-      { label:"Presupuesto",   icon:"💰", bloque:"presupuesto",
-        score: resultado >= 0 ? 100 : Math.max(0, 100 + Math.round(resultado / Math.max(totalCostesFijos+totalCostesVars,1) * 100)),
-        color: resultado >= 0 ? "var(--green)" : resultado > -(totalCostesFijos+totalCostesVars)*0.2 ? "var(--amber)" : "var(--red)" },
-      { label:"Patrocinadores",icon:"🤝", bloque:"patrocinadores",
-        score: objetivo > 0 ? Math.min(100, Math.round(patComprometido/objetivo*100)) : 100,
-        color: patComprometido >= objetivo*0.8 ? "var(--green)" : patComprometido >= objetivo*0.5 ? "var(--amber)" : "var(--red)" },
+      {
+        label: "Presupuesto", icon: "💰", bloque: "presupuesto",
+        score: resultado >= 0 ? 100 : Math.max(0, 100 + Math.round(resultado / Math.max(totalCostesFijos + totalCostesVars, 1) * 100)),
+        color: resultado >= 0 ? "var(--green)" : resultado > -(totalCostesFijos + totalCostesVars) * 0.2 ? "var(--amber)" : "var(--red)"
+      },
+      {
+        label: "Patrocinadores", icon: "🤝", bloque: "patrocinadores",
+        score: objetivo > 0 ? Math.min(100, Math.round(patComprometido / objetivo * 100)) : 100,
+        color: patComprometido >= objetivo * 0.8 ? "var(--green)" : patComprometido >= objetivo * 0.5 ? "var(--amber)" : "var(--red)"
+      },
     ];
-    const saludGlobal = Math.round(saludModulos.reduce((s,m) => s+m.score, 0) / saludModulos.length);
+    const saludGlobal = Math.round(saludModulos.reduce((s, m) => s + m.score, 0) / saludModulos.length);
 
     // ── ALERTAS con prioridad ──────────────────────────────────────────────
     const alertasCriticas = [];
-    const alertasAvisos   = [];
+    const alertasAvisos = [];
 
     if (tareasVencidas > 0)
-      alertasCriticas.push({ icon:"🔴", texto:`${tareasVencidas} tarea${tareasVencidas!==1?"s":""} vencida${tareasVencidas!==1?"s":""} sin completar`, modulo:"proyecto" });
+      alertasCriticas.push({ icon: "🔴", texto: `${tareasVencidas} tarea${tareasVencidas !== 1 ? "s" : ""} vencida${tareasVencidas !== 1 ? "s" : ""} sin completar`, modulo: "proyecto" });
     // Alertas preventivas: próximas a vencer ≤7 días (no vencidas)
     const tareasProxVencer = tareas.filter(t =>
       t.estado !== "completado" && t.estado !== "bloqueado" && t.fechaLimite &&
@@ -301,11 +313,11 @@ export default function Dashboard() {
       Math.ceil((new Date(t.fechaLimite) - TODAY) / 86400000) <= 7
     ).length;
     if (tareasProxVencer > 0)
-      alertasAvisos.push({ icon:"⚡", texto:`${tareasProxVencer} tarea${tareasProxVencer!==1?"s":""} vence${tareasProxVencer===1?"":"n"} en ≤7 días`, modulo:"proyecto" });
+      alertasAvisos.push({ icon: "⚡", texto: `${tareasProxVencer} tarea${tareasProxVencer !== 1 ? "s" : ""} vence${tareasProxVencer === 1 ? "" : "n"} en ≤7 días`, modulo: "proyecto" });
     // Alerta contextual DíaCarrera cuando el evento está próximo (≤7 días)
     // diasHasta ya está calculado arriba usando eventoFecha y cfg
     if (diasHasta >= 0 && diasHasta <= 7)
-      alertasCriticas.push({ icon:"🏁", texto:`¡El evento es en ${diasHasta === 0 ? "HOY" : diasHasta + " días"}! Revisa el módulo Día de Carrera`, modulo:"diaCarrera" });
+      alertasCriticas.push({ icon: "🏁", texto: `¡El evento es en ${diasHasta === 0 ? "HOY" : diasHasta + " días"}! Revisa el módulo Día de Carrera`, modulo: "diaCarrera" });
     // ── Alertas de voluntarios — sensibles al tiempo restante ───────────────
     // La cobertura de puestos es una tarea de los últimos días antes de la carrera.
     // Alertar en rojo a 3 meses vista genera ruido sin valor operativo.
@@ -316,61 +328,61 @@ export default function Dashboard() {
     if (diasHasta <= volDiasCritico) {
       // Semana de carrera — cualquier hueco es crítico
       if (coberturaVol < 50)
-        alertasCriticas.push({ icon:"🔴", texto:`Cobertura de voluntarios crítica: ${coberturaVol}%`, modulo:"voluntarios" });
+        alertasCriticas.push({ icon: "🔴", texto: `Cobertura de voluntarios crítica: ${coberturaVol}%`, modulo: "voluntarios" });
       if (puestosAlerta.length > 0) {
         const resumen = puestosAlerta.map(p => `${p.nombre} (${p.asig}/${p.necesarios})`).join(", ");
-        alertasCriticas.push({ icon:"🔴", texto:`${puestosAlerta.length} puesto${puestosAlerta.length>1?"s":""} con cobertura crítica: ${resumen}`, modulo:"voluntarios" });
+        alertasCriticas.push({ icon: "🔴", texto: `${puestosAlerta.length} puesto${puestosAlerta.length > 1 ? "s" : ""} con cobertura crítica: ${resumen}`, modulo: "voluntarios" });
       }
       if (puestosBajos.length > 0) {
         const resumen = puestosBajos.map(p => `${p.nombre} (${p.asig}/${p.necesarios})`).join(", ");
-        alertasCriticas.push({ icon:"🟡", texto:`${puestosBajos.length} puesto${puestosBajos.length>1?"s":""} sin cobertura completa: ${resumen}`, modulo:"voluntarios" });
+        alertasCriticas.push({ icon: "🟡", texto: `${puestosBajos.length} puesto${puestosBajos.length > 1 ? "s" : ""} sin cobertura completa: ${resumen}`, modulo: "voluntarios" });
       }
     } else if (diasHasta <= volDiasAviso) {
       // Mes previo — avisos para ir gestionando
       if (coberturaVol < 50)
-        alertasAvisos.push({ icon:"🟡", texto:`Cobertura de voluntarios al ${coberturaVol}% — conviene confirmar puestos`, modulo:"voluntarios" });
+        alertasAvisos.push({ icon: "🟡", texto: `Cobertura de voluntarios al ${coberturaVol}% — conviene confirmar puestos`, modulo: "voluntarios" });
       if (puestosAlerta.length > 0) {
         const resumen = puestosAlerta.map(p => `${p.nombre} (${p.asig}/${p.necesarios})`).join(", ");
-        alertasAvisos.push({ icon:"🟡", texto:`${puestosAlerta.length} puesto${puestosAlerta.length>1?"s":""} pendientes de cubrir: ${resumen}`, modulo:"voluntarios" });
+        alertasAvisos.push({ icon: "🟡", texto: `${puestosAlerta.length} puesto${puestosAlerta.length > 1 ? "s" : ""} pendientes de cubrir: ${resumen}`, modulo: "voluntarios" });
       }
     }
     // > 30 días: sin alertas de voluntarios — es pronto para preocuparse
     if (resultado < 0)
-      alertasCriticas.push({ icon:"🔴", texto:`Resultado negativo: ${fmtEur(resultado)}`, modulo:"presupuesto" });
+      alertasCriticas.push({ icon: "🔴", texto: `Resultado negativo: ${fmtEur(resultado)}`, modulo: "presupuesto" });
     if (docsVencidos.length > 0)
-      alertasCriticas.push({ icon:"🔴", texto:`${docsVencidos.length} documento${docsVencidos.length>1?"s":""} vencido${docsVencidos.length>1?"s":""}: ${docsVencidos.map(d=>d.nombre).slice(0,2).join(", ")}${docsVencidos.length>2?"...":""}`, modulo:"documentos" });
+      alertasCriticas.push({ icon: "🔴", texto: `${docsVencidos.length} documento${docsVencidos.length > 1 ? "s" : ""} vencido${docsVencidos.length > 1 ? "s" : ""}: ${docsVencidos.map(d => d.nombre).slice(0, 2).join(", ")}${docsVencidos.length > 2 ? "..." : ""}`, modulo: "documentos" });
     if (docsProxVencer.length > 0)
-      alertasAvisos.push({ icon:"🟡", texto:`${docsProxVencer.length} documento${docsProxVencer.length>1?"s":""} por vencer en ≤30 días`, modulo:"documentos" });
+      alertasAvisos.push({ icon: "🟡", texto: `${docsProxVencer.length} documento${docsProxVencer.length > 1 ? "s" : ""} por vencer en ≤30 días`, modulo: "documentos" });
     // Gestiones legales — máxima prioridad
     if (gestionesDenegadas.length > 0)
-      alertasCriticas.push({ icon:"🚫", texto:`Gestión${gestionesDenegadas.length>1?"es":""} denegada${gestionesDenegadas.length>1?"s":""}: ${gestionesDenegadas.map(g=>g.nombre).join(", ")}`, modulo:"documentos" });
+      alertasCriticas.push({ icon: "🚫", texto: `Gestión${gestionesDenegadas.length > 1 ? "es" : ""} denegada${gestionesDenegadas.length > 1 ? "s" : ""}: ${gestionesDenegadas.map(g => g.nombre).join(", ")}`, modulo: "documentos" });
     if (gestionesVencidas.length > 0)
-      alertasCriticas.push({ icon:"🔴", texto:`Permiso${gestionesVencidas.length>1?"s":""} vencido${gestionesVencidas.length>1?"s":""} sin aprobar: ${gestionesVencidas.map(g=>g.nombre).slice(0,2).join(", ")}${gestionesVencidas.length>2?"...":""}`, modulo:"documentos" });
+      alertasCriticas.push({ icon: "🔴", texto: `Permiso${gestionesVencidas.length > 1 ? "s" : ""} vencido${gestionesVencidas.length > 1 ? "s" : ""} sin aprobar: ${gestionesVencidas.map(g => g.nombre).slice(0, 2).join(", ")}${gestionesVencidas.length > 2 ? "..." : ""}`, modulo: "documentos" });
     if (gestionesUrgentes.length > 0)
-      alertasAvisos.push({ icon:"🏛️", texto:`${gestionesUrgentes.length} gestión${gestionesUrgentes.length>1?"es":""} legal${gestionesUrgentes.length>1?"es":""} con plazo ≤30 días: ${gestionesUrgentes.map(g=>g.nombre).slice(0,2).join(", ")}${gestionesUrgentes.length>2?"...":""}`, modulo:"documentos" });
+      alertasAvisos.push({ icon: "🏛️", texto: `${gestionesUrgentes.length} gestión${gestionesUrgentes.length > 1 ? "es" : ""} legal${gestionesUrgentes.length > 1 ? "es" : ""} con plazo ≤30 días: ${gestionesUrgentes.map(g => g.nombre).slice(0, 2).join(", ")}${gestionesUrgentes.length > 2 ? "..." : ""}`, modulo: "documentos" });
     if (tareasBloqueadas > 0)
-      alertasAvisos.push({ icon:"🟡", texto:`${tareasBloqueadas} tareas bloqueadas`, modulo:"proyecto" });
+      alertasAvisos.push({ icon: "🟡", texto: `${tareasBloqueadas} tareas bloqueadas`, modulo: "proyecto" });
     if (diasHasta <= volDiasAviso && coberturaVol >= 50 && coberturaVol < 80)
-      alertasAvisos.push({ icon:"🟡", texto:`Cobertura de voluntarios al ${coberturaVol}% — quedan ${diasHasta} días`, modulo:"voluntarios" });
+      alertasAvisos.push({ icon: "🟡", texto: `Cobertura de voluntarios al ${coberturaVol}% — quedan ${diasHasta} días`, modulo: "voluntarios" });
     if (volPendientes > 0)
-      alertasAvisos.push({ icon:"🔵", texto:`${volPendientes} voluntarios pendientes de confirmar`, modulo:"voluntarios" });
-    if (patComprometido < objetivo*0.5)
-      alertasAvisos.push({ icon:"🟡", texto:`Patrocinio al ${Math.round(patComprometido/objetivo*100)}% del objetivo`, modulo:"patrocinadores" });
+      alertasAvisos.push({ icon: "🔵", texto: `${volPendientes} voluntarios pendientes de confirmar`, modulo: "voluntarios" });
+    if (patComprometido < objetivo * 0.5)
+      alertasAvisos.push({ icon: "🟡", texto: `Patrocinio al ${Math.round(patComprometido / objetivo * 100)}% del objetivo`, modulo: "patrocinadores" });
     if (contPendientes > 0)
-      alertasAvisos.push({ icon:"🔵", texto:`${contPendientes} contraprestaciones pendientes`, modulo:"patrocinadores" });
+      alertasAvisos.push({ icon: "🔵", texto: `${contPendientes} contraprestaciones pendientes`, modulo: "patrocinadores" });
     if (patsSinSeguimiento.length > 0)
-      alertasAvisos.push({ icon:"📞", texto:`${patsSinSeguimiento.length} patrocinador${patsSinSeguimiento.length!==1?"es":""} con seguimiento vencido: ${patsSinSeguimiento.slice(0,2).map(p=>p.nombre).join(", ")}${patsSinSeguimiento.length>2?"...":""}`, modulo:"patrocinadores" });
+      alertasAvisos.push({ icon: "📞", texto: `${patsSinSeguimiento.length} patrocinador${patsSinSeguimiento.length !== 1 ? "es" : ""} con seguimiento vencido: ${patsSinSeguimiento.slice(0, 2).map(p => p.nombre).join(", ")}${patsSinSeguimiento.length > 2 ? "..." : ""}`, modulo: "patrocinadores" });
     if (stockAlerts.length > 0)
-      alertasAvisos.push({ icon:"🟡", texto:`${stockAlerts.length} materiales con sobreasignación de stock`, modulo:"logistica" });
+      alertasAvisos.push({ icon: "🟡", texto: `${stockAlerts.length} materiales con sobreasignación de stock`, modulo: "logistica" });
     if (materialesBajoMinimo.length > 0)
-      alertasAvisos.push({ icon:"📦", texto:`${materialesBajoMinimo.length} material${materialesBajoMinimo.length!==1?"es":""} por debajo del stock mínimo: ${materialesBajoMinimo.slice(0,2).map(m=>m.nombre).join(", ")}${materialesBajoMinimo.length>2?"...":""}`, modulo:"logistica" });
+      alertasAvisos.push({ icon: "📦", texto: `${materialesBajoMinimo.length} material${materialesBajoMinimo.length !== 1 ? "es" : ""} por debajo del stock mínimo: ${materialesBajoMinimo.slice(0, 2).map(m => m.nombre).join(", ")}${materialesBajoMinimo.length > 2 ? "..." : ""}`, modulo: "logistica" });
     hitosProximos.forEach(h => {
       const dias = Math.ceil((new Date(h.fecha) - TODAY) / 86400000);
       if (dias <= 14 && dias >= 0 && h.critico)
-        alertasAvisos.push({ icon:"⚡", texto:`Hito crítico en ${dias}d: ${h.nombre}`, modulo:"proyecto" });
+        alertasAvisos.push({ icon: "⚡", texto: `Hito crítico en ${dias}d: ${h.nombre}`, modulo: "proyecto" });
     });
 
-    const eventoFechaStr = eventoFecha.toLocaleDateString("es-ES", { day:"2-digit", month:"long", year:"numeric" });
+    const eventoFechaStr = eventoFecha.toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" });
 
     return {
       eventoNombre, eventoEdicion, eventoFechaStr,
@@ -397,52 +409,52 @@ export default function Dashboard() {
         <style>{BLOCK_CSS + DASH_EXTRA_CSS}</style>
         <div className="block-container">
           {/* Header skeleton */}
-          <div className="block-header" style={{ marginBottom:"1rem" }}>
-            <div style={{ display:"flex", flexDirection:"column", gap:".4rem" }}>
-              <div className="skel" style={{ width:160, height:20 }} />
-              <div className="skel" style={{ width:120, height:12 }} />
+          <div className="block-header" style={{ marginBottom: "1rem" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: ".4rem" }}>
+              <div className="skel" style={{ width: 160, height: 20 }} />
+              <div className="skel" style={{ width: 120, height: 12 }} />
             </div>
           </div>
           {/* Barra de salud skeleton */}
-          <div className="card" style={{ marginBottom:"1rem", padding:"1rem" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:".65rem" }}>
-              <div className="skel" style={{ width:140, height:14 }} />
-              <div className="skel" style={{ width:48, height:20 }} />
+          <div className="card" style={{ marginBottom: "1rem", padding: "1rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ".65rem" }}>
+              <div className="skel" style={{ width: 140, height: 14 }} />
+              <div className="skel" style={{ width: 48, height: 20 }} />
             </div>
-            <div className="skel" style={{ width:"100%", height:8, borderRadius:99 }} />
+            <div className="skel" style={{ width: "100%", height: 8, borderRadius: 99 }} />
           </div>
           {/* KPI grid skeleton — 6 cards */}
           <div className="kpi-grid mb">
-            {[1,2,3,4,5,6].map(i => (
-              <div key={i} className="kpi" style={{ gap:".5rem" }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                  <div className="skel" style={{ width:80, height:11 }} />
-                  <div className="skel" style={{ width:20, height:11, borderRadius:99 }} />
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="kpi" style={{ gap: ".5rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div className="skel" style={{ width: 80, height: 11 }} />
+                  <div className="skel" style={{ width: 20, height: 11, borderRadius: 99 }} />
                 </div>
-                <div className="skel" style={{ width:"60%", height:28 }} />
-                <div className="skel" style={{ width:"85%", height:10 }} />
-                <div className="skel" style={{ width:"100%", height:4, borderRadius:99, marginTop:".25rem" }} />
+                <div className="skel" style={{ width: "60%", height: 28 }} />
+                <div className="skel" style={{ width: "85%", height: 10 }} />
+                <div className="skel" style={{ width: "100%", height: 4, borderRadius: 99, marginTop: ".25rem" }} />
               </div>
             ))}
           </div>
           {/* Timeline skeleton */}
-          <div className="card" style={{ marginBottom:"1rem", padding:".85rem 1rem" }}>
-            <div className="skel" style={{ width:120, height:13, marginBottom:".75rem" }} />
-            {[1,2,3].map(i => (
-              <div key={i} style={{ display:"flex", gap:".65rem", alignItems:"center", marginBottom:".5rem" }}>
-                <div className="skel" style={{ width:42, height:11, flexShrink:0 }} />
-                <div className="skel" style={{ flex:1, height:11 }} />
-                <div className="skel" style={{ width:60, height:11, flexShrink:0 }} />
+          <div className="card" style={{ marginBottom: "1rem", padding: ".85rem 1rem" }}>
+            <div className="skel" style={{ width: 120, height: 13, marginBottom: ".75rem" }} />
+            {[1, 2, 3].map(i => (
+              <div key={i} style={{ display: "flex", gap: ".65rem", alignItems: "center", marginBottom: ".5rem" }}>
+                <div className="skel" style={{ width: 42, height: 11, flexShrink: 0 }} />
+                <div className="skel" style={{ flex: 1, height: 11 }} />
+                <div className="skel" style={{ width: 60, height: 11, flexShrink: 0 }} />
               </div>
             ))}
           </div>
           {/* Alertas skeleton */}
-          <div className="card" style={{ padding:".75rem 1rem" }}>
-            <div className="skel" style={{ width:100, height:13, marginBottom:".65rem" }} />
-            {[1,2].map(i => (
-              <div key={i} style={{ display:"flex", gap:".5rem", alignItems:"center", marginBottom:".4rem" }}>
-                <div className="skel" style={{ width:16, height:16, borderRadius:"50%", flexShrink:0 }} />
-                <div className="skel" style={{ flex:1, height:11 }} />
+          <div className="card" style={{ padding: ".75rem 1rem" }}>
+            <div className="skel" style={{ width: 100, height: 13, marginBottom: ".65rem" }} />
+            {[1, 2].map(i => (
+              <div key={i} style={{ display: "flex", gap: ".5rem", alignItems: "center", marginBottom: ".4rem" }}>
+                <div className="skel" style={{ width: 16, height: 16, borderRadius: "50%", flexShrink: 0 }} />
+                <div className="skel" style={{ flex: 1, height: 11 }} />
               </div>
             ))}
           </div>
@@ -465,28 +477,28 @@ export default function Dashboard() {
         {/* FRAG-DASH-01: indicador sutil de actualización de datos en curso */}
         {isRefreshing && (
           <div style={{
-            fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-            color:"var(--amber)", background:"rgba(251,191,36,.08)",
-            border:"1px solid rgba(251,191,36,.2)",
-            borderRadius:6, padding:".25rem .6rem",
-            marginBottom:".5rem", display:"inline-flex",
-            alignItems:"center", gap:".35rem",
+            fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+            color: "var(--amber)", background: "rgba(251,191,36,.08)",
+            border: "1px solid rgba(251,191,36,.2)",
+            borderRadius: 6, padding: ".25rem .6rem",
+            marginBottom: ".5rem", display: "inline-flex",
+            alignItems: "center", gap: ".35rem",
           }}>
-            <span style={{animation:"spin 1s linear infinite",display:"inline-block"}}>↻</span>
+            <span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>↻</span>
             Actualizando datos…
           </div>
         )}
         <div className="block-header">
           <div>
             <h1 className="block-title">📊 Dashboard</h1>
-            <div className="block-title-sub" style={{ display:"flex", alignItems:"center", gap:"0.5rem" }}>
+            <div className="block-title-sub" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
               {d.eventoNombre} · {d.eventoEdicion}
               {/* Dot de refresco silencioso */}
-              <span className={`dash-sync-dot ${refreshing ? "dash-sync-pulsing" : ""}`}
-                title={lastUpdated ? `Actualizado a las ${lastUpdated.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}` : "Sin datos"} />
+              <span className={`dash-sync-dot ${isRefreshing ? "dash-sync-pulsing" : ""}`}
+                title={lastUpdated ? `Actualizado a las ${lastUpdated.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}` : "Sin datos"} />
               {lastUpdated && (
-                <span className="mono" style={{ fontSize:"0.52rem", color:"var(--text-dim)" }}>
-                  {lastUpdated.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})}
+                <span className="mono" style={{ fontSize: "0.52rem", color: "var(--text-dim)" }}>
+                  {lastUpdated.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
                 </span>
               )}
             </div>
@@ -497,37 +509,41 @@ export default function Dashboard() {
         {/* ── Banner de escenario activo — SIEMPRE PRIMERO ── */}
         {d.scenarioActivo && (
           <div style={{
-            display:"flex", alignItems:"center", justifyContent:"space-between",
-            gap:".75rem", padding:".7rem 1rem", marginBottom:".85rem",
-            borderRadius:8, flexWrap:"wrap",
-            background:"rgba(251,191,36,.1)",
-            border:"2px solid rgba(251,191,36,.4)",
-            boxShadow:"0 0 0 4px rgba(251,191,36,.06)",
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            gap: ".75rem", padding: ".7rem 1rem", marginBottom: ".85rem",
+            borderRadius: 8, flexWrap: "wrap",
+            background: "rgba(251,191,36,.1)",
+            border: "2px solid rgba(251,191,36,.4)",
+            boxShadow: "0 0 0 4px rgba(251,191,36,.06)",
           }}>
-            <div style={{display:"flex",alignItems:"center",gap:".6rem"}}>
-              <span style={{fontSize:"var(--fs-lg)"}}>🔬</span>
+            <div style={{ display: "flex", alignItems: "center", gap: ".6rem" }}>
+              <span style={{ fontSize: "var(--fs-lg)" }}>🔬</span>
               <div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",fontWeight:800,
-                  color:"var(--amber)",textTransform:"uppercase",letterSpacing:".06em"}}>
+                <div style={{
+                  fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 800,
+                  color: "var(--amber)", textTransform: "uppercase", letterSpacing: ".06em"
+                }}>
                   ⚠️ MODO ESCENARIO ACTIVO
                 </div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>
                   Escenario «{d.scenarioActivo}» activo en Presupuesto. Este Dashboard siempre muestra <strong>datos reales</strong>, no del escenario.
                 </div>
               </div>
             </div>
             <button
-              onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"presupuesto"}}))}
-              style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".28rem .65rem",
-                borderRadius:6,border:"1px solid rgba(251,191,36,.4)",
-                background:"rgba(251,191,36,.15)",color:"var(--amber)",cursor:"pointer",
-                flexShrink:0,whiteSpace:"nowrap",fontWeight:700}}>
+              onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "presupuesto" } }))}
+              style={{
+                fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", padding: ".28rem .65rem",
+                borderRadius: 6, border: "1px solid rgba(251,191,36,.4)",
+                background: "rgba(251,191,36,.15)", color: "var(--amber)", cursor: "pointer",
+                flexShrink: 0, whiteSpace: "nowrap", fontWeight: 700
+              }}>
               Ver en Presupuesto →
             </button>
           </div>
         )}
 
-                {/* ── SPRINT 2.3: Botón DíaCarrera prominente ≤7 días ── */}
+        {/* ── SPRINT 2.3: Botón DíaCarrera prominente ≤7 días ── */}
         {d.esSemana && !d.yaFue && (
           <div
             onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "diaCarrera" } }))}
@@ -565,7 +581,7 @@ export default function Dashboard() {
         <div className={`dash-hero card mb ${d.esSemana ? "dash-hero-urgente" : ""}`}>
           <div className="dash-hero-bg" />
           <div className="dash-hero-content">
-            <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:"1rem", flexWrap:"wrap" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
 
               {/* Countdown */}
               <div>
@@ -574,17 +590,19 @@ export default function Dashboard() {
                 </div>
                 <div className="dash-countdown">
                   {d.yaFue
-                    ? <span className="dash-countdown-num" style={{ fontSize:"var(--fs-xl)" }}>¡Completado!</span>
+                    ? <span className="dash-countdown-num" style={{ fontSize: "var(--fs-xl)" }}>¡Completado!</span>
                     : <>
-                        <span className="dash-countdown-num">{d.diasHasta}</span>
-                        <span className="dash-countdown-label mono muted">
-                          {d.esSemana ? "⚡ días — ¡SEMANA DE CARRERA!" : "días para la carrera"}
-                        </span>
-                        <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                          color:"var(--cyan)", marginTop:".4rem", letterSpacing:".02em" }}>
-                          📅 {d.eventoFechaStr}
-                        </div>
-                      </>
+                      <span className="dash-countdown-num">{d.diasHasta}</span>
+                      <span className="dash-countdown-label mono muted">
+                        {d.esSemana ? "⚡ días — ¡SEMANA DE CARRERA!" : "días para la carrera"}
+                      </span>
+                      <div style={{
+                        fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+                        color: "var(--cyan)", marginTop: ".4rem", letterSpacing: ".02em"
+                      }}>
+                        📅 {d.eventoFechaStr}
+                      </div>
+                    </>
                   }
                 </div>
 
@@ -594,19 +612,25 @@ export default function Dashboard() {
               <div className="dash-salud-box">
                 <button
                   onClick={() => setSaludExpandida(v => !v)}
-                  style={{ width:"100%", background:"none", border:"none", cursor:"pointer",
-                    padding:0, textAlign:"left" }}>
-                  <div style={{ display:"flex", alignItems:"center",
-                    justifyContent:"space-between", marginBottom: saludExpandida ? "0.5rem" : 0 }}>
-                    <div className="mono xs muted" style={{ textTransform:"uppercase",
-                      letterSpacing:"0.08em", fontSize:"var(--fs-xs)" }}>
+                  style={{
+                    width: "100%", background: "none", border: "none", cursor: "pointer",
+                    padding: 0, textAlign: "left"
+                  }}>
+                  <div style={{
+                    display: "flex", alignItems: "center",
+                    justifyContent: "space-between", marginBottom: saludExpandida ? "0.5rem" : 0
+                  }}>
+                    <div className="mono xs muted" style={{
+                      textTransform: "uppercase",
+                      letterSpacing: "0.08em", fontSize: "var(--fs-xs)"
+                    }}>
                       Salud del evento
                     </div>
-                    <div style={{ display:"flex", alignItems:"center", gap:"0.5rem" }}>
-                      <span className="dash-salud-score" style={{ color: saludColor, fontSize:"var(--fs-md)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <span className="dash-salud-score" style={{ color: saludColor, fontSize: "var(--fs-md)" }}>
                         {d.saludGlobal}%
                       </span>
-                      <span className="mono" style={{ color: saludColor, fontSize:"var(--fs-sm)" }}>
+                      <span className="mono" style={{ color: saludColor, fontSize: "var(--fs-sm)" }}>
                         {saludExpandida ? "▲" : "▼"}
                       </span>
                     </div>
@@ -618,15 +642,15 @@ export default function Dashboard() {
                       </div>
                       {/* UX-03: mostrar siempre los módulos en rojo/ámbar aunque esté colapsado */}
                       {d.saludModulos.filter(m => m.color === "var(--red)" || m.color === "var(--amber)").length > 0 && (
-                        <div style={{ display:"flex", flexWrap:"wrap", gap:".3rem", marginTop:".25rem" }}>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: ".3rem", marginTop: ".25rem" }}>
                           {d.saludModulos.filter(m => m.color === "var(--red)" || m.color === "var(--amber)").map(m => (
                             <span key={m.label}
                               onClick={(e) => { e.stopPropagation(); navigate(m.bloque); }}
                               style={{
-                                fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                                fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
                                 color: m.color, background: `${m.color}14`,
                                 border: `1px solid ${m.color}44`,
-                                borderRadius:4, padding:".1rem .35rem", cursor:"pointer",
+                                borderRadius: 4, padding: ".1rem .35rem", cursor: "pointer",
                               }}>
                               {m.icon} {m.label} {m.score}%
                             </span>
@@ -638,7 +662,7 @@ export default function Dashboard() {
                 </button>
                 {saludExpandida && (
                   <>
-                    <div className="mono xs" style={{ color: saludColor, marginBottom:"0.6rem" }}>
+                    <div className="mono xs" style={{ color: saludColor, marginBottom: "0.6rem" }}>
                       {saludLabel}
                     </div>
                     <div className="dash-salud-bars">
@@ -650,10 +674,12 @@ export default function Dashboard() {
                           <span className="dash-salud-bar-icon">{m.icon}</span>
                           <div className="dash-salud-bar-track">
                             <div className="dash-salud-bar-fill"
-                              style={{ width:`${m.score}%`, background: m.color }} />
+                              style={{ width: `${m.score}%`, background: m.color }} />
                           </div>
-                          <span className="mono" style={{ fontSize:"var(--fs-xs)", color: m.color,
-                            minWidth:28, textAlign:"right" }}>{m.score}%</span>
+                          <span className="mono" style={{
+                            fontSize: "var(--fs-xs)", color: m.color,
+                            minWidth: 28, textAlign: "right"
+                          }}>{m.score}%</span>
                         </div>
                       ))}
                     </div>
@@ -679,7 +705,7 @@ export default function Dashboard() {
 
           // 2. Tramo de inscripción cerrando pronto
           const hoy = new Date();
-          const tramosAbiertos = (d.tramos||[]).filter(t => {
+          const tramosAbiertos = (d.tramos || []).filter(t => {
             const fin = new Date(t.fechaFin);
             const dias = Math.ceil((fin - hoy) / 86400000);
             return dias >= 0 && dias <= 5;
@@ -689,7 +715,7 @@ export default function Dashboard() {
             acciones.push({
               prioridad: "alta",
               icon: "⏰",
-              accion: `Tramo "${t.nombre}" cierra en ${dias} día${dias!==1?"s":""}`,
+              accion: `Tramo "${t.nombre}" cierra en ${dias} día${dias !== 1 ? "s" : ""}`,
               cta: "Ver inscripciones",
               modulo: "presupuesto",
             });
@@ -700,7 +726,7 @@ export default function Dashboard() {
             acciones.push({
               prioridad: d.diasHasta <= 7 ? "critica" : "alta",
               icon: "👥",
-              accion: `Confirmar ${d.volPendientes} voluntario${d.volPendientes!==1?"s":""} pendiente${d.volPendientes!==1?"s":""}`,
+              accion: `Confirmar ${d.volPendientes} voluntario${d.volPendientes !== 1 ? "s" : ""} pendiente${d.volPendientes !== 1 ? "s" : ""}`,
               cta: "Ir a voluntarios",
               modulo: "voluntarios",
             });
@@ -712,7 +738,7 @@ export default function Dashboard() {
             acciones.push({
               prioridad: "alta",
               icon: "🚩",
-              accion: `"${pp.nombre}" sin cobertura — ${pp.asig||0}/${pp.necesarios} asignados`,
+              accion: `"${pp.nombre}" sin cobertura — ${pp.asig || 0}/${pp.necesarios} asignados`,
               cta: "Gestionar puestos",
               modulo: "voluntarios",
             });
@@ -720,7 +746,7 @@ export default function Dashboard() {
 
           // 5. Patrocinio lejos del objetivo
           if (d.patComprometido < d.objetivo * 0.5 && d.diasHasta <= 60) {
-            const pct = d.objetivo > 0 ? Math.round(d.patComprometido/d.objetivo*100) : 0;
+            const pct = d.objetivo > 0 ? Math.round(d.patComprometido / d.objetivo * 100) : 0;
             acciones.push({
               prioridad: "alta",
               icon: "🤝",
@@ -735,7 +761,7 @@ export default function Dashboard() {
             acciones.push({
               prioridad: "media",
               icon: "📋",
-              accion: `${d.contPendientes} contraprestación${d.contPendientes!==1?"es":""} de patrocinadores sin entregar`,
+              accion: `${d.contPendientes} contraprestación${d.contPendientes !== 1 ? "es" : ""} de patrocinadores sin entregar`,
               cta: "Ver contraprestaciones",
               modulo: "patrocinadores",
             });
@@ -746,16 +772,16 @@ export default function Dashboard() {
             acciones.push({
               prioridad: "alta",
               icon: "📌",
-              accion: `${d.tareasVencidas} tarea${d.tareasVencidas!==1?"s":""} vencida${d.tareasVencidas!==1?"s":""}`,
+              accion: `${d.tareasVencidas} tarea${d.tareasVencidas !== 1 ? "s" : ""} vencida${d.tareasVencidas !== 1 ? "s" : ""}`,
               cta: "Ver proyecto",
               modulo: "proyecto",
             });
           }
 
           // 8. Hito crítico próximo
-          const hitoCritico = d.hitosProximos?.find(h => h.critico && Math.ceil((new Date(h.fecha)-hoy)/86400000) <= 14);
+          const hitoCritico = d.hitosProximos?.find(h => h.critico && Math.ceil((new Date(h.fecha) - hoy) / 86400000) <= 14);
           if (hitoCritico) {
-            const dias = Math.ceil((new Date(hitoCritico.fecha)-hoy)/86400000);
+            const dias = Math.ceil((new Date(hitoCritico.fecha) - hoy) / 86400000);
             acciones.push({
               prioridad: dias <= 7 ? "critica" : "alta",
               icon: "⚡",
@@ -770,7 +796,7 @@ export default function Dashboard() {
             acciones.push({
               prioridad: "media",
               icon: "📦",
-              accion: `${d.stockAlerts.length} material${d.stockAlerts.length!==1?"es":""} con stock insuficiente`,
+              accion: `${d.stockAlerts.length} material${d.stockAlerts.length !== 1 ? "es" : ""} con stock insuficiente`,
               cta: "Ver logística",
               modulo: "logistica",
             });
@@ -778,9 +804,11 @@ export default function Dashboard() {
 
           // Fallback: si no hay acciones concretas pero sí alertas críticas, añadir las 2 primeras
           if (acciones.length === 0 && d.alertasCriticas.length > 0) {
-            d.alertasCriticas.slice(0,2).forEach(a => {
-              acciones.push({ prioridad:"critica", icon:a.icon, accion:a.texto,
-                cta:`Ir a ${a.modulo}`, modulo:a.modulo });
+            d.alertasCriticas.slice(0, 2).forEach(a => {
+              acciones.push({
+                prioridad: "critica", icon: a.icon, accion: a.texto,
+                cta: `Ir a ${a.modulo}`, modulo: a.modulo
+              });
             });
           }
 
@@ -789,42 +817,54 @@ export default function Dashboard() {
 
           const top = acciones.slice(0, 5);
           const colorPrio = { critica: "var(--red)", alta: "var(--amber)", media: "var(--cyan)" };
-          const bgPrio    = { critica: "var(--red-dim)", alta: "var(--amber-dim)", media: "var(--cyan-dim)" };
+          const bgPrio = { critica: "var(--red-dim)", alta: "var(--amber-dim)", media: "var(--cyan-dim)" };
 
           return (
-            <div className="card mb" style={{ padding:0, overflow:"hidden" }}>
-              <div style={{ padding:".75rem 1rem .5rem", borderBottom:"1px solid var(--border)",
-                display:"flex", alignItems:"center", gap:".5rem" }}>
-                <span style={{ fontSize:"var(--fs-base)" }}>🎯</span>
-                <span style={{ fontWeight:800, fontSize:"var(--fs-base)", color:"var(--text)" }}>Haz esto ahora</span>
-                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)",
-                  background:"var(--surface2)", padding:".1rem .4rem", borderRadius:4, marginLeft:"auto" }}>
-                  {acciones.length} acción{acciones.length!==1?"es":""}
+            <div className="card mb" style={{ padding: 0, overflow: "hidden" }}>
+              <div style={{
+                padding: ".75rem 1rem .5rem", borderBottom: "1px solid var(--border)",
+                display: "flex", alignItems: "center", gap: ".5rem"
+              }}>
+                <span style={{ fontSize: "var(--fs-base)" }}>🎯</span>
+                <span style={{ fontWeight: 800, fontSize: "var(--fs-base)", color: "var(--text)" }}>Haz esto ahora</span>
+                <span style={{
+                  fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)",
+                  background: "var(--surface2)", padding: ".1rem .4rem", borderRadius: 4, marginLeft: "auto"
+                }}>
+                  {acciones.length} acción{acciones.length !== 1 ? "es" : ""}
                 </span>
               </div>
               {top.map((ac, i) => (
                 <div key={i}
                   onClick={() => navigate(ac.modulo)}
-                  style={{ display:"flex", alignItems:"center", gap:".75rem",
-                    padding:".65rem 1rem", cursor:"pointer", transition:"background .12s",
-                    borderBottom: i < top.length-1 ? "1px solid var(--border)" : "none" }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: ".75rem",
+                    padding: ".65rem 1rem", cursor: "pointer", transition: "background .12s",
+                    borderBottom: i < top.length - 1 ? "1px solid var(--border)" : "none"
+                  }}
                   onMouseEnter={e => e.currentTarget.style.background = "var(--surface2)"}
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                  <div style={{ width:28, height:28, borderRadius:"50%", flexShrink:0,
+                  <div style={{
+                    width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
                     background: bgPrio[ac.prioridad],
-                    display:"flex", alignItems:"center", justifyContent:"center",
-                    fontSize:"var(--fs-base)" }}>
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: "var(--fs-base)"
+                  }}>
                     {ac.icon}
                   </div>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:"var(--fs-base)", fontWeight:600, color:"var(--text)",
-                      whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      fontSize: "var(--fs-base)", fontWeight: 600, color: "var(--text)",
+                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"
+                    }}>
                       {ac.accion}
                     </div>
                   </div>
-                  <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                    color: colorPrio[ac.prioridad], fontWeight:700, flexShrink:0,
-                    background: bgPrio[ac.prioridad], padding:".15rem .5rem", borderRadius:4 }}>
+                  <div style={{
+                    fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+                    color: colorPrio[ac.prioridad], fontWeight: 700, flexShrink: 0,
+                    background: bgPrio[ac.prioridad], padding: ".15rem .5rem", borderRadius: 4
+                  }}>
                     {ac.cta} →
                   </div>
                 </div>
@@ -838,9 +878,9 @@ export default function Dashboard() {
           <div className="dash-alertas-criticas mb" role="alert">
             {/* Header con contador */}
             <div className="dash-alertas-header">
-              <div style={{ display:"flex", alignItems:"center", gap:".5rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: ".5rem" }}>
                 <div className="dash-alert-warning-icon">⚠</div>
-                <span style={{ textTransform:"uppercase", letterSpacing:".08em" }}>
+                <span style={{ textTransform: "uppercase", letterSpacing: ".08em" }}>
                   {d.alertasCriticas.length} Alerta{d.alertasCriticas.length !== 1 ? "s" : ""} Crítica{d.alertasCriticas.length !== 1 ? "s" : ""}
                 </span>
               </div>
@@ -851,7 +891,7 @@ export default function Dashboard() {
                 onClick={() => navigate(a.modulo)}>
                 {/* Icono de warning */}
                 <div className="dash-alert-icon-wrap dash-alert-icon-danger">
-                  <span style={{ fontSize:"var(--fs-sm)", lineHeight:1 }}>⚠</span>
+                  <span style={{ fontSize: "var(--fs-sm)", lineHeight: 1 }}>⚠</span>
                 </div>
                 {/* Texto */}
                 <div className="dash-alerta-body">
@@ -875,20 +915,24 @@ export default function Dashboard() {
               onClick={() => {
                 const next = !alertasExpandidas;
                 setAlertasExpandidas(next);
-                localStorage.setItem("teg_dash_alertas_open", next?"1":"0");
+                localStorage.setItem("teg_dash_alertas_open", next ? "1" : "0");
               }}>
-              <div style={{ display:"flex", alignItems:"center", gap:".45rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: ".45rem" }}>
                 <div className="dash-alert-warning-icon dash-alert-warning-icon-amber">⚡</div>
-                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
-                  fontWeight:700, color:"var(--amber)", textTransform:"uppercase",
-                  letterSpacing:".06em" }}>
+                <span style={{
+                  fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)",
+                  fontWeight: 700, color: "var(--amber)", textTransform: "uppercase",
+                  letterSpacing: ".06em"
+                }}>
                   {d.alertasAvisos.length} Aviso{d.alertasAvisos.length !== 1 ? "s" : ""}
                 </span>
               </div>
-              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                color:"var(--text-dim)", transition:"transform .2s",
-                display:"inline-block",
-                transform: alertasExpandidas ? "rotate(180deg)" : "rotate(0deg)" }}>
+              <span style={{
+                fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+                color: "var(--text-dim)", transition: "transform .2s",
+                display: "inline-block",
+                transform: alertasExpandidas ? "rotate(180deg)" : "rotate(0deg)"
+              }}>
                 ▼
               </span>
             </button>
@@ -896,18 +940,18 @@ export default function Dashboard() {
               <div className="dash-avisos-list">
                 {d.alertasAvisos.map((a, i) => (
                   <div key={i}
-                    className={`dash-alerta ${a.icon==="🔵" ? "dash-alerta-info" : "dash-alerta-warning"} dash-alerta-clickable`}
+                    className={`dash-alerta ${a.icon === "🔵" ? "dash-alerta-info" : "dash-alerta-warning"} dash-alerta-clickable`}
                     onClick={() => navigate(a.modulo)}>
-                    <div className={`dash-alert-icon-wrap ${a.icon==="🔵" ? "dash-alert-icon-info" : "dash-alert-icon-warning"}`}>
-                      <span style={{ fontSize:"var(--fs-sm)", lineHeight:1 }}>
-                        {a.icon==="🔵" ? "ℹ" : "⚡"}
+                    <div className={`dash-alert-icon-wrap ${a.icon === "🔵" ? "dash-alert-icon-info" : "dash-alert-icon-warning"}`}>
+                      <span style={{ fontSize: "var(--fs-sm)", lineHeight: 1 }}>
+                        {a.icon === "🔵" ? "ℹ" : "⚡"}
                       </span>
                     </div>
                     <div className="dash-alerta-body">
                       <span className="dash-alerta-text">{a.texto}</span>
                       <span className="dash-alerta-modulo">{a.modulo}</span>
                     </div>
-                    <button className={`dash-alert-cta ${a.icon==="🔵" ? "dash-alert-cta-info" : "dash-alert-cta-warning"}`}
+                    <button className={`dash-alert-cta ${a.icon === "🔵" ? "dash-alert-cta-info" : "dash-alert-cta-warning"}`}
                       onClick={e => { e.stopPropagation(); navigate(a.modulo); }}>
                       Ver →
                     </button>
@@ -922,51 +966,63 @@ export default function Dashboard() {
         {/* Estado OK — Kinetik Ops style */}
         {d.alertasCriticas.length === 0 && d.alertasAvisos.length === 0 && (
           <div className="card mb" style={{
-            padding:".7rem 1rem",
-            background:"rgba(52,211,153,0.05)",
-            border:"1px solid rgba(52,211,153,0.2)",
-            borderLeft:"3px solid var(--green)",
+            padding: ".7rem 1rem",
+            background: "rgba(52,211,153,0.05)",
+            border: "1px solid rgba(52,211,153,0.2)",
+            borderLeft: "3px solid var(--green)",
           }}>
-            <div style={{ display:"flex", alignItems:"center", gap:".65rem", marginBottom:".5rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: ".65rem", marginBottom: ".5rem" }}>
               <div style={{
-                width:26, height:26, borderRadius:6, flexShrink:0,
-                background:"rgba(52,211,153,0.15)", border:"1px solid rgba(52,211,153,0.3)",
-                display:"flex", alignItems:"center", justifyContent:"center",
-                fontSize:"var(--fs-sm)", color:"var(--green)",
+                width: 26, height: 26, borderRadius: 6, flexShrink: 0,
+                background: "rgba(52,211,153,0.15)", border: "1px solid rgba(52,211,153,0.3)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: "var(--fs-sm)", color: "var(--green)",
               }}>✓</div>
-              <span style={{ fontFamily:"var(--font-mono)", fontWeight:800,
-                fontSize:"var(--fs-sm)", color:"var(--green)", textTransform:"uppercase",
-                letterSpacing:".08em" }}>
+              <span style={{
+                fontFamily: "var(--font-mono)", fontWeight: 800,
+                fontSize: "var(--fs-sm)", color: "var(--green)", textTransform: "uppercase",
+                letterSpacing: ".08em"
+              }}>
                 Todo en orden
               </span>
-              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                color:"var(--text-dim)", marginLeft:"auto" }}>
+              <span style={{
+                fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+                color: "var(--text-dim)", marginLeft: "auto"
+              }}>
                 sin alertas activas
               </span>
             </div>
-            <div style={{ display:"flex", gap:".75rem", flexWrap:"wrap" }}>
+            <div style={{ display: "flex", gap: ".75rem", flexWrap: "wrap" }}>
               {d.totalInscritos > 0 && (
-                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                  color:"var(--cyan)" }}>
+                <span style={{
+                  fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+                  color: "var(--cyan)"
+                }}>
                   🏃 {d.totalInscritos} inscritos
                   {d.ocupacionGlobal !== null ? ` (${d.ocupacionGlobal}%)` : ""}
                 </span>
               )}
               {d.coberturaVol > 0 && (
-                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                  color:"var(--green)" }}>
+                <span style={{
+                  fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+                  color: "var(--green)"
+                }}>
                   👥 {d.coberturaVol}% voluntarios
                 </span>
               )}
               {d.resultado > 0 && (
-                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                  color:"var(--green)" }}>
+                <span style={{
+                  fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+                  color: "var(--green)"
+                }}>
                   💰 {fmtEur(d.resultado)} resultado
                 </span>
               )}
               {d.progresoGlobal > 0 && (
-                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                  color:"var(--violet)" }}>
+                <span style={{
+                  fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+                  color: "var(--violet)"
+                }}>
                   📋 {d.progresoGlobal}% tareas
                 </span>
               )}
@@ -988,8 +1044,8 @@ export default function Dashboard() {
               return `⚠ Déficit del ${pctFaltante}% — Costes: ${fmtEur(totalCostes)}`;
             })()}
             color={resColor} colorClass={d.resultado >= 0 ? "green" : "red"}
-            progress={d.resultado >= 0 && (d.totalCostesFijos+d.totalCostesVars) > 0
-              ? Math.min(100, Math.round(d.resultado / (d.totalCostesFijos+d.totalCostesVars) * 100))
+            progress={d.resultado >= 0 && (d.totalCostesFijos + d.totalCostesVars) > 0
+              ? Math.min(100, Math.round(d.resultado / (d.totalCostesFijos + d.totalCostesVars) * 100))
               : undefined}
             onClick={() => navigate("presupuesto")} />
           <KPI icon="🏃" label="Inscritos"
@@ -1016,22 +1072,22 @@ export default function Dashboard() {
               const faltan = d.totalNecesarios - d.volConfirmados;
               return `Faltan ${faltan} voluntario${faltan !== 1 ? "s" : ""} para el 100%`;
             })()}
-            color={d.totalNecesarios===0?"var(--text-muted)":d.coberturaVol>=80?"var(--green)":d.coberturaVol>=50?"var(--amber)":"var(--red)"}
-            colorClass={d.totalNecesarios===0?"muted":d.coberturaVol>=80?"green":d.coberturaVol>=50?"amber":"red"}
-            progress={d.totalNecesarios>0?d.coberturaVol:undefined}
+            color={d.totalNecesarios === 0 ? "var(--text-muted)" : d.coberturaVol >= 80 ? "var(--green)" : d.coberturaVol >= 50 ? "var(--amber)" : "var(--red)"}
+            colorClass={d.totalNecesarios === 0 ? "muted" : d.coberturaVol >= 80 ? "green" : d.coberturaVol >= 50 ? "amber" : "red"}
+            progress={d.totalNecesarios > 0 ? d.coberturaVol : undefined}
             onClick={() => navigate("voluntarios")} />
           <KPI icon="🤝" label="Patrocinio"
             tooltip="Importe comprometido (confirmado + cobrado) de todos los patrocinadores activos.\nEl % indica el avance respecto al objetivo de captación.\nEl importe cobrado es el dinero realmente recibido."
-            value={`${Math.round(d.patComprometido/Math.max(d.objetivo,1)*100)}%`}
+            value={`${Math.round(d.patComprometido / Math.max(d.objetivo, 1) * 100)}%`}
             sub={(() => {
               const pct = d.objetivo > 0 ? Math.round(d.patComprometido / d.objetivo * 100) : 0;
               if (pct >= 100) return `✓ Objetivo superado · ${fmtEur(d.patCobrado)} cobrado`;
               const faltan = d.objetivo - d.patComprometido;
               return `Faltan ${fmtEur(faltan)} para el objetivo · ${fmtEur(d.patCobrado)} cobrado`;
             })()}
-            color={d.patComprometido>=d.objetivo*0.8?"var(--green)":d.patComprometido>=d.objetivo*0.5?"var(--amber)":"var(--red)"}
-            colorClass={d.patComprometido>=d.objetivo*0.8?"green":d.patComprometido>=d.objetivo*0.5?"amber":"red"}
-            progress={d.objetivo>0?Math.min(100,Math.round(d.patComprometido/d.objetivo*100)):undefined}
+            color={d.patComprometido >= d.objetivo * 0.8 ? "var(--green)" : d.patComprometido >= d.objetivo * 0.5 ? "var(--amber)" : "var(--red)"}
+            colorClass={d.patComprometido >= d.objetivo * 0.8 ? "green" : d.patComprometido >= d.objetivo * 0.5 ? "amber" : "red"}
+            progress={d.objetivo > 0 ? Math.min(100, Math.round(d.patComprometido / d.objetivo * 100)) : undefined}
             onClick={() => navigate("patrocinadores")} />
           <KPI icon="📋" label="Tareas"
             tooltip="Tareas completadas del bloque Proyecto sobre el total.\nIncluye todas las áreas: permisos, logística, comunicación, etc."
@@ -1042,20 +1098,20 @@ export default function Dashboard() {
               if (d.progresoGlobal >= 100) return "✓ Todas las tareas completadas";
               return `${d.tareasCompletadas}/${d.tareasTotal} completadas · sin vencidas`;
             })()}
-            color={d.tareasTotal===0?"var(--text-muted)":"var(--violet)"} colorClass={d.tareasTotal===0?"muted":"violet"}
-            progress={d.tareasTotal>0?d.progresoGlobal:undefined}
+            color={d.tareasTotal === 0 ? "var(--text-muted)" : "var(--violet)"} colorClass={d.tareasTotal === 0 ? "muted" : "violet"}
+            progress={d.tareasTotal > 0 ? d.progresoGlobal : undefined}
             onClick={() => navigate("proyecto")} />
           <KPI icon="✅" label="Checklist"
             tooltip="Ítems completados del checklist de Logística sobre el total.\nEl checklist se organiza por fases temporales antes del evento."
-            value={d.ckTotal > 0 ? `${Math.round(d.ckDone/d.ckTotal*100)}%` : "—"}
+            value={d.ckTotal > 0 ? `${Math.round(d.ckDone / d.ckTotal * 100)}%` : "—"}
             sub={(() => {
               if (d.ckTotal === 0) return "Sin checklist definido — ir a Logística";
               if (d.ckDone >= d.ckTotal) return "✓ Checklist completado";
               const pendientes = d.ckTotal - d.ckDone;
               return `${pendientes} ítem${pendientes !== 1 ? "s" : ""} pendiente${pendientes !== 1 ? "s" : ""} · Timeline: ${d.tlDone}/${d.tlTotal}`;
             })()}
-            color={d.ckTotal===0?"var(--text-muted)":"var(--cyan)"} colorClass={d.ckTotal===0?"muted":"cyan"}
-            progress={d.ckTotal>0?Math.round(d.ckDone/d.ckTotal*100):undefined}
+            color={d.ckTotal === 0 ? "var(--text-muted)" : "var(--cyan)"} colorClass={d.ckTotal === 0 ? "muted" : "cyan"}
+            progress={d.ckTotal > 0 ? Math.round(d.ckDone / d.ckTotal * 100) : undefined}
             onClick={() => navigate("logistica")} />
         </div>
 
@@ -1082,39 +1138,39 @@ export default function Dashboard() {
             {d.totalInscritos === 0
               ? <EmptyChart mensaje="Sin inscritos aún" sub="Introduce datos en Presupuesto → Inscritos" />
               : <>
-                  <ResponsiveContainer width="100%" height={140}>
-                    <PieChart>
-                      <Pie data={[
-                          { name:"TG7",  value: d.inscritosPorDist.TG7  || 0 },
-                          { name:"TG13", value: d.inscritosPorDist.TG13 || 0 },
-                          { name:"TG25", value: d.inscritosPorDist.TG25 || 0 },
-                        ]} cx="50%" cy="50%" innerRadius={36} outerRadius={55} paddingAngle={3} dataKey="value">
-                        {["#22d3ee","#a78bfa","#34d399"].map((c,i) => <Cell key={i} fill={c} opacity={0.9} />)}
-                      </Pie>
-                      <RechartsTip contentStyle={TOOLTIP_STYLE} formatter={(v,n) => [`${v} corredores`,n]} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div style={{ display:"flex", flexDirection:"column", gap:"0.35rem" }}>
-                    {[["TG7","#22d3ee"],["TG13","#a78bfa"],["TG25","#34d399"]].map(([dist,color]) => {
-                      const ins = d.inscritosPorDist[dist];
-                      const max = d.maximosPorDist[dist];
-                      const pct = d.ocupacionPorDist[dist];
-                      return (
-                        <div key={dist}>
-                          <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"0.12rem" }}>
-                            <span className="mono xs bold" style={{ color }}>{dist}</span>
-                            <span className="mono xs muted">{ins}{max>0?`/${max} (${pct}%)`:"corredores"}</span>
-                          </div>
-                          {max > 0 && (
-                            <div style={{ height:3, background:"var(--surface3)", borderRadius:2, overflow:"hidden" }}>
-                              <div style={{ height:"100%", width:`${Math.min(pct,100)}%`, background:color, borderRadius:2, transition:"width .5s" }} />
-                            </div>
-                          )}
+                <ResponsiveContainer width="100%" height={140}>
+                  <PieChart>
+                    <Pie data={[
+                      { name: "TG7", value: d.inscritosPorDist.TG7 || 0 },
+                      { name: "TG13", value: d.inscritosPorDist.TG13 || 0 },
+                      { name: "TG25", value: d.inscritosPorDist.TG25 || 0 },
+                    ]} cx="50%" cy="50%" innerRadius={36} outerRadius={55} paddingAngle={3} dataKey="value">
+                      {["#22d3ee", "#a78bfa", "#34d399"].map((c, i) => <Cell key={i} fill={c} opacity={0.9} />)}
+                    </Pie>
+                    <RechartsTip contentStyle={TOOLTIP_STYLE} formatter={(v, n) => [`${v} corredores`, n]} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+                  {[["TG7", "#22d3ee"], ["TG13", "#a78bfa"], ["TG25", "#34d399"]].map(([dist, color]) => {
+                    const ins = d.inscritosPorDist[dist];
+                    const max = d.maximosPorDist[dist];
+                    const pct = d.ocupacionPorDist[dist];
+                    return (
+                      <div key={dist}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.12rem" }}>
+                          <span className="mono xs bold" style={{ color }}>{dist}</span>
+                          <span className="mono xs muted">{ins}{max > 0 ? `/${max} (${pct}%)` : "corredores"}</span>
                         </div>
-                      );
-                    })}
-                  </div>
-                </>
+                        {max > 0 && (
+                          <div style={{ height: 3, background: "var(--surface3)", borderRadius: 2, overflow: "hidden" }}>
+                            <div style={{ height: "100%", width: `${Math.min(pct, 100)}%`, background: color, borderRadius: 2, transition: "width .5s" }} />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
             }
           </div>
 
@@ -1124,56 +1180,62 @@ export default function Dashboard() {
             {d.totalIngresos === 0 && d.totalCostesFijos === 0
               ? <EmptyChart mensaje="Sin datos económicos" sub="Configura costes e inscritos en Presupuesto" />
               : (() => {
-                  const items = [
-                    { label:"Inscripciones", val:d.totalIngresos,      color:"#22d3ee", tipo:"+" },
-                    { label:"Patrocinios",   val:d.totalIngresosExtra,  color:"#34d399", tipo:"+" },
-                    { label:"Merch",         val:d.merchBeneficio,     color:"#a78bfa", tipo:"+" },
-                    { label:"C. Fijos",      val:d.totalCostesFijos,   color:"#f87171", tipo:"-" },
-                    { label:"C. Variables",  val:d.totalCostesVars,    color:"#fb923c", tipo:"-" },
-                  ];
-                  const maxVal = Math.max(...items.map(i => i.val), 1);
-                  return (
-                    <div style={{ display:"flex", flexDirection:"column", gap:".5rem", marginTop:".25rem" }}>
-                      {items.map(item => {
-                        const pct = Math.min(Math.round(item.val / maxVal * 100), 100);
-                        return (
-                          <div key={item.label}>
-                            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:".18rem" }}>
-                              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>
-                                {item.tipo === "+" ? "↑" : "↓"} {item.label}
-                              </span>
-                              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:item.color, fontWeight:700 }}>
-                                {fmtEur(item.val)}
-                              </span>
-                            </div>
-                            <div style={{ height:5, background:"var(--surface3)", borderRadius:3, overflow:"hidden" }}>
-                              <div style={{ height:"100%", width:`${pct}%`, background:item.color,
-                                borderRadius:3, opacity:item.val <= 0 ? 0.3 : 0.85, transition:"width .5s" }} />
-                            </div>
+                const items = [
+                  { label: "Inscripciones", val: d.totalIngresos, color: "#22d3ee", tipo: "+" },
+                  { label: "Patrocinios", val: d.totalIngresosExtra, color: "#34d399", tipo: "+" },
+                  { label: "Merch", val: d.merchBeneficio, color: "#a78bfa", tipo: "+" },
+                  { label: "C. Fijos", val: d.totalCostesFijos, color: "#f87171", tipo: "-" },
+                  { label: "C. Variables", val: d.totalCostesVars, color: "#fb923c", tipo: "-" },
+                ];
+                const maxVal = Math.max(...items.map(i => i.val), 1);
+                return (
+                  <div style={{ display: "flex", flexDirection: "column", gap: ".5rem", marginTop: ".25rem" }}>
+                    {items.map(item => {
+                      const pct = Math.min(Math.round(item.val / maxVal * 100), 100);
+                      return (
+                        <div key={item.label}>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: ".18rem" }}>
+                            <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>
+                              {item.tipo === "+" ? "↑" : "↓"} {item.label}
+                            </span>
+                            <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: item.color, fontWeight: 700 }}>
+                              {fmtEur(item.val)}
+                            </span>
                           </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })()
+                          <div style={{ height: 5, background: "var(--surface3)", borderRadius: 3, overflow: "hidden" }}>
+                            <div style={{
+                              height: "100%", width: `${pct}%`, background: item.color,
+                              borderRadius: 3, opacity: item.val <= 0 ? 0.3 : 0.85, transition: "width .5s"
+                            }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()
             }
             {/* Resultado — resumen al pie del gráfico */}
             {(d.totalIngresos > 0 || d.totalCostesFijos > 0) && (
               <div style={{
-                display:"flex", justifyContent:"space-between", alignItems:"center",
-                marginTop:".6rem", paddingTop:".5rem",
-                borderTop:"1px solid var(--border)",
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                marginTop: ".6rem", paddingTop: ".5rem",
+                borderTop: "1px solid var(--border)",
               }}>
-                <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
-                  color:"var(--text-muted)",display:"flex",alignItems:"center",gap:".4rem"}}>
+                <span style={{
+                  fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+                  color: "var(--text-muted)", display: "flex", alignItems: "center", gap: ".4rem"
+                }}>
                   Resultado
-                  <span className={`badge ${d.roiGlobal>=0?"badge-green":"badge-red"}`}
-                    style={{fontSize:"var(--fs-2xs)"}}>
-                    Margen {d.roiGlobal>0?"+":""}{d.roiGlobal}%
+                  <span className={`badge ${d.roiGlobal >= 0 ? "badge-green" : "badge-red"}`}
+                    style={{ fontSize: "var(--fs-2xs)" }}>
+                    Margen {d.roiGlobal > 0 ? "+" : ""}{d.roiGlobal}%
                   </span>
                 </span>
-                <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-base)",
-                  fontWeight:800,color:resColor}}>
+                <span style={{
+                  fontFamily: "var(--font-mono)", fontSize: "var(--fs-base)",
+                  fontWeight: 800, color: resColor
+                }}>
                   {fmtEur(d.resultado)}
                 </span>
               </div>
@@ -1195,27 +1257,29 @@ export default function Dashboard() {
         {d.hitosProximos.length > 0 && (
           <div className="card mb">
             <div className="flex-between mb-sm">
-              <div className="card-title" style={{ marginBottom:0 }}>📅 Próximos Hitos</div>
+              <div className="card-title" style={{ marginBottom: 0 }}>📅 Próximos Hitos</div>
               <button className="btn btn-ghost btn-sm" onClick={() => navigate("proyecto")}>Ver todos →</button>
             </div>
             {d.hitosProximos.map(h => {
               const dias = Math.ceil((new Date(h.fecha) - new Date()) / 86400000);
-              const c    = dias<0?"#ff4444":dias===0?"var(--red)":dias<=7?"var(--orange)":dias<=30?"var(--amber)":"var(--green)";
-              const label = dias < 0 ? `Vencido (${Math.abs(dias)}d)` : dias===0 ? "HOY" : `${dias}d`;
+              const c = dias < 0 ? "#ff4444" : dias === 0 ? "var(--red)" : dias <= 7 ? "var(--orange)" : dias <= 30 ? "var(--amber)" : "var(--green)";
+              const label = dias < 0 ? `Vencido (${Math.abs(dias)}d)` : dias === 0 ? "HOY" : `${dias}d`;
               return (
                 <div key={h.id} className="dash-hito dash-hito-clickable"
                   onClick={() => navigate("proyecto")}>
-                  <div className="flex-center gap-sm" style={{ flex:1, minWidth:0 }}>
-                    <div className="dash-hito-gem" style={{ background: h.completado?"#34d399":h.critico?"#f87171":"#22d3ee" }} />
+                  <div className="flex-center gap-sm" style={{ flex: 1, minWidth: 0 }}>
+                    <div className="dash-hito-gem" style={{ background: h.completado ? "#34d399" : h.critico ? "#f87171" : "#22d3ee" }} />
                     {h.critico && !h.completado && <span className="xs">⚡</span>}
-                    <span className="sm bold" style={{ whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis",
-                      textDecoration: h.completado?"line-through":"none", opacity: h.completado?0.5:1 }}>
+                    <span className="sm bold" style={{
+                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                      textDecoration: h.completado ? "line-through" : "none", opacity: h.completado ? 0.5 : 1
+                    }}>
                       {h.nombre}
                     </span>
                   </div>
-                  <div className="flex-center gap-sm" style={{ flexShrink:0 }}>
+                  <div className="flex-center gap-sm" style={{ flexShrink: 0 }}>
                     <span className="mono xs muted">{fmtD(h.fecha)}</span>
-                    <span className="mono xs bold" style={{ color:c, minWidth:40, textAlign:"right" }}>{label}</span>
+                    <span className="mono xs bold" style={{ color: c, minWidth: 40, textAlign: "right" }}>{label}</span>
                   </div>
                 </div>
               );
@@ -1274,11 +1338,11 @@ function MiniDesglose({ totalIngresos, totalIngresosExtra, merchBeneficio, total
       {open && (
         <div style={{ borderTop: "1px solid var(--border)", padding: ".65rem 1rem", display: "flex", flexDirection: "column", gap: ".4rem" }}>
           {[
-            { label: "Inscripciones", val: totalIngresos,      color: "#22d3ee", tipo: "+" },
-            { label: "Patrocinios",   val: totalIngresosExtra,  color: "#34d399", tipo: "+" },
-            { label: "Merchandising", val: merchBeneficio,      color: "#a78bfa", tipo: "+" },
-            { label: "Costes fijos",  val: totalCostesFijos,    color: "#f87171", tipo: "-" },
-            { label: "Costes var.",   val: totalCostesVars,     color: "#fb923c", tipo: "-" },
+            { label: "Inscripciones", val: totalIngresos, color: "#22d3ee", tipo: "+" },
+            { label: "Patrocinios", val: totalIngresosExtra, color: "#34d399", tipo: "+" },
+            { label: "Merchandising", val: merchBeneficio, color: "#a78bfa", tipo: "+" },
+            { label: "Costes fijos", val: totalCostesFijos, color: "#f87171", tipo: "-" },
+            { label: "Costes var.", val: totalCostesVars, color: "#fb923c", tipo: "-" },
           ].map(item => {
             const max = Math.max(totalIngresos, totalCostes, 1);
             const pct = Math.min(Math.round(item.val / max * 100), 100);
@@ -1311,16 +1375,16 @@ function MiniDesglose({ totalIngresos, totalIngresosExtra, merchBeneficio, total
 function KPI({ icon, label, value, sub, color, colorClass, onClick, tooltip, progress }) {
   return (
     <div
-      className={`kpi ${colorClass||""}`}
+      className={`kpi ${colorClass || ""}`}
       onClick={onClick}
       style={{ cursor: onClick ? "pointer" : "default", paddingBottom: progress !== undefined ? "0.85rem" : "1rem" }}
       title={onClick ? `Ir a ${label}` : undefined}
     >
       {/* Label uppercase con icono y tooltip */}
-      <div className="kpi-label" style={{ display:"flex", alignItems:"center", gap:5 }}>
-        <span style={{ opacity:0.7 }}>{icon}</span>
+      <div className="kpi-label" style={{ display: "flex", alignItems: "center", gap: 5 }}>
+        <span style={{ opacity: 0.7 }}>{icon}</span>
         <span>{label}</span>
-        {tooltip && <Tooltip text={tooltip}><TooltipIcon size={10}/></Tooltip>}
+        {tooltip && <Tooltip text={tooltip}><TooltipIcon size={10} /></Tooltip>}
       </div>
 
       {/* Valor principal — número ultra-bold Kinetik */}
@@ -1368,7 +1432,7 @@ function MiniTimeline({ hitos, tramos, eventoFecha, diasHasta, yaFue, navigate }
     return Math.max(2, Math.min(98, p));
   };
 
-  const hoyPct    = pct(hoy);
+  const hoyPct = pct(hoy);
   const eventoPct = eventoFecha ? pct(eventoFecha) : null;
 
   // Hitos críticos con fecha válida dentro del rango
@@ -1384,33 +1448,39 @@ function MiniTimeline({ hitos, tramos, eventoFecha, diasHasta, yaFue, navigate }
     .map(t => ({ ...t, p: pct(t.fechaFin) }))
     .filter(t => t.p !== null);
 
-  const fmtFecha = (d) => new Date(d).toLocaleDateString("es-ES", { day:"2-digit", month:"short" });
+  const fmtFecha = (d) => new Date(d).toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
 
   return (
-    <div className="card dash-chart-card" style={{ padding:"0.85rem" }}>
-      <div className="card-title amber" style={{ marginBottom:".85rem" }}>📅 Arco temporal</div>
+    <div className="card dash-chart-card" style={{ padding: "0.85rem" }}>
+      <div className="card-title amber" style={{ marginBottom: ".85rem" }}>📅 Arco temporal</div>
 
       {/* Barra principal del timeline */}
-      <div style={{ position:"relative", height:56, margin:"0.4rem 0 0.6rem" }}>
+      <div style={{ position: "relative", height: 56, margin: "0.4rem 0 0.6rem" }}>
 
         {/* Track fondo */}
-        <div style={{ position:"absolute", top:24, left:0, right:0, height:4,
-          background:"var(--surface3)", borderRadius:2 }} />
+        <div style={{
+          position: "absolute", top: 24, left: 0, right: 0, height: 4,
+          background: "var(--surface3)", borderRadius: 2
+        }} />
 
         {/* Relleno hasta el evento */}
         {eventoPct !== null && (
-          <div style={{ position:"absolute", top:24, left:0, width:`${eventoPct}%`,
-            height:4, borderRadius:2, opacity:0.5,
-            background:"linear-gradient(90deg, var(--cyan), var(--violet))",
-            transition:"width .5s" }} />
+          <div style={{
+            position: "absolute", top: 24, left: 0, width: `${eventoPct}%`,
+            height: 4, borderRadius: 2, opacity: 0.5,
+            background: "linear-gradient(90deg, var(--cyan), var(--violet))",
+            transition: "width .5s"
+          }} />
         )}
 
         {/* Cierres de tramo — líneas verticales pequeñas */}
         {tramosValidos.map(t => (
           <div key={t.id} title={`Cierre tramo: ${t.nombre}`}
-            style={{ position:"absolute", top:18, left:`${t.p}%`,
-              width:2, height:12, background:"rgba(34,211,238,0.35)",
-              transform:"translateX(-50%)", borderRadius:1 }} />
+            style={{
+              position: "absolute", top: 18, left: `${t.p}%`,
+              width: 2, height: 12, background: "rgba(34,211,238,0.35)",
+              transform: "translateX(-50%)", borderRadius: 1
+            }} />
         ))}
 
         {/* Hitos críticos — diamantes */}
@@ -1418,44 +1488,56 @@ function MiniTimeline({ hitos, tramos, eventoFecha, diasHasta, yaFue, navigate }
           <div key={h.id}
             title={`${h.nombre} — ${fmtFecha(h.fecha)}`}
             onClick={() => navigate("proyecto")}
-            style={{ position:"absolute", top:h.critico ? 14 : 17,
-              left:`${h.p}%`, transform:"translateX(-50%) rotate(45deg)",
+            style={{
+              position: "absolute", top: h.critico ? 14 : 17,
+              left: `${h.p}%`, transform: "translateX(-50%) rotate(45deg)",
               width: h.critico ? 10 : 7, height: h.critico ? 10 : 7,
               background: h.critico ? "var(--amber)" : "var(--violet)",
-              border:"1.5px solid var(--surface)",
-              cursor:"pointer", borderRadius:1,
-              boxShadow: h.critico ? "0 0 6px rgba(251,191,36,0.5)" : "none" }} />
+              border: "1.5px solid var(--surface)",
+              cursor: "pointer", borderRadius: 1,
+              boxShadow: h.critico ? "0 0 6px rgba(251,191,36,0.5)" : "none"
+            }} />
         ))}
 
         {/* Marcador HOY */}
-        <div style={{ position:"absolute", top:8, left:`${hoyPct}%`,
-          transform:"translateX(-50%)", display:"flex", flexDirection:"column",
-          alignItems:"center", gap:0 }}>
-          <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)",
-            color:"var(--cyan)", fontWeight:800, letterSpacing:".04em",
-            lineHeight:1, marginBottom:2 }}>HOY</div>
-          <div style={{ width:2, height:24, background:"var(--cyan)",
-            borderRadius:1, boxShadow:"0 0 8px rgba(34,211,238,0.5)" }} />
+        <div style={{
+          position: "absolute", top: 8, left: `${hoyPct}%`,
+          transform: "translateX(-50%)", display: "flex", flexDirection: "column",
+          alignItems: "center", gap: 0
+        }}>
+          <div style={{
+            fontFamily: "var(--font-mono)", fontSize: "var(--fs-2xs)",
+            color: "var(--cyan)", fontWeight: 800, letterSpacing: ".04em",
+            lineHeight: 1, marginBottom: 2
+          }}>HOY</div>
+          <div style={{
+            width: 2, height: 24, background: "var(--cyan)",
+            borderRadius: 1, boxShadow: "0 0 8px rgba(34,211,238,0.5)"
+          }} />
         </div>
 
         {/* Marcador del evento */}
         {eventoPct !== null && (
           <div title={yaFue ? "Evento completado" : "Día del evento"}
-            style={{ position:"absolute", top:6, left:`${eventoPct}%`,
-              transform:"translateX(-50%)", fontSize:"var(--fs-lg)",
-              cursor:"default", lineHeight:1 }}>
+            style={{
+              position: "absolute", top: 6, left: `${eventoPct}%`,
+              transform: "translateX(-50%)", fontSize: "var(--fs-lg)",
+              cursor: "default", lineHeight: 1
+            }}>
             {yaFue ? "✅" : "🏁"}
           </div>
         )}
       </div>
 
       {/* Leyenda inferior */}
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
-        fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)"
+      }}>
         <span>{fmtFecha(inicio)}</span>
         <span style={{
           color: yaFue ? "var(--green)" : diasHasta <= 7 ? "var(--red)" : diasHasta <= 30 ? "var(--amber)" : "var(--cyan)",
-          fontWeight:700, fontSize:"var(--fs-sm)",
+          fontWeight: 700, fontSize: "var(--fs-sm)",
         }}>
           {yaFue ? "¡Evento completado!" : diasHasta === 0 ? "¡HOY es el evento!" : `${diasHasta}d para el evento`}
         </span>
@@ -1464,23 +1546,31 @@ function MiniTimeline({ hitos, tramos, eventoFecha, diasHasta, yaFue, navigate }
 
       {/* Mini-lista de próximos hitos críticos */}
       {hitosMarcados.filter(h => h.critico).length > 0 && (
-        <div style={{ marginTop:".65rem", paddingTop:".5rem",
-          borderTop:"1px solid var(--border)", display:"flex", flexDirection:"column", gap:".25rem" }}>
+        <div style={{
+          marginTop: ".65rem", paddingTop: ".5rem",
+          borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: ".25rem"
+        }}>
           {hitosMarcados.filter(h => h.critico).slice(0, 3).map(h => {
             const dias = Math.ceil((new Date(h.fecha) - hoy) / 86400000);
-            const col  = dias < 0 ? "var(--red)" : dias <= 7 ? "var(--amber)" : "var(--text-muted)";
+            const col = dias < 0 ? "var(--red)" : dias <= 7 ? "var(--amber)" : "var(--text-muted)";
             return (
               <div key={h.id} onClick={() => navigate("proyecto")}
-                style={{ display:"flex", justifyContent:"space-between", cursor:"pointer",
-                  padding:".15rem .1rem", borderRadius:3 }}
+                style={{
+                  display: "flex", justifyContent: "space-between", cursor: "pointer",
+                  padding: ".15rem .1rem", borderRadius: 3
+                }}
                 onMouseEnter={e => e.currentTarget.style.background = "var(--surface2)"}
                 onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                <span style={{ fontSize:"var(--fs-xs)", color:"var(--text-muted)",
-                  overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1 }}>
+                <span style={{
+                  fontSize: "var(--fs-xs)", color: "var(--text-muted)",
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1
+                }}>
                   ⚡ {h.nombre}
                 </span>
-                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                  color:col, fontWeight:700, flexShrink:0, marginLeft:".5rem" }}>
+                <span style={{
+                  fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+                  color: col, fontWeight: 700, flexShrink: 0, marginLeft: ".5rem"
+                }}>
                   {dias < 0 ? `${Math.abs(dias)}d atrás` : dias === 0 ? "HOY" : `${dias}d`}
                 </span>
               </div>
@@ -1496,16 +1586,16 @@ function EmptyChart({ mensaje, sub }) {
   return (
     <div className="dash-empty-chart">
       <div className="dash-empty-icon">📊</div>
-      <div className="mono xs bold" style={{ color:"var(--text-muted)" }}>{mensaje}</div>
-      {sub && <div className="mono" style={{ fontSize:"var(--fs-xs)", color:"var(--text-dim)", marginTop:"0.25rem", textAlign:"center", lineHeight:1.4 }}>{sub}</div>}
+      <div className="mono xs bold" style={{ color: "var(--text-muted)" }}>{mensaje}</div>
+      {sub && <div className="mono" style={{ fontSize: "var(--fs-xs)", color: "var(--text-dim)", marginTop: "0.25rem", textAlign: "center", lineHeight: 1.4 }}>{sub}</div>}
     </div>
   );
 }
 
 // ─── Estilos ──────────────────────────────────────────────────────────────────
 const TOOLTIP_STYLE = {
-  background:"var(--bg)", border:"1px solid #1e2d50",
-  borderRadius:8, fontSize:"var(--fs-sm)", fontFamily:"var(--font-mono)",
+  background: "var(--bg)", border: "1px solid #1e2d50",
+  borderRadius: 8, fontSize: "var(--fs-sm)", fontFamily: "var(--font-mono)",
 };
 
 const DASH_EXTRA_CSS = `
@@ -1728,16 +1818,16 @@ function WidgetInscritos({ tramos, inscritos, onSave }) {
   // Por defecto, usa el último tramo creado (suele ser el 'actual')
   const defaultTramo = tramos && tramos.length > 0 ? tramos[tramos.length - 1].id : "";
   const [tramoSel, setTramoSel] = useState(defaultTramo);
-  const [vals, setVals] = useState({ TG7:0, TG13:0, TG25:0 });
+  const [vals, setVals] = useState({ TG7: 0, TG13: 0, TG25: 0 });
   const [saving, setSaving] = useState(false);
 
   // Sincronizar inputs si cambian de tramo o se abren
   useEffect(() => {
     if (open && tramoSel && inscritos?.tramos?.[tramoSel]) {
       const v = inscritos.tramos[tramoSel];
-      setVals({ TG7: v.TG7||0, TG13: v.TG13||0, TG25: v.TG25||0 });
+      setVals({ TG7: v.TG7 || 0, TG13: v.TG13 || 0, TG25: v.TG25 || 0 });
     } else if (open) {
-      setVals({ TG7:0, TG13:0, TG25:0 });
+      setVals({ TG7: 0, TG13: 0, TG25: 0 });
     }
   }, [open, tramoSel, inscritos]);
 
@@ -1751,31 +1841,31 @@ function WidgetInscritos({ tramos, inscritos, onSave }) {
   };
 
   return (
-    <div className="card mb" style={{ padding:"0.6rem 1rem", borderLeft:"3px solid var(--cyan)" }}>
-      <div 
-        style={{ display:"flex", justifyContent:"space-between", alignItems:"center", cursor:"pointer", userSelect:"none" }}
+    <div className="card mb" style={{ padding: "0.6rem 1rem", borderLeft: "3px solid var(--cyan)" }}>
+      <div
+        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", userSelect: "none" }}
         onClick={() => setOpen(!open)}
       >
-        <div style={{ display:"flex", alignItems:"center", gap:"0.5rem" }}>
-          <span style={{ fontSize:"var(--fs-lg)" }}>🏃</span>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <span style={{ fontSize: "var(--fs-lg)" }}>🏃</span>
           <div>
-            <div style={{ fontSize:"var(--fs-base)", fontWeight:700, color:"var(--cyan)" }}>Actualización rápida de inscritos</div>
-            <div className="mono xs muted" style={{ marginTop:2 }}>Volcar datos de la plataforma externa al presupuesto</div>
+            <div style={{ fontSize: "var(--fs-base)", fontWeight: 700, color: "var(--cyan)" }}>Actualización rápida de inscritos</div>
+            <div className="mono xs muted" style={{ marginTop: 2 }}>Volcar datos de la plataforma externa al presupuesto</div>
           </div>
         </div>
-        <button className="btn btn-ghost btn-sm" style={{ padding:"0.2rem 0.4rem", color:"var(--text-muted)" }}>{open ? "▲ Ocultar" : "▼ Actualizar"}</button>
+        <button className="btn btn-ghost btn-sm" style={{ padding: "0.2rem 0.4rem", color: "var(--text-muted)" }}>{open ? "▲ Ocultar" : "▼ Actualizar"}</button>
       </div>
 
       {open && (
-        <div style={{ marginTop:"0.8rem", paddingTop:"0.8rem", borderTop:"1px solid var(--border)", animation:"teg-fade 0.2s ease" }}>
-          <div style={{ display:"flex", gap:"1rem", flexWrap:"wrap" }}>
-            
-            <div style={{ flex:1, minWidth:200 }}>
-              <label style={{ display:"block", fontSize:"var(--fs-xs)", fontFamily:"var(--font-mono)", fontWeight:700, textTransform:"uppercase", color:"var(--text-muted)", marginBottom:"0.3rem" }}>Tramo activo</label>
-              <select 
-                value={tramoSel} 
+        <div style={{ marginTop: "0.8rem", paddingTop: "0.8rem", borderTop: "1px solid var(--border)", animation: "teg-fade 0.2s ease" }}>
+          <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <label style={{ display: "block", fontSize: "var(--fs-xs)", fontFamily: "var(--font-mono)", fontWeight: 700, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: "0.3rem" }}>Tramo activo</label>
+              <select
+                value={tramoSel}
                 onChange={e => setTramoSel(parseInt(e.target.value))}
-                style={{ width:"100%", padding:"0.4rem 0.5rem", borderRadius:"6px", background:"var(--surface2)", border:"1px solid var(--border)", color:"var(--text)", outline:"none", fontFamily:"var(--font-display)", fontSize:"0.85rem" }}
+                style={{ width: "100%", padding: "0.4rem 0.5rem", borderRadius: "6px", background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text)", outline: "none", fontFamily: "var(--font-display)", fontSize: "0.85rem" }}
               >
                 {tramos.map(t => (
                   <option key={t.id} value={t.id}>{t.nombre}</option>
@@ -1783,22 +1873,22 @@ function WidgetInscritos({ tramos, inscritos, onSave }) {
               </select>
             </div>
 
-            <div style={{ flex:2, display:"flex", gap:"0.6rem", flexWrap:"wrap" }}>
+            <div style={{ flex: 2, display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
               {["TG7", "TG13", "TG25"].map(dist => (
-                <div key={dist} style={{ flex:1, minWidth:80 }}>
-                  <label style={{ display:"block", fontSize:"var(--fs-xs)", fontFamily:"var(--font-mono)", fontWeight:700, textTransform:"uppercase", color:"var(--cyan)", marginBottom:"0.3rem" }}>{dist}</label>
-                  <input 
-                    type="number" min="0" 
-                    value={vals[dist]} 
-                    onChange={e => setVals(prev => ({ ...prev, [dist]: Math.max(0, parseInt(e.target.value)||0) }))}
-                    style={{ width:"100%", padding:"0.4rem 0.5rem", borderRadius:"6px", background:"var(--surface2)", border:"1px solid var(--border)", color:"var(--text)", outline:"none", fontFamily:"var(--font-mono)", fontSize:"0.85rem", textAlign:"right" }}
+                <div key={dist} style={{ flex: 1, minWidth: 80 }}>
+                  <label style={{ display: "block", fontSize: "var(--fs-xs)", fontFamily: "var(--font-mono)", fontWeight: 700, textTransform: "uppercase", color: "var(--cyan)", marginBottom: "0.3rem" }}>{dist}</label>
+                  <input
+                    type="number" min="0"
+                    value={vals[dist]}
+                    onChange={e => setVals(prev => ({ ...prev, [dist]: Math.max(0, parseInt(e.target.value) || 0) }))}
+                    style={{ width: "100%", padding: "0.4rem 0.5rem", borderRadius: "6px", background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text)", outline: "none", fontFamily: "var(--font-mono)", fontSize: "0.85rem", textAlign: "right" }}
                   />
                 </div>
               ))}
             </div>
-            
-            <div style={{ alignSelf:"flex-end" }}>
-              <button className="btn btn-primary" onClick={handleSave} disabled={saving} style={{ height:34, padding:"0 1rem" }}>
+
+            <div style={{ alignSelf: "flex-end" }}>
+              <button className="btn btn-primary" onClick={handleSave} disabled={saving} style={{ height: 34, padding: "0 1rem" }}>
                 {saving ? "⏳" : "✓ Vuelco rápido"}
               </button>
             </div>

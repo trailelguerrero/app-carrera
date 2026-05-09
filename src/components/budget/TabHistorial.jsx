@@ -76,8 +76,8 @@ export function TabHistorial() {
   const load = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      // budget-log GET is public (no auth required) — see api/budget-log/index.js
-      const res = await fetch("/api/budget-log?limit=100");
+      // SEC-04: budget-log GET protegido — pasa por proxy BFF que inyecta x-api-key
+      const res = await fetch("/api/proxy/budget-log?limit=100");
       if (!res.ok) throw new Error(`Error ${res.status}`);
       setLog(await res.json());
     } catch (e) {
@@ -90,9 +90,9 @@ export function TabHistorial() {
   useEffect(() => { load(); }, [load]);
 
   const borrarHistorial = async () => {
-    await fetch("/api/budget-log", {
+    // SEC-01: el proxy BFF inyecta la x-api-key server-side
+    await fetch("/api/proxy/budget-log", {
       method: "DELETE",
-      headers: { "x-api-key": import.meta.env.VITE_API_KEY },
     });
     setLog([]);
     setConfirm(false);

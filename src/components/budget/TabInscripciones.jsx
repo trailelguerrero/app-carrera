@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useData } from "../../lib/dataService";
+import { useData } from "@/hooks/useData";
 import { Tooltip, TooltipIcon } from "../common/Tooltip";
 import { DISTANCIAS, DISTANCIA_COLORS, DISTANCIA_LABELS } from "../../constants/budgetConstants";
 import { NumInput } from "./common/NumInput";
