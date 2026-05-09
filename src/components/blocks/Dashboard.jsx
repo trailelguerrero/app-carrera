@@ -111,6 +111,9 @@ export default function Dashboard() {
   useEffect(() => {
     loadData();
 
+    // Capturar el id del intervalo al montar — evita stale-ref en cleanup
+    const intervalId = intervalRef.current;
+
     // teg-sync throttled — no recargar más de 1 vez cada 10 segundos
     let lastSync = 0;
     const handler = () => {
@@ -122,7 +125,7 @@ export default function Dashboard() {
     };
     window.addEventListener("teg-sync", handler);
     return () => {
-      clearInterval(intervalRef.current);
+      clearInterval(intervalId);
       window.removeEventListener("teg-sync", handler);
     };
   }, [loadData]);
