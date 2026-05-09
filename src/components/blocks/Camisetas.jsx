@@ -1351,22 +1351,16 @@ function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, 
                 {!vistaSimple && <td className="text-right" style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: TC.voluntario.color }}>{TALLAS.reduce((s,t)=>s+(tallasExtras[t]?.voluntario||0),0)}</td>}
                 <td className="text-right" style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 'var(--fs-md)' }}>{grandTotal}</td>
               </tr>
-              <tr>
-                <td colSpan={3} style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: TC.corredor.color, paddingTop: '.35rem' }}>
-                  🏃 Total corredor: <strong>{grandTotalCor}</strong>
-                </td>
-                <td colSpan={3} style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: TC.voluntario.color, paddingTop: '.35rem' }}>
-                  👥 Total voluntario: <strong>{grandTotalVol}</strong>
-                </td>
-              </tr>
-              <tr>
-                <td colSpan={3} style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: TC.corredor.color, paddingTop: '.35rem' }}>
-                  🏃 Total corredor: <strong>{grandTotalCor}</strong>
-                </td>
-                <td colSpan={3} style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: TC.voluntario.color, paddingTop: '.35rem' }}>
-                  👥 Total voluntario: <strong>{grandTotalVol}</strong>
-                </td>
-              </tr>
+              {!vistaSimple && (
+                <tr>
+                  <td colSpan={3} style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: TC.corredor.color, paddingTop: '.35rem' }}>
+                    🏃 Total corredor: <strong>{grandTotalCor}</strong>
+                  </td>
+                  <td colSpan={3} style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: TC.voluntario.color, paddingTop: '.35rem' }}>
+                    👥 Total voluntario: <strong>{grandTotalVol}</strong>
+                  </td>
+                </tr>
+              )}
             </tfoot>
           </table>
         </div>
