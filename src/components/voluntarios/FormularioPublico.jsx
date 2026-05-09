@@ -94,7 +94,7 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
 
         <div style={{ display: "flex", gap: "0.75rem", justifyContent: "center", flexWrap: "wrap" }}>
           <button
-            onClick={() => { try { window.close(); } catch(e) {} window.location.href = "/"; }}
+            onClick={() => { try { window.close(); } catch(e) { /* window.close() puede bloquearse en contextos sin opener */ } window.location.href = "/"; }}
             style={{ background: "var(--green-dim)", color: "var(--green)", border: "1px solid rgba(52,211,153,0.3)",
               borderRadius: 8, padding: "0.65rem 1.5rem", fontFamily: "var(--font-display)",
               fontWeight: 700, fontSize: "0.9rem", cursor: "pointer" }}>

@@ -325,7 +325,7 @@ export default function Index() {
   }, []);
   if (!authed) return <PinScreen onUnlock={() => {
     setAuthed(true);
-    try { const r=localStorage.getItem("teg_event_config_v1"); const c=r?JSON.parse(r):{}; if(c.autoOpenDia)setTimeout(()=>setShowDiaCarrera(true),350); } catch {}
+    try { const r=localStorage.getItem("teg_event_config_v1"); const c=r?JSON.parse(r):{}; if(c.autoOpenDia)setTimeout(()=>setShowDiaCarrera(true),350); } catch { /* ignorar si localStorage no disponible */ }
   }} />;
   return (
     <>

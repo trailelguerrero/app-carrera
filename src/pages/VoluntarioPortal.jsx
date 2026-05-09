@@ -512,7 +512,7 @@ function RegistroOkScreen({ telefono, nombre, onAcceder }) {
           </button>
           <button className="vp-btn vp-btn-ghost"
             style={{ fontSize:".82rem", minHeight:44 }}
-            onClick={() => { try { window.close(); } catch(e) {} }}>
+            onClick={() => { try { window.close(); } catch(e) { /* window.close() puede bloquearse sin opener */ } }}>
             ✕ Cerrar ventana
           </button>
         </div>

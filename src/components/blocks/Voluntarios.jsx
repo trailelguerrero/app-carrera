@@ -484,7 +484,7 @@ export default function App() {
               <button className="btn btn-ghost btn-sm"
               onClick={() => {
                 try { window.dispatchEvent(new CustomEvent("teg-navigate", {detail:{block:"configuracion"}})); }
-                catch(e) {}
+                catch(e) { /* dispatchEvent puede fallar en entornos sin window */ }
               }}
               title="Configurar contactos del organizador visibles para los voluntarios">
               ⚙️ Contacto org.
