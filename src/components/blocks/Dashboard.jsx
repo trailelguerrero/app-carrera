@@ -92,7 +92,7 @@ export default function Dashboard() {
           setRawData(localData);
           setLoading(false); // Mostrar datos locales inmediatamente
         }
-      } catch { }
+      } catch (e) { /* localStorage no disponible o clave corrupta \u2014 se continua sin datos locales */ }
     }
     if (!silent) setLoading(prev => prev); // mantener loading si no hubo local
     else setIsRefreshing(true);

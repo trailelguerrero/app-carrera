@@ -1,6 +1,7 @@
 // Auto-extracted from Logistica.jsx — Sprint 2 refactor
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { FASES_CHECKLIST, ESTADO_ENTREGA, ESTADO_TAREA, ESTADO_COLORES, PUESTOS_REF, TIPOS_LOC, LOC_ICONS, LOC_COLORS } from "./logisticaConstants.js";
+import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { createPortal } from "react-dom";
 import { toast } from "@/lib/toast";
 import { genIdNum } from "@/lib/utils";
@@ -26,6 +27,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
   const [filtroTipo,setFiltroTipo] = useState("todos");
   const [modalTipo,setModalTipo]   = useState(false); // modal añadir tipo personalizado
   const [nuevoTipo,setNuevoTipo]   = useState({nombre:"",icono:"🏷️",color:"var(--text-muted)"});
+  const [busqCont,setBusqCont] = useState("");
 
   // Tipos base (siempre presentes) + personalizados del usuario
   const TIPOS_BASE = [
@@ -43,9 +45,12 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
   const contOrdenado = ordenAlfa
     ? [...cont].sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es"))
     : cont;
-  const contFiltrado = filtroTipo==="todos"
+  const contFiltradoTipo = filtroTipo==="todos"
     ? contOrdenado
     : contOrdenado.filter(c=>c.tipo===filtroTipo);
+  const contFiltrado = busqCont.trim()
+    ? contFiltradoTipo.filter(c=>(c.nombre||"").toLowerCase().includes(busqCont.toLowerCase()))
+    : contFiltradoTipo;
 
   const guardarTipo = () => {
     if (!nuevoTipo.nombre.trim()) return;
@@ -123,7 +128,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
                   background:filtroTipo==="todos"?"var(--cyan-dim)":"transparent",
                   color:filtroTipo==="todos"?"var(--cyan)":"var(--text-muted)",
                   fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,cursor:"pointer"}}>
-                Todos ({contDir.length})
+                Todos ({contOrdenado.length})
               </button>
               {todosLosTipos.map(t=>{
                 const n = cont.filter(c=>c.tipo===t.id).length;
@@ -190,14 +195,14 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
               {contFiltrado.map(c=>{
                 const t = getTipo(c.tipo);
                 return (
-                  <div key={conceptoPresu.id} className="ccard"
+                  <div key={c.id} className="ccard"
                     style={{borderTopColor:t.color,cursor:"pointer"}}
                     onClick={()=>abrirFicha("cont",c)}>
                     <div className="cch">
                       <div className="ccti" style={{fontSize:"var(--fs-lg)"}}>{t.icono}</div>
                       <div style={{flex:1,minWidth:0}}>
-                        <div className="ccn">{citem.nombre}</div>
-                        <div className="ccr">{citem.rol}</div>
+                        <div className="ccn">{c.nombre}</div>
+                        <div className="ccr">{c.rol}</div>
                       </div>
                       <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                         padding:".1rem .4rem",borderRadius:10,flexShrink:0,
@@ -206,16 +211,16 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
                       </span>
                     </div>
                     <div className="ccd">
-                      <a href={`tel:${citem.telefono}`} className="ctel">📞 {citem.telefono}</a>
-                      {citem.email&&<a href={`mailto:${citem.email}`} className="ceml">✉️ {citem.email}</a>}
+                      <a href={`tel:${c.telefono}`} className="ctel">📞 {c.telefono}</a>
+                      {c.email&&<a href={`mailto:${c.email}`} className="ceml">✉️ {c.email}</a>}
                     </div>
-                    {conceptoPresu.web&&<div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
+                    {c.web&&<div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                       color:"var(--cyan)",marginTop:".2rem"}}>
-                      <a href={citem.web} target="_blank" rel="noreferrer"
+                      <a href={c.web} target="_blank" rel="noreferrer"
                         style={{color:"var(--cyan)",textDecoration:"none"}}
-                        onClick={e=>e.stopPropagation()}>🌐 {citem.web}</a>
+                        onClick={e=>e.stopPropagation()}>🌐 {c.web}</a>
                     </div>}
-                    {citem.notas&&<div className="cnota">{citem.notas}</div>}
+                    {c.notas&&<div className="cnota">{c.notas}</div>}
                   </div>
                 );
               })}

@@ -88,6 +88,23 @@ export default function DiaCarrera({ onClose }) {
 
   const isLoading = loadCfg || loadTl || loadCont || loadCk || loadPuestos || loadVols || loadInc;
 
+  // Derivaciones de arrays — siempre antes de cualquier retorno anticipado
+  const tl       = Array.isArray(rawTl)      ? [...rawTl].sort((a,b)=>a.hora.localeCompare(b.hora)) : [];
+  const contactos= Array.isArray(rawCont)    ? rawCont : [];
+  const ck       = Array.isArray(rawCk)      ? rawCk  : [];
+  const incidencias = Array.isArray(rawInc) ? rawInc : [];
+  const puestos  = Array.isArray(rawPuestos) ? rawPuestos : [];
+  const vols     = Array.isArray(rawVols)    ? rawVols : [];
+
+  const hora = ahora.toLocaleTimeString("es-ES", { hour:"2-digit", minute:"2-digit" });
+  const confirmados = vols.filter(v => v.estado === "confirmado");
+  const presentes   = vols.filter(v => v.enPuesto).length; // INC-01: campo canónico enPuesto
+
+  // useMemo DEBE estar antes del retorno condicional (reglas de Hooks)
+  const proxima = useMemo(() =>
+    tl.find(t => !tlDone(t) && t.hora >= hora) || null
+  , [tl, hora]);
+
   if (isLoading) {
     return (
       <div className="dc">
@@ -110,21 +127,6 @@ export default function DiaCarrera({ onClose }) {
       </div>
     );
   }
-
-  const tl       = Array.isArray(rawTl)      ? [...rawTl].sort((a,b)=>a.hora.localeCompare(b.hora)) : [];
-  const contactos= Array.isArray(rawCont)    ? rawCont : [];
-  const ck       = Array.isArray(rawCk)      ? rawCk  : [];
-  const incidencias = Array.isArray(rawInc) ? rawInc : [];
-  const puestos  = Array.isArray(rawPuestos) ? rawPuestos : [];
-  const vols     = Array.isArray(rawVols)    ? rawVols : [];
-
-  const hora = ahora.toLocaleTimeString("es-ES", { hour:"2-digit", minute:"2-digit" });
-  const confirmados = vols.filter(v => v.estado === "confirmado");
-  const presentes   = vols.filter(v => v.enPuesto).length; // INC-01: campo canónico enPuesto
-
-  const proxima = useMemo(() =>
-    tl.find(t => !tlDone(t) && t.hora >= hora) || null
-  , [tl, hora]);
 
   const toggleTl  = id => { const now = new Date().toTimeString().slice(0,5); setTl(prev => prev.map(t => t.id===id ? {...t, estado:(t.estado==="completado"||t.done)?"pendiente":"completado", done:false, completadoEn:(t.estado==="completado"||t.done)?undefined:now} : t)); dataService.notify(); };
   // INC-01 fix: usar enPuesto+horaLlegada (campo canónico del VoluntarioPortal) en lugar de v.enPuesto

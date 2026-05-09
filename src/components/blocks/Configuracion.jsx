@@ -187,13 +187,13 @@ export default function Configuracion() {
         try {
           const raw = localStorage.getItem(key);
           if (raw) backup.datos[key] = JSON.parse(raw);
-        } catch { }
+        } catch (e) { /* clave no parseable — se omite del backup */ }
       }
       // Logs dinámicos de patrocinadores (teg_pat_log_<id>)
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
         if (k && k.startsWith("teg_pat_log_")) {
-          try { const raw = localStorage.getItem(k); if (raw) backup.datos[k] = JSON.parse(raw); } catch { }
+          try { const raw = localStorage.getItem(k); if (raw) backup.datos[k] = JSON.parse(raw); } catch (e) { /* clave no parseable — se omite */ }
         }
       }
       const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
