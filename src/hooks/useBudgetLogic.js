@@ -27,10 +27,14 @@ import {
   calculatePuntoEquilibrio,
   calculatePEGlobal
 } from "../lib/budgetUtils";
-import { SK_CAM_PEDIDOS, SK_CAM_COSTE } from "../constants/storageKeys";
+import { SK_CAM_PEDIDOS, SK_CAM_COSTE, SK_PAT_PATS,
+  SK_PPTO_SYNC_CONFIG, SK_PPTO_MARGEN_CONFIG,
+  SK_PPTO_TRAMOS, SK_PPTO_CONCEPTOS, SK_PPTO_INSCRITOS,
+  SK_PPTO_INGRESOS_EXTRA, SK_PPTO_MERCHANDISING, SK_PPTO_MAXIMOS,
+} from "../constants/storageKeys";
 
 // Claves de persistencia propias del módulo de presupuesto
-const LS_PATS = "teg_patrocinadores_v1_pats";
+const LS_PATS = SK_PAT_PATS;
 
 // Mapa canónico id → syncKey para migrar datos legados sin syncKey.
 // Constante de módulo (estática) — no debe declararse dentro del hook
@@ -49,7 +53,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   const [maximos, setMaximos] = useState(MAXIMOS_DEFAULT);
   // Usar useData con defaultValue que se merge con cualquier valor guardado en LS
   // para garantizar que nuevas claves (subvencionPublica) existan aunque el dato sea antiguo
-  const [syncConfigRaw, setSyncConfigRaw] = useData("teg_presupuesto_v1_syncConfig", SYNC_CONFIG_DEFAULT);
+  const [syncConfigRaw, setSyncConfigRaw] = useData(SK_PPTO_SYNC_CONFIG, SYNC_CONFIG_DEFAULT);
 
   // Merge con defaults para añadir claves nuevas que no existían en datos guardados.
   // useMemo estabiliza la referencia para que los useMemo hijos no se re-ejecuten
@@ -67,7 +71,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       return next;
     });
   };
-  const [margenConfig, setMargenConfig] = useData("teg_presupuesto_v1_margenConfig", MARGEN_CONFIG_DEFAULT);
+  const [margenConfig, setMargenConfig] = useData(SK_PPTO_MARGEN_CONFIG, MARGEN_CONFIG_DEFAULT);
   const [saveStatus, setSaveStatus] = useState("idle");
 
   const [rawPats] = useData(LS_PATS, []);
@@ -187,12 +191,12 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
           savedTramos, savedConceptos, savedInscritos,
           savedIngresos, savedMerch, savedMaximos
         ] = await Promise.all([
-          dataService.get("teg_presupuesto_v1_tramos"),
-          dataService.get("teg_presupuesto_v1_conceptos"),
-          dataService.get("teg_presupuesto_v1_inscritos"),
-          dataService.get("teg_presupuesto_v1_ingresosExtra"),
-          dataService.get("teg_presupuesto_v1_merchandising"),
-          dataService.get("teg_presupuesto_v1_maximos"),
+          dataService.get(SK_PPTO_TRAMOS),
+          dataService.get(SK_PPTO_CONCEPTOS),
+          dataService.get(SK_PPTO_INSCRITOS),
+          dataService.get(SK_PPTO_INGRESOS_EXTRA),
+          dataService.get(SK_PPTO_MERCHANDISING),
+          dataService.get(SK_PPTO_MAXIMOS),
         ]);
         if (Array.isArray(savedTramos) && savedTramos.length > 0) setTramos(savedTramos);
         if (savedConceptos) {
@@ -243,12 +247,12 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     emitSaveStatus("saving");
     try {
       await Promise.all([
-        dataService.set("teg_presupuesto_v1_tramos", tramos),
-        dataService.set("teg_presupuesto_v1_conceptos", conceptos),
-        dataService.set("teg_presupuesto_v1_inscritos", inscritos),
-        dataService.set("teg_presupuesto_v1_ingresosExtra", ingresosExtra),
-        dataService.set("teg_presupuesto_v1_merchandising", merchandising),
-        dataService.set("teg_presupuesto_v1_maximos", maximos),
+        dataService.set(SK_PPTO_TRAMOS, tramos),
+        dataService.set(SK_PPTO_CONCEPTOS, conceptos),
+        dataService.set(SK_PPTO_INSCRITOS, inscritos),
+        dataService.set(SK_PPTO_INGRESOS_EXTRA, ingresosExtra),
+        dataService.set(SK_PPTO_MERCHANDISING, merchandising),
+        dataService.set(SK_PPTO_MAXIMOS, maximos),
       ]);
       setSaveStatus("saved");
       emitSaveStatus("saved");
@@ -282,12 +286,12 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       emitSaveStatus("saving");
       try {
         await Promise.all([
-          dataService.set("teg_presupuesto_v1_tramos", tramos),
-          dataService.set("teg_presupuesto_v1_conceptos", conceptos),
-          dataService.set("teg_presupuesto_v1_inscritos", inscritos),
-          dataService.set("teg_presupuesto_v1_ingresosExtra", ingresosExtra),
-          dataService.set("teg_presupuesto_v1_merchandising", merchandising),
-          dataService.set("teg_presupuesto_v1_maximos", maximos)
+          dataService.set(SK_PPTO_TRAMOS, tramos),
+          dataService.set(SK_PPTO_CONCEPTOS, conceptos),
+          dataService.set(SK_PPTO_INSCRITOS, inscritos),
+          dataService.set(SK_PPTO_INGRESOS_EXTRA, ingresosExtra),
+          dataService.set(SK_PPTO_MERCHANDISING, merchandising),
+          dataService.set(SK_PPTO_MAXIMOS, maximos)
         ]);
         emitSaveStatus("saved");
       } catch { emitSaveStatus("error"); }

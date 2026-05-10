@@ -1,4 +1,11 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import {
+  SK_VOL_ROOT, SK_VOL_PUESTOS, SK_VOL_VOLUNTARIOS,
+  SK_VOL_IMG_FRONT, SK_VOL_IMG_BACK, SK_VOL_IMG_GUIA_TALLAS,
+  SK_VOL_OPCION_PUESTO, SK_VOL_OPCION_VEHICULO,
+  SK_VOL_OPCION_EMAIL, SK_VOL_OPCION_EMERGENCIA,
+  SK_LOG_MAT, SK_LOG_ASIG, SK_LOG_RUT,
+} from "@/constants/storageKeys";
 import { TALLAS, SHIRT_PLACEHOLDER_FRONT, SHIRT_PLACEHOLDER_BACK, GUIA_TALLAS } from "@/constants/camisetasConstants";
 import { createPortal } from "react-dom";
 import { exportarVoluntarios } from "@/lib/exportUtils";
@@ -28,11 +35,7 @@ import { ModalConfirm } from "@/components/voluntarios/ModalConfirmar";
 
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
-const ESTADOS = { pendiente: "Pendiente", confirmado: "Confirmado", cancelado: "Cancelado", ausente: "Ausente" };
-const TIPOS_PUESTO = ["Salida/Meta","Avituallamiento","Control","Seguridad","Señalización","Parking","Organización","Primeros Auxilios"];
-const DISTANCIAS_PUESTO = ["TG7","TG13","TG25","Todas"];
-const DIST_COLORS = { TG7: "#22d3ee", TG13: "#a78bfa", TG25: "#34d399", Todas: "#fbbf24" };
-const LS_KEY = "teg_voluntarios_v1";
+// SK_VOL_ROOT y demás claves importadas de @/constants/storageKeys
 
 // ─── IMÁGENES CAMISETA (base64 placeholders — reemplazar con URLs reales) ──────
 // Para producción: sustituir por URLs de tus imágenes reales
@@ -80,9 +83,9 @@ export default function App() {
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
   const [vista, setVista] = useState("gestion"); // "gestion" | "formulario"
   const [tab, setTab] = useState("dashboard");
-  const [rawPuestos, setPuestos] = useData(LS_KEY + "_puestos", PUESTOS_DEFAULT);
+  const [rawPuestos, setPuestos] = useData(SK_VOL_PUESTOS, PUESTOS_DEFAULT);
   const puestos = Array.isArray(rawPuestos) ? rawPuestos : [];
-  const [rawVoluntarios, setVoluntarios] = useData(LS_KEY + "_voluntarios", VOLUNTARIOS_DEFAULT);
+  const [rawVoluntarios, setVoluntarios] = useData(SK_VOL_VOLUNTARIOS, VOLUNTARIOS_DEFAULT);
   const voluntarios = useMemo(() => {
     const raw = Array.isArray(rawVoluntarios) ? rawVoluntarios : [];
     // Migrar campo legado contactoEmergencia → telefonoEmergencia
@@ -95,9 +98,9 @@ export default function App() {
   }, [rawVoluntarios]);
   const [locs] = useData(LOCS_KEY, LOCS_DEFAULT);
   // Material asignado a localizaciones (solo lectura, para mostrar en ficha de puesto)
-  const [rawMat]  = useData("teg_logistica_v1_mat",  []);
-  const [rawAsig] = useData("teg_logistica_v1_asig", []);
-  const [rawRutas] = useData("teg_logistica_v1_rut", []);
+  const [rawMat]  = useData(SK_LOG_MAT,  []);
+  const [rawAsig] = useData(SK_LOG_ASIG, []);
+  const [rawRutas] = useData(SK_LOG_RUT, []);
   const rutas = Array.isArray(rawRutas) ? rawRutas : [];
   const matPorLoc = useMemo(() => {
     const mat   = Array.isArray(rawMat)  ? rawMat  : [];
@@ -133,13 +136,13 @@ export default function App() {
     return map;
   }, [rawMat, rawAsig, locs]);
   const [saveStatus, setSaveStatus] = useState("idle");
-  const [imgFront, setImgFront] = useData(LS_KEY + "_imgFront", SHIRT_PLACEHOLDER_FRONT);
-  const [imgBack, setImgBack] = useData(LS_KEY + "_imgBack", SHIRT_PLACEHOLDER_BACK);
-  const [imgGuiaTallas, setImgGuiaTallas] = useData(LS_KEY + "_imgGuiaTallas", null);
-  const [opcionPuesto, setOpcionPuesto] = useData(LS_KEY + "_opcionPuesto", true);
-  const [opcionVehiculo, setOpcionVehiculo] = useData(LS_KEY + "_opcionVehiculo", true);
-  const [opcionEmail, setOpcionEmail] = useData(LS_KEY + "_opcionEmail", false);
-  const [opcionEmergencia, setOpcionEmergencia] = useData(LS_KEY + "_opcionEmergencia", false);
+  const [imgFront, setImgFront] = useData(SK_VOL_IMG_FRONT, SHIRT_PLACEHOLDER_FRONT);
+  const [imgBack, setImgBack] = useData(SK_VOL_IMG_BACK, SHIRT_PLACEHOLDER_BACK);
+  const [imgGuiaTallas, setImgGuiaTallas] = useData(SK_VOL_IMG_GUIA_TALLAS, null);
+  const [opcionPuesto, setOpcionPuesto] = useData(SK_VOL_OPCION_PUESTO, true);
+  const [opcionVehiculo, setOpcionVehiculo] = useData(SK_VOL_OPCION_VEHICULO, true);
+  const [opcionEmail, setOpcionEmail] = useData(SK_VOL_OPCION_EMAIL, false);
+  const [opcionEmergencia, setOpcionEmergencia] = useData(SK_VOL_OPCION_EMERGENCIA, false);
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [filtroPuesto, setFiltroPuesto] = useState("todos");

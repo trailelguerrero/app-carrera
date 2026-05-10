@@ -6,10 +6,10 @@ import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } fro
 import ErrorBoundary from "../components/ErrorBoundary";
 const DiaCarrera = lazy(() => import("../components/blocks/DiaCarrera"));
 import OnboardingModal from "../components/blocks/OnboardingModal";
+import ConflictModal from "../components/blocks/ConflictModal";
 import { ThemeToggle } from "../components/ui/ThemeToggle";
 import { LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
-import { toast } from "@/lib/toast";
 
 // Lazy-style imports for blocks
 const Dashboard = lazy(() => import("../components/blocks/Dashboard"));
@@ -314,16 +314,7 @@ export default function Index() {
   const navMore = isMobile ? navBlocks.filter(b => NAV_MORE_IDS.includes(b.id)) : [];
   const moreIsActive = navMore.some(b => b.id === activeBlock);
 
-  // MISSING-02: teg-conflict detector — nivel componente (Rules of Hooks)
-  useEffect(() => {
-    const onConflict = (e) => {
-      const { collection, message } = e.detail || {};
-      const label = (collection || '').replace('teg_', '').replace(/_v\d+_?/g, ' ').trim() || 'datos';
-      toast.warning(`⚠️ Conflicto en ${label}: ${message || 'Datos remotos más recientes.'}`);
-    };
-    window.addEventListener('teg-conflict', onConflict);
-    return () => window.removeEventListener('teg-conflict', onConflict);
-  }, []);
+  // MISSING-02: teg-conflict — gestionado por <ConflictModal /> (modal bloqueante, Fase 0)
   if (!authed) return <PinScreen onUnlock={() => {
     setAuthed(true);
     try { const r=localStorage.getItem("teg_event_config_v1"); const c=r?JSON.parse(r):{}; if(c.autoOpenDia)setTimeout(()=>setShowDiaCarrera(true),350); } catch { /* ignorar si localStorage no disponible */ }
@@ -772,6 +763,8 @@ export default function Index() {
         {showDiaCarrera && <DiaCarrera onClose={() => setShowDiaCarrera(false)} />}
         {showOnboarding && <OnboardingModal onClose={cerrarOnboarding} onNavigate={(id) => { handleBlockChange(id); cerrarOnboarding(); }} />}
         {showChangePin && <ChangePinModal onClose={() => setShowChangePin(false)} />}
+        {/* Modal de conflictos de sync — autónomo, escucha teg-conflict globalmente */}
+        <ConflictModal />
 
         {/* TOAST STACK — renderizado encima de todo */}
         <ToastStack toasts={toasts} dismiss={dismiss} navH={NAV_H} />

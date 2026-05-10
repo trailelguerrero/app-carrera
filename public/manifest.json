@@ -1,0 +1,26 @@
+{
+  "name": "Trail El Guerrero · Panel de Gestión",
+  "short_name": "TEG Panel",
+  "description": "Panel de gestión integral del Trail El Guerrero 2026",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#22d3ee",
+  "background_color": "#08091a",
+  "lang": "es",
+  "categories": ["productivity", "sports"],
+  "icons": [
+    {
+      "src": "/icon-192.webp",
+      "sizes": "192x192",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    }
+  ]
+}

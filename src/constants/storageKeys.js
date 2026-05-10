@@ -110,6 +110,10 @@ export const SK_VOL_IMG_GUIA_TALLAS   = "teg_voluntarios_v1_imgGuiaTallas";
 export const SK_VOL_OPCION_PUESTO     = "teg_voluntarios_v1_opcionPuesto";
 /** Opciones de vehículo disponibles */
 export const SK_VOL_OPCION_VEHICULO   = "teg_voluntarios_v1_opcionVehiculo";
+/** Opción de mostrar campo email en formulario público */
+export const SK_VOL_OPCION_EMAIL      = "teg_voluntarios_v1_opcionEmail";
+/** Opción de mostrar campo teléfono emergencia en formulario público */
+export const SK_VOL_OPCION_EMERGENCIA = "teg_voluntarios_v1_opcionEmergencia";
 export const SK_VOL_SESSION           = "teg_vol_session";
 
 // ── Patrocinadores ────────────────────────────────────────────────────────────
@@ -201,6 +205,8 @@ export const SK = {
   VOL_IMG_GUIA_TALLAS: SK_VOL_IMG_GUIA_TALLAS,
   VOL_OPCION_PUESTO:   SK_VOL_OPCION_PUESTO,
   VOL_OPCION_VEHICULO: SK_VOL_OPCION_VEHICULO,
+  VOL_OPCION_EMAIL:    SK_VOL_OPCION_EMAIL,
+  VOL_OPCION_EMERGENCIA: SK_VOL_OPCION_EMERGENCIA,
   VOL_SESSION:         SK_VOL_SESSION,
 
   // Patrocinadores
