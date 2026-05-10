@@ -1,5 +1,13 @@
 import { createPortal } from "react-dom";
-import { SK_PROY_TAREAS } from "@/constants/storageKeys";
+import {
+  SK_LOG_ROOT, SK_LOG_TIPOS_CONT, SK_LOG_PEDIDOS_PROV,
+  SK_LOG_MAT, SK_LOG_ASIG, SK_LOG_VEH, SK_LOG_RUT,
+  SK_LOG_TL, SK_LOG_CONT, SK_LOG_INC, SK_LOG_CK,
+  SK_PPTO_TRAMOS, SK_PPTO_INSCRITOS, SK_PPTO_MAXIMOS, SK_PPTO_CONCEPTOS,
+  SK_PROY_TAREAS,
+  SK_PAT_PATS,
+  SK_VOL_VOLUNTARIOS, SK_VOL_PUESTOS,
+} from "@/constants/storageKeys";
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useModalClose } from "@/hooks/useModalClose";
 import { exportarMaterial } from "@/lib/exportUtils";
@@ -27,7 +35,7 @@ import { TabLocalizaciones } from "@/components/logistica/TabLocalizaciones";
 import { FichaLogistica, ModalRouter } from "@/components/logistica/FichaLogistica";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
-const LS = "teg_logistica_v1";
+// SK_LOG_ROOT y demás claves importadas de @/constants/storageKeys
 
 const CATS_MATERIAL = ["Avituallamiento","Señalización","Seguridad","Comunicación","Médico","Organización","Infraestructura"];
 const CAT_ICONS = { Avituallamiento:"🍎", Señalización:"🚩", Seguridad:"🦺", Comunicación:"📡", Médico:"🏥", Organización:"📋", Infraestructura:"⛺" };
@@ -182,31 +190,31 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
       if (onSubtabConsumed) onSubtabConsumed();
     }
   }, [initialSubtab, onSubtabConsumed]);
-  const [rawMaterial, setMaterial] = useData(LS+"_mat", MAT0);
+  const [rawMaterial, setMaterial] = useData(SK_LOG_MAT,  MAT0);
   const material = Array.isArray(rawMaterial) ? rawMaterial : [];
-  const [rawAsigs, setAsigs] = useData(LS+"_asig", ASIG0);
+  const [rawAsigs, setAsigs] = useData(SK_LOG_ASIG, ASIG0);
   const asigs = Array.isArray(rawAsigs) ? rawAsigs : [];
-  const [rawVeh, setVeh] = useData(LS+"_veh", VEH0);
+  const [rawVeh, setVeh] = useData(SK_LOG_VEH, VEH0);
   const veh = Array.isArray(rawVeh) ? rawVeh : [];
-  const [rawRutas, setRutas] = useData(LS+"_rut", RUTAS0);
+  const [rawRutas, setRutas] = useData(SK_LOG_RUT, RUTAS0);
   const rutas = Array.isArray(rawRutas) ? rawRutas : [];
-  const [rawTl, setTl] = useData(LS+"_tl", TL0);
+  const [rawTl, setTl] = useData(SK_LOG_TL, TL0);
   const tl = Array.isArray(rawTl) ? rawTl : [];
-  const [rawCont, setCont] = useData(LS+"_cont", CONT0);
+  const [rawCont, setCont] = useData(SK_LOG_CONT, CONT0);
   const cont = Array.isArray(rawCont) ? rawCont : [];
-  const [rawInc, setInc] = useData(LS+"_inc", INC0);
+  const [rawInc, setInc] = useData(SK_LOG_INC, INC0);
   const inc = Array.isArray(rawInc) ? rawInc : [];
-  const [rawCk, setCk] = useData(LS+"_ck", CK0);
+  const [rawCk, setCk] = useData(SK_LOG_CK, CK0);
   const ck = Array.isArray(rawCk) ? rawCk : [];
   // Localizaciones maestras compartidas
   const [rawLocs, setLocs] = useData(LOCS_KEY, LOCS_DEFAULT_SHARED);
   // Tipos de contacto personalizados (extensibles por el usuario)
-  const [tiposContacto, setTiposContacto] = useData(LS+"_tipos_cont", []);
+  const [tiposContacto, setTiposContacto] = useData(SK_LOG_TIPOS_CONT, []);
 
   // ── Inscritos del presupuesto — compartido con Material, Pedidos y Dashboard ──
-  const [rawTramos]    = useData("teg_presupuesto_v1_tramos",    []);
-  const [rawInscritos] = useData("teg_presupuesto_v1_inscritos", { tramos: {} });
-  const [rawMaximos]   = useData("teg_presupuesto_v1_maximos",   {});
+  const [rawTramos]    = useData(SK_PPTO_TRAMOS,    []);
+  const [rawInscritos] = useData(SK_PPTO_INSCRITOS, { tramos: {} });
+  const [rawMaximos]   = useData(SK_PPTO_MAXIMOS,   {});
   const totalInscritos = useMemo(() => {
     const tramos = Array.isArray(rawTramos) ? rawTramos : [];
     let total = 0;
@@ -222,28 +230,28 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
   }, [rawMaximos]);
 
   // ── Pedidos a proveedores ──────────────────────────────────────────────────
-  const [rawPedidosProv, setPedidosProv] = useData(LS+"_pedidos_prov", []);
+  const [rawPedidosProv, setPedidosProv] = useData(SK_LOG_PEDIDOS_PROV, []);
   const pedidosProv = Array.isArray(rawPedidosProv) ? rawPedidosProv : [];
 
   // Conceptos REALES del presupuesto (el usuario puede haberlos editado)
-  const [rawConceptos] = useData("teg_presupuesto_v1_conceptos", []);
+  const [rawConceptos] = useData(SK_PPTO_CONCEPTOS, []);
   const conceptosPres = Array.isArray(rawConceptos) && rawConceptos.length > 0
     ? rawConceptos : [];
   const locs = Array.isArray(rawLocs) ? rawLocs : [];
   // Tareas del Proyecto (solo lectura) para vincular con checklist
-  const [rawTareasProyecto] = useData("teg_proyecto_v1_tareas", []);
+  const [rawTareasProyecto] = useData(SK_PROY_TAREAS, []);
   const tareasProyecto = Array.isArray(rawTareasProyecto) ? rawTareasProyecto : [];
 
   // Patrocinadores (solo lectura) para sección especie en material
-  const [rawPats] = useData("teg_patrocinadores_v1_pats", []);
+  const [rawPats] = useData(SK_PAT_PATS, []);
   const patsConEspecie = useMemo(() => {
     const p = Array.isArray(rawPats) ? rawPats : [];
     return p.filter(pat => pat && (pat.especieItems||[]).length > 0);
   }, [rawPats]);
 
   // Voluntarios (solo lectura para el pool de vehículos)
-  const [rawVols] = useData("teg_voluntarios_v1_voluntarios", []);
-  const [rawPuestos] = useData("teg_voluntarios_v1_puestos", []);
+  const [rawVols] = useData(SK_VOL_VOLUNTARIOS, []);
+  const [rawPuestos] = useData(SK_VOL_PUESTOS, []);
   const voluntariosConCoche = useMemo(() => {
     const v = Array.isArray(rawVols) ? rawVols : [];
     return v.filter(vol => vol && vol.coche && vol.estado === "confirmado");
