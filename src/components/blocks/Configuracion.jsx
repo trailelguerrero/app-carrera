@@ -3,6 +3,15 @@ import { useState, useEffect, useRef } from "react";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 import { useData } from "@/hooks/useData";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
+import {
+  SK_UI_CODIGOS_PROMO,
+  SK_UI_CODIGOS_INIT,
+  SK_UI_LAST_BACKUP,
+  SK_UI_ONBOARDING_DONE,
+  SK_PAT_LOG_PREFIX,
+  SK_VOL_VOLUNTARIOS,
+  SK_PAT_PATS,
+} from "@/constants/storageKeys";
 import dataService from "@/lib/dataService";
 
 const CFG_CSS = `
@@ -73,8 +82,7 @@ export default function Configuracion() {
   const [draft, setDraft] = useState(null);
 
   // ── Códigos promocionales ──────────────────────────────────────────────────
-  const LS_CODIGOS = "teg_codigos_promo_v1";
-  const [rawCodigos, setCodigos] = useData(LS_CODIGOS, []);
+  const [rawCodigos, setCodigos] = useData(SK_UI_CODIGOS_PROMO, []);
   const codigos = Array.isArray(rawCodigos) ? rawCodigos : [];
   const [codigosTab, setCodigosTab] = useState("todos");
   const [importText, setImportText] = useState("");
@@ -96,7 +104,7 @@ export default function Configuracion() {
   // Usamos useEffect para evitar side effects en render
   const codigosRef = useRef(codigos);
   useEffect(() => {
-    const yaInicializado = localStorage.getItem("teg_codigos_initialized");
+    const yaInicializado = localStorage.getItem(SK_UI_CODIGOS_INIT);
     if (codigosRef.current.length === 0 && !yaInicializado) {
       const CODIGOS_INICIALES = [
         // TG7
@@ -120,7 +128,7 @@ export default function Configuracion() {
         { id: "UUCTJWSV", codigo: "UUCTJWSV", distancia: "TG25", estado: "disponible", usadoPor: null, fechaUso: null },
       ];
       setCodigos(CODIGOS_INICIALES);
-      localStorage.setItem("teg_codigos_initialized", "1");
+      localStorage.setItem(SK_UI_CODIGOS_INIT, "1");
     }
   }, [setCodigos]); // setCodigos es estable; codigosRef.current evita re-ejecución por cambios de estado
 
@@ -189,10 +197,10 @@ export default function Configuracion() {
           if (raw) backup.datos[key] = JSON.parse(raw);
         } catch (e) { /* clave no parseable — se omite del backup */ }
       }
-      // Logs dinámicos de patrocinadores (teg_pat_log_<id>)
+      // Logs dinámicos de patrocinadores (SK_PAT_LOG_PREFIX + <id>)
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
-        if (k && k.startsWith("teg_pat_log_")) {
+        if (k && k.startsWith(SK_PAT_LOG_PREFIX)) {
           try { const raw = localStorage.getItem(k); if (raw) backup.datos[k] = JSON.parse(raw); } catch (e) { /* clave no parseable — se omite */ }
         }
       }
@@ -204,7 +212,7 @@ export default function Configuracion() {
       a.download = `backup_${(form.nombre || "evento").replace(/\s+/g, "-").toLowerCase()}_${fecha}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      localStorage.setItem("teg_last_backup", new Date().toISOString());
+      localStorage.setItem(SK_UI_LAST_BACKUP, new Date().toISOString());
     } finally {
       setExportando(false);
     }
@@ -213,7 +221,7 @@ export default function Configuracion() {
   // ── Exportar voluntarios como CSV ────────────────────────────────────────
   const handleExportVoluntariosCSV = () => {
     try {
-      const raw = localStorage.getItem("teg_voluntarios_v1_voluntarios");
+      const raw = localStorage.getItem(SK_VOL_VOLUNTARIOS);
       const vols = raw ? JSON.parse(raw) : [];
       if (!vols.length) { setImportMsg({ tipo: "error", texto: "No hay voluntarios para exportar" }); return; }
       const cols = ["id", "nombre", "telefono", "email", "talla", "estado", "rol", "puestoId", "coche", "notas", "fechaRegistro"];
@@ -229,7 +237,7 @@ export default function Configuracion() {
   // ── Exportar patrocinadores como CSV ─────────────────────────────────────
   const handleExportPatrocinadores = () => {
     try {
-      const raw = localStorage.getItem("teg_patrocinadores_v1_pats");
+      const raw = localStorage.getItem(SK_PAT_PATS);
       const pats = raw ? JSON.parse(raw) : [];
       if (!pats.length) { setImportMsg({ tipo: "error", texto: "No hay patrocinadores para exportar" }); return; }
       const cols = ["id", "nombre", "nivel", "importe", "estado", "contacto", "email", "telefono", "notas"];
@@ -520,7 +528,7 @@ export default function Configuracion() {
         <div className="card cfg-section">
           <div className="cfg-section-title">💾 Backup y exportación de datos</div>
           {(() => {
-            const lastBackup = localStorage.getItem("teg_last_backup");
+            const lastBackup = localStorage.getItem(SK_UI_LAST_BACKUP);
             if (!lastBackup) return (
               <div style={{
                 fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--red)",
@@ -714,7 +722,7 @@ export default function Configuracion() {
                 border: "1px solid rgba(167,139,250,.3)"
               }}
               onClick={() => {
-                localStorage.removeItem("teg_onboarding_done");
+                localStorage.removeItem(SK_UI_ONBOARDING_DONE);
                 window.location.reload();
               }}>
               🎓 Ver tutorial de inicio
