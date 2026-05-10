@@ -20,7 +20,7 @@ import {
   SK_PROY_TAREAS, SK_PROY_HITOS,
   SK_DOC_DOCS, SK_DOC_GESTIONES,
   SK_UI_DASH_ALERTAS_OPEN,
-  SK_CAM_PEDIDOS, SK_CAM_COSTE,
+  SK_CAM_PEDIDOS, SK_CAM_COSTE, SK_CAM_CORREDORES, SK_CAM_PRECIO_PLATAFORMA, SK_CAM_NINO,
 } from "@/constants/storageKeys";
 import dataService from "@/lib/dataService";
 import {
@@ -152,24 +152,24 @@ export default function Dashboard() {
     const eventoEdicion = cfg.edicion;
 
     // PRESUPUESTO
-    const conceptos = get("teg_presupuesto_v1_conceptos", []);
-    const tramos = get("teg_presupuesto_v1_tramos", []);
-    const inscritos = get("teg_presupuesto_v1_inscritos", { tramos: {} });
-    const syncConfig = get("teg_presupuesto_v1_syncConfig", { patrocinios: true, camisetas: true });
-    const scenarioActivo = get("teg_scenario_active_name", null);
+    const conceptos = get(SK_PPTO_CONCEPTOS, []);
+    const tramos = get(SK_PPTO_TRAMOS, []);
+    const inscritos = get(SK_PPTO_INSCRITOS, { tramos: {} });
+    const syncConfig = get(SK_PPTO_SYNC_CONFIG, { patrocinios: true, camisetas: true });
+    const scenarioActivo = get(SK_PPTO_SCENARIO_ACTIVE, null);
     // Camisetas: leer pedidos, coste y datos auxiliares directamente
-    const camPedidos = get("teg_camisetas_v1_pedidos", []);
+    const camPedidos = get(SK_CAM_PEDIDOS, []);
     // INC-04 fix: usar COSTE_DEFAULT coherente con el bloque Camisetas
-    const camCoste = get("teg_camisetas_v1_coste", COSTE_DEFAULT);
+    const camCoste = get(SK_CAM_COSTE, COSTE_DEFAULT);
     // Datos de fuentes externas de camisetas (para cálculo completo de coste)
-    const camCorredoresExt = get("teg_camisetas_v1_corredores", {});
-    const camPrecioCorrExt = get("teg_camisetas_v1_precio_plataforma", { precio: 0 })?.precio ?? 0;
-    const camNinoExt = get("teg_camisetas_v1_nino", {});
+    const camCorredoresExt = get(SK_CAM_CORREDORES, {});
+    const camPrecioCorrExt = get(SK_CAM_PRECIO_PLATAFORMA, { precio: 0 })?.precio ?? 0;
+    const camNinoExt = get(SK_CAM_NINO, {});
     // Cálculo de camisetas delegado a calculateResultadoFinanciero
-    const pats = get("teg_patrocinadores_v1_pats", []);
-    const ingresosExtra = get("teg_presupuesto_v1_ingresosExtra", []);
-    const merchandising = get("teg_presupuesto_v1_merchandising", []);
-    const maximos = get("teg_presupuesto_v1_maximos", {});
+    const pats = get(SK_PAT_PATS, []);
+    const ingresosExtra = get(SK_PPTO_INGRESOS_EXTRA, []);
+    const merchandising = get(SK_PPTO_MERCHANDISING, []);
+    const maximos = get(SK_PPTO_MAXIMOS, {});
 
     // ── Cálculos financieros — usando budgetUtils (fuente única de verdad)
     // Misma lógica que useBudgetLogic.js para garantizar consistencia con Presupuesto
@@ -1327,7 +1327,7 @@ export default function Dashboard() {
         <WidgetInscritos tramos={d.tramos} inscritos={d.rawInscritos}
           onSave={async (tramoId, newVals) => {
             const next = { ...d.rawInscritos, tramos: { ...(d.rawInscritos?.tramos || {}), [tramoId]: newVals } };
-            await dataService.set("teg_presupuesto_v1_inscritos", next);
+            await dataService.set(SK_PPTO_INSCRITOS, next);
             window.dispatchEvent(new CustomEvent("teg-sync"));
           }}
         />
