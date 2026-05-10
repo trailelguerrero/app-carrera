@@ -9,28 +9,40 @@
  */
 import { useEffect, useRef, useState, useCallback } from "react";
 import dataService from "@/lib/dataService";
+import {
+  SK_PROY_TAREAS,
+  SK_VOL_VOLUNTARIOS,
+  SK_VOL_PUESTOS,
+  SK_DOC_DOCS,
+  SK_DOC_GESTIONES,
+  SK_PPTO_CONCEPTOS,
+  SK_PPTO_TRAMOS,
+  SK_PPTO_INSCRITOS,
+  SK_PPTO_INGRESOS_EXTRA,
+  SK_LOG_INC,
+} from "@/constants/storageKeys";
 
 const THROTTLE_MS = 5000; // T7.2: no recalcular más de 1 vez cada 5s por módulo
 
 // Mapeo clave de localStorage → módulo que la usa
 const KEY_MODULE = {
-  teg_proyecto_v1_tareas: "proyecto",
-  teg_voluntarios_v1_voluntarios: "voluntarios",
-  teg_voluntarios_v1_puestos: "voluntarios",
-  teg_documentos_v1: "documentos",
-  teg_documentos_v1_gestiones: "documentos",
-  teg_presupuesto_v1_conceptos: "presupuesto",
-  teg_presupuesto_v1_tramos: "presupuesto",
-  teg_presupuesto_v1_inscritos: "presupuesto",
-  teg_presupuesto_v1_ingresosExtra: "presupuesto",
-  teg_logistica_v1_inc: "logistica",
+  [SK_PROY_TAREAS]:        "proyecto",
+  [SK_VOL_VOLUNTARIOS]:    "voluntarios",
+  [SK_VOL_PUESTOS]:        "voluntarios",
+  [SK_DOC_DOCS]:           "documentos",
+  [SK_DOC_GESTIONES]:      "documentos",
+  [SK_PPTO_CONCEPTOS]:     "presupuesto",
+  [SK_PPTO_TRAMOS]:        "presupuesto",
+  [SK_PPTO_INSCRITOS]:     "presupuesto",
+  [SK_PPTO_INGRESOS_EXTRA]:"presupuesto",
+  [SK_LOG_INC]:            "logistica",
 };
 
 async function calcBadgeModulo(modulo) {
   try {
     switch (modulo) {
       case "proyecto": {
-        const tareas = await dataService.get("teg_proyecto_v1_tareas", []);
+        const tareas = await dataService.get(SK_PROY_TAREAS, []);
         const vencidas = Array.isArray(tareas) ? tareas.filter(t =>
           t.estado !== "completado" && t.estado !== "bloqueado" &&
           t.fechaLimite &&
@@ -39,8 +51,8 @@ async function calcBadgeModulo(modulo) {
         return vencidas > 0 ? { proyecto: vencidas } : {};
       }
       case "voluntarios": {
-        const vols = await dataService.get("teg_voluntarios_v1_voluntarios", []);
-        const puestos = await dataService.get("teg_voluntarios_v1_puestos", []);
+        const vols = await dataService.get(SK_VOL_VOLUNTARIOS, []);
+        const puestos = await dataService.get(SK_VOL_PUESTOS, []);
         if (!Array.isArray(puestos) || !Array.isArray(vols)) return {};
         const criticos = puestos.filter(p => {
           const confirmados = vols.filter(v => v.puestoId === p.id && v.estado === "confirmado").length;
@@ -49,8 +61,8 @@ async function calcBadgeModulo(modulo) {
         return criticos > 0 ? { voluntarios: criticos } : {};
       }
       case "documentos": {
-        const docs = await dataService.get("teg_documentos_v1", []);
-        const gests = await dataService.get("teg_documentos_v1_gestiones", []);
+        const docs = await dataService.get(SK_DOC_DOCS, []);
+        const gests = await dataService.get(SK_DOC_GESTIONES, []);
         const docsV = Array.isArray(docs) ? docs.filter(d =>
           d.fechaVencimiento && d.estado !== "vigente" && d.estado !== "aprobado" &&
           Math.ceil((new Date(d.fechaVencimiento) - new Date()) / 86400000) < 0
@@ -63,10 +75,10 @@ async function calcBadgeModulo(modulo) {
         return docsV + gestV > 0 ? { documentos: docsV + gestV } : {};
       }
       case "presupuesto": {
-        const conceptos = await dataService.get("teg_presupuesto_v1_conceptos", []);
-        const tramos = await dataService.get("teg_presupuesto_v1_tramos", []);
-        const inscritos = await dataService.get("teg_presupuesto_v1_inscritos", { tramos: {} });
-        const ingExt = await dataService.get("teg_presupuesto_v1_ingresosExtra", []);
+        const conceptos = await dataService.get(SK_PPTO_CONCEPTOS, []);
+        const tramos = await dataService.get(SK_PPTO_TRAMOS, []);
+        const inscritos = await dataService.get(SK_PPTO_INSCRITOS, { tramos: {} });
+        const ingExt = await dataService.get(SK_PPTO_INGRESOS_EXTRA, []);
         if (!Array.isArray(conceptos) || !Array.isArray(tramos)) return {};
         const DIST = ["TG7", "TG13", "TG25"];
         const totalIns = DIST.reduce((s, d) =>
@@ -85,7 +97,7 @@ async function calcBadgeModulo(modulo) {
         return ((ingresos + totalIngExtra) - costes < 0 && totalIns > 0) ? { presupuesto: "!" } : {};
       }
       case "logistica": {
-        const inc = await dataService.get("teg_logistica_v1_inc", []);
+        const inc = await dataService.get(SK_LOG_INC, []);
         const abiertas = Array.isArray(inc) ? inc.filter(i => i.estado === "abierta").length : 0;
         return abiertas > 0 ? { logistica: abiertas } : {};
       }
