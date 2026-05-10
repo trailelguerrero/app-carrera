@@ -9,8 +9,49 @@ import {
   SK_UI_LAST_BACKUP,
   SK_UI_ONBOARDING_DONE,
   SK_PAT_LOG_PREFIX,
+  SK_EVENT_CONFIG,
+  // Presupuesto
+  SK_PPTO_TRAMOS,
+  SK_PPTO_CONCEPTOS,
+  SK_PPTO_INSCRITOS,
+  SK_PPTO_INGRESOS_EXTRA,
+  SK_PPTO_MERCHANDISING,
+  SK_PPTO_MAXIMOS,
+  // Voluntarios
   SK_VOL_VOLUNTARIOS,
+  SK_VOL_PUESTOS,
+  SK_VOL_IMG_FRONT,
+  SK_VOL_IMG_BACK,
+  SK_VOL_IMG_GUIA_TALLAS,
+  SK_VOL_OPCION_PUESTO,
+  SK_VOL_OPCION_VEHICULO,
+  // Patrocinadores
   SK_PAT_PATS,
+  SK_PAT_OBJ,
+  // Logística
+  SK_LOG_MAT,
+  SK_LOG_ASIG,
+  SK_LOG_VEH,
+  SK_LOG_RUT,
+  SK_LOG_TL,
+  SK_LOG_CONT,
+  SK_LOG_INC,
+  SK_LOG_CK,
+  SK_LOG_TIPOS_CONT,
+  SK_LOG_PEDIDOS_PROV,
+  // Localización
+  SK_LOC_LOCALIZACIONES,
+  // Proyecto
+  SK_PROY_TAREAS,
+  SK_PROY_HITOS,
+  SK_PROY_EQUIPO,
+  // Documentos
+  SK_DOC_DOCS,
+  SK_DOC_GESTIONES,
+  // Camisetas
+  SK_CAM_ROOT,
+  SK_CAM_PEDIDOS,
+  SK_CAM_COSTE,
 } from "@/constants/storageKeys";
 import dataService from "@/lib/dataService";
 
@@ -143,42 +184,51 @@ export default function Configuracion() {
 
 
   // ── Todas las claves de datos de la app ──────────────────────────────────
+  // ⚠️ Usar siempre constantes SK_. Nunca strings literales "teg_..." aquí.
   const ALL_DATA_KEYS = [
-    "teg_event_config_v1",
-    "teg_presupuesto_v1_tramos",
-    "teg_presupuesto_v1_conceptos",
-    "teg_presupuesto_v1_inscritos",
-    "teg_presupuesto_v1_ingresosExtra",
-    "teg_presupuesto_v1_merchandising",
-    "teg_presupuesto_v1_maximos",
-    "teg_voluntarios_v1_voluntarios",
-    "teg_voluntarios_v1_puestos",
-    "teg_voluntarios_v1_imgFront",
-    "teg_voluntarios_v1_imgBack",
-    "teg_voluntarios_v1_imgGuiaTallas",
-    "teg_voluntarios_v1_opcionPuesto",
-    "teg_voluntarios_v1_opcionVehiculo",
-    "teg_patrocinadores_v1_pats",
-    "teg_patrocinadores_v1_obj",
-    "teg_logistica_v1_mat",
-    "teg_logistica_v1_asig",
-    "teg_logistica_v1_veh",
-    "teg_logistica_v1_rut",
-    "teg_logistica_v1_tl",
-    "teg_logistica_v1_cont",
-    "teg_logistica_v1_inc",
-    "teg_logistica_v1_ck",
-    "teg_localizaciones_v1",
-    "teg_proyecto_v1_tareas",
-    "teg_proyecto_v1_hitos",
-    "teg_proyecto_v1_equipo",
-    "teg_documentos_v1",
-    "teg_documentos_v1_gestiones",
-    "teg_camisetas_v1",
-    "teg_camisetas_v1_pedidos",
-    "teg_camisetas_v1_coste",
-    "teg_logistica_v1_tipos_cont",
-    "teg_logistica_v1_pedidos_prov",
+    SK_EVENT_CONFIG,
+    // Presupuesto
+    SK_PPTO_TRAMOS,
+    SK_PPTO_CONCEPTOS,
+    SK_PPTO_INSCRITOS,
+    SK_PPTO_INGRESOS_EXTRA,
+    SK_PPTO_MERCHANDISING,
+    SK_PPTO_MAXIMOS,
+    // Voluntarios
+    SK_VOL_VOLUNTARIOS,
+    SK_VOL_PUESTOS,
+    SK_VOL_IMG_FRONT,
+    SK_VOL_IMG_BACK,
+    SK_VOL_IMG_GUIA_TALLAS,
+    SK_VOL_OPCION_PUESTO,
+    SK_VOL_OPCION_VEHICULO,
+    // Patrocinadores
+    SK_PAT_PATS,
+    SK_PAT_OBJ,
+    // Logística
+    SK_LOG_MAT,
+    SK_LOG_ASIG,
+    SK_LOG_VEH,
+    SK_LOG_RUT,
+    SK_LOG_TL,
+    SK_LOG_CONT,
+    SK_LOG_INC,
+    SK_LOG_CK,
+    SK_LOG_TIPOS_CONT,
+    SK_LOG_PEDIDOS_PROV,
+    // Localización
+    SK_LOC_LOCALIZACIONES,
+    // Proyecto
+    SK_PROY_TAREAS,
+    SK_PROY_HITOS,
+    SK_PROY_EQUIPO,
+    // Documentos
+    SK_DOC_DOCS,
+    SK_DOC_GESTIONES,
+    // Camisetas
+    SK_CAM_ROOT,
+    SK_CAM_PEDIDOS,
+    SK_CAM_COSTE,
   ];
 
   // ── Exportar todos los datos como JSON ───────────────────────────────────
