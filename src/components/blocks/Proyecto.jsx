@@ -11,8 +11,13 @@ import { useData } from "@/hooks/useData";
 
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
+import {
+  SK_PROY_TAREAS, SK_PROY_HITOS, SK_PROY_EQUIPO,
+  SK_DOC_DOCS, SK_DOC_GESTIONES,
+  SK_VOL_VOLUNTARIOS,
+  SK_LOG_CONT,
+} from "@/constants/storageKeys";
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
-const LS = "teg_proyecto_v1";
 // Fix: función dinámica para que el cálculo de días sea siempre exacto
 const diasHasta = (fecha) => Math.ceil((new Date(fecha) - new Date()) / 86400000);
 const fmt = (d) => d ? new Date(d).toLocaleDateString("es-ES", { day:"2-digit", month:"short" }) : "—";
@@ -140,15 +145,15 @@ export default function App() {
   const [tab, setTab]         = useState("dashboard");
   // FIX Guard más robusto: si la BD devuelve datos, usarlos; si no, cargar TAREAS0 como defaults
   // Esto protege contra el caso de dispositivo nuevo (sin localStorage) que sobreescribía con TAREAS0
-  const [rawTareas, setTareas]   = useData(LS+"_tareas", TAREAS0);
-  const [rawHitos, setHitos]     = useData(LS+"_hitos", HITOS0);
-  const [rawEquipo, setEquipo]   = useData(LS+"_equipo", EQUIPO0);
+  const [rawTareas, setTareas]   = useData(SK_PROY_TAREAS, TAREAS0);
+  const [rawHitos, setHitos]     = useData(SK_PROY_HITOS, HITOS0);
+  const [rawEquipo, setEquipo]   = useData(SK_PROY_EQUIPO, EQUIPO0);
   const [eventCfg]               = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
-  const [rawDocs]                = useData("teg_documentos_v1", []);
-  const [rawGest]                = useData("teg_documentos_v1_gestiones", []);
-  const [rawVoluntarios]         = useData("teg_voluntarios_v1_voluntarios", []);
-  const [rawContLog]             = useData("teg_logistica_v1_cont", []);
+  const [rawDocs]                = useData(SK_DOC_DOCS, []);
+  const [rawGest]                = useData(SK_DOC_GESTIONES, []);
+  const [rawVoluntarios]         = useData(SK_VOL_VOLUNTARIOS, []);
+  const [rawContLog]             = useData(SK_LOG_CONT, []);
 
   const tareas = Array.isArray(rawTareas) ? rawTareas : [];
   const hitos = Array.isArray(rawHitos) ? rawHitos : [];
