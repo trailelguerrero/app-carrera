@@ -12,11 +12,24 @@
  * Para PIN de 4-6 dígitos es suficiente para protección casual del panel.
  */
 
-export const PIN_KEY           = "teg_panel_pin_hash";
-export const AUTH_KEY          = "teg_panel_authed";
-export const SESSION_VER       = "teg_panel_session_ver";
-export const FAIL_COUNT_KEY    = "teg_panel_fail_count";
-export const LOCKOUT_UNTIL_KEY = "teg_panel_lockout_until";
+import {
+  SK_AUTH_PIN_HASH,
+  SK_AUTH_AUTHED,
+  SK_AUTH_SESSION_VER,
+  SK_AUTH_FAIL_COUNT,
+  SK_AUTH_LOCKOUT_UNTIL,
+} from "../../constants/storageKeys";
+
+/** @deprecated Usar SK_AUTH_PIN_HASH de storageKeys */
+export const PIN_KEY           = SK_AUTH_PIN_HASH;
+/** @deprecated Usar SK_AUTH_AUTHED de storageKeys */
+export const AUTH_KEY          = SK_AUTH_AUTHED;
+/** @deprecated Usar SK_AUTH_SESSION_VER de storageKeys */
+export const SESSION_VER       = SK_AUTH_SESSION_VER;
+/** @deprecated Usar SK_AUTH_FAIL_COUNT de storageKeys */
+export const FAIL_COUNT_KEY    = SK_AUTH_FAIL_COUNT;
+/** @deprecated Usar SK_AUTH_LOCKOUT_UNTIL de storageKeys */
+export const LOCKOUT_UNTIL_KEY = SK_AUTH_LOCKOUT_UNTIL;
 /** Incrementar para invalidar todas las sesiones activas */
 export const CURRENT_VER       = "2";
 export const DEFAULT_PIN       = "1975";

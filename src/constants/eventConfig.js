@@ -19,4 +19,5 @@ export const EVENT_CONFIG_DEFAULT = {
   autoOpenDia:      false, // Abrir automáticamente DíaCarrera al iniciar la app
 };
 
-export const LS_KEY_CONFIG = "teg_event_config_v1";
+/** @deprecated Usar SK_EVENT_CONFIG de @/constants/storageKeys */
+export { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys";

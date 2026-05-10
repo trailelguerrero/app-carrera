@@ -9,6 +9,7 @@ import OnboardingModal from "../components/blocks/OnboardingModal";
 import ConflictModal from "../components/blocks/ConflictModal";
 import { ThemeToggle } from "../components/ui/ThemeToggle";
 import { LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
+import { SK_UI_ONBOARDING_DONE } from "@/constants/storageKeys";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 // Lazy-style imports for blocks
@@ -198,7 +199,7 @@ export default function Index() {
   // Leer config completo para header Kinetik Ops
   const headerCfg = (() => {
     try {
-      const raw = localStorage.getItem("teg_event_config_v1");
+      const raw = localStorage.getItem(LS_KEY_CONFIG);
       return raw ? JSON.parse(raw) : null;
     } catch { return null; }
   })();
@@ -216,10 +217,10 @@ export default function Index() {
   const [pendingSubtab, setPendingSubtab] = useState(null);
   const [readmeBlock, setReadmeBlock] = useState(null);
   const [showOnboarding, setShowOnboarding] = useState(
-    () => !localStorage.getItem("teg_onboarding_done")
+    () => !localStorage.getItem(SK_UI_ONBOARDING_DONE)
   );
   const cerrarOnboarding = () => {
-    localStorage.setItem("teg_onboarding_done", "1");
+    localStorage.setItem(SK_UI_ONBOARDING_DONE, "1");
     setShowOnboarding(false);
   };
   const ActiveComponent = BLOCKS.find(b => b.id === activeBlock)?.component;
@@ -317,7 +318,7 @@ export default function Index() {
   // MISSING-02: teg-conflict — gestionado por <ConflictModal /> (modal bloqueante, Fase 0)
   if (!authed) return <PinScreen onUnlock={() => {
     setAuthed(true);
-    try { const r=localStorage.getItem("teg_event_config_v1"); const c=r?JSON.parse(r):{}; if(c.autoOpenDia)setTimeout(()=>setShowDiaCarrera(true),350); } catch { /* ignorar si localStorage no disponible */ }
+    try { const r=localStorage.getItem(LS_KEY_CONFIG); const c=r?JSON.parse(r):{}; if(c.autoOpenDia)setTimeout(()=>setShowDiaCarrera(true),350); } catch { /* ignorar si localStorage no disponible */ }
   }} />;
   return (
     <>

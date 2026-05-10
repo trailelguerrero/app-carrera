@@ -4,6 +4,7 @@ import { Tooltip, TooltipIcon } from "../common/Tooltip";
 import { DISTANCIAS, DISTANCIA_COLORS, DISTANCIA_LABELS } from "../../constants/budgetConstants";
 import { NumInput } from "./common/NumInput";
 import { cls } from "../../lib/budgetUtils";
+import { SK_UI_CODIGOS_PROMO } from "@/constants/storageKeys";
 
 const getTramoStatus = (fechaFin) => {
   const now = new Date();
@@ -113,7 +114,7 @@ export const TabInscripciones = ({
   const [pendingDelete, setPendingDelete] = useState(null);
 
   // ── Códigos promocionales ──────────────────────────────────────────────────
-  const LS_CODIGOS = "teg_codigos_promo_v1";
+  const LS_CODIGOS = SK_UI_CODIGOS_PROMO;
   const [rawCodigos, setCodigos] = useData(LS_CODIGOS, []);
   const codigos = Array.isArray(rawCodigos) ? rawCodigos : [];
   const [codigosTab, setCodigosTab]   = useState("todos");

@@ -2,7 +2,8 @@
  * LOCALIZACIONES — Constantes compartidas entre Logística y Voluntarios.
  * Fuente única de verdad para los puestos maestros de la carrera.
  */
-export const LOCS_KEY = "teg_localizaciones_v1";
+/** @deprecated Usar SK_LOC_LOCALIZACIONES de @/constants/storageKeys */
+export { SK_LOC_LOCALIZACIONES as LOCS_KEY } from "@/constants/storageKeys";
 
 export const LOCS_DEFAULT = [
   { id:1,  nombre:"Zona Salida/Meta",        tipo:"meta",          descripcion:"Punto de salida y llegada de todas las distancias" },

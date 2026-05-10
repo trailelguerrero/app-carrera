@@ -8,8 +8,10 @@ import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { getEventDate } from "@/lib/eventUtils";
 import { LOCS_KEY, LOCS_DEFAULT } from "@/constants/localizaciones"; // CONN-01: mapa de puestos
 
-const LS_LOG = "teg_logistica_v1";
-const LS_VOL = "teg_voluntarios_v1";
+import { SK_LOG_ROOT, SK_VOL_ROOT } from "@/constants/storageKeys";
+
+const LS_LOG = SK_LOG_ROOT;
+const LS_VOL = SK_VOL_ROOT;
 
 const CAT_ICON  = { logistica:"🚚", organizacion:"📋", voluntarios:"👥", carrera:"🏃", comunicacion:"📡" };
 const CAT_COLOR = { logistica:"#fbbf24", organizacion:"#a78bfa", voluntarios:"#34d399", carrera:"#22d3ee", comunicacion:"#fb923c" };

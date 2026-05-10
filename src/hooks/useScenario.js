@@ -1,8 +1,9 @@
 import { useState, useCallback, useMemo } from "react";
 import { useData } from "@/hooks/useData";
+import { SK_SCENARIOS, SK_PPTO_SCENARIO_ACTIVE } from "@/constants/storageKeys";
 
-const LS_KEY = "teg_scenarios_v1";
-const LS_ACTIVE_SCENARIO = "teg_scenario_active_name";
+const LS_KEY = SK_SCENARIOS;
+const LS_ACTIVE_SCENARIO = SK_PPTO_SCENARIO_ACTIVE;
 
 /**
  * useScenario — Orquestador del sistema de escenarios de presupuesto.

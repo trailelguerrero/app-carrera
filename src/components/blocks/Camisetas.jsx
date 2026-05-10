@@ -9,8 +9,10 @@ import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 
+import { SK_CAM_ROOT, SK_VOL_VOLUNTARIOS } from "@/constants/storageKeys";
+
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
-const LS    = "teg_camisetas_v1";
+const LS    = SK_CAM_ROOT;
 
 const TALLAS       = ["XXS","XS","S","M","L","XL","XXL","3XL","4XL"];
 const TALLAS_NINO  = ["4-6","6-8","8-10","10-12"];
@@ -149,7 +151,7 @@ export default function App() {
     : { precio: 20, cantidad: 0 };
 
   // Tallas de voluntarios: lectura automática (solo confirmados/pendientes, excluye cancelados)
-  const [rawVols, , loadVols] = useData("teg_voluntarios_v1_voluntarios", []);
+  const [rawVols, , loadVols] = useData(SK_VOL_VOLUNTARIOS, []);
 
   // ── Hooks que deben ir ANTES de cualquier early return ──────────────────────
   const [inclPendientes, setInclPendientes, loadInclP] = useData(LS+"_incluir_pendientes", false);
@@ -311,7 +313,7 @@ export default function App() {
     setModal(null);
   };
   const deletePedido = () => { setPedidos(prev => prev.filter(x => x.id!==delId)); setDelId(null); setFicha(null); toast.success("Pedido eliminado"); };
-  const [, setRawVoluntarios] = useData("teg_voluntarios_v1_voluntarios", []);
+  const [, setRawVoluntarios] = useData(SK_VOL_VOLUNTARIOS, []);
 
   const updateLinea = (pedidoId, lineaIdOrObj, campo, valor) => {
     // Firma dual: (pedidoId, lineaObj) o (pedidoId, lineaId, campo, valor)

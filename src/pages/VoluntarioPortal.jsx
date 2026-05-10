@@ -9,18 +9,22 @@
  */
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { TALLAS, SHIRT_PLACEHOLDER_FRONT, SHIRT_PLACEHOLDER_BACK, GUIA_TALLAS } from "@/constants/camisetasConstants";
+import {
+  SK_VOL_ROOT, SK_VOL_SESSION,
+  SK_VOL_PUESTOS, SK_VOL_IMG_FRONT, SK_VOL_IMG_BACK, SK_VOL_IMG_GUIA_TALLAS,
+  SK_VOL_OPCION_PUESTO, SK_VOL_OPCION_VEHICULO, SK_VOL_OPCION_EMAIL,
+  SK_VOL_OPCION_EMERGENCIA, SK_VOL_VOLUNTARIOS,
+} from "@/constants/storageKeys";
 
 const API_BASE   = "/api/voluntarios";
 const PUBLIC_API = "/api/data/public";
-const LS_KEY_VOL = "teg_voluntarios_v1";
-const SESSION_KEY = "teg_vol_session";
 const SESSION_TTL = 30 * 24 * 60 * 60 * 1000; // T1.3: sync with backend (30 days)
 
 function loadSession() {
   try {
-    const raw = JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
+    const raw = JSON.parse(localStorage.getItem(SK_VOL_SESSION) || "null");
     if (!raw) return null;
-    if (raw.ts && Date.now() - raw.ts > SESSION_TTL) { localStorage.removeItem(SESSION_KEY); return null; }
+    if (raw.ts && Date.now() - raw.ts > SESSION_TTL) { localStorage.removeItem(SK_VOL_SESSION); return null; }
     return raw;
   } catch { return null; }
 }
@@ -352,14 +356,14 @@ function RegistroScreen({ onVolver, onRegistroOk }) {
 
   useEffect(() => {
     Promise.all([
-      fetchPublic(LS_KEY_VOL + "_puestos"),
-      fetchPublic(LS_KEY_VOL + "_imgFront"),
-      fetchPublic(LS_KEY_VOL + "_imgBack"),
-      fetchPublic(LS_KEY_VOL + "_imgGuiaTallas"),
-      fetchPublic(LS_KEY_VOL + "_opcionPuesto"),
-      fetchPublic(LS_KEY_VOL + "_opcionVehiculo"),
-      fetchPublic(LS_KEY_VOL + "_opcionEmail"),
-      fetchPublic(LS_KEY_VOL + "_opcionEmergencia"),
+      fetchPublic(SK_VOL_PUESTOS),
+      fetchPublic(SK_VOL_IMG_FRONT),
+      fetchPublic(SK_VOL_IMG_BACK),
+      fetchPublic(SK_VOL_IMG_GUIA_TALLAS),
+      fetchPublic(SK_VOL_OPCION_PUESTO),
+      fetchPublic(SK_VOL_OPCION_VEHICULO),
+      fetchPublic(SK_VOL_OPCION_EMAIL),
+      fetchPublic(SK_VOL_OPCION_EMERGENCIA),
     ]).then(([psts, front, back, guia, opP, opV, opE, opEm]) => {
       if (Array.isArray(psts)) setPuestos(psts);
       if (front)               setImgFront(front);
@@ -376,7 +380,7 @@ function RegistroScreen({ onVolver, onRegistroOk }) {
   const addVoluntario = async (data) => {
     setEnviando(true); setErrorEnvio(null);
     try {
-      const res = await fetch(`${PUBLIC_API}?collection=${LS_KEY_VOL}_voluntarios`, {
+      const res = await fetch(`${PUBLIC_API}?collection=${SK_VOL_VOLUNTARIOS}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data, estado: "pendiente" }),

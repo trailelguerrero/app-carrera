@@ -3,7 +3,8 @@
 export const EVENT_DATE_STR = "2026-08-29";
 export const EVENT_DATE     = new Date(EVENT_DATE_STR);
 
-export const LS_KEY = "teg_presupuesto_v1";
+/** @deprecated Usar SK_PPTO_ROOT de @/constants/storageKeys */
+export { SK_PPTO_ROOT as LS_KEY } from "@/constants/storageKeys";
 
 export const DISTANCIAS = ["TG7", "TG13", "TG25"];
 

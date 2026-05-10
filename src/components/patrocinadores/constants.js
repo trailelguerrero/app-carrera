@@ -1,5 +1,6 @@
-// ─── CONSTANTS ────────────────────────────────────────────────────────────────
-export const LS = "teg_patrocinadores_v1";
+import { SK_PAT_ROOT } from "../../../constants/storageKeys";
+/** @deprecated Usar SK_PAT_ROOT de storageKeys */
+export const LS = SK_PAT_ROOT;
 
 export const NIVELES = ["Oro", "Plata", "Bronce", "Colaborador", "Especie"];
 

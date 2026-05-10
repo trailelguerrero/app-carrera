@@ -9,8 +9,10 @@ import { genIdStr } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
 
+import { SK_DOC_DOCS } from "@/constants/storageKeys";
+
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
-const LS_KEY        = "teg_documentos_v1";
+const LS_KEY        = SK_DOC_DOCS;
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ["application/pdf", "image/png", "image/jpeg", "image/jpg", "image/webp"];
 const ALLOWED_EXT   = ".pdf,.png,.jpg,.jpeg,.webp";
