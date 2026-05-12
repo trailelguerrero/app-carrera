@@ -234,13 +234,15 @@ const apiAdapter = {
     }
   },
 
-  async setMultiple(entries) {
+  async setMultiple(entries, batchKey = null) {
     // Actualización optimista
     await localAdapter.setMultiple(entries);
 
-    // BUG-DS-02 fix: clave única por llamada — la clave compartida 'batch' causaba
-    // que el segundo módulo cancelara los datos del primero en guardados simultáneos
-    const collection = `batch_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    // Clave de debounce:
+    //   - Si se pasa batchKey semántico (ej: "batch_presupuesto"), el debounce
+    //     colapsa llamadas rápidas del mismo módulo en un solo PUT.
+    //   - Sin batchKey se genera una clave única para no mezclar módulos distintos.
+    const collection = batchKey ?? `batch_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     return new Promise((resolve) => {
       if (saveTimeouts.has(collection)) {
         clearTimeout(saveTimeouts.get(collection));
@@ -312,7 +314,7 @@ const dataService = {
    * Guardar múltiples colecciones a la vez (batch)
    * @param {Object} entries - { key1: data1, key2: data2, ... }
    */
-  setMultiple: (entries) => adapter.setMultiple(entries),
+  setMultiple: (entries, batchKey) => adapter.setMultiple(entries, batchKey),
 
   /**
    * Notificar a otros bloques que los datos han cambiado

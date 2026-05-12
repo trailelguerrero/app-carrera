@@ -63,14 +63,16 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     [syncConfigRaw]
   );
 
-  // setSyncConfig actualiza el estado raw (que también persiste en LS)
-  const setSyncConfig = (updater) => {
+  // setSyncConfig actualiza el estado raw (que también persiste en LS).
+  // useCallback con dependencia mínima [setSyncConfigRaw] — estable entre renders,
+  // evita re-renders innecesarios en TabEquilibrio cuando cambia otro estado.
+  const setSyncConfig = useCallback((updater) => {
     setSyncConfigRaw(prev => {
       const prevMerged = { ...SYNC_CONFIG_DEFAULT, ...(prev || {}) };
       const next = updater instanceof Function ? updater(prevMerged) : updater;
       return next;
     });
-  };
+  }, [setSyncConfigRaw]);
   const [margenConfig, setMargenConfig] = useData(SK_PPTO_MARGEN_CONFIG, MARGEN_CONFIG_DEFAULT);
   const [saveStatus, setSaveStatus] = useState("idle");
 

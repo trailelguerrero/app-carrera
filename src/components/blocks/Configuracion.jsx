@@ -137,6 +137,58 @@ export default function Configuracion() {
   const [qrDataUrl, setQrDataUrl] = useState(null);
   const [qrGenerando, setQrGenerando] = useState(false);
 
+  // ── Imágenes de camisetas (portal de voluntarios) ─────────────────────────
+  const [imgFront,     setImgFront]     = useData(SK_VOL_IMG_FRONT, null);
+  const [imgBack,      setImgBack]      = useData(SK_VOL_IMG_BACK, null);
+  const [imgGuia,      setImgGuia]      = useData(SK_VOL_IMG_GUIA_TALLAS, null);
+  const [imgPreviews,  setImgPreviews]  = useState({ front: null, back: null, guia: null });
+  const [imgError,     setImgError]     = useState({ front: null, back: null, guia: null });
+  const [imgSaving,    setImgSaving]    = useState({ front: false, back: false, guia: false });
+  const imgInputRef = { front: null, back: null, guia: null };
+
+  const MAX_IMG_BYTES = 500 * 1024; // 500 KB
+  const ACCEPTED_MIME = ['image/jpeg', 'image/png', 'image/webp'];
+
+  const handleImgFile = (slot) => (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Validar MIME
+    if (!ACCEPTED_MIME.includes(file.type)) {
+      setImgError(prev => ({ ...prev, [slot]: 'Solo se permiten imágenes JPEG, PNG o WEBP' }));
+      e.target.value = '';
+      return;
+    }
+    // Validar tamaño
+    if (file.size > MAX_IMG_BYTES) {
+      setImgError(prev => ({ ...prev, [slot]: `La imagen supera el límite de 500 KB (${(file.size/1024).toFixed(0)} KB)` }));
+      e.target.value = '';
+      return;
+    }
+    setImgError(prev => ({ ...prev, [slot]: null }));
+    // Preview local con URL de objeto (no consume memoria innecesariamente)
+    const previewUrl = URL.createObjectURL(file);
+    setImgPreviews(prev => ({ ...prev, [slot]: previewUrl }));
+    // Leer como base64 para persistir
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      setImgSaving(prev => ({ ...prev, [slot]: true }));
+      if (slot === 'front') setImgFront(dataUrl);
+      if (slot === 'back')  setImgBack(dataUrl);
+      if (slot === 'guia')  setImgGuia(dataUrl);
+      setImgSaving(prev => ({ ...prev, [slot]: false }));
+    };
+    reader.readAsDataURL(file);
+    e.target.value = ''; // limpiar input para permitir re-selección del mismo archivo
+  };
+
+  const handleImgRemove = (slot) => {
+    setImgPreviews(prev => ({ ...prev, [slot]: null }));
+    if (slot === 'front') setImgFront(null);
+    if (slot === 'back')  setImgBack(null);
+    if (slot === 'guia')  setImgGuia(null);
+  };
+
   const form = draft ?? config;
   const upd = (k, v) => setDraft(p => ({ ...(p ?? config), [k]: v }));
   const dirty = draft !== null;
@@ -717,6 +769,81 @@ export default function Configuracion() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* ── Imágenes de camisetas ── */}
+        <div className="card cfg-section">
+          <div className="cfg-section-title">👕 Imágenes de camisetas</div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)", marginBottom: "1rem", lineHeight: 1.6 }}>
+            Estas imágenes se muestran en el portal de voluntarios al elegir talla.<br />
+            Formatos: JPEG, PNG, WEBP · Máximo 500 KB por imagen.
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            {[
+              { slot: "front", label: "Camiseta delantera", stored: imgFront },
+              { slot: "back",  label: "Camiseta trasera",   stored: imgBack  },
+              { slot: "guia",  label: "Guía de tallas",     stored: imgGuia  },
+            ].map(({ slot, label, stored }) => {
+              const preview = imgPreviews[slot] || stored;
+              const error   = imgError[slot];
+              const saving  = imgSaving[slot];
+              return (
+                <div key={slot} style={{
+                  display: "flex", gap: "1rem", alignItems: "flex-start",
+                  padding: ".85rem", borderRadius: 10,
+                  background: "var(--surface2)", border: "1px solid var(--border)"
+                }}>
+                  {/* Previsualización */}
+                  <div style={{
+                    width: 80, height: 80, flexShrink: 0, borderRadius: 8,
+                    background: "var(--surface3)", border: "1px solid var(--border)",
+                    overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center"
+                  }}>
+                    {preview
+                      ? <img src={preview} alt={label} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      : <span style={{ fontSize: "1.6rem", opacity: 0.4 }}>🖼️</span>
+                    }
+                  </div>
+                  {/* Controles */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 700, color: "var(--text)", marginBottom: ".3rem" }}>
+                      {label}
+                    </div>
+                    {error && (
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--red)", marginBottom: ".4rem" }}>
+                        ⚠️ {error}
+                      </div>
+                    )}
+                    <div style={{ display: "flex", gap: ".5rem", flexWrap: "wrap" }}>
+                      <label className="backup-btn export" style={{ cursor: "pointer", padding: ".38rem .75rem", fontSize: "var(--fs-sm)" }}>
+                        {saving ? "⏳ Guardando…" : preview ? "🔄 Cambiar" : "📂 Subir imagen"}
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          style={{ display: "none" }}
+                          onChange={handleImgFile(slot)}
+                        />
+                      </label>
+                      {preview && (
+                        <button
+                          className="backup-btn"
+                          style={{ padding: ".38rem .75rem", fontSize: "var(--fs-sm)", background: "var(--surface3)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
+                          onClick={() => handleImgRemove(slot)}
+                        >
+                          🗑 Eliminar
+                        </button>
+                      )}
+                    </div>
+                    {stored && !imgPreviews[slot] && (
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)", marginTop: ".3rem" }}>
+                        ✓ Imagen guardada
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* ── Seguridad de acceso ── */}

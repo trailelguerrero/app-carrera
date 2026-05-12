@@ -114,8 +114,8 @@ export function useData(key, defaultValue) {
  * Guardar múltiples claves de una vez
  * @param {Object} entries - { key1: data1, key2: data2, ... }
  */
-export async function saveAll(entries) {
-  const result = await dataService.setMultiple(entries);
+export async function saveAll(entries, batchKey) {
+  const result = await dataService.setMultiple(entries, batchKey);
   dataService.notify();
   return result;
 }
