@@ -134,3 +134,63 @@ export function clearFailedAttempts() {
     localStorage.removeItem(LOCKOUT_UNTIL_KEY);
   } catch { /* ignorar */ }
 }
+
+// ── Verificación remota bcrypt (Fase 4) ──────────────────────────────────────
+
+/**
+ * Verifica el PIN contra el endpoint bcrypt server-side.
+ * Si el servidor no responde en 3 s, hace fallback a la verificación local djb2.
+ *
+ * Modelo de amenaza del fallback:
+ *   - El fallback djb2 es válido mientras el servidor no esté disponible.
+ *   - La migración a bcrypt en Neon ocurre la primera vez que el servidor
+ *     responde correctamente, de forma transparente.
+ *   - El fallback no degrada la seguridad frente a ataques remotos: si el
+ *     servidor no responde, tampoco hay sesión de Neon que comprometer.
+ *
+ * @param {string} pin
+ * @returns {Promise<boolean>}
+ */
+export async function verifyPinWithFallback(pin) {
+  try {
+    const res = await Promise.race([
+      fetch('/api/proxy/panel/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'verify', pin }),
+      }),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), 3000)
+      ),
+    ]);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { valid } = await res.json();
+    return valid;
+  } catch (err) {
+    console.warn('[auth] Fallback a verificación local:', err.message);
+    return verifyPin(pin);
+  }
+}
+
+/**
+ * Cambia el PIN llamando al endpoint server-side.
+ * Devuelve { ok: boolean } o lanza error si el servidor no responde.
+ *
+ * @param {string} currentPin
+ * @param {string} newPin
+ * @returns {Promise<{ ok: boolean }>}
+ */
+export async function changePinRemote(currentPin, newPin) {
+  const res = await Promise.race([
+    fetch('/api/proxy/panel/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'change', currentPin, newPin }),
+    }),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 5000)
+    ),
+  ]);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json(); // { ok: boolean }
+}

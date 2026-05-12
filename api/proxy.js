@@ -16,7 +16,7 @@
  * El frontend llama a /api/proxy/* y este módulo hace el forward interno.
  */
 
-const ALLOWED_PATHS = /^\/api\/(data|documents|budget-log|docs|voluntarios)(\/[a-zA-Z0-9_\-[\]{}@.]*)?(\?.*)?$/;
+const ALLOWED_PATHS = /^\/api\/(data|documents|budget-log|docs|voluntarios|panel\/auth)(\/[a-zA-Z0-9_\-[\]{}@.]*)?(\?.*)?$/;
 
 export default async function handler(req, res) {
   // CORS — solo el propio dominio Vercel o localhost en dev

@@ -1,14 +1,13 @@
 /**
- * PinScreen.jsx — T3.1 + SEC-01 (Fase 0)
+ * PinScreen.jsx — T3.1 + SEC-01 (Fase 0) + Fase 4 (bcrypt)
  * Pantalla de autenticación por PIN del panel de gestión.
- * Extraído de Index.jsx.
  *
  * Lockout: tras MAX_FAILS intentos fallidos → bloqueo 5 min
- * con cuenta regresiva de 60 s visible y recarga automática al expirar.
+ * Verificación: bcrypt server-side con fallback local djb2 (3 s timeout)
  */
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  verifyPin,
+  verifyPinWithFallback,
   createSession,
   getLockoutStatus,
   recordFailedAttempt,
@@ -103,7 +102,7 @@ export default function PinScreen({ onUnlock }) {
     }
   }, [countdown, lockout.locked]);
 
-  const tryPin = useCallback((pin) => {
+  const tryPin = useCallback(async (pin) => {
     // Verificar lockout antes de procesar
     const ls = getLockoutStatus();
     if (ls.locked) {
@@ -111,7 +110,9 @@ export default function PinScreen({ onUnlock }) {
       return;
     }
 
-    if (verifyPin(pin)) {
+    const valid = await verifyPinWithFallback(pin);
+
+    if (valid) {
       clearFailedAttempts();
       createSession();
       if (navigator.vibrate) navigator.vibrate(50);

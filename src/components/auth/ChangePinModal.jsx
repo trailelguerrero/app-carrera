@@ -1,10 +1,10 @@
 /**
- * ChangePinModal.jsx — T3.1
+ * ChangePinModal.jsx — T3.1 + Fase 4 (bcrypt)
  * Modal para cambio de PIN del panel de gestión.
- * Extraído de Index.jsx.
+ * Usa changePinRemote (bcrypt server-side) con fallback a savePin local.
  */
 import { useState, useEffect, useCallback } from "react";
-import { verifyPin, savePin } from "./pinAuth.js";
+import { verifyPin, savePin, changePinRemote } from "./pinAuth.js";
 
 function PinDots({ count, filled }) {
   return (
@@ -46,8 +46,9 @@ function Numpad({ onDigit, onBackspace }) {
 export default function ChangePinModal({ onClose }) {
   const [step, setStep]     = useState("current");
   const [input, setInput]   = useState("");
-  const [newPin, setNewPin] = useState("");
-  const [error, setError]   = useState("");
+  const [newPin, setNewPin]   = useState("");
+  const [error, setError]     = useState("");
+  const currentPinRef           = { current: "" }; // PIN actual validado, para changePinRemote
   const [ok, setOk]         = useState(false);
 
   const STEP_LABEL = {
@@ -63,15 +64,28 @@ export default function ChangePinModal({ onClose }) {
     if (next.length < 4) return;
 
     if (step === "current") {
-      if (verifyPin(next)) { setStep("new"); setInput(""); }
+      if (verifyPin(next)) { currentPinRef.current = next; setStep("new"); setInput(""); }
       else { setError("PIN incorrecto"); setTimeout(() => { setError(""); setInput(""); }, 800); }
     } else if (step === "new") {
       setNewPin(next); setStep("confirm"); setInput("");
     } else if (step === "confirm") {
       if (next === newPin) {
-        savePin(next);
-        setOk(true);
-        setTimeout(onClose, 1500);
+        changePinRemote(currentPinRef.current, next)
+          .then(({ ok }) => {
+            if (ok) {
+              savePin(next); // sincronizar hash local
+              setOk(true);
+              setTimeout(onClose, 1500);
+            } else {
+              setError("PIN actual incorrecto"); setTimeout(() => { setError(""); setInput(""); setStep("current"); setNewPin(""); }, 800);
+            }
+          })
+          .catch(() => {
+            // Fallback: servidor no disponible, guardar solo local
+            savePin(next);
+            setOk(true);
+            setTimeout(onClose, 1500);
+          });
       } else {
         setError("No coincide"); setTimeout(() => { setError(""); setInput(""); setStep("new"); setNewPin(""); }, 800);
       }
