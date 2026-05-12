@@ -215,7 +215,7 @@ export default function App() {
 
   return (
     <>
-      <style>{CSS}</style>
+
       <div className="block-container">
 
         {/* HEADER */}
