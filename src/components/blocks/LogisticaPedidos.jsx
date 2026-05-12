@@ -1,12 +1,10 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useModalClose } from "@/hooks/useModalClose";
 import { toast } from "@/lib/toast";
-import { genIdNum } from "@/lib/utils";
+import { genIdNum, fmtEur2 as fmtEur } from "@/lib/utils";
 import { usePaginacion } from "@/hooks/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { blockCls as cls } from "@/lib/blockStyles";
-
-// fmtEur se redefine localmente en este bloque (está en el bloque de pedidos)
 
 // ─── TAB PEDIDOS A PROVEEDORES ────────────────────────────────────────────────
 const ESTADOS_PEDIDO = [
@@ -20,7 +18,6 @@ const ESTADOS_FACTURA = [
   { id:"pagada",    label:"Pagada",    color:"var(--green)" },
 ];
 const genPedidoId = (arr) => arr.length ? Math.max(...arr.map(x=>x.id||0))+1 : 1;
-const fmtEur = (n) => new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR",minimumFractionDigits:2}).format(n||0);
 
 function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=[], totalInscritos, inscritos }) {
   const [modal, setModal]   = useState(null); // null | "nuevo" | {pedido}
