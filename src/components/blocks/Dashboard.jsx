@@ -62,6 +62,12 @@ const navigate = (block, subtab) => {
   }
 };
 
+const TOOLTIP_STYLE = {
+  background: "rgba(15,23,42,0.95)", border: "1px solid #334155",
+  borderRadius: 8, fontSize: "var(--fs-sm)", fontFamily: "var(--font-mono)",
+  color: "#e2e8f0", boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
+};
+
 const DASH_EXTRA_CSS = `
   @keyframes teg-spin    { to { transform:rotate(360deg); } }
   @keyframes teg-pulse   { 0%,100%{opacity:1} 50%{opacity:0.3} }
