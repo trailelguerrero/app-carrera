@@ -9,6 +9,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx,js,jsx}"],
+    exclude: ["src/test/e2e/**"],  // los tests E2E los ejecuta Playwright, no Vitest
     testTimeout: 20000,
   },
   resolve: {

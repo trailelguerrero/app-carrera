@@ -872,17 +872,15 @@ describe('SP6-01 — Drawer "Más" no causa pantalla negra', () => {
     expect(keyboardBlock).not.toContain("window.addEventListener('teg-conflict'");
   });
 
-  it('Index.jsx: MISSING-02 useEffect está correctamente al nivel del componente', () => {
+  it('Index.jsx: MISSING-02 gestionado por ConflictModal autónomo (Fase 0.4)', () => {
+    // Tarea 0.4 reemplazó el useEffect de teg-conflict por <ConflictModal />
+    // que escucha el evento internamente. El comentario MISSING-02 documenta esto.
     const idx = read('src/pages/Index.jsx');
     const conflictIdx = idx.indexOf('MISSING-02');
     expect(conflictIdx).toBeGreaterThan(-1);
-    // Debe aparecer justo antes del return principal
-    const afterConflict = idx.slice(conflictIdx, conflictIdx + 800);
-    expect(afterConflict).toContain('teg-conflict');  // simplified check
-    expect(afterConflict).toContain('}, []');  // close of the useEffect deps array // eslint or without comment
-    // Also accept with comment
-    const hasClose = afterConflict.includes('}, []);') || afterConflict.includes('}, []); //');
-    // El return ( de la UI debe aparecer después (slice ampliado para tolerar líneas intermedias como `if (!authed)`)
+    // ConflictModal debe estar importado y usado en el JSX
+    expect(idx).toContain('ConflictModal');
+    // El return principal aparece después del comentario
     const hasReturn = idx.slice(conflictIdx, conflictIdx + 1200).includes('\n  return (');
     expect(hasReturn).toBe(true);
   });

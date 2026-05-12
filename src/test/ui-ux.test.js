@@ -24,8 +24,9 @@ beforeAll(() => {
   vi.spyOn(console,'error').mockImplementation(()=>{});
 });
 
+// Fase 2: el CSS vive en src/styles/blocks.css (blockStyles.js quedó como stub vacío)
 const blockStyles = readFileSync(
-  path.resolve(process.cwd(), 'src/lib/blockStyles.js'), 'utf-8'
+  path.resolve(process.cwd(), 'src/styles/blocks.css'), 'utf-8'
 );
 const indexJsx = readFileSync(
   path.resolve(process.cwd(), 'src/pages/Index.jsx'), 'utf-8'
