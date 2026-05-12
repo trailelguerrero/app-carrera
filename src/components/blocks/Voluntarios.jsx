@@ -34,6 +34,7 @@ import { ModalPuesto } from "@/components/voluntarios/ModalPuesto";
 import { ModalConfirm } from "@/components/voluntarios/ModalConfirmar";
 
 import { blockCls as cls } from "@/lib/blockStyles";
+import SkeletonBlock from "@/components/common/SkeletonBlock";
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 // SK_VOL_ROOT y demás claves importadas de @/constants/storageKeys
 
@@ -83,9 +84,10 @@ export default function App() {
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
   const [vista, setVista] = useState("gestion"); // "gestion" | "formulario"
   const [tab, setTab] = useState("dashboard");
-  const [rawPuestos, setPuestos] = useData(SK_VOL_PUESTOS, PUESTOS_DEFAULT);
+  const [rawPuestos, setPuestos, isLoadingPuestos] = useData(SK_VOL_PUESTOS, PUESTOS_DEFAULT);
   const puestos = Array.isArray(rawPuestos) ? rawPuestos : [];
-  const [rawVoluntarios, setVoluntarios] = useData(SK_VOL_VOLUNTARIOS, VOLUNTARIOS_DEFAULT);
+  const [rawVoluntarios, setVoluntarios, isLoadingVols] = useData(SK_VOL_VOLUNTARIOS, VOLUNTARIOS_DEFAULT);
+  const isLoading = isLoadingPuestos || isLoadingVols;
   const voluntarios = useMemo(() => {
     const raw = Array.isArray(rawVoluntarios) ? rawVoluntarios : [];
     // Migrar campo legado contactoEmergencia → telefonoEmergencia
@@ -409,6 +411,8 @@ export default function App() {
   }), [voluntarios, busqueda, filtroEstado, filtroPuesto]);
 
   // ── Formulario público ────────────────────────────────────────────────────
+  if (isLoading) return <SkeletonBlock variant="voluntarios" />;
+
   if (vista === "formulario") return (
     <AppShell>
       <FormularioPublico

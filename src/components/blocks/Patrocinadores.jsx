@@ -11,6 +11,7 @@ import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { useData } from "@/hooks/useData";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { blockCls as cls } from "@/lib/blockStyles";
+import SkeletonBlock from "@/components/common/SkeletonBlock";
 import ModalDetalle from "./patrocinadores/ModalDetalle";
 import DocManager from "./patrocinadores/DocManager";
 import LogContactos from "./patrocinadores/LogContactos";
@@ -26,7 +27,7 @@ export default function App() {
   const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
   const [tab, setTab] = useState("dashboard");
-  const [rawPats, setPats] = useData(LS + "_pats", PAT0);
+  const [rawPats, setPats, isLoading] = useData(LS + "_pats", PAT0);
   const [objetivo, setObjetivo] = useData(LS + "_obj", 8000);
   // useMemo ensures pats is a stable reference — avoids exhaustive-deps re-computation on every render
   const pats = useMemo(() => (Array.isArray(rawPats) ? rawPats : []), [rawPats]);
@@ -212,6 +213,8 @@ export default function App() {
       especieItems: (p.especieItems || []).filter(i => i.id !== itemId)
     } : p));
   };
+
+  if (isLoading) return <SkeletonBlock variant="patrocinadores" />;
 
   return (
     <>

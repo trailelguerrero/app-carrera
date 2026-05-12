@@ -745,10 +745,14 @@ function LoginScreen({ onLogin, onVolver, telefonoInicial }) {
 function PuestoDetalle({ puesto }) {
   const [expandido, setExpandido] = useState(true); // abierto por defecto
   if (!puesto) return (
-    <div className="vp-card" style={{ borderLeft:"3px solid var(--border)" }}>
-      <div className="vp-label">📍 Tu puesto</div>
-      <div className="vp-mono" style={{ fontSize:".82rem", color:"var(--text-dim)" }}>
-        ⏳ Pendiente de asignación. Te informaremos pronto.
+    <div className="vp-card" style={{ borderLeft:"3px solid var(--border)", textAlign:"center", padding:"1.5rem 1rem" }}>
+      <div style={{ fontSize:"2rem", marginBottom:".5rem" }}>⏳</div>
+      <div style={{ fontWeight:700, fontSize:".92rem", color:"var(--text)", marginBottom:".3rem" }}>
+        Tu puesto aún no está asignado
+      </div>
+      <div className="vp-mono" style={{ fontSize:".72rem", color:"var(--text-muted)", lineHeight:1.65 }}>
+        El organizador te lo comunicará por email cuando esté confirmado.<br />
+        No necesitas hacer nada por ahora.
       </div>
     </div>
   );
@@ -1220,8 +1224,14 @@ function PortalMain({ token, onLogout }) {
                 borderRadius:6, borderLeft:"2px solid var(--border)" }}>📋 {puesto.notas}</div>
             )}
           </>) : (
-            <div className="vp-mono" style={{ fontSize:".82rem", color:"var(--text-dim)" }}>
-              ⏳ Pendiente de asignación. Te informaremos pronto.
+            <div style={{ textAlign:"center", padding:".75rem 0" }}>
+              <div style={{ fontSize:"1.5rem", marginBottom:".35rem" }}>⏳</div>
+              <div style={{ fontWeight:700, fontSize:".85rem", color:"var(--text)", marginBottom:".2rem" }}>
+                Tu puesto aún no está asignado
+              </div>
+              <div className="vp-mono" style={{ fontSize:".7rem", color:"var(--text-muted)", lineHeight:1.65 }}>
+                Te lo comunicaremos por email cuando esté confirmado.
+              </div>
             </div>
           )}
         </div>

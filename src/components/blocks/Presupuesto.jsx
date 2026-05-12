@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import ConfirmModal from "@/components/common/ConfirmModal";
 import { blockCls as cls } from "@/lib/blockStyles";
+import SkeletonBlock from "@/components/common/SkeletonBlock";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { useData } from "@/hooks/useData";
 import { useBudgetLogic } from "../../hooks/useBudgetLogic";
@@ -87,7 +88,7 @@ const TABS = [
 ];
 
 const Presupuesto = () => {
-  const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
+  const [eventCfg, , isLoading] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
   const [confirmReset, setConfirmReset] = useState(false);
   const [delConceptoId, setDelConceptoId] = useState(null); // T5.2
@@ -240,6 +241,8 @@ const Presupuesto = () => {
     window.addEventListener("teg-navigate", handler);
     return () => window.removeEventListener("teg-navigate", handler);
   }, [setTab]);
+
+  if (isLoading) return <SkeletonBlock variant="presupuesto" />;
 
   return (
     <>

@@ -8,6 +8,7 @@ import { useData } from "@/hooks/useData";
 import { genIdStr } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import { blockCls as cls } from "@/lib/blockStyles";
+import SkeletonBlock from "@/components/common/SkeletonBlock";
 
 import { SK_DOC_DOCS } from "@/constants/storageKeys";
 
@@ -120,6 +121,7 @@ export default function Documentos() {
   const [nuevoLog, setNuevoLog]         = useState("");    // texto del nuevo log entry
   const fileRef = useRef(null);
   const [visorDoc, setVisorDoc] = useState(null); // doc a visualizar en modal
+  const [isLoading, setIsLoading] = useState(true); // skeleton hasta que la carga inicial termine
 
   // ── Carga inicial desde API ───────────────────────────────────────────────
   useEffect(() => {
@@ -150,6 +152,7 @@ export default function Documentos() {
       }
       // Gestiones siguen en colección JSON normal
       dataService.get(LS_KEY + "_gestiones", GESTIONES_DEFAULT).then(v => setGestiones(Array.isArray(v) ? v : GESTIONES_DEFAULT));
+      setIsLoading(false);
     };
     load();
   }, []);
@@ -583,6 +586,8 @@ export default function Documentos() {
       .doc-input, .doc-select { width:100%; }
     }
   `;
+
+  if (isLoading) return <SkeletonBlock variant="documentos" />;
 
   return (
     <>
