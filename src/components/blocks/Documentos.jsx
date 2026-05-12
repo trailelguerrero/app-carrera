@@ -7,7 +7,7 @@ import dataService from "@/lib/dataService";
 import { useData } from "@/hooks/useData";
 import { genIdStr } from "@/lib/utils";
 import { toast } from "@/lib/toast";
-import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
+import { blockCls as cls } from "@/lib/blockStyles";
 
 import { SK_DOC_DOCS } from "@/constants/storageKeys";
 
@@ -586,7 +586,7 @@ export default function Documentos() {
 
   return (
     <>
-      <style>{BLOCK_CSS + DOC_CSS}</style>
+      <style>{DOC_CSS}</style>
       <div className="block-container">
 
         {/* ── HEADER ── */}

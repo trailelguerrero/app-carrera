@@ -22,7 +22,7 @@ import { LOCS_DEFAULT as LOCS_DEFAULT_SHARED, LOCS_KEY } from "@/constants/local
 import { useData } from "@/hooks/useData";
 import { TabPedidosProv } from "./LogisticaPedidos";
 
-import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
+import { blockCls as cls } from "@/lib/blockStyles";
 // Sprint 2: sub-components extracted to src/components/logistica/
 import { TabDash } from "@/components/logistica/TabDashLog";
 import { TabMat } from "@/components/logistica/TabMaterial";
@@ -335,7 +335,7 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
 
   return (
     <>
-      <style>{BLOCK_CSS + CSS}</style>
+      <style>{CSS}</style>
       <div className="block-container">
 
         {/* HEADER */}

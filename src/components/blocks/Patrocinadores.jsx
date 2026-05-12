@@ -10,7 +10,7 @@ import { usePaginacion } from "@/hooks/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { useData } from "@/hooks/useData";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
-import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
+import { blockCls as cls } from "@/lib/blockStyles";
 import ModalDetalle from "./patrocinadores/ModalDetalle";
 import DocManager from "./patrocinadores/DocManager";
 import LogContactos from "./patrocinadores/LogContactos";
@@ -215,7 +215,7 @@ export default function App() {
 
   return (
     <>
-      <style>{BLOCK_CSS + CSS}</style>
+      <style>{CSS}</style>
       <div className="block-container">
 
         {/* HEADER */}

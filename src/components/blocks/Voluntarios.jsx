@@ -33,7 +33,7 @@ import { ModalVoluntario } from "@/components/voluntarios/ModalVoluntario";
 import { ModalPuesto } from "@/components/voluntarios/ModalPuesto";
 import { ModalConfirm } from "@/components/voluntarios/ModalConfirmar";
 
-import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
+import { blockCls as cls } from "@/lib/blockStyles";
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 // SK_VOL_ROOT y demás claves importadas de @/constants/storageKeys
 
@@ -822,7 +822,6 @@ function ImagenUploader({ label, img, onImg, accent }) {
 function AppShell({ children }) {
   return (
     <>
-      <style>{BLOCK_CSS}</style>
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 

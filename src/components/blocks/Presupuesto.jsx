@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import ConfirmModal from "@/components/common/ConfirmModal";
-import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
+import { blockCls as cls } from "@/lib/blockStyles";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { useData } from "@/hooks/useData";
 import { useBudgetLogic } from "../../hooks/useBudgetLogic";
@@ -243,7 +243,7 @@ const Presupuesto = () => {
 
   return (
     <>
-      <style>{BLOCK_CSS + BUDGET_CSS}</style>
+      <style>{BUDGET_CSS}</style>
       <div className="block-container">
 
         <div className="block-header">

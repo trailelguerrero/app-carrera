@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 // QRCode se importa dinámicamente para evitar crash si no está disponible
-import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
+import { blockCls as cls } from "@/lib/blockStyles";
 import { useData } from "@/hooks/useData";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import {
@@ -402,7 +402,7 @@ export default function Configuracion() {
 
   return (
     <>
-      <style>{BLOCK_CSS + CFG_CSS}</style>
+      <style>{CFG_CSS}</style>
       <div className="block-container">
 
         <div className="block-header">

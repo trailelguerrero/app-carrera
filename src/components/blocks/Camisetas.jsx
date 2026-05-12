@@ -6,7 +6,7 @@ import { useData } from "@/hooks/useData";
 import { toast } from "@/lib/toast";
 import { genIdNum, fmtEur2, fmtNum2, scrollMainToTop } from "@/lib/utils";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
-import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
+import { blockCls as cls } from "@/lib/blockStyles";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 
 import { SK_CAM_ROOT, SK_VOL_VOLUNTARIOS } from "@/constants/storageKeys";
@@ -366,7 +366,7 @@ export default function App() {
   if (isLoading) {
     return (
       <>
-        <style>{BLOCK_CSS+CSS}</style>
+        <style>{CSS}</style>
         <div className="block-container">
           <div className="block-header">
             <div>
@@ -391,7 +391,7 @@ export default function App() {
 
   return (
     <>
-      <style>{BLOCK_CSS+CSS}</style>
+      <style>{CSS}</style>
       <div className="block-container">
         <div className="block-header">
           <div>

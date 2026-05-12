@@ -9,7 +9,7 @@ import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import dataService from "@/lib/dataService";
 import { useData } from "@/hooks/useData";
 
-import { BLOCK_CSS, blockCls as cls } from "@/lib/blockStyles";
+import { blockCls as cls } from "@/lib/blockStyles";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import {
   SK_PROY_TAREAS, SK_PROY_HITOS, SK_PROY_EQUIPO,
@@ -341,7 +341,7 @@ export default function App() {
 
   return (
     <>
-      <style>{BLOCK_CSS + CSS}</style>
+      <style>{CSS}</style>
       <div className="block-container">
 
         {/* HEADER */}

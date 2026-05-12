@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import { BLOCK_CSS, blockCls } from "@/lib/blockStyles";
+import { blockCls } from "@/lib/blockStyles";
 import { fmtEur } from "@/lib/utils";
 import {
   calculateTotalInscritos,
@@ -438,7 +438,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <>
-        <style>{BLOCK_CSS + DASH_EXTRA_CSS}</style>
+        <style>{DASH_EXTRA_CSS}</style>
         <div className="block-container">
           {/* Header skeleton */}
           <div className="block-header" style={{ marginBottom: "1rem" }}>
@@ -502,7 +502,7 @@ export default function Dashboard() {
 
   return (
     <>
-      <style>{BLOCK_CSS + DASH_EXTRA_CSS}</style>
+      <style>{DASH_EXTRA_CSS}</style>
       <div className="block-container">
 
         {/* ── HEADER ── */}
