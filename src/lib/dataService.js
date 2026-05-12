@@ -149,7 +149,7 @@ const apiAdapter = {
             // MISSING-02: conflict — otro dispositivo guardó cambios más recientes
             const conflictData = await res.json().catch(() => ({}));
             window.dispatchEvent(new CustomEvent('teg-conflict', {
-              detail: { collection, serverVersion: conflictData.serverVersion, message: conflictData.message }
+              detail: { collection, localData: data, serverVersion: conflictData.serverVersion, message: conflictData.message }
             }));
             resolve({ success: false, conflict: true, serverVersion: conflictData.serverVersion });
             return;
