@@ -69,7 +69,11 @@ export default async function handler(req, res) {
   // Construir la URL interna (llamada server-to-server dentro de Vercel)
   const baseUrl = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
-    : 'http://localhost:3000';
+    : null;
+  if (!baseUrl) {
+    console.error('[proxy] VERCEL_URL no configurada');
+    return res.status(503).json({ error: 'Servicio no disponible: configuración de entorno incompleta.' });
+  }
 
   // Preservar query params del request original (ej: keys=... para batch, id=... para documents)
   const searchParams = new URLSearchParams();
