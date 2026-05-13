@@ -476,122 +476,10 @@ export default function Documentos() {
     })
     .sort((sa, sb) => new Date(sb.fechaSubida) - new Date(sa.fechaSubida));
 
-  // ─── CSS ──────────────────────────────────────────────────────────────────
-  const DOC_CSS = `
-    @keyframes doc-pulse  { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.7;transform:scale(1.08)} }
-    @keyframes doc-fadein { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
-    @keyframes doc-glow   { 0%,100%{box-shadow:0 0 12px rgba(34,211,238,0.2)} 50%{box-shadow:0 0 28px rgba(34,211,238,0.55)} }
-
-    /* Storage */
-    .doc-storage-bar  { height:6px; background:var(--surface3); border-radius:3px; overflow:hidden; }
-    .doc-storage-fill { height:100%; border-radius:3px; transition:width .4s ease; }
-
-    /* Tabs */
-    .doc-tab { display:inline-flex; align-items:center; gap:6px; padding:.45rem .9rem; border-radius:30px;
-      font-size:.7rem; font-weight:700; cursor:pointer; transition:all .18s;
-      border:1.5px solid transparent; white-space:nowrap; background:none; }
-    .doc-tab-count { font-size:.58rem; background:rgba(255,255,255,.08); border-radius:10px;
-      padding:.05rem .4rem; font-family:var(--font-mono); }
-
-    /* Upload zone */
-    .doc-dropzone { border:2px dashed var(--border); border-radius:14px; padding:1.5rem 1rem;
-      text-align:center; cursor:pointer; transition:all .22s; position:relative;
-      background:rgba(255,255,255,0.02); }
-    @media(max-width:640px){ .doc-dropzone { padding:1.25rem .75rem; } }
-    .doc-dropzone:hover { border-color:var(--cyan); background:var(--cyan-dim); }
-    .doc-dropzone.over { border-color:var(--cyan); background:var(--cyan-dim);
-      animation:doc-glow .8s ease infinite; }
-    .doc-dropzone-icon { font-size:2.8rem; margin-bottom:.6rem; transition:transform .2s; }
-    .doc-dropzone.over .doc-dropzone-icon { animation:doc-pulse .6s ease infinite; }
-    .doc-dropzone-msg  { font-size:.8rem; font-weight:700; color:var(--text); margin-bottom:.3rem; }
-    .doc-dropzone-hint { font-size:.6rem; color:var(--text-muted); font-family:var(--font-mono); }
-    .doc-dropzone-types{ display:flex; gap:.35rem; justify-content:center; margin-top:.5rem; flex-wrap:wrap; }
-    .doc-type-pill { background:var(--surface2); border:1px solid var(--border); border-radius:4px;
-      padding:.1rem .4rem; font-family:var(--font-mono); font-size:.58rem; color:var(--text-muted); }
-
-    /* Upload fields */
-    .doc-upload-fields { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:.75rem; }
-    .doc-select { background:var(--surface2); border:1px solid var(--border); border-radius:8px;
-      color:var(--text); padding:.42rem .6rem; font-size:.72rem; font-family:var(--font-display);
-      outline:none; transition:border-color .15s; }
-    .doc-select:focus { border-color:var(--cyan); }
-    .doc-input { background:var(--surface2); border:1px solid var(--border); border-radius:8px;
-      color:var(--text); padding:.42rem .6rem; font-size:.72rem; font-family:var(--font-display);
-      flex:1; min-width:140px; outline:none; transition:border-color .15s; }
-    .doc-input:focus { border-color:var(--cyan); }
-    .doc-input::placeholder { color:var(--text-dim); }
-
-    /* Cards */
-    .doc-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:.9rem; }
-    .doc-card { background:var(--surface); border:1px solid var(--border); border-radius:12px;
-      padding:1rem; display:flex; flex-direction:column; gap:.6rem;
-      transition:transform .15s,box-shadow .15s; position:relative; overflow:hidden;
-      animation:doc-fadein .2s ease both; }
-    .doc-card:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.25); border-color:var(--border-light); }
-    .doc-card-name  { font-size:.78rem; font-weight:800; word-break:break-word; line-height:1.3; }
-    .doc-card-meta  { display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
-    .doc-card-meta-item { font-size:.58rem; color:var(--text-muted); font-family:var(--font-mono); }
-    .doc-badge { display:inline-block; padding:.1rem .4rem; border-radius:20px;
-      font-size:.55rem; font-weight:700; font-family:var(--font-mono); }
-    .doc-card-note { font-size:.62rem; color:#8a9ab8; background:rgba(255,255,255,.03);
-      border-radius:6px; padding:.35rem .5rem; border-left:2px solid var(--border); }
-    .doc-card-actions { display:flex; gap:5px; flex-wrap:wrap; margin-top:auto; }
-
-    /* Estado selector inline en cards */
-    .doc-estado-sel { background:var(--surface2); border:1px solid var(--border); border-radius:6px;
-      font-size:.58rem; font-family:var(--font-mono); padding:.15rem .3rem; cursor:pointer;
-      outline:none; transition:border-color .15s; }
-    .doc-estado-sel:focus { border-color:var(--cyan); }
-
-    /* Alerta de vencimiento */
-    .doc-venc-alert { display:flex; align-items:center; gap:.5rem; padding:.35rem .6rem;
-      border-radius:6px; font-family:var(--font-mono); font-size:.65rem; font-weight:700; }
-    .doc-venc-critico  { background:rgba(248,113,113,.08); color:#f87171; border:1px solid rgba(248,113,113,.2); }
-    .doc-venc-proximo  { background:rgba(251,191,36,.08);  color:#fbbf24;  border:1px solid rgba(251,191,36,.2); }
-
-    /* Botones */
-    .doc-btn { padding:.3rem .6rem; border-radius:7px; font-size:.62rem; font-weight:700;
-      cursor:pointer; border:1px solid; font-family:var(--font-display); transition:all .15s; white-space:nowrap; }
-    .doc-btn-view  { background:rgba(34,211,238,.1);  color:#22d3ee; border-color:rgba(34,211,238,.3); }
-    .doc-btn-view:hover  { background:rgba(34,211,238,.22); }
-    .doc-btn-dl    { background:rgba(52,211,153,.1);  color:#34d399; border-color:rgba(52,211,153,.3); }
-    .doc-btn-dl:hover    { background:rgba(52,211,153,.22); }
-    .doc-btn-edit  { background:rgba(167,139,250,.1); color:#a78bfa; border-color:rgba(167,139,250,.3); }
-    .doc-btn-edit:hover  { background:rgba(167,139,250,.22); }
-    .doc-btn-del   { background:rgba(248,113,113,.1); color:#f87171; border-color:rgba(248,113,113,.25); margin-left:auto; }
-    .doc-btn-del:hover   { background:rgba(248,113,113,.22); }
-    .doc-btn-save  { background:rgba(52,211,153,.12); color:#34d399; border-color:rgba(52,211,153,.35); }
-    .doc-btn-save:hover  { background:rgba(52,211,153,.22); }
-    .doc-btn-cancel{ background:rgba(90,106,138,.12); color:var(--text-muted); border-color:rgba(90,106,138,.3); }
-
-    /* Buscador */
-    .doc-search { display:flex; align-items:center; gap:.4rem; background:var(--surface2);
-      border:1px solid var(--border); border-radius:var(--r-sm); padding:.3rem .65rem;
-      transition:border-color .15s; }
-    .doc-search:focus-within { border-color:var(--cyan); }
-    .doc-search input { background:none; border:none; color:var(--text); font-family:var(--font-display);
-      font-size:.78rem; outline:none; width:180px; }
-    .doc-search input::placeholder { color:var(--text-dim); }
-
-    /* Empty state */
-    .doc-empty { text-align:center; padding:3rem 1.5rem; color:var(--text-dim); }
-    .doc-empty-icon { font-size:3rem; opacity:.35; margin-bottom:.75rem; }
-    .doc-empty-text { font-size:.75rem; color:var(--text-muted); }
-
-    /* Edit card */
-    .doc-edit-card { display:flex; flex-direction:column; gap:8px; }
-    /* Upload toggle visible en móvil */
-    @media(max-width:640px){
-      .doc-upload-fields { flex-direction:column; }
-      .doc-input, .doc-select { width:100%; }
-    }
-  `;
-
   if (isLoading) return <SkeletonBlock variant="documentos" />;
 
   return (
     <>
-      <style>{DOC_CSS}</style>
       <div className="block-container">
 
         {/* ── HEADER ── */}
@@ -1181,7 +1069,6 @@ export default function Documentos() {
                 <div style={{width:40,height:40,borderRadius:"50%",
                   border:"3px solid rgba(255,255,255,0.15)",borderTopColor:"#22d3ee",
                   animation:"teg-spin 0.7s linear infinite"}} />
-                <style>{`@keyframes teg-spin{to{transform:rotate(360deg)}}`}</style>
                 <div style={{fontFamily:"monospace",fontSize:"var(--fs-sm)",color:"rgba(255,255,255,0.5)"}}>
                   Cargando documento…
                 </div>

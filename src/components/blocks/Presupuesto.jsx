@@ -16,60 +16,6 @@ import { TabEquilibrio }  from "../budget/TabEquilibrio";
 import { TabHistorial }   from "../budget/TabHistorial";
 import { DISTANCIAS }       from "@/constants/budgetConstants";
 
-const BUDGET_CSS = `
-  .text-right  { text-align: right; }
-  .overflow-x  { overflow-x: auto; }
-  .total-row   { background: var(--surface2); font-weight: 700; }
-  .total-row td { border-top: 2px solid var(--border); padding: 0.75rem 0.6rem; }
-  .ra td { background: var(--red-dim); }
-  .card-title.fijo     { color: var(--cyan);   }
-  .card-title.variable { color: var(--green);  }
-  .card-title.ingresos { color: var(--violet); }
-  .card-title.resumen  { color: var(--amber);  }
-  .card-title.tramos   { color: var(--amber);  }
-  .eq-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-  .eq-table th { text-align: left; padding: 0.75rem; border-bottom: 2px solid var(--border); color: var(--text-muted); font-weight: 600; white-space: nowrap; }
-  .eq-table td { padding: 0.65rem 0.75rem; border-bottom: 1px solid var(--border); }
-  .resumen-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; }
-  @media (max-width: 768px) { .resumen-grid { grid-template-columns: 1fr; } }
-  .num-input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 0.3rem 0.5rem; width: 80px; text-align: right; font-family: var(--font-mono); font-size: 0.85rem; outline: none; }
-  .num-input:focus { border-color: var(--cyan); }
-  .num-input-sm { font-size: 0.75rem; padding: 0.2rem 0.4rem; width: 65px; }
-  .text-input { background: transparent; border: 1px solid transparent; color: var(--text); padding: 0.3rem; width: 100%; border-radius: 4px; font-family: var(--font-display); font-size: 0.85rem; outline: none; }
-  .text-input:focus { background: var(--surface2); border-color: var(--border); }
-  .date-input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 0.25rem 0.45rem; font-size: 0.72rem; font-family: var(--font-mono); cursor: pointer; outline: none; }
-  .date-input:focus { border-color: var(--cyan); }
-  .dist-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
-  .badge-fijo     { background: var(--cyan-dim);  color: var(--cyan);  border: 1px solid rgba(34,211,238,0.2); }
-  .badge-variable { background: var(--green-dim); color: var(--green); border: 1px solid rgba(52,211,153,0.2); }
-  .modo-toggle { padding: 0.2rem 0.5rem; border-radius: 5px; font-size: 0.7rem; font-weight: 700; cursor: pointer; border: 1px solid var(--border); background: var(--surface3); color: var(--text-muted); font-family: var(--font-mono); transition: all 0.15s; white-space: nowrap; }
-  .modo-toggle.uniforme { background: var(--violet-dim); border-color: rgba(167,139,250,0.3); color: var(--violet); }
-  .drag-over td:first-child { border-left: 3px solid var(--primary); }
-  .mono { font-family: var(--font-mono); }
-  .text-xs    { font-size: 0.72rem; }
-  .text-muted { color: var(--text-muted); }
-  .f6   { font-weight: 600; }
-  .mb-2 { margin-bottom: 1rem; }
-  .tab-label-short { display: none; }
-  @media (max-width: 640px) {
-    .tab-label-full  { display: none; }
-    .tab-label-short { display: inline; }
-  }
-  .budget-flow { display: flex; align-items: center; gap: 0; margin-bottom: 1.1rem; overflow-x: auto; padding-bottom: 2px; }
-  .budget-flow::-webkit-scrollbar { height: 2px; }
-  .budget-flow::-webkit-scrollbar-thumb { background: var(--border); border-radius: 1px; }
-  .bflow-step { display: flex; align-items: center; gap: 0.35rem; padding: 0.3rem 0.65rem; border-radius: 20px; font-family: var(--font-mono); font-size: 0.6rem; font-weight: 700; white-space: nowrap; cursor: pointer; transition: all 0.15s; border: 1px solid transparent; }
-  .bflow-step.done  { color: var(--green); background: var(--green-dim); border-color: rgba(52,211,153,0.2); }
-  .bflow-step.active { color: var(--primary); background: var(--primary-dim); border-color: rgba(99,102,241,0.4); box-shadow: 0 0 8px rgba(99,102,241,0.2); }
-  .bflow-step.pending { color: var(--text-dim); background: transparent; border-color: var(--border); }
-  .bflow-step:hover { opacity: 0.85; transform: translateY(-1px); }
-  .bflow-arrow { color: var(--text-dim); font-size: 0.55rem; padding: 0 0.1rem; flex-shrink: 0; }
-  .reset-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.8); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 1rem; animation: fadeIn 0.15s ease; }
-  .reset-modal { background: var(--surface); border: 1px solid rgba(248,113,113,0.3); border-radius: 16px; padding: 2rem 1.75rem; max-width: 380px; width: 100%; text-align: center; box-shadow: 0 24px 64px rgba(0,0,0,0.5); animation: slideUp 0.2s ease; }
-  @keyframes fadeIn  { from { opacity: 0 } to { opacity: 1 } }
-  @keyframes slideUp { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: translateY(0) } }
-`;
-
 const FLOW_STEPS = [
   { id: "inscripciones",n: 1, icon: "🏃", label: "Inscripciones" },
   { id: "presupuesto",  n: 2, icon: "💰", label: "Costes"    },
@@ -246,7 +192,6 @@ const Presupuesto = () => {
 
   return (
     <>
-      <style>{BUDGET_CSS}</style>
       <div className="block-container">
 
         <div className="block-header">

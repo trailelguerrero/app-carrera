@@ -56,66 +56,6 @@ import {
 } from "@/constants/storageKeys";
 import dataService from "@/lib/dataService";
 
-const CFG_CSS = `
-  .cfg-section { margin-bottom: 1.75rem; }
-  .cfg-section-title {
-    font-family: var(--font-mono); font-size: .6rem; font-weight: 700;
-    text-transform: uppercase; letter-spacing: .1em;
-    color: var(--text-muted); margin-bottom: .85rem;
-    padding-bottom: .4rem; border-bottom: 1px solid var(--border);
-  }
-  .cfg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
-  @media (max-width: 600px) { .cfg-grid { grid-template-columns: 1fr; } }
-  .cfg-field { display: flex; flex-direction: column; gap: .3rem; }
-  .cfg-field-full { grid-column: 1 / -1; }
-  .cfg-label { font-family: var(--font-mono); font-size: .62rem; color: var(--text-muted); font-weight: 600; }
-  .cfg-input {
-    background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 8px; color: var(--text); padding: .45rem .65rem;
-    font-family: var(--font-display); font-size: .85rem;
-    outline: none; transition: border-color .15s; width: 100%; box-sizing: border-box;
-  }
-  .cfg-input:focus { border-color: var(--cyan); }
-  .cfg-input-num { font-family: var(--font-mono); text-align: right; width: 80px; }
-  .cfg-hint { font-family: var(--font-mono); font-size: .58rem; color: var(--text-dim); line-height: 1.5; }
-  .cfg-threshold-row {
-    display: flex; align-items: center; gap: .75rem; padding: .65rem .85rem;
-    border-radius: 8px; background: var(--surface2); border: 1px solid var(--border); margin-bottom: .5rem;
-  }
-  .cfg-threshold-label { flex: 1; }
-  .cfg-threshold-name { font-weight: 700; font-size: .82rem; margin-bottom: .15rem; }
-  .cfg-threshold-desc { font-family: var(--font-mono); font-size: .6rem; color: var(--text-muted); line-height: 1.5; }
-  .cfg-save-bar {
-    position: sticky; bottom: 0; background: var(--surface);
-    border-top: 1px solid var(--border); padding: .85rem 0;
-    margin-top: 1rem; display: flex; justify-content: flex-end; align-items: center; gap: .75rem;
-  }
-  .cfg-saved {
-    font-family: var(--font-mono); font-size: .65rem; color: var(--green);
-    display: flex; align-items: center; gap: .35rem;
-    padding: .3rem .65rem; border-radius: 20px;
-    background: rgba(52,211,153,.1); border: 1px solid rgba(52,211,153,.3);
-    animation: cfg-saved-in .2s ease;
-  }
-  @keyframes cfg-saved-in {
-    from { opacity:0; transform:translateX(8px); }
-    to   { opacity:1; transform:translateX(0); }
-  }
-  .backup-btn {
-    display: flex; align-items: center; gap: .5rem;
-    padding: .55rem 1rem; border-radius: var(--r-sm);
-    font-family: var(--font-display); font-size: .78rem; font-weight: 700;
-    cursor: pointer; border: 1px solid var(--border); transition: all .15s;
-  }
-  .backup-btn:disabled { opacity: .5; cursor: not-allowed; }
-  .backup-btn.export { background: var(--cyan-dim); color: var(--cyan); border-color: rgba(34,211,238,.3); }
-  .backup-btn.export:hover:not(:disabled) { background: var(--cyan); color: var(--bg); }
-  .backup-btn.import { background: var(--amber-dim); color: var(--amber); border-color: rgba(251,191,36,.3); }
-  .backup-btn.import:hover { background: var(--amber); color: var(--bg); }
-  .backup-btn.csv { background: var(--green-dim); color: var(--green); border-color: rgba(52,211,153,.3); }
-  .backup-btn.csv:hover { background: var(--green); color: var(--bg); }
-`;
-
 export default function Configuracion() {
   // useData: mismo patrón que todos los bloques — carga síncrona desde localStorage
   const [savedConfig, setSavedConfig] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
@@ -457,7 +397,6 @@ export default function Configuracion() {
 
   return (
     <>
-      <style>{CFG_CSS}</style>
       <div className="block-container">
 
         <div className="block-header">
