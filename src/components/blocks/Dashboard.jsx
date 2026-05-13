@@ -21,6 +21,7 @@ import {
   Tooltip as RechartsTip,
 } from "recharts";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
+import SkeletonBlock from "@/components/common/SkeletonBlock";
 import { MiniDesglose } from "@/components/dashboard/MiniDesglose";
 import { KPI } from "@/components/dashboard/KPI";
 import { MiniTimeline } from "@/components/dashboard/MiniTimeline";
@@ -298,58 +299,7 @@ export default function Dashboard() {
     return (
       <>
         <style>{DASH_EXTRA_CSS}</style>
-        <div className="block-container">
-          {/* Header skeleton */}
-          <div className="block-header" style={{ marginBottom: "1rem" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: ".4rem" }}>
-              <div className="skel" style={{ width: 160, height: 20 }} />
-              <div className="skel" style={{ width: 120, height: 12 }} />
-            </div>
-          </div>
-          {/* Barra de salud skeleton */}
-          <div className="card" style={{ marginBottom: "1rem", padding: "1rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ".65rem" }}>
-              <div className="skel" style={{ width: 140, height: 14 }} />
-              <div className="skel" style={{ width: 48, height: 20 }} />
-            </div>
-            <div className="skel" style={{ width: "100%", height: 8, borderRadius: 99 }} />
-          </div>
-          {/* KPI grid skeleton — 6 cards */}
-          <div className="kpi-grid mb">
-            {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className="kpi" style={{ gap: ".5rem" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div className="skel" style={{ width: 80, height: 11 }} />
-                  <div className="skel" style={{ width: 20, height: 11, borderRadius: 99 }} />
-                </div>
-                <div className="skel" style={{ width: "60%", height: 28 }} />
-                <div className="skel" style={{ width: "85%", height: 10 }} />
-                <div className="skel" style={{ width: "100%", height: 4, borderRadius: 99, marginTop: ".25rem" }} />
-              </div>
-            ))}
-          </div>
-          {/* Timeline skeleton */}
-          <div className="card" style={{ marginBottom: "1rem", padding: ".85rem 1rem" }}>
-            <div className="skel" style={{ width: 120, height: 13, marginBottom: ".75rem" }} />
-            {[1, 2, 3].map(i => (
-              <div key={i} style={{ display: "flex", gap: ".65rem", alignItems: "center", marginBottom: ".5rem" }}>
-                <div className="skel" style={{ width: 42, height: 11, flexShrink: 0 }} />
-                <div className="skel" style={{ flex: 1, height: 11 }} />
-                <div className="skel" style={{ width: 60, height: 11, flexShrink: 0 }} />
-              </div>
-            ))}
-          </div>
-          {/* Alertas skeleton */}
-          <div className="card" style={{ padding: ".75rem 1rem" }}>
-            <div className="skel" style={{ width: 100, height: 13, marginBottom: ".65rem" }} />
-            {[1, 2].map(i => (
-              <div key={i} style={{ display: "flex", gap: ".5rem", alignItems: "center", marginBottom: ".4rem" }}>
-                <div className="skel" style={{ width: 16, height: 16, borderRadius: "50%", flexShrink: 0 }} />
-                <div className="skel" style={{ flex: 1, height: 11 }} />
-              </div>
-            ))}
-          </div>
-        </div>
+        <SkeletonBlock variant="dashboard" />
       </>
     );
   }

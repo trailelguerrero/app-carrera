@@ -197,6 +197,47 @@ function SkeletonDocumentos() {
   );
 }
 
+function SkeletonDashboard() {
+  return (
+    <div className="block-container">
+      <SkelHeader titleWidth={160} subtitleWidth={120} badgeCount={0} />
+      {/* Barra de salud */}
+      <div className="card mb">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ".65rem" }}>
+          <div className="skel" style={{ width: 140, height: 14 }} />
+          <div className="skel" style={{ width: 48, height: 20, borderRadius: 6 }} />
+        </div>
+        <div className="skel" style={{ width: "100%", height: 8, borderRadius: 99 }} />
+      </div>
+      {/* KPI grid — 6 tarjetas */}
+      <div className="kpi-grid mb">
+        {[1, 2, 3, 4, 5, 6].map(i => <SkelKpi key={i} />)}
+      </div>
+      {/* Timeline */}
+      <div className="card mb" style={{ padding: ".85rem 1rem" }}>
+        <div className="skel" style={{ width: 120, height: 13, marginBottom: ".75rem" }} />
+        {[1, 2, 3].map(i => (
+          <div key={i} style={{ display: "flex", gap: ".65rem", alignItems: "center", marginBottom: ".5rem" }}>
+            <div className="skel" style={{ width: 42, height: 11, flexShrink: 0 }} />
+            <div className="skel" style={{ flex: 1, height: 11 }} />
+            <div className="skel" style={{ width: 60, height: 11, flexShrink: 0 }} />
+          </div>
+        ))}
+      </div>
+      {/* Alertas */}
+      <div className="card" style={{ padding: ".75rem 1rem" }}>
+        <div className="skel" style={{ width: 100, height: 13, marginBottom: ".65rem" }} />
+        {[1, 2].map(i => (
+          <div key={i} style={{ display: "flex", gap: ".5rem", alignItems: "center", marginBottom: ".4rem" }}>
+            <div className="skel" style={{ width: 16, height: 16, borderRadius: "50%", flexShrink: 0 }} />
+            <div className="skel" style={{ flex: 1, height: 11 }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SkeletonDefault() {
   return (
     <div className="block-container">
@@ -212,14 +253,15 @@ function SkeletonDefault() {
 // ── Export principal ─────────────────────────────────────────────────────────
 
 const VARIANTS = {
-  voluntarios:   SkeletonVoluntarios,
-  presupuesto:   SkeletonPresupuesto,
+  dashboard:      SkeletonDashboard,
+  voluntarios:    SkeletonVoluntarios,
+  presupuesto:    SkeletonPresupuesto,
   patrocinadores: SkeletonPatrocinadores,
-  documentos:    SkeletonDocumentos,
+  documentos:     SkeletonDocumentos,
 };
 
 /**
- * @param {{ variant?: "voluntarios"|"presupuesto"|"patrocinadores"|"documentos"|"default" }} props
+ * @param {{ variant?: "dashboard"|"voluntarios"|"presupuesto"|"patrocinadores"|"documentos"|"default" }} props
  */
 export default function SkeletonBlock({ variant = "default" }) {
   const Component = VARIANTS[variant] ?? SkeletonDefault;
