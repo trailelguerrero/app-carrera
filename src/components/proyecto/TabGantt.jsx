@@ -3,11 +3,13 @@
  * Tab de vista por áreas (gantt) del módulo Proyecto.
  */
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { diasHasta, fmt, AREAS, EST_CFG, PRI_CFG, getArea } from "./proyectoConstants";
 
-export function TabGantt({ tareas, hitos, equipo, setModal, setFicha, setFiltroArea, setTabParent, eventFecha, setGanttPopup }) {
+export function TabGantt({ tareas, hitos, equipo, setModal, setFicha, setFiltroArea, setTabParent, eventFecha }) {
   const [filtroGantt, setFiltroGantt] = useState("todas");
+  const [ganttPopup, setGanttPopup]   = useState(null); // {area, tareas, x, y}
 
   // Rango del Gantt: desde 6 meses antes del evento hasta 1 mes después
   // Derivado de eventFecha (eventConfig) — no hardcodeado
@@ -242,6 +244,63 @@ export function TabGantt({ tareas, hitos, equipo, setModal, setFicha, setFiltroA
           <div style={{display:"flex",alignItems:"center",gap:".3rem"}}><div style={{width:16,height:8,borderRadius:2,background:"rgba(34,211,238,.3)",border:"1px solid rgba(34,211,238,.3)"}}/><span className="mono xs muted">Rango de tareas (progreso)</span></div>
         </div>
       </div>
+      {/* ── Popup de tareas al tap en barra del Gantt ── */}
+      {ganttPopup && createPortal(
+        <div style={{position:"fixed",inset:0,zIndex:400,background:"transparent"}}
+          onClick={() => setGanttPopup(null)}>
+          <div style={{
+            position:"fixed",
+            left: Math.min(ganttPopup.x, window.innerWidth - 320),
+            top:  Math.min(ganttPopup.y, window.innerHeight - 300),
+            width:300, maxHeight:280,
+            background:"var(--surface)", border:"1px solid var(--border)",
+            borderRadius:12, boxShadow:"0 8px 32px rgba(0,0,0,0.4)",
+            overflow:"hidden", zIndex:401,
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+              padding:".55rem .85rem",borderBottom:"1px solid var(--border)",background:"var(--surface2)"}}>
+              <div style={{display:"flex",alignItems:"center",gap:".5rem"}}>
+                <span style={{color:ganttPopup.area.color,fontSize:"var(--fs-md)"}}>{ganttPopup.area.icon}</span>
+                <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:800,color:"var(--text)"}}>
+                  {ganttPopup.area.label}
+                </span>
+              </div>
+              <button onClick={() => setGanttPopup(null)}
+                style={{background:"none",border:"none",color:"var(--text-dim)",cursor:"pointer",fontSize:"var(--fs-sm)",padding:"0 .2rem"}}>✕</button>
+            </div>
+            <div style={{overflowY:"auto",maxHeight:220}}>
+              {ganttPopup.tareas.sort((a,b) => (a.fechaLimite||"").localeCompare(b.fechaLimite||"")).map(t => {
+                const EST = {pendiente:{color:"var(--amber)"},en_curso:{color:"var(--cyan)"},"en curso":{color:"var(--cyan)"},completado:{color:"var(--green)"},bloqueado:{color:"var(--red)"}};
+                const col = EST[t.estado]?.color || "var(--text-muted)";
+                return (
+                  <div key={t.id} style={{display:"flex",alignItems:"flex-start",gap:".5rem",
+                    padding:".45rem .85rem",borderBottom:"1px solid var(--border-light)",cursor:"pointer"}}
+                    onClick={() => { setGanttPopup(null); setFicha("tarea", t); }}>
+                    <span style={{color:col,fontSize:"var(--fs-xs)",marginTop:".1rem",flexShrink:0}}>●</span>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:600,
+                        overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.titulo}</div>
+                      {t.fechaLimite && <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-2xs)",color:"var(--text-muted)"}}>
+                        {new Date(t.fechaLimite).toLocaleDateString("es-ES",{day:"2-digit",month:"short"})}
+                      </div>}
+                    </div>
+                  </div>
+                );
+              })}
+              {ganttPopup.tareas.length === 0 && (
+                <div style={{padding:"1rem",textAlign:"center",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>Sin tareas asignadas</div>
+              )}
+            </div>
+            <div style={{padding:".45rem .85rem",borderTop:"1px solid var(--border)",background:"var(--surface2)"}}>
+              <button className="btn btn-ghost btn-sm" style={{width:"100%",fontSize:"var(--fs-xs)"}}
+                onClick={() => { setGanttPopup(null); setFiltroArea(ganttPopup.area.id); setTabParent("tablón"); }}>
+                Ver todas en Tablón →
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </>
   );
 }

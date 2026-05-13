@@ -8,11 +8,33 @@ import { usePaginacion } from "@/hooks/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { diasHasta, fmt, AREAS, ESTADOS, PRIORIDADES, EST_CFG, PRI_CFG, getArea, iniciales } from "./proyectoConstants";
 
-export function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, filtroResponsable, setFiltroResponsable, filtroEstado, setFiltroEstado, filtroPrioridad, setFiltroPrioridad, busqueda, setBusqueda, updEstado, setModal, setDelConf, setFicha, vista, setVista }) {
-  const { items: tareasPag, PaginadorUI } = usePaginacion(tareas, 15);
-  const hayFiltros = filtroArea!=="todas"||filtroResponsable!=="todos"||filtroEstado!=="todos"||filtroPrioridad!=="todas"||busqueda;
+export function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroArea, filtroResponsable, setFiltroResponsable, busquedaGlobal, setBusquedaGlobal, updEstado, setModal, setDelConf, setFicha }) {
+  // Estado local — no necesitan vivir en el orquestador
+  const [filtroEstado, setFiltroEstado]       = useState("todos");
+  const [filtroPrioridad, setFiltroPrioridad] = useState("todas");
+  const [vista, setVista]                     = useState("lista"); // "lista" | "kanban"
+  const [busqueda, setBusqueda]               = useState("");
+
+  // Sincronizar búsqueda local con la búsqueda global del orquestador
+  const handleBusqueda = (v) => { setBusqueda(v); setBusquedaGlobal(v); };
+  const busquedaActiva = busquedaGlobal || busqueda;
+
+  // Aplicar filtros locales (estado, prioridad, búsqueda) sobre las tareas
+  // pre-filtradas por área/responsable que llegan del orquestador.
+  const tareasLocales = tareas.filter(t => {
+    if (filtroEstado !== "todos" && t.estado !== filtroEstado) return false;
+    if (filtroPrioridad !== "todas" && t.prioridad !== filtroPrioridad) return false;
+    if (busquedaActiva) {
+      const q = busquedaActiva.toLowerCase();
+      if (!t.titulo.toLowerCase().includes(q) && !(t.notas||"").toLowerCase().includes(q)) return false;
+    }
+    return true;
+  }).sort((a,b) => (a.fechaLimite||"").localeCompare(b.fechaLimite||""));
+
+  const { items: tareasPag, PaginadorUI } = usePaginacion(tareasLocales, 15);
+  const hayFiltros = filtroArea!=="todas"||filtroResponsable!=="todos"||filtroEstado!=="todos"||filtroPrioridad!=="todas"||busquedaActiva;
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
-  const limpiar = () => { setFiltroArea("todas"); setFiltroResponsable("todos"); setFiltroEstado("todos"); setFiltroPrioridad("todas"); setBusqueda(""); };
+  const limpiar = () => { setFiltroArea("todas"); setFiltroResponsable("todos"); setFiltroEstado("todos"); setFiltroPrioridad("todas"); setBusqueda(""); setBusquedaGlobal(""); };
 
   // Resumen de filtros activos para mostrar en el botón cuando están colapsados
   const resumenFiltros = [
@@ -43,7 +65,7 @@ export function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroAr
               📆 Planificación · meses antes del evento
             </span>
           </div>
-          <div className="pd">{tareas.length} de {todasTareas.length} tareas · click para ver ficha</div>
+          <div className="pd">{tareasLocales.length} de {todasTareas.length} tareas · click para ver ficha</div>
         </div>
         <div style={{display:"flex",gap:".5rem",alignItems:"center"}}>
           <div className="filter-pill-group">
@@ -64,13 +86,13 @@ export function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroAr
             background:"var(--surface2)",border:"1px solid var(--border)",
             borderRadius:6,padding:".3rem .6rem",minWidth:0}}>
             <span style={{opacity:.45,fontSize:"var(--fs-base)",flexShrink:0}}>🔍</span>
-            <input placeholder="Buscar tareas..." value={busqueda}
-              onChange={e => setBusqueda(e.target.value)}
+            <input placeholder="Buscar tareas..." value={busquedaActiva}
+              onChange={e => handleBusqueda(e.target.value)}
               style={{background:"none",border:"none",color:"var(--text)",
                 fontFamily:"var(--font-display)",fontSize:"var(--fs-base)",
                 outline:"none",width:"100%",minWidth:0}}/>
-            {busqueda && (
-              <button onClick={()=>setBusqueda("")}
+            {busquedaActiva && (
+              <button onClick={()=>handleBusqueda("")}
                 style={{background:"none",border:"none",color:"var(--text-muted)",
                   cursor:"pointer",fontSize:"var(--fs-sm)",padding:0,flexShrink:0}}>✕</button>
             )}
@@ -201,7 +223,7 @@ export function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroAr
       </div>
 
       {/* Vistas */}
-      {tareas.length === 0 && (
+      {tareasLocales.length === 0 && (
         <EmptyState
           svg="tasks" color="var(--violet)"
           title="Sin tareas"
@@ -299,7 +321,7 @@ export function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroAr
         <div className="kanban-grid" style={{gridTemplateColumns:"repeat(4,1fr)"}}>
           {["pendiente","en curso","bloqueado","completado"].map(estado => {
             const col = EST_CFG[estado];
-            const tareasCol = tareas.filter(t => t.estado === estado);
+            const tareasCol = tareasLocales.filter(t => t.estado === estado);
             return (
               <div key={estado} className="kanban-col">
                 {/* Cabecera */}

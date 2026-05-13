@@ -53,16 +53,13 @@ export default function App() {
   const contLog     = Array.isArray(rawContLog) ? rawContLog : [];
   const [modal, setModal]     = useState(null);
   const [quickCreate, setQuickCreate] = useState(false);
-  const [ganttPopup, setGanttPopup] = useState(null); // {area, tareas, x, y}
   const [ficha, setFicha]     = useState(null); // {tipo,data} — vista previa
   const abrirFicha = (tipo, data) => {
     setFicha({ tipo, data });
   };
   const [delConf, setDelConf] = useState(null);
-  const [showSidebar, setShowSidebar] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 850);
   const [busquedaGlobal, setBusquedaGlobal] = useState("");
-  const [vistaTablon, setVistaTablon] = useState("lista"); // "lista" | "kanban"
 
   // Escuchar evento de crear tarea desde otros módulos (ej. Documentos)
   useEffect(() => {
@@ -89,12 +86,9 @@ export default function App() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // filters
+  // filters — solo los de navegación cruzada (usados por múltiples tabs)
   const [filtroArea, setFiltroArea]           = useState("todas");
   const [filtroResponsable, setFiltroResponsable] = useState("todos");
-  const [filtroEstado, setFiltroEstado]       = useState("todos");
-  const [filtroPrioridad, setFiltroPrioridad] = useState("todas");
-  const [busqueda, setBusqueda]               = useState("");
 
   // Los datos se guardan automáticamente en Neon via useData().
   // Esta función solo sincroniza otras pestañas abiertas.
@@ -133,20 +127,15 @@ export default function App() {
     return { diasEvento, total, completadas, bloqueadas, enCurso, pct, criticas, vencidas, porArea, porPersona, hitosProx };
   }, [tareas, hitos, equipo, eventCfg]);
 
-  // ── Tareas filtradas ───────────────────────────────────────────────────────
+  // tareasFiltradas: solo aplica los filtros de navegación cruzada.
+  // filtroEstado, filtroPrioridad y busqueda se aplican internamente en TabTablon.
   const tareasFiltradas = useMemo(() => {
     return tareas.filter(t => {
       if (filtroArea !== "todas" && t.area !== filtroArea) return false;
       if (filtroResponsable !== "todos" && String(t.responsableId) !== filtroResponsable) return false;
-      if (filtroEstado !== "todos" && t.estado !== filtroEstado) return false;
-      if (filtroPrioridad !== "todas" && t.prioridad !== filtroPrioridad) return false;
-      if (busqueda) {
-        const q = busqueda.toLowerCase();
-        if (!t.titulo.toLowerCase().includes(q) && !(t.notas||"").toLowerCase().includes(q)) return false;
-      }
       return true;
-    }).sort((a,b) => (a.fechaLimite||"").localeCompare(b.fechaLimite||""));
-  }, [tareas, filtroArea, filtroResponsable, filtroEstado, filtroPrioridad, busqueda]);
+    });
+  }, [tareas, filtroArea, filtroResponsable]);
 
   // ── CRUD ───────────────────────────────────────────────────────────────────
   const saveTarea = (t) => {
@@ -254,11 +243,11 @@ export default function App() {
               />
               {busquedaGlobal && <button onClick={()=>setBusquedaGlobal("")} style={{background:"none",border:"none",color:"var(--text-muted)",cursor:"pointer",fontSize:"var(--fs-base)",padding:0}} aria-label="Cerrar">✕</button>}
             </div>
-            {busquedaGlobal && tareasFiltradas && (
-              <span className="badge badge-violet" style={{whiteSpace:"nowrap"}}>
-                🔍 {tareasFiltradas.length} resultado{tareasFiltradas.length !== 1 ? "s" : ""}
-              </span>
-            )}
+            {busquedaGlobal && (() => {
+              const q = busquedaGlobal.toLowerCase();
+              const cnt = tareas.filter(t => t.titulo.toLowerCase().includes(q) || (t.notas||"").toLowerCase().includes(q)).length;
+              return <span className="badge badge-violet" style={{whiteSpace:"nowrap"}}>🔍 {cnt} resultado{cnt !== 1 ? "s" : ""}</span>;
+            })()}
             {stats.vencidas.length > 0 && <span className="badge badge-red">⏰ {stats.vencidas.length} vencidas</span>}
             {stats.bloqueadas > 0 && <span className="badge badge-amber">🔒 {stats.bloqueadas} bloqueadas</span>}
             <span className={`badge ${stats.pct>=80?"badge-green":stats.pct>=50?"badge-amber":"badge-red"}`}>{stats.pct}% completado</span>
@@ -307,12 +296,9 @@ export default function App() {
           {tab==="tablón" && <TabTablon tareas={tareasFiltradas} todasTareas={tareas} equipo={equipo}
             filtroArea={filtroArea} setFiltroArea={setFiltroArea}
             filtroResponsable={filtroResponsable} setFiltroResponsable={setFiltroResponsable}
-            filtroEstado={filtroEstado} setFiltroEstado={setFiltroEstado}
-            filtroPrioridad={filtroPrioridad} setFiltroPrioridad={setFiltroPrioridad}
-            busqueda={busquedaGlobal || busqueda} setBusqueda={(v)=>{setBusqueda(v); setBusquedaGlobal(v);}}
-            updEstado={updEstado} setModal={setModal} setDelConf={setDelConf} setFicha={abrirFicha}
-            vista={vistaTablon} setVista={setVistaTablon} />}
-          {tab==="gantt"  && <TabGantt tareas={tareas} hitos={hitos} equipo={equipo} setModal={setModal} setFicha={abrirFicha} setFiltroArea={setFiltroArea} setTabParent={setTab} eventFecha={config?.fecha || EVENT_CONFIG_DEFAULT.fecha} setGanttPopup={setGanttPopup} />}
+            busquedaGlobal={busquedaGlobal} setBusquedaGlobal={setBusquedaGlobal}
+            updEstado={updEstado} setModal={setModal} setDelConf={setDelConf} setFicha={abrirFicha} />}
+          {tab==="gantt"  && <TabGantt tareas={tareas} hitos={hitos} equipo={equipo} setModal={setModal} setFicha={abrirFicha} setFiltroArea={setFiltroArea} setTabParent={setTab} eventFecha={config?.fecha || EVENT_CONFIG_DEFAULT.fecha} />}
           {tab==="equipo" && <TabEquipo equipo={equipo} setEquipo={setEquipo} tareas={tareas} voluntarios={voluntarios} contLog={contLog} setModal={setModal} setDelConf={setDelConf} setFicha={abrirFicha} />}
           {tab==="hitos"  && <TabHitos hitos={hitos} updHito={updHito} setModal={setModal} setDelConf={setDelConf} setFicha={abrirFicha} />}
         </div>
@@ -321,67 +307,6 @@ export default function App() {
       {ficha?.tipo==="tarea"   && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} documentos={documentos} tareas={tareas} onClose={()=>setFicha(null)} onEditar={()=>{setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
       {ficha?.tipo==="hito"    && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} documentos={documentos} tareas={tareas} onClose={()=>setFicha(null)} onEditar={()=>{setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
       {ficha?.tipo==="persona" && <FichaProyecto key={"f"+ficha.data.id} ficha={ficha} equipo={equipo} documentos={documentos} tareas={tareas} onClose={()=>setFicha(null)} onEditar={()=>{setFicha(null);setModal({tipo:ficha.tipo,data:ficha.data});}} onEliminar={()=>{setFicha(null);setDelConf({tipo:ficha.tipo,id:ficha.data.id});}} />}
-      {/* ── Popup de tareas al tap en barra del Gantt ── */}
-      {ganttPopup && createPortal(
-        <div style={{
-          position:"fixed", inset:0, zIndex:400,
-          background:"transparent",
-        }} onClick={() => setGanttPopup(null)}>
-          <div style={{
-            position:"fixed",
-            left: Math.min(ganttPopup.x, window.innerWidth - 320),
-            top:  Math.min(ganttPopup.y, window.innerHeight - 300),
-            width:300, maxHeight:280,
-            background:"var(--surface)", border:"1px solid var(--border)",
-            borderRadius:12, boxShadow:"0 8px 32px rgba(0,0,0,0.4)",
-            overflow:"hidden", zIndex:401,
-          }} onClick={e => e.stopPropagation()}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
-              padding:".55rem .85rem",borderBottom:"1px solid var(--border)",
-              background:"var(--surface2)"}}>
-              <div style={{display:"flex",alignItems:"center",gap:".5rem"}}>
-                <span style={{color:ganttPopup.area.color,fontSize:"var(--fs-md)"}}>{ganttPopup.area.icon}</span>
-                <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:800,color:"var(--text)"}}>
-                  {ganttPopup.area.label}
-                </span>
-              </div>
-              <button onClick={() => setGanttPopup(null)}
-                style={{background:"none",border:"none",color:"var(--text-dim)",cursor:"pointer",fontSize:"var(--fs-sm)",padding:"0 .2rem"}}>✕</button>
-            </div>
-            <div style={{overflowY:"auto",maxHeight:220}}>
-              {ganttPopup.tareas.sort((a,b) => (a.fechaLimite||"").localeCompare(b.fechaLimite||"")).map(t => {
-                const EST = {pendiente:{color:"var(--amber)"},en_curso:{color:"var(--cyan)"},"en curso":{color:"var(--cyan)"},completado:{color:"var(--green)"},bloqueado:{color:"var(--red)"}};
-                const col = EST[t.estado]?.color || "var(--text-muted)";
-                return (
-                  <div key={t.id} style={{display:"flex",alignItems:"flex-start",gap:".5rem",
-                    padding:".45rem .85rem",borderBottom:"1px solid var(--border-light)",
-                    cursor:"pointer"}}
-                    onClick={() => { setGanttPopup(null); abrirFicha("tarea", t); }}>
-                    <span style={{color:col,fontSize:"var(--fs-xs)",marginTop:".1rem",flexShrink:0}}>●</span>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:600,
-                        overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.titulo}</div>
-                      {t.fechaLimite && <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-2xs)",color:"var(--text-muted)"}}>
-                        {new Date(t.fechaLimite).toLocaleDateString("es-ES",{day:"2-digit",month:"short"})}
-                      </div>}
-                    </div>
-                  </div>
-                );
-              })}
-              {ganttPopup.tareas.length === 0 && (
-                <div style={{padding:"1rem",textAlign:"center",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>Sin tareas asignadas</div>
-              )}
-            </div>
-            <div style={{padding:".45rem .85rem",borderTop:"1px solid var(--border)",background:"var(--surface2)"}}>
-              <button className="btn btn-ghost btn-sm" style={{width:"100%",fontSize:"var(--fs-xs)"}}
-                onClick={() => { setGanttPopup(null); setFiltroArea(ganttPopup.area.id); setTab("tablón"); }}>
-                Ver todas en Tablón →
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
       {quickCreate && createPortal(
         <QuickCreateTarea
           areas={AREAS}
