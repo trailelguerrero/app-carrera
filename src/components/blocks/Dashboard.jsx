@@ -150,7 +150,7 @@ export default function Dashboard() {
               const pctFaltante = totalCostes > 0 ? Math.round(Math.abs(d.resultado) / totalCostes * 100) : 0;
               return `⚠ Déficit del ${pctFaltante}% — Costes: ${fmtEur(totalCostes)}`;
             })()}
-            color={resColor} colorClass={d.resultado >= 0 ? "green" : "red"}
+            color={d.resultado >= 0 ? "var(--green)" : "var(--red)"} colorClass={d.resultado >= 0 ? "green" : "red"}
             progress={d.resultado >= 0 && (d.totalCostesFijos + d.totalCostesVars) > 0
               ? Math.min(100, Math.round(d.resultado / (d.totalCostesFijos + d.totalCostesVars) * 100))
               : undefined}
