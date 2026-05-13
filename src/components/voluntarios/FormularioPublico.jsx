@@ -2,14 +2,31 @@
  * FormularioPublico.jsx — T2.2
  * Componente de registro público de voluntarios.
  * Extraído de Voluntarios.jsx para desacoplar el portal público del panel privado.
+ * Las opciones del formulario y las imágenes se leen directamente de useData,
+ * igual que en VoluntarioPortal — no dependen del orquestador padre.
  */
 import { useState } from "react";
 import { TALLAS, SHIRT_PLACEHOLDER_FRONT, SHIRT_PLACEHOLDER_BACK, GUIA_TALLAS } from "@/constants/camisetasConstants";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { DIST_COLORS } from "@/constants/voluntariosConstants";
+import { useData } from "@/hooks/useData";
+import {
+  SK_VOL_IMG_FRONT, SK_VOL_IMG_BACK, SK_VOL_IMG_GUIA_TALLAS,
+  SK_VOL_OPCION_PUESTO, SK_VOL_OPCION_VEHICULO,
+  SK_VOL_OPCION_EMAIL, SK_VOL_OPCION_EMERGENCIA,
+} from "@/constants/storageKeys";
 
-export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: imgF, imgBack: imgB, imgGuiaTallas, opcionPuesto, opcionVehiculo, opcionEmail, opcionEmergencia, config: cfgProp }) {
+export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgProp }) {
   const config = cfgProp || EVENT_CONFIG_DEFAULT;
+
+  // Lee directamente de storage — misma fuente que VoluntarioPortal y Configuracion
+  const [imgF]             = useData(SK_VOL_IMG_FRONT,       SHIRT_PLACEHOLDER_FRONT);
+  const [imgB]             = useData(SK_VOL_IMG_BACK,        SHIRT_PLACEHOLDER_BACK);
+  const [imgGuiaTallas]    = useData(SK_VOL_IMG_GUIA_TALLAS, null);
+  const [opcionPuesto]     = useData(SK_VOL_OPCION_PUESTO,   true);
+  const [opcionVehiculo]   = useData(SK_VOL_OPCION_VEHICULO, true);
+  const [opcionEmail]      = useData(SK_VOL_OPCION_EMAIL,    false);
+  const [opcionEmergencia] = useData(SK_VOL_OPCION_EMERGENCIA, false);
   const [form, setForm] = useState({ nombre: "", apellidos: "", telefono: "", email: "", talla: "", puestoId: "", coche: false, telefonoEmergencia: "", contactoEmergencia: "", website: "" });
   const [enviado, setEnviado] = useState(false);
   const [errores, setErrores] = useState({});

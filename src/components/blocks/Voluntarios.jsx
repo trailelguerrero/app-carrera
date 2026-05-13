@@ -1,12 +1,9 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import {
   SK_VOL_ROOT, SK_VOL_PUESTOS, SK_VOL_VOLUNTARIOS,
-  SK_VOL_IMG_FRONT, SK_VOL_IMG_BACK, SK_VOL_IMG_GUIA_TALLAS,
-  SK_VOL_OPCION_PUESTO, SK_VOL_OPCION_VEHICULO,
-  SK_VOL_OPCION_EMAIL, SK_VOL_OPCION_EMERGENCIA,
   SK_LOG_MAT, SK_LOG_ASIG, SK_LOG_RUT,
 } from "@/constants/storageKeys";
-import { TALLAS, SHIRT_PLACEHOLDER_FRONT, SHIRT_PLACEHOLDER_BACK, GUIA_TALLAS } from "@/constants/camisetasConstants";
+import { TALLAS, SHIRT_PLACEHOLDER_FRONT, SHIRT_PLACEHOLDER_BACK } from "@/constants/camisetasConstants";
 import { createPortal } from "react-dom";
 import { exportarVoluntarios } from "@/lib/exportUtils";
 import { toast } from "@/lib/toast";
@@ -19,6 +16,8 @@ import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { getEventDate } from "@/lib/eventUtils";
 import { LOCS_DEFAULT, LOCS_KEY } from "@/constants/localizaciones";
 import { useData } from "@/hooks/useData";
+import { ImagenUploader } from "@/components/common/ImagenUploader";
+import { PanelCompartir } from "@/components/voluntarios/PanelCompartir";
 
 
 // Sprint 2: sub-components extracted to src/components/voluntarios/
@@ -149,13 +148,6 @@ export default function App() {
     return map;
   }, [rawMat, rawAsig, locs]);
   const [saveStatus, setSaveStatus] = useState("idle");
-  const [imgFront, setImgFront] = useData(SK_VOL_IMG_FRONT, SHIRT_PLACEHOLDER_FRONT);
-  const [imgBack, setImgBack] = useData(SK_VOL_IMG_BACK, SHIRT_PLACEHOLDER_BACK);
-  const [imgGuiaTallas, setImgGuiaTallas] = useData(SK_VOL_IMG_GUIA_TALLAS, null);
-  const [opcionPuesto, setOpcionPuesto] = useData(SK_VOL_OPCION_PUESTO, true);
-  const [opcionVehiculo, setOpcionVehiculo] = useData(SK_VOL_OPCION_VEHICULO, true);
-  const [opcionEmail, setOpcionEmail] = useData(SK_VOL_OPCION_EMAIL, false);
-  const [opcionEmergencia, setOpcionEmergencia] = useData(SK_VOL_OPCION_EMERGENCIA, false);
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [filtroPuesto, setFiltroPuesto] = useState("todos");
@@ -163,46 +155,6 @@ export default function App() {
   const [modalPuesto, setModalPuesto] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmDeletePuesto, setConfirmDeletePuesto] = useState(null);
-  const [urlCopiada, setUrlCopiada] = useState(false);
-  const [shareMenuOpen, setShareMenuOpen] = useState(false);
-  const [shareMenuPos, setShareMenuPos] = useState({ top:0, left:0, right:'auto' });
-  const shareMenuRef = useRef(null);
-  const shareBtnRef  = useRef(null);
-
-  // Cerrar dropdown al hacer click fuera — setTimeout evita race condition
-  useEffect(() => {
-    if (!shareMenuOpen) return;
-    const handler = (e) => {
-      if (shareMenuRef.current && shareMenuRef.current.contains(e.target)) return;
-      if (shareBtnRef.current && shareBtnRef.current.contains(e.target)) return;
-      setShareMenuOpen(false);
-    };
-    const t = setTimeout(() => document.addEventListener("click", handler), 0);
-    return () => { clearTimeout(t); document.removeEventListener("click", handler); };
-  }, [shareMenuOpen]);
-
-  const openShareMenu = () => {
-    if (shareMenuOpen) { setShareMenuOpen(false); return; }
-    if (shareBtnRef.current) {
-      const r = shareBtnRef.current.getBoundingClientRect();
-      const menuW = 240;
-      const vw = window.innerWidth;
-      // Si el botón está en la mitad izquierda, anclar a la izquierda del botón
-      // Si está en la mitad derecha, anclar a la derecha del botón
-      const leftSpace  = r.left;
-      const rightSpace = vw - r.right;
-      let pos;
-      if (rightSpace >= menuW - 20 || rightSpace >= leftSpace) {
-        // Hay espacio a la derecha o es más cómodo abrir hacia la derecha
-        pos = { top: r.bottom + 6, left: Math.min(r.left, vw - menuW - 8), right: 'auto' };
-      } else {
-        // Abrir hacia la izquierda anclado al borde derecho del botón
-        pos = { top: r.bottom + 6, right: Math.max(8, vw - r.right), left: 'auto' };
-      }
-      setShareMenuPos(pos);
-    }
-    setShareMenuOpen(true);
-  };
   // Ref para capturar el ID a eliminar antes de cualquier setState — solución definitiva al bug de eliminación
   const pendingDeleteRef = useRef(null);
 
@@ -218,11 +170,8 @@ export default function App() {
     pendingDeleteRef.current = null;
     toast.success('Voluntario eliminado');
   }, [setVoluntarios]);
-  const [qrDataUrl, setQrDataUrl]   = useState(null);
-  const [qrLoading, setQrLoading]   = useState(false);
   const [ficha, setFicha] = useState(null); // {tipo:'vol'|'puesto', data}
   const abrirFicha = (tipo, data) => { scrollMainToTop(); setFicha({ tipo, data }); };
-  const [configOpen, setConfigOpen] = useState(false); // config camisetas colapsada por defecto
 
   // ── Métricas ──────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
@@ -429,13 +378,6 @@ export default function App() {
       <FormularioPublico
         onVolver={() => setVista("gestion")}
         puestos={puestos}
-        imgFront={imgFront}
-        imgBack={imgBack}
-        imgGuiaTallas={imgGuiaTallas}
-        opcionPuesto={opcionPuesto}
-        opcionVehiculo={opcionVehiculo}
-        opcionEmail={opcionEmail}
-        opcionEmergencia={opcionEmergencia}
         config={config}
         onRegistrar={(data) => { addVoluntario(data); setVista("gestion"); setTab("voluntarios"); }}
       />
@@ -498,94 +440,7 @@ export default function App() {
                 onChange={e => { if (e.target.files[0]) { importarCSV(e.target.files[0]); e.target.value = ''; } }} />
             </label>
             {/* Dropdown Compartir portal — consolida 3 acciones */}
-            <div ref={shareMenuRef} style={{ position:"relative" }}>
-              <button className="btn btn-ghost btn-sm"
-              onClick={() => {
-                try { window.dispatchEvent(new CustomEvent("teg-navigate", {detail:{block:"configuracion"}})); }
-                catch(e) { /* dispatchEvent puede fallar en entornos sin window */ }
-              }}
-              title="Configurar contactos del organizador visibles para los voluntarios">
-              ⚙️ Contacto org.
-            </button>
-            <button
-                ref={shareBtnRef}
-                className="btn btn-ghost btn-sm"
-                onClick={openShareMenu}
-                title="Compartir portal de voluntarios">
-                🔗 Portal {shareMenuOpen ? "▲" : "▼"}
-              </button>
-              {shareMenuOpen && (
-                <div
-                  ref={shareMenuRef}
-                  onClick={e => e.stopPropagation()}
-                  style={{
-                    position:"fixed", top:shareMenuPos.top,
-                    left:shareMenuPos.left !== 'auto' ? shareMenuPos.left : undefined,
-                    right:shareMenuPos.right !== 'auto' ? shareMenuPos.right : undefined,
-                    zIndex:9999,
-                    background:"#1a2540",
-                    border:"1px solid rgba(148,163,184,.3)",
-                    borderRadius:12, padding:".5rem", minWidth:240, maxWidth:"calc(100vw - 1rem)",
-                    boxShadow:"0 16px 48px rgba(0,0,0,.85), 0 0 0 1px rgba(34,211,238,.12)",
-                    display:"flex", flexDirection:"column", gap:".3rem"
-                  }}>
-                  <button
-                    style={{ justifyContent:"flex-start", gap:".5rem",
-                      display:"flex", alignItems:"center", width:"100%",
-                      padding:".65rem .85rem", background:"transparent", border:"none",
-                      borderRadius:8, cursor:"pointer", color:"#e2e8f0",
-                      fontFamily:"var(--font-mono)", fontSize:".85rem", fontWeight:600,
-                      transition:"background .1s" }}
-                    onMouseEnter={e=>e.currentTarget.style.background="rgba(34,211,238,.1)"}
-                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}
-                    onClick={() => {
-                      const url = window.location.origin + "/voluntarios/mi-ficha";
-                      navigator.clipboard.writeText(url).then(() => {
-                        setUrlCopiada(true);
-                        setTimeout(() => setUrlCopiada(false), 2000);
-                        toast.success("Enlace copiado ✓");
-                        setShareMenuOpen(false);
-                      });
-                    }}>
-                    📋 {urlCopiada ? "¡Copiado!" : "Copiar enlace"}
-                  </button>
-                  <button
-                    style={{ justifyContent:"flex-start", gap:".5rem",
-                      display:"flex", alignItems:"center", width:"100%",
-                      padding:".65rem .85rem", background:"transparent", border:"none",
-                      borderRadius:8, cursor:"pointer", color:"#e2e8f0",
-                      fontFamily:"var(--font-mono)", fontSize:".85rem", fontWeight:600,
-                      transition:"background .1s" }}
-                    onMouseEnter={e=>e.currentTarget.style.background="rgba(34,211,238,.1)"}
-                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}
-                    onClick={async () => {
-                      if (qrDataUrl) { setQrDataUrl(null); setShareMenuOpen(false); return; }
-                      setQrLoading(true);
-                      try {
-                        const url = window.location.origin + "/voluntarios/mi-ficha";
-                        const QRCode = (await import("qrcode")).default;
-                        const dataUrl = await QRCode.toDataURL(url, { width:256, margin:2, color:{ dark:"#0f172a", light:"#ffffff" } });
-                        setQrDataUrl(dataUrl);
-                      } catch { toast.error("Error al generar QR"); }
-                      finally { setQrLoading(false); setShareMenuOpen(false); }
-                    }}>
-                    {qrLoading ? "⏳ Generando…" : "🔲 Ver QR"}
-                  </button>
-                  <div style={{ height:1, background:"rgba(148,163,184,.2)", margin:".2rem .2rem" }}/>
-                  <a href={window.location.origin + "/voluntarios/mi-ficha"} target="_blank" rel="noreferrer"
-                    style={{ justifyContent:"flex-start", gap:".5rem",
-                      display:"flex", alignItems:"center", width:"100%",
-                      padding:".65rem .85rem", background:"transparent",
-                      borderRadius:8, cursor:"pointer", color:"#22d3ee",
-                      fontFamily:"var(--font-mono)", fontSize:".85rem", fontWeight:600,
-                      textDecoration:"none", transition:"background .1s" }}
-                    onMouseEnter={e=>e.currentTarget.style.background="rgba(34,211,238,.1)"}
-                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                    ↗ Abrir en nueva pestaña
-                  </a>
-                </div>
-              )}
-            </div>
+            <PanelCompartir portalUrl={window.location.origin + "/voluntarios/mi-ficha"} />
           </div>
         </div>
 
@@ -593,68 +448,16 @@ export default function App() {
 
 
 
-        {/* ── Panel QR del formulario público ──────────────────────────────── */}
-        {qrDataUrl && (
-          <div className="card mb" style={{ padding:"1rem", display:"flex", flexDirection:"column",
-            alignItems:"center", gap:".65rem", background:"var(--surface2)" }}>
-            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
-              color:"var(--cyan)", textTransform:"uppercase", letterSpacing:".06em" }}>
-              🔲 QR — Formulario de voluntarios
-            </div>
-            <img src={qrDataUrl} alt="QR formulario voluntarios"
-              style={{ borderRadius:8, border:"4px solid #fff", width:200, height:200 }} />
-            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)",
-              textAlign:"center", wordBreak:"break-all", maxWidth:280 }}>
-              {window.location.origin + "/voluntarios/mi-ficha"}
-            </div>
-            <div style={{ display:"flex", gap:".5rem" }}>
-              <a href={qrDataUrl} download="qr-voluntarios-teg.png"
-                className="btn btn-ghost btn-sm">
-                ⬇ Descargar PNG
-              </a>
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => navigator.clipboard.writeText(window.location.origin + "/voluntarios/mi-ficha").then(() => toast.success("URL copiada al portapapeles"))}>
-                📋 Copiar enlace
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* OPCIONES FORMULARIO + IMÁGENES — colapsable */}
-        <div className="card mb" style={{padding:"0.65rem 1rem"}}>
+        {/* OPCIONES FORMULARIO — ir a Configuración */}
+        <div className="card mb" style={{ padding: "0.65rem 1rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+            ⚙️ Configuración formulario público
+          </span>
           <button
-            onClick={() => setConfigOpen(v => !v)}
-            style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",background:"none",border:"none",cursor:"pointer",padding:0}}>
-            <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:"0.1em"}}>
-              ⚙️ Configuración formulario público
-            </span>
-            <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-dim)"}}>
-              {configOpen ? "▲ ocultar" : "▼ mostrar"}
-            </span>
+            className="btn btn-ghost btn-sm"
+            onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "configuracion" } }))}>
+            Gestionar →
           </button>
-          {configOpen && (
-            <div className="flex-center gap" style={{flexWrap:"wrap",marginTop:"0.65rem",paddingTop:"0.65rem",borderTop:"1px solid var(--border)"}}>
-              {[
-                { label: "Elegir puesto",      val: opcionPuesto,      set: setOpcionPuesto },
-                { label: "Vehículo propio",    val: opcionVehiculo,    set: setOpcionVehiculo },
-                { label: "Email de contacto",  val: opcionEmail,       set: setOpcionEmail },
-                { label: "Tel. emergencia",    val: opcionEmergencia,  set: setOpcionEmergencia },
-              ].map(opt => (
-                <div key={opt.label} className="flex-center gap-sm">
-                  <button className={cls("toggle-btn", opt.val && "active")} onClick={() => opt.set(!opt.val)}>
-                    <div className="toggle-thumb" />
-                  </button>
-                  <span className="xs">{opt.label}</span>
-                </div>
-              ))}
-              <div className="flex-center gap-sm" style={{marginLeft:"auto"}}>
-                <ImagenUploader label="Camiseta ▶" img={imgFront}      onImg={setImgFront}      accent="var(--cyan)" />
-                <ImagenUploader label="Camiseta ◀" img={imgBack}       onImg={setImgBack}       accent="var(--violet)" />
-                <ImagenUploader label="Tallas"     img={imgGuiaTallas} onImg={setImgGuiaTallas} accent="var(--green)" />
-              </div>
-            </div>
-          )}
         </div>
 
 
@@ -772,64 +575,6 @@ export default function App() {
       {confirmDelete && createPortal(<ModalConfirm zIndex={400} mensaje="¿Eliminar este voluntario? Esta acción no se puede deshacer." onConfirm={() => ejecutarEliminacion(confirmDelete)} onCancel={() => { setConfirmDelete(null); pendingDeleteRef.current = null; }} />, document.body)}
       {confirmDeletePuesto && createPortal(<ModalConfirm zIndex={400} mensaje="¿Eliminar este puesto? Los voluntarios asignados quedarán sin puesto." onConfirm={() => { deletePuesto(confirmDeletePuesto); setConfirmDeletePuesto(null); }} onCancel={() => setConfirmDeletePuesto(null)} />, document.body)}
     </AppShell>
-  );
-}
-
-// ─── IMAGEN UPLOADER ─────────────────────────────────────────────────────────
-function ImagenUploader({ label, img, onImg, accent }) {
-  const isPlaceholder = !img || img === SHIRT_PLACEHOLDER_FRONT || img === SHIRT_PLACEHOLDER_BACK;
-  const [compressing, setCompressing] = useState(false);
-
-  const handleFile = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) return;
-    setCompressing(true);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const img = new Image();
-      img.onload = () => {
-        const MAX = 900;
-        const scale = Math.min(1, MAX / Math.max(img.width, img.height));
-        const w = Math.round(img.width * scale);
-        const h = Math.round(img.height * scale);
-        const canvas = document.createElement("canvas");
-        canvas.width = w; canvas.height = h;
-        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-        const compressed = canvas.toDataURL("image/jpeg", 0.75);
-        onImg(compressed);
-        setCompressing(false);
-      };
-      img.src = ev.target.result;
-    };
-    reader.readAsDataURL(file);
-  };
-  return (
-    <label style={{ display: "block", cursor: "pointer", marginBottom: "0.25rem" }}>
-      <input type="file" accept="image/*" onChange={handleFile} style={{ display: "none" }} disabled={compressing} />
-      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", background: "var(--surface2)", border: `1px solid ${accent}33`, borderRadius: "var(--radius-sm)", padding: "0.35rem 0.6rem", transition: "all 0.15s" }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = accent; }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = `${accent}33`; }}>
-        {compressing ? (
-          <div style={{ width: 24, height: 24, borderRadius: 4, background: `${accent}18`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--fs-sm)", flexShrink: 0 }}>⏳</div>
-        ) : !isPlaceholder ? (
-          <img src={img} alt={label} style={{ width: 24, height: 24, objectFit: "cover", borderRadius: 4, flexShrink: 0 }} />
-        ) : (
-          <div style={{ width: 24, height: 24, borderRadius: 4, background: `${accent}18`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--fs-sm)", flexShrink: 0 }}>📷</div>
-        )}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700, color: accent }}>{label}</div>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)" }}>
-            {compressing ? "Comprimiendo…" : !isPlaceholder ? "✓ Imagen cargada" : "Subir imagen"}
-          </div>
-        </div>
-        {!isPlaceholder && (
-          <button onClick={e => { e.preventDefault(); e.stopPropagation(); onImg(null); }}
-            style={{ background: "none", border: "none", color: "var(--text-dim)", cursor: "pointer", fontSize: "var(--fs-sm)", flexShrink: 0 }}
-            title="Eliminar imagen">✕</button>
-        )}
-      </div>
-    </label>
   );
 }
 
