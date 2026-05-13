@@ -290,7 +290,7 @@ export default function Dashboard() {
   const [saludExpandida, setSaludExpandida] = useState(false); // colapsada por defecto
 
   const { rawData, loading, isRefreshing, lastUpdated, loadData } = useDashboardData(ALL_KEYS);
-  const cfg = { ...EVENT_CONFIG_DEFAULT, ...((() => { try { const r = localStorage.getItem("teg_event_config_v1"); return r ? JSON.parse(r) : {}; } catch { return {}; } })()) };
+  const cfg = { ...EVENT_CONFIG_DEFAULT, ...((() => { try { const r = localStorage.getItem(LS_KEY_CONFIG); return r ? JSON.parse(r) : {}; } catch { return {}; } })()) };
   const data = useDashboardKpis(rawData, cfg.volDiasCritico, cfg.volDiasAviso);
 
   // ─── Loading ──────────────────────────────────────────────────────────────
