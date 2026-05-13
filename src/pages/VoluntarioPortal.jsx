@@ -28,8 +28,8 @@ function loadSession() {
     return raw;
   } catch { return null; }
 }
-function saveSession(data) { localStorage.setItem(SESSION_KEY, JSON.stringify({ ...data, ts: Date.now() })); }
-function clearSession() { localStorage.removeItem(SESSION_KEY); }
+function saveSession(data) { localStorage.setItem(SK_VOL_SESSION, JSON.stringify({ ...data, ts: Date.now() })); }
+function clearSession() { localStorage.removeItem(SK_VOL_SESSION); }
 
 async function fetchPublic(collection) {
   try {

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 // QRCode se importa dinámicamente para evitar crash si no está disponible
 import { blockCls as cls } from "@/lib/blockStyles";
 import { useData } from "@/hooks/useData";
@@ -144,6 +145,8 @@ export default function Configuracion() {
   const [imgPreviews,  setImgPreviews]  = useState({ front: null, back: null, guia: null });
   const [imgError,     setImgError]     = useState({ front: null, back: null, guia: null });
   const [imgSaving,    setImgSaving]    = useState({ front: false, back: false, guia: false });
+  const [resetModal,   setResetModal]   = useState(false); // modal zona de peligro
+  const [resetInput,   setResetInput]   = useState('');
   const imgInputRef = { front: null, back: null, guia: null };
 
   const MAX_IMG_BYTES = 500 * 1024; // 500 KB
@@ -913,6 +916,20 @@ export default function Configuracion() {
           </div>
         </div>
 
+        {/* ── Zona de peligro ─────────────────────────────────────────── */}
+        <div className="card cfg-section" style={{ border: "1px solid rgba(248,113,113,.35)", background: "rgba(248,113,113,.04)" }}>
+          <div className="cfg-section-title" style={{ color: "var(--red)" }}>🗑️ Zona de peligro</div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)", marginBottom: "1rem", lineHeight: 1.6 }}>
+            Borra todos los datos de la aplicación: voluntarios, presupuesto, logística, patrocinadores, proyecto y configuración del evento. Esta acción es irreversible. Exporta un backup antes de continuar.
+          </div>
+          <button
+            className="btn btn-red"
+            onClick={() => { setResetInput(''); setResetModal(true); }}
+          >
+            🗑️ Borrar todos los datos
+          </button>
+        </div>
+
         <div className="cfg-save-bar">
           {saved && (
             <div style={{ display: "flex", alignItems: "center", gap: ".5rem" }}>
@@ -1000,6 +1017,81 @@ export default function Configuracion() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── MODAL RESET COMPLETO (portal) ───────────────────────────────── */}
+      {resetModal && createPortal(
+        <div
+          className="modal-backdrop"
+          onClick={e => e.target === e.currentTarget && setResetModal(false)}
+          style={{ zIndex: 9999 }}
+        >
+          <div className="modal" style={{ maxWidth: 440 }}>
+            <div className="modal-header">
+              <span className="mtit" style={{ color: "var(--red)" }}>⚠️ Esta acción no tiene vuelta atrás</span>
+              <button className="btn btn-ghost btn-sm" onClick={() => setResetModal(false)}>✕</button>
+            </div>
+            <div className="modal-body" style={{ gap: ".75rem" }}>
+              <div style={{
+                background: "rgba(248,113,113,.08)", borderRadius: 8,
+                padding: ".65rem .85rem", fontSize: "var(--fs-sm)",
+                fontFamily: "var(--font-mono)", lineHeight: 1.7,
+                border: "1px solid rgba(248,113,113,.3)", color: "var(--text)",
+              }}>
+                Se borrarán permanentemente los siguientes datos:
+                <ul style={{ margin: ".4rem 0 0 1rem", padding: 0, color: "var(--text-muted)" }}>
+                  <li>👥 Voluntarios y puestos</li>
+                  <li>💰 Presupuesto e inscripciones</li>
+                  <li>📦 Logística y materiales</li>
+                  <li>🤝 Patrocinadores</li>
+                  <li>🏔️ Proyecto, tareas e hitos</li>
+                  <li>⚙️ Configuración del evento</li>
+                </ul>
+              </div>
+              <div style={{
+                fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)",
+                color: "var(--text-muted)", lineHeight: 1.6,
+              }}>
+                Escribe <strong style={{ color: "var(--red)" }}>BORRAR</strong> para confirmar:
+              </div>
+              <input
+                className="cfg-input"
+                type="text"
+                placeholder="Escribe BORRAR para confirmar"
+                value={resetInput}
+                onChange={e => setResetInput(e.target.value)}
+                autoFocus
+                style={{ fontFamily: "var(--font-mono)", letterSpacing: ".05em" }}
+              />
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setResetModal(false)}>Cancelar</button>
+              <button
+                className="btn btn-red"
+                disabled={resetInput.trim() !== "BORRAR"}
+                style={{ opacity: resetInput.trim() === "BORRAR" ? 1 : .4, cursor: resetInput.trim() === "BORRAR" ? "pointer" : "not-allowed" }}
+                onClick={() => {
+                  for (const key of ALL_DATA_KEYS) {
+                    localStorage.removeItem(key);
+                  }
+                  // Limpiar también logs dinámicos de patrocinadores
+                  const keysToRemove = [];
+                  for (let i = 0; i < localStorage.length; i++) {
+                    const k = localStorage.key(i);
+                    if (k && k.startsWith(SK_PAT_LOG_PREFIX)) keysToRemove.push(k);
+                  }
+                  keysToRemove.forEach(k => localStorage.removeItem(k));
+                  setResetModal(false);
+                  setResetInput('');
+                  window.location.reload();
+                }}
+              >
+                🗑️ Borrar todo
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </>
   );
