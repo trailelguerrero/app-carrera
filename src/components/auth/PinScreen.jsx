@@ -228,6 +228,11 @@ export default function PinScreen({ onUnlock }) {
           Contacta con el organizador si no tienes el PIN<br />
           Cámbialo desde el icono 🔐 en el panel
         </div>
+
+        <div style={{ marginTop: "1.5rem", fontFamily: "var(--font-mono)",
+          fontSize: "0.5rem", color: "var(--text-dim)", opacity: 0.5, letterSpacing: "0.04em" }}>
+          v{__APP_VERSION__} · Trail El Guerrero
+        </div>
       </div>
     </div>
   );

@@ -41,196 +41,7 @@ async function fetchPublic(collection) {
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
-
-
-
 // ── CSS unificado ─────────────────────────────────────────────────────────────
-const CSS = `
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html { -webkit-text-size-adjust: 100%; }
-  body { background: #08091a; color: #f0f4ff;
-    font-family: 'Syne', 'Inter', system-ui, sans-serif; min-height: 100dvh; }
-  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
-    outline: 2px solid var(--cyan); outline-offset: 2px;
-  }
-  /* Tokens completos — portal es página independiente sin BLOCK_CSS */
-  :root {
-    --bg: #08091a; --bg2: #0f172a;
-    --surface:  #0d1121; --surface2: #121829; --surface3: #18203a;
-    --border:   #1e2d50; --border-light: #2a4070; --border2: rgba(148,163,184,.25);
-    --text:     #f0f4ff; --text-muted: #96aacf; --text-dim: #6680a8;
-    --cyan:     #22d3ee; --cyan-dim:   rgba(34,211,238,.10);  --cyan-border:   rgba(34,211,238,.28);
-    --green:    #34d399; --green-dim:  rgba(52,211,153,.10);  --green-border:  rgba(52,211,153,.28);
-    --amber:    #fbbf24; --amber-dim:  rgba(251,191,36,.10);  --amber-border:  rgba(251,191,36,.28);
-    --red:      #f87171; --red-dim:    rgba(248,113,113,.10); --red-border:    rgba(248,113,113,.28);
-    --violet:   #a78bfa; --violet-dim: rgba(167,139,250,.10); --violet-border: rgba(167,139,250,.28);
-    --orange:   #fb923c; --orange-dim: rgba(251,146,60,.10);  --orange-border: rgba(251,146,60,.28);
-    --r:   12px; --r-sm: 8px;
-    --font-display: 'Syne', sans-serif;
-    --font-mono:    'DM Mono', 'Courier New', monospace;
-    --fs-xs:   0.875rem; --fs-sm: 0.9375rem; --fs-base: 1.0rem;
-    --fs-md:   1.125rem; --fs-lg: 1.3rem;   --fs-xl:   1.6rem;
-  }
-
-  /* ── Layout ── */
-  .vp-page   { min-height: 100dvh; display: flex; flex-direction: column; }
-  .vp-wrap   { max-width: 460px; margin: 0 auto; padding: 1.25rem 1rem 5rem; width: 100%; }
-  .vp-topbar { display:flex; align-items:center; justify-content:space-between;
-    padding:.75rem 1rem; background:var(--surface); border-bottom:1px solid var(--border);
-    position:sticky; top:0; z-index:10; }
-
-  /* ── Cards ── */
-  .vp-card { background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--r); padding: 1.1rem; margin-bottom: .75rem; }
-  .vp-card-header { display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: .65rem; }
-
-  /* ── Typography ── */
-  .vp-label     { font-family: var(--font-mono); font-size: var(--fs-xs); font-weight: 700;
-    letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .5rem; }
-  .vp-step-title { font-family: var(--font-display); font-size: var(--fs-lg); font-weight: 800;
-    color: var(--text); margin-bottom: .5rem; }
-  .vp-step-desc  { font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--text-muted);
-    line-height: 1.8; margin-bottom: 1rem; }
-  .vp-mono  { font-family: var(--font-mono); }
-  .vp-value { font-family: var(--font-mono); font-size: .9rem; color: var(--text); }
-
-  /* ── Botones globales ── */
-  .vp-btn { display: flex; align-items: center; justify-content: center; gap: .4rem;
-    width: 100%; padding: .85rem 1rem; border-radius: var(--r);
-    font-family: var(--font-display); font-size: 1rem; font-weight: 800;
-    cursor: pointer; border: none; transition: all .15s; min-height: 54px;
-    letter-spacing: .02em; text-decoration: none; }
-  .vp-btn:disabled { opacity: .5; cursor: not-allowed; }
-  .vp-btn-primary { background: var(--cyan);      color: #0f172a; }
-  .vp-btn-primary:not(:disabled):hover { filter: brightness(1.08); }
-  .vp-btn-success { background: var(--green);     color: #0f172a; }
-  .vp-btn-done    { background: var(--green-dim); color: var(--green);
-    border: 1px solid var(--green-border); cursor: default; }
-  .vp-btn-ghost   { background: transparent; color: var(--text-muted);
-    border: 1px solid var(--border2); }
-  .vp-btn-ghost:not(:disabled):hover { border-color: var(--cyan); color: var(--cyan); }
-  .vp-btn-outline { background: transparent; color: var(--cyan);
-    border: 2px solid var(--cyan-border); }
-  .vp-btn-outline:not(:disabled):hover { background: var(--cyan-dim); border-color: var(--cyan); }
-  .vp-btn-sm  { min-height: 40px; font-size: .78rem; padding: .45rem .85rem; font-weight: 700; width: auto; }
-
-  /* ── Inputs ── */
-  .vp-input { width: 100%; padding: .75rem .9rem; background: var(--surface2);
-    border: 1.5px solid var(--border); border-radius: 10px; color: var(--text);
-    font-family: var(--font-mono); font-size: 1rem; outline: none;
-    min-height: 48px; -webkit-appearance: none; transition: border .15s; }
-  .vp-input:focus  { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(34,211,238,.12); }
-  .vp-input.error  { border-color: var(--red); }
-  .vp-input::placeholder { color: var(--text-dim); }
-  .vp-textarea { width: 100%; padding: .7rem .9rem; background: var(--surface2);
-    border: 1.5px solid var(--border); border-radius: 10px; color: var(--text);
-    font-family: var(--font-mono); font-size: .88rem; outline: none; resize: vertical;
-    min-height: 90px; transition: border .15s; line-height: 1.6; }
-  .vp-textarea:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(34,211,238,.12); }
-  .vp-select { appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2394a3b8' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: right .85rem center; padding-right: 2.5rem; }
-
-  /* ── PIN numpad ── */
-  .vp-pin-display { display: flex; gap: .6rem; justify-content: center; margin-bottom: 1.5rem; }
-  .vp-pin-dot { width: 20px; height: 20px; border-radius: 50%;
-    border: 2px solid var(--border2); background: transparent; transition: all .15s; }
-  .vp-pin-dot.filled { background: var(--cyan); border-color: var(--cyan);
-    box-shadow: 0 0 8px rgba(34,211,238,.4); }
-  .vp-numpad { display: grid; grid-template-columns: repeat(3,1fr); gap: .5rem; }
-  .vp-numpad-key { background: var(--surface2); border: 1.5px solid var(--border);
-    border-radius: 12px; font-size: 1.7rem; font-weight: 700;
-    cursor: pointer; text-align: center; transition: all .1s; min-height: 66px;
-    display: flex; align-items: center; justify-content: center; color: var(--text);
-    font-family: var(--font-mono); }
-  .vp-numpad-key:active, .vp-numpad-key.pressed { transform: scale(.92);
-    background: var(--cyan-dim); border-color: var(--cyan-border); }
-  .vp-numpad-key.backspace { color: var(--text-muted); font-size: 1.3rem; }
-
-  /* ── Shake ── */
-  .vp-shake { animation: shake .4s ease; }
-  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-7px)}
-    40%{transform:translateX(7px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
-
-  /* ── Badges ── */
-  .vp-badge { display: inline-flex; align-items: center; gap: .25rem;
-    padding: .2rem .65rem; border-radius: 99px;
-    font-family: var(--font-mono); font-size: .65rem; font-weight: 700; }
-  .vp-badge-green  { background: var(--green-dim);  color: var(--green);  border: 1px solid var(--green-border); }
-  .vp-badge-amber  { background: var(--amber-dim);  color: var(--amber);  border: 1px solid var(--amber-border); }
-  .vp-badge-cyan   { background: var(--cyan-dim);   color: var(--cyan);   border: 1px solid var(--cyan-border); }
-  .vp-badge-red    { background: var(--red-dim);    color: var(--red);    border: 1px solid var(--red-border); }
-
-  /* ── Misc ── */
-  .vp-divider { height: 1px; background: var(--border); margin: .6rem 0; }
-  .vp-row { display: flex; align-items: center; justify-content: space-between; padding: .4rem 0; }
-  .vp-row-label { font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-muted); font-weight:600; }
-  .vp-error { background:var(--red-dim); border:1px solid var(--red-border); border-radius:8px;
-    padding:.65rem .9rem; font-family:var(--font-mono); font-size:.8rem;
-    color:var(--red); text-align:center; margin-top:.75rem; }
-  .vp-hint { font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-muted);
-    text-align:center; line-height:2; margin-top:.85rem; }
-  .vp-toast { background:var(--green-dim); border:1px solid var(--green-border);
-    border-radius:8px; padding:.55rem .9rem; margin-bottom:.75rem;
-    font-family:var(--font-mono); font-size:.78rem; color:var(--green); }
-  .vp-info { background:rgba(34,211,238,.05); border:1px solid var(--cyan-border);
-    border-radius:8px; padding:.7rem .9rem; margin-bottom:.75rem;
-    font-family:var(--font-mono); font-size:.75rem; color:var(--text-muted); line-height:1.8; }
-  .vp-companion { display:flex; align-items:center; gap:.65rem;
-    padding:.5rem 0; border-bottom:1px solid var(--border); }
-  .vp-companion:last-child { border-bottom:none; }
-  .vp-avatar { width:36px; height:36px; border-radius:50%; background:var(--surface2);
-    border:1px solid var(--border); display:flex; align-items:center; justify-content:center;
-    font-weight:800; font-size:.8rem; color:var(--cyan); flex-shrink:0; }
-  .vp-material-row { display:flex; justify-content:space-between; align-items:center;
-    padding:.3rem 0; border-bottom:1px solid var(--border); font-size:.82rem; }
-  .vp-material-row:last-child { border-bottom:none; }
-
-  /* ── Registro: stepper ── */
-  .step-bar { display:flex; gap:6px; margin-bottom:1.75rem; }
-  .step-seg { flex:1; height:4px; border-radius:99px; background:var(--border);
-    transition:background 0.35s ease; }
-  .step-seg.done   { background:var(--cyan); }
-  .step-seg.active { background:var(--cyan); opacity:.55; }
-  .step-header { display:flex; align-items:center; gap:.85rem; margin-bottom:.25rem; }
-  .step-icon  { font-size:1.8rem; line-height:1; }
-  .step-title { font-family:var(--font-display); font-size:var(--fs-lg); font-weight:800; color:var(--text); }
-  .step-sub   { font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-muted); margin-top:.2rem; }
-  .step-nav   { display:flex; gap:.75rem; margin-top:1rem; }
-  .step-nav > button { flex:1; min-height:54px; font-size:var(--fs-md) !important; }
-  .pub-input  { background:var(--surface2); border:1.5px solid var(--border-light);
-    border-radius:var(--r-sm); color:var(--text); font-family:var(--font-display);
-    font-size:var(--fs-base); padding:0.7rem 0.9rem; outline:none; width:100%;
-    min-height:48px; -webkit-appearance:none;
-    transition:border-color 0.15s, box-shadow 0.15s; }
-  .pub-input:focus { border-color:var(--cyan); box-shadow:0 0 0 3px rgba(34,211,238,0.1); }
-  .pub-input::placeholder { color:var(--text-dim); }
-  .pub-input.error { border-color:var(--red); }
-  .pub-btn-primary { display:flex; align-items:center; justify-content:center; gap:.5rem;
-    width:100%; padding:.85rem 1rem; border-radius:var(--r);
-    font-family:var(--font-display); font-size:var(--fs-md); font-weight:800;
-    cursor:pointer; border:none; transition:all .15s; min-height:54px;
-    background:var(--cyan); color:#08091a; letter-spacing:.02em; }
-  .pub-btn-primary:not(:disabled):hover { filter:brightness(1.08); }
-  .pub-btn-primary:disabled { opacity:.55; cursor:not-allowed; }
-  .pub-btn-ghost { display:flex; align-items:center; justify-content:center; gap:.5rem;
-    width:100%; padding:.85rem 1rem; border-radius:var(--r);
-    font-family:var(--font-display); font-size:var(--fs-base); font-weight:700;
-    cursor:pointer; border:1.5px solid var(--border2); transition:all .15s; min-height:54px;
-    background:transparent; color:var(--text-muted); }
-  .pub-btn-ghost:hover { border-color:var(--cyan); color:var(--cyan); }
-  .summary-row { display:flex; justify-content:space-between; align-items:center;
-    padding:.4rem 0; border-bottom:1px solid var(--border); font-size:.82rem; }
-  .summary-row:last-child { border-bottom:none; }
-  .summary-key { font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-muted); }
-  .summary-val { font-family:var(--font-mono); font-size:var(--fs-sm); font-weight:700; color:var(--text); }
-
-  /* ── Animaciones ── */
-  @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
-  @keyframes slideUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
-  @keyframes spin { to { transform: rotate(360deg); } }
-`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SUBCOMPONENTE: PIN Numpad
@@ -267,7 +78,7 @@ function PinNumpad({ value, onChange, shake, disabled }) {
 function LandingScreen({ onNuevo, onLogin, loadingConfig, config }) {
   return (
     <div className="vp-page" style={{ background:"var(--bg2)" }}>
-      <style>{CSS}</style>
+      
       <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center",
         justifyContent:"center", padding:"2rem 1.5rem",
         background:"radial-gradient(ellipse 80% 50% at 50% 0%, rgba(34,211,238,0.08) 0%, transparent 65%)" }}>
@@ -403,7 +214,7 @@ function RegistroScreen({ onVolver, onRegistroOk }) {
 
   if (loading) return (
     <div className="vp-page">
-      <style>{CSS}</style>
+      
       <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center",
         flexDirection:"column", gap:"1rem" }}>
         <div style={{ fontSize:"2rem", animation:"spin 1s linear infinite" }}>⟳</div>
@@ -416,7 +227,7 @@ function RegistroScreen({ onVolver, onRegistroOk }) {
 
   return (
     <div className="vp-page">
-      <style>{CSS}</style>
+      
       {/* Header fijo */}
       <div className="vp-topbar">
         <button className="vp-btn vp-btn-ghost vp-btn-sm"
@@ -462,7 +273,7 @@ function RegistroOkScreen({ telefono, nombre, onAcceder }) {
   const pin = telefono.replace(/\D/g,"").slice(-4) || "????";
   return (
     <div className="vp-page">
-      <style>{CSS}</style>
+      
       <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center",
         padding:"2rem 1.25rem",
         background:"radial-gradient(ellipse 60% 40% at 50% 0%, rgba(52,211,153,0.1) 0%, transparent 60%)" }}>
@@ -596,7 +407,7 @@ function LoginScreen({ onLogin, onVolver, telefonoInicial }) {
 
   return (
     <div className="vp-page">
-      <style>{CSS}</style>
+      
 
       <div className="vp-topbar">
         <button className="vp-btn vp-btn-ghost vp-btn-sm"
@@ -927,7 +738,7 @@ function PortalMain({ token, onLogout }) {
   };
 
   if (loading && !data) return (
-    <><style>{CSS}</style>
+    <>
       <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
         minHeight:"100dvh", flexDirection:"column", gap:"1rem" }}>
         <div style={{ fontSize:"2rem", animation:"spin 1s linear infinite" }}>⟳</div>
@@ -936,7 +747,7 @@ function PortalMain({ token, onLogout }) {
   );
 
   if (error && !data) return (
-    <><style>{CSS}</style>
+    <>
       <div className="vp-wrap" style={{ paddingTop:"3rem", textAlign:"center" }}>
         <div style={{ fontSize:"2rem", marginBottom:"1rem" }}>⚠️</div>
         <div className="vp-mono" style={{ fontSize:".8rem", color:"var(--red)", marginBottom:"1.5rem" }}>{error}</div>
@@ -946,7 +757,7 @@ function PortalMain({ token, onLogout }) {
 
   // SEC-06: pantalla bloqueante de cambio de PIN obligatorio (primer login)
   if (mustChangePin) return (
-    <><style>{CSS}</style>
+    <>
       <div className="vp-page" style={{ minHeight:"100dvh", display:"flex", flexDirection:"column",
         alignItems:"center", justifyContent:"center",
         background:"radial-gradient(ellipse 60% 40% at 50% 0%, rgba(251,191,36,0.08) 0%, transparent 60%)" }}>
@@ -983,7 +794,7 @@ function PortalMain({ token, onLogout }) {
 
   // Pantalla específica para voluntario con participación cancelada
   if (v.estado === "ausente") return (
-    <><style>{CSS}</style>
+    <>
       <div style={{ minHeight:"100dvh", display:"flex", flexDirection:"column",
         alignItems:"center", justifyContent:"center", padding:"2rem 1.5rem",
         background:"var(--bg2)", textAlign:"center" }}>
@@ -1017,7 +828,7 @@ function PortalMain({ token, onLogout }) {
   );
 
   if (v.estado === "cancelado") return (
-    <><style>{CSS}</style>
+    <>
       <div style={{ minHeight:"100dvh", display:"flex", flexDirection:"column",
         alignItems:"center", justifyContent:"center", padding:"2rem 1.5rem",
         background:"var(--bg2)", textAlign:"center" }}>
@@ -1070,7 +881,7 @@ function PortalMain({ token, onLogout }) {
   );
 
   return (
-    <><style>{CSS}</style>
+    <>
       <div className="vp-topbar">
         <div>
           <div style={{ fontWeight:800, fontSize:"1rem" }}>{(v.nombre||"").split(" ")[0]} 👋</div>
