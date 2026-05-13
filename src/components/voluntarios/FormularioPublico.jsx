@@ -33,7 +33,8 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, imgFront: im
   const handleSubmit = () => {
     if (!validar()) return;
     onRegistrar({
-      nombre: `${form.nombre.trim()} ${form.apellidos.trim()}`,
+      nombre:    form.nombre.trim(),
+      apellidos: form.apellidos.trim(),
       telefono: form.telefono.trim(),
       ...(opcionEmail ? { email: form.email.trim() } : {}),
       talla: form.talla,

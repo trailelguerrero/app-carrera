@@ -1564,7 +1564,8 @@ function StepperForm({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, 
   };
   const handleSubmit = () => {
     onRegistrar({
-      nombre:   `${form.nombre.trim()} ${form.apellidos.trim()}`,
+      nombre:    form.nombre.trim(),
+      apellidos: form.apellidos.trim(),
       telefono: form.telefono.trim(),
       ...(opcionEmail ? { email: form.email?.trim()||"" } : {}),
       talla:    form.talla,

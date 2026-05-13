@@ -90,12 +90,23 @@ export default function App() {
   const isLoading = isLoadingPuestos || isLoadingVols;
   const voluntarios = useMemo(() => {
     const raw = Array.isArray(rawVoluntarios) ? rawVoluntarios : [];
-    // Migrar campo legado contactoEmergencia → telefonoEmergencia
     return raw.map(v => {
-      if (v.contactoEmergencia && !v.telefonoEmergencia) {
-        return { ...v, telefonoEmergencia: v.contactoEmergencia };
+      let out = { ...v };
+      // Migrar campo legado contactoEmergencia -> telefonoEmergencia
+      if (out.contactoEmergencia && !out.telefonoEmergencia) {
+        out = { ...out, telefonoEmergencia: out.contactoEmergencia };
       }
-      return v;
+      // CORE-10: migrar nombre completo concatenado -> nombre + apellidos separados
+      // Solo actua si apellidos esta vacio/undefined y nombre contiene un espacio
+      if (!out.apellidos && out.nombre && out.nombre.trim().includes(" ")) {
+        const spaceIdx = out.nombre.trim().indexOf(" ");
+        out = {
+          ...out,
+          nombre:    out.nombre.trim().slice(0, spaceIdx),
+          apellidos: out.nombre.trim().slice(spaceIdx + 1),
+        };
+      }
+      return out;
     });
   }, [rawVoluntarios]);
   const [locs] = useData(LOCS_KEY, LOCS_DEFAULT);

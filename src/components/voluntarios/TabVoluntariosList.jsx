@@ -350,7 +350,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
                                 color: v.estado==="confirmado" ? "var(--green)" : v.estado==="cancelado" ? "var(--red)" : "var(--amber)",
                                 fontFamily:"var(--font-mono)",
                               }}>
-                                {(v.nombre||"V").split(" ").map(n=>n[0]).slice(0,2).join("").toUpperCase()}
+                                {([v.nombre, v.apellidos].filter(Boolean).map(n=>n[0]).slice(0,2).join("").toUpperCase() || "V")}
                               </div>
                             </div>
                             <div style={{ flex:1, minWidth:0 }}>

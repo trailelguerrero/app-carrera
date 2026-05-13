@@ -189,7 +189,7 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
                           background:"var(--surface2)", border:"1px solid var(--border)",
                           display:"flex", alignItems:"center", justifyContent:"center",
                           fontSize:"var(--fs-xs)", fontWeight:700, color:"var(--cyan)" }}>
-                          {(v.nombre||"V").split(" ").map(n=>n[0]).slice(0,2).join("")}
+                          {[v.nombre, v.apellidos].filter(Boolean).map(n=>n[0]).slice(0,2).join("") || "V"}
                         </div>
                         <span style={{
                           position:"absolute", bottom:0, right:0,

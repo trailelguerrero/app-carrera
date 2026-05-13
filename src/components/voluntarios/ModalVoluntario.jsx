@@ -17,13 +17,13 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose, onEliminar }) {
   const { closing: mvClosing, handleClose: mvHandleClose } = useModalClose(onClose);
   const firstInputRef = useRef(null);
   useEffect(() => { const t = setTimeout(() => firstInputRef.current?.focus(), 60); return () => clearTimeout(t); }, []);
-  // Split nombre into nombre/apellidos for display if needed
-  const partes = (voluntario && voluntario.nombre) ? voluntario.nombre.split(" ") : [];
-  const nombreInicial = partes[0] || "";
-  const apellidosInicial = partes.slice(1).join(" ") || "";
+  // CORE-10: nombre y apellidos son campos separados en el modelo
+  // El split era un parche para voluntarios registrados antes de CORE-10
+  // — la migración en Voluntarios.jsx lo resuelve en datos existentes
 
   const [form, setForm] = useState({
-    nombre: voluntario ? voluntario.nombre : "",
+    nombre:    voluntario?.nombre    || "",
+    apellidos: voluntario?.apellidos || "",
     telefono: voluntario?.telefono || "",
     email: voluntario?.email || "",
     talla: voluntario?.talla || "M",

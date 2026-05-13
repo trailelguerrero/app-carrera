@@ -109,7 +109,7 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
                       display:"flex", alignItems:"center", justifyContent:"center",
                       fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
                       color:"var(--cyan)" }}>
-                      {((v.nombre||"V").trim().split(" ").map(n=>n[0]).slice(0,2).join("")).toUpperCase()}
+                      {([v.nombre, v.apellidos].filter(Boolean).map(n=>n[0]).slice(0,2).join("")).toUpperCase() || "V"}
                     </div>
                     <div>
                       <div className="fw-600">{v.nombre}</div>
