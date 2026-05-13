@@ -18,6 +18,7 @@ import {
   SK_AUTH_SESSION_VER,
   SK_AUTH_FAIL_COUNT,
   SK_AUTH_LOCKOUT_UNTIL,
+  SK_AUTH_PIN_LENGTH,
 } from "../../constants/storageKeys";
 
 /** @deprecated Usar SK_AUTH_PIN_HASH de storageKeys */
@@ -79,6 +80,23 @@ export function verifyPin(pin) {
 /** Guarda un nuevo hash de PIN */
 export function savePin(pin) {
   localStorage.setItem(PIN_KEY, hashPin(pin));
+}
+
+/**
+ * Devuelve la longitud configurada del PIN: 4 (defecto) o 6.
+ * Si SK_AUTH_PIN_LENGTH no existe o tiene un valor inesperado, devuelve 4
+ * para garantizar compatibilidad con PINs existentes.
+ */
+export function getPinLength() {
+  try {
+    const stored = Number(localStorage.getItem(SK_AUTH_PIN_LENGTH));
+    return stored === 6 ? 6 : 4;
+  } catch { return 4; }
+}
+
+/** Persiste la longitud del PIN elegida (4 o 6). */
+export function savePinLength(length) {
+  localStorage.setItem(SK_AUTH_PIN_LENGTH, String(length === 6 ? 6 : 4));
 }
 
 // ── Lockout (SEC-01) ─────────────────────────────────────────────────────────

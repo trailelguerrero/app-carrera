@@ -12,25 +12,42 @@ import {
   getLockoutStatus,
   recordFailedAttempt,
   clearFailedAttempts,
+  getPinLength,
   MAX_FAILS,
 } from "./pinAuth.js";
+
+// MAX_DOTS reserva espacio visual siempre para 6 puntos — evita layout shift al cambiar entre 4 y 6.
+const MAX_DOTS = 6;
 
 function PinDots({ count, filled }) {
   return (
     <div
-      style={{ display: "flex", justifyContent: "center", gap: "0.9rem" }}
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        width: `${MAX_DOTS * 13 + (MAX_DOTS - 1) * 14.4}px`,
+        margin: "0 auto",
+        gap: "0.9rem",
+      }}
       role="status"
       aria-label={`PIN: ${filled} de ${count} dígitos introducidos`}
     >
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} style={{
-          width: 13, height: 13, borderRadius: "50%",
-          background: i < filled ? "var(--cyan)" : "transparent",
-          border: `2px solid ${i < filled ? "var(--cyan)" : "var(--border)"}`,
-          transition: "all 0.15s",
-          boxShadow: i < filled ? "0 0 8px var(--cyan-dim)" : "none",
-        }} />
-      ))}
+      {Array.from({ length: MAX_DOTS }).map((_, i) => {
+        const active   = i < count;
+        const isFilled = i < filled;
+        return (
+          <div key={i} style={{
+            width: 13, height: 13, borderRadius: "50%",
+            background: isFilled ? "var(--cyan)" : "transparent",
+            border: `2px solid ${isFilled ? "var(--cyan)" : active ? "var(--border)" : "transparent"}`,
+            opacity: active ? 1 : 0,
+            transform: active ? "scale(1)" : "scale(0.4)",
+            transition: "all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
+            boxShadow: isFilled ? "0 0 8px var(--cyan-dim)" : "none",
+            flexShrink: 0,
+          }} />
+        );
+      })}
     </div>
   );
 }
@@ -93,6 +110,9 @@ export default function PinScreen({ onUnlock }) {
   const [shake, setShake]         = useState(false);
   const [hint, setHint]           = useState("");
   const [lockout, setLockout]     = useState(() => getLockoutStatus());
+  // Leer longitud configurada — se re-lee en cada mount para reflejar cambios
+  // hechos desde ChangePinModal sin necesidad de prop drilling.
+  const [pinLength]               = useState(() => getPinLength());
   const countdown                 = useLockoutCountdown(lockout.locked ? lockout.secondsLeft : 0);
 
   // Cuando la cuenta regresiva llega a 0, refrescar el estado de lockout
@@ -141,11 +161,11 @@ export default function PinScreen({ onUnlock }) {
   const handleDigit = useCallback((d) => {
     if (lockout.locked) return;
     setDigits(prev => {
-      const next = (prev + d).slice(0, 6);
-      if (next.length >= 4) setTimeout(() => tryPin(next), 80);
+      const next = (prev + d).slice(0, pinLength);
+      if (next.length >= pinLength) setTimeout(() => tryPin(next), 80);
       return next;
     });
-  }, [tryPin, lockout.locked]);
+  }, [tryPin, lockout.locked, pinLength]);
 
   const handleBackspace = useCallback(() => {
     if (!lockout.locked) setDigits(p => p.slice(0, -1));
@@ -214,7 +234,7 @@ export default function PinScreen({ onUnlock }) {
         ) : (
           <>
             <div style={{ marginBottom: "0.75rem", animation: shake ? "teg-shake 0.5s ease" : "none" }}>
-              <PinDots count={4} filled={digits.length} />
+              <PinDots count={pinLength} filled={digits.length} />
             </div>
             <div style={{ height: "1.2rem", fontFamily: "var(--font-mono)",
               fontSize: "var(--fs-xs)", color: "var(--red)", marginBottom: "1.5rem" }}>{hint}</div>

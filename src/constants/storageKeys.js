@@ -19,6 +19,8 @@ export const SK_AUTH_FAIL_COUNT  = "teg_panel_fail_count";
 export const SK_AUTH_LOCKOUT_UNTIL = "teg_panel_lockout_until";
 /** Estado serializado del lockout de autenticación (Fase 0.3) */
 export const SK_AUTH_LOCKOUT     = "teg_auth_lockout_v1";
+/** Longitud del PIN: 4 (defecto) o 6 dígitos (SEC-01) */
+export const SK_AUTH_PIN_LENGTH  = "teg_panel_pin_length";
 
 // ── UI / Estado global ────────────────────────────────────────────────────────
 export const SK_UI_ONBOARDING_DONE    = "teg_onboarding_done";
@@ -137,6 +139,7 @@ export const SK = {
   AUTH_FAIL_COUNT:    SK_AUTH_FAIL_COUNT,
   AUTH_LOCKOUT_UNTIL: SK_AUTH_LOCKOUT_UNTIL,
   AUTH_LOCKOUT:       SK_AUTH_LOCKOUT,
+  AUTH_PIN_LENGTH:    SK_AUTH_PIN_LENGTH,
 
   // UI
   UI_ONBOARDING_DONE:   SK_UI_ONBOARDING_DONE,
