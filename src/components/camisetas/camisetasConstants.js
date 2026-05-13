@@ -1,0 +1,115 @@
+/**
+ * camisetasConstants.js — Fase 3, Tarea 3.4
+ * Constantes y helpers compartidos entre los sub-componentes de Camisetas.
+ */
+import { SK_CAM_ROOT } from "@/constants/storageKeys";
+
+export const LS = SK_CAM_ROOT;
+
+export const TALLAS      = ["XXS","XS","S","M","L","XL","XXL","3XL","4XL"];
+export const TALLAS_NINO = ["4-6","6-8","8-10","10-12"];
+export const TIPOS       = ["corredor","voluntario","nino"];
+
+export const TC = {
+  corredor:   { label:"Corredor",   icon:"🏃",  color:"var(--cyan)",   dim:"var(--cyan-dim)"   },
+  voluntario: { label:"Voluntario", icon:"👥",  color:"var(--violet)", dim:"var(--violet-dim)" },
+  nino:       { label:"Niño/a",     icon:"👶",  color:"var(--green)",  dim:"var(--green-dim)"  },
+};
+
+export const EP = {
+  pendiente: { label:"Pendiente", color:"var(--amber)", bg:"var(--amber-dim)",  icon:"⏳" },
+  pagado:    { label:"Pagado",    color:"var(--green)", bg:"var(--green-dim)",  icon:"✅" },
+  regalo:    { label:"Regalo",    color:"var(--violet)",bg:"var(--violet-dim)", icon:"🎁" },
+};
+export const EE = {
+  pendiente: { label:"Pendiente", color:"var(--amber)", bg:"var(--amber-dim)", icon:"📦" },
+  entregado: { label:"Entregado", color:"var(--green)", bg:"var(--green-dim)", icon:"✔️" },
+};
+
+export const ESTADOS_PAGO    = ["pendiente","pagado","regalo"];
+export const ESTADOS_ENTREGA = ["pendiente","entregado"];
+
+export const estadoCombinado = (lineas=[]) => {
+  if (!lineas.length) return { emoji:"🟡", label:"Sin líneas",      color:"var(--amber)", bg:"var(--amber-dim)" };
+  const allPagado    = lineas.every(l => l.estadoPago    === "pagado"    || l.estadoPago    === "regalo");
+  const allEntregado = lineas.every(l => l.estadoEntrega === "entregado");
+  const anyPagado    = lineas.some(l  => l.estadoPago    === "pagado"    || l.estadoPago    === "regalo");
+  if (allPagado && allEntregado) return { emoji:"🟢", label:"Completado",        color:"var(--green)",  bg:"var(--green-dim)"  };
+  if (allPagado)                  return { emoji:"🔵", label:"Pagado · pendiente", color:"var(--cyan)",   bg:"var(--cyan-dim)"   };
+  if (!anyPagado)                 return { emoji:"🟡", label:"Pendiente pago",    color:"var(--amber)",  bg:"var(--amber-dim)"  };
+  return                                 { emoji:"🟠", label:"Pago parcial",       color:"#fb923c",       bg:"rgba(251,146,60,.1)" };
+};
+
+export const PEDIDOS_DEFAULT = [];
+export const COSTE_DEFAULT   = { corredor:8, voluntario:7, nino:6 };
+
+export const calcPedido = (p, coste) => {
+  const totalVenta    = p.lineas.reduce((s,l) => s + (l.estadoPago==="regalo" ? 0 : l.cantidad*(l.precioVenta||0)), 0);
+  const totalCoste    = p.lineas.reduce((s,l) => s + l.cantidad*(coste[l.tipo]||0), 0);
+  const totalUnid     = p.lineas.reduce((s,l) => s + l.cantidad, 0);
+  const benRealizado  = p.lineas.filter(l=>l.estadoPago==="pagado")
+    .reduce((s,l) => s + l.cantidad*((l.precioVenta||0)-(coste[l.tipo]||0)), 0);
+  const benPotencial  = p.lineas.filter(l=>(l.estadoPago||"pendiente")==="pendiente")
+    .reduce((s,l) => s + l.cantidad*((l.precioVenta||0)-(coste[l.tipo]||0)), 0);
+  const costeRegalos  = p.lineas.filter(l=>l.estadoPago==="regalo")
+    .reduce((s,l) => s + l.cantidad*(coste[l.tipo]||0), 0);
+  const beneficio     = benRealizado + benPotencial - costeRegalos;
+  return { totalVenta, totalCoste, totalUnid, beneficio, benRealizado, benPotencial, costeRegalos };
+};
+
+export const badgePago = (p) => {
+  const pagos = [...new Set(p.lineas.map(l => l.estadoPago||"pendiente"))];
+  if (pagos.length===1) return EP[pagos[0]];
+  if (pagos.includes("pendiente")) return { ...EP.pendiente, label:"Mixto" };
+  return { ...EP.pagado, label:"Mixto" };
+};
+export const badgeEnt = (p) =>
+  p.lineas.some(l => (l.estadoEntrega||"pendiente")==="pendiente") ? EE.pendiente : EE.entregado;
+
+export const CORREDORES_DEFAULT = Object.fromEntries(TALLAS.map(t => [t, 0]));
+export const NINO_DEFAULT       = Object.fromEntries(TALLAS_NINO.map(t => [t, 0]));
+
+export const FUENTES_DEFAULT = {
+  corredoresPlat: true,
+  extrasCorredor: true,
+  voluntariosAuto: true,
+  extrasVoluntario: true,
+  ninoManual: true,
+  extrasNino: true,
+};
+
+/** Exporta consolidación de tallas como CSV para el proveedor */
+export function exportarPedidoProveedor(grandTallasCor, grandTallasVol, ninoExt, margenPct = 5) {
+  const filas = [["Tipo","Talla","Unidades_Base","Margen_%","Total_A_Pedir","Coste_Unitario","Total_Coste"]];
+  const agregar = (tipo, tallas, mapa) => {
+    tallas.forEach(t => {
+      const base = mapa[t] || 0;
+      if (base <= 0) return;
+      const total = Math.ceil(base * (1 + margenPct / 100));
+      filas.push([tipo, t, base, margenPct + "%", total, "", ""]);
+    });
+  };
+  agregar("corredor",   TALLAS,      grandTallasCor);
+  agregar("voluntario", TALLAS,      grandTallasVol);
+  agregar("nino",       TALLAS_NINO, ninoExt);
+  const csv = "﻿" + filas.map(r => r.join(";")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement("a"), {
+    href: url,
+    download: `pedido-proveedor-teg-${new Date().toISOString().slice(0,10)}.csv`,
+  });
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/** CSS local de Camisetas — inyectado una sola vez con <style> en el orquestador */
+export const CAM_CSS = `
+  .ph{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap}
+  .pt{font-size:1.5rem;font-weight:900;letter-spacing:-0.02em}.pd{font-family:var(--font-mono);font-size:.62rem;color:var(--text-muted);margin-top:.25rem}
+  .fr{display:flex;align-items:center;flex-wrap:wrap}.g1{gap:.5rem}.mt1{margin-top:.5rem}
+  .fl{font-size:.72rem;font-weight:600;margin-bottom:.3rem;display:block;color:var(--text-muted)}
+  .cam-row{display:flex;align-items:center;justify-content:space-between;gap:.75rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:.75rem 1rem;cursor:pointer;transition:all .15s;margin-bottom:.4rem}
+  .cam-row:hover{border-color:var(--border-light);box-shadow:0 2px 8px rgba(0,0,0,.2)}
+  @media(max-width:640px){.ph{flex-direction:column;gap:.75rem}}
+`;
