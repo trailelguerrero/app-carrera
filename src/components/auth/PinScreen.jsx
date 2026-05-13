@@ -25,10 +25,10 @@ function PinDots({ count, filled }) {
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} style={{
           width: 13, height: 13, borderRadius: "50%",
-          background: i < filled ? "var(--teg-cyan)" : "transparent",
-          border: `2px solid ${i < filled ? "var(--teg-cyan)" : "var(--teg-border)"}`,
+          background: i < filled ? "var(--cyan)" : "transparent",
+          border: `2px solid ${i < filled ? "var(--cyan)" : "var(--border)"}`,
           transition: "all 0.15s",
-          boxShadow: i < filled ? "0 0 8px var(--teg-cyan-subtle)" : "none",
+          boxShadow: i < filled ? "0 0 8px var(--cyan-dim)" : "none",
         }} />
       ))}
     </div>
@@ -49,19 +49,19 @@ function Numpad({ onDigit, onBackspace, disabled }) {
           aria-label={k === "⌫" ? "Borrar" : k === "" ? undefined : `Número ${k}`}
           style={{
             padding: "0.9rem 0", borderRadius: 10,
-            border: `1px solid ${k === "" ? "transparent" : "var(--teg-border)"}`,
+            border: `1px solid ${k === "" ? "transparent" : "var(--border)"}`,
             fontFamily: "var(--font-mono)",
             fontSize: k === "⌫" ? "1rem" : "1.2rem",
             fontWeight: 700, cursor: (disabled || k === "") ? "default" : "pointer",
-            background: k === "" ? "transparent" : disabled ? "var(--teg-surface)" : "var(--teg-surface)",
-            color: k === "" ? "transparent" : disabled ? "var(--teg-text-muted)" : "var(--teg-text-primary)",
+            background: k === "" ? "transparent" : disabled ? "var(--surface)" : "var(--surface)",
+            color: k === "" ? "transparent" : disabled ? "var(--text-dim)" : "var(--text)",
             opacity: disabled ? 0.45 : 1,
             transition: "all 0.15s",
             WebkitTapHighlightColor: "transparent",
             minHeight: 52,
           }}
-          onMouseEnter={e => { if (!disabled && k && k !== "") { e.currentTarget.style.background = "var(--teg-cyan-subtle)"; e.currentTarget.style.borderColor = "var(--teg-cyan-border)"; }}}
-          onMouseLeave={e => { if (!disabled && k && k !== "") { e.currentTarget.style.background = "var(--teg-surface)"; e.currentTarget.style.borderColor = "var(--teg-border)"; }}}
+          onMouseEnter={e => { if (!disabled && k && k !== "") { e.currentTarget.style.background = "var(--cyan-dim)"; e.currentTarget.style.borderColor = "var(--cyan-border)"; }}}
+          onMouseLeave={e => { if (!disabled && k && k !== "") { e.currentTarget.style.background = "var(--surface)"; e.currentTarget.style.borderColor = "var(--border)"; }}}
         >{k}</button>
       ))}
     </div>
@@ -167,18 +167,18 @@ export default function PinScreen({ onUnlock }) {
 
   return (
     <div style={{
-      minHeight: "100dvh", background: "var(--teg-bg)",
+      minHeight: "100dvh", background: "var(--bg)",
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       padding: "2rem", fontFamily: "'Syne', sans-serif",
-      backgroundImage: "radial-gradient(ellipse 60% 40% at 50% 0%, var(--teg-cyan-subtle) 0%, transparent 60%)",
+      backgroundImage: "radial-gradient(ellipse 60% 40% at 50% 0%, var(--cyan-dim) 0%, transparent 60%)",
     }}>
       <div style={{ width: "100%", maxWidth: 300, textAlign: "center", animation: "teg-fadein 0.45s ease-out" }}>
         <div style={{ fontSize: "var(--fs-xl)", marginBottom: "0.4rem" }}>🏔️</div>
-        <div style={{ fontWeight: 800, fontSize: "var(--fs-lg)", color: "var(--teg-text-primary)", marginBottom: "0.2rem" }}>
+        <div style={{ fontWeight: 800, fontSize: "var(--fs-lg)", color: "var(--text)", marginBottom: "0.2rem" }}>
           Trail El Guerrero
         </div>
         <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
-          color: "var(--teg-text-muted)", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "2.5rem" }}>
+          color: "var(--text-dim)", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "2.5rem" }}>
           Panel de gestión · 2026
         </div>
 
@@ -206,7 +206,7 @@ export default function PinScreen({ onUnlock }) {
             </div>
             <div style={{
               fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
-              color: "var(--teg-text-muted)", lineHeight: 1.5,
+              color: "var(--text-dim)", lineHeight: 1.5,
             }}>
               Demasiados intentos fallidos.<br />Espera o contacta con el organizador.
             </div>
@@ -224,7 +224,7 @@ export default function PinScreen({ onUnlock }) {
         <Numpad onDigit={handleDigit} onBackspace={handleBackspace} disabled={isLocked} />
 
         <div style={{ marginTop: "2rem", fontFamily: "var(--font-mono)",
-          fontSize: "0.54rem", color: "var(--teg-text-muted)", lineHeight: 1.7 }}>
+          fontSize: "0.54rem", color: "var(--text-dim)", lineHeight: 1.7 }}>
           Contacta con el organizador si no tienes el PIN<br />
           Cámbialo desde el icono 🔐 en el panel
         </div>

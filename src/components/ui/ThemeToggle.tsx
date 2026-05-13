@@ -30,22 +30,22 @@ export function ThemeToggle({ size = 32 }: ThemeToggleProps) {
         alignItems: "center",
         justifyContent: "center",
         background: "transparent",
-        border: "1px solid var(--teg-border)",
+        border: "1px solid var(--border)",
         borderRadius: 8,
         cursor: "pointer",
-        color: "var(--teg-text-secondary)",
+        color: "var(--text-muted)",
         transition: "all 0.2s ease",
         flexShrink: 0,
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = "var(--teg-cyan-subtle)";
-        e.currentTarget.style.borderColor = "var(--teg-cyan-border)";
-        e.currentTarget.style.color = "var(--teg-cyan)";
+        e.currentTarget.style.background = "var(--cyan-dim)";
+        e.currentTarget.style.borderColor = "var(--cyan-border)";
+        e.currentTarget.style.color = "var(--cyan)";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.background = "transparent";
-        e.currentTarget.style.borderColor = "var(--teg-border)";
-        e.currentTarget.style.color = "var(--teg-text-secondary)";
+        e.currentTarget.style.borderColor = "var(--border)";
+        e.currentTarget.style.color = "var(--text-muted)";
       }}
     >
       {isDark ? (

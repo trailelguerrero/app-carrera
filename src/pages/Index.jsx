@@ -178,7 +178,7 @@ function ScrollToTop() {
         right: 16,
         width: 34, height: 34,
         borderRadius: "50%",
-        background: "var(--teg-surface-header, rgba(13,17,33,0.85))",
+        background: "var(--teg-surface-header)",
         border: "1px solid rgba(34,211,238,0.25)",
         color: "var(--cyan)",
         cursor: "pointer",
@@ -334,7 +334,7 @@ export default function Index() {
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
           background: "rgba(251,191,36,0.97)",
-          color: "var(--teg-text-primary)",
+          color: "var(--text)",
           textAlign: "center",
           padding: "0.45rem 1rem",
           fontFamily: "var(--font-mono)",
@@ -353,13 +353,13 @@ export default function Index() {
       )}
 
       <div style={{
-        minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--teg-bg)",
+        minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)",
         backgroundImage: "radial-gradient(ellipse 90% 45% at 15% -5%, rgba(34,211,238,0.065) 0%, transparent 50%), radial-gradient(ellipse 60% 30% at 85% 105%, rgba(167,139,250,0.045) 0%, transparent 48%), radial-gradient(ellipse 30% 20% at 50% 50%, rgba(34,211,238,0.02) 0%, transparent 55%)"
       }}>
 
         {/* TOP BAR — Kinetik Ops style */}
         <header style={{
-          background: "var(--teg-surface-header, rgba(13,17,33,0.88))", backdropFilter: "blur(20px) saturate(180%)",
+          background: "var(--teg-surface-header)", backdropFilter: "blur(20px) saturate(180%)",
           WebkitBackdropFilter: "blur(20px) saturate(180%)",
           borderBottom: "1px solid rgba(34,211,238,0.08)",
           padding: "0 0.75rem", display: "flex", alignItems: "center",
@@ -444,15 +444,15 @@ export default function Index() {
               aria-label="Configuración"
               style={{
                 background: activeBlock === "configuracion" ? "rgba(167,139,250,0.12)" : "transparent",
-                border: `1px solid ${activeBlock === "configuracion" ? "rgba(167,139,250,0.4)" : "var(--teg-border)"}`,
-                color: activeBlock === "configuracion" ? "var(--violet)" : "var(--teg-text-muted)",
+                border: `1px solid ${activeBlock === "configuracion" ? "rgba(167,139,250,0.4)" : "var(--border)"}`,
+                color: activeBlock === "configuracion" ? "var(--violet)" : "var(--text-dim)",
                 cursor: "pointer", width: 30, height: 30, borderRadius: 8,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: "var(--fs-base)", transition: "all 0.15s",
                 boxShadow: activeBlock === "configuracion" ? "0 0 10px rgba(167,139,250,0.15)" : "none",
               }}
               onMouseEnter={e => { if (activeBlock !== "configuracion") { e.currentTarget.style.borderColor = "rgba(167,139,250,0.35)"; e.currentTarget.style.color = "var(--violet)"; } }}
-              onMouseLeave={e => { if (activeBlock !== "configuracion") { e.currentTarget.style.borderColor = "var(--teg-border)"; e.currentTarget.style.color = "var(--teg-text-muted)"; } }}
+              onMouseLeave={e => { if (activeBlock !== "configuracion") { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-dim)"; } }}
             >⚙️</button>
           </div>
         </header>
@@ -482,13 +482,13 @@ export default function Index() {
                 }}>
                   <div style={{
                     width: 36, height: 36, borderRadius: "50%",
-                    border: "3px solid var(--teg-border)",
-                    borderTopColor: "var(--teg-cyan)",
+                    border: "3px solid var(--border)",
+                    borderTopColor: "var(--cyan)",
                     animation: "teg-spin 0.7s linear infinite",
                   }} />
                   <div style={{
                     fontFamily: "'DM Mono', 'Space Mono', monospace,monospace", fontSize: "var(--fs-xs)",
-                    color: "var(--teg-text-muted)", letterSpacing: "0.1em",
+                    color: "var(--text-dim)", letterSpacing: "0.1em",
                   }}>Cargando módulo…</div>
                   <style>{`@keyframes teg-spin { to { transform: rotate(360deg); } }`}</style>
                 </div>
@@ -511,7 +511,7 @@ export default function Index() {
           aria-label="Navegación principal"
           style={{
             position: "fixed", bottom: 0, left: 0, right: 0,
-            background: "var(--teg-surface-header, rgba(13,17,33,0.88))", backdropFilter: "blur(20px) saturate(180%)",
+            background: "var(--teg-surface-header)", backdropFilter: "blur(20px) saturate(180%)",
             WebkitBackdropFilter: "blur(20px) saturate(180%)",
             borderTop: "1px solid rgba(34,211,238,0.07)",
             display: "flex", justifyContent: "space-around", alignItems: "center",
@@ -591,7 +591,7 @@ export default function Index() {
                   fontFamily: "'DM Mono', 'Space Mono', monospace,monospace",
                   fontSize: "0.48rem",
                   fontWeight: isActive ? 800 : 600, letterSpacing: "0.07em", textTransform: "uppercase",
-                  color: isActive ? "var(--cyan)" : "var(--teg-text-muted)",
+                  color: isActive ? "var(--cyan)" : "var(--text-dim)",
                   textShadow: isActive ? "0 0 10px rgba(34,211,238,0.45)" : "none",
                   transition: "color 0.2s, text-shadow 0.2s",
                   pointerEvents: "none", whiteSpace: "nowrap",
@@ -670,7 +670,7 @@ export default function Index() {
               <span style={{
                 fontFamily: "'DM Mono', 'Space Mono', monospace,monospace",
                 fontSize: "0.52rem", fontWeight: 700,
-                color: (showMoreNav || moreIsActive) ? "var(--teg-cyan)" : "var(--teg-text-muted)",
+                color: (showMoreNav || moreIsActive) ? "var(--cyan)" : "var(--text-dim)",
                 transition: "color 0.2s",
                 pointerEvents: "none", whiteSpace: "nowrap",
                 position: "relative", zIndex: 1,
@@ -695,8 +695,8 @@ export default function Index() {
             {/* Drawer en sí */}
             <div style={{
               position: "fixed", bottom: NAV_H, left: 0, right: 0, zIndex: 49,
-              background: "var(--teg-surface)",
-              borderTop: "1px solid var(--teg-border)",
+              background: "var(--surface)",
+              borderTop: "1px solid var(--border)",
               borderRadius: "16px 16px 0 0",
               padding: "0.75rem 1rem",
               paddingBottom: "0.5rem",
@@ -704,9 +704,9 @@ export default function Index() {
               animation: "slideUp 0.22s cubic-bezier(0.34,1.56,0.64,1)",
             }}>
               {/* Handle visual */}
-              <div style={{ width: 36, height: 4, background: "var(--teg-border)", borderRadius: 2, margin: "0 auto 0.75rem" }} />
+              <div style={{ width: 36, height: 4, background: "var(--border)", borderRadius: 2, margin: "0 auto 0.75rem" }} />
               <div style={{
-                fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--teg-text-muted)",
+                fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)",
                 textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.5rem", paddingLeft: "0.25rem"
               }}>
                 Más secciones
@@ -721,8 +721,8 @@ export default function Index() {
                       aria-label={b.label}
                       aria-current={isActive ? "page" : undefined}
                       style={{
-                        flex: 1, background: isActive ? "rgba(34,211,238,0.08)" : "var(--teg-surface2)",
-                        border: isActive ? "1px solid rgba(34,211,238,0.25)" : "1px solid var(--teg-border)",
+                        flex: 1, background: isActive ? "rgba(34,211,238,0.08)" : "var(--surface2)",
+                        border: isActive ? "1px solid rgba(34,211,238,0.25)" : "1px solid var(--border)",
                         borderRadius: 12, padding: "0.75rem 0.5rem",
                         cursor: "pointer", display: "flex", flexDirection: "column",
                         alignItems: "center", gap: "0.3rem",
@@ -749,7 +749,7 @@ export default function Index() {
                       <span style={{
                         fontFamily: "'DM Mono','Space Mono',monospace",
                         fontSize: "var(--fs-xs)", fontWeight: 700,
-                        color: isActive ? "var(--teg-cyan)" : "var(--teg-text-muted)",
+                        color: isActive ? "var(--cyan)" : "var(--text-dim)",
                         whiteSpace: "nowrap",
                       }}>{b.label}</span>
                     </button>

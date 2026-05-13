@@ -12,8 +12,8 @@ function PinDots({ count, filled }) {
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} style={{
           width: 13, height: 13, borderRadius: "50%",
-          background: i < filled ? "var(--teg-cyan)" : "transparent",
-          border: `2px solid ${i < filled ? "var(--teg-cyan)" : "var(--teg-border)"}`,
+          background: i < filled ? "var(--cyan)" : "transparent",
+          border: `2px solid ${i < filled ? "var(--cyan)" : "var(--border)"}`,
           transition: "all 0.15s",
         }} />
       ))}
@@ -30,11 +30,11 @@ function Numpad({ onDigit, onBackspace }) {
           disabled={k === ""}
           style={{
             padding: "0.9rem 0", borderRadius: 10,
-            border: `1px solid ${k === "" ? "transparent" : "var(--teg-border)"}`,
+            border: `1px solid ${k === "" ? "transparent" : "var(--border)"}`,
             fontFamily: "var(--font-mono)", fontSize: k === "⌫" ? "1rem" : "1.2rem",
             fontWeight: 700, cursor: k === "" ? "default" : "pointer",
-            background: k === "" ? "transparent" : "var(--teg-surface)",
-            color: k === "" ? "transparent" : "var(--teg-text-primary)",
+            background: k === "" ? "transparent" : "var(--surface)",
+            color: k === "" ? "transparent" : "var(--text)",
             transition: "all 0.15s", WebkitTapHighlightColor: "transparent", minHeight: 52,
           }}
         >{k}</button>
@@ -112,7 +112,7 @@ export default function ChangePinModal({ onClose }) {
       animation: "teg-fadein-scale 0.18s ease",
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: "var(--teg-surface)", border: "1px solid var(--teg-border)", borderRadius: 18,
+        background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18,
         padding: "2rem 1.75rem", width: "100%", maxWidth: 290, textAlign: "center",
         animation: "teg-fadein 0.2s ease",
       }}>
@@ -123,10 +123,10 @@ export default function ChangePinModal({ onClose }) {
           </div>
         ) : (
           <>
-            <div style={{ fontWeight: 800, fontSize: "var(--fs-md)", color: "var(--teg-text-primary)", marginBottom: "0.3rem" }}>
+            <div style={{ fontWeight: 800, fontSize: "var(--fs-md)", color: "var(--text)", marginBottom: "0.3rem" }}>
               🔐 Cambiar PIN
             </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--teg-text-muted)", marginBottom: "1.5rem" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)", marginBottom: "1.5rem" }}>
               {STEP_LABEL[step]}
             </div>
             <div style={{ marginBottom: "0.5rem" }}>
@@ -136,7 +136,7 @@ export default function ChangePinModal({ onClose }) {
               fontSize: "var(--fs-xs)", color: "var(--red)", marginBottom: "1rem" }}>{error}</div>
             <Numpad onDigit={handleDigit} onBackspace={handleBackspace} />
             <button onClick={onClose} style={{ marginTop: "1.25rem", background: "none",
-              border: "none", color: "var(--teg-text-muted)", cursor: "pointer",
+              border: "none", color: "var(--text-dim)", cursor: "pointer",
               fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)" }}>Cancelar</button>
           </>
         )}

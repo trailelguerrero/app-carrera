@@ -133,7 +133,7 @@ export default function ConflictModal() {
           transform: "translate(-50%, -50%)",
           zIndex: 9001,
           width: "min(92vw, 400px)",
-          background: "var(--teg-surface)",
+          background: "var(--surface)",
           border: "1px solid rgba(251,191,36,0.35)",
           borderRadius: 16,
           padding: "1.5rem 1.5rem 1.25rem",
@@ -160,7 +160,7 @@ export default function ConflictModal() {
             <div style={{
               fontFamily: "var(--font-mono)",
               fontSize: "var(--fs-xs)",
-              color: "var(--teg-text-muted)",
+              color: "var(--text-dim)",
               textTransform: "uppercase",
               letterSpacing: "0.08em",
             }}>
@@ -175,7 +175,7 @@ export default function ConflictModal() {
           style={{
             fontFamily: "'Inter', sans-serif",
             fontSize: "var(--fs-sm)",
-            color: "var(--teg-text-primary)",
+            color: "var(--text)",
             lineHeight: 1.6,
             margin: "0 0 1.25rem",
           }}
@@ -196,7 +196,7 @@ export default function ConflictModal() {
               borderRadius: 10,
               background: "rgba(34,211,238,0.08)",
               border: "1px solid rgba(34,211,238,0.3)",
-              color: "var(--teg-cyan, #22d3ee)",
+              color: "var(--cyan)",
               fontFamily: "var(--font-mono)",
               fontSize: "var(--fs-sm)",
               fontWeight: 700,
@@ -240,7 +240,7 @@ export default function ConflictModal() {
           marginTop: "0.9rem",
           fontFamily: "var(--font-mono)",
           fontSize: "var(--fs-xs)",
-          color: "var(--teg-text-muted)",
+          color: "var(--text-dim)",
           lineHeight: 1.5,
           textAlign: "center",
         }}>

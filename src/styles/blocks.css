@@ -37,6 +37,22 @@
     --fs-md:  1.00rem;  /* títulos de sección secundaria, botones (antes 0.95) */
     --fs-lg:  1.25rem;  /* títulos de módulo, KPI labels                   */
     --fs-xl:  2.20rem;  /* KPI values grandes, métricas destacadas         */
+    /* ── Aliases --teg-* → tokens canónicos (Tarea 2.2) ──────────────────
+     * Permiten migrar Index.jsx, PinScreen, ChangePinModal, ConflictModal
+     * y ThemeToggle de --teg-* a los tokens sin prefijo de forma incremental.
+     * Estos aliases se eliminan en Fase 3 una vez todos los usos migrados. */
+    --teg-bg:             var(--bg);
+    --teg-surface:        var(--surface);
+    --teg-surface-2:      var(--surface2);
+    --teg-surface-header: rgba(13,17,33,0.88);
+    --teg-border:         var(--border);
+    --teg-text-primary:   var(--text);
+    --teg-text-secondary: var(--text-muted);
+    --teg-text-muted:     var(--text-dim);
+    --teg-cyan:           var(--cyan);
+    --teg-cyan-subtle:    var(--cyan-dim);
+    --teg-cyan-border:    var(--cyan-border);
+    --teg-accent:         var(--violet);
   }
 
 
@@ -61,6 +77,19 @@
     --orange:       #ea580c;  --orange-dim: rgba(234,88,12,0.10);   --orange-border: rgba(234,88,12,0.28);
     --primary:      #4f46e5;  --primary-dim:rgba(79,70,229,0.12);   --primary-border:rgba(79,70,229,0.28);
     --card-accent-width: 3px;
+    /* Aliases --teg-* en modo claro */
+    --teg-bg:             var(--bg);
+    --teg-surface:        var(--surface);
+    --teg-surface-2:      var(--surface2);
+    --teg-surface-header: rgba(240,244,248,0.90);
+    --teg-border:         var(--border);
+    --teg-text-primary:   var(--text);
+    --teg-text-secondary: var(--text-muted);
+    --teg-text-muted:     var(--text-dim);
+    --teg-cyan:           var(--cyan);
+    --teg-cyan-subtle:    var(--cyan-dim);
+    --teg-cyan-border:    var(--cyan-border);
+    --teg-accent:         var(--violet);
   }
 
   /* ── Scrollbar Kinetik Ops — global 4px ───────────────────────────────── */
