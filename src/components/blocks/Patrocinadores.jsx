@@ -21,14 +21,15 @@ import TabPatrocinadores from "./patrocinadores/TabPatrocinadores";
 import TabPipeline from "./patrocinadores/TabPipeline";
 import dataService from "@/lib/dataService";
 import TabContraprestaciones from "./patrocinadores/TabContraprestaciones";
-import { LS, NIVELES, PLANTILLAS_CONTRAPRESTACION, NIVEL_CFG, getCfg, ESTADOS, ESTADO_CFG, CONTRAPRESTACIONES_TIPO, TIPOS_DOC, SECTORES, PAT0 } from "./patrocinadores/constants";
+import { NIVELES, PLANTILLAS_CONTRAPRESTACION, NIVEL_CFG, getCfg, ESTADOS, ESTADO_CFG, CONTRAPRESTACIONES_TIPO, TIPOS_DOC, SECTORES, PAT0 } from "./patrocinadores/constants";
+import { SK_PAT_PATS, SK_PAT_OBJ } from "@/constants/storageKeys";
 // ─── APP ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
   const [tab, setTab] = useState("dashboard");
-  const [rawPats, setPats, isLoading] = useData(LS + "_pats", PAT0);
-  const [objetivo, setObjetivo] = useData(LS + "_obj", 8000);
+  const [rawPats, setPats, isLoading] = useData(SK_PAT_PATS, PAT0);
+  const [objetivo, setObjetivo] = useData(SK_PAT_OBJ, 8000);
   // useMemo ensures pats is a stable reference — avoids exhaustive-deps re-computation on every render
   const pats = useMemo(() => (Array.isArray(rawPats) ? rawPats : []), [rawPats]);
   const [saved, setSaved] = useState(false);

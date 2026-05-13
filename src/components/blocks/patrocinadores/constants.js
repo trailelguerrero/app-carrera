@@ -1,9 +1,6 @@
 // ─── PATROCINADORES — CONSTANTS ────────────────────────────────────────────────
 // Extraído de Patrocinadores.jsx para reducir deuda técnica (ARQ-01)
-
-import { SK_PAT_ROOT } from "../../../constants/storageKeys";
-/** @deprecated Usar SK_PAT_ROOT de storageKeys */
-export const LS = SK_PAT_ROOT;
+// CORE-09: alias LS eliminado — usar SK_PAT_PATS / SK_PAT_OBJ de storageKeys directamente
 
 export const NIVELES = ["Oro", "Plata", "Bronce", "Colaborador", "Especie"];
 
