@@ -125,8 +125,8 @@ function useMobileKeyboardScroll() {
 function AutosaveIndicator({ status }) {
   const cfg = {
     saving: { color: "var(--amber)", border: "var(--amber-border)", bg: "var(--amber-dim)", text: "Guardando…", pulse: true },
-    saved: { color: "var(--green)", border: "rgba(5,150,105,0.25)", bg: "rgba(5,150,105,0.07)", text: "✓ Guardado", pulse: false },
-    error: { color: "var(--red)", border: "rgba(220,38,38,0.25)", bg: "rgba(220,38,38,0.07)", text: "Error al guardar", pulse: false },
+    saved: { color: "var(--green)", border: "var(--teg-green-border)", bg: "var(--teg-green-dim)", text: "✓ Guardado", pulse: false },
+    error: { color: "var(--red)", border: "var(--teg-red-border)", bg: "var(--teg-red-dim)", text: "Error al guardar", pulse: false },
   };
   const c = cfg[status];
   if (!c) return null;
@@ -179,7 +179,7 @@ function ScrollToTop() {
         width: 34, height: 34,
         borderRadius: "50%",
         background: "var(--teg-surface-header)",
-        border: "1px solid rgba(34,211,238,0.25)",
+        border: "1px solid var(--teg-cyan-border)",
         color: "var(--cyan)",
         cursor: "pointer",
         fontSize: "var(--fs-base)",
@@ -333,7 +333,7 @@ export default function Index() {
       {!isOnline && (
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
-          background: "rgba(251,191,36,0.97)",
+          background: "var(--teg-amber-solid)",
           color: "var(--text)",
           textAlign: "center",
           padding: "0.45rem 1rem",
@@ -345,7 +345,7 @@ export default function Index() {
           alignItems: "center",
           justifyContent: "center",
           gap: ".5rem",
-          boxShadow: "0 2px 12px rgba(251,191,36,0.35)",
+          boxShadow: "0 2px 12px var(--teg-amber-glow)",
         }}>
           <span>⚠️</span>
           <span>SIN CONEXIÓN — Los cambios se guardan localmente y se sincronizarán al recuperar la conexión</span>
@@ -354,14 +354,14 @@ export default function Index() {
 
       <div style={{
         minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)",
-        backgroundImage: "radial-gradient(ellipse 90% 45% at 15% -5%, rgba(34,211,238,0.065) 0%, transparent 50%), radial-gradient(ellipse 60% 30% at 85% 105%, rgba(167,139,250,0.045) 0%, transparent 48%), radial-gradient(ellipse 30% 20% at 50% 50%, rgba(34,211,238,0.02) 0%, transparent 55%)"
+        backgroundImage: "radial-gradient(ellipse 90% 45% at 15% -5%, var(--teg-cyan-glow-sm) 0%, transparent 50%), radial-gradient(ellipse 60% 30% at 85% 105%, var(--teg-violet-glow-sm) 0%, transparent 48%), radial-gradient(ellipse 30% 20% at 50% 50%, var(--teg-cyan-glow-xs) 0%, transparent 55%)"
       }}>
 
         {/* TOP BAR — Kinetik Ops style */}
         <header style={{
           background: "var(--teg-surface-header)", backdropFilter: "blur(20px) saturate(180%)",
           WebkitBackdropFilter: "blur(20px) saturate(180%)",
-          borderBottom: "1px solid rgba(34,211,238,0.08)",
+          borderBottom: "1px solid var(--teg-cyan-border-xs)",
           padding: "0 0.75rem", display: "flex", alignItems: "center",
           justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50,
           height: 48, gap: "0.5rem",
@@ -377,15 +377,15 @@ export default function Index() {
             {/* Icono de montaña */}
             <div style={{
               width: 30, height: 30, borderRadius: 9, flexShrink: 0,
-              background: "linear-gradient(135deg, rgba(34,211,238,0.18) 0%, rgba(167,139,250,0.14) 100%)",
-              border: "1px solid rgba(34,211,238,0.35)",
+              background: "linear-gradient(135deg, var(--teg-cyan-dim-md) 0%, var(--teg-violet-dim-md) 100%)",
+              border: "1px solid var(--teg-cyan-border-md)",
               display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: "1rem", lineHeight: 1,
-              boxShadow: "0 0 10px rgba(34,211,238,0.15)",
+              boxShadow: "0 0 10px var(--teg-cyan-glow)",
               transition: "all 0.18s",
             }}
-              onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 0 16px rgba(34,211,238,0.3)"; e.currentTarget.style.borderColor = "rgba(34,211,238,0.6)"; }}
-              onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 0 10px rgba(34,211,238,0.15)"; e.currentTarget.style.borderColor = "rgba(34,211,238,0.35)"; }}>
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 0 16px var(--teg-cyan-glow)"; e.currentTarget.style.borderColor = "var(--teg-cyan-border-strong)"; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 0 10px var(--teg-cyan-glow)"; e.currentTarget.style.borderColor = "var(--teg-cyan-border-md)"; }}>
               🏔️
             </div>
             {/* Nombre del evento — siempre visible, colores directos para evitar dependencia de tokens */}
@@ -404,7 +404,7 @@ export default function Index() {
               <span style={{
                 fontFamily: "'DM Mono', 'Courier New', monospace",
                 fontSize: "0.55rem",
-                color: "rgba(148,163,184,0.9)",
+                color: "var(--teg-text-secondary-alpha)",
                 letterSpacing: "0.07em",
                 textTransform: "uppercase",
                 display: "block",
@@ -426,8 +426,8 @@ export default function Index() {
 
             {(mostrarBtnDiaD || mostrarBtnDiaDProminente) && (
               <button onClick={() => setShowDiaCarrera(true)} style={{
-                background: "rgba(248,113,113,0.12)", color: "var(--red)",
-                border: "1px solid rgba(248,113,113,0.3)", borderRadius: 8,
+                background: "var(--teg-red-dim)", color: "var(--red)",
+                border: "1px solid var(--teg-red-border)", borderRadius: 8,
                 padding: "0.2rem 0.45rem",
                 fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
                 fontWeight: 700, cursor: "pointer", height: 28,
@@ -443,15 +443,15 @@ export default function Index() {
               title="Configuración"
               aria-label="Configuración"
               style={{
-                background: activeBlock === "configuracion" ? "rgba(167,139,250,0.12)" : "transparent",
-                border: `1px solid ${activeBlock === "configuracion" ? "rgba(167,139,250,0.4)" : "var(--border)"}`,
+                background: activeBlock === "configuracion" ? "var(--teg-violet-dim)" : "transparent",
+                border: `1px solid ${activeBlock === "configuracion" ? "var(--teg-violet-border-md)" : "var(--border)"}`,
                 color: activeBlock === "configuracion" ? "var(--violet)" : "var(--text-dim)",
                 cursor: "pointer", width: 30, height: 30, borderRadius: 8,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: "var(--fs-base)", transition: "all 0.15s",
-                boxShadow: activeBlock === "configuracion" ? "0 0 10px rgba(167,139,250,0.15)" : "none",
+                boxShadow: activeBlock === "configuracion" ? "0 0 10px var(--teg-violet-glow)" : "none",
               }}
-              onMouseEnter={e => { if (activeBlock !== "configuracion") { e.currentTarget.style.borderColor = "rgba(167,139,250,0.35)"; e.currentTarget.style.color = "var(--violet)"; } }}
+              onMouseEnter={e => { if (activeBlock !== "configuracion") { e.currentTarget.style.borderColor = "var(--teg-violet-border)"; e.currentTarget.style.color = "var(--violet)"; } }}
               onMouseLeave={e => { if (activeBlock !== "configuracion") { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-dim)"; } }}
             >⚙️</button>
           </div>
@@ -513,7 +513,7 @@ export default function Index() {
             position: "fixed", bottom: 0, left: 0, right: 0,
             background: "var(--teg-surface-header)", backdropFilter: "blur(20px) saturate(180%)",
             WebkitBackdropFilter: "blur(20px) saturate(180%)",
-            borderTop: "1px solid rgba(34,211,238,0.07)",
+            borderTop: "1px solid var(--teg-cyan-border-xs)",
             display: "flex", justifyContent: "space-around", alignItems: "center",
             height: NAV_H,
             paddingBottom: "env(safe-area-inset-bottom,0px)",
@@ -550,8 +550,8 @@ export default function Index() {
                   top: "50%", left: "50%",
                   transform: `translate(-50%, -50%) scale(${isActive ? 1 : 0})`,
                   width: 44, height: 36, borderRadius: 12,
-                  background: "rgba(34,211,238,0.12)",
-                  boxShadow: isActive ? "0 0 18px rgba(34,211,238,0.22)" : "none",
+                  background: "var(--teg-cyan-dim)",
+                  boxShadow: isActive ? "0 0 18px var(--teg-cyan-glow)" : "none",
                   transition: "transform 0.35s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease",
                   pointerEvents: "none",
                 }} />
@@ -592,7 +592,7 @@ export default function Index() {
                   fontSize: "0.48rem",
                   fontWeight: isActive ? 800 : 600, letterSpacing: "0.07em", textTransform: "uppercase",
                   color: isActive ? "var(--cyan)" : "var(--text-dim)",
-                  textShadow: isActive ? "0 0 10px rgba(34,211,238,0.45)" : "none",
+                  textShadow: isActive ? "0 0 10px var(--teg-cyan-glow-md)" : "none",
                   transition: "color 0.2s, text-shadow 0.2s",
                   pointerEvents: "none", whiteSpace: "nowrap",
                   position: "relative", zIndex: 1,
@@ -620,7 +620,7 @@ export default function Index() {
               <span style={{
                 fontSize: "1.35rem",
                 filter: mostrarBtnDiaDProminente
-                  ? "drop-shadow(0 0 6px rgba(34,211,238,0.7))"
+                  ? `drop-shadow(0 0 6px var(--teg-cyan-glow-lg))`
                   : "grayscale(0.3) opacity(0.75)",
                 transition: "all 0.25s", position: "relative", zIndex: 1,
               }}>🏔️</span>
@@ -628,7 +628,7 @@ export default function Index() {
                 fontFamily: "var(--font-mono)", fontSize: "0.48rem",
                 fontWeight: 800, letterSpacing: "0.07em", textTransform: "uppercase",
                 color: mostrarBtnDiaDProminente ? "var(--cyan)" : "var(--text-muted)",
-                textShadow: mostrarBtnDiaDProminente ? "0 0 10px rgba(34,211,238,0.45)" : "none",
+                textShadow: mostrarBtnDiaDProminente ? "0 0 10px var(--teg-cyan-glow-md)" : "none",
                 transition: "color 0.2s", position: "relative", zIndex: 1,
               }}>DÍA D</span>
             </button>
@@ -657,8 +657,8 @@ export default function Index() {
               {(showMoreNav || moreIsActive) && (
                 <div style={{
                   position: "absolute", inset: 0, borderRadius: 10,
-                  background: "rgba(34,211,238,0.07)",
-                  border: "1px solid rgba(34,211,238,0.18)",
+                  background: "var(--teg-cyan-subtle)",
+                  border: "1px solid var(--teg-cyan-border-xs)",
                 }} />
               )}
               <span style={{
