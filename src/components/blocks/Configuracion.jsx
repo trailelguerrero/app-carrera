@@ -26,6 +26,8 @@ import {
   SK_VOL_IMG_GUIA_TALLAS,
   SK_VOL_OPCION_PUESTO,
   SK_VOL_OPCION_VEHICULO,
+  SK_VOL_OPCION_EMAIL,
+  SK_VOL_OPCION_EMERGENCIA,
   // Patrocinadores
   SK_PAT_PATS,
   SK_PAT_OBJ,
@@ -88,6 +90,12 @@ export default function Configuracion() {
   const [resetModal,   setResetModal]   = useState(false); // modal zona de peligro
   const [resetInput,   setResetInput]   = useState('');
   const imgInputRef = { front: null, back: null, guia: null };
+
+  // ── Opciones del formulario público de voluntarios ────────────────────────
+  const [opcionPuesto,     setOpcionPuesto]     = useData(SK_VOL_OPCION_PUESTO,     true);
+  const [opcionVehiculo,   setOpcionVehiculo]   = useData(SK_VOL_OPCION_VEHICULO,   true);
+  const [opcionEmail,      setOpcionEmail]      = useData(SK_VOL_OPCION_EMAIL,      false);
+  const [opcionEmergencia, setOpcionEmergencia] = useData(SK_VOL_OPCION_EMERGENCIA, false);
 
   const MAX_IMG_BYTES = 500 * 1024; // 500 KB
   const ACCEPTED_MIME = ['image/jpeg', 'image/png', 'image/webp'];
@@ -642,7 +650,7 @@ export default function Configuracion() {
         </div>
 
         {/* ── Formulario de voluntarios ── */}
-        <div className="card cfg-section">
+        <div id="cfg-formulario" className="card cfg-section">
           <div className="cfg-section-title">👥 Formulario de voluntarios</div>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)", marginBottom: ".75rem", lineHeight: 1.6 }}>
             Comparte este enlace o QR con los voluntarios para que puedan registrarse.
@@ -676,41 +684,102 @@ export default function Configuracion() {
             <div style={{
               display: "flex", flexDirection: "column", alignItems: "center",
               gap: ".65rem", padding: ".85rem", background: "var(--surface2)",
-              borderRadius: 10, border: "1px solid var(--border)"
+              borderRadius: 10, border: "1px solid var(--border)", marginBottom: ".75rem",
             }}>
               <img
                 src={qrDataUrl}
                 alt="QR formulario voluntarios"
-                style={{
-                  width: 200, height: 200, borderRadius: 8,
-                  border: "4px solid #fff", display: "block"
-                }}
+                style={{ width: 200, height: 200, borderRadius: 8, border: "4px solid #fff", display: "block" }}
               />
-              <div style={{
-                fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
-                color: "var(--text-muted)", textAlign: "center"
-              }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", textAlign: "center" }}>
                 Escanea para acceder al formulario de registro
               </div>
               <div style={{ display: "flex", gap: ".5rem" }}>
-                <a
-                  href={qrDataUrl}
-                  download="qr-voluntarios-trail-guerrero.png"
-                  className="backup-btn export"
+                <a href={qrDataUrl} download="qr-voluntarios-trail-guerrero.png" className="backup-btn export"
                   style={{ textDecoration: "none", padding: ".38rem .75rem", fontSize: "var(--fs-sm)" }}>
                   ⬇ Descargar imagen
                 </a>
-                <button className="backup-btn" style={{
-                  padding: ".38rem .75rem", fontSize: "var(--fs-sm)",
-                  background: "var(--surface3)", color: "var(--text-muted)",
-                  border: "1px solid var(--border)"
-                }}
+                <button className="backup-btn" style={{ padding: ".38rem .75rem", fontSize: "var(--fs-sm)", background: "var(--surface3)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
                   onClick={() => setQrDataUrl(null)}>
                   ✕ Cerrar QR
                 </button>
               </div>
             </div>
           )}
+
+          {/* ── Campos opcionales ── */}
+          <div style={{ borderTop: "1px solid var(--border)", paddingTop: ".85rem", marginTop: ".25rem" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: ".65rem" }}>
+              Campos opcionales
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: ".45rem" }}>
+              {[
+                { label: "Puesto preferido", desc: "El voluntario puede indicar en qué puesto quiere trabajar", val: opcionPuesto,     set: setOpcionPuesto     },
+                { label: "Vehículo propio",  desc: "Pregunta si dispone de coche para llegar a puestos remotos",  val: opcionVehiculo,   set: setOpcionVehiculo   },
+                { label: "Email",            desc: "Campo opcional de correo para comunicaciones previas",         val: opcionEmail,      set: setOpcionEmail      },
+                { label: "Teléfono emergencia", desc: "Contacto a avisar en caso de incidente el día del evento",  val: opcionEmergencia, set: setOpcionEmergencia },
+              ].map(({ label, desc, val, set }) => (
+                <div key={label} style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: ".55rem .75rem", borderRadius: 8,
+                  background: "var(--surface2)", border: "1px solid var(--border)",
+                  gap: ".75rem",
+                }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 700, color: "var(--text)" }}>{label}</div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)", marginTop: ".1rem" }}>{desc}</div>
+                  </div>
+                  <button
+                    className={`btn btn-sm ${val ? "btn-cyan" : "btn-ghost"}`}
+                    style={{ minWidth: 72, flexShrink: 0 }}
+                    onClick={() => set(!val)}
+                  >
+                    {val ? "Activo" : "Inactivo"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Textos del formulario ── */}
+          <div style={{ borderTop: "1px solid var(--border)", paddingTop: ".85rem", marginTop: ".75rem" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: ".65rem" }}>
+              Textos del formulario
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: ".65rem" }}>
+              <div className="cfg-field">
+                <label className="cfg-label">Subtítulo del formulario</label>
+                <input
+                  className="cfg-input"
+                  value={form.formSubtitulo ?? "Formulario de inscripción de voluntarios"}
+                  onChange={e => upd("formSubtitulo", e.target.value)}
+                  placeholder="Formulario de inscripción de voluntarios"
+                />
+                <div className="cfg-hint">Aparece bajo el nombre del evento en la cabecera del formulario.</div>
+              </div>
+              <div className="cfg-field">
+                <label className="cfg-label">Texto del botón de envío</label>
+                <input
+                  className="cfg-input"
+                  value={form.formBoton ?? "✓ Registrarme como voluntario"}
+                  onChange={e => upd("formBoton", e.target.value)}
+                  placeholder="✓ Registrarme como voluntario"
+                />
+              </div>
+              <div className="cfg-field">
+                <label className="cfg-label">Mensaje de confirmación (tras el registro)</label>
+                <textarea
+                  className="cfg-input"
+                  rows={3}
+                  value={form.formConfirmacion ?? "Gracias por apuntarte como voluntario. El equipo organizador se pondrá en contacto contigo próximamente."}
+                  onChange={e => upd("formConfirmacion", e.target.value)}
+                  placeholder="Mensaje que verá el voluntario tras completar el registro…"
+                  style={{ resize: "vertical", lineHeight: 1.6 }}
+                />
+                <div className="cfg-hint">Visible en la pantalla de confirmación tras el envío del formulario.</div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* ── Imágenes de camisetas ── */}

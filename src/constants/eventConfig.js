@@ -17,6 +17,10 @@ export const EVENT_CONFIG_DEFAULT = {
   volDiasCritico:   7,
   volDiasAviso:     30,
   autoOpenDia:      false, // Abrir automáticamente DíaCarrera al iniciar la app
+  // Textos personalizables del formulario público de voluntarios
+  formSubtitulo:    "Formulario de inscripción de voluntarios",
+  formBoton:        "✓ Registrarme como voluntario",
+  formConfirmacion: "Gracias por apuntarte como voluntario. El equipo organizador se pondrá en contacto contigo próximamente.",
 };
 
 /** @deprecated Usar SK_EVENT_CONFIG de @/constants/storageKeys */

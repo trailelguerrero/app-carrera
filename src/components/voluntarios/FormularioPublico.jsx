@@ -20,6 +20,11 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
   const config = cfgProp || EVENT_CONFIG_DEFAULT;
   const vols = volsProp || [];
 
+  // Textos configurables — con fallback a los valores por defecto
+  const formSubtitulo    = config.formSubtitulo    || "Formulario de inscripción de voluntarios";
+  const formBoton        = config.formBoton        || "✓ Registrarme como voluntario";
+  const formConfirmacion = config.formConfirmacion || "Gracias por apuntarte como voluntario. El equipo organizador se pondrá en contacto contigo próximamente.";
+
   // Lee directamente de storage — misma fuente que VoluntarioPortal y Configuracion
   const [imgF]             = useData(SK_VOL_IMG_FRONT,       SHIRT_PLACEHOLDER_FRONT);
   const [imgB]             = useData(SK_VOL_IMG_BACK,        SHIRT_PLACEHOLDER_BACK);
@@ -71,8 +76,7 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
         <div style={{ fontSize: "4rem", marginBottom: "1rem" }}>🎉</div>
         <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.8rem", fontWeight: 800, color: "var(--green)", marginBottom: "0.75rem" }}>¡Registro completado!</h2>
         <p style={{ color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: "0.85rem", lineHeight: 1.7, marginBottom: "1.25rem" }}>
-          Gracias por apuntarte como voluntario del <strong style={{ color: "var(--text)" }}>Trail El Guerrero 2026</strong>.<br />
-          El equipo organizador se pondrá en contacto contigo próximamente.
+          {formConfirmacion}
         </p>
 
         {/* Resumen del registro */}
@@ -236,7 +240,7 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
           <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.8rem, 5vw, 2.6rem)", fontWeight: 800, background: "linear-gradient(135deg, #fff 0%, var(--cyan) 60%, var(--violet) 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", lineHeight: 1, marginBottom: "0.5rem" }}>
             Trail El Guerrero
           </h1>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "1.25rem" }}>Formulario de inscripción de voluntarios</div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "1.25rem" }}>{formSubtitulo}</div>
           <div style={{ display: "inline-flex", gap: "1.5rem", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "0.6rem 1.25rem" }}>
             {[["TG7","7 km"],["TG13","13 km"],["TG25","25 km"]].map(([k,v]) => (
               <div key={k} style={{ textAlign: "center" }}>
@@ -410,7 +414,7 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
               style={{ width: "100%", padding: "0.85rem", background: "linear-gradient(135deg, rgba(34,211,238,0.2), rgba(167,139,250,0.15))", border: "1px solid rgba(34,211,238,0.35)", borderRadius: 10, color: "var(--text)", fontFamily: "var(--font-display)", fontSize: "var(--fs-md)", fontWeight: 800, cursor: "pointer", letterSpacing: "0.03em", transition: "all 0.18s", marginTop: "0.25rem" }}
               onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(34,211,238,0.15)"; }}
               onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}>
-              ✓ Registrarme como voluntario
+              {formBoton}
             </button>
           </div>
         </div>

@@ -463,8 +463,16 @@ export default function App() {
           </span>
           <button
             className="btn btn-ghost btn-sm"
-            onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "configuracion" } }))}>
-            Gestionar →
+            title="Ir a Configuración → sección Formulario de voluntarios"
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "configuracion" } }));
+              // Scroll al ancla tras la navegación
+              setTimeout(() => {
+                const el = document.getElementById("cfg-formulario");
+                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+              }, 300);
+            }}>
+            Configurar formulario →
           </button>
         </div>
 
