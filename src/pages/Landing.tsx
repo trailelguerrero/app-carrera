@@ -1,8 +1,12 @@
 import { Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import { ThemeToggle } from "../components/ui/ThemeToggle";
+import { diasHastaEvento, eventDateStr } from "@/lib/eventUtils";
 
 export default function Landing() {
+  const dias = diasHastaEvento();
+  const fechaStr = eventDateStr();
+
   return (
     <>
       <style>{`@keyframes teg-fadein-scale{from{opacity:0;transform:scale(0.85)}to{opacity:1;transform:scale(1)}}@keyframes teg-fadein{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`}</style>
@@ -58,6 +62,15 @@ export default function Landing() {
           ))}
         </div>
 
+        {/* Contador de días — solo si el evento no ha pasado */}
+        {dias > 0 && (
+          <div className="mb-8 sm:mb-10 text-center" style={{animation:"teg-fadein 0.8s ease-out 0.3s both"}}>
+            <span className="text-foreground/50 text-sm md:text-base font-medium tracking-widest uppercase">
+              Faltan <span className="text-foreground/80 font-bold">{dias}</span> días · {fechaStr}
+            </span>
+          </div>
+        )}
+
         {/* CTA Button to Panel — siempre en el fold, sin necesidad de scroll */}
         <div style={{animation:"teg-fadein 0.8s ease-out 0.4s both"}}>
           <Link 
@@ -68,6 +81,16 @@ export default function Landing() {
             <div className="bg-primary text-primary-foreground p-1.5 rounded-full group-hover:translate-x-1 transition-transform">
               <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
             </div>
+          </Link>
+        </div>
+
+        {/* CTA secundario — Portal del voluntario */}
+        <div className="mt-3" style={{animation:"teg-fadein 0.8s ease-out 0.6s both"}}>
+          <Link
+            to="/voluntarios/mi-ficha"
+            className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-transparent hover:bg-white/5 border border-white/20 transition-all active:scale-95 backdrop-blur-md text-foreground/70 hover:text-foreground/90"
+          >
+            <span className="text-base md:text-lg font-medium tracking-wide">Soy voluntario →</span>
           </Link>
         </div>
 

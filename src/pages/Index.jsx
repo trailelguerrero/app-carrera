@@ -2,7 +2,7 @@ import PinScreen from "@/components/auth/PinScreen";
 import ChangePinModal from "@/components/auth/ChangePinModal";
 import { useAlertasBadges } from "@/hooks/useAlertasBadges.js";
 import { checkSession, createSession } from "@/components/auth/pinAuth.js";
-import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from "react";
 import ErrorBoundary from "../components/ErrorBoundary";
 const DiaCarrera = lazy(() => import("../components/blocks/DiaCarrera"));
 import OnboardingModal from "../components/blocks/OnboardingModal";
@@ -32,8 +32,7 @@ const BLOCKS = [
   { id: "patrocinadores", icon: "🤝", label: "Patrocinadores", shortLabel: "Pat", component: Patrocinadores },
   { id: "camisetas", icon: "👕", label: "Camisetas", shortLabel: "Cam", component: Camisetas },
   { id: "documentos", icon: "📁", label: "Docs", shortLabel: "Docs", component: Documentos },
-  // Configuración NO aparece en la nav principal pero sí es navegable via teg-navigate
-  { id: "configuracion", icon: "⚙️", label: "Configuración", shortLabel: "Cfg", component: Configuracion, hidden: true },
+  { id: "configuracion", icon: "⚙️", label: "Configuración", shortLabel: "Cfg", component: Configuracion },
 ];
 
 // ── TOAST SYSTEM ──────────────────────────────────────────────────────────────
@@ -309,8 +308,8 @@ export default function Index() {
 
   // Nav: en mobile mostramos 5 principales + "Más" para los extra
   const NAV_MAIN_IDS = ["dashboard", "proyecto", "presupuesto", "voluntarios", "logistica"];
-  const NAV_MORE_IDS = ["patrocinadores", "camisetas", "documentos"];
-  const navBlocks = BLOCKS.filter(b => b.id !== "configuracion");
+  const NAV_MORE_IDS = ["patrocinadores", "camisetas", "documentos", "configuracion"];
+  const navBlocks = BLOCKS;
   const navMain = isMobile ? navBlocks.filter(b => NAV_MAIN_IDS.includes(b.id)) : navBlocks;
   const navMore = isMobile ? navBlocks.filter(b => NAV_MORE_IDS.includes(b.id)) : [];
   const moreIsActive = navMore.some(b => b.id === activeBlock);
@@ -524,6 +523,14 @@ export default function Index() {
           {navMain.map((b, idx) => {
             const isActive = activeBlock === b.id;
             return (
+              <React.Fragment key={b.id}>
+                {/* Divisor antes de Configuración en desktop */}
+                {!isMobile && b.id === "configuracion" && (
+                  <div style={{
+                    width: 1, height: 28, background: "var(--border)",
+                    alignSelf: "center", flexShrink: 0, margin: "0 0.25rem",
+                  }} />
+                )}
               <button
                 key={b.id}
                 onClick={() => { handleBlockChange(b.id); setShowMoreNav(false); }}
@@ -601,6 +608,7 @@ export default function Index() {
                 </span>
 
               </button>
+              </React.Fragment>
             );
           })}
 
@@ -712,7 +720,7 @@ export default function Index() {
                 Más secciones
               </div>
               <div style={{ display: "flex", gap: "0.5rem" }}>
-                {navMore.map(b => {
+                {navMore.filter(b => b.id !== "configuracion").map(b => {
                   const isActive = activeBlock === b.id;
                   return (
                     <button
@@ -750,6 +758,38 @@ export default function Index() {
                         fontFamily: "'DM Mono','Space Mono',monospace",
                         fontSize: "var(--fs-xs)", fontWeight: 700,
                         color: isActive ? "var(--cyan)" : "var(--text-dim)",
+                        whiteSpace: "nowrap",
+                      }}>{b.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Divisor zona de sistema */}
+              <div style={{ height: 1, background: "var(--border)", margin: "0.5rem 0 0.4rem" }} />
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                {navMore.filter(b => b.id === "configuracion").map(b => {
+                  const isActive = activeBlock === b.id;
+                  return (
+                    <button
+                      key={b.id}
+                      onClick={() => { handleBlockChange(b.id); setShowMoreNav(false); }}
+                      aria-label={b.label}
+                      aria-current={isActive ? "page" : undefined}
+                      style={{
+                        flex: 1, background: isActive ? "rgba(139,92,246,0.08)" : "var(--surface2)",
+                        border: isActive ? "1px solid rgba(139,92,246,0.25)" : "1px solid var(--border)",
+                        borderRadius: 12, padding: "0.6rem 0.5rem",
+                        cursor: "pointer", display: "flex", flexDirection: "row",
+                        alignItems: "center", justifyContent: "center", gap: "0.4rem",
+                        WebkitTapHighlightColor: "transparent",
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      <span style={{ fontSize: "1.1rem" }}>{b.icon}</span>
+                      <span style={{
+                        fontFamily: "'DM Mono','Space Mono',monospace",
+                        fontSize: "var(--fs-xs)", fontWeight: 700,
+                        color: isActive ? "var(--violet)" : "var(--text-dim)",
                         whiteSpace: "nowrap",
                       }}>{b.label}</span>
                     </button>
