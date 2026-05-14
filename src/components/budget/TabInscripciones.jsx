@@ -4,7 +4,7 @@ import { Tooltip, TooltipIcon } from "../common/Tooltip";
 import { DISTANCIAS, DISTANCIA_COLORS, DISTANCIA_LABELS } from "../../constants/budgetConstants";
 import { NumInput } from "./common/NumInput";
 import { cls } from "../../lib/budgetUtils";
-import { SK_UI_CODIGOS_PROMO } from "@/constants/storageKeys";
+import { SK_UI_CODIGOS_PROMO, SK_UI_CODIGOS_INIT } from "@/constants/storageKeys";
 
 const getTramoStatus = (fechaFin) => {
   const now = new Date();
@@ -247,10 +247,14 @@ export const TabInscripciones = ({
   const [colapsadas, setColapsadas]   = useState({ TG7: true, TG13: true, TG25: true }); // todas colapsadas por defecto
   const toggleDistancia = (d) => setColapsadas(p => ({...p, [d]: !p[d]}));
 
-  // Cargar códigos iniciales si está vacío
+  // Cargar códigos iniciales solo si nunca se han inicializado.
+  // FIX BUG-PROMO-01: usar la misma guarda que Configuracion.jsx (SK_UI_CODIGOS_INIT)
+  // para evitar que los códigos reaparezcan cuando el usuario los elimina todos
+  // y el array queda vacío (condición que antes disparaba el init erróneamente).
   const codigosRef = useRef(codigos);
   useEffect(() => {
-    if (codigosRef.current.length === 0) {
+    const yaInicializado = localStorage.getItem(SK_UI_CODIGOS_INIT);
+    if (codigosRef.current.length === 0 && !yaInicializado) {
       setCodigos([
         {id:"7G7-1",     codigo:"7G7",      distancia:"TG7",  estado:"disponible",usadoPor:null,fechaUso:null},
         {id:"KDZ145OX",  codigo:"KDZ145OX", distancia:"TG7",  estado:"disponible",usadoPor:null,fechaUso:null},
@@ -269,6 +273,7 @@ export const TabInscripciones = ({
         {id:"K5RBRVHK",  codigo:"K5RBRVHK", distancia:"TG25", estado:"disponible",usadoPor:null,fechaUso:null},
         {id:"UUCTJWSV",  codigo:"UUCTJWSV", distancia:"TG25", estado:"disponible",usadoPor:null,fechaUso:null},
       ]);
+      localStorage.setItem(SK_UI_CODIGOS_INIT, "1");
     }
   }, [setCodigos]);
 
