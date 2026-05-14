@@ -195,6 +195,19 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
       if (puestosAlerta.length > 0) alertasAvisos.push({ icon: "🟡", texto: `${puestosAlerta.length} puesto${puestosAlerta.length > 1 ? "s" : ""} pendientes de cubrir: ${puestosAlerta.map(p => `${p.nombre} (${p.asig}/${p.necesarios})`).join(", ")}`, modulo: "voluntarios" });
     }
     if (resultado < 0)            alertasCriticas.push({ icon: "🔴", texto: `Resultado negativo: ${fmtEur(resultado)}`, modulo: "presupuesto" });
+
+    // PPTO-02: Alertas de tramo próximo a agotar (≥80%) y completo (≥100%)
+    tramos.forEach(tramo => {
+      const maximo = tramo.maximo ?? 0;
+      if (maximo <= 0) return; // tramo sin máximo configurado → no alertar
+      const totalTramo = ["TG7","TG13","TG25"].reduce((s, d) => s + (inscritos?.tramos?.[tramo.id]?.[d] || 0), 0);
+      const pct = totalTramo / maximo;
+      if (pct >= 1.0) {
+        alertasCriticas.push({ icon: "⛔", texto: `Tramo '${tramo.nombre}' completo (${totalTramo}/${maximo} plazas)`, modulo: "presupuesto" });
+      } else if (pct >= 0.8) {
+        alertasAvisos.push({ icon: "🔶", texto: `Tramo '${tramo.nombre}' al ${Math.round(pct * 100)}% de ocupación — considera ampliar el aforo`, modulo: "presupuesto" });
+      }
+    });
     if (docsVencidos.length > 0)  alertasCriticas.push({ icon: "🔴", texto: `${docsVencidos.length} documento${docsVencidos.length > 1 ? "s" : ""} vencido${docsVencidos.length > 1 ? "s" : ""}: ${docsVencidos.map(d => d.nombre).slice(0, 2).join(", ")}${docsVencidos.length > 2 ? "..." : ""}`, modulo: "documentos" });
     if (docsProxVencer.length > 0) alertasAvisos.push({ icon: "🟡", texto: `${docsProxVencer.length} documento${docsProxVencer.length > 1 ? "s" : ""} por vencer en ≤30 días`, modulo: "documentos" });
     if (gestionesDenegadas.length > 0) alertasCriticas.push({ icon: "🚫", texto: `Gestión${gestionesDenegadas.length > 1 ? "es" : ""} denegada${gestionesDenegadas.length > 1 ? "s" : ""}: ${gestionesDenegadas.map(g => g.nombre).join(", ")}`, modulo: "documentos" });
