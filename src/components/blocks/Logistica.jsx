@@ -270,6 +270,20 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
     });
     return map;
   }, [rawVols, rawPuestos]);
+
+  // Material agrupado por localización: localizacionId → [{nombre, cantidad, unidad}]
+  const matPorLoc = useMemo(() => {
+    const map = {};
+    asigs.forEach(a => {
+      if (!a.localizacionId) return;
+      const mat = material.find(m0 => m0.id === a.materialId);
+      if (!mat) return;
+      if (!map[a.localizacionId]) map[a.localizacionId] = [];
+      map[a.localizacionId].push({ nombre: mat.nombre, cantidad: a.cantidad, unidad: mat.unidad || "ud" });
+    });
+    return map;
+  }, [asigs, material]);
+
   const [saved, setSaved] = useState(false);
   const [modal, setModal] = useState(null);
   const [del, setDel] = useState(null);
@@ -437,7 +451,7 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
           {tab==="contactos"   && <TabDirectorio cont={cont} setCont={setCont} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCont} setOrdenAlfa={setOrdenCont} tiposContacto={tiposContacto} setTiposContacto={setTiposContacto} />}
           {tab==="emergencias" && <TabEmergencias cont={cont} inc={inc} setInc={setInc} abrirModal={abrirModal} abrirFicha={abrirFicha} tiposContacto={tiposContacto} />}
           {tab==="checklist" && <TabCK ck={ck} setCk={setCk} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCK} setOrdenAlfa={setOrdenCK} config={config} tareasProyecto={tareasProyecto} setTareasProyecto={(fn)=>{ const next=typeof fn==="function"?fn(tareasProyecto):fn; import("@/lib/dataService").then(m=>{ m.default.set(SK_PROY_TAREAS, next); m.default.notify(); /* INC-05: notificar a Proyecto.jsx del cambio externo */ }); }} />}
-          {tab==="localizaciones" && <TabLocalizaciones locs={locs} setLocs={setLocs} volsPorLoc={volsPorLoc} />}
+          {tab==="localizaciones" && <TabLocalizaciones locs={locs} setLocs={setLocs} volsPorLoc={volsPorLoc} matPorLoc={matPorLoc} />}
           {tab==="pedidos" && <TabPedidosProv
             pedidos={pedidosProv} setPedidos={setPedidosProv}
             cont={cont}
