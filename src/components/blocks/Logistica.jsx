@@ -327,9 +327,8 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
   const TABS_OPERACIONES = [
     {id:"timeline",   icon:"⏱️",  label:"Runbook"},
     {id:"checklist",  icon:"✅",  label:"Pre-operativo"},
-    {id:"contactos",  icon:"📋",  label:"Directorio"},
+    {id:"proveedores", icon:"🏢",  label:"Proveedores"},
     {id:"emergencias",icon:"🚨",  label:"Emergencias"},
-    {id:"pedidos",    icon:"🛒",  label:"Pedidos"},
   ];
   // Alias para compatibilidad con código existente
   const TABS_OPERATIVAS = TABS_RECURSOS;
@@ -444,29 +443,49 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
 
         {/* CONTENIDO */}
         <div key={tab}>
-          {tab==="dashboard" && <TabDash stats={stats} tl={tl} ck={ck} setTab={setTab} config={config} patsConEspecie={patsConEspecie} material={material} asigs={asigs} />}
+          {tab==="dashboard" && <TabDash stats={stats} tl={tl} ck={ck} setTab={setTab} config={config} patsConEspecie={patsConEspecie} material={material} asigs={asigs} totalInscritos={totalInscritos} />}
           {tab==="material" && <TabMat material={material} setMaterial={setMaterial} asigs={asigs} setAsigs={setAsigs} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenMat} setOrdenAlfa={setOrdenMat} locs={locs} patsConEspecie={patsConEspecie} totalInscritos={totalInscritos} totalMaximos={totalMaximos} rawInscritos={rawInscritos} rawTramos={rawTramos} conceptosPres={conceptosPres} />}
           {tab==="vehiculos" && <TabVeh veh={veh} setVeh={setVeh} rutas={rutas} setRutas={setRutas} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenVeh} setOrdenAlfa={setOrdenVeh} voluntariosConCoche={voluntariosConCoche} />}
           {tab==="timeline" && <TabTL tl={tl} setTl={setTl} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenTL} setOrdenAlfa={setOrdenTL} config={config} />}
-          {tab==="contactos"   && <TabDirectorio cont={cont} setCont={setCont} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCont} setOrdenAlfa={setOrdenCont} tiposContacto={tiposContacto} setTiposContacto={setTiposContacto} />}
           {tab==="emergencias" && <TabEmergencias cont={cont} inc={inc} setInc={setInc} abrirModal={abrirModal} abrirFicha={abrirFicha} tiposContacto={tiposContacto} />}
           {tab==="checklist" && <TabCK ck={ck} setCk={setCk} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCK} setOrdenAlfa={setOrdenCK} config={config} tareasProyecto={tareasProyecto} setTareasProyecto={(fn)=>{ const next=typeof fn==="function"?fn(tareasProyecto):fn; import("@/lib/dataService").then(m=>{ m.default.set(SK_PROY_TAREAS, next); m.default.notify(); /* INC-05: notificar a Proyecto.jsx del cambio externo */ }); }} />}
           {tab==="localizaciones" && <TabLocalizaciones locs={locs} setLocs={setLocs} volsPorLoc={volsPorLoc} matPorLoc={matPorLoc} />}
-          {tab==="pedidos" && <TabPedidosProv
-            pedidos={pedidosProv} setPedidos={setPedidosProv}
-            cont={cont}
-            material={material}
-            conceptosPres={conceptosPres}
-            totalInscritos={totalInscritos}
-            inscritos={(() => {
-              const tramos = Array.isArray(rawTramos) ? rawTramos : [];
-              const ins = {};
-              ["TG7","TG13","TG25"].forEach(dist => {
-                ins[dist] = tramos.reduce((s,t) => s + (rawInscritos?.tramos?.[t.id]?.[dist]||0), 0);
-              });
-              return ins;
-            })()}
-          />}
+          {tab==="proveedores" && (
+            <div style={{ display:"flex", flexDirection:"column", gap:"1.5rem" }}>
+              {/* ── Directorio de contactos ── */}
+              <div>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)",
+                  textTransform:"uppercase", letterSpacing:".08em", marginBottom:".6rem", paddingLeft:".1rem" }}>
+                  📋 Directorio de contactos
+                </div>
+                <TabDirectorio cont={cont} setCont={setCont} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCont} setOrdenAlfa={setOrdenCont} tiposContacto={tiposContacto} setTiposContacto={setTiposContacto} />
+              </div>
+              {/* ── Separador ── */}
+              <div style={{ borderTop:"1px solid var(--border)" }} />
+              {/* ── Pedidos a proveedores ── */}
+              <div>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)",
+                  textTransform:"uppercase", letterSpacing:".08em", marginBottom:".6rem", paddingLeft:".1rem" }}>
+                  🛒 Pedidos a proveedores
+                </div>
+                <TabPedidosProv
+                  pedidos={pedidosProv} setPedidos={setPedidosProv}
+                  cont={cont}
+                  material={material}
+                  conceptosPres={conceptosPres}
+                  totalInscritos={totalInscritos}
+                  inscritos={(() => {
+                    const tramos = Array.isArray(rawTramos) ? rawTramos : [];
+                    const ins = {};
+                    ["TG7","TG13","TG25"].forEach(dist => {
+                      ins[dist] = tramos.reduce((s,t) => s + (rawInscritos?.tramos?.[t.id]?.[dist]||0), 0);
+                    });
+                    return ins;
+                  })()}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

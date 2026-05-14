@@ -12,7 +12,7 @@ import { useData } from "@/hooks/useData";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
-function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [], asigs = [] }) {
+function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [], asigs = [], totalInscritos = 0 }) {
   const prox = [...tl].filter(t=>t.estado!=="completado").sort((a,b)=>a.hora.localeCompare(b.hora)).slice(0,6);
   const porFase = FASES_CHECKLIST.map(f0 => { const it=ck.filter(c=>c.fase===f0); const d=it.filter(c=>c.estado==="completado").length; return {f:f0,d,t:it.length,pct:it.length?Math.round(d/it.length*100):0}; });
   const eventoFecha = config?.fecha ? new Date(config.fecha) : new Date(EVENT_CONFIG_DEFAULT.fecha);
@@ -111,6 +111,71 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
                   <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                     color:"var(--text-muted)", flexShrink:0 }}>
                     {m.stock} stock · {m.totalAsig} asig.
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Panel de avituallamiento insuficiente por ratio inscritos [LOG-04] ── */}
+      {totalInscritos > 0 && (() => {
+        // Umbral: usamos stockMinimo del material si está definido (ud/corredor),
+        // si no, el umbral genérico es 0.5 ud/corredor para Avituallamiento.
+        const UMBRAL_GENERICO = 0.5;
+        const insuficientes = material
+          .filter(m => m.categoria === "Avituallamiento")
+          .map(m => {
+            const umbral = m.stockMinimo > 0
+              ? m.stockMinimo               // ud/corredor configurado en el material
+              : UMBRAL_GENERICO;
+            const ratio = m.stock / totalInscritos;
+            const necesario = Math.ceil(umbral * totalInscritos);
+            return ratio < umbral ? { ...m, ratio, necesario, falta: necesario - m.stock } : null;
+          })
+          .filter(Boolean);
+        if (!insuficientes.length) return null;
+        return (
+          <div style={{
+            marginBottom: ".85rem", padding: ".65rem .85rem",
+            background: "rgba(251,191,36,.05)",
+            border: "1px solid rgba(251,191,36,.25)",
+            borderLeft: "3px solid var(--amber)",
+            borderRadius: "var(--r-sm)",
+          }}>
+            <div style={{ display:"flex", justifyContent:"space-between",
+              alignItems:"center", marginBottom:".45rem" }}>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                fontWeight:700, color:"var(--amber)", textTransform:"uppercase",
+                letterSpacing:".06em" }}>
+                🍎 Avituallamiento insuficiente para {totalInscritos} inscritos
+              </span>
+              <button className="btn btn-ghost btn-sm"
+                style={{ fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}
+                onClick={() => setTab("material")}>
+                Ver material →
+              </button>
+            </div>
+            <div style={{ display:"flex", flexDirection:"column", gap:".3rem" }}>
+              {insuficientes.map(m => (
+                <div key={m.id} style={{
+                  display:"flex", alignItems:"center", gap:".6rem",
+                  fontSize:"var(--fs-base)",
+                }}>
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                    fontWeight:800, color:"var(--amber)",
+                    background:"rgba(251,191,36,.1)", padding:".08rem .4rem",
+                    borderRadius:3, flexShrink:0, minWidth:48, textAlign:"center" }}>
+                    -{m.falta} {m.unidad}
+                  </span>
+                  <span style={{ fontWeight:600, flex:1, minWidth:0,
+                    overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                    {m.nombre}
+                  </span>
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                    color:"var(--text-muted)", flexShrink:0 }}>
+                    {m.stock} ud · {m.necesario} necesarios
                   </span>
                 </div>
               ))}

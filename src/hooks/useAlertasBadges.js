@@ -20,6 +20,8 @@ import {
   SK_PPTO_INSCRITOS,
   SK_PPTO_INGRESOS_EXTRA,
   SK_LOG_INC,
+  SK_LOG_MAT,
+  SK_LOG_ASIG,
 } from "@/constants/storageKeys";
 
 const THROTTLE_MS = 5000; // T7.2: no recalcular más de 1 vez cada 5s por módulo
@@ -99,7 +101,31 @@ async function calcBadgeModulo(modulo) {
       case "logistica": {
         const inc = await dataService.get(SK_LOG_INC, []);
         const abiertas = Array.isArray(inc) ? inc.filter(i => i.estado === "abierta").length : 0;
-        return abiertas > 0 ? { logistica: abiertas } : {};
+
+        // [LOG-04] Alertas de avituallamiento insuficiente basadas en inscritos
+        let avitInsuficientes = 0;
+        try {
+          const material  = await dataService.get(SK_LOG_MAT,  []);
+          const asigs     = await dataService.get(SK_LOG_ASIG, []);
+          const inscrData = await dataService.get(SK_PPTO_INSCRITOS, { tramos: {} });
+          const tramos    = await dataService.get(SK_PPTO_TRAMOS, []);
+          const DIST = ["TG7", "TG13", "TG25"];
+          const totalInscritos = Array.isArray(tramos)
+            ? tramos.reduce((s, t) =>
+                s + DIST.reduce((ss, d) => ss + (inscrData?.tramos?.[t.id]?.[d] || 0), 0), 0)
+            : 0;
+          if (totalInscritos > 0) {
+            const UMBRAL = 0.5;
+            avitInsuficientes = material.filter(m => {
+              if (m.categoria !== "Avituallamiento") return false;
+              const umbral = m.stockMinimo > 0 ? m.stockMinimo : UMBRAL;
+              return (m.stock / totalInscritos) < umbral;
+            }).length;
+          }
+        } catch { /* si falla la lectura de logística, no bloquear */ }
+
+        const total = abiertas + avitInsuficientes;
+        return total > 0 ? { logistica: total } : {};
       }
       default:
         return {};
