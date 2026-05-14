@@ -468,6 +468,34 @@ export default function Index() {
             }
             .module-enter { animation: module-enter 0.22s cubic-bezier(0.34,1.1,0.64,1) both; }
           `}</style>
+
+          {/* NAV-02 — Micro-barra de contexto: módulo activo, solo móvil */}
+          {isMobile && (() => {
+            const activeBlockData = BLOCKS.find(b => b.id === activeBlock);
+            return (
+              <div style={{
+                position: "sticky", top: 0, zIndex: 40,
+                height: 28,
+                display: "flex", alignItems: "center", gap: "0.4rem",
+                padding: "0 0.85rem",
+                background: "var(--teg-surface-header)",
+                borderBottom: "1px solid var(--border)",
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
+              }}>
+                <span style={{ fontSize: "0.8rem", lineHeight: 1 }}>{activeBlockData?.icon}</span>
+                <span style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "var(--fs-xs)",
+                  fontWeight: 700,
+                  color: "var(--text-dim)",
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                }}>{activeBlockData?.label}</span>
+              </div>
+            );
+          })()}
+
           <div className="module-enter">
             <ErrorBoundary
               key={activeBlock}
