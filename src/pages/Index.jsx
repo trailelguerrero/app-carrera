@@ -306,9 +306,9 @@ export default function Index() {
   const mostrarBtnDiaDProminente = diasCarrera >= 0 && diasCarrera <= 7;
   const mostrarBtnDiaD = diasCarrera >= -1 && diasCarrera <= 30; // accesible 30 días antes
 
-  // Nav: en mobile mostramos 5 principales + "Más" para los extra
-  const NAV_MAIN_IDS = ["dashboard", "proyecto", "presupuesto", "voluntarios", "logistica", "configuracion"];
-  const NAV_MORE_IDS = ["patrocinadores", "camisetas", "documentos"];
+  // Nav: en mobile todos los bloques van al bottom bar en el orden de BLOCKS
+  const NAV_MAIN_IDS = ["dashboard", "proyecto", "presupuesto", "voluntarios", "logistica", "patrocinadores", "camisetas", "documentos", "configuracion"];
+  const NAV_MORE_IDS = [];
   const navBlocks = BLOCKS;
   const navMain = isMobile ? navBlocks.filter(b => NAV_MAIN_IDS.includes(b.id)) : navBlocks;
   const navMore = isMobile ? navBlocks.filter(b => NAV_MORE_IDS.includes(b.id)) : [];
