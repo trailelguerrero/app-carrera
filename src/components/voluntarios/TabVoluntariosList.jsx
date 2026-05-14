@@ -11,9 +11,11 @@ import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { ESTADOS, estadoColor, estadoBg } from "@/constants/voluntariosConstants";
+import { TabKanbanVol } from "@/components/voluntarios/TabKanbanVol";
 
 // ─── TAB VOLUNTARIOS ──────────────────────────────────────────────────────────
 function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda, filtroEstado, setFiltroEstado, filtroPuesto, setFiltroPuesto, onUpdate, onBulkUpdate, onDelete, onNuevo, onEditar, onFicha }) {
+  const [vistaKanban, setVistaKanban] = useState(false);
   const [seleccionados, setSeleccionados] = useState([]);
   const [modoSeleccion, setModoSeleccion] = useState(false);
 
@@ -69,6 +71,24 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
           <div className="page-desc">{todosVols.length} registrados · {voluntarios.length} mostrados · click para abrir ficha</div>
         </div>
         <div style={{ display:"flex", gap:".5rem" }}>
+          {/* Toggle Lista / Kanban */}
+          <div style={{
+            display:"flex", border:"1px solid var(--border)",
+            borderRadius:8, overflow:"hidden", flexShrink:0,
+          }}>
+            <button
+              className={`btn btn-sm${!vistaKanban ? " btn-cyan" : " btn-ghost"}`}
+              style={{ borderRadius:0, border:"none", padding:".3rem .65rem" }}
+              title="Vista lista"
+              onClick={() => setVistaKanban(false)}
+            >☰ Lista</button>
+            <button
+              className={`btn btn-sm${vistaKanban ? " btn-cyan" : " btn-ghost"}`}
+              style={{ borderRadius:0, border:"none", borderLeft:"1px solid var(--border)", padding:".3rem .65rem" }}
+              title="Vista Kanban"
+              onClick={() => setVistaKanban(true)}
+            >⬛ Kanban</button>
+          </div>
           <button className="btn btn-ghost" aria-label="Exportar lista de voluntarios"
             onClick={() => {
               const activos = todosVols.filter(v => v.estado !== "cancelado");
@@ -242,8 +262,18 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
           )}
         </div>
       )}
+      {/* Vista Kanban — renderizada en lugar del listado cuando está activa */}
+      {vistaKanban && (
+        <TabKanbanVol
+          voluntarios={voluntarios}
+          puestos={puestos}
+          onUpdate={onUpdate}
+          onFicha={onFicha}
+        />
+      )}
+
       {/* Listado agrupado por estado — cada grupo colapsable */}
-      {volsOrdenados.length === 0 ? (
+      {!vistaKanban && (volsOrdenados.length === 0 ? (
         <EmptyState
           svg="people" color="var(--cyan)"
           title="Sin voluntarios"
@@ -415,7 +445,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
           })}
             <PaginadorUI />
       </div>
-      )}
+      ))}
 
     </>
   );

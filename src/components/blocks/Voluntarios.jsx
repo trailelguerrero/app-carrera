@@ -31,6 +31,7 @@ import { FichaPuesto } from "@/components/voluntarios/FichaPuesto";
 import { ModalVoluntario } from "@/components/voluntarios/ModalVoluntario";
 import { ModalPuesto } from "@/components/voluntarios/ModalPuesto";
 import { ModalConfirm } from "@/components/voluntarios/ModalConfirmar";
+import { ModalMensaje } from "@/components/voluntarios/ModalMensaje";
 
 import { blockCls as cls } from "@/lib/blockStyles";
 import SkeletonBlock from "@/components/common/SkeletonBlock";
@@ -153,6 +154,7 @@ export default function App() {
   const [filtroPuesto, setFiltroPuesto] = useState("todos");
   const [modalVol, setModalVol] = useState(null); // null | "nuevo" | voluntario
   const [modalPuesto, setModalPuesto] = useState(null);
+  const [modalMensaje, setModalMensaje] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmDeletePuesto, setConfirmDeletePuesto] = useState(null);
   // Ref para capturar el ID a eliminar antes de cualquier setState — solución definitiva al bug de eliminación
@@ -379,6 +381,7 @@ export default function App() {
         onVolver={() => setVista("gestion")}
         puestos={puestos}
         config={config}
+        voluntarios={voluntarios}
         onRegistrar={(data) => { addVoluntario(data); setVista("gestion"); setTab("voluntarios"); }}
       />
     </AppShell>
@@ -427,6 +430,11 @@ export default function App() {
               🎯 {stats.coberturaGlobal}% cobertura
             </span>
             <button className="btn btn-primary" onClick={() => setModalVol("nuevo")}>+ Voluntario</button>
+            <button className="btn btn-ghost btn-sm"
+              onClick={() => setModalMensaje(true)}
+              title="Generar mensaje de instrucciones para voluntarios">
+              📨 Instrucciones
+            </button>
             <button className="btn btn-ghost btn-sm"
               onClick={() => exportarVoluntarios(voluntarios, puestos)}
               title="Exportar lista de voluntarios a Excel">
@@ -524,6 +532,7 @@ export default function App() {
         <FichaVoluntario
           voluntario={ficha.data} puestos={puestos}
           locs={locs} matPorLoc={matPorLoc}
+          config={config}
           onClose={() => setFicha(null)}
           onEditar={() => { const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"}); setFicha(null); setModalVol(ficha.data); }}
           onEliminar={() => {
@@ -574,6 +583,7 @@ export default function App() {
       , document.body)}
       {confirmDelete && createPortal(<ModalConfirm zIndex={400} mensaje="¿Eliminar este voluntario? Esta acción no se puede deshacer." onConfirm={() => ejecutarEliminacion(confirmDelete)} onCancel={() => { setConfirmDelete(null); pendingDeleteRef.current = null; }} />, document.body)}
       {confirmDeletePuesto && createPortal(<ModalConfirm zIndex={400} mensaje="¿Eliminar este puesto? Los voluntarios asignados quedarán sin puesto." onConfirm={() => { deletePuesto(confirmDeletePuesto); setConfirmDeletePuesto(null); }} onCancel={() => setConfirmDeletePuesto(null)} />, document.body)}
+      {modalMensaje && <ModalMensaje config={config} onClose={() => setModalMensaje(false)} />}
     </AppShell>
   );
 }

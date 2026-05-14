@@ -114,11 +114,91 @@ function MensajeOrganizadorEdit({ valor, onChange }) {
   );
 }
 
-function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClose, onEditar, onEliminar, onEliminarConfirmado, onUpdate }) {
+function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClose, onEditar, onEliminar, onEliminarConfirmado, onUpdate, config }) {
   const { closing: fvClosing, handleClose: fvHandleClose } = useModalClose(onClose);
   const [confirmando, setConfirmando] = useState(false);
   const puesto = puestos.find(p => p.id === v.puestoId);
   const estadoColor = v.estado === "confirmado" ? "var(--green)" : v.estado === "cancelado" ? "var(--red)" : "var(--amber)";
+
+  // [VOL-05] Certificado de participación — solo si confirmado y evento ya pasado
+  const cfgEvento = config || {};
+  const fechaEvento = cfgEvento.fecha ? new Date(cfgEvento.fecha) : null;
+  const eventoYaPaso = fechaEvento && fechaEvento < new Date();
+  const nombreCompleto = [v.nombre, v.apellidos].filter(Boolean).join(" ") || "Voluntario/a";
+  const puestoNombre = puestos?.find(p => p.id === v.puestoId)?.nombre || "voluntario/a general";
+
+  function generarCertificadoPDF() {
+    const nombreEvento = cfgEvento.nombre || "Trail El Guerrero";
+    const edicion = cfgEvento.edicion || "";
+    const fechaStr = fechaEvento
+      ? fechaEvento.toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })
+      : "";
+    const win = window.open("", "_blank", "width=900,height=650");
+    if (!win) return;
+    win.document.write(`<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Certificado — ${nombreCompleto}</title>
+  <style>
+    @page { size: A4 landscape; margin: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Georgia, 'Times New Roman', serif;
+      background: #fff;
+      width: 297mm; height: 210mm;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .cert {
+      width: 270mm; height: 190mm;
+      border: 8px solid #1a1a2e;
+      border-radius: 12px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 20mm 24mm;
+      text-align: center;
+      position: relative;
+      background: #fafafa;
+    }
+    .cert::before {
+      content: "";
+      position: absolute; inset: 10px;
+      border: 2px solid #e8c84a;
+      border-radius: 6px;
+      pointer-events: none;
+    }
+    .logo { width: 64px; height: 64px; object-fit: contain; margin-bottom: 12px; }
+    .titulo { font-size: 13pt; letter-spacing: 4px; text-transform: uppercase; color: #555; margin-bottom: 8px; }
+    .certifica { font-size: 10pt; color: #888; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 14px; }
+    .nombre { font-size: 28pt; color: #1a1a2e; font-weight: bold; margin-bottom: 10px; border-bottom: 2px solid #e8c84a; padding-bottom: 8px; }
+    .desc { font-size: 12pt; color: #444; line-height: 1.7; max-width: 480px; margin: 0 auto 18px; }
+    .meta { font-size: 9pt; color: #999; letter-spacing: 1px; }
+    .firma { margin-top: 20px; border-top: 1px solid #ccc; padding-top: 8px; font-size: 9pt; color: #888; }
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <div class="cert">
+    <img class="logo" src="${window.location.origin}/logo.webp" alt="Logo ${nombreEvento}" onerror="this.style.display='none'">
+    <div class="titulo">Certificado de participación</div>
+    <div class="certifica">La organización certifica que</div>
+    <div class="nombre">${nombreCompleto}</div>
+    <div class="desc">
+      ha participado como voluntario/a en el puesto de<br>
+      <strong>${puestoNombre}</strong><br>
+      durante la celebración de
+    </div>
+    <div class="titulo">${nombreEvento}${edicion ? " · " + edicion : ""}</div>
+    <div class="meta">${fechaStr}</div>
+    <div class="firma">Firma de la organización ___________________________</div>
+  </div>
+  <script>window.onload = () => { window.print(); }<\/script>
+</body>
+</html>`);
+    win.document.close();
+  }
   const iniciales = (n) => (n||"V").split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
   // Material asignado en Logística para la localización del puesto del voluntario
   const loc = puesto ? locs.find(l => l.id === puesto.localizacionId) : null;
@@ -311,14 +391,24 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
           </div>
         )}
         {onUpdate && v.estado === "confirmado" && (
-          <div style={{ padding:"0.5rem 1.25rem", borderTop:"1px solid var(--border)" }}>
+          <div style={{ padding:"0.5rem 1.25rem", borderTop:"1px solid var(--border)", display:"flex", gap:".5rem", flexWrap:"wrap" }}>
             <button
               className="btn btn-ghost"
-              style={{ width:"100%", fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
+              style={{ flex:1, fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
                 color:"var(--text-muted)" }}
               onClick={() => onUpdate({ estado:"pendiente" })}>
               ↩ Mover a pendiente
             </button>
+            {eventoYaPaso && (
+              <button
+                className="btn btn-ghost"
+                style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
+                  color:"var(--amber)", borderColor:"rgba(232,200,74,.4)" }}
+                onClick={generarCertificadoPDF}
+                title="Generar certificado de participación (PDF)">
+                🎖️ Certificado
+              </button>
+            )}
           </div>
         )}
         <div className="modal-footer" style={{ justifyContent:"space-between" }}>

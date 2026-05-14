@@ -16,8 +16,9 @@ import {
   SK_VOL_OPCION_EMAIL, SK_VOL_OPCION_EMERGENCIA,
 } from "@/constants/storageKeys";
 
-export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgProp }) {
+export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgProp, voluntarios: volsProp }) {
   const config = cfgProp || EVENT_CONFIG_DEFAULT;
+  const vols = volsProp || [];
 
   // Lee directamente de storage — misma fuente que VoluntarioPortal y Configuracion
   const [imgF]             = useData(SK_VOL_IMG_FRONT,       SHIRT_PLACEHOLDER_FRONT);
@@ -30,6 +31,7 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
   const [form, setForm] = useState({ nombre: "", apellidos: "", telefono: "", email: "", talla: "", puestoId: "", coche: false, telefonoEmergencia: "", contactoEmergencia: "", website: "" });
   const [enviado, setEnviado] = useState(false);
   const [errores, setErrores] = useState({});
+  const [telefonoDuplicado, setTelefonoDuplicado] = useState(false);
   const [lightbox, setLightbox] = useState(null); // null | "front" | "back"
   const [guiaTallas, setGuiaTallas] = useState(false);
 
@@ -298,7 +300,31 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
             </div>
 
             <FormField label="Teléfono *" error={errores.telefono} hint="Se usará para coordinación el día de carrera">
-              <input className="pub-input" placeholder="612 345 678" value={form.telefono} onChange={e => update("telefono", e.target.value)} inputMode="tel" />
+              <input
+                className="pub-input"
+                placeholder="612 345 678"
+                value={form.telefono}
+                onChange={e => { update("telefono", e.target.value); setTelefonoDuplicado(false); }}
+                onBlur={() => {
+                  const tel = form.telefono.replace(/\s/g, "");
+                  if (tel.length >= 9 && vols.some(v => v.telefono && v.telefono.replace(/\s/g, "") === tel)) {
+                    setTelefonoDuplicado(true);
+                  }
+                }}
+                inputMode="tel"
+              />
+              {telefonoDuplicado && (
+                <div style={{
+                  fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+                  color: "var(--amber)", marginTop: ".3rem",
+                  display: "flex", alignItems: "center", gap: ".35rem", flexWrap: "wrap",
+                }}>
+                  ⚠ Este teléfono ya está registrado.{" "}
+                  <a href="/voluntarios/mi-ficha" style={{ color: "var(--cyan)", textDecoration: "underline" }}>
+                    ¿Quieres acceder a tu ficha? →
+                  </a>
+                </div>
+              )}
             </FormField>
 
             {opcionEmail && (
@@ -336,7 +362,21 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
               <FormField label="Puesto preferido" hint="Opcional — el organizador hará la asignación final">
                 <select className="pub-input" value={form.puestoId} onChange={e => update("puestoId", e.target.value)} style={{ appearance: "none" }}>
                   <option value="">Sin preferencia</option>
-                  {puestos.map(p => <option key={p.id} value={p.id}>{p.nombre} ({p.tipo})</option>)}
+                  {puestos.map(p => {
+                    const confirmados = vols.filter(v => v.puestoId === p.id && v.estado === "confirmado").length;
+                    const disponibles = (p.necesarios || 0) - confirmados;
+                    const completo = p.necesarios > 0 && disponibles <= 0;
+                    const label = p.necesarios > 0
+                      ? completo
+                        ? `${p.nombre} (${p.tipo}) — completo`
+                        : `${p.nombre} (${p.tipo}) · ${disponibles} plaza${disponibles !== 1 ? "s" : ""} disponible${disponibles !== 1 ? "s" : ""}`
+                      : `${p.nombre} (${p.tipo})`;
+                    return (
+                      <option key={p.id} value={p.id} disabled={completo}>
+                        {label}
+                      </option>
+                    );
+                  })}
                 </select>
               </FormField>
             )}
