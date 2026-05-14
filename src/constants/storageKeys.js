@@ -29,6 +29,10 @@ export const SK_UI_CODIGOS_INIT       = "teg_codigos_initialized";
 /** Códigos promocionales activos (IU) */
 export const SK_UI_CODIGOS_PROMO      = "teg_codigos_promo_v1";
 export const SK_UI_LAST_BACKUP        = "teg_last_backup";
+/** Backup automático JSON comprimido (CFG-02) — se sobreescribe cada 24h */
+export const SK_UI_AUTO_BACKUP        = "teg_auto_backup_v1";
+/** Timestamp ISO del último backup automático (CFG-02) */
+export const SK_UI_AUTO_BACKUP_TS     = "teg_auto_backup_ts";
 
 // ── Configuración del evento ─────────────────────────────────────────────────
 export const SK_EVENT_CONFIG = "teg_event_config_v1";

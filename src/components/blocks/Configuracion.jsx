@@ -8,6 +8,8 @@ import {
   SK_UI_CODIGOS_PROMO,
   SK_UI_CODIGOS_INIT,
   SK_UI_LAST_BACKUP,
+  SK_UI_AUTO_BACKUP,
+  SK_UI_AUTO_BACKUP_TS,
   SK_UI_ONBOARDING_DONE,
   SK_PAT_LOG_PREFIX,
   SK_EVENT_CONFIG,
@@ -145,6 +147,64 @@ export default function Configuracion() {
   const dirty = draft !== null;
 
   // Cargar los códigos iniciales si el array está vacío
+  // ── CFG-02: Backup automático cada 24h al montar el módulo Configuración ────
+  useEffect(() => {
+    const INTERVALO_MS = 24 * 60 * 60 * 1000; // 24 horas
+    const tsAnterior = localStorage.getItem(SK_UI_AUTO_BACKUP_TS);
+    const hasPasado24h = !tsAnterior || (Date.now() - new Date(tsAnterior).getTime()) >= INTERVALO_MS;
+
+    if (!hasPasado24h) return;
+
+    // Recopilar todos los datos (misma lógica que handleExport pero sin descarga)
+    const autoBackup = {
+      version: "1.0",
+      tipo: "automatico",
+      fecha: new Date().toISOString(),
+      evento: form.nombre + " " + form.edicion,
+      datos: {}
+    };
+
+    const keysAuto = [
+      SK_EVENT_CONFIG, SK_PPTO_TRAMOS, SK_PPTO_CONCEPTOS, SK_PPTO_INSCRITOS,
+      SK_PPTO_INGRESOS_EXTRA, SK_PPTO_MERCHANDISING, SK_PPTO_MAXIMOS,
+      SK_VOL_VOLUNTARIOS, SK_VOL_PUESTOS,
+      SK_PAT_PATS, SK_PAT_OBJ,
+      SK_LOG_MAT, SK_LOG_ASIG, SK_LOG_VEH, SK_LOG_RUT, SK_LOG_TL,
+      SK_LOG_CONT, SK_LOG_INC, SK_LOG_CK,
+      SK_LOC_LOCALIZACIONES,
+      SK_PROY_TAREAS, SK_PROY_HITOS, SK_PROY_EQUIPO,
+      SK_DOC_DOCS, SK_DOC_GESTIONES,
+      SK_CAM_PEDIDOS, SK_CAM_COSTE,
+    ];
+
+    for (const key of keysAuto) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw) autoBackup.datos[key] = JSON.parse(raw);
+      } catch { /* clave no parseable — se omite */ }
+    }
+
+    // También incluir logs dinámicos de patrocinadores
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(SK_PAT_LOG_PREFIX)) {
+        try { const raw = localStorage.getItem(k); if (raw) autoBackup.datos[k] = JSON.parse(raw); } catch { /* omite */ }
+      }
+    }
+
+    try {
+      const json = JSON.stringify(autoBackup);
+      // Solo guardar si el JSON entra en localStorage (evitar QuotaExceededError)
+      localStorage.setItem(SK_UI_AUTO_BACKUP, json);
+      localStorage.setItem(SK_UI_AUTO_BACKUP_TS, autoBackup.fecha);
+      localStorage.setItem(SK_UI_LAST_BACKUP, autoBackup.fecha);
+      console.info("[CFG-02] Backup automático generado:", autoBackup.fecha);
+    } catch {
+      console.warn("[CFG-02] Backup automático no guardado (sin espacio)");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Solo al montar — no repetir en cada render
+
   // Usamos useEffect para evitar side effects en render
   const codigosRef = useRef(codigos);
   useEffect(() => {
@@ -602,9 +662,22 @@ export default function Configuracion() {
               </div>
             );
           })()}
+          {/* CFG-02: indicador de backup automático */}
+          {(() => {
+            const tsAuto = localStorage.getItem(SK_UI_AUTO_BACKUP_TS);
+            if (!tsAuto) return null;
+            const diasAuto = Math.floor((Date.now() - new Date(tsAuto).getTime()) / 86400000);
+            return (
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--green)", marginBottom: ".5rem" }}>
+                🤖 Backup automático: {diasAuto === 0 ? "hoy" : diasAuto === 1 ? "ayer" : `hace ${diasAuto} días`}
+                {" · "}{new Date(tsAuto).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })}
+              </div>
+            );
+          })()}
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)", marginBottom: "1rem", lineHeight: 1.6 }}>
             Exporta todos los datos de la app a un archivo JSON para hacer copias de seguridad
             o trasladar los datos a otro dispositivo. También puedes exportar listas concretas a CSV.
+            El backup automático se genera al abrir esta sección, cada 24 horas.
           </div>
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: ".6rem", marginBottom: "1rem" }}>

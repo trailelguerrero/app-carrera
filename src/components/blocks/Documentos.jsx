@@ -42,15 +42,15 @@ const SUBCATEGORIAS = {
 // Gestiones legales predefinidas (registro sin archivo)
 const GESTIONES_DEFAULT = [
   { id:"g1", nombre:"Autorización Ayuntamiento Candeleda", subcategoria:"Ayuntamiento",
-    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Solicitud prevista reunión con alcaldía. Renovar anualmente.", url:"", fechaSubida: "" },
+    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Solicitud prevista reunión con alcaldía. Renovar anualmente.", url:"", fechaSubida: "", responsable: "" },
   { id:"g2", nombre:"Licencia federativa colectiva (FEMM)", subcategoria:"Federación",
-    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Federación Española Montaña y Escalada. Requiere seguro RC previo.", url:"", fechaSubida: "" },
+    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Federación Española Montaña y Escalada. Requiere seguro RC previo.", url:"", fechaSubida: "", responsable: "" },
   { id:"g3", nombre:"Seguro Responsabilidad Civil", subcategoria:"Seguro RC",
-    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Mínimo 600.000 € cobertura. Pedir presupuesto a Mapfre y Allianz.", url:"", fechaSubida: "" },
+    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Mínimo 600.000 € cobertura. Pedir presupuesto a Mapfre y Allianz.", url:"", fechaSubida: "", responsable: "" },
   { id:"g4", nombre:"Autorización Medio Ambiente / JCYL", subcategoria:"Medio Ambiente",
-    estado:"pendiente", fechaVencimiento:"2026-06-30", nota:"Necesaria para uso de montes de utilidad pública.", url:"", fechaSubida: "" },
+    estado:"pendiente", fechaVencimiento:"2026-06-30", nota:"Necesaria para uso de montes de utilidad pública.", url:"", fechaSubida: "", responsable: "" },
   { id:"g5", nombre:"Protocolo Cruz Roja / Servicio médico", subcategoria:"Cruz Roja",
-    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Ambulancia + 2 sanitarios titulados. Confirmar antes del 15 mayo.", url:"", fechaSubida: "" },
+    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Ambulancia + 2 sanitarios titulados. Confirmar antes del 15 mayo.", url:"", fechaSubida: "", responsable: "" },
 ];
 
 // Estados del documento con colores
@@ -115,7 +115,7 @@ export default function Documentos() {
   const [editForm, setEditForm] = useState({});
   // Modal nueva gestión
   const [gModal, setGModal] = useState(false);
-  const [gForm, setGForm]   = useState({ nombre:"", subcategoria:"Ayuntamiento", estado:"pendiente", fechaVencimiento:"", nota:"", url:"" });
+  const [gForm, setGForm]   = useState({ nombre:"", subcategoria:"Ayuntamiento", estado:"pendiente", fechaVencimiento:"", nota:"", url:"", responsable:"" });
   const [gEditId, setGEditId]     = useState(null);
   const [logGestionId, setLogGestionId] = useState(null); // ID de gestión con log abierto
   const [nuevoLog, setNuevoLog]         = useState("");    // texto del nuevo log entry
@@ -1133,7 +1133,7 @@ export default function Documentos() {
               </span>
             )}
             <button className="btn btn-primary btn-sm" onClick={()=>{
-              setGForm({nombre:"",subcategoria:"Ayuntamiento",estado:"pendiente",fechaVencimiento:"",nota:"",url:""});
+              setGForm({nombre:"",subcategoria:"Ayuntamiento",estado:"pendiente",fechaVencimiento:"",nota:"",url:"",responsable:""});
               setGEditId(null); setGModal(true);
             }}>+ Nueva gestión</button>
           </div>
@@ -1171,6 +1171,8 @@ export default function Documentos() {
                       <div><label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",display:"block",marginBottom:".2rem"}}>URL / Referencia</label>
                         <input className="inp inp-sm" value={gForm.url||""} onChange={e=>setGForm(p=>({...p,url:e.target.value}))} placeholder="https://…" /></div>
                     </div>
+                    <div><label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",display:"block",marginBottom:".2rem"}}>Responsable</label>
+                        <input className="inp inp-sm" value={gForm.responsable||""} onChange={e=>setGForm(p=>({...p,responsable:e.target.value}))} placeholder="Nombre del responsable…" /></div>
                     <textarea className="inp" rows={2} value={gForm.nota||""} onChange={e=>setGForm(p=>({...p,nota:e.target.value}))} placeholder="Notas…" style={{resize:"vertical"}} />
                     <div style={{display:"flex",gap:".4rem"}}>
                       <button className="btn btn-primary btn-sm" onClick={()=>{
@@ -1214,6 +1216,11 @@ export default function Documentos() {
                         {g.url && <a href={g.url} target="_blank" rel="noreferrer" style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#38bdf8"}} onClick={e=>e.stopPropagation()}>🔗 Ver enlace</a>}
                       </div>
                       {g.nota && <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginTop:".25rem",lineHeight:1.5}}>{g.nota}</div>}
+                      {g.responsable && (
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginTop:".2rem"}}>
+                          👤 <span style={{color:"var(--text)"}}>{g.responsable}</span>
+                        </div>
+                      )}
 
                       {/* Log de comunicaciones — expandible */}
                       {((g.log||[]).length > 0 || logGestionId === g.id) && (
@@ -1304,7 +1311,7 @@ export default function Documentos() {
                         ＋ Tarea
                       </button>
                       <button className="btn btn-ghost btn-sm" style={{flexShrink:0}} onClick={()=>{
-                        setGForm({nombre:g.nombre,subcategoria:g.subcategoria||"Ayuntamiento",estado:g.estado,fechaVencimiento:g.fechaVencimiento||"",nota:g.nota||"",url:g.url||""});
+                        setGForm({nombre:g.nombre,subcategoria:g.subcategoria||"Ayuntamiento",estado:g.estado,fechaVencimiento:g.fechaVencimiento||"",nota:g.nota||"",url:g.url||"",responsable:g.responsable||""});
                         setGEditId(g.id);
                       }}>✏️</button>
                     </div>
@@ -1404,6 +1411,10 @@ export default function Documentos() {
                   <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>URL / Referencia</label>
                   <input className="inp" value={gForm.url} onChange={e=>setGForm(p=>({...p,url:e.target.value}))} placeholder="https://…" />
                 </div>
+              </div>
+              <div>
+                <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Responsable</label>
+                <input className="inp" value={gForm.responsable||""} onChange={e=>setGForm(p=>({...p,responsable:e.target.value}))} placeholder="Nombre del responsable…" />
               </div>
               <div>
                 <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Notas</label>
