@@ -780,6 +780,50 @@ export default function Configuracion() {
               </div>
             </div>
           </div>
+          {/* ── Día de la carrera (PORTAL-03) ── */}
+          <div style={{ borderTop: "1px solid var(--border)", paddingTop: ".85rem", marginTop: ".75rem" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: ".35rem" }}>
+              🏁 Día de la carrera
+            </div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)", marginBottom: ".65rem", lineHeight: 1.6 }}>
+              Estos datos aparecen automáticamente en el portal del voluntario 7 días antes del evento.
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: ".65rem" }}>
+              <div className="cfg-field">
+                <label className="cfg-label">Hora de concentración</label>
+                <input
+                  className="cfg-input"
+                  type="time"
+                  value={form.concentracionHora ?? ""}
+                  onChange={e => upd("concentracionHora", e.target.value)}
+                  placeholder="07:00"
+                />
+                <div className="cfg-hint">Hora a la que los voluntarios deben estar en el punto de encuentro.</div>
+              </div>
+              <div className="cfg-field">
+                <label className="cfg-label">Punto de encuentro</label>
+                <input
+                  className="cfg-input"
+                  value={form.concentracionLugar ?? ""}
+                  onChange={e => upd("concentracionLugar", e.target.value)}
+                  placeholder="Ej: Carpa de organización junto a la línea de salida"
+                />
+                <div className="cfg-hint">Lugar exacto donde deben concentrarse los voluntarios al llegar.</div>
+              </div>
+              <div className="cfg-field">
+                <label className="cfg-label">Instrucciones generales</label>
+                <textarea
+                  className="cfg-input"
+                  rows={3}
+                  value={form.instruccionesGenerales ?? ""}
+                  onChange={e => upd("instruccionesGenerales", e.target.value)}
+                  placeholder="Ej: Llega 15 min antes de tu turno. Recoge tu peto identificativo en la carpa de organización."
+                  style={{ resize: "vertical", lineHeight: 1.6 }}
+                />
+                <div className="cfg-hint">Texto libre visible en el portal del voluntario. Si se deja vacío, no aparece ningún bloque de instrucciones.</div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* ── Imágenes de camisetas ── */}

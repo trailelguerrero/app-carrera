@@ -1222,13 +1222,7 @@ function PortalMain({ token, onLogout }) {
           // Primer organizador disponible como contacto directo
           const contacto = organizadores[0] || null;
 
-          const CHECKLIST = [
-            "DNI o documento de identidad",
-            "Ropa de abrigo (las primeras horas refresca)",
-            "Agua y algo de comer para el turno",
-            "Cargador o batería externa",
-            "Este teléfono con la app abierta",
-          ];
+          const instrucciones      = config.instruccionesGenerales || "";
 
           const esHoy     = diasHasta === 0;
           const esManiana = diasHasta === 1;
@@ -1286,21 +1280,23 @@ function PortalMain({ token, onLogout }) {
                 </div>
               </div>
 
-              {/* Checklist personal */}
-              <div className="vp-mono" style={{ fontSize:".67rem", color:"var(--text-muted)",
-                fontWeight:700, textTransform:"uppercase", letterSpacing:".05em",
-                marginBottom:".5rem" }}>
-                ✅ Lleva contigo
-              </div>
-              <div style={{ display:"flex", flexDirection:"column", gap:".3rem", marginBottom:"1rem" }}>
-                {CHECKLIST.map((item, i) => (
-                  <div key={i} style={{ display:"flex", alignItems:"center", gap:".6rem",
-                    padding:".3rem 0", borderBottom: i < CHECKLIST.length - 1 ? "1px solid var(--border)" : "none" }}>
-                    <span style={{ fontSize:".85rem", flexShrink:0, opacity:.5 }}>☐</span>
-                    <span style={{ fontSize:".85rem", color:"var(--text)", lineHeight:1.4 }}>{item}</span>
+              {/* Instrucciones del organizador — solo si están configuradas */}
+              {instrucciones && (
+                <div style={{
+                  background:"var(--surface2)", borderRadius:8,
+                  padding:".7rem .85rem", marginBottom:"1rem",
+                  borderLeft:"2px solid var(--cyan-border)"
+                }}>
+                  <div className="vp-mono" style={{ fontSize:".6rem", color:"var(--text-muted)",
+                    fontWeight:700, textTransform:"uppercase", letterSpacing:".05em",
+                    marginBottom:".4rem" }}>
+                    📋 Instrucciones
                   </div>
-                ))}
-              </div>
+                  <div style={{ fontSize:".88rem", color:"var(--text)", lineHeight:1.65 }}>
+                    {instrucciones}
+                  </div>
+                </div>
+              )}
 
               {/* Contacto directo del responsable */}
               {contacto && (

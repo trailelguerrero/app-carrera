@@ -22,8 +22,9 @@ export const EVENT_CONFIG_DEFAULT = {
   formBoton:        "✓ Registrarme como voluntario",
   formConfirmacion: "Gracias por apuntarte como voluntario. El equipo organizador se pondrá en contacto contigo próximamente.",
   // PORTAL-03: datos operativos del día de la carrera visibles en el portal del voluntario
-  concentracionHora:  "",  // Ej: "07:00" — hora de concentración de voluntarios
-  concentracionLugar: "",  // Ej: "Carpa de organización junto a la línea de salida"
+  concentracionHora:      "",  // Ej: "07:00" — hora de concentración de voluntarios
+  concentracionLugar:     "",  // Ej: "Carpa de organización junto a la línea de salida"
+  instruccionesGenerales: "",  // Ej: "Llega 15 min antes. Recoge tu peto en la carpa de organización."
 };
 
 /** @deprecated Usar SK_EVENT_CONFIG de @/constants/storageKeys */
