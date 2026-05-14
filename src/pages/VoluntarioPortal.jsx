@@ -1000,6 +1000,10 @@ function PortalMain({ token, onLogout }) {
         {[
           { id:"sec-puesto",    icon:"📍", label:"Puesto" },
           ...(companerosEnPuesto.length > 0 ? [{ id:"sec-compan", icon:"👥", label:`Equipo (${companerosEnPuesto.length})` }] : []),
+          // PORTAL-03: enlace a sección El día de la carrera (solo si diasHasta <= 7)
+          ...(config.fecha && Math.ceil((new Date(config.fecha) - new Date()) / 86400000) <= 7 && Math.ceil((new Date(config.fecha) - new Date()) / 86400000) >= 0
+            ? [{ id:"sec-diacarrera", icon:"🏁", label:"El día" }]
+            : []),
           { id:"sec-datos",    icon:"👤", label:"Mis datos" },
           ...(organizadores.length > 0 ? [{ id:"sec-contacto", icon:"📞", label:"Contacto" }] : []),
         ].map(s => (
@@ -1205,6 +1209,141 @@ function PortalMain({ token, onLogout }) {
             })}
           </div>
         )}
+
+        {/* PORTAL-03: Sección "El día de la carrera" — visible solo cuando diasHasta <= 7 */}
+        {config.fecha && (() => {
+          const diasHasta = Math.ceil((new Date(config.fecha) - new Date()) / 86400000);
+          if (diasHasta > 7 || diasHasta < 0) return null;
+
+          const horaConcentracion  = config.concentracionHora  || "";
+          const lugarConcentracion = config.concentracionLugar || "";
+          const placeholder        = "A confirmar por el organizador";
+
+          // Primer organizador disponible como contacto directo
+          const contacto = organizadores[0] || null;
+
+          const CHECKLIST = [
+            "DNI o documento de identidad",
+            "Ropa de abrigo (las primeras horas refresca)",
+            "Agua y algo de comer para el turno",
+            "Cargador o batería externa",
+            "Este teléfono con la app abierta",
+          ];
+
+          const esHoy     = diasHasta === 0;
+          const esManiana = diasHasta === 1;
+          const labelDia  = esHoy ? "🏃 ¡Hoy es el día!" : esManiana ? "⚡ ¡Mañana!" : `⚡ En ${diasHasta} días`;
+
+          return (
+            <div id="sec-diacarrera" className="vp-card" style={{
+              borderLeft:"3px solid var(--green)",
+              background:"rgba(52,211,153,.04)"
+            }}>
+              {/* Header */}
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+                marginBottom:".85rem", gap:".5rem" }}>
+                <div className="vp-label" style={{ marginBottom:0, color:"var(--green)" }}>
+                  🏁 El día de la carrera
+                </div>
+                <span className="vp-mono" style={{
+                  fontSize:".62rem", fontWeight:700,
+                  color: esHoy ? "var(--green)" : "var(--amber)",
+                  background: esHoy ? "var(--green-dim)" : "rgba(251,191,36,.1)",
+                  border: `1px solid ${esHoy ? "var(--green-border)" : "rgba(251,191,36,.3)"}`,
+                  borderRadius:4, padding:".1rem .45rem"
+                }}>{labelDia}</span>
+              </div>
+
+              {/* Concentración */}
+              <div style={{
+                display:"grid", gridTemplateColumns:"1fr 1fr", gap:".5rem",
+                marginBottom:"1rem"
+              }}>
+                <div style={{
+                  background:"var(--surface2)", borderRadius:8, padding:".65rem .8rem",
+                  borderTop:"2px solid var(--cyan)"
+                }}>
+                  <div className="vp-mono" style={{ fontSize:".6rem", color:"var(--cyan)",
+                    fontWeight:700, textTransform:"uppercase", letterSpacing:".05em", marginBottom:".3rem" }}>
+                    📍 Concentración
+                  </div>
+                  <div style={{ fontSize:".88rem", fontWeight:700, color:"var(--text)", lineHeight:1.4 }}>
+                    {lugarConcentracion || <span style={{color:"var(--text-dim)",fontWeight:400,fontSize:".78rem"}}>{placeholder}</span>}
+                  </div>
+                </div>
+                <div style={{
+                  background:"var(--surface2)", borderRadius:8, padding:".65rem .8rem",
+                  borderTop:"2px solid var(--cyan)"
+                }}>
+                  <div className="vp-mono" style={{ fontSize:".6rem", color:"var(--cyan)",
+                    fontWeight:700, textTransform:"uppercase", letterSpacing:".05em", marginBottom:".3rem" }}>
+                    🕗 Hora
+                  </div>
+                  <div style={{ fontSize:"1.15rem", fontWeight:800, color:"var(--text)",
+                    fontFamily:"var(--font-mono)", letterSpacing:".03em" }}>
+                    {horaConcentracion || <span style={{color:"var(--text-dim)",fontWeight:400,fontSize:".78rem"}}>{placeholder}</span>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Checklist personal */}
+              <div className="vp-mono" style={{ fontSize:".67rem", color:"var(--text-muted)",
+                fontWeight:700, textTransform:"uppercase", letterSpacing:".05em",
+                marginBottom:".5rem" }}>
+                ✅ Lleva contigo
+              </div>
+              <div style={{ display:"flex", flexDirection:"column", gap:".3rem", marginBottom:"1rem" }}>
+                {CHECKLIST.map((item, i) => (
+                  <div key={i} style={{ display:"flex", alignItems:"center", gap:".6rem",
+                    padding:".3rem 0", borderBottom: i < CHECKLIST.length - 1 ? "1px solid var(--border)" : "none" }}>
+                    <span style={{ fontSize:".85rem", flexShrink:0, opacity:.5 }}>☐</span>
+                    <span style={{ fontSize:".85rem", color:"var(--text)", lineHeight:1.4 }}>{item}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Contacto directo del responsable */}
+              {contacto && (
+                <div style={{
+                  background:"var(--surface2)", borderRadius:8, padding:".65rem .85rem",
+                  borderLeft:"2px solid var(--cyan-border)"
+                }}>
+                  <div className="vp-mono" style={{ fontSize:".6rem", color:"var(--text-muted)",
+                    fontWeight:700, textTransform:"uppercase", letterSpacing:".05em",
+                    marginBottom:".4rem" }}>
+                    📞 Contacto directo
+                  </div>
+                  {contacto.nombre && (
+                    <div style={{ fontWeight:700, fontSize:".9rem", marginBottom:".25rem" }}>
+                      {contacto.nombre}
+                    </div>
+                  )}
+                  {contacto.telefono && (
+                    <a
+                      href={`tel:${contacto.telefono.replace(/\s/g,"")}`}
+                      style={{ display:"flex", alignItems:"center", gap:".5rem",
+                        fontFamily:"var(--font-mono)", fontSize:"1.05rem", fontWeight:800,
+                        color:"var(--cyan)", textDecoration:"none" }}
+                    >
+                      📞 {contacto.telefono}
+                    </a>
+                  )}
+                </div>
+              )}
+
+              {/* CTA final tranquilizador */}
+              <div className="vp-mono" style={{
+                marginTop:".85rem", fontSize:".7rem", color:"var(--text-dim)",
+                textAlign:"center", lineHeight:1.6,
+                padding:".4rem", background:"rgba(52,211,153,.06)",
+                borderRadius:6, border:"1px solid rgba(52,211,153,.15)"
+              }}>
+                Cuando llegues, dirígete directamente a tu puesto 📍<br/>
+                <span style={{color:"var(--text-muted)"}}>Tu ficha tiene todos los detalles.</span>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Mis datos — PORTAL-01 */}
         {(() => {
