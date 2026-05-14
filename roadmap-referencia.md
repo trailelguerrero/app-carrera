@@ -376,3 +376,56 @@ Registrar: total tests, passed, failed, skipped. Si hay tests rojos, hacer pasar
 ---
 
 *Última actualización: 2026-05-10*
+
+---
+
+## Bugs económicos pendientes — sesión 2026-05-14
+
+> Identificados durante el análisis de inconsistencias entre el bloque Presupuesto y el Dashboard.
+> `BUG-ECO-01` ya está resuelto (commit `d9afb44`). Los dos siguientes quedan pendientes para F10.
+
+---
+
+### BUG-ECO-01 ✅ RESUELTO — Divergencia en cálculo de camisetas (commit `d9afb44`)
+
+- **Causa:** `useBudgetLogic.totalMerchBeneficio` usaba lógica manual que omitía el coste de camisetas de corredor externo (plataforma), voluntarios y niños. El Dashboard usaba `calculateCosteCamisetasDesglosado` que sí los incluía.
+- **Impacto:** el resultado del Presupuesto era más optimista que el del Dashboard en una cantidad igual al coste de fabricación de esas camisetas. Con 100 corredores y 30 voluntarios, la diferencia típica era de 1.000–1.500 €.
+- **Fix aplicado:** `useBudgetLogic` ahora usa `calculateCosteCamisetasDesglosado` como única fuente de verdad, igual que el Dashboard.
+
+---
+
+### BUG-ECO-02 — Dashboard puede mostrar datos de patrocinadores obsoletos
+
+- **Impacto:** 🟡 Medio — el KPI de resultado en el Dashboard puede estar desactualizado si el usuario modifica patrocinadores sin que se dispare el evento `teg-sync`.
+- **Causa:** `useDashboardData` lee un snapshot de `localStorage` y solo se actualiza al cargar la página o al recibir el evento `teg-sync`. `useBudgetLogic` usa el hook reactivo `useData` que siempre tiene el valor en tiempo real.
+- **Archivos afectados:** `src/hooks/useDashboardData.js`, `src/components/blocks/Patrocinadores.jsx` (el emisor de `teg-sync`)
+- **Diagnóstico detallado:**
+  - `useDashboardData` hace `localStorage.getItem(key)` en un efecto inicial y en el handler de `teg-sync`.
+  - Si `teg-sync` no se emite al guardar un patrocinador (por ejemplo, si la acción de guardado falla silenciosamente o el evento se pierde), el Dashboard queda desincronizado hasta la siguiente recarga.
+- **Corrección propuesta:** Auditar todos los puntos de guardado del módulo Patrocinadores para garantizar que siempre emiten `teg-sync` al persistir. Añadir test de regresión que verifique la emisión del evento.
+- **Fase:** F10
+- **Esfuerzo estimado:** 2–4 horas
+- **Criterio de aceptación:** modificar el importe de un patrocinador en el módulo Patrocinadores actualiza el KPI de resultado en el Dashboard sin necesidad de recargar la página.
+
+---
+
+### BUG-ECO-03 — Pedidos de camisetas cancelados se contabilizan como coste en el Dashboard
+
+- **Impacto:** 🟡 Medio — el resultado del Dashboard es ligeramente más pesimista de lo real cuando existen pedidos cancelados.
+- **Causa:** `calculateCosteCamisetasDesglosado` (usado por el Dashboard) suma el coste de **todas** las líneas de pedido sin filtrar por `estadoPago`. `useBudgetLogic` en cambio filtraba solo las líneas con `estadoPago === "pagado" || "pendiente"`, excluyendo las canceladas.
+- **Archivos afectados:** `src/lib/budgetUtils.js` — función `calculateCosteCamisetasDesglosado`
+- **Corrección propuesta:** en `calculateCosteCamisetasDesglosado`, filtrar `extrasLineas` para excluir líneas con `estadoPago === "cancelado"` antes de calcular el coste:
+  ```js
+  // ANTES:
+  const extrasLineas = lineas;
+  // DESPUÉS:
+  const extrasLineas = lineas.filter(l => l.estadoPago !== "cancelado");
+  ```
+- **Nota:** este fix debe aplicarse en la misma función que el resto del código ya usa como fuente de verdad, de modo que ambos bloques sigan alineados tras BUG-ECO-01.
+- **Fase:** F10
+- **Esfuerzo estimado:** 30 minutos + test de regresión
+- **Criterio de aceptación:** un pedido con estado `cancelado` no incrementa el coste total de camisetas ni reduce el resultado neto.
+
+---
+
+*Registro actualizado: 2026-05-14 — sesión de análisis económico*
