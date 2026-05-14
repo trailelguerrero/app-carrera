@@ -10,6 +10,7 @@ import {
   calculatePEGlobal,
   calculateMerchTotales,
   calculateIngresosDesglosados,
+  calculateResultadoFinanciero,
 } from "../lib/budgetUtils";
 
 // ─── FIXTURES ──────────────────────────────────────────────────────────────────
@@ -326,5 +327,163 @@ describe("calculateIngresosDesglosados", () => {
     const r = calculateIngresosDesglosados(tramos, inscritos);
     expect(r.inscritosReales.TG7).toBe(50);
     expect(r.inscritosEstimados.TG7).toBe(30);
+  });
+});
+
+// ─── TEST-03 · calculateResultadoFinanciero — 4 escenarios del criterio ───────
+// Criterio de aceptación F15: superávit, déficit, equilibrio exacto, sin datos.
+
+describe("calculateResultadoFinanciero — escenario SUPERÁVIT", () => {
+  // Arrange: ingresos de inscripciones superan costes fijos + variables
+  const params = {
+    totalIngresos:    15000,
+    totalCostesFijos:  6000,
+    totalCostesVars:   4000,
+    pats: [],
+    ingresosExtra: [],
+    camPedidos: [],
+    camCoste: { corredor: 8, voluntario: 7, nino: 6 },
+    camCorredoresExt: {}, camPrecioCorrExt: 0, camNinoExt: {}, camVoluntarios: [],
+    merchandising: [],
+    syncConfig: { patrocinios: false, patrociniosCobrado: false, camisetas: false },
+  };
+
+  it("resultado es positivo (ingresos > costes)", () => {
+    // Act
+    const r = calculateResultadoFinanciero(params);
+    // Assert
+    expect(r.resultado).toBeGreaterThan(0);
+    expect(r.resultado).toBe(5000); // 15000 - 6000 - 4000
+  });
+
+  it("ROI es positivo en superávit", () => {
+    const r = calculateResultadoFinanciero(params);
+    expect(r.roiGlobal).toBeGreaterThan(0);
+    // ROI = (15000 - 10000) / 10000 * 100 = 50
+    expect(r.roiGlobal).toBe(50);
+  });
+
+  it("totalIngresosBrutos coincide con totalIngresos cuando no hay extras", () => {
+    const r = calculateResultadoFinanciero(params);
+    expect(r.totalIngresosBrutos).toBe(params.totalIngresos);
+  });
+});
+
+describe("calculateResultadoFinanciero — escenario DÉFICIT", () => {
+  // Arrange: costes superan los ingresos
+  const params = {
+    totalIngresos:    5000,
+    totalCostesFijos:  6000,
+    totalCostesVars:   3000,
+    pats: [],
+    ingresosExtra: [],
+    camPedidos: [],
+    camCoste: { corredor: 8, voluntario: 7, nino: 6 },
+    camCorredoresExt: {}, camPrecioCorrExt: 0, camNinoExt: {}, camVoluntarios: [],
+    merchandising: [],
+    syncConfig: { patrocinios: false, patrociniosCobrado: false, camisetas: false },
+  };
+
+  it("resultado es negativo (costes > ingresos)", () => {
+    // Act
+    const r = calculateResultadoFinanciero(params);
+    // Assert
+    expect(r.resultado).toBeLessThan(0);
+    expect(r.resultado).toBe(-4000); // 5000 - 6000 - 3000
+  });
+
+  it("ROI es negativo en déficit", () => {
+    const r = calculateResultadoFinanciero(params);
+    expect(r.roiGlobal).toBeLessThan(0);
+    // ROI = (5000 - 9000) / 9000 * 100 = -44 (redondeado)
+    expect(r.roiGlobal).toBe(-44);
+  });
+
+  it("un patrocinio activo reduce el déficit", () => {
+    // Arrange: añadir un patrocinador confirmado de 2000€
+    const conPat = {
+      ...params,
+      pats: [{ importe: 2000, estado: "confirmado", especie: false }],
+      ingresosExtra: [{ activo: true, syncKey: "patrocinios", valor: 0 }],
+    };
+    // Act
+    const r = calculateResultadoFinanciero(conPat);
+    // Assert: el déficit se reduce de -4000 a -2000
+    expect(r.resultado).toBe(-2000);
+  });
+});
+
+describe("calculateResultadoFinanciero — escenario EQUILIBRIO EXACTO", () => {
+  // Arrange: ingresos === costes exactamente
+  const params = {
+    totalIngresos:    10000,
+    totalCostesFijos:  6000,
+    totalCostesVars:   4000,
+    pats: [],
+    ingresosExtra: [],
+    camPedidos: [],
+    camCoste: { corredor: 8, voluntario: 7, nino: 6 },
+    camCorredoresExt: {}, camPrecioCorrExt: 0, camNinoExt: {}, camVoluntarios: [],
+    merchandising: [],
+    syncConfig: { patrocinios: false, patrociniosCobrado: false, camisetas: false },
+  };
+
+  it("resultado es exactamente 0", () => {
+    // Act
+    const r = calculateResultadoFinanciero(params);
+    // Assert
+    expect(r.resultado).toBe(0);
+  });
+
+  it("ROI es 0 en equilibrio exacto", () => {
+    const r = calculateResultadoFinanciero(params);
+    expect(r.roiGlobal).toBe(0);
+  });
+
+  it("totalIngresosBrutos === totalCostesFijos + totalCostesVars", () => {
+    const r = calculateResultadoFinanciero(params);
+    expect(r.totalIngresosBrutos).toBe(params.totalCostesFijos + params.totalCostesVars);
+  });
+});
+
+describe("calculateResultadoFinanciero — escenario SIN DATOS (cero)", () => {
+  // Arrange: todo a cero — caso de app recién instalada
+  const params = {
+    totalIngresos:    0,
+    totalCostesFijos:  0,
+    totalCostesVars:   0,
+    pats: [],
+    ingresosExtra: [],
+    camPedidos: [],
+    camCoste: { corredor: 8, voluntario: 7, nino: 6 },
+    camCorredoresExt: {}, camPrecioCorrExt: 0, camNinoExt: {}, camVoluntarios: [],
+    merchandising: [],
+    syncConfig: { patrocinios: false, patrociniosCobrado: false, camisetas: false },
+  };
+
+  it("resultado es 0 sin lanzar excepción", () => {
+    // Act + Assert: no debe lanzar RangeError ni dividir por cero
+    expect(() => calculateResultadoFinanciero(params)).not.toThrow();
+    const r = calculateResultadoFinanciero(params);
+    expect(r.resultado).toBe(0);
+  });
+
+  it("ROI es 0 cuando no hay costes (sin división por cero)", () => {
+    const r = calculateResultadoFinanciero(params);
+    // costes === 0 → ROI debe ser 0, no Infinity ni NaN
+    expect(r.roiGlobal).toBe(0);
+    expect(Number.isFinite(r.roiGlobal)).toBe(true);
+  });
+
+  it("totalIngresosBrutos es 0", () => {
+    const r = calculateResultadoFinanciero(params);
+    expect(r.totalIngresosBrutos).toBe(0);
+  });
+
+  it("acepta arrays vacíos y objetos vacíos sin errores", () => {
+    // Arrange: parámetros opcionales omitidos (defaults del destructuring)
+    expect(() => calculateResultadoFinanciero({
+      totalIngresos: 0, totalCostesFijos: 0, totalCostesVars: 0,
+    })).not.toThrow();
   });
 });
