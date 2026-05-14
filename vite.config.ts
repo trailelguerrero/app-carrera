@@ -4,6 +4,7 @@ const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), 
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
+import { VitePWA } from "vite-plugin-pwa";
 
 // El target del proxy se configura por entorno para evitar que dev apunte a producción.
 // En local: añade VITE_API_PROXY_TARGET=https://appcarrera.vercel.app en .env.local
@@ -30,7 +31,31 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
-  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  plugins: [
+    react(),
+    mode === "development" && componentTagger(),
+    // PWA — estrategia injectManifest para control total sobre sw.js
+    // El SW vive en public/sw.js y se copia al dist con el manifest inyectado.
+    // En desarrollo el SW no se registra (ver src/main.tsx).
+    VitePWA({
+      strategies: "injectManifest",
+      srcDir: "public",
+      filename: "sw.js",
+      // No registramos automáticamente — lo hacemos manualmente en main.tsx
+      // para poder mostrar el toast de "nueva versión disponible"
+      injectRegister: false,
+      manifest: false, // usamos nuestro public/manifest.json directamente
+      injectManifest: {
+        // Inyecta self.__WB_MANIFEST en el SW (lista de assets precacheables)
+        globPatterns: ["**/*.{js,css,webp,ico,html}"],
+        globIgnores: ["**/node_modules/**", "**/sw.js"],
+      },
+      devOptions: {
+        // El SW no se activa en dev para no interferir con el HMR
+        enabled: false,
+      },
+    }),
+  ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

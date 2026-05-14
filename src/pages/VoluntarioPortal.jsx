@@ -15,6 +15,7 @@ import {
   SK_VOL_OPCION_PUESTO, SK_VOL_OPCION_VEHICULO, SK_VOL_OPCION_EMAIL,
   SK_VOL_OPCION_EMERGENCIA, SK_VOL_VOLUNTARIOS,
 } from "@/constants/storageKeys";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 const API_BASE   = "/api/voluntarios";
 const PUBLIC_API = "/api/data/public";
@@ -2078,6 +2079,9 @@ export default function VoluntarioPortal() {
   const [regNombre,setRegNombre]= useState("");
   const [loginTelPreload, setLoginTelPreload] = useState("");
 
+  // PWA-03: detectar estado de conexión para mostrar banner offline
+  const isOnline = useOnlineStatus();
+
   const goLanding  = () => setPantalla("landing");
   const goRegistro = () => setPantalla("registro");
   const goLogin    = (tel) => { setLoginTelPreload(typeof tel === "string" ? tel : ""); setPantalla("login"); };
@@ -2090,10 +2094,33 @@ export default function VoluntarioPortal() {
     setPantalla("registro-ok");
   };
 
-  if (pantalla === "landing")      return <LandingScreen onNuevo={goRegistro} onLogin={goLogin} />;
-  if (pantalla === "registro")     return <RegistroScreen onVolver={goLanding} onRegistroOk={onRegistroOk} />;
-  if (pantalla === "registro-ok")  return <RegistroOkScreen telefono={regTel} nombre={regNombre} onAcceder={() => goLogin(regTel)} />;
-  if (pantalla === "login")        return <LoginScreen onLogin={goPortal} onVolver={goLanding} telefonoInicial={loginTelPreload} />;
-  if (pantalla === "portal")       return <PortalMain token={token} onLogout={goLogout} />;
+  // Banner offline — visible en todas las pantallas del portal
+  const bannerOffline = !isOnline && (
+    <div style={{
+      position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
+      background: "var(--teg-amber-solid, #f59e0b)",
+      color: "#08091a",
+      textAlign: "center",
+      padding: "0.45rem 1rem",
+      fontFamily: "var(--font-mono, monospace)",
+      fontSize: "var(--fs-sm, 0.8rem)",
+      fontWeight: 700,
+      letterSpacing: ".04em",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: ".5rem",
+      boxShadow: "0 2px 12px rgba(245,158,11,0.35)",
+    }}>
+      <span>⚠️</span>
+      <span>Sin conexión · Mostrando datos guardados</span>
+    </div>
+  );
+
+  if (pantalla === "landing")      return <>{bannerOffline}<LandingScreen onNuevo={goRegistro} onLogin={goLogin} /></>;
+  if (pantalla === "registro")     return <>{bannerOffline}<RegistroScreen onVolver={goLanding} onRegistroOk={onRegistroOk} /></>;
+  if (pantalla === "registro-ok")  return <>{bannerOffline}<RegistroOkScreen telefono={regTel} nombre={regNombre} onAcceder={() => goLogin(regTel)} /></>;
+  if (pantalla === "login")        return <>{bannerOffline}<LoginScreen onLogin={goPortal} onVolver={goLanding} telefonoInicial={loginTelPreload} /></>;
+  if (pantalla === "portal")       return <>{bannerOffline}<PortalMain token={token} onLogout={goLogout} /></>;
   return null;
 }

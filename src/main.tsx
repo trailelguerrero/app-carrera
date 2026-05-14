@@ -9,3 +9,43 @@ import "./styles/diacarrera.css";
 import "./styles/voluntario-portal.css";
 
 createRoot(document.getElementById("root")!).render(<App />);
+
+// ── Service Worker — solo en producción ────────────────────────────────────
+// En desarrollo el SW está desactivado (devOptions.enabled: false en vite.config)
+// para no interferir con el HMR ni cachear assets en caliente.
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/sw.js", { scope: "/" })
+      .then((registration) => {
+        // Detectar cuando hay una nueva versión disponible
+        registration.addEventListener("updatefound", () => {
+          const newWorker = registration.installing;
+          if (!newWorker) return;
+
+          newWorker.addEventListener("statechange", () => {
+            // Solo notificar si hay un SW previo activo (no en la primera instalación)
+            if (
+              newWorker.state === "installed" &&
+              navigator.serviceWorker.controller
+            ) {
+              // Disparar toast via el bus de eventos de la app
+              window.dispatchEvent(
+                new CustomEvent("teg-toast", {
+                  detail: {
+                    type: "info",
+                    message:
+                      "🔄 Nueva versión disponible — recarga para actualizar",
+                  },
+                })
+              );
+            }
+          });
+        });
+      })
+      .catch((err) => {
+        // Error de registro no es crítico — la app funciona sin SW
+        console.warn("[SW] Error al registrar el service worker:", err);
+      });
+  });
+}
