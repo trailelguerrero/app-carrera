@@ -33,6 +33,8 @@ export const SK_UI_LAST_BACKUP        = "teg_last_backup";
 export const SK_UI_AUTO_BACKUP        = "teg_auto_backup_v1";
 /** Timestamp ISO del último backup automático (CFG-02) */
 export const SK_UI_AUTO_BACKUP_TS     = "teg_auto_backup_ts";
+/** Modo evento forzado desde Dashboard (sessionStorage) — CORE-06 */
+export const SK_UI_MODO_EVENTO_FORZADO = "teg_modo_evento_forzado";
 
 // ── Configuración del evento ─────────────────────────────────────────────────
 export const SK_EVENT_CONFIG = "teg_event_config_v1";
@@ -150,7 +152,8 @@ export const SK = {
   UI_DASH_ALERTAS_OPEN: SK_UI_DASH_ALERTAS_OPEN,
   UI_CODIGOS_INIT:      SK_UI_CODIGOS_INIT,
   UI_CODIGOS_PROMO:     SK_UI_CODIGOS_PROMO,
-  UI_LAST_BACKUP:       SK_UI_LAST_BACKUP,
+  UI_LAST_BACKUP:          SK_UI_LAST_BACKUP,
+  UI_MODO_EVENTO_FORZADO:  SK_UI_MODO_EVENTO_FORZADO,
 
   // Evento
   EVENT_CONFIG: SK_EVENT_CONFIG,

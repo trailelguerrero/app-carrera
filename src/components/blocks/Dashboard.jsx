@@ -9,7 +9,7 @@ import {
   SK_LOG_MAT, SK_LOG_ASIG, SK_LOG_TL, SK_LOG_CK, SK_LOG_INC,
   SK_PROY_TAREAS, SK_PROY_HITOS,
   SK_DOC_DOCS, SK_DOC_GESTIONES,
-  SK_UI_DASH_ALERTAS_OPEN,
+  SK_UI_DASH_ALERTAS_OPEN, SK_UI_MODO_EVENTO_FORZADO,
   SK_CAM_PEDIDOS, SK_CAM_COSTE, SK_CAM_CORREDORES, SK_CAM_PRECIO_PLATAFORMA, SK_CAM_NINO,
 } from "@/constants/storageKeys";
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -75,7 +75,7 @@ export default function Dashboard() {
   const [saludExpandida, setSaludExpandida] = useState(false); // colapsada por defecto
   // Modo Evento forzado para pruebas — se resetea al cerrar la pestaña
   const [modoEventoForzado, setModoEventoForzado] = useState(
-    () => sessionStorage.getItem("teg_modo_evento_forzado") === "1"
+    () => sessionStorage.getItem(SK_UI_MODO_EVENTO_FORZADO) === "1"
   );
 
   const { rawData, loading, isRefreshing, lastUpdated, loadData } = useDashboardData(ALL_KEYS);
@@ -97,11 +97,11 @@ export default function Dashboard() {
   const enModoEvento = (d.diasHasta === 0 && !d.yaFue) || modoEventoForzado;
 
   const activarModoEvento = () => {
-    sessionStorage.setItem("teg_modo_evento_forzado", "1");
+    sessionStorage.setItem(SK_UI_MODO_EVENTO_FORZADO, "1");
     setModoEventoForzado(true);
   };
   const desactivarModoEvento = () => {
-    sessionStorage.removeItem("teg_modo_evento_forzado");
+    sessionStorage.removeItem(SK_UI_MODO_EVENTO_FORZADO);
     setModoEventoForzado(false);
   };
 
