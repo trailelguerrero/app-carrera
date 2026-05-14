@@ -266,4 +266,26 @@ All colors MUST be HSL.
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+
+  /* ── Dashboard: ocultar botones de acción del header ── */
+  .dash-header-actions {
+    display: none !important;
+  }
+
+  /* ── Dashboard: KPI grid siempre visible y en 3 columnas máx ── */
+  .kpi-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: .75rem !important;
+  }
+
+  /* ── Dashboard: ocultar el widget de inscritos inline (ocupa mucho) ── */
+  .widget-inscritos {
+    display: none !important;
+  }
+
+  /* ── Ocultar el indicador de refresco ── */
+  .dash-sync-dot {
+    display: none !important;
+  }
 }

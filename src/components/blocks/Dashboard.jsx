@@ -6,7 +6,7 @@ import {
   SK_PPTO_MERCHANDISING, SK_PPTO_SYNC_CONFIG, SK_PPTO_MAXIMOS, SK_PPTO_SCENARIO_ACTIVE,
   SK_VOL_VOLUNTARIOS, SK_VOL_PUESTOS,
   SK_PAT_PATS, SK_PAT_OBJ,
-  SK_LOG_MAT, SK_LOG_ASIG, SK_LOG_TL, SK_LOG_CK,
+  SK_LOG_MAT, SK_LOG_ASIG, SK_LOG_TL, SK_LOG_CK, SK_LOG_INC,
   SK_PROY_TAREAS, SK_PROY_HITOS,
   SK_DOC_DOCS, SK_DOC_GESTIONES,
   SK_UI_DASH_ALERTAS_OPEN,
@@ -20,9 +20,9 @@ import { KPI } from "@/components/dashboard/KPI";
 import { WidgetInscritos } from "@/components/dashboard/WidgetInscritos";
 import SeccionBanners from "@/components/dashboard/SeccionBanners";
 import SeccionHero from "@/components/dashboard/SeccionHero";
-import SeccionAcciones from "@/components/dashboard/SeccionAcciones";
-import SeccionAlertas from "@/components/dashboard/SeccionAlertas";
+import SeccionCentroControl from "@/components/dashboard/SeccionCentroControl";
 import { SeccionCharts } from "@/components/dashboard/SeccionCharts";
+import ModoEvento from "@/components/dashboard/ModoEvento";
 import dataService from "@/lib/dataService";
 
 const ALL_KEYS = {
@@ -41,6 +41,7 @@ const ALL_KEYS = {
   [SK_LOG_ASIG]:            [],
   [SK_LOG_TL]:              [],
   [SK_LOG_CK]:              [],
+  [SK_LOG_INC]:             [],
   [SK_PROY_TAREAS]:         [],
   [SK_PROY_HITOS]:          [],
   [SK_DOC_DOCS]:            [],
@@ -68,10 +69,14 @@ const TOOLTIP_STYLE = {
 
 // ─── Componente ──────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const [alertasExpandidas, setAlertasExpandidas] = useState(
+  const [avisosExpandidos, setAvisosExpandidos] = useState(
     () => localStorage.getItem(SK_UI_DASH_ALERTAS_OPEN) === "1"
-  ); // avisos: colapsados por defecto, persiste si el usuario los abre
+  ); // avisos informativos: colapsados por defecto, persiste si el usuario los abre
   const [saludExpandida, setSaludExpandida] = useState(false); // colapsada por defecto
+  // Modo Evento forzado para pruebas — se resetea al cerrar la pestaña
+  const [modoEventoForzado, setModoEventoForzado] = useState(
+    () => sessionStorage.getItem("teg_modo_evento_forzado") === "1"
+  );
 
   const { rawData, loading, isRefreshing, lastUpdated, loadData } = useDashboardData(ALL_KEYS);
   const cfg = { ...EVENT_CONFIG_DEFAULT, ...((() => { try { const r = localStorage.getItem(LS_KEY_CONFIG); return r ? JSON.parse(r) : {}; } catch { return {}; } })()) };
@@ -88,6 +93,27 @@ export default function Dashboard() {
   }
 
   const d = data;
+  // Modo Evento: se activa el día del evento (diasHasta === 0) o si está forzado para pruebas
+  const enModoEvento = (d.diasHasta === 0 && !d.yaFue) || modoEventoForzado;
+
+  const activarModoEvento = () => {
+    sessionStorage.setItem("teg_modo_evento_forzado", "1");
+    setModoEventoForzado(true);
+  };
+  const desactivarModoEvento = () => {
+    sessionStorage.removeItem("teg_modo_evento_forzado");
+    setModoEventoForzado(false);
+  };
+
+  // ─── Modo Evento ──────────────────────────────────────────────────────────
+  if (enModoEvento) {
+    return (
+      <>
+        
+        <ModoEvento d={d} onVerPanelCompleto={desactivarModoEvento} />
+      </>
+    );
+  }
 
   return (
     <>
@@ -124,7 +150,35 @@ export default function Dashboard() {
               )}
             </div>
           </div>
-
+          {/* Botones de cabecera — ocultos al imprimir */}
+          <div className="dash-header-actions" style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
+            {/* Exportar PDF */}
+            <button
+              onClick={() => window.print()}
+              title="Exportar Dashboard a PDF (Ctrl+P)"
+              style={{
+                fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+                color: "var(--text-dim)", background: "transparent",
+                border: "1px solid var(--border)", borderRadius: 6,
+                padding: ".3rem .65rem", cursor: "pointer", whiteSpace: "nowrap",
+              }}
+            >
+              📄 Exportar PDF
+            </button>
+            {/* Modo Evento para pruebas (se resetea al cerrar la pestaña) */}
+            <button
+              onClick={activarModoEvento}
+              title="Activa la vista simplificada del día de la carrera (se resetea al cerrar la pestaña)"
+              style={{
+                fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+                color: "var(--text-dim)", background: "transparent",
+                border: "1px solid var(--border)", borderRadius: 6,
+                padding: ".3rem .65rem", cursor: "pointer", whiteSpace: "nowrap",
+              }}
+            >
+              🏁 Ver modo evento
+            </button>
+          </div>
         </div>
 
         {/* ── Banners condicionales (escenario activo + día carrera inminente) ── */}
@@ -133,11 +187,8 @@ export default function Dashboard() {
         {/* ── Hero: countdown + salud del evento ── */}
         <SeccionHero d={d} saludExpandida={saludExpandida} setSaludExpandida={setSaludExpandida} />
 
-        {/* ── Acciones priorizadas ── */}
-        <SeccionAcciones d={d} />
-
-        {/* ── Alertas críticas, avisos y estado OK ── */}
-        <SeccionAlertas d={d} alertasExpandidas={alertasExpandidas} setAlertasExpandidas={setAlertasExpandidas} />
+        {/* ── Centro de control: acciones priorizadas + alertas unificadas ── */}
+        <SeccionCentroControl d={d} avisosExpandidos={avisosExpandidos} setAvisosExpandidos={setAvisosExpandidos} />
 
         {/* ── KPIs — Sprint 2.1 KPIs accionables ── */}
         <div className="kpi-grid mb">

@@ -21,7 +21,7 @@ import {
   SK_PPTO_MERCHANDISING, SK_PPTO_SYNC_CONFIG, SK_PPTO_MAXIMOS, SK_PPTO_SCENARIO_ACTIVE,
   SK_VOL_VOLUNTARIOS, SK_VOL_PUESTOS,
   SK_PAT_PATS, SK_PAT_OBJ,
-  SK_LOG_MAT, SK_LOG_ASIG, SK_LOG_TL, SK_LOG_CK,
+  SK_LOG_MAT, SK_LOG_ASIG, SK_LOG_TL, SK_LOG_CK, SK_LOG_INC,
   SK_PROY_TAREAS, SK_PROY_HITOS,
   SK_DOC_DOCS, SK_DOC_GESTIONES,
   SK_CAM_PEDIDOS, SK_CAM_COSTE, SK_CAM_CORREDORES, SK_CAM_PRECIO_PLATAFORMA, SK_CAM_NINO,
@@ -131,8 +131,10 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
     const asigs = get(SK_LOG_ASIG, []);
     const tl = get(SK_LOG_TL, []);
     const ck = get(SK_LOG_CK, []);
+    const inc = get(SK_LOG_INC, []);
     const tlDone = tl.filter(t => t.estado === "completado").length;
     const ckDone = ck.filter(c => c.estado === "completado").length;
+    const incidenciasActivas = inc.filter(i => i.estado === "abierta").length;
     const stockAlerts = material.filter(m => {
       const asig = asigs.filter(a => a.materialId === m.id).reduce((s, a) => s + a.cantidad, 0);
       return asig > m.stock;
@@ -226,7 +228,7 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
       maximosPorDist, ocupacionPorDist, ocupacionGlobal, totalMaximos,
       voluntarios: voluntarios.length, volConfirmados, volPendientes, totalNecesarios, coberturaVol, puestosAlerta,
       pats: pats.length, patComprometido, patCobrado, patPipeline, objetivo, contPendientes, patsSinSeguimiento,
-      material: material.length, stockAlerts, materialesBajoMinimo, tlDone, tlTotal: tl.length, ckDone, ckTotal: ck.length,
+      material: material.length, stockAlerts, materialesBajoMinimo, tlDone, tlTotal: tl.length, ckDone, ckTotal: ck.length, incidenciasActivas,
       tareasTotal, tareasCompletadas, tareasBloqueadas, tareasVencidas, progresoGlobal, hitosProximos,
       saludModulos, saludGlobal,
       alertasCriticas, alertasAvisos,
