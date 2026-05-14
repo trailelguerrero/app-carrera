@@ -645,6 +645,18 @@ function PuestoDetalle({ puesto }) {
               </div>
             )}
           </div>
+          {/* PORTAL-02: enlace a Google Maps si el puesto tiene coordenadas */}
+          {puesto.lat && puesto.lng && (
+            <a
+              href={`https://maps.google.com/?q=${puesto.lat},${puesto.lng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="vp-btn vp-btn-ghost"
+              style={{ display:"block", textAlign:"center", marginTop:".75rem", textDecoration:"none" }}
+            >
+              📍 Cómo llegar
+            </a>
+          )}
           <div className="vp-mono" style={{ fontSize:"var(--fs-xs)", color:"var(--text-muted)",
             marginTop:".75rem", textAlign:"center",
             padding:".35rem",background:"rgba(148,163,184,.05)",borderRadius:6 }}>
