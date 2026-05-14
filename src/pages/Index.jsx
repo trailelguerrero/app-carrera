@@ -220,10 +220,10 @@ export default function Index() {
   const [showOnboarding, setShowOnboarding] = useState(
     () => !localStorage.getItem(SK_UI_ONBOARDING_DONE)
   );
-  const cerrarOnboarding = () => {
-    localStorage.setItem(SK_UI_ONBOARDING_DONE, "1");
-    setShowOnboarding(false);
-  };
+  // CFG-01: cerrar sin guardar — los datos parciales NO se persisten
+  const cerrarOnboarding = () => setShowOnboarding(false);
+  // CFG-01: wizard completado — los datos ya fueron guardados por OnboardingModal
+  const completarOnboarding = () => setShowOnboarding(false);
   const ActiveComponent = BLOCKS.find(b => b.id === activeBlock)?.component;
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -837,7 +837,7 @@ export default function Index() {
 
         {/* MODALS */}
         {showDiaCarrera && <DiaCarrera onClose={() => setShowDiaCarrera(false)} />}
-        {showOnboarding && <OnboardingModal onClose={cerrarOnboarding} onNavigate={(id) => { handleBlockChange(id); cerrarOnboarding(); }} />}
+        {showOnboarding && <OnboardingModal onClose={cerrarOnboarding} onComplete={completarOnboarding} />}
         {showChangePin && <ChangePinModal onClose={() => setShowChangePin(false)} />}
         {/* Modal de conflictos de sync — autónomo, escucha teg-conflict globalmente */}
         <ConflictModal />
