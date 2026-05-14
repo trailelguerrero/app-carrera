@@ -280,9 +280,9 @@ export const calculateCosteCamisetasDesglosado = ({
   const unidNino    = Object.values(ninoExt).reduce((s, n) => s + (n || 0), 0);
   const unidVol     = voluntariosActivos.length;
 
-  // Líneas de pedidos
+  // Líneas de pedidos — se excluyen las canceladas para no inflar el coste
   const lineas = camPedidos.flatMap(p => Array.isArray(p.lineas) ? p.lineas : []);
-  const extrasLineas = lineas; // todos los pedidos manuales son "extras"
+  const extrasLineas = lineas.filter(l => l.estadoPago !== "cancelado"); // FIX BUG-ECO-03
   const unidExtras = extrasLineas.reduce((s, l) => s + (l.cantidad || 0), 0);
 
   // Costes por tipo

@@ -138,6 +138,7 @@ export default function App() {
     } else {
       setPats(prev => [...prev, { ...pat, id: genIdNum(pats), docs: [], especieItems: [] }]);
     }
+    dataService.notify(); // FIX BUG-ECO-02: sincronizar Dashboard tras crear/editar patrocinador
     setModal(null);
     toast.success(pat.id ? "Patrocinador actualizado" : "Patrocinador creado");
   };
@@ -164,6 +165,7 @@ export default function App() {
       const historial = [...(Array.isArray(p.historial) ? p.historial : []), entrada].slice(-50);
       return { ...p, estado, historial };
     }));
+    dataService.notify(); // FIX BUG-ECO-02: el estado afecta importes comprometido/cobrado en Dashboard
     if (estado === "cobrado") toast.success("Patrocinador marcado como cobrado ✓");
   };
 
