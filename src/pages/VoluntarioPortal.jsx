@@ -662,6 +662,8 @@ function PortalMain({ token, onLogout }) {
   const [error,      setError]      = useState("");
   const [editando,   setEditando]   = useState(false);
   const [cambiandoPin, setCPin]     = useState(false);
+  // SEC-02: dismissal del banner de PIN automático — solo en sesión, no persistente
+  const [bannerPinDismissed, setBannerPinDismissed] = useState(false);
   // SEC-06: forzar cambio de PIN en el primer login (PIN = últimos 4 dígitos del teléfono)
   const [mustChangePin, setMustChangePin] = useState(false);
   const [form,       setForm]       = useState({});
@@ -950,32 +952,47 @@ function PortalMain({ token, onLogout }) {
       <div className="vp-wrap">
         {msg && <div className="vp-toast">{msg}</div>}
 
-        {/* Banner PIN temporal */}
-        {!v.pinPersonalizado && v.estado !== "cancelado" && (
+        {/* Banner PIN automático — SEC-02 */}
+        {!v.pinPersonalizado && v.estado !== "cancelado" && !bannerPinDismissed && (
           <div style={{
-            background:"rgba(251,191,36,.08)", border:"1px solid rgba(251,191,36,.3)",
-            borderRadius:8, padding:".6rem .85rem", marginBottom:".75rem",
-            display:"flex", alignItems:"flex-start", gap:".6rem"
+            background: "rgba(251,191,36,.07)",
+            border: "1px solid rgba(251,191,36,.28)",
+            borderRadius: 8,
+            padding: ".55rem .85rem",
+            marginBottom: ".75rem",
+            display: "flex", alignItems: "center", gap: ".65rem",
           }}>
-            <span style={{ fontSize:"1.1rem", flexShrink:0 }}>🔐</span>
-            <div style={{ flex:1 }}>
-              <div className="vp-mono" style={{ fontSize:".78rem", fontWeight:700, color:"var(--amber)", marginBottom:".2rem" }}>
-                PIN temporal activo
-              </div>
-              <div className="vp-mono" style={{ fontSize:".7rem", color:"var(--text-muted)", lineHeight:1.65 }}>
-                Tu PIN son los últimos 4 dígitos de tu teléfono. Por seguridad, te recomendamos personalizarlo.
-              </div>
-              <button onClick={() => {
-                document.getElementById("vp-cambiar-pin-btn")?.click();
-              }} style={{
-                marginTop:".45rem", background:"rgba(251,191,36,.12)", color:"var(--amber)",
-                border:"1px solid rgba(251,191,36,.3)", borderRadius:6,
-                fontFamily:"var(--font-mono)", fontSize:".7rem", fontWeight:700,
-                padding:".25rem .65rem", cursor:"pointer"
+            <span style={{ fontSize: "1rem", flexShrink: 0, lineHeight: 1 }}>⚠️</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <span className="vp-mono" style={{
+                fontSize: ".72rem", color: "var(--amber)", lineHeight: 1.55,
               }}>
-                Cambiar PIN ahora →
-              </button>
+                Estás usando el PIN automático.{" "}
+                <button
+                  onClick={() => setCPin(true)}
+                  style={{
+                    background: "none", border: "none", padding: 0,
+                    fontFamily: "var(--font-mono)", fontSize: ".72rem",
+                    fontWeight: 700, color: "var(--amber)",
+                    textDecoration: "underline", cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}>
+                  Cámbialo para mayor seguridad →
+                </button>
+              </span>
             </div>
+            <button
+              onClick={() => setBannerPinDismissed(true)}
+              aria-label="Cerrar aviso"
+              style={{
+                background: "none", border: "none",
+                color: "rgba(251,191,36,.5)", cursor: "pointer",
+                fontSize: ".9rem", lineHeight: 1, padding: ".1rem .2rem",
+                flexShrink: 0, transition: "color .15s",
+              }}
+              onMouseEnter={e => e.currentTarget.style.color = "var(--amber)"}
+              onMouseLeave={e => e.currentTarget.style.color = "rgba(251,191,36,.5)"}
+            >✕</button>
           </div>
         )}
 
