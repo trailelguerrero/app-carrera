@@ -307,8 +307,8 @@ export default function Index() {
   const mostrarBtnDiaD = diasCarrera >= -1 && diasCarrera <= 30; // accesible 30 días antes
 
   // Nav: en mobile mostramos 5 principales + "Más" para los extra
-  const NAV_MAIN_IDS = ["dashboard", "proyecto", "presupuesto", "voluntarios", "logistica"];
-  const NAV_MORE_IDS = ["patrocinadores", "camisetas", "documentos", "configuracion"];
+  const NAV_MAIN_IDS = ["dashboard", "proyecto", "presupuesto", "voluntarios", "logistica", "configuracion"];
+  const NAV_MORE_IDS = ["patrocinadores", "camisetas", "documentos"];
   const navBlocks = BLOCKS;
   const navMain = isMobile ? navBlocks.filter(b => NAV_MAIN_IDS.includes(b.id)) : navBlocks;
   const navMore = isMobile ? navBlocks.filter(b => NAV_MORE_IDS.includes(b.id)) : [];
@@ -524,11 +524,11 @@ export default function Index() {
             const isActive = activeBlock === b.id;
             return (
               <React.Fragment key={b.id}>
-                {/* Divisor antes de Configuración en desktop */}
-                {!isMobile && b.id === "configuracion" && (
+                {/* Divisor antes de Configuración — zona de sistema */}
+                {b.id === "configuracion" && (
                   <div style={{
-                    width: 1, height: 28, background: "var(--border)",
-                    alignSelf: "center", flexShrink: 0, margin: "0 0.25rem",
+                    width: 1, height: 28, borderLeft: "1px solid var(--border)",
+                    alignSelf: "center", flexShrink: 0, margin: "0 0.15rem",
                   }} />
                 )}
               <button
