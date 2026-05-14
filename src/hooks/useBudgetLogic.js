@@ -25,12 +25,15 @@ import {
   calculateIngresosDesglosados,
   calculateResultado,
   calculatePuntoEquilibrio,
-  calculatePEGlobal
+  calculatePEGlobal,
+  calculateCosteCamisetasDesglosado,
 } from "../lib/budgetUtils";
-import { SK_CAM_PEDIDOS, SK_CAM_COSTE, SK_PAT_PATS,
+import { SK_CAM_PEDIDOS, SK_CAM_COSTE, SK_CAM_CORREDORES, SK_CAM_PRECIO_PLATAFORMA, SK_CAM_NINO,
+  SK_PAT_PATS,
   SK_PPTO_SYNC_CONFIG, SK_PPTO_MARGEN_CONFIG,
   SK_PPTO_TRAMOS, SK_PPTO_CONCEPTOS, SK_PPTO_INSCRITOS,
   SK_PPTO_INGRESOS_EXTRA, SK_PPTO_MERCHANDISING, SK_PPTO_MAXIMOS,
+  SK_VOL_VOLUNTARIOS,
 } from "../constants/storageKeys";
 
 // Claves de persistencia propias del módulo de presupuesto
@@ -79,6 +82,10 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   const [rawPats] = useData(LS_PATS, []);
   const [rawCamPedidos] = useData(SK_CAM_PEDIDOS, []);
   const [rawCamCoste] = useData(SK_CAM_COSTE, { corredor: 7.5, voluntario: 7.5 });
+  const [rawCamCorredores] = useData(SK_CAM_CORREDORES, {});
+  const [rawCamPrecioPlatObj] = useData(SK_CAM_PRECIO_PLATAFORMA, { precio: 0 });
+  const [rawCamNino] = useData(SK_CAM_NINO, {});
+  const [rawVoluntarios] = useData(SK_VOL_VOLUNTARIOS, []);
 
   // ── Valores calculados en tiempo real desde otros bloques ────────────────
   const totalPatConfirmado = useMemo(() => {
@@ -98,26 +105,31 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       .reduce((s, p) => s + getImporteComprometido(p), 0);
   }, [rawPats]);
 
+  // FIX BUG-ECO-01: unificar cálculo de camisetas con la misma función que usa el Dashboard.
+  // Antes: lógica manual que omitía corredor externo, voluntario y niño → divergencia con Dashboard.
+  // Ahora: calculateCosteCamisetasDesglosado es la única fuente de verdad para ambos bloques.
+  const _camVoluntariosActivos = useMemo(() =>
+    (Array.isArray(rawVoluntarios) ? rawVoluntarios : [])
+      .filter(v => (v.estado === "confirmado" || v.estado === "pendiente") && v.talla),
+    [rawVoluntarios]
+  );
+
   const totalMerchBeneficio = useMemo(() => {
-    // Parte 1: Pedidos del bloque Camisetas (teg_camisetas_v1_pedidos)
-    const pedidos = Array.isArray(rawCamPedidos) ? rawCamPedidos : [];
-    const coste = rawCamCoste || { corredor: 7.5, voluntario: 7.5 };
-    const lineas = pedidos.flatMap(p => p.lineas || []);
-    const ingPedidos = lineas.filter(l => l.estadoPago === "pagado")
-      .reduce((s, l) => s + (l.cantidad * (l.precioVenta || 0)), 0);
-    const costePedidos = lineas.filter(l => l.estadoPago === "pagado" || l.estadoPago === "pendiente")
-      .reduce((s, l) => s + (l.cantidad * (coste[l.tipo] || 7.5)), 0);
-    const beneficioPedidos = ingPedidos - costePedidos;
-
-    // Parte 2: Merchandising local (TabIngresos — "Venta de Productos")
+    const desglose = calculateCosteCamisetasDesglosado({
+      camCoste: rawCamCoste || { corredor: 7.5, voluntario: 7.5, nino: 6 },
+      camPedidos: Array.isArray(rawCamPedidos) ? rawCamPedidos : [],
+      corredoresExt: rawCamCorredores || {},
+      precioCorrExt: rawCamPrecioPlatObj?.precio ?? 0,
+      ninoExt: rawCamNino || {},
+      voluntariosActivos: _camVoluntariosActivos,
+    });
+    // Añadir beneficio de merchandising local (Venta de Productos de TabIngresos)
     const merch = Array.isArray(merchandising) ? merchandising.filter(m => m.activo) : [];
-    const ingMerch = merch.reduce((s, m) => s + m.unidades * (m.precioVenta || 0), 0);
+    const ingMerch  = merch.reduce((s, m) => s + m.unidades * (m.precioVenta   || 0), 0);
     const costeMerch = merch.reduce((s, m) => s + m.unidades * (m.costeUnitario || 0), 0);
-    const beneficioMerch = ingMerch - costeMerch;
-
-    // Total combinado: ambas fuentes
-    return beneficioPedidos + beneficioMerch;
-  }, [rawCamPedidos, rawCamCoste, merchandising]);
+    return desglose.beneficioNeto + (ingMerch - costeMerch);
+  }, [rawCamPedidos, rawCamCoste, rawCamCorredores, rawCamPrecioPlatObj, rawCamNino,
+      _camVoluntariosActivos, merchandising]);
 
   // Balance de camisetas técnicas: unidades corredor del bloque Camisetas
   // + unidades de items "Camiseta técnica" del merchandising local
