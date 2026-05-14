@@ -671,6 +671,10 @@ function PortalMain({ token, onLogout }) {
   const [marcando,    setMarcando]    = useState(false);
   const [confirmLlegada, setConfirmLlegada] = useState(false);
   const [msg,         setMsg]         = useState("");
+  // PORTAL-01: estado del formulario de autoedición restringida
+  const [editForm,   setEditForm]   = useState({ talla:"", email:"", telefonoEmergencia:"" });
+  const [editOrig,   setEditOrig]   = useState({ talla:"", email:"", telefonoEmergencia:"" });
+  const [editError,  setEditError]  = useState("");
 
   const showMsg = (m, ms=3500) => { setMsg(m); setTimeout(() => setMsg(""), ms); };
 
@@ -700,6 +704,14 @@ function PortalMain({ token, onLogout }) {
         alergias:           v.alergias || "",
         medicacion:         v.medicacion || "",
       });
+      // PORTAL-01: inicializar el formulario de autoedición restringida
+      const orig = {
+        talla:              v.talla || "M",
+        email:              v.email || "",
+        telefonoEmergencia: v.telefonoEmergencia || v.contactoEmergencia || "",
+      };
+      setEditForm(orig);
+      setEditOrig(orig);
     } catch { if (!silencioso) setError("Error de conexión. Tira abajo para recargar."); }
     finally  { if (!silencioso) setLoading(false); }
   }, [token, onLogout]);
@@ -737,6 +749,47 @@ function PortalMain({ token, onLogout }) {
       else showMsg("❌ Error al guardar");
     } catch { showMsg("❌ Error de conexión"); }
     finally  { setSaving(false); }
+  };
+
+  // PORTAL-01: guardar solo los 3 campos editables con validación
+  const validarEmail = (email) => !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  const haycambiosEdit = editForm.talla !== editOrig.talla
+    || editForm.email !== editOrig.email
+    || editForm.telefonoEmergencia !== editOrig.telefonoEmergencia;
+
+  const guardarEdit = async () => {
+    setEditError("");
+    if (!validarEmail(editForm.email)) {
+      setEditError("El formato del email no es válido.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}?action=ficha`, {
+        method: "PATCH",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          talla:              editForm.talla,
+          email:              editForm.email,
+          telefonoEmergencia: editForm.telefonoEmergencia,
+        }),
+      });
+      if (res.ok) {
+        setEditando(false);
+        setEditError("");
+        showMsg("✅ Datos actualizados");
+        await fetchData();
+      } else {
+        let msg = "No se pudieron guardar los cambios. Inténtalo de nuevo.";
+        try { const j = await res.json(); if (j.error) msg = j.error; } catch {}
+        setEditError(msg);
+      }
+    } catch {
+      setEditError("Error de conexión. Comprueba tu red e inténtalo de nuevo.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading && !data) return (
@@ -1141,105 +1194,228 @@ function PortalMain({ token, onLogout }) {
           </div>
         )}
 
-        {/* Mis datos */}
-        <div id="sec-datos" className="vp-card">
-          <div className="vp-card-header">
-            <div className="vp-label" style={{marginBottom:0}}>Mis datos</div>
-            {!editando && <button className="vp-btn vp-btn-ghost vp-btn-sm" onClick={() => setEditando(true)}>✏️ Editar</button>}
-          </div>
-          {editando ? (<>
-            <div className="vp-label">📞 Teléfono</div>
-            <input className="vp-input" type="tel" value={form.telefono}
-              onChange={e => setForm(f=>({...f,telefono:e.target.value}))} style={{marginBottom:".75rem"}} />
-            <div className="vp-label">🚨 Teléfono de emergencia</div>
-            <input className="vp-input" type="tel" value={form.telefonoEmergencia}
-              onChange={e => setForm(f=>({...f,telefonoEmergencia:e.target.value}))} style={{marginBottom:".75rem"}} />
-            <div className="vp-label">🎽 Talla de camiseta</div>
-            <select className="vp-input vp-select" value={form.talla}
-              onChange={e => setForm(f=>({...f,talla:e.target.value}))} style={{marginBottom:".75rem"}}>
-              {TALLAS.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-            <div className="vp-label">⚕️ ¿Tienes alguna alergia que debamos conocer?</div>
-            <input className="vp-input" placeholder="Ej: frutos secos, picaduras de abejas, medicamentos…"
-              value={form.alergias||""} onChange={e => setForm(f=>({...f,alergias:e.target.value}))}
-              maxLength={200} style={{marginBottom:".75rem"}} />
-            <div className="vp-label">💊 ¿Tomas alguna medicación que debamos conocer?</div>
-            <input className="vp-input" placeholder="Ej: insulina, adrenalina, anticoagulantes…"
-              value={form.medicacion||""} onChange={e => setForm(f=>({...f,medicacion:e.target.value}))}
-              maxLength={200} style={{marginBottom:".75rem"}} />
-            <div className="vp-label">📝 Nota para el organizador</div>
-            <textarea className="vp-textarea"
-              placeholder="Ej: Llegaré 15 min antes, traigo equipo de primeros auxilios..."
-              value={form.notaVoluntario}
-              onChange={e => setForm(f=>({...f,notaVoluntario:e.target.value}))}
-              maxLength={500} style={{marginBottom:".4rem"}} />
-            <div className="vp-mono" style={{fontSize:".65rem",color:"var(--text-dim)",textAlign:"right",marginBottom:".85rem"}}>
-              {(form.notaVoluntario||"").length}/500</div>
-            <div style={{display:"flex", gap:".5rem"}}>
-              <button className="vp-btn vp-btn-ghost" style={{minHeight:48}} onClick={() => setEditando(false)}>Cancelar</button>
-              <button className="vp-btn vp-btn-primary" style={{minHeight:48}} onClick={guardar} disabled={saving}>
-                {saving ? "Guardando…" : "💾 Guardar"}</button>
+        {/* Mis datos — PORTAL-01 */}
+        {(() => {
+          // Calcular diasHasta para lógica de bloqueo temporal
+          const diasHasta = config.fecha
+            ? Math.ceil((new Date(config.fecha) - new Date()) / 86400000)
+            : 999;
+          const bloqueado = diasHasta <= 7;
+          const tooltipBloqueo = "Los datos se han bloqueado a 7 días del evento";
+
+          // Estilos reutilizables para campos bloqueados
+          const styleFieldWrap = { position:"relative", marginBottom:".75rem" };
+          const styleInputBloq = {
+            opacity:.55, cursor:"not-allowed",
+            background:"var(--surface2)", borderColor:"var(--border)"
+          };
+
+          return (
+            <div id="sec-datos" className="vp-card">
+              <div className="vp-card-header">
+                <div className="vp-label" style={{marginBottom:0}}>Mis datos</div>
+                {!editando && (
+                  <button
+                    className="vp-btn vp-btn-ghost vp-btn-sm"
+                    onClick={() => { setEditError(""); setEditando(true); }}
+                    title={bloqueado ? tooltipBloqueo : "Editar mis datos"}
+                  >
+                    ✏️ Editar mis datos
+                  </button>
+                )}
+              </div>
+
+              {editando ? (
+                <>
+                  {/* Aviso de bloqueo cuando diasHasta <= 7 */}
+                  {bloqueado && (
+                    <div style={{
+                      background:"rgba(248,113,113,.08)", border:"1px solid var(--red-border)",
+                      borderRadius:8, padding:".55rem .85rem", marginBottom:"1rem",
+                      display:"flex", alignItems:"center", gap:".5rem"
+                    }}>
+                      <span style={{fontSize:"1rem",flexShrink:0}}>🔒</span>
+                      <span className="vp-mono" style={{fontSize:".72rem",color:"var(--red)",lineHeight:1.55}}>
+                        {tooltipBloqueo}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Talla — editable (bloqueado cerca del evento) */}
+                  <div style={styleFieldWrap}>
+                    <div className="vp-label">🎽 Talla de camiseta</div>
+                    <div title={bloqueado ? tooltipBloqueo : undefined} style={{position:"relative"}}>
+                      <select
+                        className="vp-input vp-select"
+                        value={editForm.talla}
+                        onChange={e => setEditForm(f=>({...f,talla:e.target.value}))}
+                        disabled={bloqueado}
+                        style={bloqueado ? styleInputBloq : undefined}
+                      >
+                        {TALLAS.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Email — editable (bloqueado cerca del evento) */}
+                  <div style={styleFieldWrap}>
+                    <div className="vp-label">✉️ Email</div>
+                    <div title={bloqueado ? tooltipBloqueo : undefined}>
+                      <input
+                        className="vp-input"
+                        type="email"
+                        placeholder="tu@email.com"
+                        value={editForm.email}
+                        onChange={e => setEditForm(f=>({...f,email:e.target.value}))}
+                        disabled={bloqueado}
+                        style={bloqueado ? styleInputBloq : undefined}
+                        autoComplete="email"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Teléfono emergencia — editable (bloqueado cerca del evento) */}
+                  <div style={styleFieldWrap}>
+                    <div className="vp-label">🚨 Teléfono de emergencia</div>
+                    <div title={bloqueado ? tooltipBloqueo : undefined}>
+                      <input
+                        className="vp-input"
+                        type="tel"
+                        placeholder="Ej: 600 123 456"
+                        value={editForm.telefonoEmergencia}
+                        onChange={e => setEditForm(f=>({...f,telefonoEmergencia:e.target.value}))}
+                        disabled={bloqueado}
+                        style={bloqueado ? styleInputBloq : undefined}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Nota: campos no editables */}
+                  <div className="vp-mono" style={{
+                    fontSize:".67rem", color:"var(--text-dim)", marginBottom:".9rem",
+                    background:"var(--surface2)", borderRadius:6,
+                    padding:".35rem .6rem", borderLeft:"2px solid var(--border)"
+                  }}>
+                    🔒 Nombre, teléfono y puesto solo pueden modificarlos los organizadores.
+                  </div>
+
+                  {/* Error inline */}
+                  {editError && (
+                    <div style={{
+                      background:"rgba(248,113,113,.08)", border:"1px solid var(--red-border)",
+                      borderRadius:8, padding:".5rem .8rem", marginBottom:".75rem",
+                      display:"flex", alignItems:"center", gap:".4rem"
+                    }}>
+                      <span style={{flexShrink:0}}>⚠️</span>
+                      <span className="vp-mono" style={{fontSize:".72rem",color:"var(--red)",lineHeight:1.5}}>
+                        {editError}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Botones Guardar / Cancelar */}
+                  <div style={{display:"flex", gap:".5rem"}}>
+                    <button
+                      className="vp-btn vp-btn-ghost"
+                      style={{minHeight:48, flex:1}}
+                      onClick={() => { setEditando(false); setEditError(""); setEditForm(editOrig); }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      className="vp-btn vp-btn-primary"
+                      style={{minHeight:48, flex:2}}
+                      onClick={guardarEdit}
+                      disabled={saving || !haycambiosEdit || bloqueado}
+                      title={bloqueado ? tooltipBloqueo : !haycambiosEdit ? "No hay cambios que guardar" : undefined}
+                    >
+                      {saving ? "Guardando…" : "💾 Guardar cambios"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="vp-row">
+                    <span className="vp-row-label">📞 Teléfono</span>
+                    <span className="vp-value">{v.telefono||"—"}</span>
+                  </div>
+                  <div className="vp-divider"/>
+                  <div className="vp-row">
+                    <span className="vp-row-label">🚨 Emergencia</span>
+                    <span className="vp-value">{v.telefonoEmergencia||v.contactoEmergencia||"—"}</span>
+                  </div>
+                  <div className="vp-divider"/>
+                  <div className="vp-row">
+                    <span className="vp-row-label">✉️ Email</span>
+                    <span className="vp-value" style={{wordBreak:"break-all"}}>{v.email||"—"}</span>
+                  </div>
+                  <div className="vp-divider"/>
+                  <div className="vp-row">
+                    <span className="vp-row-label">🎽 Talla</span>
+                    <span className="vp-value">{v.talla||"—"}</span>
+                  </div>
+                  <div className="vp-divider"/>
+                  <div className="vp-row">
+                    <span className="vp-row-label">🎽 Camiseta</span>
+                    <span className={`vp-badge ${v.camisetaEntregada?"vp-badge-green":"vp-badge-amber"}`}>
+                      {v.camisetaEntregada?"✅ Entregada":"📦 Por recoger el día del evento"}
+                    </span>
+                  </div>
+                  {v.nombre && (<>
+                    <div className="vp-divider"/>
+                    <div className="vp-row">
+                      <span className="vp-row-label">👤 Nombre</span>
+                      <span className="vp-value">{v.nombre}{v.apellidos?" "+v.apellidos:""}</span>
+                    </div>
+                  </>)}
+                  {(v.alergias || v.medicacion) && (
+                    <div style={{ marginTop:".6rem", borderTop:"1px solid var(--border)", paddingTop:".6rem" }}>
+                      <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                        color:"var(--amber)", fontWeight:700, marginBottom:".5rem",
+                        textTransform:"uppercase", letterSpacing:".05em" }}>
+                        ⚕️ Información médica
+                      </div>
+                      {v.alergias && (
+                        <div style={{ background:"rgba(251,191,36,.08)", border:"1px solid var(--amber-border)",
+                          borderRadius:8, padding:".6rem .8rem", marginBottom:".4rem" }}>
+                          <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                            color:"var(--amber)", fontWeight:700, marginBottom:".2rem" }}>Alergias</div>
+                          <div style={{ fontSize:"var(--fs-base)", color:"var(--text)", lineHeight:1.5 }}>{v.alergias}</div>
+                        </div>
+                      )}
+                      {v.medicacion && (
+                        <div style={{ background:"rgba(251,191,36,.08)", border:"1px solid var(--amber-border)",
+                          borderRadius:8, padding:".6rem .8rem" }}>
+                          <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                            color:"var(--amber)", fontWeight:700, marginBottom:".2rem" }}>Medicación</div>
+                          <div style={{ fontSize:"var(--fs-base)", color:"var(--text)", lineHeight:1.5 }}>{v.medicacion}</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {v.mensajeOrganizador && (<>
+                    <div className="vp-divider"/>
+                    <div style={{paddingTop:".4rem"}}>
+                      <div className="vp-label" style={{marginBottom:".3rem", color:"var(--amber)"}}>📢 Mensaje del organizador</div>
+                      <div className="vp-mono" style={{fontSize:".8rem",color:"var(--text)",lineHeight:1.7,
+                        background:"rgba(251,191,36,.06)",borderRadius:8,padding:".6rem .75rem",
+                        border:"1px solid rgba(251,191,36,.25)",borderLeft:"3px solid var(--amber)"}}>{v.mensajeOrganizador}</div>
+                    </div>
+                  </>)}
+                  {v.notaVoluntario && (<>
+                    <div className="vp-divider"/>
+                    <div style={{paddingTop:".4rem"}}>
+                      <div className="vp-label" style={{marginBottom:".3rem"}}>📝 Tu nota</div>
+                      <div className="vp-mono" style={{fontSize:".8rem",color:"var(--text)",lineHeight:1.7,
+                        background:"var(--surface2)",borderRadius:8,padding:".55rem .75rem",
+                        borderLeft:"2px solid var(--cyan)"}}>{v.notaVoluntario}</div>
+                    </div>
+                  </>)}
+                </>
+              )}
             </div>
-          </>) : (<>
-            <div className="vp-row"><span className="vp-row-label">📞 Teléfono</span><span className="vp-value">{v.telefono||"—"}</span></div>
-            <div className="vp-divider"/>
-            <div className="vp-row"><span className="vp-row-label">🚨 Emergencia</span><span className="vp-value">{v.telefonoEmergencia||v.contactoEmergencia||"—"}</span></div>
-            <div className="vp-divider"/>
-            <div className="vp-row"><span className="vp-row-label">🎽 Talla</span><span className="vp-value">{v.talla||"—"}</span></div>
-            <div className="vp-divider"/>
-            <div className="vp-row"><span className="vp-row-label">🎽 Camiseta</span>
-              <span className={`vp-badge ${v.camisetaEntregada?"vp-badge-green":"vp-badge-amber"}`}>
-                {v.camisetaEntregada?"✅ Entregada":"📦 Por recoger el día del evento"}</span></div>
-            {v.nombre && (<>
-              <div className="vp-divider"/>
-              <div className="vp-row"><span className="vp-row-label">👤 Nombre</span>
-                <span className="vp-value">{v.nombre}{v.apellidos?" "+v.apellidos:""}</span></div>
-            </>)}
-            {(v.alergias || v.medicacion) && (
-              <div style={{ marginTop:".6rem", borderTop:"1px solid var(--border)", paddingTop:".6rem" }}>
-                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                  color:"var(--amber)", fontWeight:700, marginBottom:".5rem",
-                  textTransform:"uppercase", letterSpacing:".05em" }}>
-                  ⚕️ Información médica
-                </div>
-                {v.alergias && (
-                  <div style={{ background:"rgba(251,191,36,.08)", border:"1px solid var(--amber-border)",
-                    borderRadius:8, padding:".6rem .8rem", marginBottom:".4rem" }}>
-                    <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                      color:"var(--amber)", fontWeight:700, marginBottom:".2rem" }}>Alergias</div>
-                    <div style={{ fontSize:"var(--fs-base)", color:"var(--text)", lineHeight:1.5 }}>{v.alergias}</div>
-                  </div>
-                )}
-                {v.medicacion && (
-                  <div style={{ background:"rgba(251,191,36,.08)", border:"1px solid var(--amber-border)",
-                    borderRadius:8, padding:".6rem .8rem" }}>
-                    <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                      color:"var(--amber)", fontWeight:700, marginBottom:".2rem" }}>Medicación</div>
-                    <div style={{ fontSize:"var(--fs-base)", color:"var(--text)", lineHeight:1.5 }}>{v.medicacion}</div>
-                  </div>
-                )}
-              </div>
-            )}
-            {v.mensajeOrganizador && (<>
-              <div className="vp-divider"/>
-              <div style={{paddingTop:".4rem"}}>
-                <div className="vp-label" style={{marginBottom:".3rem", color:"var(--amber)"}}>📢 Mensaje del organizador</div>
-                <div className="vp-mono" style={{fontSize:".8rem",color:"var(--text)",lineHeight:1.7,
-                  background:"rgba(251,191,36,.06)",borderRadius:8,padding:".6rem .75rem",
-                  border:"1px solid rgba(251,191,36,.25)",borderLeft:"3px solid var(--amber)"}}>{v.mensajeOrganizador}</div>
-              </div>
-            </>)}
-            {v.notaVoluntario && (<>
-              <div className="vp-divider"/>
-              <div style={{paddingTop:".4rem"}}>
-                <div className="vp-label" style={{marginBottom:".3rem"}}>📝 Tu nota</div>
-                <div className="vp-mono" style={{fontSize:".8rem",color:"var(--text)",lineHeight:1.7,
-                  background:"var(--surface2)",borderRadius:8,padding:".55rem .75rem",
-                  borderLeft:"2px solid var(--cyan)"}}>{v.notaVoluntario}</div>
-              </div>
-            </>)}
-          </>)}
-        </div>
+          );
+        })()}
 
         {/* Cambiar PIN */}
         {cambiandoPin ? (
