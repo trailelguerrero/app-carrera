@@ -11,6 +11,7 @@ import { ThemeToggle } from "../components/ui/ThemeToggle";
 import { LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { SK_UI_ONBOARDING_DONE } from "@/constants/storageKeys";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import QuickNav from "../components/common/QuickNav";
 
 // Lazy-style imports for blocks
 const Dashboard = lazy(() => import("../components/blocks/Dashboard"));
@@ -211,6 +212,7 @@ export default function Index() {
   const orgNombre = headerCfg?.organizador || EVENT_CONFIG_DEFAULT.organizador || "Trail El Guerrero";
   const [showChangePin, setShowChangePin] = useState(false);
   const [showMoreNav, setShowMoreNav] = useState(false);
+  const [showQuickNav, setShowQuickNav] = useState(false);
   const [activeBlock, setActiveBlock] = useState("dashboard");
   const [showDiaCarrera, setShowDiaCarrera] = useState(false);
   const [pendingSubtab, setPendingSubtab] = useState(null);
@@ -286,13 +288,19 @@ export default function Index() {
   useEffect(() => {
     if (!authed) return;
     const h = (e) => {
+      // Cmd/Ctrl+K — abrir QuickNav (solo desktop)
+      if ((e.metaKey || e.ctrlKey) && e.key === "k" && window.innerWidth > 768) {
+        e.preventDefault();
+        setShowQuickNav(v => !v);
+        return;
+      }
       const tag = document.activeElement?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
       const n = parseInt(e.key);
       if (!e.ctrlKey && !e.metaKey && !e.altKey && n >= 1 && n <= BLOCKS.length) {
         handleBlockChange(BLOCKS[n - 1].id);
       }
-      if (e.key === "Escape") { setReadmeBlock(null); setShowChangePin(false); setShowMoreNav(false); }
+      if (e.key === "Escape") { setReadmeBlock(null); setShowChangePin(false); setShowMoreNav(false); setShowQuickNav(false); }
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
@@ -833,6 +841,16 @@ export default function Index() {
         {showChangePin && <ChangePinModal onClose={() => setShowChangePin(false)} />}
         {/* Modal de conflictos de sync — autónomo, escucha teg-conflict globalmente */}
         <ConflictModal />
+
+        {/* NAV-04 — QuickNav spotlight (solo desktop) */}
+        {showQuickNav && !isMobile && (
+          <QuickNav
+            blocks={BLOCKS}
+            badges={alertasBadges}
+            onNavigate={(id) => { handleBlockChange(id); setShowQuickNav(false); }}
+            onClose={() => setShowQuickNav(false)}
+          />
+        )}
 
         {/* TOAST STACK — renderizado encima de todo */}
         <ToastStack toasts={toasts} dismiss={dismiss} navH={NAV_H} />
