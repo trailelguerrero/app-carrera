@@ -496,9 +496,8 @@ export default function Index() {
             );
           })()}
 
-          <div className="module-enter">
+          <div key={activeBlock} className="module-enter">
             <ErrorBoundary
-              key={activeBlock}
               blockName={BLOCKS.find(b => b.id === activeBlock)?.label}
               onNavigate={handleBlockChange}
             >
