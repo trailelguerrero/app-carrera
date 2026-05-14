@@ -10,21 +10,20 @@ import {
   calculateIngresosPorDistancia,
   calculateCostesFijos,
   calculateCostesVariables,
-  calculateResultadoFinanciero,
+  calculateResultado,
   getImporteCobrado,
 } from "@/lib/budgetUtils";
 import { fmtEur } from "@/lib/utils";
-import { EVENT_DATE, COSTE_DEFAULT } from "@/constants/budgetConstants";
+import { EVENT_DATE } from "@/constants/budgetConstants";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import {
   SK_PPTO_CONCEPTOS, SK_PPTO_TRAMOS, SK_PPTO_INSCRITOS, SK_PPTO_INGRESOS_EXTRA,
-  SK_PPTO_MERCHANDISING, SK_PPTO_SYNC_CONFIG, SK_PPTO_MAXIMOS, SK_PPTO_SCENARIO_ACTIVE,
+  SK_PPTO_SYNC_CONFIG, SK_PPTO_MAXIMOS, SK_PPTO_SCENARIO_ACTIVE,
   SK_VOL_VOLUNTARIOS, SK_VOL_PUESTOS,
   SK_PAT_PATS, SK_PAT_OBJ,
   SK_LOG_MAT, SK_LOG_ASIG, SK_LOG_TL, SK_LOG_CK, SK_LOG_INC,
   SK_PROY_TAREAS, SK_PROY_HITOS,
   SK_DOC_DOCS, SK_DOC_GESTIONES,
-  SK_CAM_PEDIDOS, SK_CAM_COSTE, SK_CAM_CORREDORES, SK_CAM_PRECIO_PLATAFORMA, SK_CAM_NINO,
 } from "@/constants/storageKeys";
 
 export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
@@ -48,20 +47,18 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
     const eventoNombre = cfg.nombre;
     const eventoEdicion = cfg.edicion;
 
-    // PRESUPUESTO
+    // PRESUPUESTO — cálculo financiero
+    // FIX: usar calculateResultado (misma función que useBudgetLogic/Presupuesto) en lugar de
+    // calculateResultadoFinanciero, que recalculaba patrocinadores desde el snapshot y podía
+    // divergir si el snapshot estaba desactualizado. Los valores de ingresosExtra ya llegan
+    // resueltos desde localStorage (actualizados por teg-sync tras BUG-ECO-02), por lo que
+    // sumar ie.valor directamente es equivalente a recalcular — y garantiza el mismo número.
     const conceptos = get(SK_PPTO_CONCEPTOS, []);
     const tramos = get(SK_PPTO_TRAMOS, []);
     const inscritos = get(SK_PPTO_INSCRITOS, { tramos: {} });
     const syncConfig = get(SK_PPTO_SYNC_CONFIG, { patrocinios: true, camisetas: true });
     const scenarioActivo = get(SK_PPTO_SCENARIO_ACTIVE, null);
-    const camPedidos = get(SK_CAM_PEDIDOS, []);
-    const camCoste = get(SK_CAM_COSTE, COSTE_DEFAULT);
-    const camCorredoresExt = get(SK_CAM_CORREDORES, {});
-    const camPrecioCorrExt = get(SK_CAM_PRECIO_PLATAFORMA, { precio: 0 })?.precio ?? 0;
-    const camNinoExt = get(SK_CAM_NINO, {});
-    const pats = get(SK_PAT_PATS, []);
     const ingresosExtra = get(SK_PPTO_INGRESOS_EXTRA, []);
-    const merchandising = get(SK_PPTO_MERCHANDISING, []);
     const maximos = get(SK_PPTO_MAXIMOS, {});
 
     const inscritosBU = calculateTotalInscritos(tramos, inscritos);
@@ -84,20 +81,24 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
     };
     const ocupacionGlobal = totalMaximos > 0 ? Math.round(totalInscritos / totalMaximos * 100) : null;
 
-    const _rawVols = get(SK_VOL_VOLUNTARIOS, []);
-    const camVoluntarios = Array.isArray(_rawVols)
-      ? _rawVols.filter(v => (v.estado === "confirmado" || v.estado === "pendiente") && v.talla)
-      : [];
+    // totalIngresosExtra: suma de líneas activas con sus valores ya resueltos en el snapshot.
+    // Mismo cálculo que useBudgetLogic.totalIngresosConMerch.
+    const totalIngresosExtra = (Array.isArray(ingresosExtra) ? ingresosExtra : [])
+      .filter(ie => ie.activo)
+      .reduce((s, ie) => s + (ie.valor || 0), 0);
 
-    const {
-      totalIngresosExtra, totalMerchBeneficio: merchBeneficio,
-      totalOtrosIngresos, resultado, roiGlobal, camisetasDesglose,
-    } = calculateResultadoFinanciero({
-      totalIngresos, totalCostesFijos, totalCostesVars,
-      pats, ingresosExtra, camPedidos, camCoste: camCoste || COSTE_DEFAULT,
-      camCorredoresExt, camPrecioCorrExt, camNinoExt, camVoluntarios,
-      merchandising, syncConfig,
-    });
+    // calculateResultado: misma función que Presupuesto → resultado idéntico con los mismos datos
+    const resultadoObj = calculateResultado(
+      inscritosBU, ingresosBU, costesFijosBU, costesVarsBU, totalIngresosExtra
+    );
+    const resultado = resultadoObj.total;
+    const costes = totalCostesFijos + totalCostesVars;
+    const roiGlobal = costes > 0
+      ? Math.round(((totalIngresos + totalIngresosExtra - costes) / costes) * 100)
+      : 0;
+    // Compatibilidad con MiniDesglose (espera merchBeneficio y totalOtrosIngresos)
+    const merchBeneficio = 0;
+    const totalOtrosIngresos = totalIngresosExtra;
 
     // VOLUNTARIOS
     const voluntarios = get(SK_VOL_VOLUNTARIOS, []);
@@ -118,6 +119,7 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
 
     // PATROCINADORES
     const objetivo = get(SK_PAT_OBJ, 8000);
+    const pats = get(SK_PAT_PATS, []);
     const patComprometido = pats.filter(p => p.estado === "confirmado" || p.estado === "cobrado").reduce((s, p) => s + (p.importe || 0), 0);
     const patCobrado  = pats.filter(p => p.estado === "cobrado").reduce((s, p) => s + getImporteCobrado(p), 0);
     const patPipeline = pats.filter(p => p.estado === "negociando" || p.estado === "prospecto").reduce((s, p) => s + (p.importe || 0), 0);
@@ -237,7 +239,7 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
       eventoNombre, eventoEdicion, eventoFechaStr, eventoFecha,
       diasHasta, yaFue, esSemana,
       totalInscritos, inscritosPorDist, totalIngresos, totalCostesFijos, totalCostesVars,
-      totalIngresosExtra, merchBeneficio, totalOtrosIngresos, resultado, roiGlobal, camisetasDesglose,
+      totalIngresosExtra, merchBeneficio, totalOtrosIngresos, resultado, roiGlobal, camisetasDesglose: null,
       maximosPorDist, ocupacionPorDist, ocupacionGlobal, totalMaximos,
       voluntarios: voluntarios.length, volConfirmados, volPendientes, totalNecesarios, coberturaVol, puestosAlerta,
       pats: pats.length, patComprometido, patCobrado, patPipeline, objetivo, contPendientes, patsSinSeguimiento,
