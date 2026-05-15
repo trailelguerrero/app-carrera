@@ -57,6 +57,7 @@ import {
   SK_CAM_ROOT,
   SK_CAM_PEDIDOS,
   SK_CAM_COSTE,
+  SK_CAM_VENTA_PUBLICO,
 } from "@/constants/storageKeys";
 import dataService from "@/lib/dataService";
 
@@ -292,6 +293,7 @@ export default function Configuracion() {
     SK_CAM_ROOT,
     SK_CAM_PEDIDOS,
     SK_CAM_COSTE,
+    SK_CAM_VENTA_PUBLICO,
   ];
 
   // ── Exportar todos los datos como JSON ───────────────────────────────────

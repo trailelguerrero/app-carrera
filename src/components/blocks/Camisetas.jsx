@@ -12,7 +12,7 @@ import { toast } from "@/lib/toast";
 import { genIdNum, fmtEur2, scrollMainToTop } from "@/lib/utils";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { blockCls as cls } from "@/lib/blockStyles";
-import { SK_VOL_VOLUNTARIOS } from "@/constants/storageKeys";
+import { SK_VOL_VOLUNTARIOS, SK_CAM_VENTA_PUBLICO } from "@/constants/storageKeys";
 
 import {
   LS, TALLAS, TALLAS_NINO, CORREDORES_DEFAULT, NINO_DEFAULT,
@@ -417,7 +417,7 @@ export default function App() {
   const [precioPlatExt, setPrecioPlatExt] = useData(LS + "_precio_plataforma", { precio: 15 });
   const precioCorrExt = (precioPlatExt?.precio ?? 15);
 
-  const [rawVentaPublico, setVentaPublico, loadVentaPublico] = useData(LS + "_venta_publico", { precio: 20, cantidad: 0 });
+  const [rawVentaPublico, setVentaPublico, loadVentaPublico] = useData(SK_CAM_VENTA_PUBLICO, { precio: 20, cantidad: 0 });
   const ventaPublico = (rawVentaPublico && typeof rawVentaPublico === "object")
     ? { precio: rawVentaPublico.precio ?? 20, cantidad: rawVentaPublico.cantidad ?? 0 }
     : { precio: 20, cantidad: 0 };

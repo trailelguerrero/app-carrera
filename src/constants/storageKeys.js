@@ -71,6 +71,14 @@ export const SK_CAM_COSTE             = "teg_camisetas_v1_coste";
 export const SK_CAM_PRECIO_PLATAFORMA = "teg_camisetas_v1_precio_plataforma";
 /** Estadísticas calculadas de camisetas */
 export const SK_CAM_STATS             = "teg_camisetas_v1_stats";
+/**
+ * Configuración de venta al público general (precio unitario y cantidad estimada).
+ * Prerequisito de ECO-04: esta clave debe existir aquí para que el Presupuesto
+ * y el Dashboard puedan leerla y el backup/reset la gestionen correctamente.
+ * Invariante: el valor del string DEBE coincidir con LS + "_venta_publico"
+ * (LS = SK_CAM_ROOT = "teg_camisetas_v1") para no invalidar datos ya guardados.
+ */
+export const SK_CAM_VENTA_PUBLICO     = "teg_camisetas_v1_venta_publico";
 
 // ── Documentos ────────────────────────────────────────────────────────────────
 export const SK_DOC_DOCS      = "teg_documentos_v1";
@@ -182,6 +190,7 @@ export const SK = {
   CAM_COSTE:             SK_CAM_COSTE,
   CAM_PRECIO_PLATAFORMA: SK_CAM_PRECIO_PLATAFORMA,
   CAM_STATS:             SK_CAM_STATS,
+  CAM_VENTA_PUBLICO:     SK_CAM_VENTA_PUBLICO,
 
   // Documentos
   DOC_DOCS:      SK_DOC_DOCS,
