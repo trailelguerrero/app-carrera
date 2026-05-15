@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Tooltip, TooltipIcon } from "../common/Tooltip";
 import { NumInput } from "./common/NumInput";
 import { Toggle } from "./common/Toggle";

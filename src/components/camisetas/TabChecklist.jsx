@@ -2,7 +2,7 @@
  * TabChecklist.jsx — Fase 3, Tarea 3.4
  * Tab "Entrega" del bloque Camisetas.
  */
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { fmtEur2 } from "@/lib/utils";
 import { blockCls as cls } from "@/lib/blockStyles";
 import EmptyState from "@/components/EmptyState";

@@ -2,7 +2,7 @@
  * TabPedidos.jsx — Fase 3, Tarea 3.4
  * Tab "Extras y familiares" del bloque Camisetas.
  */
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { fmtEur2 } from "@/lib/utils";
 import { blockCls as cls } from "@/lib/blockStyles";
 import EmptyState from "@/components/EmptyState";

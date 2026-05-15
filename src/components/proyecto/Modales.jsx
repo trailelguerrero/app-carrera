@@ -2,7 +2,7 @@
  * Modales.jsx — Tarea 3.3
  * Modales de tarea, hito y persona del módulo Proyecto.
  */
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useModalClose } from "@/hooks/useModalClose";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { genIdNum } from "@/lib/utils";

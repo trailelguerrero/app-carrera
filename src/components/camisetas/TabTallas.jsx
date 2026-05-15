@@ -6,7 +6,7 @@ import { useState, useMemo } from "react";
 import { fmtEur2 } from "@/lib/utils";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
-import { TALLAS, TALLAS_NINO, TC, FUENTES_DEFAULT, CORREDORES_DEFAULT, NINO_DEFAULT, exportarPedidoProveedor } from "./camisetasConstants";
+import { TALLAS, TALLAS_NINO, TC, TIPOS, FUENTES_DEFAULT, CORREDORES_DEFAULT, NINO_DEFAULT, exportarPedidoProveedor } from "./camisetasConstants";
 
 export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, vistaSimple=true, setVistaSimple, fuentesActivas, voluntariosConfirmados, voluntariosPendientes, ninoExt = {}, setNino }) {
   const [margenSeguridad, setMargenSeguridad] = useState(5); // % de buffer sobre el total
