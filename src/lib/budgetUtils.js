@@ -278,6 +278,8 @@ export const calculatePEGlobal = (totalInscritos, precioMedioDistancia, costesVa
  * }}
  */
 export const calculateCosteCamisetasDesglosado = ({
+  // ECO-03: valores por defecto deben coincidir con COSTE_DEFAULT en camisetasConstants.js
+  // (fuente canónica). Si cambian allí, actualizar también estos defaults de parámetro.
   camCoste = { corredor: 8, voluntario: 7, nino: 6 },
   camPedidos = [],
   corredoresExt = {},

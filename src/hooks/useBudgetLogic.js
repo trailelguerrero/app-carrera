@@ -35,6 +35,10 @@ import { SK_CAM_PEDIDOS, SK_CAM_COSTE, SK_CAM_CORREDORES, SK_CAM_PRECIO_PLATAFOR
   SK_PPTO_INGRESOS_EXTRA, SK_PPTO_MERCHANDISING, SK_PPTO_MAXIMOS,
   SK_VOL_VOLUNTARIOS,
 } from "../constants/storageKeys";
+// ECO-03: COSTE_DEFAULT importado desde su propietario canónico (módulo Camisetas).
+// No usar fallbacks hardcoded { corredor:7.5, voluntario:7.5 } — eran incorrectos.
+// budgetConstants re-exporta este mismo objeto para compatibilidad con otros imports.
+import { COSTE_DEFAULT as CAM_COSTE_DEFAULT } from "../components/camisetas/camisetasConstants";
 
 // Claves de persistencia propias del módulo de presupuesto
 const LS_PATS = SK_PAT_PATS;
@@ -81,7 +85,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
 
   const [rawPats] = useData(LS_PATS, []);
   const [rawCamPedidos] = useData(SK_CAM_PEDIDOS, []);
-  const [rawCamCoste] = useData(SK_CAM_COSTE, { corredor: 7.5, voluntario: 7.5 });
+  const [rawCamCoste] = useData(SK_CAM_COSTE, CAM_COSTE_DEFAULT);
   const [rawCamCorredores] = useData(SK_CAM_CORREDORES, {});
   const [rawCamPrecioPlatObj] = useData(SK_CAM_PRECIO_PLATAFORMA, { precio: 0 });
   const [rawCamNino] = useData(SK_CAM_NINO, {});
@@ -130,7 +134,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
 
   const totalMerchBeneficio = useMemo(() => {
     const desglose = calculateCosteCamisetasDesglosado({
-      camCoste: rawCamCoste || { corredor: 7.5, voluntario: 7.5, nino: 6 },
+      camCoste: rawCamCoste || CAM_COSTE_DEFAULT,
       camPedidos: Array.isArray(rawCamPedidos) ? rawCamPedidos : [],
       corredoresExt: rawCamCorredores || {},
       precioCorrExt: rawCamPrecioPlatObj?.precio ?? 0,
@@ -150,12 +154,12 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   const totalBalanceCamisetasTecnicas = useMemo(() => {
     // Beneficio neto de camisetas técnicas (tipo corredor) del bloque Camisetas
     const pedidos = Array.isArray(rawCamPedidos) ? rawCamPedidos : [];
-    const coste = rawCamCoste || { corredor: 7.5, voluntario: 7.5 };
+    const coste = rawCamCoste || CAM_COSTE_DEFAULT;
     const lineasCorredor = pedidos.flatMap(p => p.lineas || []).filter(l => l.tipo === "corredor");
     const ingCorredor = lineasCorredor.filter(l => l.estadoPago === "pagado")
       .reduce((s, l) => s + (l.cantidad * (l.precioVenta || 0)), 0);
     const costeCorredor = lineasCorredor.filter(l => l.estadoPago === "pagado" || l.estadoPago === "pendiente")
-      .reduce((s, l) => s + (l.cantidad * (coste.corredor || 7.5)), 0);
+      .reduce((s, l) => s + (l.cantidad * (coste.corredor || CAM_COSTE_DEFAULT.corredor)), 0);
     const beneficioPedidosCor = ingCorredor - costeCorredor;
 
     // Beneficio neto de "Camiseta técnica" del merchandising local (nombre contiene "camiseta")

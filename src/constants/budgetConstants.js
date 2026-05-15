@@ -119,5 +119,8 @@ export const MARGEN_CONFIG_DEFAULT = {
   alertaActiva: true,
 };
 
-// Coste de fabricación por tipo de camiseta — compartido con Camisetas.jsx y Dashboard
-export const COSTE_DEFAULT = { corredor: 8, voluntario: 7, nino: 6 };
+// ECO-03: COSTE_DEFAULT re-exportado desde su módulo propietario (camisetasConstants).
+// La definición canónica vive en src/components/camisetas/camisetasConstants.js.
+// Este re-export mantiene compatibilidad con cualquier import existente de budgetConstants.
+// NO modificar los valores aquí — editar únicamente en camisetasConstants.js.
+export { COSTE_DEFAULT } from "@/components/camisetas/camisetasConstants";

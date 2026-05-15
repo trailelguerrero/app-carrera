@@ -41,6 +41,19 @@ export const estadoCombinado = (lineas=[]) => {
 };
 
 export const PEDIDOS_DEFAULT = [];
+
+/**
+ * COSTE_DEFAULT — coste unitario de fabricación por tipo de camiseta.
+ *
+ * FUENTE ÚNICA DE VERDAD (ECO-03): este objeto es el único lugar donde se definen
+ * estos valores. Cualquier otro módulo que los necesite debe importarlos desde aquí.
+ *
+ *   - budgetConstants.js     re-exporta este objeto (compatibilidad)
+ *   - useBudgetLogic.js      importa CAM_COSTE_DEFAULT desde aquí como fallback de useData
+ *   - budgetUtils.js         usa estos valores como default de parámetro
+ *
+ * Si el proveedor cambia precios, editar SOLO aquí.
+ */
 export const COSTE_DEFAULT   = { corredor:8, voluntario:7, nino:6 };
 
 export const calcPedido = (p, coste) => {
