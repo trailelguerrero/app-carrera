@@ -66,63 +66,48 @@ const saveTimeouts = new Map();
 const savePromises = new Map();
 
 // ─── API ADAPTER (para Vercel + Neon) ───────────────────────────────────────
+// PRINCIPIO: Neon es la única fuente de verdad para datos de negocio.
+// localStorage se usa SOLO como:
+//   1. Fallback offline (si Neon no responde)
+//   2. Escritura optimista durante el debounce de 2s antes del PUT a Neon
+// NUNCA se sirven datos de localStorage cuando Neon está accesible.
 const apiAdapter = {
   async get(collection, defaultValue = null) {
-    // Si hay escritura pendiente, usar local
+    // Si hay escritura pendiente (debounce activo), devolver el dato local optimista
+    // para que el usuario vea sus cambios inmediatamente mientras se envía a Neon.
     if (saveTimeouts.has(collection)) {
       return localAdapter.get(collection, defaultValue);
     }
 
-    const lastSave  = parseInt(localStorage.getItem(`__last_save_${collection}`) || '0');
-    const lastFetch = parseInt(localStorage.getItem(`__last_fetch_${collection}`) || '0');
-    const localData = await localAdapter.get(collection, null);
-    const CACHE_TTL = 4 * 60 * 60 * 1000; // 4 horas — app monousuario, datos estables
-    const SESSION_KEY = `__session_loaded_${collection}`;
-    const sessionLoaded = sessionStorage.getItem(SESSION_KEY) === '1';
-
-    // Usar caché local si:
-    // 1. Se guardó hace menos de 5 min (datos propios, frescos)
-    // 2. Se fetcheó hace menos de 5 min (datos de Neon, frescos)
-    // 3. Hay escritura reciente (< 2s)
-    // Si hay dato local y no hay registro de fetch, asumir dato reciente (evita GET innecesario)
-    const cacheValida = localData !== null && (
-      sessionLoaded || // Ya se cargó en esta sesión de navegador
-      (Date.now() - lastSave  < CACHE_TTL) ||
-      (Date.now() - lastFetch < CACHE_TTL) ||
-      (Date.now() - lastSave  < 2000) ||
-      (lastFetch === 0 && lastSave > 0) // dato guardado por el usuario, sin fetch previo
-    );
-
-    if (cacheValida) return localData;
-
+    // Siempre intentar Neon primero — es la única fuente de verdad.
     try {
       const res = await fetch(`${API_BASE_URL}/data/${collection}`, {
         headers: { 'Content-Type': 'application/json' }
-        // SEC-01: sin x-api-key — el proxy BFF lo inyecta server-side
       });
-      if (!res.ok) return localData ?? defaultValue;
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
       const response = await res.json();
-      // MISSING-02: unwrap versioned response { data, version } or raw data (legacy)
+      // Unwrap versioned response { data, version } o raw data (legado)
       const data = response?.data !== undefined ? response.data : response;
       const version = response?.version;
-      if (saveTimeouts.has(collection)) return localAdapter.get(collection, defaultValue);
+      // Actualizar caché local con el dato fresco de Neon (para uso offline)
       await localAdapter.set(collection, data);
       localStorage.setItem(`__last_fetch_${collection}`, Date.now().toString());
       if (version !== undefined) {
         localStorage.setItem(`__version_${collection}`, String(version));
       }
-      sessionStorage.setItem(SESSION_KEY, '1');
       return data;
     } catch {
+      // Neon no accesible → fallback al dato local si existe
+      const localData = await localAdapter.get(collection, null);
       return localData ?? defaultValue;
     }
   },
 
   async set(collection, data) {
-    // Actualización optimista inmediata en local
+    // Escritura optimista inmediata en local (el usuario ve sus cambios sin esperar)
     await localAdapter.set(collection, data);
 
-    // Debounce de la llamada a la API
+    // Debounce del PUT a Neon (evita saturar la BD con cada keystroke)
     return new Promise((resolve) => {
       if (saveTimeouts.has(collection)) {
         clearTimeout(saveTimeouts.get(collection));
@@ -136,17 +121,12 @@ const apiAdapter = {
         saveTimeouts.delete(collection);
         savePromises.delete(collection);
         try {
-          // SEC-01: sin VITE_API_KEY — la key la inyecta el proxy BFF server-side
           const res = await fetch(`${API_BASE_URL}/data/${collection}`, {
             method: 'PUT',
-            headers: { 
-              'Content-Type': 'application/json',
-              // x-api-key eliminado del cliente (SEC-01)
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
           });
           if (res.status === 409) {
-            // MISSING-02: conflict — otro dispositivo guardó cambios más recientes
             const conflictData = await res.json().catch(() => ({}));
             window.dispatchEvent(new CustomEvent('teg-conflict', {
               detail: { collection, localData: data, serverVersion: conflictData.serverVersion, message: conflictData.message }
@@ -156,25 +136,25 @@ const apiAdapter = {
           }
           if (!res.ok) throw new Error(`API error: ${res.status}`);
           
-          // MISSING-02: actualizar versión local desde la respuesta del servidor
+          // Actualizar versión local desde respuesta del servidor
           try {
             const resData = await res.json();
             if (resData?.version !== undefined) {
               localStorage.setItem(`__version_${collection}`, String(resData.version));
             }
-          } catch { /* ignore */ }
+          } catch { /* ignorar */ }
           
-          // Marcar éxito y timestamp
           localStorage.setItem(`__last_save_${collection}`, Date.now().toString());
           window.dispatchEvent(new CustomEvent('teg-save-status', { detail: { status: 'saved' } }));
           resolve({ success: true });
         } catch (e) {
-          console.error(`[dataService] Error guardando "${collection}":`, e.message);
+          console.error(`[dataService] Error guardando "${collection}" en Neon:`, e.message);
           window.dispatchEvent(new CustomEvent('teg-save-status', { detail: { status: 'error' } }));
+          // Marcar como pendiente para reintento cuando vuelva la conexión
           await localAdapter.set(`__pending_sync_${collection}`, Date.now());
           resolve({ success: true, offline: true });
         }
-      }, 2000); // debounce de 2s — reduce tráfico a la DB
+      }, 2000); // debounce 2s
 
       saveTimeouts.set(collection, timeoutId);
     });
@@ -183,65 +163,54 @@ const apiAdapter = {
   async remove(collection) {
     await localAdapter.remove(collection);
     try {
-      await fetch(`${API_BASE_URL}/data/${collection}`, { 
-        method: 'DELETE',
-        // SEC-01: sin x-api-key — el proxy BFF lo inyecta server-side
-      });
-    } catch { /* ignore DELETE errors */ }
+      await fetch(`${API_BASE_URL}/data/${collection}`, { method: 'DELETE' });
+    } catch { /* ignorar errores DELETE */ }
     return { success: true };
   },
 
   async getMultiple(keys) {
-    const CACHE_TTL = 2 * 60 * 60 * 1000; // 2 horas
-
-    // Comprobar si todos los keys tienen caché válida
-    const allCached = await Promise.all(
-      Object.keys(keys).map(async k => {
-        const lastFetch = parseInt(localStorage.getItem(`__last_fetch_${k}`) || '0');
-        const lastSave  = parseInt(localStorage.getItem(`__last_save_${k}`)  || '0');
-        const local     = await localAdapter.get(k, null);
-        return local !== null && (
-          Date.now() - lastFetch < CACHE_TTL ||
-          Date.now() - lastSave  < CACHE_TTL
-        );
-      })
+    // Construir lista de colecciones que tienen escritura pendiente
+    const pendingCollections = new Set(
+      Object.keys(keys).filter(k => saveTimeouts.has(k))
     );
 
-    // Si todos en caché, no ir a Neon
-    if (allCached.every(Boolean)) {
+    // Si todas tienen escritura pendiente, usar local (datos optimistas frescos)
+    if (pendingCollections.size === Object.keys(keys).length) {
       return localAdapter.getMultiple(keys);
     }
 
+    // Intentar batch GET desde Neon para todas las claves
     try {
       const params = new URLSearchParams({ keys: Object.keys(keys).join(',') });
-      const res = await fetch(`${API_BASE_URL}/data/batch?${params}`, {
-        // SEC-01: sin x-api-key — el proxy BFF lo inyecta server-side
-      });
+      const res = await fetch(`${API_BASE_URL}/data/batch?${params}`);
       if (!res.ok) throw new Error();
       const data = await res.json();
       const now = Date.now().toString();
       const result = {};
       for (const [key, defaultValue] of Object.entries(keys)) {
-        result[key] = data[key] !== undefined ? data[key] : defaultValue;
-        if (data[key] !== undefined) {
-          await localAdapter.set(key, data[key]);
-          localStorage.setItem(`__last_fetch_${key}`, now);
+        if (pendingCollections.has(key)) {
+          // Para claves con escritura pendiente, usar el dato local optimista
+          result[key] = await localAdapter.get(key, defaultValue);
+        } else {
+          result[key] = data[key] !== undefined ? data[key] : defaultValue;
+          if (data[key] !== undefined) {
+            // Actualizar caché local con el dato fresco de Neon
+            await localAdapter.set(key, data[key]);
+            localStorage.setItem(`__last_fetch_${key}`, now);
+          }
         }
       }
       return result;
     } catch {
+      // Neon no accesible → fallback completo a localStorage
       return localAdapter.getMultiple(keys);
     }
   },
 
   async setMultiple(entries, batchKey = null) {
-    // Actualización optimista
+    // Escritura optimista en local
     await localAdapter.setMultiple(entries);
 
-    // Clave de debounce:
-    //   - Si se pasa batchKey semántico (ej: "batch_presupuesto"), el debounce
-    //     colapsa llamadas rápidas del mismo módulo en un solo PUT.
-    //   - Sin batchKey se genera una clave única para no mezclar módulos distintos.
     const collection = batchKey ?? `batch_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     return new Promise((resolve) => {
       if (saveTimeouts.has(collection)) {
@@ -258,18 +227,12 @@ const apiAdapter = {
         try {
           const res = await fetch(`${API_BASE_URL}/data/batch`, {
             method: 'PUT',
-            headers: { 
-              'Content-Type': 'application/json',
-              // SEC-01: sin x-api-key — el proxy BFF lo inyecta server-side
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(entries),
           });
           if (!res.ok) throw new Error();
-          
-          // Marcar éxito para todas las entradas
           const now = Date.now().toString();
           Object.keys(entries).forEach(k => localStorage.setItem(`__last_save_${k}`, now));
-          
           resolve({ success: true });
         } catch {
           resolve({ success: true, offline: true });
@@ -280,6 +243,7 @@ const apiAdapter = {
     });
   },
 };
+
 
 // ─── SERVICIO PÚBLICO ───────────────────────────────────────────────────────
 const adapter = ADAPTER === 'api' ? apiAdapter : localAdapter;

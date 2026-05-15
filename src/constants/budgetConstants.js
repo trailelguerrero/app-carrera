@@ -66,8 +66,20 @@ export const INSCRITOS_DEFAULT = {
 
 export const INGRESOS_EXTRA_DEFAULT = [
   // ── Sincronizados automáticamente desde otros bloques ──────────────────────
-  { id: 1,  nombre: "Patrocinios captados (confirmado+cobrado)", valor: 0, activo: true,  synced: true,  syncKey: "patrocinios" },
-  { id: 3,  nombre: "Patrocinios cobrados (tesorería real)",     valor: 0, activo: false, synced: true,  syncKey: "patrociniosCobrado" },
+  //
+  // LÓGICA DE PATROCINIOS — IMPORTANTE:
+  // "Captados" (id=1): suma confirmados + cobrados. Útil como referencia de pipeline
+  //   pero NO debe usarse en el P&L porque incluye dinero que quizás no llegue.
+  // "Cobrados" (id=3): SOLO dinero efectivamente recibido → es la cifra real de tesorería.
+  //   Este es el dato correcto para el resultado financiero.
+  //
+  // Por diseño, SOLO UNO de los dos debe estar activo a la vez para evitar doble cómputo:
+  //   - Si "captados" activo y "cobrados" activo → el cobrado se suma dos veces.
+  //   - Usar "cobrados" para el P&L real, "captados" como vista informativa del pipeline.
+  //
+  // INVARIANTE (ECO-02): activo aquí debe coincidir con su entrada en SYNC_CONFIG_DEFAULT.
+  { id: 1,  nombre: "Patrocinios captados (confirmado+cobrado)", valor: 0, activo: false, synced: true,  syncKey: "patrocinios" },
+  { id: 3,  nombre: "Patrocinios cobrados (tesorería real)",     valor: 0, activo: true,  synced: true,  syncKey: "patrociniosCobrado" },
   { id: 2,  nombre: "Merchandising total (camisetas + productos)", valor: 0, activo: true,  synced: true,  syncKey: "camisetas" },
   { id: 13, nombre: "Balance camisetas técnicas",                valor: 0, activo: false, synced: true,  syncKey: "balanceCamisetasTecnicas" },
   // ── Ingresos manuales — editar directamente ────────────────────────────────
@@ -90,18 +102,20 @@ export const INGRESOS_EXTRA_DEFAULT = [
 //
 // Análisis de escenarios (ECO-02):
 //   a) Usuario nuevo (localStorage vacío): useData inicializa con este objeto.
-//      El valor aquí ES el estado de primera carga. Antes: patrociniosCobrado=true
-//      provocaba doble cómputo inmediato con la línea "patrocinios" (también activa).
+//      El valor aquí ES el estado de primera carga.
 //   b) Usuario con syncConfig antiguo sin la clave: el merge inyecta el valor de aquí
-//      para claves ausentes. Antes: activaba el toggle sin que el usuario lo hubiese
-//      elegido al migrar a una versión que añadió esa clave.
+//      para claves ausentes.
 //   c) Usuario que ya guardó su preferencia: syncConfigRaw sobrescribe este default.
 //      No se ve afectado por este cambio.
+//
+// DECISIÓN DE DISEÑO — PATROCINIOS:
+//   patrocinios=false + patrociniosCobrado=true
+//   Los ingresos reales son el dinero efectivamente cobrado (tesorería real).
+//   "Captados" es un indicador de pipeline, no un ingreso confirmado.
+//   Si ambos estuvieran activos, el dinero cobrado se contaría dos veces.
 export const SYNC_CONFIG_DEFAULT = {
-  patrocinios: true,            // Captado (confirmado+cobrado)   — coincide con INGRESOS_EXTRA id=1  activo:true
-  patrociniosCobrado: false,    // Solo cobrado (tesorería real)  — coincide con INGRESOS_EXTRA id=3  activo:false
-                                // CAMBIADO true→false (ECO-02): el usuario activa esta vista
-                                // explícitamente. Activa por defecto suma el cobrado dos veces.
+  patrocinios: false,           // Captado (confirmado+cobrado) — INACTIVO: es pipeline, no ingreso real
+  patrociniosCobrado: true,     // Solo cobrado (tesorería real) — ACTIVO: dinero en caja → cifra P&L correcta
   camisetas: true,              // Merchandising total            — coincide con INGRESOS_EXTRA id=2  activo:true
   subvencionPublica: true,      // Sector Administración pública  — coincide con INGRESOS_EXTRA id=10 activo:true
   balanceCamisetasTecnicas: false, // Camisetas técnicas neto     — coincide con INGRESOS_EXTRA id=13 activo:false
