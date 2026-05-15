@@ -217,9 +217,17 @@ export default function Index() {
   const [showDiaCarrera, setShowDiaCarrera] = useState(false);
   const [pendingSubtab, setPendingSubtab] = useState(null);
   const [readmeBlock, setReadmeBlock] = useState(null);
-  const [showOnboarding, setShowOnboarding] = useState(
-    () => !localStorage.getItem(SK_UI_ONBOARDING_DONE)
-  );
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    if (localStorage.getItem(SK_UI_ONBOARDING_DONE)) return false;
+    // Si ya hay configuración de evento guardada, marcar onboarding como completado
+    // y no mostrar el wizard (evita que aparezca en instalaciones existentes)
+    const hasConfig = !!localStorage.getItem(LS_KEY_CONFIG);
+    if (hasConfig) {
+      localStorage.setItem(SK_UI_ONBOARDING_DONE, "1");
+      return false;
+    }
+    return true;
+  });
   // CFG-01: cerrar sin guardar — los datos parciales NO se persisten
   const cerrarOnboarding = () => setShowOnboarding(false);
   // CFG-01: wizard completado — los datos ya fueron guardados por OnboardingModal

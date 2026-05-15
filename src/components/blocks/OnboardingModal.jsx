@@ -38,7 +38,7 @@ const TOTAL_PASOS = 4;
 
 function estadoInicial() {
   return {
-    nombre: "", edicion: "", fecha: "",
+    nombre: "Trail El Guerrero", edicion: "2026", fecha: "",
     distancias: { TG7: false, TG13: false, TG25: false },
     maxInscritos: { TG7: "", TG13: "", TG25: "" },
     voluntariosNecesarios: "", cargarPuestos: false,
