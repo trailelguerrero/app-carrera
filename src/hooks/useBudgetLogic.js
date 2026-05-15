@@ -297,6 +297,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     if (isFirstRender.current) { isFirstRender.current = false; return; }
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(async () => {
+      autoSaveTimer.current = null;
       emitSaveStatus("saving");
       try {
         await Promise.all([
@@ -309,8 +310,24 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
         ]);
         emitSaveStatus("saved");
       } catch { emitSaveStatus("error"); }
-    }, 2000);
-    return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
+    }, 800);
+    // Cleanup: si el componente desmonta con un timer pendiente (usuario navegó a otro bloque),
+    // guardar inmediatamente en lugar de cancelar para no perder los datos.
+    return () => {
+      if (autoSaveTimer.current) {
+        clearTimeout(autoSaveTimer.current);
+        autoSaveTimer.current = null;
+        // Guardado síncrono al desmontar — no esperamos promesa para no bloquear
+        Promise.all([
+          dataService.set(SK_PPTO_TRAMOS, tramos),
+          dataService.set(SK_PPTO_CONCEPTOS, conceptos),
+          dataService.set(SK_PPTO_INSCRITOS, inscritos),
+          dataService.set(SK_PPTO_INGRESOS_EXTRA, ingresosExtra),
+          dataService.set(SK_PPTO_MERCHANDISING, merchandising),
+          dataService.set(SK_PPTO_MAXIMOS, maximos),
+        ]).catch(() => { /* ignorar errores al desmontar */ });
+      }
+    };
   }, [tramos, conceptos, inscritos, ingresosExtra, merchandising, maximos]);
 
   const logCambio = (concepto, campo, valorAntes, valorNuevo) => {

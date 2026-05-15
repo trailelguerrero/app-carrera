@@ -13,7 +13,7 @@ export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosAc
   const [editCorredores, setEditCorredores] = useState(false);
   const [tmpCor, setTmpCor] = useState({ ...corredoresExt });
   const [editNino, setEditNino] = useState(false);
-  const [secColapsadas, setSecCol] = useState({ corredor:true, voluntario:true, nino:true, tabla:true, fuentes:true }); // todas colapsadas por defecto
+  const [secColapsadas, setSecCol] = useState({ corredor:true, voluntario:true, nino:true, tabla:true, fuentes:false }); // fuentes abierta por defecto para que Editar sea visible
   const toggleSec = (k) => setSecCol(p => ({...p,[k]:!p[k]}));
   const [tmpNino, setTmpNino] = useState({ ...ninoExt });
 

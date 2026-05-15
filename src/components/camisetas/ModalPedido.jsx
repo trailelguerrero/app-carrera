@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { useModalClose } from "@/hooks/useModalClose";
 import { genIdNum } from "@/lib/utils";
 import { blockCls as cls } from "@/lib/blockStyles";
-import { TC, EP, TALLAS, TALLAS_NINO, TIPOS, ESTADOS_PAGO, ESTADOS_ENTREGA } from "./camisetasConstants";
+import { TC, EP, TALLAS, TALLAS_NINO, TIPOS, ESTADOS_PAGO, ESTADOS_ENTREGA, calcPedido } from "./camisetasConstants";
 
 export function ModalPedido({
  data, coste, onSave, onClose }) {
