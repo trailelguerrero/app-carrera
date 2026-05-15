@@ -184,6 +184,18 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   // No es estado — se calcula en cada render. Esto GARANTIZA que los KPIs
   // son coherentes con los toggles sin depender de efectos asíncronos.
   // ID_TO_SYNCKEY se declara a nivel de módulo (ver arriba) para evitar exhaustive-deps.
+  //
+  // ECO-02 INVARIANTE de fuente de verdad por tipo de línea:
+  //   — Líneas CON syncKey: `activo` proviene SIEMPRE de syncConfig[key].
+  //     syncConfig es la fuente canónica para estas líneas.
+  //     ie.activo actúa como documentación del estado por defecto, no como fuente.
+  //   — Líneas SIN syncKey (manuales): `activo` proviene de ie.activo.
+  //     No tienen entrada en syncConfig.
+  //
+  // Para que primera instalación y migraciones sean correctas, SYNC_CONFIG_DEFAULT
+  // DEBE tener los mismos valores booleanos que los campos `activo` de
+  // INGRESOS_EXTRA_DEFAULT para cada syncKey. Si divergen, syncConfig gana
+  // silenciosamente (ver análisis ECO-02 en budgetConstants.js).
 
   const ingresosExtraConValores = useMemo(() => {
     const base = scenarioIngresosExtra ?? ingresosExtra;

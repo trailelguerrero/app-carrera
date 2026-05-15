@@ -77,12 +77,34 @@ export const INGRESOS_EXTRA_DEFAULT = [
   { id: 12, nombre: "Otros ingresos",                           valor: 0, activo: false, synced: false },
 ];
 
+// ECO-02 FIX: SYNC_CONFIG_DEFAULT es la fuente de verdad canónica para el estado
+// inicial (primera instalación) de cada toggle sincronizado. Sus valores DEBEN
+// coincidir con el campo `activo` del ítem correspondiente en INGRESOS_EXTRA_DEFAULT.
+//
+// Invariante obligatorio:
+//   SYNC_CONFIG_DEFAULT[syncKey] === INGRESOS_EXTRA_DEFAULT.find(ie => ie.syncKey === syncKey).activo
+//
+// Si divergen, syncConfig siempre gana (ver ingresosExtraConValores en useBudgetLogic.js),
+// lo que provoca que el toggle definido en INGRESOS_EXTRA_DEFAULT quede ignorado
+// silenciosamente en primera instalación y en migraciones desde versiones antiguas.
+//
+// Análisis de escenarios (ECO-02):
+//   a) Usuario nuevo (localStorage vacío): useData inicializa con este objeto.
+//      El valor aquí ES el estado de primera carga. Antes: patrociniosCobrado=true
+//      provocaba doble cómputo inmediato con la línea "patrocinios" (también activa).
+//   b) Usuario con syncConfig antiguo sin la clave: el merge inyecta el valor de aquí
+//      para claves ausentes. Antes: activaba el toggle sin que el usuario lo hubiese
+//      elegido al migrar a una versión que añadió esa clave.
+//   c) Usuario que ya guardó su preferencia: syncConfigRaw sobrescribe este default.
+//      No se ve afectado por este cambio.
 export const SYNC_CONFIG_DEFAULT = {
-  patrocinios: true,          // Captado (confirmado + cobrado)
-  patrociniosCobrado: true,   // Solo cobrado (tesorería real)
-  camisetas: true,
-  subvencionPublica: true,          // Patrocinadores con sector "Administración pública"
-  balanceCamisetasTecnicas: false   // Beneficio neto de camisetas técnicas (Camisetas + Merchandising)
+  patrocinios: true,            // Captado (confirmado+cobrado)   — coincide con INGRESOS_EXTRA id=1  activo:true
+  patrociniosCobrado: false,    // Solo cobrado (tesorería real)  — coincide con INGRESOS_EXTRA id=3  activo:false
+                                // CAMBIADO true→false (ECO-02): el usuario activa esta vista
+                                // explícitamente. Activa por defecto suma el cobrado dos veces.
+  camisetas: true,              // Merchandising total            — coincide con INGRESOS_EXTRA id=2  activo:true
+  subvencionPublica: true,      // Sector Administración pública  — coincide con INGRESOS_EXTRA id=10 activo:true
+  balanceCamisetasTecnicas: false, // Camisetas técnicas neto     — coincide con INGRESOS_EXTRA id=13 activo:false
 };
 
 export const MERCHANDISING_DEFAULT = [
