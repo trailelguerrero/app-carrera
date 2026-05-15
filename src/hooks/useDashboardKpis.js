@@ -93,8 +93,15 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
     );
     const resultado = resultadoObj.total;
     const costes = totalCostesFijos + totalCostesVars;
+    // FIX ECO-05: fórmula ROI unificada con budgetUtils.calculateResultadoFinanciero.
+    // Definición adoptada: ROI = (ingresosBrutos - costes) / costes × 100
+    // donde ingresosBrutos = ingresos inscripciones + ingresos extra (patrocinios, camisetas, otros)
+    // Antes: (totalIngresos + totalIngresosExtra - costes) — ya era correcto en estructura,
+    // pero divergía porque totalIngresosExtra leía ie.valor=0 del snapshot.
+    // Tras el fix de persistencia, esta fórmula ya produce el mismo número que el Presupuesto.
+    const totalIngresosBrutos = totalIngresos + totalIngresosExtra;
     const roiGlobal = costes > 0
-      ? Math.round(((totalIngresos + totalIngresosExtra - costes) / costes) * 100)
+      ? Math.round(((totalIngresosBrutos - costes) / costes) * 100)
       : 0;
     // Compatibilidad con MiniDesglose (espera merchBeneficio y totalOtrosIngresos)
     const merchBeneficio = 0;

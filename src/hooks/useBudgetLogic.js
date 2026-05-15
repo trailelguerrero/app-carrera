@@ -290,11 +290,15 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     setSaveStatus("saving");
     emitSaveStatus("saving");
     try {
+      // FIX DIVERGENCIA DASHBOARD: se guardan ingresosExtraConValores (valores calculados en tiempo real)
+      // en lugar del estado base ingresosExtra (que tiene valor:0 para líneas sincronizadas).
+      // El Dashboard lee este snapshot y suma ie.valor directamente → necesita los valores reales.
+      // ingresosExtraConValores tiene los mismos campos estructurales + valor actualizado (patrocinios, camisetas…).
       await Promise.all([
         dataService.set(SK_PPTO_TRAMOS, tramos),
         dataService.set(SK_PPTO_CONCEPTOS, conceptos),
         dataService.set(SK_PPTO_INSCRITOS, inscritos),
-        dataService.set(SK_PPTO_INGRESOS_EXTRA, ingresosExtra),
+        dataService.set(SK_PPTO_INGRESOS_EXTRA, ingresosExtraConValores),
         dataService.set(SK_PPTO_MERCHANDISING, merchandising),
         dataService.set(SK_PPTO_MAXIMOS, maximos),
       ]);
@@ -306,7 +310,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       setSaveStatus("error");
       emitSaveStatus("error");
     }
-  }, [tramos, conceptos, inscritos, ingresosExtra, merchandising, maximos]);
+  }, [tramos, conceptos, inscritos, ingresosExtraConValores, merchandising, maximos]);
 
   // BUG-P4 fix: resetAllData ahora también limpia syncConfig y margenConfig
   const resetAllData = useCallback(() => {
@@ -326,15 +330,20 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return; }
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    // Capturar snapshot de ingresosExtraConValores en el momento del cambio (cierre léxico).
+    // Esto garantiza que el autosave y el cleanup usan el mismo valor que disparó el efecto.
+    const ingresosExtraSnapshot = ingresosExtraConValores;
     autoSaveTimer.current = setTimeout(async () => {
       autoSaveTimer.current = null;
       emitSaveStatus("saving");
       try {
+        // FIX DIVERGENCIA DASHBOARD: guardar ingresosExtraConValores (valores en tiempo real)
+        // para que el snapshot de localStorage tenga ie.valor correcto (no 0).
         await Promise.all([
           dataService.set(SK_PPTO_TRAMOS, tramos),
           dataService.set(SK_PPTO_CONCEPTOS, conceptos),
           dataService.set(SK_PPTO_INSCRITOS, inscritos),
-          dataService.set(SK_PPTO_INGRESOS_EXTRA, ingresosExtra),
+          dataService.set(SK_PPTO_INGRESOS_EXTRA, ingresosExtraSnapshot),
           dataService.set(SK_PPTO_MERCHANDISING, merchandising),
           dataService.set(SK_PPTO_MAXIMOS, maximos)
         ]);
@@ -352,13 +361,13 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
           dataService.set(SK_PPTO_TRAMOS, tramos),
           dataService.set(SK_PPTO_CONCEPTOS, conceptos),
           dataService.set(SK_PPTO_INSCRITOS, inscritos),
-          dataService.set(SK_PPTO_INGRESOS_EXTRA, ingresosExtra),
+          dataService.set(SK_PPTO_INGRESOS_EXTRA, ingresosExtraSnapshot),
           dataService.set(SK_PPTO_MERCHANDISING, merchandising),
           dataService.set(SK_PPTO_MAXIMOS, maximos),
         ]).catch(() => { /* ignorar errores al desmontar */ });
       }
     };
-  }, [tramos, conceptos, inscritos, ingresosExtra, merchandising, maximos]);
+  }, [tramos, conceptos, inscritos, ingresosExtraConValores, merchandising, maximos]);
 
   const logCambio = (concepto, campo, valorAntes, valorNuevo) => {
     // SEC-01: el proxy BFF inyecta la x-api-key server-side
