@@ -11,6 +11,7 @@ import {
   SK_DOC_DOCS, SK_DOC_GESTIONES,
   SK_UI_DASH_ALERTAS_OPEN, SK_UI_MODO_EVENTO_FORZADO,
   SK_CAM_PEDIDOS, SK_CAM_COSTE, SK_CAM_CORREDORES, SK_CAM_PRECIO_PLATAFORMA, SK_CAM_NINO,
+  SK_CAM_VENTA_PUBLICO,
 } from "@/constants/storageKeys";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useDashboardKpis } from "@/hooks/useDashboardKpis";
@@ -47,6 +48,7 @@ const ALL_KEYS = {
   [SK_DOC_DOCS]:            [],
   [SK_DOC_GESTIONES]:       [],
   [LS_KEY_CONFIG]:          EVENT_CONFIG_DEFAULT,
+  [SK_CAM_VENTA_PUBLICO]:     { precio: 0, cantidad: 0 }, // ECO-04
   [SK_PPTO_SCENARIO_ACTIVE]: null,
 };
 

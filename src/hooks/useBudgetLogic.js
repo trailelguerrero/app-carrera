@@ -28,7 +28,7 @@ import {
   calculatePEGlobal,
   calculateCosteCamisetasDesglosado,
 } from "../lib/budgetUtils";
-import { SK_CAM_PEDIDOS, SK_CAM_COSTE, SK_CAM_CORREDORES, SK_CAM_PRECIO_PLATAFORMA, SK_CAM_NINO,
+import { SK_CAM_PEDIDOS, SK_CAM_COSTE, SK_CAM_CORREDORES, SK_CAM_PRECIO_PLATAFORMA, SK_CAM_NINO, SK_CAM_VENTA_PUBLICO,
   SK_PAT_PATS,
   SK_PPTO_SYNC_CONFIG, SK_PPTO_MARGEN_CONFIG,
   SK_PPTO_TRAMOS, SK_PPTO_CONCEPTOS, SK_PPTO_INSCRITOS,
@@ -89,6 +89,8 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   const [rawCamCorredores] = useData(SK_CAM_CORREDORES, {});
   const [rawCamPrecioPlatObj] = useData(SK_CAM_PRECIO_PLATAFORMA, { precio: 0 });
   const [rawCamNino] = useData(SK_CAM_NINO, {});
+  // ECO-04: venta al público general del módulo Camisetas
+  const [rawCamVentaPublico] = useData(SK_CAM_VENTA_PUBLICO, { precio: 0, cantidad: 0 });
   const [rawVoluntarios] = useData(SK_VOL_VOLUNTARIOS, []);
 
   // ── Valores calculados en tiempo real desde otros bloques ────────────────
@@ -140,6 +142,8 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       precioCorrExt: rawCamPrecioPlatObj?.precio ?? 0,
       ninoExt: rawCamNino || {},
       voluntariosActivos: _camVoluntariosActivos,
+      // ECO-04: incluir venta al público en el cálculo de beneficio de camisetas
+      ventaPublico: rawCamVentaPublico || { precio: 0, cantidad: 0 },
     });
     // Añadir beneficio de merchandising local (Venta de Productos de TabIngresos)
     const merch = Array.isArray(merchandising) ? merchandising.filter(m => m.activo) : [];
@@ -147,7 +151,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     const costeMerch = merch.reduce((s, m) => s + m.unidades * (m.costeUnitario || 0), 0);
     return desglose.beneficioNeto + (ingMerch - costeMerch);
   }, [rawCamPedidos, rawCamCoste, rawCamCorredores, rawCamPrecioPlatObj, rawCamNino,
-      _camVoluntariosActivos, merchandising]);
+      _camVoluntariosActivos, merchandising, rawCamVentaPublico]);
 
   // Balance de camisetas técnicas: unidades corredor del bloque Camisetas
   // + unidades de items "Camiseta técnica" del merchandising local

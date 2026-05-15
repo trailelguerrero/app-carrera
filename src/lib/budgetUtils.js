@@ -286,6 +286,9 @@ export const calculateCosteCamisetasDesglosado = ({
   precioCorrExt = 0,
   ninoExt = {},
   voluntariosActivos = [],
+  // ECO-04: venta al público general. Default seguro: sin efecto cuando no hay datos.
+  // Si ventaPublico = { precio:0, cantidad:0 }, el resultado es idéntico al anterior.
+  ventaPublico = { precio: 0, cantidad: 0 },
 } = {}) => {
   const costeCU = { corredor: camCoste.corredor || 8, voluntario: camCoste.voluntario || 7, nino: camCoste.nino || 6 };
 
@@ -311,13 +314,18 @@ export const calculateCosteCamisetasDesglosado = ({
     .filter(l => l.estadoPago === "pagado")
     .reduce((s, l) => s + (l.cantidad || 0) * (l.precioVenta || 0), 0);
 
-  const costeTotal    = costeCorredor + costeVoluntario + costeNino + costeExtras;
-  const ingresoTotal  = ingresosExterno + ingresosPedidos;
+  // ECO-04: venta al público general — ingresos por precio libre, coste al precio de corredor
+  const cantVentaPublica    = (ventaPublico.cantidad || 0);
+  const ingresoVentaPublica = cantVentaPublica * (ventaPublico.precio || 0);
+  const costeVentaPublica   = cantVentaPublica * costeCU.corredor;
+
+  const costeTotal    = costeCorredor + costeVoluntario + costeNino + costeExtras + costeVentaPublica;
+  const ingresoTotal  = ingresosExterno + ingresosPedidos + ingresoVentaPublica;
   const beneficioNeto = ingresoTotal - costeTotal;
 
   return {
-    costeCorredor, costeVoluntario, costeNino, costeExtras,
-    ingresosExterno, ingresosPedidos,
+    costeCorredor, costeVoluntario, costeNino, costeExtras, costeVentaPublica,
+    ingresosExterno, ingresosPedidos, ingresoVentaPublica,
     costeTotal, ingresoTotal, beneficioNeto,
     unidCorredor: unidCorrExt, unidVoluntario: unidVol, unidNino, unidExtras,
   };
@@ -350,6 +358,8 @@ export const calculateResultadoFinanciero = ({
   pats = [], ingresosExtra = [],
   camPedidos = [], camCoste = { corredor: 8, voluntario: 7, nino: 6 },
   camCorredoresExt = {}, camPrecioCorrExt = 0, camNinoExt = {}, camVoluntarios = [],
+  // ECO-04: venta al público desde módulo Camisetas. Default seguro: sin efecto si no hay datos.
+  camVentaPublico = { precio: 0, cantidad: 0 },
   merchandising = [],
   syncConfig = { patrocinios: true, patrociniosCobrado: false, camisetas: true, subvencionPublica: true },
 }) => {
@@ -396,6 +406,8 @@ export const calculateResultadoFinanciero = ({
       precioCorrExt: camPrecioCorrExt,
       ninoExt: camNinoExt,
       voluntariosActivos: camVoluntarios,
+      // ECO-04: venta al público propagada al cálculo de P&L
+      ventaPublico: camVentaPublico,
     });
     totalMerchBeneficio = camisetasDesglose.beneficioNeto;
     // Fallback: si no hay datos de camisetas, usar modelo simple de merchandising
