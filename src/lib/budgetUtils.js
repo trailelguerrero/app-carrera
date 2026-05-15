@@ -14,6 +14,18 @@ export const getImporteCobrado = (pat) => {
 /**
  * Devuelve el importe comprometido (acordado, puede o no haberse cobrado).
  * Solo cuenta patrocinadores en estado confirmado o cobrado.
+ *
+ * NOTA DE INVARIANTE (ECO-01):
+ * Esta función devuelve el importe de UN patrocinador sin conocer el contexto
+ * de qué líneas están activas. El control de doble cómputo entre
+ * "Patrocinios captados" (syncKey: patrocinios) y "Subvención entidad pública"
+ * (syncKey: subvencionPublica) se aplica en el nivel de agregación de
+ * totalPatConfirmado en useBudgetLogic.js:
+ *   — Cuando subvencionPublica está activo, totalPatConfirmado excluye el sector
+ *     "Administración pública" para evitar que ese importe aparezca dos veces
+ *     en la cuenta de resultados.
+ *   — No modificar este comportamiento aquí: el filtro de exclusión debe vivir
+ *     en el hook para ser reactivo cuando el usuario activa/desactiva el toggle.
  */
 export const getImporteComprometido = (pat) =>
   (pat.estado === "confirmado" || pat.estado === "cobrado") ? (pat.importe || 0) : 0;

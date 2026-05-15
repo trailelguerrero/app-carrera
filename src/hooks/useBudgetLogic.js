@@ -88,10 +88,24 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   const [rawVoluntarios] = useData(SK_VOL_VOLUNTARIOS, []);
 
   // ── Valores calculados en tiempo real desde otros bloques ────────────────
+  //
+  // ECO-01 FIX: totalPatConfirmado excluye el sector "Administración pública"
+  // cuando syncConfig.subvencionPublica está activo, para evitar doble cómputo
+  // con totalSubvencionPublica.
+  //
+  // Invariante: un euro real solo puede aparecer una vez en la cuenta de resultados.
+  // Si subvencionPublica está activo, los patrocinadores públicos ya se contabilizan
+  // en la línea "Subvención entidad pública". Incluirlos también en "Patrocinios captados"
+  // inflaría el resultado neto por el importe de esos patrocinadores.
   const totalPatConfirmado = useMemo(() => {
     const pats = Array.isArray(rawPats) ? rawPats : [];
-    return pats.filter(p => !p.especie).reduce((s, p) => s + getImporteComprometido(p), 0);
-  }, [rawPats]);
+    // Si subvencionPublica está activo, excluir sector público para evitar doble cómputo
+    // con totalSubvencionPublica. Si está inactivo, incluir todos (solo una línea suma).
+    const excluirPublicos = syncConfig.subvencionPublica === true;
+    return pats
+      .filter(p => !p.especie && (!excluirPublicos || p.sector !== "Administración pública"))
+      .reduce((s, p) => s + getImporteComprometido(p), 0);
+  }, [rawPats, syncConfig.subvencionPublica]);
 
   const totalPatCobrado = useMemo(() => {
     const pats = Array.isArray(rawPats) ? rawPats : [];
