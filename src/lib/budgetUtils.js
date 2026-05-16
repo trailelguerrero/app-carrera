@@ -332,6 +332,28 @@ export const calculateCosteCamisetasDesglosado = ({
 };
 
 /**
+ * calculateROI — fuente única de verdad para el KPI de ROI (ECO-05).
+ *
+ * Definición adoptada:
+ *   ROI = (ingresosBrutos − costes) / costes × 100
+ *   donde ingresosBrutos = inscripciones + patrocinios/extras activos + beneficio neto camisetas
+ *
+ * Esta función es intencionadamente simple (dos parámetros) para no crear acoplamiento
+ * con los componentes internos de cada módulo. Cada llamante es responsable de calcular
+ * correctamente su totalIngresosBrutos antes de invocarla.
+ *
+ * Usada por: calculateResultadoFinanciero (módulo Presupuesto) y useDashboardKpis (Dashboard).
+ * Si se añaden nuevas fuentes de ingresos al P&L, solo hay que incluirlas en el
+ * totalIngresosBrutos que cada llamante construye — la fórmula de ROI no cambia.
+ *
+ * @param {number} totalIngresosBrutos - Ingresos totales (inscripciones + extras + merch)
+ * @param {number} costes              - Costes totales (fijos + variables)
+ * @returns {number} ROI en puntos porcentuales, redondeado a entero. 0 si costes = 0.
+ */
+export const calculateROI = (totalIngresosBrutos, costes) =>
+  costes > 0 ? Math.round(((totalIngresosBrutos - costes) / costes) * 100) : 0;
+
+/**
  * calculateResultadoFinanciero — fuente única de verdad para el resultado económico.
  * Usada por useBudgetLogic Y Dashboard, evitando duplicación de lógica.
  *
@@ -424,10 +446,9 @@ export const calculateResultadoFinanciero = ({
   const totalOtrosIngresos  = totalIngresosExtra + totalMerchBeneficio;
   const totalIngresosBrutos = totalIngresos + totalOtrosIngresos;
   const resultado           = totalIngresosBrutos - totalCostesFijos - totalCostesVars;
-  const costes              = totalCostesFijos + totalCostesVars;
-  const roiGlobal           = costes > 0
-    ? Math.round(((totalIngresosBrutos - costes) / costes) * 100)
-    : 0;
+  const costes    = totalCostesFijos + totalCostesVars;
+  // ECO-05: usar calculateROI (fuente única de verdad) en lugar de fórmula inline.
+  const roiGlobal = calculateROI(totalIngresosBrutos, costes);
 
   return {
     totalIngresosExtra, totalMerchBeneficio,

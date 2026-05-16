@@ -11,10 +11,13 @@ import {
   calculateCostesFijos,
   calculateCostesVariables,
   calculateResultado,
+  calculateROI,
+  calculateCosteCamisetasDesglosado,
   getImporteCobrado,
 } from "@/lib/budgetUtils";
 import { fmtEur } from "@/lib/utils";
 import { EVENT_DATE } from "@/constants/budgetConstants";
+import { COSTE_DEFAULT as CAM_COSTE_DEFAULT } from "@/components/camisetas/camisetasConstants";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import {
   SK_PPTO_CONCEPTOS, SK_PPTO_TRAMOS, SK_PPTO_INSCRITOS, SK_PPTO_INGRESOS_EXTRA,
@@ -24,6 +27,8 @@ import {
   SK_LOG_MAT, SK_LOG_ASIG, SK_LOG_TL, SK_LOG_CK, SK_LOG_INC,
   SK_PROY_TAREAS, SK_PROY_HITOS,
   SK_DOC_DOCS, SK_DOC_GESTIONES,
+  SK_CAM_PEDIDOS, SK_CAM_COSTE, SK_CAM_CORREDORES, SK_CAM_PRECIO_PLATAFORMA,
+  SK_CAM_NINO, SK_CAM_VENTA_PUBLICO,
 } from "@/constants/storageKeys";
 
 export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
@@ -81,31 +86,63 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
     };
     const ocupacionGlobal = totalMaximos > 0 ? Math.round(totalInscritos / totalMaximos * 100) : null;
 
-    // totalIngresosExtra: suma de líneas activas con sus valores ya resueltos en el snapshot.
-    // Mismo cálculo que useBudgetLogic.totalIngresosConMerch.
+    // totalIngresosExtra: suma de líneas activas CON sus valores ya resueltos en el snapshot,
+    // EXCLUYENDO la línea de camisetas (syncKey="camisetas") que se recalcula abajo por separado.
+    // Esto evita doble cómputo: si camisetas está en ingresosExtra con valor guardado,
+    // ese valor puede estar desactualizado respecto al cálculo real del módulo Camisetas.
     const totalIngresosExtra = (Array.isArray(ingresosExtra) ? ingresosExtra : [])
-      .filter(ie => ie.activo)
+      .filter(ie => ie.activo && ie.syncKey !== "camisetas")
       .reduce((s, ie) => s + (ie.valor || 0), 0);
 
+    // ECO-05: calcular totalMerchBeneficio desde el snapshot de camisetas,
+    // usando la misma función (calculateCosteCamisetasDesglosado) que usa useBudgetLogic.
+    // Esto garantiza que el ROI del Dashboard incluye el beneficio de camisetas, igual que
+    // lo hace calculateResultadoFinanciero en el módulo Presupuesto.
+    const camisetasIe = (Array.isArray(ingresosExtra) ? ingresosExtra : []).find(ie => ie.syncKey === "camisetas");
+    const camisetasActiva = camisetasIe ? camisetasIe.activo : (syncConfig?.camisetas ?? true);
+    const camPedidos    = get(SK_CAM_PEDIDOS, []);
+    const camCoste      = get(SK_CAM_COSTE, CAM_COSTE_DEFAULT) || CAM_COSTE_DEFAULT;
+    const camCorredores = get(SK_CAM_CORREDORES, {});
+    const camPrecioPlat = get(SK_CAM_PRECIO_PLATAFORMA, { precio: 0 });
+    const camNino       = get(SK_CAM_NINO, {});
+    const camVentaPublico = get(SK_CAM_VENTA_PUBLICO, { precio: 0, cantidad: 0 });
+    // Voluntarios activos con talla (misma lógica que useBudgetLogic._camVoluntariosActivos)
+    const rawVoluntariosSnap = get(SK_VOL_VOLUNTARIOS, []);
+    const camVolActivos = (Array.isArray(rawVoluntariosSnap) ? rawVoluntariosSnap : [])
+      .filter(v => (v.estado === "confirmado" || v.estado === "pendiente") && v.talla);
+
+    let totalMerchBeneficio = 0;
+    if (camisetasActiva) {
+      const desglose = calculateCosteCamisetasDesglosado({
+        camCoste,
+        camPedidos: Array.isArray(camPedidos) ? camPedidos : [],
+        corredoresExt: camCorredores || {},
+        precioCorrExt: camPrecioPlat?.precio ?? 0,
+        ninoExt: camNino || {},
+        voluntariosActivos: camVolActivos,
+        ventaPublico: camVentaPublico || { precio: 0, cantidad: 0 },
+      });
+      totalMerchBeneficio = desglose.beneficioNeto;
+    }
+
     // calculateResultado: misma función que Presupuesto → resultado idéntico con los mismos datos
+    const totalIngresosConMerch = totalIngresosExtra + totalMerchBeneficio;
     const resultadoObj = calculateResultado(
-      inscritosBU, ingresosBU, costesFijosBU, costesVarsBU, totalIngresosExtra
+      inscritosBU, ingresosBU, costesFijosBU, costesVarsBU, totalIngresosConMerch
     );
     const resultado = resultadoObj.total;
     const costes = totalCostesFijos + totalCostesVars;
-    // FIX ECO-05: fórmula ROI unificada con budgetUtils.calculateResultadoFinanciero.
-    // Definición adoptada: ROI = (ingresosBrutos - costes) / costes × 100
-    // donde ingresosBrutos = ingresos inscripciones + ingresos extra (patrocinios, camisetas, otros)
-    // Antes: (totalIngresos + totalIngresosExtra - costes) — ya era correcto en estructura,
-    // pero divergía porque totalIngresosExtra leía ie.valor=0 del snapshot.
-    // Tras el fix de persistencia, esta fórmula ya produce el mismo número que el Presupuesto.
-    const totalIngresosBrutos = totalIngresos + totalIngresosExtra;
-    const roiGlobal = costes > 0
-      ? Math.round(((totalIngresosBrutos - costes) / costes) * 100)
-      : 0;
+
+    // ECO-05: ROI calculado con calculateROI (fuente única de verdad en budgetUtils).
+    // Definición adoptada: ROI = (ingresosBrutos − costes) / costes × 100
+    // donde ingresosBrutos = inscripciones + extras activos (sin camisetas) + beneficio camisetas.
+    // Antes: totalMerchBeneficio = 0, lo que producía un ROI inferior al del módulo Presupuesto
+    // cuando había camisetas configuradas. Ahora ambos módulos usan la misma fórmula y los mismos datos.
+    const totalIngresosBrutos = totalIngresos + totalIngresosExtra + totalMerchBeneficio;
+    const roiGlobal = calculateROI(totalIngresosBrutos, costes);
+
     // Compatibilidad con MiniDesglose (espera merchBeneficio y totalOtrosIngresos)
-    const merchBeneficio = 0;
-    const totalOtrosIngresos = totalIngresosExtra;
+    const totalOtrosIngresos = totalIngresosExtra + totalMerchBeneficio;
 
     // VOLUNTARIOS
     const voluntarios = get(SK_VOL_VOLUNTARIOS, []);
@@ -246,7 +283,7 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
       eventoNombre, eventoEdicion, eventoFechaStr, eventoFecha,
       diasHasta, yaFue, esSemana,
       totalInscritos, inscritosPorDist, totalIngresos, totalCostesFijos, totalCostesVars,
-      totalIngresosExtra, merchBeneficio, totalOtrosIngresos, resultado, roiGlobal, camisetasDesglose: null,
+      totalIngresosExtra, merchBeneficio: totalMerchBeneficio, totalOtrosIngresos, resultado, roiGlobal, camisetasDesglose: null,
       maximosPorDist, ocupacionPorDist, ocupacionGlobal, totalMaximos,
       voluntarios: voluntarios.length, volConfirmados, volPendientes, totalNecesarios, coberturaVol, puestosAlerta,
       pats: pats.length, patComprometido, patCobrado, patPipeline, objetivo, contPendientes, patsSinSeguimiento,
