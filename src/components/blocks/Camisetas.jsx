@@ -737,6 +737,7 @@ export default function App() {
             voluntariosConfirmados={voluntariosConfirmados} voluntariosPendientes={voluntariosPendientes}
             inclPendientes={inclPendientes} setInclPendientes={setInclPendientes}
             ninoExt={ninoExt} setNino={setNino}
+            margenSeguridad={margenSeguridad} setMargenSeguridad={setMargenSeguridad}
             vistaSimple={vistaSimpleTallas} setVistaSimple={setVistaSimpleTallas} />}
           {tab === "checklist" && <TabChecklist pedidos={pedidos} updateLinea={updateLinea} abrirFicha={abrirFicha} generarPedidosVoluntarios={generarPedidosVoluntarios} />}
           {tab === "reparto"   && <TabReparto pedidos={pedidos} updateLinea={updateLinea} rawVols={rawVols} />}

@@ -8,8 +8,7 @@ import { blockCls as cls } from "@/lib/blockStyles";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { TALLAS, TALLAS_NINO, TC, TIPOS, FUENTES_DEFAULT, CORREDORES_DEFAULT, NINO_DEFAULT, exportarPedidoProveedor } from "./camisetasConstants";
 
-export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, vistaSimple=true, setVistaSimple, fuentesActivas, voluntariosConfirmados, voluntariosPendientes, ninoExt = {}, setNino }) {
-  const [margenSeguridad, setMargenSeguridad] = useState(5); // % de buffer sobre el total
+export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, vistaSimple=true, setVistaSimple, fuentesActivas, voluntariosConfirmados, voluntariosPendientes, ninoExt = {}, setNino, margenSeguridad = 5, setMargenSeguridad }) {
   const [editCorredores, setEditCorredores] = useState(false);
   const [tmpCor, setTmpCor] = useState({ ...corredoresExt });
   const [editNino, setEditNino] = useState(false);
