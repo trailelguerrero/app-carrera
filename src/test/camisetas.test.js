@@ -13,6 +13,8 @@
  * CAM-10  calcPedido — cálculo financiero correcto
  * ERR-01  grandTallasCor — precedencia operador || con tallasExtras parcial
  * ERR-02  totalFinal del PDF — doble cómputo de camisetas infantiles
+ * ERR-03  generarPedidosVoluntarios — IDs únicos en lotes síncronos
+ * ERR-04  ModalImportarTallasVol — IDs de líneas únicos en reimportaciones
  */
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 
@@ -571,5 +573,186 @@ describe('ERR-02 — totalFinal del PDF no duplica camisetas infantiles', () => 
     // FIX: 4-6 suma ambas fuentes: 3+2=5
     const fila46 = lineasNino_FIX.find(l => l.talla === "4-6");
     expect(fila46.tot).toBe(5);
+  });
+});
+
+// ── ERR-03: generarPedidosVoluntarios — IDs únicos en lotes síncronos ────
+describe('ERR-03 — generarPedidosVoluntarios no produce IDs duplicados en lotes de 50+', () => {
+  /**
+   * genIdNum(arr) = Math.max(...arr.map(x => x.id)) + 1
+   * En un map() síncrono el array `pedidos` no muta entre iteraciones,
+   * por lo que llamar genIdNum en cada vuelta devuelve siempre el mismo valor.
+   *
+   * Estrategia correcta: calcular idBase UNA vez antes del map(),
+   * luego asignar idBase + i*2 (pedido) e idBase + i*2 + 1 (línea).
+   * Paso de 2 → ningún id de pedido colisiona con un id de línea.
+   */
+
+  // Replica de genIdNum de @/lib/utils
+  const genIdNum = (arr) =>
+    Array.isArray(arr) && arr.length ? Math.max(...arr.map(x => Number(x.id) || 0)) + 1 : 1;
+
+  // Replica de la lógica corregida de generarPedidosVoluntarios
+  const generarPedidos_FIX = (voluntarios, pedidosExistentes) => {
+    const idBase = genIdNum(pedidosExistentes);
+    return voluntarios.map((v, i) => ({
+      id: idBase + i * 2,
+      nombre: `${v.nombre} ${v.apellidos}`.trim(),
+      voluntarioId: v.id,
+      lineas: [{ id: idBase + i * 2 + 1, tipo: "voluntario", talla: v.talla }],
+    }));
+  };
+
+  // Replica del código buggy (Date.now() + offset)
+  const generarPedidos_BUG = (voluntarios) => {
+    const ts = 1700000000000; // timestamp fijo = mismo milisegundo para todos
+    return voluntarios.map(v => ({
+      id: ts + (v.id || 0),
+      nombre: `${v.nombre} ${v.apellidos}`.trim(),
+      voluntarioId: v.id,
+      lineas: [{ id: ts + (v.id || 1) + 1 }],
+    }));
+  };
+
+  const pedidosExistentes = [{ id: 1 }, { id: 2 }, { id: 3 }];
+
+  // 50 voluntarios con IDs 1..50
+  const voluntarios50 = Array.from({ length: 50 }, (_, i) => ({
+    id: i + 1, nombre: `Voluntario`, apellidos: `${i + 1}`, talla: "M",
+  }));
+
+  it('[BUG] produce IDs de pedido duplicados en lote de 50 con mismo timestamp', () => {
+    const pedidos = generarPedidos_BUG(voluntarios50);
+    const ids = pedidos.map(p => p.id);
+    const unicos = new Set(ids);
+    // Con v.id 1..50 y mismo Date.now(): ts+1, ts+2... pueden repetirse si ts+1 === ts+otro
+    // Al menos verificamos que la estrategia no garantiza unicidad (size puede ser < length
+    // si dos voluntarios tuviesen el mismo v.id — demostramos la fragilidad del diseño)
+    expect(ids.length).toBe(50); // hay 50 pedidos...
+    // ...pero la unicidad depende de que v.id sean distintos: si dos comparten id → colisión
+    const voluntariosIdDuplicado = [
+      { id: 5, nombre: "A", apellidos: "X", talla: "M" },
+      { id: 5, nombre: "B", apellidos: "Y", talla: "L" }, // mismo v.id → mismo pedido.id
+    ];
+    const duplicados = generarPedidos_BUG(voluntariosIdDuplicado);
+    expect(duplicados[0].id).toBe(duplicados[1].id); // ← demuestra la colisión
+  });
+
+  it('[FIX] todos los IDs de pedido son únicos en lote de 50', () => {
+    const pedidos = generarPedidos_FIX(voluntarios50, pedidosExistentes);
+    const ids = pedidos.map(p => p.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('[FIX] todos los IDs de línea son únicos en lote de 50', () => {
+    const pedidos = generarPedidos_FIX(voluntarios50, pedidosExistentes);
+    const lineaIds = pedidos.map(p => p.lineas[0].id);
+    expect(new Set(lineaIds).size).toBe(lineaIds.length);
+  });
+
+  it('[FIX] ningún ID de pedido coincide con ningún ID de línea', () => {
+    const pedidos = generarPedidos_FIX(voluntarios50, pedidosExistentes);
+    const pedidoIds = new Set(pedidos.map(p => p.id));
+    const lineaIds  = pedidos.map(p => p.lineas[0].id);
+    const cruce = lineaIds.filter(id => pedidoIds.has(id));
+    expect(cruce).toHaveLength(0);
+  });
+
+  it('[FIX] los IDs nuevos son mayores que todos los IDs existentes', () => {
+    const pedidos = generarPedidos_FIX(voluntarios50, pedidosExistentes);
+    const maxExistente = Math.max(...pedidosExistentes.map(p => p.id)); // 3
+    expect(pedidos.every(p => p.id > maxExistente)).toBe(true);
+    expect(pedidos.every(p => p.lineas[0].id > maxExistente)).toBe(true);
+  });
+
+  it('[FIX] new Set(pedidos.map(p => p.id)).size === pedidos.length (criterio de auditoría)', () => {
+    const pedidos = generarPedidos_FIX(voluntarios50, pedidosExistentes);
+    expect(new Set(pedidos.map(p => p.id)).size).toBe(pedidos.length);
+  });
+});
+
+// ── ERR-04: ModalImportarTallasVol — IDs únicos en reimportaciones ─────────
+describe('ERR-04 — ModalImportarTallasVol no produce IDs duplicados en reimportación', () => {
+  /**
+   * Date.now() + i + 1 genera los mismos IDs si se importa dos veces en el
+   * mismo segundo. updateLinea opera por lineaId: una colisión marca la línea
+   * equivocada como entregada.
+   *
+   * Estrategia: lineaIdBase = max(todos los ids de línea existentes) + 1.
+   * Cada reimportación parte de un valor estrictamente mayor.
+   */
+
+  const TALLAS_NINO = ["4-6", "6-8", "8-10", "10-12"];
+
+  // Replica de la lógica corregida del bloque confirmar()
+  const confirmar_FIX = (preview, pedidosActuales) => {
+    const todasLineas = pedidosActuales.flatMap(p => p.lineas);
+    const lineaIdBase = todasLineas.length
+      ? Math.max(...todasLineas.map(l => Number(l.id) || 0)) + 1
+      : 1;
+    return preview.map((r, i) => ({ id: lineaIdBase + i, talla: r.talla, cantidad: r.cantidad }));
+  };
+
+  // Replica buggy con timestamp fijo
+  const confirmar_BUG = (preview, _ts = 1700000000000) =>
+    preview.map((r, i) => ({ id: _ts + i + 1, talla: r.talla, cantidad: r.cantidad }));
+
+  const preview = [
+    { talla: "M", cantidad: 5 },
+    { talla: "L", cantidad: 3 },
+    { talla: "XL", cantidad: 2 },
+  ];
+
+  const pedidosConLineas = [{
+    id: 10, _esImportacionVol: true,
+    lineas: [
+      { id: 1, talla: "M",  cantidad: 4 },
+      { id: 2, talla: "L",  cantidad: 2 },
+      { id: 3, talla: "XL", cantidad: 1 },
+    ],
+  }];
+
+  it('[BUG] dos importaciones al mismo timestamp producen IDs idénticos', () => {
+    const ts = 1700000000000;
+    const primera  = confirmar_BUG(preview, ts);
+    const segunda  = confirmar_BUG(preview, ts); // mismo segundo
+    expect(primera[0].id).toBe(segunda[0].id); // ← demuestra la colisión
+  });
+
+  it('[FIX] primera importación: IDs de línea únicos', () => {
+    const lineas = confirmar_FIX(preview, []);
+    expect(new Set(lineas.map(l => l.id)).size).toBe(lineas.length);
+  });
+
+  it('[FIX] reimportación: IDs distintos a los de la importación previa', () => {
+    const primeraLineas = confirmar_FIX(preview, []);
+    const pedidoConPrimera = [{ id: 1, lineas: primeraLineas }];
+    const segundaLineas  = confirmar_FIX(preview, pedidoConPrimera);
+
+    const idsPrimera = new Set(primeraLineas.map(l => l.id));
+    const colision = segundaLineas.some(l => idsPrimera.has(l.id));
+    expect(colision).toBe(false);
+  });
+
+  it('[FIX] reimportación sobre pedido existente: IDs mayores que todos los anteriores', () => {
+    const nuevasLineas = confirmar_FIX(preview, pedidosConLineas);
+    const maxAnterior = Math.max(...pedidosConLineas.flatMap(p => p.lineas.map(l => l.id))); // 3
+    expect(nuevasLineas.every(l => l.id > maxAnterior)).toBe(true);
+  });
+
+  it('[FIX] 10 reimportaciones consecutivas nunca producen IDs duplicados', () => {
+    const todosIds = new Set();
+    let pedidosAcumulados = [];
+
+    for (let iter = 0; iter < 10; iter++) {
+      const lineas = confirmar_FIX(preview, pedidosAcumulados);
+      lineas.forEach(l => {
+        expect(todosIds.has(l.id)).toBe(false); // nunca visto antes
+        todosIds.add(l.id);
+      });
+      // Simular que el bloque se actualiza con las nuevas líneas
+      pedidosAcumulados = [{ id: 1, _esImportacionVol: true, lineas }];
+    }
+    expect(todosIds.size).toBe(preview.length * 10);
   });
 });

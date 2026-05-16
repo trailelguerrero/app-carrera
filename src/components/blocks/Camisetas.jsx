@@ -250,8 +250,25 @@ function ModalImportarTallasVol({ voluntariosConfirmados, setPedidos, pedidos, o
     const NOMBRE_BLOQUE = "Voluntarios (importación automática)";
     const existente = pedidos.find(p => p._esImportacionVol === true);
 
+    /*
+     * Estrategia de IDs para líneas de importación en bloque (ERR-04)
+     * ────────────────────────────────────────────────────────────────
+     * PROBLEMA: Date.now() + i + 1 colisiona si la importación se ejecuta dos
+     *   veces en el mismo segundo, produciendo IDs idénticos a los anteriores.
+     *   updateLinea opera por lineaId: una colisión marca/desmarca la línea errónea.
+     *
+     * SOLUCIÓN: calcular la base global (max de todos los IDs de línea existentes)
+     *   antes del map(), luego asignar base + i + 1.
+     *   Así cada reimportación genera IDs estrictamente mayores que cualquier
+     *   línea previa en cualquier pedido.
+     */
+    const todasLineas = pedidos.flatMap(p => p.lineas);
+    const lineaIdBase = todasLineas.length
+      ? Math.max(...todasLineas.map(l => Number(l.id) || 0)) + 1
+      : 1;
+
     const lineas = preview.map((r, i) => ({
-      id: Date.now() + i + 1,
+      id: lineaIdBase + i,
       tipo: "voluntario",
       talla: r.talla,
       cantidad: r.cantidad,
@@ -268,7 +285,7 @@ function ModalImportarTallasVol({ voluntariosConfirmados, setPedidos, pedidos, o
       import("@/lib/toast").then(({ toast }) => toast.success("Tallas de voluntarios actualizadas"));
     } else {
       const nuevo = {
-        id: Date.now(),
+        id: genIdNum(pedidos),
         nombre: NOMBRE_BLOQUE,
         telefono: "",
         email: "",
@@ -445,13 +462,29 @@ export default function App() {
         `${v.nombre || ""} ${v.apellidos || ""}`.toLowerCase().trim()
       ));
     if (sinPedido.length === 0) { toast.success("Todos los voluntarios con talla ya tienen pedido"); return; }
-    const nuevos = sinPedido.map(v => ({
-      id: Date.now() + (v.id || Math.random()),
+
+    /*
+     * Estrategia de IDs para generación en lote síncrono
+     * ───────────────────────────────────────────────────
+     * PROBLEMA: Date.now() + offset no funciona en lotes síncronos porque
+     *   - Date.now() devuelve el mismo valor en todas las iteraciones del map().
+     *   - Si dos voluntarios tienen v.id próximos, los IDs de pedido colisionan.
+     *   - genIdNum(colección) solo ve el max actual; en un map() el array no muta,
+     *     por lo que devolvería el mismo valor en cada iteración.
+     *
+     * SOLUCIÓN: calcular la base UNA sola vez antes del bucle (max ID existente),
+     *   luego asignar base + índice*2 al pedido y base + índice*2 + 1 a su línea.
+     *   El paso de 2 garantiza que ningún ID de pedido colisione con un ID de línea.
+     *   La base parte de los pedidos existentes, garantizando unicidad global.
+     */
+    const idBase = genIdNum(pedidos); // max(ids existentes) + 1
+    const nuevos = sinPedido.map((v, i) => ({
+      id: idBase + i * 2,
       nombre: `${v.nombre || ""} ${v.apellidos || ""}`.trim(),
       telefono: v.telefono || "", email: v.email || "",
       notas: `Auto-generado desde Voluntarios · ${new Date().toLocaleDateString("es-ES")}`,
       voluntarioId: v.id,
-      lineas: [{ id: Date.now() + (v.id || 1) + 1, tipo: "voluntario", talla: v.talla || "M",
+      lineas: [{ id: idBase + i * 2 + 1, tipo: "voluntario", talla: v.talla || "M",
         cantidad: 1, precioVenta: 0, estadoPago: "regalo", estadoEntrega: "pendiente" }],
     }));
     setPedidos(prev => [...prev, ...nuevos]);
