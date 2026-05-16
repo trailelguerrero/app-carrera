@@ -526,6 +526,36 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     calculateResultado(realTotalInscritos, realIngresosPorDistancia, realCostesFijos, realCostesVariables, realTotalIngresosExtra),
     [realTotalInscritos, realIngresosPorDistancia, realCostesFijos, realCostesVariables, realTotalIngresosExtra]);
 
+  // ── ECO-07: Detección reactiva de doble cómputo en camisetas de voluntarios ──────────
+  //
+  // El doble cómputo ocurre ÚNICAMENTE cuando se cumplen AMBAS condiciones a la vez:
+  //   1. El concepto fijo id:12 "Camisetas voluntarios" está activo en el presupuesto.
+  //      → Contabiliza el coste como coste fijo (ej: 970 €).
+  //   2. La línea "Merchandising total" (syncKey:"camisetas") está activa en Ingresos Extra.
+  //      → Su valor = beneficioNeto camisetas = ingresosCamisetas - costeVoluntario - ...
+  //      → Al sumarlo como ingreso, en realidad se está RESTANDO el costeVoluntario de ingresos,
+  //        equivalente a sumarlo como coste. Como ya está en costes fijos → doble descuento.
+  //
+  // El aviso es informativo, nunca modifica datos sin consentimiento del usuario.
+  // El usuario puede tener razones válidas para este estado (ej: contabilidades separadas).
+  const avisoDobleComputo = useMemo(() => {
+    // Condición 1: concepto fijo id:12 activo (usa _conceptos para reflejar escenarios)
+    const conceptoCamisetasVol = _conceptos.find(c => c.id === 12 && c.tipo === "fijo");
+    const conceptoActivo = conceptoCamisetasVol?.activo === true;
+
+    // Condición 2: línea de camisetas sincronizada activa en ingresosExtraConValores
+    const lineaCamisetasIe = ingresosExtraConValores.find(ie => ie.syncKey === "camisetas");
+    const syncCamisetasActiva = lineaCamisetasIe?.activo === true;
+
+    const hayDobleComputo = conceptoActivo && syncCamisetasActiva;
+
+    return {
+      activo: hayDobleComputo,
+      // Importes para contextualizar el aviso al usuario
+      costeConcepto: conceptoCamisetasVol?.costeTotal ?? 0,
+    };
+  }, [_conceptos, ingresosExtraConValores]);
+
   return {
     tab, setTab, tramos, setTramos,
     totalPatConfirmado, totalPatCobrado, totalMerchBeneficio,
@@ -550,5 +580,6 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     ingresosDesglosados,
     realTotalInscritos, realResultado,
     getValorSincronizado,
+    avisoDobleComputo,
   };
 };

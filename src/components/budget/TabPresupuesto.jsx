@@ -68,6 +68,10 @@ export const TabPresupuesto = ({
   addConcepto,
   removeConcepto,
   reorderConceptos,
+  // ECO-07: props para detección y resolución de doble cómputo camisetas voluntarios
+  avisoDobleComputo,
+  onDesactivarConceptoCamisetas,
+  onIrAIngresos,
 }) => {
   const [ordenAlfaFijo, setOrdenAlfaFijo] = useState(false);
   const [ordenAlfaVar,  setOrdenAlfaVar]  = useState(false);
@@ -246,6 +250,71 @@ export const TabPresupuesto = ({
   return (
     <>
       <style>{TAB_CSS}</style>
+
+      {/* ECO-07: Aviso de posible doble cómputo en camisetas de voluntarios.
+          Se muestra SOLO cuando ambas condiciones están activas simultáneamente:
+            1. Concepto fijo "Camisetas voluntarios" (id:12) activo.
+            2. Línea de ingresos "Merchandising total" (syncKey:"camisetas") activa.
+          El aviso es informativo, reactivo y no bloquea el uso de la aplicación.
+          El usuario decide qué desactivar (o ignorar el aviso si lo considera correcto). */}
+      {avisoDobleComputo?.activo && (
+        <div style={{
+          display: "flex", flexDirection: "column", gap: ".55rem",
+          padding: ".75rem 1rem", borderRadius: 10, marginBottom: ".85rem",
+          background: "rgba(251,191,36,.08)",
+          border: "1px solid rgba(251,191,36,.35)",
+          animation: "fadeIn .25s ease",
+        }}>
+          <div style={{ display:"flex", alignItems:"flex-start", gap:".65rem" }}>
+            <span style={{ fontSize:"var(--fs-lg)", flexShrink:0, marginTop:1 }}>⚠️</span>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{
+                fontFamily:"var(--font-display)", fontWeight:700,
+                fontSize:"var(--fs-sm)", color:"var(--amber)", marginBottom:".3rem"
+              }}>
+                Posible doble cómputo — Camisetas de voluntarios
+              </div>
+              <div style={{
+                fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                color:"var(--text-muted)", lineHeight:1.6
+              }}>
+                El concepto fijo <strong style={{ color:"var(--text)" }}>"Camisetas voluntarios"</strong>{" "}
+                ({avisoDobleComputo.costeConcepto > 0 ? `${avisoDobleComputo.costeConcepto.toLocaleString("es-ES")} €` : "activado"}){" "}
+                y la sincronización de <strong style={{ color:"var(--text)" }}>Merchandising total</strong>{" "}
+                están activos al mismo tiempo.
+                El coste de las camisetas de voluntarios puede estar{" "}
+                <strong style={{ color:"var(--amber)" }}>contabilizándose dos veces</strong>:{" "}
+                una como coste fijo y otra restado del beneficio de camisetas.
+              </div>
+            </div>
+          </div>
+          {/* Botones de acción — el usuario elige qué desactivar */}
+          <div style={{ display:"flex", gap:".5rem", flexWrap:"wrap", paddingLeft:"2.1rem" }}>
+            <button
+              onClick={onDesactivarConceptoCamisetas}
+              style={{
+                fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                padding:".3rem .65rem", borderRadius:6, cursor:"pointer",
+                background:"rgba(251,191,36,.15)", color:"var(--amber)",
+                border:"1px solid rgba(251,191,36,.4)", fontWeight:600,
+              }}
+            >
+              Desactivar concepto fijo
+            </button>
+            <button
+              onClick={onIrAIngresos}
+              style={{
+                fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                padding:".3rem .65rem", borderRadius:6, cursor:"pointer",
+                background:"var(--surface3)", color:"var(--text-muted)",
+                border:"1px solid var(--border)",
+              }}
+            >
+              Ver sincronización de Merchandising →
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Toggle vista resumen / completa ── */}
       <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:".5rem" }}>

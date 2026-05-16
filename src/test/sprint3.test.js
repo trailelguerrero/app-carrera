@@ -424,3 +424,120 @@ describe('S3-10 — fechaEntrega en contraprestaciones', () => {
     expect(vencida).toBeFalsy();
   });
 });
+
+// ── ECO-07: Detección reactiva de doble cómputo en camisetas de voluntarios ──
+// Testea la lógica pura de detección de avisoDobleComputo extraída de useBudgetLogic.
+// Se testea como función pura para evitar dependencias de hooks/localStorage.
+describe('ECO-07 — Detección doble cómputo camisetas de voluntarios', () => {
+
+  // Réplica exacta del useMemo avisoDobleComputo de useBudgetLogic.js
+  function calcularAvisoDobleComputo(conceptos, ingresosExtraConValores) {
+    const conceptoCamisetasVol = conceptos.find(c => c.id === 12 && c.tipo === 'fijo');
+    const conceptoActivo = conceptoCamisetasVol?.activo === true;
+    const lineaCamisetasIe = ingresosExtraConValores.find(ie => ie.syncKey === 'camisetas');
+    const syncCamisetasActiva = lineaCamisetasIe?.activo === true;
+    const hayDobleComputo = conceptoActivo && syncCamisetasActiva;
+    return {
+      activo: hayDobleComputo,
+      costeConcepto: conceptoCamisetasVol?.costeTotal ?? 0,
+    };
+  }
+
+  const CONCEPTO_12_ACTIVO = { id: 12, tipo: 'fijo', nombre: 'Camisetas voluntarios', activo: true, costeTotal: 970 };
+  const CONCEPTO_12_INACTIVO = { ...CONCEPTO_12_ACTIVO, activo: false };
+  const SYNC_CAMISETAS_ACTIVA = { id: 2, syncKey: 'camisetas', activo: true, valor: 200 };
+  const SYNC_CAMISETAS_INACTIVA = { ...SYNC_CAMISETAS_ACTIVA, activo: false };
+
+  it('detecta doble cómputo cuando AMBAS condiciones son true', () => {
+    const aviso = calcularAvisoDobleComputo(
+      [CONCEPTO_12_ACTIVO],
+      [SYNC_CAMISETAS_ACTIVA]
+    );
+    expect(aviso.activo).toBe(true);
+    expect(aviso.costeConcepto).toBe(970);
+  });
+
+  it('NO detecta doble cómputo si concepto fijo está inactivo', () => {
+    const aviso = calcularAvisoDobleComputo(
+      [CONCEPTO_12_INACTIVO],
+      [SYNC_CAMISETAS_ACTIVA]
+    );
+    expect(aviso.activo).toBe(false);
+  });
+
+  it('NO detecta doble cómputo si sincronización de camisetas está inactiva', () => {
+    const aviso = calcularAvisoDobleComputo(
+      [CONCEPTO_12_ACTIVO],
+      [SYNC_CAMISETAS_INACTIVA]
+    );
+    expect(aviso.activo).toBe(false);
+  });
+
+  it('NO detecta doble cómputo si ambas condiciones son false', () => {
+    const aviso = calcularAvisoDobleComputo(
+      [CONCEPTO_12_INACTIVO],
+      [SYNC_CAMISETAS_INACTIVA]
+    );
+    expect(aviso.activo).toBe(false);
+  });
+
+  it('NO detecta doble cómputo si el concepto id:12 no existe', () => {
+    const aviso = calcularAvisoDobleComputo(
+      [{ id: 5, tipo: 'fijo', activo: true }],
+      [SYNC_CAMISETAS_ACTIVA]
+    );
+    expect(aviso.activo).toBe(false);
+  });
+
+  it('NO detecta doble cómputo si la línea camisetas no tiene syncKey correcto', () => {
+    const aviso = calcularAvisoDobleComputo(
+      [CONCEPTO_12_ACTIVO],
+      [{ id: 2, syncKey: 'patrocinios', activo: true }]
+    );
+    expect(aviso.activo).toBe(false);
+  });
+
+  it('devuelve costeConcepto correcto cuando hay doble cómputo', () => {
+    const conceptoConCoste = { ...CONCEPTO_12_ACTIVO, costeTotal: 1250 };
+    const aviso = calcularAvisoDobleComputo([conceptoConCoste], [SYNC_CAMISETAS_ACTIVA]);
+    expect(aviso.costeConcepto).toBe(1250);
+  });
+
+  it('devuelve costeConcepto 0 cuando el concepto no existe', () => {
+    const aviso = calcularAvisoDobleComputo([], [SYNC_CAMISETAS_ACTIVA]);
+    expect(aviso.costeConcepto).toBe(0);
+  });
+
+  it('es reactivo: cambiar activo de concepto actualiza el resultado', () => {
+    const conceptos = [{ ...CONCEPTO_12_ACTIVO }];
+    const ingresosExtra = [SYNC_CAMISETAS_ACTIVA];
+
+    // Estado inicial: doble cómputo activo
+    expect(calcularAvisoDobleComputo(conceptos, ingresosExtra).activo).toBe(true);
+
+    // Simular desactivar el concepto fijo
+    const conceptosActualizados = [{ ...CONCEPTO_12_ACTIVO, activo: false }];
+    expect(calcularAvisoDobleComputo(conceptosActualizados, ingresosExtra).activo).toBe(false);
+  });
+
+  it('es reactivo: cambiar activo de sync camisetas actualiza el resultado', () => {
+    const conceptos = [CONCEPTO_12_ACTIVO];
+    const ingresosExtra = [{ ...SYNC_CAMISETAS_ACTIVA }];
+
+    // Estado inicial: doble cómputo activo
+    expect(calcularAvisoDobleComputo(conceptos, ingresosExtra).activo).toBe(true);
+
+    // Simular desactivar la sincronización de camisetas
+    const ieActualizados = [{ ...SYNC_CAMISETAS_ACTIVA, activo: false }];
+    expect(calcularAvisoDobleComputo(conceptos, ieActualizados).activo).toBe(false);
+  });
+
+  it('ignora conceptos de tipo "variable" aunque tengan id:12', () => {
+    const conceptoVariableId12 = { id: 12, tipo: 'variable', activo: true, costeTotal: 500 };
+    const aviso = calcularAvisoDobleComputo(
+      [conceptoVariableId12],
+      [SYNC_CAMISETAS_ACTIVA]
+    );
+    expect(aviso.activo).toBe(false);
+  });
+});

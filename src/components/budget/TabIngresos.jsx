@@ -28,6 +28,10 @@ export const TabIngresos = ({
   totalBalanceCamisetasTecnicas = 0,
   syncConfig = SYNC_CFG,
   setSyncConfig,
+  // ECO-07: props para detección y resolución del doble cómputo
+  avisoDobleComputo,
+  onDesactivarSyncCamisetas,
+  onIrACostes,
 }) => {
   // Separar líneas sincronizadas y manuales
   const lineasSync   = ingresosExtra.filter(ie => !!ie.syncKey);
@@ -116,6 +120,69 @@ export const TabIngresos = ({
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          {/* ECO-07: Aviso reactivo de doble cómputo en camisetas de voluntarios.
+              Se muestra en TabIngresos cuando el toggle de "Merchandising total" está activo
+              Y el concepto fijo "Camisetas voluntarios" también lo está.
+              Desde aquí el usuario puede desactivar la sincronización de camisetas. */}
+          {avisoDobleComputo?.activo && (
+            <div style={{
+              display: "flex", flexDirection: "column", gap: ".5rem",
+              padding: ".7rem .9rem", borderRadius: 10,
+              background: "rgba(251,191,36,.08)",
+              border: "1px solid rgba(251,191,36,.35)",
+              animation: "fadeIn .25s ease",
+            }}>
+              <div style={{ display:"flex", alignItems:"flex-start", gap:".6rem" }}>
+                <span style={{ fontSize:"var(--fs-lg)", flexShrink:0, marginTop:1 }}>⚠️</span>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{
+                    fontFamily:"var(--font-display)", fontWeight:700,
+                    fontSize:"var(--fs-sm)", color:"var(--amber)", marginBottom:".25rem"
+                  }}>
+                    Colchón de reserva — Camisetas de voluntarios
+                  </div>
+                  <div style={{
+                    fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                    color:"var(--text-muted)", lineHeight:1.6
+                  }}>
+                    La línea <strong style={{ color:"var(--text)" }}>Merchandising total</strong> está
+                    activa junto al concepto fijo{" "}
+                    <strong style={{ color:"var(--text)" }}>"Camisetas voluntarios"</strong>{" "}
+                    ({avisoDobleComputo.costeConcepto > 0
+                      ? `${avisoDobleComputo.costeConcepto.toLocaleString("es-ES")} €`
+                      : "activado"}).
+                    El coste de las camisetas de voluntarios podría estar{" "}
+                    <strong style={{ color:"var(--amber)" }}>contabilizándose dos veces</strong>.
+                  </div>
+                </div>
+              </div>
+              <div style={{ display:"flex", gap:".45rem", flexWrap:"wrap", paddingLeft:"2rem" }}>
+                <button
+                  onClick={onDesactivarSyncCamisetas}
+                  style={{
+                    fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                    padding:".3rem .65rem", borderRadius:6, cursor:"pointer",
+                    background:"rgba(251,191,36,.15)", color:"var(--amber)",
+                    border:"1px solid rgba(251,191,36,.4)", fontWeight:600,
+                  }}
+                >
+                  Desactivar Merchandising total
+                </button>
+                <button
+                  onClick={onIrACostes}
+                  style={{
+                    fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                    padding:".3rem .65rem", borderRadius:6, cursor:"pointer",
+                    background:"var(--surface3)", color:"var(--text-muted)",
+                    border:"1px solid var(--border)",
+                  }}
+                >
+                  Ver concepto fijo →
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* ── Líneas sincronizadas (toggle grande + valor en tiempo real) ── */}
           {lineasSync.map(ie => {
             const cfg = SYNC_CFG[ie.syncKey] || {};

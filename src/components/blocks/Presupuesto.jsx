@@ -89,6 +89,7 @@ const Presupuesto = () => {
     ingresosDesglosados,
     realTotalInscritos,
     realResultado,
+    avisoDobleComputo,
   } = useBudgetLogic(scenarioOverrides);
 
   const {
@@ -394,6 +395,9 @@ const Presupuesto = () => {
               removeConcepto={(id) => setDelConceptoId(id)}
               isScenarioMode={isScenarioMode}
               reorderConceptos={isScenarioMode ? () => {} : reorderConceptos}
+              avisoDobleComputo={avisoDobleComputo}
+              onDesactivarConceptoCamisetas={() => handleUpdateConcepto(12, "activo", false)}
+              onIrAIngresos={() => setTab("ingresos")}
             />
           )}
           {tab === "ingresos" && (
@@ -413,6 +417,14 @@ const Presupuesto = () => {
               totalBalanceCamisetasTecnicas={totalBalanceCamisetasTecnicas}
               syncConfig={syncConfig}
               setSyncConfig={setSyncConfig}
+              avisoDobleComputo={avisoDobleComputo}
+              onDesactivarSyncCamisetas={() => {
+                const ieActual = isScenarioMode ? (scenarioIngresosExtra ?? ingresosExtra) : ingresosExtra;
+                const setter = isScenarioMode ? setScenarioIngresosExtra : setIngresosExtra;
+                setSyncConfig(prev => ({ ...prev, camisetas: false }));
+                setter(prev => prev.map(ie => ie.syncKey === "camisetas" ? { ...ie, activo: false } : ie));
+              }}
+              onIrACostes={() => setTab("presupuesto")}
             />
           )}
           {isScenarioMode && (tab === "inscripciones" || tab === "presupuesto" || tab === "ingresos") && (
