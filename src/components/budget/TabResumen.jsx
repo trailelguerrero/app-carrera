@@ -16,7 +16,33 @@ export const TabResumen = ({
   costesVarPorCorredor,
   costesFijoPorCorredor,
   ingresosDesglosados,
+  // MEJ-02: margen de seguridad
+  margenConfig,
+  // MEJ-03: inscritos de pago vs promo
+  inscritosConPago,
+  precioMedioPago,
 }) => {
+  // MEJ-02: cálculo del resultado objetivo (con colchón de seguridad)
+  const margenActivo = margenConfig?.alertaActiva && (margenConfig?.valor || 0) > 0;
+  const costes = costesFijos.total + costesVariables.total;
+  let colchon = 0;
+  if (margenActivo) {
+    if ((margenConfig?.tipo || "porcentaje") === "porcentaje") {
+      colchon = costes * (margenConfig.valor / 100);
+    } else {
+      colchon = margenConfig.valor;
+    }
+  }
+  const resultadoObjetivo = resultado.total - colchon; // positivo = objetivo cumplido
+  const estadoMargen = resultado.total >= colchon
+    ? "ok"        // cubre costes Y el colchón
+    : resultado.total >= 0
+      ? "parcial"  // cubre costes pero no el colchón
+      : "negativo"; // ni cubre costes
+
+  // MEJ-03: hay inscritos promo si alguna distancia tiene precio 0 con inscritos
+  const hayInscritosPromo = inscritosConPago && (inscritosConPago.promo?.total || 0) > 0;
+
   return (
     <>
       <div className="card">
@@ -56,7 +82,7 @@ export const TabResumen = ({
               </tr>
               <tr>
                 <td style={{ color: "var(--cyan)" }}>
-  <Tooltip position="top" text={"Gastos que no varían con el número de corredores (ambulancias, cronometraje, etc.).\nSe prorratean entre distancias activas en proporción a sus inscritos."}>
+  <Tooltip position="top" text={`Gastos que no varían con el número de corredores (ambulancias, cronometraje, etc.).\nTotal fijo: ${costesFijos.total.toFixed(0)} €.\n\nLa distribución por distancia es orientativa: se calcula en proporción a los inscritos actuales de cada distancia. Si cambia el reparto de inscritos, los costes por distancia cambian — pero el total (${costesFijos.total.toFixed(0)} €) siempre es el mismo.\nPara decisiones financieras, usa el TOTAL.`}>
     <span>↓ Costes fijos</span><TooltipIcon />
   </Tooltip>
 </td>
@@ -108,6 +134,31 @@ export const TabResumen = ({
                   </td>
                 ))}
               </tr>
+              {/* MEJ-02: fila del colchón de seguridad — solo si margen activo */}
+              {margenActivo && (
+                <tr style={{ background: estadoMargen === "ok" ? "rgba(52,211,153,0.06)" : estadoMargen === "parcial" ? "rgba(251,191,36,0.06)" : "rgba(248,113,113,0.06)" }}>
+                  <td style={{ fontSize: "var(--fs-sm)", color: estadoMargen === "ok" ? "var(--green)" : estadoMargen === "parcial" ? "var(--amber)" : "var(--red)" }}>
+                    {estadoMargen === "ok" ? "✅" : estadoMargen === "parcial" ? "⚠️" : "❌"}{" "}
+                    Colchón de reserva ({margenConfig.tipo === "porcentaje" ? `${margenConfig.valor}% costes` : `${margenConfig.valor} €`})
+                    <Tooltip content={`El colchón de reserva cubre imprevistos (reparaciones, seguro adicional, etc.).\nObjetivo: ${colchon.toFixed(0)} €. Resultado actual: ${resultado.total.toFixed(0)} €.\n${estadoMargen === "ok" ? "✅ Objetivo alcanzado." : estadoMargen === "parcial" ? "⚠️ Cubre costes pero falta el colchón." : "❌ No cubre costes."}`}>
+                      <TooltipIcon />
+                    </Tooltip>
+                  </td>
+                  <td className="mono" style={{ fontSize: "var(--fs-sm)", fontWeight: 700, color: estadoMargen === "ok" ? "var(--green)" : estadoMargen === "parcial" ? "var(--amber)" : "var(--red)" }}>
+                    {estadoMargen === "ok" ? `+${(resultado.total - colchon).toFixed(2)} € sobre objetivo` : estadoMargen === "parcial" ? `Faltan ${(colchon - resultado.total).toFixed(2)} €` : `Déficit ${Math.abs(resultado.total).toFixed(2)} €`}
+                  </td>
+                  {DISTANCIAS.map(d => <td key={d} className="mono text-muted" style={{ fontSize: "var(--fs-xs)" }}>—</td>)}
+                </tr>
+              )}
+              {/* MEJ-03: nota aclaratoria si hay inscritos con precio 0 */}
+              {hayInscritosPromo && (
+                <tr style={{ background: "rgba(167,139,250,0.04)" }}>
+                  <td colSpan={1 + DISTANCIAS.length + 1} style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)", padding: "0.4rem 0.75rem", fontStyle: "italic" }}>
+                    ℹ️ Hay {inscritosConPago.promo.total} inscrito{inscritosConPago.promo.total !== 1 ? "s" : ""} con código promocional (precio 0) que no generan ingreso.
+                    {" "}Precio medio de pago: {precioMedioPago?.total?.toFixed(2) ?? "—"} € · Precio medio total: {precioMedioDistancia?.total?.toFixed(2) ?? "—"} €
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

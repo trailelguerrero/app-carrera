@@ -69,6 +69,8 @@ const Presupuesto = () => {
     totalInscritos,
     ingresosPorDistancia,
     precioMedioDistancia,
+    inscritosConPago,
+    precioMedioPago,
     costesFijos,
     costesVariables,
     costesVarPorCorredor,
@@ -473,6 +475,9 @@ const Presupuesto = () => {
               costesVarPorCorredor={costesVarPorCorredor}
               costesFijoPorCorredor={costesFijoPorCorredor}
               ingresosDesglosados={ingresosDesglosados}
+              margenConfig={margenConfig}
+              inscritosConPago={inscritosConPago}
+              precioMedioPago={precioMedioPago}
             />
           )}
           {tab === "equilibrio" && (
@@ -487,6 +492,9 @@ const Presupuesto = () => {
               ingresosPorDistancia={ingresosPorDistancia}
               peGlobal={peGlobal}
               maximos={maximos}
+              margenConfig={margenConfig}
+              inscritosConPago={inscritosConPago}
+              precioMedioPago={precioMedioPago}
             />
           )}
           {tab === "historial" && <TabHistorial />}

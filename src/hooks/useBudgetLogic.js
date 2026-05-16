@@ -27,6 +27,8 @@ import {
   calculatePuntoEquilibrio,
   calculatePEGlobal,
   calculateCosteCamisetasDesglosado,
+  calculateInscritosConPago,
+  calculatePrecioMedioPago,
 } from "../lib/budgetUtils";
 import { SK_CAM_PEDIDOS, SK_CAM_COSTE, SK_CAM_CORREDORES, SK_CAM_PRECIO_PLATAFORMA, SK_CAM_NINO, SK_CAM_VENTA_PUBLICO,
   SK_PAT_PATS,
@@ -450,7 +452,11 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
 
   const addTramo = () => {
     const id = tramos.length > 0 ? Math.max(...tramos.map(t => t.id)) + 1 : 1;
-    setTramos(prev => [...prev, { id, nombre: `Nuevo Tramo ${id}`, fechaFin: new Date().toISOString().split("T")[0], precios: { TG7: 30, TG13: 45, TG25: 65 } }]);
+    const today = new Date().toISOString().split("T")[0];
+    // MEJ-01: nuevos tramos incluyen fechaInicio (hoy por defecto → abierto desde ya).
+    // El campo es opcional: tramos guardados sin fechaInicio siguen funcionando
+    // (getTramoStatus los trata como si fechaInicio ≤ hoy, es decir, ya abiertos).
+    setTramos(prev => [...prev, { id, nombre: `Nuevo Tramo ${id}`, fechaInicio: today, fechaFin: today, precios: { TG7: 30, TG13: 45, TG25: 65 } }]);
   };
 
   const updateInscritos = (tramoId, dist, value) => {
@@ -466,6 +472,9 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   const totalInscritos = useMemo(() => calculateTotalInscritos(tramos, _inscritos), [tramos, _inscritos]);
   const ingresosPorDistancia = useMemo(() => calculateIngresosPorDistancia(tramos, _inscritos), [tramos, _inscritos]);
   const precioMedioDistancia = useMemo(() => calculatePrecioMedioDistancia(totalInscritos, ingresosPorDistancia), [totalInscritos, ingresosPorDistancia]);
+  // MEJ-03: inscritos y precio medio solo para los que pagan (excluye tramos con precio 0)
+  const inscritosConPago  = useMemo(() => calculateInscritosConPago(tramos, _inscritos),               [tramos, _inscritos]);
+  const precioMedioPago   = useMemo(() => calculatePrecioMedioPago(inscritosConPago, ingresosPorDistancia), [inscritosConPago, ingresosPorDistancia]);
   const costesFijos = useMemo(() => calculateCostesFijos(_conceptos, totalInscritos), [_conceptos, totalInscritos]);
   const costesVariables = useMemo(() => calculateCostesVariables(_conceptos, totalInscritos), [_conceptos, totalInscritos]);
   const costesVarPorCorredor = useMemo(() => calculateCostesVarPorCorredor(_conceptos), [_conceptos]);
@@ -490,8 +499,9 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     [totalInscritos, precioMedioDistancia, costesVarPorCorredor, costesFijos, totalIngresosConMerch, maximos]);
 
   const peGlobal = useMemo(() =>
-    calculatePEGlobal(totalInscritos, precioMedioDistancia, costesVarPorCorredor, costesFijos, totalIngresosConMerch, maximos),
-    [totalInscritos, precioMedioDistancia, costesVarPorCorredor, costesFijos, totalIngresosConMerch, maximos]);
+    // MEJ-05: se pasa margenConfig para calcular también el PE con colchón de seguridad.
+    calculatePEGlobal(totalInscritos, precioMedioDistancia, costesVarPorCorredor, costesFijos, totalIngresosConMerch, maximos, margenConfig),
+    [totalInscritos, precioMedioDistancia, costesVarPorCorredor, costesFijos, totalIngresosConMerch, maximos, margenConfig]);
 
   const realTotalInscritos = useMemo(() => calculateTotalInscritos(tramos, inscritos), [tramos, inscritos]);
   const realIngresosPorDistancia = useMemo(() => calculateIngresosPorDistancia(tramos, inscritos), [tramos, inscritos]);
@@ -574,6 +584,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     addConcepto, removeConcepto, reorderConceptos,
     updateTramoPrecio, addTramo, updateInscritos,
     totalInscritos, ingresosPorDistancia, precioMedioDistancia,
+    inscritosConPago, precioMedioPago,
     costesFijos, costesVariables, costesVarPorCorredor, costesFijoPorCorredor,
     merchTotales, totalIngresosExtra, totalIngresosConMerch,
     resultado, puntoEquilibrio, peGlobal,

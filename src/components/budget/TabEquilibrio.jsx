@@ -12,6 +12,11 @@ export const TabEquilibrio = ({
   ingresosPorDistancia,
   peGlobal: pg,
   maximos,
+  // MEJ-03: precio medio solo de inscritos de pago
+  precioMedioPago,
+  inscritosConPago,
+  // MEJ-05: margenConfig para mostrar PE con colchón
+  margenConfig,
 }) => {
   const p        = pg || {};
   const totalN   = totalInscritos?.total ?? 0;
@@ -20,11 +25,24 @@ export const TabEquilibrio = ({
   const dif      = p.diferencia ?? (totalN - (peG || 0));
   const cobert   = p.coberturaPct ?? 0;
 
+  // MEJ-05: PE con margen (solo si margenConfig activo y valor > 0)
+  const margenActivo  = margenConfig?.alertaActiva && (margenConfig?.valor || 0) > 0;
+  const peConMargen   = p.peGlobalConMargen ?? null;
+  const peConMargenAlcanzado = p.peConMargenAlcanzado ?? true;
+  const difConMargen  = totalN - (peConMargen || 0);
+  // % de posición en la barra donde cae el PE con margen
+  const cobertConMargen = peConMargen > 0 ? Math.min((totalN / peConMargen) * 100, 100) : 100;
+
+  // MEJ-03: estado del precio medio de pago
+  const hayPromo = inscritosConPago && (inscritosConPago.promo?.total || 0) > 0;
+  // Para el cálculo de cobertura de fijos usar precio medio de pago si hay promo
+  const pmUsado = hayPromo && precioMedioPago ? precioMedioPago : precioMedioDistancia;
+
   // Cobertura de fijos para el KPI
   const coberturaFijos = (costesFijos?.total > 0)
     ? Math.min(
         (DISTANCIAS.reduce((s, d) =>
-          s + (precioMedioDistancia[d] - costesVarPorCorredor[d]) * (totalInscritos[d] || 0), 0)
+          s + (pmUsado[d] - costesVarPorCorredor[d]) * (totalInscritos[d] || 0), 0)
           + totalIngresosConMerch) / costesFijos.total * 100,
         200)
     : 100;
@@ -85,6 +103,25 @@ export const TabEquilibrio = ({
           </div>
         </div>
 
+        {/* MEJ-05: KPI de PE con colchón de reserva — solo si margen activo */}
+        {margenActivo && peConMargen !== null && (
+          <div className={`kpi ${(peConMargenAlcanzado || difConMargen >= 0) ? "green" : "amber"}`}>
+            <div className="kpi-label">
+              <Tooltip text={`PE más el colchón de reserva (${margenConfig.tipo === "porcentaje" ? `${margenConfig.valor}% de costes fijos` : `${margenConfig.valor} € absolutos`}).\nSuperarlo significa que el evento genera fondo para imprevistos.`}>
+                <span>PE + colchón</span><TooltipIcon />
+              </Tooltip>
+            </div>
+            <div className="kpi-value">
+              {(peConMargenAlcanzado || difConMargen >= 0) ? `✓ ${peConMargen}` : peConMargen}
+            </div>
+            <div className="kpi-sub">
+              {(peConMargenAlcanzado || difConMargen >= 0)
+                ? "colchón cubierto"
+                : `faltan ${Math.abs(difConMargen)} más`}
+            </div>
+          </div>
+        )}
+
         <div className={`kpi ${coberturaFijos >= 100 ? "green" : coberturaFijos >= 75 ? "amber" : "red"}`}>
           <div className="kpi-label">
             <Tooltip text={"Margen de contribución actual + ingresos extra, sobre costes fijos totales.\n100% = equilibrio exacto."}>
@@ -139,9 +176,11 @@ export const TabEquilibrio = ({
             </span>
             <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", fontWeight:700,
               color: dif >= 0 ? "var(--green)" : dif >= -(peG*0.25) ? "var(--amber)" : "var(--red)" }}>
-              {dif >= 0
-                ? `✓ Superávit — ${dif} corredores por encima del PE`
-                : `Faltan ${Math.abs(dif)} inscripciones para el equilibrio`}
+              {dif >= 0 && margenActivo && !peConMargenAlcanzado && difConMargen < 0
+                ? `✓ Cubre costes · ⚠ Faltan ${Math.abs(difConMargen)} para el colchón`
+                : dif >= 0
+                  ? `✓ Superávit — ${dif} corredores por encima del PE`
+                  : `Faltan ${Math.abs(dif)} inscripciones para el equilibrio`}
             </span>
           </div>
           <div style={{ position:"relative", height:24,
@@ -178,6 +217,25 @@ export const TabEquilibrio = ({
                 </div>
               </div>
             )}
+            {/* MEJ-05: línea punteada del PE+colchón — solo si margen activo y es mayor que el PE */}
+            {margenActivo && peConMargen !== null && peConMargen > (peG || 0) && (() => {
+              const pctMargen = p.aforoTotal > 0 ? Math.min((peConMargen / p.aforoTotal) * 100, 100) : 0;
+              return (
+                <div title={`PE con colchón: ${peConMargen} inscritos`} style={{
+                  position:"absolute", top:-6, bottom:-6,
+                  left:`${pctMargen}%`, width:2,
+                  background:"rgba(167,139,250,0.7)",
+                  borderRadius:1,
+                  backgroundImage:"repeating-linear-gradient(to bottom, rgba(167,139,250,0.9) 0px, rgba(167,139,250,0.9) 4px, transparent 4px, transparent 8px)",
+                }}>
+                  <div style={{ position:"absolute", bottom:-16, left:4,
+                    fontFamily:"var(--font-mono)", fontSize:"0.5rem",
+                    color:"var(--violet)", fontWeight:700, whiteSpace:"nowrap" }}>
+                    +colchón: {peConMargen}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
           <div style={{ display:"flex", justifyContent:"space-between", marginTop:"0.3rem" }}>
             <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>

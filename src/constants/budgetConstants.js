@@ -20,11 +20,16 @@ export const DISTANCIA_COLORS = {
   TG25: "#34d399" 
 };
 
+// MEJ-01: Se añade fechaInicio a los tramos para distinguir "Próximo" (no abierto aún)
+// de "Abierto" (abierto con plazo largo). Campo opcional con retrocompatibilidad:
+//   - Si fechaInicio está ausente → se asume que el tramo está siempre abierto mientras fechaFin sea futura.
+//   - Si fechaInicio > hoy       → estado "Próximo" (aún no ha comenzado).
+//   - Si fechaInicio ≤ hoy       → estado según tiempo restante hasta fechaFin.
 export const TRAMOS_DEFAULT = [
-  { id: 1, nombre: "Early Bird", fechaFin: "2026-04-30", precios: { TG7: 18, TG13: 28, TG25: 38 } },
-  { id: 2, nombre: "Fase 1", fechaFin: "2026-06-15", precios: { TG7: 22, TG13: 32, TG25: 42 } },
-  { id: 3, nombre: "Fase 2", fechaFin: "2026-07-31", precios: { TG7: 25, TG13: 35, TG25: 45 } },
-  { id: 4, nombre: "Última semana", fechaFin: "2026-08-27", precios: { TG7: 28, TG13: 38, TG25: 50 } },
+  { id: 1, nombre: "Early Bird",     fechaInicio: "2026-01-15", fechaFin: "2026-04-30", precios: { TG7: 18, TG13: 28, TG25: 38 } },
+  { id: 2, nombre: "Fase 1",         fechaInicio: "2026-05-01", fechaFin: "2026-06-15", precios: { TG7: 22, TG13: 32, TG25: 42 } },
+  { id: 3, nombre: "Fase 2",         fechaInicio: "2026-06-16", fechaFin: "2026-07-31", precios: { TG7: 25, TG13: 35, TG25: 45 } },
+  { id: 4, nombre: "Última semana",  fechaInicio: "2026-08-01", fechaFin: "2026-08-27", precios: { TG7: 28, TG13: 38, TG25: 50 } },
 ];
 
 export const CONCEPTOS_DEFAULT = [

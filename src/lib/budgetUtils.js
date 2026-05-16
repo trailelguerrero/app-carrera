@@ -95,6 +95,80 @@ export const calculatePrecioMedioDistancia = (totalInscritos, ingresosPorDistanc
   return pm;
 };
 
+/**
+ * calculateInscritosConPago — MEJ-03
+ * Cuenta inscritos que tienen precio > 0 en su tramo (excluye inscritos promo / gratuitos).
+ * Inferencia: un inscrito es "de pago" si el precio de su tramo para su distancia es > 0.
+ *
+ * @param {Array}  tramos    - Array de tramos con precios por distancia
+ * @param {object} inscritos - { tramos: { [tramoId]: { TG7, TG13, TG25 } } }
+ * @returns {{ TG7, TG13, TG25, total, promo: { TG7, TG13, TG25, total } }}
+ *   .promo contiene los inscritos con precio 0 (códigos promocionales o tramos gratuitos)
+ */
+export const calculateInscritosConPago = (tramos, inscritos) => {
+  const pago  = { TG7: 0, TG13: 0, TG25: 0, total: 0 };
+  const promo = { TG7: 0, TG13: 0, TG25: 0, total: 0 };
+  (Array.isArray(tramos) ? tramos : []).forEach(t => {
+    DISTANCIAS.forEach(d => {
+      const n      = inscritos.tramos?.[t.id]?.[d] || 0;
+      const precio = t.precios?.[d] || 0;
+      if (precio > 0) { pago[d]  += n; pago.total  += n; }
+      else            { promo[d] += n; promo.total += n; }
+    });
+  });
+  return { ...pago, promo };
+};
+
+/**
+ * calculatePrecioMedioPago — MEJ-03
+ * Precio medio ponderado solo sobre inscritos de pago (precio > 0).
+ * Evita la distorsión causada por inscripciones con código promocional (precio 0).
+ *
+ * Uso en TabEquilibrio: para el PE, usar este precio en lugar del precio medio total.
+ * Uso en TabResumen: mostrar nota aclaratoria si hay inscritos promo.
+ *
+ * Si no hay inscritos promo (todos pagan), devuelve el mismo valor que calculatePrecioMedioDistancia.
+ */
+export const calculatePrecioMedioPago = (inscritosConPago, ingresosPorDistancia) => {
+  const pm = {};
+  DISTANCIAS.forEach(d => {
+    const n = inscritosConPago[d];
+    pm[d] = n > 0 ? ingresosPorDistancia[d] / n : 0;
+  });
+  const totalPago = inscritosConPago.total;
+  pm.total = totalPago > 0 ? ingresosPorDistancia.total / totalPago : 0;
+  return pm;
+};
+
+/**
+ * calculateCostesFijos — prorrata dinámica de costes fijos entre distancias.
+ *
+ * MEJ-04 — DOCUMENTACIÓN PARA EL ORGANIZADOR:
+ * --------------------------------------------
+ * Un coste fijo (p.ej. cronometraje: 968 €) no depende del número de corredores,
+ * pero sí hay que asignarlo entre las distancias para saber cuánto "pesa" en cada una.
+ *
+ * ALGORITMO DE PRORRATA:
+ *   Para cada concepto fijo activo en las distancias A, B, C:
+ *     prorrata[A] = costeTotal × (inscritos[A] / (inscritos[A] + inscritos[B] + inscritos[C]))
+ *
+ *   Si no hay inscritos todavía → se reparte a partes iguales entre las distancias activas.
+ *
+ * POR QUÉ ES DINÁMICO (y puede cambiar al añadir inscritos):
+ *   La prorrata refleja la "carga" que cada distancia asume del coste común.
+ *   Si TG7 tiene 100 inscritos y TG25 tiene 10, TG7 absorbe ~91% del coste fijo compartido.
+ *   Al añadir 50 inscritos a TG25, la proporción cambia → el coste por distancia varía.
+ *
+ * IMPLICACIÓN PARA EL ANÁLISIS:
+ *   El TOTAL de costes fijos (costes.total) es siempre fijo e invariable — ese es el número
+ *   a vigilar. El desglose por distancia es ORIENTATIVO: muestra la estructura de costes
+ *   con la composición actual de inscritos, pero cambiará a medida que se confirmen más.
+ *   → Para decisiones financieras, usar siempre el resultado TOTAL, no el de una distancia.
+ *
+ * @param {Array}  conceptos     - Array de conceptos presupuestarios
+ * @param {object} totalInscritos - { TG7, TG13, TG25, total } inscritos actuales
+ * @returns {{ TG7, TG13, TG25, total }} costes fijos prorrateados
+ */
 export const calculateCostesFijos = (conceptos, totalInscritos) => {
   const costes = { TG7: 0, TG13: 0, TG25: 0, total: 0 };
   conceptos.filter(c => c.tipo === "fijo" && c.activo).forEach(c => {
@@ -208,7 +282,7 @@ export const calculatePuntoEquilibrio = (totalInscritos, precioMedioDistancia, c
   return pe;
 };
 
-export const calculatePEGlobal = (totalInscritos, precioMedioDistancia, costesVarPorCorredor, costesFijos, totalIngresosConMerch, maximos = {}) => {
+export const calculatePEGlobal = (totalInscritos, precioMedioDistancia, costesVarPorCorredor, costesFijos, totalIngresosConMerch, maximos = {}, margenConfig = { tipo: "porcentaje", valor: 0 }) => {
   const fijosNetos = Math.max(costesFijos.total - totalIngresosConMerch, 0);
   const margenPorDist = {};
   DISTANCIAS.forEach(d => { margenPorDist[d] = (precioMedioDistancia[d] || 0) - (costesVarPorCorredor[d] || 0); });
@@ -218,39 +292,101 @@ export const calculatePEGlobal = (totalInscritos, precioMedioDistancia, costesVa
   const aforoTotal  = DISTANCIAS.reduce((s, d) => s + (maximos[d] || 0), 0);
   const plazasTotal = DISTANCIAS.reduce((s, d) => s + plazasLibres[d], 0);
 
+  // MEJ-05: Calcular los fijos netos con margen de seguridad (mismo algoritmo, mayor objetivo)
+  // Si margenConfig.valor === 0, fijosNetosConMargen === fijosNetos → comportamiento idéntico al anterior.
+  const margenValor = margenConfig?.valor || 0;
+  let fijosNetosConMargen;
+  if (margenValor > 0) {
+    if ((margenConfig?.tipo || "porcentaje") === "porcentaje") {
+      // El colchón es un % del total de costes fijos
+      fijosNetosConMargen = Math.max(costesFijos.total * (1 + margenValor / 100) - totalIngresosConMerch, 0);
+    } else {
+      // El colchón es un valor absoluto en euros
+      fijosNetosConMargen = Math.max(costesFijos.total + margenValor - totalIngresosConMerch, 0);
+    }
+  } else {
+    fijosNetosConMargen = fijosNetos;
+  }
+
   if (fijosNetos <= 0 || margenActual >= fijosNetos) {
+    // PE puro ya alcanzado — calcular si también se alcanza el PE con margen
+    const peConMargenAlcanzado = margenActual >= fijosNetosConMargen;
     return {
       peGlobal: totalInscritos.total, porDistancia: { ...totalInscritos },
       margenMedio: totalInscritos.total > 0 ? margenActual / totalInscritos.total : 0,
       fijosNetos, viable: true, superaAforo: false, aforoTotal, diferencia: 0, coberturaPct: 100, inscritosNecesarios: {},
+      // MEJ-05 extras:
+      fijosNetosConMargen,
+      peGlobalConMargen: totalInscritos.total,
+      porDistanciaConMargen: { ...totalInscritos },
+      peConMargenAlcanzado,
     };
   }
 
   let margenFaltante = fijosNetos - margenActual;
+  // MEJ-05: también calcular cuánto falta para el PE con margen
+  let margenFaltanteConMargen = fijosNetosConMargen - margenActual;
   const distOrdenadas = [...DISTANCIAS].filter(d => margenPorDist[d] > 0).sort((a, b) => margenPorDist[b] - margenPorDist[a]);
   const inscritosNecesarios = {};
-  DISTANCIAS.forEach(d => { inscritosNecesarios[d] = 0; });
+  const inscritosNecesariosConMargen = {};
+  DISTANCIAS.forEach(d => { inscritosNecesarios[d] = 0; inscritosNecesariosConMargen[d] = 0; });
+
+  // Resolver PE puro
+  const margenFaltantePuro = fijosNetos - margenActual;
+  let restoPuro = margenFaltantePuro;
   for (const d of distOrdenadas) {
-    if (margenFaltante <= 0) break;
+    if (restoPuro <= 0) break;
     const disponibles = plazasLibres[d];
     if (disponibles <= 0) continue;
-    const necesarios = Math.ceil(margenFaltante / margenPorDist[d]);
+    const necesarios = Math.ceil(restoPuro / margenPorDist[d]);
     const aCubrir    = Math.min(necesarios, disponibles);
     inscritosNecesarios[d] = aCubrir;
-    margenFaltante -= aCubrir * margenPorDist[d];
+    restoPuro -= aCubrir * margenPorDist[d];
   }
+
+  // Resolver PE con margen (solo si es diferente al PE puro)
+  if (margenValor > 0) {
+    let restoMargen = margenFaltanteConMargen;
+    for (const d of distOrdenadas) {
+      if (restoMargen <= 0) break;
+      const disponibles = plazasLibres[d];
+      if (disponibles <= 0) continue;
+      const necesarios = Math.ceil(restoMargen / margenPorDist[d]);
+      const aCubrir    = Math.min(necesarios, disponibles);
+      inscritosNecesariosConMargen[d] = aCubrir;
+      restoMargen -= aCubrir * margenPorDist[d];
+    }
+    margenFaltanteConMargen = Math.max(restoMargen, 0);
+  } else {
+    DISTANCIAS.forEach(d => { inscritosNecesariosConMargen[d] = inscritosNecesarios[d]; });
+    margenFaltanteConMargen = Math.max(restoPuro, 0);
+  }
+
+  margenFaltante = Math.max(restoPuro, 0);
 
   const porDistancia = {}; let peGlobal = 0;
   DISTANCIAS.forEach(d => { porDistancia[d] = (totalInscritos[d] || 0) + inscritosNecesarios[d]; peGlobal += porDistancia[d]; });
+
+  const porDistanciaConMargen = {}; let peGlobalConMargen = 0;
+  DISTANCIAS.forEach(d => { porDistanciaConMargen[d] = (totalInscritos[d] || 0) + inscritosNecesariosConMargen[d]; peGlobalConMargen += porDistanciaConMargen[d]; });
+
   const viable = margenFaltante <= 0;
   const margenMedio = peGlobal > 0 ? DISTANCIAS.reduce((s, d) => s + margenPorDist[d] * porDistancia[d], 0) / peGlobal : 0;
   const diferencia = totalInscritos.total - peGlobal;
   const coberturaPct = peGlobal > 0 ? Math.min((totalInscritos.total / peGlobal) * 100, 200) : 100;
+  const peConMargenAlcanzado = margenFaltanteConMargen <= 0;
 
   return {
     peGlobal, porDistancia, inscritosNecesarios, margenMedio, fijosNetos,
     viable, superaAforo: !viable, aforoTotal, plazasTotal, diferencia, coberturaPct,
-    margenFaltante: Math.max(margenFaltante, 0),
+    margenFaltante,
+    // MEJ-05 extras: PE con margen de seguridad
+    fijosNetosConMargen,
+    peGlobalConMargen,
+    porDistanciaConMargen,
+    inscritosNecesariosConMargen,
+    margenFaltanteConMargen,
+    peConMargenAlcanzado,
   };
 };
 

@@ -6,14 +6,26 @@ import { NumInput } from "./common/NumInput";
 import { cls } from "../../lib/budgetUtils";
 import { SK_UI_CODIGOS_PROMO, SK_UI_CODIGOS_INIT } from "@/constants/storageKeys";
 
-const getTramoStatus = (fechaFin) => {
-  const now = new Date();
-  const end = new Date(fechaFin);
+// MEJ-01: getTramoStatus ahora acepta fechaInicio (opcional) para distinguir
+// "Próximo" (no abierto aún) de "Abierto" (plazo largo pero ya activo).
+// Retrocompatibilidad: si fechaInicio está ausente se omite la comprobación
+// y el tramo se considera siempre abierto mientras fechaFin sea futura.
+//
+// Estados:
+//   fechaInicio > hoy                → "Próximo"      ⏳ (aún no ha comenzado)
+//   fechaFin pasada                  → "Cerrado"      🔒
+//   diffDías ≤ 7                     → "Último plazo" ⚡
+//   diffDías ≤ 30                    → "Activo"       🟢
+//   diffDías > 30                    → "Abierto"      📅
+const getTramoStatus = (fechaFin, fechaInicio) => {
+  const now   = new Date(); now.setHours(0,0,0,0);
+  // Comprobar si el tramo aún no ha comenzado (MEJ-01)
+  if (fechaInicio) {
+    const start = new Date(fechaInicio);
+    if (start > now) return { label: "Próximo", color: "#a78bfa", bg: "rgba(167,139,250,0.12)", glyph: "⏳" };
+  }
+  const end      = new Date(fechaFin);
   const diffDays = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
-  // ECO-06: el label "Próximo" es semánticamente incorrecto sin fechaInicio — implica "no abierto aún"
-  // cuando en realidad cualquier tramo con fechaFin futura ESTÁ abierto y acepta inscripciones.
-  // "Próximo" se reserva para cuando se implemente fechaInicio (MEJ-01).
-  // Distinción visual: "Abierto" (azul, plazo largo) vs "Activo" (verde, urge) vs "Último plazo" (ámbar).
   if (diffDays < 0)   return { label: "Cerrado",       color: "#f87171", bg: "rgba(248,113,113,0.12)", glyph: "🔒" };
   if (diffDays <= 7)  return { label: "Último plazo",  color: "#fbbf24", bg: "rgba(251,191,36,0.12)",  glyph: "⚡" };
   if (diffDays <= 30) return { label: "Activo",        color: "#34d399", bg: "rgba(52,211,153,0.12)",  glyph: "🟢" };
@@ -394,7 +406,7 @@ export const TabInscripciones = ({
           </div>
           <div style={{ display: "flex", gap: 4 }}>
             {tramos.map((t) => {
-              const status = getTramoStatus(t.fechaFin);
+              const status = getTramoStatus(t.fechaFin, t.fechaInicio);
               return (
                 <div key={t.id} style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
@@ -409,7 +421,9 @@ export const TabInscripciones = ({
                   }}>
                     {t.nombre}
                   </div>
-                  <div style={{ fontSize: "0.52rem", color: "var(--text-muted)" }}>{formatDate(t.fechaFin)}</div>
+                  <div style={{ fontSize: "0.52rem", color: "var(--text-muted)" }}>
+                    {t.fechaInicio ? `${formatDate(t.fechaInicio)} → ` : ""}{formatDate(t.fechaFin)}
+                  </div>
                 </div>
               );
             })}
@@ -459,7 +473,7 @@ export const TabInscripciones = ({
             </thead>
             <tbody>
               {tramos.map((t, idx) => {
-                const status = getTramoStatus(t.fechaFin);
+                const status = getTramoStatus(t.fechaFin, t.fechaInicio);
                 const stats = tramoStats(t, inscritos);
                 const prev = idx > 0 ? tramos[idx - 1] : null;
 
@@ -486,13 +500,31 @@ export const TabInscripciones = ({
                         }}>
                           {status.glyph} {status.label}
                         </span>
-                        <input
-                          type="date"
-                          className="date-inline"
-                          value={t.fechaFin}
-                          onChange={e => setTramos(prev => prev.map(x => x.id === t.id ? { ...x, fechaFin: e.target.value } : x))}
-                          title="Fecha de cierre del tramo"
-                        />
+                        {/* MEJ-01: campo de fecha de inicio — opcional. Sin él el tramo se considera siempre abierto */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                          <span style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>Inicio:</span>
+                          <input
+                            type="date"
+                            className="date-inline"
+                            value={t.fechaInicio || ""}
+                            onChange={e => setTramos(prev => prev.map(x => x.id === t.id ? { ...x, fechaInicio: e.target.value || undefined } : x))}
+                            title="Fecha de apertura del tramo (opcional — sin fecha se considera siempre abierto)"
+                          />
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                          <span style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>Cierre:</span>
+                          <input
+                            type="date"
+                            className="date-inline"
+                            value={t.fechaFin}
+                            onChange={e => setTramos(prev => prev.map(x => x.id === t.id ? { ...x, fechaFin: e.target.value } : x))}
+                            title="Fecha de cierre del tramo"
+                          />
+                        </div>
+                        {/* Aviso si fechaInicio > fechaFin — no bloqueante */}
+                        {t.fechaInicio && t.fechaInicio > t.fechaFin && (
+                          <span style={{ fontSize: "var(--fs-xs)", color: "#f87171" }} title="La fecha de inicio es posterior al cierre">⚠️</span>
+                        )}
                       </div>
                     </td>
                     
