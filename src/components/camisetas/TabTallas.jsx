@@ -158,11 +158,16 @@ export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosAc
                 return tot > 0 ? { talla:t, corr, vol, tot } : null;
               }).filter(Boolean);
               const lineasNino = TALLAS_NINO.map(t => {
-                const tot = ninoExt[t]||0;
+                // ninoExt = tallas manuales; tallasExtrasNino = pedidos tipo "nino"
+                // Ambas fuentes ya están sumadas en grandTotalNino → grandTotal.
+                const tot = (ninoExt[t]||0) + (tallasExtrasNino[t]||0);
                 return tot > 0 ? { talla:t, tot } : null;
               }).filter(Boolean);
               const totalNino = lineasNino.reduce((acc,l) => acc+l.tot, 0);
-              const totalFinal = grandTotal + totalNino;
+              // grandTotal = grandTotalCor + grandTotalVol + grandTotalNino
+              // grandTotalNino ya acumula ninoExt + tallasExtrasNino para todas las tallas.
+              // No se suma totalNino: hacerlo duplicaría las camisetas infantiles en el PDF.
+              const totalFinal = grandTotal;
 
               const rowsAdulto = lineasPDF.map(l =>
                 "<tr><td>" + l.talla + "</td><td>" + (l.corr||"—") + "</td><td>" + (l.vol||"—") + "</td><td>" + l.tot + "</td></tr>"

@@ -12,6 +12,7 @@
  * CAM-09  GUIA_TALLAS incluye XXS y 4XL
  * CAM-10  calcPedido — cálculo financiero correcto
  * ERR-01  grandTallasCor — precedencia operador || con tallasExtras parcial
+ * ERR-02  totalFinal del PDF — doble cómputo de camisetas infantiles
  */
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 
@@ -461,5 +462,114 @@ describe('ERR-01 — grandTallasCor no devuelve 0 cuando tallasExtras es parcial
     const resultado = grandTallasCor_FIX(TALLAS, corredoresExt, tallasExtras);
 
     expect(resultado.S).toBe(7); // 7 + 0
+  });
+});
+
+// ── ERR-02: totalFinal del PDF — doble cómputo de infantiles ──────────────
+describe('ERR-02 — totalFinal del PDF no duplica camisetas infantiles', () => {
+  /**
+   * Árbol de dependencias de grandTotal (verificado en TabTallas.jsx):
+   *
+   *   grandTotal
+   *   ├── grandTotalCor   = Σ totalCorredor[t]
+   *   │     ├── corredoresExt[t]          (prop: plataforma externa)
+   *   │     └── tallasExtras[t].corredor  (pedidos manuales tipo corredor)
+   *   ├── grandTotalVol   = Σ totalVoluntario[t]
+   *   │     ├── tallasVol[t]              (voluntariosActivos con talla)
+   *   │     └── tallasExtras[t].voluntario(pedidos manuales tipo voluntario)
+   *   └── grandTotalNino  = Σ (ninoExt[t] + tallasExtrasNino[t])
+   *         ├── ninoExt[t]               (prop: manual por talla)
+   *         └── tallasExtrasNino[t]      (pedidos manuales tipo nino)
+   *
+   * CONCLUSIÓN: grandTotalNino ya está dentro de grandTotal.
+   * totalFinal = grandTotal + totalNino  →  infantiles contados DOS veces. ❌
+   * totalFinal = grandTotal              →  correcto. ✓
+   */
+
+  // Replica exacta de la lógica corregida del bloque PDF
+  const calcularTotalFinal_BUG = ({ grandTotalCor, grandTotalVol, grandTotalNino, ninoExt, TALLAS_NINO }) => {
+    const grandTotal  = grandTotalCor + grandTotalVol + grandTotalNino;
+    const lineasNino  = TALLAS_NINO.map(t => ({ tot: ninoExt[t] || 0 })).filter(l => l.tot > 0);
+    const totalNino   = lineasNino.reduce((acc, l) => acc + l.tot, 0);
+    return grandTotal + totalNino; // ← BUG: doble cuenta
+  };
+
+  const calcularTotalFinal_FIX = ({ grandTotalCor, grandTotalVol, grandTotalNino }) => {
+    return grandTotalCor + grandTotalVol + grandTotalNino; // = grandTotal
+  };
+
+  const TALLAS_NINO = ["4-6", "6-8", "8-10", "10-12"];
+
+  it('[BUG] escenario 10 adulto + 5 niño → totalFinal incorrecto (20, no 15)', () => {
+    const resultado = calcularTotalFinal_BUG({
+      grandTotalCor:  10,
+      grandTotalVol:  0,
+      grandTotalNino: 5,
+      ninoExt:        { "4-6": 3, "6-8": 2 },
+      TALLAS_NINO,
+    });
+    // grandTotal=15, totalNino=5 → 15+5=20: demuestra el bug
+    expect(resultado).toBe(20);
+  });
+
+  it('[FIX] escenario 10 adulto + 5 niño → totalFinal correcto (15)', () => {
+    const resultado = calcularTotalFinal_FIX({
+      grandTotalCor:  10,
+      grandTotalVol:  0,
+      grandTotalNino: 5,
+    });
+    expect(resultado).toBe(15);
+  });
+
+  it('[FIX] sin infantiles → totalFinal igual a suma adulto', () => {
+    const resultado = calcularTotalFinal_FIX({
+      grandTotalCor:  30,
+      grandTotalVol:  20,
+      grandTotalNino: 0,
+    });
+    expect(resultado).toBe(50);
+  });
+
+  it('[FIX] solo infantiles → totalFinal igual a grandTotalNino', () => {
+    const resultado = calcularTotalFinal_FIX({
+      grandTotalCor:  0,
+      grandTotalVol:  0,
+      grandTotalNino: 8,
+    });
+    expect(resultado).toBe(8);
+  });
+
+  it('[FIX] caso completo: 100 corredor + 50 voluntario + 12 niño = 162', () => {
+    const resultado = calcularTotalFinal_FIX({
+      grandTotalCor:  100,
+      grandTotalVol:  50,
+      grandTotalNino: 12,
+    });
+    expect(resultado).toBe(162);
+  });
+
+  it('[FIX] lineasNino del PDF incluye tallasExtrasNino además de ninoExt', () => {
+    // Verifica la segunda corrección: la tabla PDF también mostraba solo ninoExt,
+    // omitiendo los pedidos manuales tipo "nino" (tallasExtrasNino).
+    const ninoExt        = { "4-6": 3, "6-8": 0 };
+    const tallasExtrasNino = { "4-6": 2, "6-8": 5 };
+
+    const lineasNino_BUG = TALLAS_NINO
+      .map(t => ({ talla: t, tot: ninoExt[t] || 0 }))
+      .filter(l => l.tot > 0);
+
+    const lineasNino_FIX = TALLAS_NINO
+      .map(t => ({ talla: t, tot: (ninoExt[t] || 0) + (tallasExtrasNino[t] || 0) }))
+      .filter(l => l.tot > 0);
+
+    // BUG: 6-8 no aparece en la tabla aunque hay 5 unidades de extras
+    expect(lineasNino_BUG.find(l => l.talla === "6-8")).toBeUndefined();
+    // FIX: 6-8 aparece con tot=5
+    const fila68 = lineasNino_FIX.find(l => l.talla === "6-8");
+    expect(fila68).toBeDefined();
+    expect(fila68.tot).toBe(5);
+    // FIX: 4-6 suma ambas fuentes: 3+2=5
+    const fila46 = lineasNino_FIX.find(l => l.talla === "4-6");
+    expect(fila46.tot).toBe(5);
   });
 });
