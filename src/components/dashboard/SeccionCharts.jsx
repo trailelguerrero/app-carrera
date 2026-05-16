@@ -32,7 +32,12 @@ export function SeccionCharts({ d, fmtEur, TOOLTIP_STYLE, navigate }) {
                 ]} cx="50%" cy="50%" innerRadius={36} outerRadius={55} paddingAngle={3} dataKey="value">
                   {["#22d3ee", "#a78bfa", "#34d399"].map((c, i) => <Cell key={i} fill={c} opacity={0.9} />)}
                 </Pie>
-                <RechartsTip contentStyle={TOOLTIP_STYLE} formatter={(v, n) => [`${v} corredores`, n]} />
+                <RechartsTip
+                  contentStyle={TOOLTIP_STYLE}
+                  wrapperStyle={{ zIndex: 10, pointerEvents: "none" }}
+                  position={{ x: 0, y: 150 }}
+                  formatter={(v, n) => [`${v} corredores`, n]}
+                />
               </PieChart>
             </ResponsiveContainer>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
