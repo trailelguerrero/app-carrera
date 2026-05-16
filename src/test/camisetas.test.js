@@ -11,6 +11,7 @@
  * CAM-08  Sincronización camisetaEntregada → Voluntarios
  * CAM-09  GUIA_TALLAS incluye XXS y 4XL
  * CAM-10  calcPedido — cálculo financiero correcto
+ * ERR-01  grandTallasCor — precedencia operador || con tallasExtras parcial
  */
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 
@@ -371,5 +372,94 @@ describe('CAM-10 — calcPedido cálculo financiero', () => {
     expect(r.totalVenta).toBe(15);
     expect(r.totalCoste).toBe(15); // 8 + 7
     expect(r.benRealizado).toBe(7); // solo el pagado
+  });
+});
+
+// ── ERR-01: grandTallasCor — precedencia operador || ──────────────────────
+describe('ERR-01 — grandTallasCor no devuelve 0 cuando tallasExtras es parcial', () => {
+  /**
+   * Replica la lógica del useMemo de TabTallas.jsx línea 74.
+   *
+   * BUG (antes del fix):
+   *   (corredoresExt[t]||0) + tallasExtras[t]?.corredor||0
+   *   → se evalúa como ((corredoresExt[t]||0) + tallasExtras[t]?.corredor) || 0
+   *   → si tallasExtras[t] es undefined, la suma produce NaN
+   *   → NaN || 0 === 0  →  ¡se anula el valor real de corredoresExt[t]!
+   *
+   * CORRECCIÓN:
+   *   (corredoresExt[t]||0) + (tallasExtras[t]?.corredor||0)
+   *   → si tallasExtras[t] es undefined: 10 + 0 === 10  ✓
+   */
+
+  // Función buggy — simula el código ANTES del fix
+  const grandTallasCor_BUG = (TALLAS, corredoresExt, tallasExtras) =>
+    Object.fromEntries(TALLAS.map(t => [t,
+      (corredoresExt[t]||0) + tallasExtras[t]?.corredor||0   // ← sin paréntesis
+    ]));
+
+  // Función corregida — simula el código DESPUÉS del fix
+  const grandTallasCor_FIX = (TALLAS, corredoresExt, tallasExtras) =>
+    Object.fromEntries(TALLAS.map(t => [t,
+      (corredoresExt[t]||0) + (tallasExtras[t]?.corredor||0) // ← con paréntesis
+    ]));
+
+  const TALLAS = ["XXS","XS","S","M","L","XL","XXL","3XL","4XL"];
+
+  it('[BUG] devuelve 0 en tallas sin entrada en tallasExtras, anulando corredoresExt', () => {
+    // tallasExtras solo tiene M; el resto quedan undefined
+    const corredoresExt = { M: 10, L: 5 };
+    const tallasExtras  = { M: { corredor: 3 } }; // L no existe en tallasExtras
+
+    const resultado = grandTallasCor_BUG(TALLAS, corredoresExt, tallasExtras);
+
+    // BUG: L debería ser 5 pero el bug lo convierte a 0
+    expect(resultado.L).toBe(0); // ← demuestra el bug
+  });
+
+  it('[FIX] conserva el valor de corredoresExt cuando tallasExtras[t] es undefined', () => {
+    const corredoresExt = { M: 10, L: 5 };
+    const tallasExtras  = { M: { corredor: 3 } }; // L ausente
+
+    const resultado = grandTallasCor_FIX(TALLAS, corredoresExt, tallasExtras);
+
+    expect(resultado.L).toBe(5);  // ← corredoresExt.L sin anularse
+  });
+
+  it('[FIX] suma correctamente cuando ambas fuentes tienen valor', () => {
+    const corredoresExt = { M: 10 };
+    const tallasExtras  = { M: { corredor: 3 } };
+
+    const resultado = grandTallasCor_FIX(TALLAS, corredoresExt, tallasExtras);
+
+    expect(resultado.M).toBe(13); // 10 + 3
+  });
+
+  it('[FIX] devuelve 0 cuando ninguna fuente tiene valor para esa talla', () => {
+    const corredoresExt = {};
+    const tallasExtras  = {};
+
+    const resultado = grandTallasCor_FIX(TALLAS, corredoresExt, tallasExtras);
+
+    expect(resultado.XXS).toBe(0);
+    expect(resultado["4XL"]).toBe(0);
+  });
+
+  it('[FIX] escenario completo: 10 corredores en M, tallasExtras vacío → grandTallasCor.M === 10', () => {
+    // Este es el criterio de éxito exacto definido en la auditoría
+    const corredoresExt = { M: 10 };
+    const tallasExtras  = {};
+
+    const resultado = grandTallasCor_FIX(TALLAS, corredoresExt, tallasExtras);
+
+    expect(resultado.M).toBe(10); // nunca debe ser 0
+  });
+
+  it('[FIX] tallasExtras con corredor: 0 explícito no anula corredoresExt', () => {
+    const corredoresExt = { S: 7 };
+    const tallasExtras  = { S: { corredor: 0 } }; // cero explícito
+
+    const resultado = grandTallasCor_FIX(TALLAS, corredoresExt, tallasExtras);
+
+    expect(resultado.S).toBe(7); // 7 + 0
   });
 });

@@ -71,7 +71,7 @@ export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosAc
   const grandTotalCor  = TALLAS.reduce((s, t)      => s + (totalCorredor[t]  || 0), 0);
   const grandTotalVol  = TALLAS.reduce((s, t)      => s + (totalVoluntario[t] || 0), 0);
   const grandTotalNino = TALLAS_NINO.reduce((s, t) => s + (ninoExt[t] || 0) + (tallasExtrasNino[t] || 0), 0);
-  const grandTallasCor  = useMemo(() => Object.fromEntries(TALLAS.map(t => [t, (corredoresExt[t]||0) + tallasExtras[t]?.corredor||0])), [corredoresExt, tallasExtras]);
+  const grandTallasCor  = useMemo(() => Object.fromEntries(TALLAS.map(t => [t, (corredoresExt[t]||0) + (tallasExtras[t]?.corredor||0)])), [corredoresExt, tallasExtras]);
   const grandTallasVol  = useMemo(() => Object.fromEntries(TALLAS.map(t => [t, voluntariosActivos.filter(v=>v.talla===t).length + (tallasExtras[t]?.voluntario||0)])), [voluntariosActivos, tallasExtras]);
   const grandTotal     = grandTotalCor + grandTotalVol + grandTotalNino;
 
