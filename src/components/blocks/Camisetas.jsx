@@ -584,6 +584,42 @@ export default function App() {
   const [, setRawVoluntarios] = useData(SK_VOL_VOLUNTARIOS, []);
   const updateLinea = (pedidoId, lineaIdOrObj, campo, valor) => {
     const esObjeto = typeof lineaIdOrObj === "object" && lineaIdOrObj !== null && campo === undefined;
+
+    /*
+     * sincronizarEntregaVoluntario — estrategia de reconciliación en tres capas (INT-01)
+     * ──────────────────────────────────────────────────────────────────────────────────
+     * PROBLEMA ANTERIOR: nc.includes(np) producía falsos positivos.
+     *   "Ana García" marcaba también a "Ana García López" como entregada.
+     *
+     * ESTRATEGIA NUEVA (más específico primero):
+     *   CAPA 1 — voluntarioId presente → usar ID directo. Sin comparación de nombres.
+     *            Cubre pedidos generados por generarPedidosVoluntarios.
+     *   CAPA 2 — pedido individual sin voluntarioId → comparación de nombre ESTRICTA (===).
+     *            Sin includes(). El nombre debe coincidir exactamente.
+     *   CAPA 3 — importación por bloque (_esImportacionVol) → NO sincronizar.
+     *            Un bloque agregado no representa a un voluntario concreto.
+     */
+    const sincronizarEntregaVoluntario = (pedido, entregado) => {
+      if (!pedido) return;
+
+      // Capa 3: bloque agregado → no sincronizar individualmente
+      if (pedido._esImportacionVol) return;
+
+      setRawVoluntarios(prev => (Array.isArray(prev) ? prev : []).map(v => {
+        // Capa 1: ID directo si el pedido tiene voluntarioId
+        if (pedido.voluntarioId != null) {
+          return v.id === pedido.voluntarioId ? { ...v, camisetaEntregada: entregado } : v;
+        }
+        // Capa 2: comparación de nombre estricta (sin includes)
+        if (pedido.nombre) {
+          const nc = ((v.nombre || "") + " " + (v.apellidos || "")).toLowerCase().trim();
+          const np = (pedido.nombre || "").toLowerCase().trim();
+          return nc === np ? { ...v, camisetaEntregada: entregado } : v;
+        }
+        return v;
+      }), { force: true });
+    };
+
     if (esObjeto) {
       const lineaNueva = lineaIdOrObj;
       setPedidos(prev => prev.map(p => p.id !== pedidoId ? p : {
@@ -591,13 +627,7 @@ export default function App() {
       }));
       if ((lineaNueva.tipo === "voluntario" || lineaNueva.tipo === "extra-voluntario") && lineaNueva.estadoEntrega === "entregado") {
         const pedido = pedidos.find(p => p.id === pedidoId);
-        if (pedido?.nombre) {
-          setRawVoluntarios(prev => (Array.isArray(prev) ? prev : []).map(v => {
-            const nc = ((v.nombre || "") + " " + (v.apellidos || "")).toLowerCase().trim();
-            const np = (pedido.nombre || "").toLowerCase().trim();
-            return (nc === np || nc.includes(np) || np.includes(nc)) ? { ...v, camisetaEntregada: true } : v;
-          }), { force: true });
-        }
+        sincronizarEntregaVoluntario(pedido, true);
       }
     } else {
       const lineaId = lineaIdOrObj;
@@ -607,12 +637,8 @@ export default function App() {
       if (campo === "estadoEntrega") {
         const pedido = pedidos.find(p => p.id === pedidoId);
         const linea  = pedido?.lineas?.find(l => l.id === lineaId);
-        if (pedido?.nombre && (linea?.tipo === "voluntario" || linea?.tipo === "extra-voluntario")) {
-          setRawVoluntarios(prev => (Array.isArray(prev) ? prev : []).map(v => {
-            const nc = ((v.nombre || "") + " " + (v.apellidos || "")).toLowerCase().trim();
-            const np = (pedido.nombre || "").toLowerCase().trim();
-            return (nc === np || nc.includes(np) || np.includes(nc)) ? { ...v, camisetaEntregada: valor === "entregado" } : v;
-          }), { force: true });
+        if (linea?.tipo === "voluntario" || linea?.tipo === "extra-voluntario") {
+          sincronizarEntregaVoluntario(pedido, valor === "entregado");
         }
       }
     }

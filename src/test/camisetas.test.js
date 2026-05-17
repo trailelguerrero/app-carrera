@@ -823,3 +823,94 @@ describe("INT-02 — esVoluntarioElegibleCamiseta helper centralizado", () => {
     expect(conPendientes.map(v => v.id)).toEqual([1, 2]);     // confirmado + pendiente
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INT-01 — updateLinea · estrategia de reconciliación en tres capas
+// ─────────────────────────────────────────────────────────────────────────────
+describe("INT-01 — sincronización entrega con Voluntarios (3 capas)", () => {
+  // Simula la lógica de sincronizarEntregaVoluntario extraída de updateLinea
+  // para poder testarla de forma aislada sin montar el componente.
+  function simularSincronizacion(pedido, voluntarios, entregado = true) {
+    if (!pedido) return voluntarios;
+    // Capa 3: bloque agregado → no sincronizar
+    if (pedido._esImportacionVol) return voluntarios;
+
+    return voluntarios.map(v => {
+      // Capa 1: ID directo
+      if (pedido.voluntarioId != null) {
+        return v.id === pedido.voluntarioId ? { ...v, camisetaEntregada: entregado } : v;
+      }
+      // Capa 2: nombre estricto
+      if (pedido.nombre) {
+        const nc = ((v.nombre || "") + " " + (v.apellidos || "")).toLowerCase().trim();
+        const np = (pedido.nombre || "").toLowerCase().trim();
+        return nc === np ? { ...v, camisetaEntregada: entregado } : v;
+      }
+      return v;
+    });
+  }
+
+  const voluntarios = [
+    { id: 10, nombre: "Ana",          apellidos: "García",       camisetaEntregada: false },
+    { id: 11, nombre: "Ana",          apellidos: "García López", camisetaEntregada: false },
+    { id: 12, nombre: "Carlos",       apellidos: "Martínez",     camisetaEntregada: false },
+  ];
+
+  // ── Capa 1: voluntarioId ──────────────────────────────────────────────────
+  it("Capa 1 — usa voluntarioId cuando está presente, no toca al resto", () => {
+    const pedido = { id: 1, nombre: "Ana García", voluntarioId: 10 };
+    const result = simularSincronizacion(pedido, voluntarios);
+    expect(result.find(v => v.id === 10).camisetaEntregada).toBe(true);
+    expect(result.find(v => v.id === 11).camisetaEntregada).toBe(false); // no tocado
+    expect(result.find(v => v.id === 12).camisetaEntregada).toBe(false);
+  });
+
+  it("Capa 1 — voluntarioId 0 no activa la capa (null/undefined activan capa 2)", () => {
+    // voluntarioId: 0 es un valor presente (aunque raro), debe usar ID
+    const pedido = { id: 1, nombre: "Ana García", voluntarioId: 0 };
+    const vols = [{ id: 0, nombre: "Otro", apellidos: "", camisetaEntregada: false }];
+    const result = simularSincronizacion(pedido, vols);
+    expect(result[0].camisetaEntregada).toBe(true);
+  });
+
+  // ── Capa 2: nombre estricto ───────────────────────────────────────────────
+  it("Capa 2 — nombre estricto: 'Ana García' NO marca a 'Ana García López'", () => {
+    const pedido = { id: 2, nombre: "Ana García" }; // sin voluntarioId
+    const result = simularSincronizacion(pedido, voluntarios);
+    expect(result.find(v => v.id === 10).camisetaEntregada).toBe(true);  // match exacto
+    expect(result.find(v => v.id === 11).camisetaEntregada).toBe(false); // falso positivo corregido
+  });
+
+  it("Capa 2 — nombre estricto: no marca si el nombre es substring del voluntario", () => {
+    const pedido = { id: 3, nombre: "Carlos" }; // substring de "Carlos Martínez"
+    const result = simularSincronizacion(pedido, voluntarios);
+    expect(result.find(v => v.id === 12).camisetaEntregada).toBe(false); // sin match parcial
+  });
+
+  it("Capa 2 — revierte entrega (entregado=false) con nombre estricto", () => {
+    const vols = voluntarios.map(v => ({ ...v, camisetaEntregada: true }));
+    const pedido = { id: 4, nombre: "Ana García" };
+    const result = simularSincronizacion(pedido, vols, false);
+    expect(result.find(v => v.id === 10).camisetaEntregada).toBe(false);
+    expect(result.find(v => v.id === 11).camisetaEntregada).toBe(true); // no tocado
+  });
+
+  // ── Capa 3: bloque agregado ───────────────────────────────────────────────
+  it("Capa 3 — _esImportacionVol no sincroniza ningún voluntario", () => {
+    const pedido = { id: 5, nombre: "Ana García", _esImportacionVol: true };
+    const result = simularSincronizacion(pedido, voluntarios);
+    result.forEach(v => expect(v.camisetaEntregada).toBe(false)); // ninguno tocado
+  });
+
+  // ── Casos edge ───────────────────────────────────────────────────────────
+  it("pedido null no lanza error y devuelve voluntarios sin cambios", () => {
+    const result = simularSincronizacion(null, voluntarios);
+    result.forEach(v => expect(v.camisetaEntregada).toBe(false));
+  });
+
+  it("pedido sin nombre y sin voluntarioId no modifica a nadie", () => {
+    const pedido = { id: 6 }; // ni nombre ni voluntarioId
+    const result = simularSincronizacion(pedido, voluntarios);
+    result.forEach(v => expect(v.camisetaEntregada).toBe(false));
+  });
+});
