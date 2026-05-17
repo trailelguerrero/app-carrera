@@ -125,7 +125,14 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
                   title="Click para abrir ficha del puesto">
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.2rem" }}>
                     <span style={{ fontSize: "var(--fs-sm)", color: "var(--text)" }}>{p.nombre}</span>
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color }}>{p.totalAsignados}/{p.necesarios}</span>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color }}>
+                      {p.confirmados}/{p.necesarios}
+                      {(p.totalAsignados - p.confirmados) > 0 && (
+                        <span style={{ color: "var(--text-muted)", marginLeft: "0.3rem" }}>
+                          · {p.totalAsignados - p.confirmados} pend.
+                        </span>
+                      )}
+                    </span>
                   </div>
                   <div className="prog-bar">
                     <div className="prog-fill" style={{ width: `${pct}%`, background: color }} />
