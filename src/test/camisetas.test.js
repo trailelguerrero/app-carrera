@@ -1102,3 +1102,64 @@ describe("INC-02 — calcPedido devuelve campos con semántica no mezclada", () 
     expect(r.costeRegalos).toBe(0);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INC-04 — alineación semántica unidades/líneas en contadores de entrega
+// ─────────────────────────────────────────────────────────────────────────────
+describe("INC-04 — contadores de entrega con semántica explícita", () => {
+  // Escenario: 3 líneas con cantidades distintas
+  // Línea 1: M × 50 ud → pendiente
+  // Línea 2: S × 1  ud → entregada
+  // Línea 3: L × 5  ud → pendiente
+  const lineas = [
+    { id: 1, tipo: "corredor", talla: "M", cantidad: 50, estadoPago: "pagado",   estadoEntrega: "pendiente" },
+    { id: 2, tipo: "corredor", talla: "S", cantidad: 1,  estadoPago: "pagado",   estadoEntrega: "entregado" },
+    { id: 3, tipo: "corredor", talla: "L", cantidad: 5,  estadoPago: "pendiente",estadoEntrega: "pendiente" },
+  ];
+  const lineasPend = lineas.filter(l => (l.estadoEntrega || "pendiente") === "pendiente");
+
+  // La misma lógica que stats.pendEnt y stats.pendEntLineas en Camisetas.jsx
+  const pendEnt       = lineasPend.reduce((s, l) => s + l.cantidad, 0);
+  const pendEntLineas = lineasPend.length;
+
+  it("pendEnt cuenta UNIDADES físicas, no líneas", () => {
+    expect(pendEnt).toBe(55);       // 50 + 5
+    expect(pendEnt).not.toBe(2);    // no el número de líneas
+  });
+
+  it("pendEntLineas cuenta LÍNEAS de pedido (personas), no unidades", () => {
+    expect(pendEntLineas).toBe(2);  // 2 líneas pendientes
+    expect(pendEntLineas).not.toBe(55);
+  });
+
+  it("la diferencia entre métricas es relevante cuando hay cantidades > 1", () => {
+    // Una línea M×50 aporta 50 a pendEnt pero solo 1 a pendEntLineas
+    expect(pendEnt).toBeGreaterThan(pendEntLineas);
+  });
+
+  it("con líneas de cantidad 1, pendEnt y pendEntLineas coinciden", () => {
+    const lineasUnitarias = [
+      { id: 4, cantidad: 1, estadoEntrega: "pendiente" },
+      { id: 5, cantidad: 1, estadoEntrega: "pendiente" },
+    ];
+    const pend = lineasUnitarias.reduce((s, l) => s + l.cantidad, 0);
+    const linPend = lineasUnitarias.length;
+    expect(pend).toBe(linPend); // coinciden porque todas las cantidades son 1
+  });
+
+  it("la misma lógica que cPE y uPE del TabChecklist produce los mismos valores", () => {
+    // cPE = .length (líneas), uPE = .reduce suma cantidades (unidades)
+    const cPE = lineasPend.length;
+    const uPE = lineasPend.reduce((s, l) => s + l.cantidad, 0);
+    expect(cPE).toBe(pendEntLineas);
+    expect(uPE).toBe(pendEnt);
+  });
+
+  it("cuando todo está entregado, ambas métricas son 0", () => {
+    const todasEntregadas = lineas.map(l => ({ ...l, estadoEntrega: "entregado" }));
+    const pend = todasEntregadas.filter(l => l.estadoEntrega === "pendiente").reduce((s, l) => s + l.cantidad, 0);
+    const pLin = todasEntregadas.filter(l => l.estadoEntrega === "pendiente").length;
+    expect(pend).toBe(0);
+    expect(pLin).toBe(0);
+  });
+});

@@ -29,11 +29,12 @@ export function TabChecklist({ pedidos, updateLinea, abrirFicha, generarPedidosV
     return (l.pedNombre||"").toLowerCase().includes(q) ||
            (l.ped?.telefono||"").includes(q);
   }),[todas,filtro,busqueda]);
-  const cPE=todas.filter(l=>(l.estadoEntrega||"pendiente")==="pendiente").length;
+  const cPE = todas.filter(l=>(l.estadoEntrega||"pendiente")==="pendiente").length;
+  const uPE = todas.filter(l=>(l.estadoEntrega||"pendiente")==="pendiente").reduce((s,l)=>s+l.cantidad,0);
   const cPP=todas.filter(l=>(l.estadoPago||"pendiente")==="pendiente").length;
   const FILTROS=[
     {id:"todos",        label:`Todos (${todas.length})`,                                                   color:"var(--text-muted)"},
-    {id:"sin-entregar", label:`Por entregar (${cPE})`,                                                    color:"var(--amber)"},
+    {id:"sin-entregar", label:`Por entregar — ${uPE} ud · ${cPE} ${cPE===1?"pedido":"pedidos"}`,                                                    color:"var(--amber)"},
     {id:"entregado",    label:`Entregados (${todas.filter(l=>l.estadoEntrega==="entregado").length})`,    color:"var(--green)"},
     {id:"sin-pagar",    label:`Sin pagar (${cPP})`,                                                       color:"var(--amber)"},
     {id:"pagado",       label:`Pagados (${todas.filter(l=>l.estadoPago==="pagado").length})`,             color:"var(--green)"},
@@ -42,7 +43,7 @@ export function TabChecklist({ pedidos, updateLinea, abrirFicha, generarPedidosV
   return (
     <>
       <div className="ph">
-        <div><div className="pt">📬 Entrega de camisetas</div><div className="pd">{cPE} líneas por entregar · {cPP} sin cobrar</div></div>
+        <div><div className="pt">📬 Entrega de camisetas</div><div className="pd">{uPE} ud · {cPE} {cPE === 1 ? "pedido" : "pedidos"} por entregar · {cPP} sin cobrar</div></div>
         <div style={{ display:"flex", gap:".4rem", flexWrap:"wrap" }}>
         <button className={`btn btn-sm${modoRapido?" btn-cyan":" btn-ghost"}`}
           onClick={()=>setModoRapido(v=>!v)}
@@ -151,7 +152,8 @@ export function TabChecklist({ pedidos, updateLinea, abrirFicha, generarPedidosV
         return (
           <div style={{display:"flex",flexDirection:"column",gap:".5rem"}}>
             {porPedido.map(({ ped, lineas }) => {
-              const pendEnt = lineas.filter(l=>(l.estadoEntrega||"pendiente")==="pendiente").length;
+              const pendEnt   = lineas.filter(l=>(l.estadoEntrega||"pendiente")==="pendiente").length;
+              const udPendEnt = lineas.filter(l=>(l.estadoEntrega||"pendiente")==="pendiente").reduce((s,l)=>s+l.cantidad,0);
               const pendPago = lineas.filter(l=>(l.estadoPago||"pendiente")==="pendiente" && l.estadoPago!=="regalo").length;
               const collapsed = !pedColaps[ped.id]; // por defecto colapsado (undefined=false→!false=true)
               const allEntregado = pendEnt === 0;
@@ -179,7 +181,7 @@ export function TabChecklist({ pedidos, updateLinea, abrirFicha, generarPedidosV
                           padding:".1rem .4rem",borderRadius:20,
                           background:"rgba(251,191,36,.15)",color:"var(--amber)",
                           border:"1px solid rgba(251,191,36,.3)"}}>
-                          {pendEnt} por entregar
+                          {udPendEnt} ud · {pendEnt} {pendEnt===1?"línea":"líneas"} por entregar
                         </span>
                       )}
                       {pendPago > 0 && (

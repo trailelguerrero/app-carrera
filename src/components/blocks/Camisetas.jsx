@@ -575,6 +575,7 @@ export default function App() {
       (l.tipo === "nino" && fuentesActivas.extrasNino)
     )).reduce((s, l) => s + l.cantidad * (l.precioVenta || 0), 0);
 
+    const lineasPendEnt = extrasLineas.filter(l => l.estadoEntrega === "pendiente");
     return {
       totalUnidades, totalIngresosReal, totalIngresosProyectado,
       totalGastos, beneficioNetoReal, beneficioNetoProyectado,
@@ -582,7 +583,9 @@ export default function App() {
       iCorExt, iExtrasReal, iExtrasProyectado, iVentaPublico,
       gRegalos, cPendCobro,
       totalPedidosExtras: pedidos.length,
-      pendEnt: extrasLineas.filter(l => l.estadoEntrega === "pendiente").reduce((s, l) => s + l.cantidad, 0),
+      // INC-04: dos métricas de entrega con semántica explícita
+      pendEnt:       lineasPendEnt.reduce((s, l) => s + l.cantidad, 0), // UNIDADES físicas
+      pendEntLineas: lineasPendEnt.length,                               // LÍNEAS de pedido (personas)
     };
   }, [pedidos, coste, corredoresExt, ninoExt, voluntariosActivos, precioCorrExt, fuentesActivas, ventaPublico, cobrosPlataformaRecibidos]);
 
@@ -713,7 +716,7 @@ export default function App() {
           </div>
           <div className="block-actions">
             {stats.cPendCobro > 0 && <span className="badge badge-amber">⏳ {fmtEur2(stats.cPendCobro)} pendiente</span>}
-            {stats.pendEnt   > 0 && <span className="badge badge-cyan">📦 {stats.pendEnt} ud por entregar</span>}
+            {stats.pendEnt   > 0 && <span className="badge badge-cyan" title={`${stats.pendEnt} camisetas · ${stats.pendEntLineas} línea${stats.pendEntLineas !== 1 ? "s" : ""} de pedido`}>📦 {stats.pendEnt} ud · {stats.pendEntLineas} {stats.pendEntLineas === 1 ? "pedido" : "pedidos"} por entregar</span>}
             {/* CAM-01 — botón de importar tallas visible solo en la pestaña de tallas */}
             {tab === "tallas" && (
               <button

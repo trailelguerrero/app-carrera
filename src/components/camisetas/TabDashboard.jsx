@@ -181,9 +181,9 @@ export function TabDashboard({ stats, pedidos, coste, setCoste, setTab, goToTab,
           <div className="kpi-sub">{stats.cPendCobro > 0 ? "por cobrar" : "todo cobrado ✓"}</div>
         </div>
         <div className={`kpi ${stats.pendEnt > 0 ? "cyan" : "green"}`} style={{cursor:"pointer"}} onClick={() => setTab("checklist")}>
-          <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>📦 Por entregar<Tooltip text={"Cantidad de unidades correspondientes a pedidos extra que siguen pendientes de entrega."}><TooltipIcon size={11}/></Tooltip></div>
-          <div className="kpi-value">{stats.pendEnt}</div>
-          <div className="kpi-sub">{stats.pendEnt > 0 ? "unidades pendientes" : "todo entregado ✓"}</div>
+          <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>📦 Por entregar<Tooltip text={"Camisetas físicas pendientes de entrega (unidades). El subtítulo muestra el número de pedidos afectados."}><TooltipIcon size={11}/></Tooltip></div>
+          <div className="kpi-value">{stats.pendEnt} <span style={{fontSize:"var(--fs-sm)",fontWeight:400,color:"var(--text-muted)"}}>ud</span></div>
+          <div className="kpi-sub">{stats.pendEnt > 0 ? `${stats.pendEntLineas} ${stats.pendEntLineas === 1 ? "pedido pendiente" : "pedidos pendientes"}` : "todo entregado ✓"}</div>
         </div>
         <div className="kpi cyan" style={{cursor:"pointer"}} onClick={() => setTab("tallas")}>
           <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>🔢 Total unidades<Tooltip text={"Suma total de unidades calculadas de todas las fuentes activas."}><TooltipIcon size={11}/></Tooltip></div>
