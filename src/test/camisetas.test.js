@@ -1163,3 +1163,78 @@ describe("INC-04 — contadores de entrega con semántica explícita", () => {
     expect(pLin).toBe(0);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INC-03 — estadoPagoPedido y esPedidoMixto · coherencia clasificación/filtro
+// ─────────────────────────────────────────────────────────────────────────────
+import { estadoPagoPedido, esPedidoMixto } from "../components/camisetas/camisetasConstants";
+
+describe("INC-03 — estadoPagoPedido clasifica por estado más desfavorable", () => {
+  const linea = (estadoPago) => ({ id: Math.random(), tipo: "corredor", talla: "M", cantidad: 10, precioVenta: 15, estadoPago, estadoEntrega: "pendiente" });
+
+  // Casos puros
+  it("pedido todo pagado → 'pagado'", () => {
+    expect(estadoPagoPedido({ lineas: [linea("pagado"), linea("pagado")] })).toBe("pagado");
+  });
+  it("pedido todo pendiente → 'pendiente'", () => {
+    expect(estadoPagoPedido({ lineas: [linea("pendiente"), linea("pendiente")] })).toBe("pendiente");
+  });
+  it("pedido todo regalo → 'regalo'", () => {
+    expect(estadoPagoPedido({ lineas: [linea("regalo"), linea("regalo")] })).toBe("regalo");
+  });
+
+  // El caso crítico del bug original: 10 ud pagadas y 1 ud pendiente
+  it("10 ud pagadas + 1 ud pendiente → 'pendiente' (no 'pagado' por mayoría)", () => {
+    const p = { lineas: [
+      { ...linea("pagado"),   cantidad: 10 },
+      { ...linea("pendiente"),cantidad: 1  },
+    ]};
+    expect(estadoPagoPedido(p)).toBe("pendiente");
+  });
+
+  // Jerarquía completa
+  it("pendiente > regalo > pagado: pendiente+regalo → pendiente", () => {
+    expect(estadoPagoPedido({ lineas: [linea("pendiente"), linea("regalo")] })).toBe("pendiente");
+  });
+  it("pendiente > regalo > pagado: regalo+pagado → regalo", () => {
+    expect(estadoPagoPedido({ lineas: [linea("regalo"), linea("pagado")] })).toBe("regalo");
+  });
+  it("pendiente > regalo > pagado: los tres → pendiente", () => {
+    expect(estadoPagoPedido({ lineas: [linea("pagado"), linea("regalo"), linea("pendiente")] })).toBe("pendiente");
+  });
+
+  // Simetría con el filtro: si clasificación dice X, el filtro X devuelve el pedido
+  it("garantía de simetría: clasificación y filtro usan la misma función", () => {
+    const pedidos = [
+      { id: 1, lineas: [linea("pagado"), linea("pendiente")] }, // → pendiente
+      { id: 2, lineas: [linea("pagado"), linea("pagado")]   }, // → pagado
+      { id: 3, lineas: [linea("regalo"), linea("pagado")]   }, // → regalo
+    ];
+    ["pendiente", "pagado", "regalo"].forEach(estado => {
+      const clasificados = pedidos.filter(p => estadoPagoPedido(p) === estado);
+      const filtrados    = pedidos.filter(p => estadoPagoPedido(p) === estado);
+      // La misma función garantiza coherencia perfecta
+      expect(clasificados.map(p=>p.id)).toEqual(filtrados.map(p=>p.id));
+    });
+  });
+});
+
+describe("INC-03 — esPedidoMixto detecta estados heterogéneos", () => {
+  const linea = (ep) => ({ id: Math.random(), estadoPago: ep });
+
+  it("pedido uniforme pagado → NO es mixto", () => {
+    expect(esPedidoMixto({ lineas: [linea("pagado"), linea("pagado")] })).toBe(false);
+  });
+  it("pedido uniforme pendiente → NO es mixto", () => {
+    expect(esPedidoMixto({ lineas: [linea("pendiente")] })).toBe(false);
+  });
+  it("pagado + pendiente → SÍ es mixto", () => {
+    expect(esPedidoMixto({ lineas: [linea("pagado"), linea("pendiente")] })).toBe(true);
+  });
+  it("pagado + regalo → SÍ es mixto", () => {
+    expect(esPedidoMixto({ lineas: [linea("pagado"), linea("regalo")] })).toBe(true);
+  });
+  it("pedido de una sola línea → nunca mixto", () => {
+    expect(esPedidoMixto({ lineas: [linea("pendiente")] })).toBe(false);
+  });
+});

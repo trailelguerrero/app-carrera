@@ -7,7 +7,7 @@ import { fmtEur2 } from "@/lib/utils";
 import { blockCls as cls } from "@/lib/blockStyles";
 import EmptyState from "@/components/EmptyState";
 import { Tooltip } from "@/components/common/Tooltip";
-import { TC, EP, EE, ESTADOS_PAGO, ESTADOS_ENTREGA, estadoCombinado, calcPedido, badgePago, badgeEnt } from "./camisetasConstants";
+import { TC, EP, EE, ESTADOS_PAGO, ESTADOS_ENTREGA, estadoCombinado, calcPedido, badgePago, badgeEnt, estadoPagoPedido, esPedidoMixto } from "./camisetasConstants";
 
 export function TabPedidos({ pedidos, coste, abrirFicha, abrirModal, filtroExterno, onClearFiltro }) {
   const [vistaK,setVistaK]   = useState(false);
@@ -27,7 +27,9 @@ export function TabPedidos({ pedidos, coste, abrirFicha, abrirModal, filtroExter
     let list = pedidos.filter(p=>{
       const q  = bus.toLowerCase();
       const mQ = !q||p.nombre.toLowerCase().includes(q)||(p.telefono||"").includes(q)||(p.email||"").toLowerCase().includes(q);
-      const mP = fPago==="todos"||p.lineas.some(l=>(l.estadoPago||"pendiente")===fPago);
+      // INC-03: usa estadoPagoPedido() — misma función que la clasificación kanban/lista.
+      // Garantía: si el filtro "pendiente" devuelve un pedido, ese pedido está en el grupo "Pendiente".
+      const mP = fPago==="todos" || estadoPagoPedido(p) === fPago;
       const mE = fEnt==="todos" ||p.lineas.some(l=>(l.estadoEntrega||"pendiente")===fEnt);
       return mQ&&mP&&mE;
     });
@@ -73,11 +75,8 @@ export function TabPedidos({ pedidos, coste, abrirFicha, abrirModal, filtroExter
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:".65rem"}}>
           {ESTADOS_PAGO.map(estado=>{
             const cfg=EP[estado];
-            const items=filtrados.filter(p=>{
-              const counts={};
-              p.lineas.forEach(l=>{counts[l.estadoPago||"pendiente"]=(counts[l.estadoPago||"pendiente"]||0)+l.cantidad;});
-              return Object.entries(counts).sort((sa,sb)=>sb[1]-sa[1])[0]?.[0]===estado;
-            });
+            // INC-03: usa estadoPagoPedido() — mismo criterio que el filtro de búsqueda
+            const items=filtrados.filter(p=> estadoPagoPedido(p) === estado);
             return (
               <div key={estado} style={{background:"var(--surface)",border:"1px solid var(--border)",borderTop:`2px solid ${cfg.color}`,borderRadius:"var(--r)",overflow:"hidden"}}>
                 <div style={{padding:".6rem .75rem",background:"var(--surface2)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -85,11 +84,14 @@ export function TabPedidos({ pedidos, coste, abrirFicha, abrirModal, filtroExter
                   <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".1rem .35rem",borderRadius:4,background:cfg.bg,color:cfg.color}}>{items.length}</span>
                 </div>
                 {items.map(p=>{
-                  const {totalVenta,totalUnid}=calcPedido(p,coste); const be=badgeEnt(p);
+                  const {totalVenta,totalUnid}=calcPedido(p,coste); const be=badgeEnt(p); const mixto=esPedidoMixto(p);
                   return (
                     <div key={p.id} style={{margin:".4rem .4rem 0",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:8,padding:".6rem .7rem",cursor:"pointer",transition:"all .15s"}}
                       onClick={()=>abrirFicha(p)} onMouseEnter={e=>e.currentTarget.style.borderColor="var(--border-light)"} onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border)"}>
-                      <div style={{fontWeight:700,fontSize:"var(--fs-base)",marginBottom:".25rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
+                      <div style={{display:"flex",alignItems:"center",gap:".35rem",marginBottom:".25rem"}}>
+                        <div style={{fontWeight:700,fontSize:"var(--fs-base)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
+                        {mixto && <span title="Este pedido tiene líneas en distintos estados de pago" style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-2xs)",fontWeight:700,padding:".05rem .3rem",borderRadius:10,background:"rgba(251,191,36,.15)",color:"var(--amber)",border:"1px solid rgba(251,191,36,.3)",flexShrink:0,whiteSpace:"nowrap"}}>mixto</span>}
+                      </div>
                       <div style={{display:"flex",gap:".25rem",flexWrap:"wrap",marginBottom:".3rem"}}>
                         {p.lineas.map((l,i)=>(
                           <span key={i} style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".06rem .3rem",borderRadius:3,background:TC[l.tipo]?.dim,color:TC[l.tipo]?.color,border:`1px solid ${TC[l.tipo]?.color}33`}}>
@@ -115,11 +117,8 @@ export function TabPedidos({ pedidos, coste, abrirFicha, abrirModal, filtroExter
         <div style={{display:"flex",flexDirection:"column",gap:".6rem"}}>
           {ESTADOS_PAGO.map(estado => {
             const cfg = EP[estado];
-            const items = filtrados.filter(p => {
-              const counts = {};
-              p.lineas.forEach(l=>{counts[l.estadoPago||"pendiente"]=(counts[l.estadoPago||"pendiente"]||0)+l.cantidad;});
-              return Object.entries(counts).sort((sa,sb)=>sb[1]-sa[1])[0]?.[0]===estado;
-            });
+            // INC-03: usa estadoPagoPedido() — mismo criterio que el filtro de búsqueda
+            const items = filtrados.filter(p => estadoPagoPedido(p) === estado);
             if (!items.length) return null;
             const collapsed = pedGrupos[estado];
             return (
@@ -144,7 +143,7 @@ export function TabPedidos({ pedidos, coste, abrirFicha, abrirModal, filtroExter
                   <div style={{display:"flex",flexDirection:"column",
                     background:"var(--surface)"}}>
                     {items.map((p,idx)=>{
-                      const {totalVenta}=calcPedido(p,coste); const ec=estadoCombinado(p.lineas);
+                      const {totalVenta}=calcPedido(p,coste); const ec=estadoCombinado(p.lineas); const mixto=esPedidoMixto(p);
                       return (
                         <div key={p.id} className="cam-row"
                           style={{borderBottom:idx<items.length-1?"1px solid var(--border)":"none",
@@ -154,7 +153,10 @@ export function TabPedidos({ pedidos, coste, abrirFicha, abrirModal, filtroExter
                             {/* Badge de estado combinado pago+entrega */}
                             <span title={ec.label} style={{fontSize:"var(--fs-md)",flexShrink:0}}>{ec.emoji}</span>
                             <div style={{flex:1,minWidth:0}}>
-                              <div style={{fontWeight:700,fontSize:"var(--fs-md)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
+                              <div style={{display:"flex",alignItems:"center",gap:".4rem"}}>
+                                <div style={{fontWeight:700,fontSize:"var(--fs-md)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
+                                {mixto && <span title="Este pedido tiene líneas en distintos estados de pago" style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-2xs)",fontWeight:700,padding:".05rem .3rem",borderRadius:10,background:"rgba(251,191,36,.15)",color:"var(--amber)",border:"1px solid rgba(251,191,36,.3)",flexShrink:0,whiteSpace:"nowrap"}}>mixto</span>}
+                              </div>
                               <div style={{display:"flex",gap:".3rem",flexWrap:"wrap",marginTop:".15rem"}}>
                                 {p.lineas.map((l,i)=>(
                                   <span key={i} style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".08rem .35rem",borderRadius:3,background:TC[l.tipo]?.dim,color:TC[l.tipo]?.color,display:"flex",alignItems:"center",gap:".2rem"}}>

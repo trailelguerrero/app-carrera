@@ -136,6 +136,47 @@ export const badgePago = (p) => {
 export const badgeEnt = (p) =>
   p.lineas.some(l => (l.estadoEntrega||"pendiente")==="pendiente") ? EE.pendiente : EE.entregado;
 
+/**
+ * estadoPagoPedido — estado de pago canónico de un pedido (INC-03)
+ * ─────────────────────────────────────────────────────────────────
+ * FUENTE ÚNICA DE VERDAD para clasificar un pedido en un grupo de pago.
+ * Úsalo tanto en la clasificación kanban/lista COMO en el filtro de búsqueda
+ * para garantizar coherencia: si el filtro "pendiente" devuelve un pedido,
+ * ese pedido SIEMPRE estará en el grupo "Pendiente" del kanban/lista.
+ *
+ * Criterio: estado MÁS DESFAVORABLE de todas las líneas.
+ * Jerarquía (de más a menos desfavorable): pendiente > regalo > pagado
+ *
+ *   - Si hay alguna línea "pendiente" → el pedido es "pendiente"
+ *     (hay deuda de cobro sin resolver)
+ *   - Si no hay pendientes pero hay algún "regalo" → el pedido es "regalo"
+ *     (no hay cobro pendiente, pero tampoco está todo pagado)
+ *   - Si todas las líneas son "pagado" → el pedido es "pagado"
+ *
+ * Un pedido con múltiples estados distintos se considera "mixto" a efectos
+ * visuales (ver esMixto), pero sigue clasificándose en un único grupo.
+ *
+ * @param {object} p - Pedido con array p.lineas
+ * @returns {"pendiente"|"regalo"|"pagado"}
+ */
+export function estadoPagoPedido(p) {
+  const estados = p.lineas.map(l => l.estadoPago || "pendiente");
+  if (estados.some(e => e === "pendiente")) return "pendiente";
+  if (estados.some(e => e === "regalo"))    return "regalo";
+  return "pagado";
+}
+
+/**
+ * esPedidoMixto — true si el pedido tiene líneas en más de un estado de pago.
+ * Útil para mostrar un indicador visual en la tarjeta kanban.
+ * @param {object} p - Pedido con array p.lineas
+ * @returns {boolean}
+ */
+export function esPedidoMixto(p) {
+  const estados = new Set(p.lineas.map(l => l.estadoPago || "pendiente"));
+  return estados.size > 1;
+}
+
 export const CORREDORES_DEFAULT = Object.fromEntries(TALLAS.map(t => [t, 0]));
 export const NINO_DEFAULT       = Object.fromEntries(TALLAS_NINO.map(t => [t, 0]));
 
