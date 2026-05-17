@@ -2,7 +2,9 @@
  * FichaProyecto.jsx — Tarea 3.3
  * Panel lateral de detalle para tareas, hitos y personas del módulo Proyecto.
  */
+import { createPortal } from "react-dom";
 import { blockCls as cls } from "@/lib/blockStyles";
+import { useModalClose } from "@/hooks/useModalClose";
 import { fmt, diasHasta, EST_CFG, PRI_CFG, getArea, iniciales } from "./proyectoConstants";
 
 function FichaRow({ label, value, color }) {
