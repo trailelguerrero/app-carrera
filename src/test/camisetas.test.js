@@ -957,3 +957,55 @@ describe("INT-04 — panel de fuentes cubre todas las claves de FUENTES_DEFAULT"
     expect(FUENTES_EN_PANEL).toContain("extrasNino");
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INC-01 — Semántica de ingresos de plataforma en totalIngresosReal
+// ─────────────────────────────────────────────────────────────────────────────
+describe("INC-01 — cobrosPlataformaRecibidos controla totalIngresosReal", () => {
+  // Simula el cálculo de totalIngresosReal tal como está en Camisetas.jsx
+  function calcTotalIngresosReal({ iCorExt, iExtrasReal, iVentaPublico, fuentesActivas, cobrosPlataformaRecibidos }) {
+    const iCorExtRealizado = (fuentesActivas.corredoresPlat && cobrosPlataformaRecibidos) ? iCorExt : 0;
+    return iCorExtRealizado + iExtrasReal + iVentaPublico;
+  }
+
+  function calcTotalIngresosProyectado({ iCorExt, iExtrasProyectado, iVentaPublico, fuentesActivas }) {
+    return (fuentesActivas.corredoresPlat ? iCorExt : 0) + iExtrasProyectado + iVentaPublico;
+  }
+
+  const base = {
+    iCorExt: 3000,       // 200 corredores × 15€
+    iExtrasReal: 500,    // pedidos manuales pagados
+    iExtrasProyectado: 700,
+    iVentaPublico: 100,
+    fuentesActivas: { corredoresPlat: true },
+  };
+
+  it("cobros pendientes → iCorExt NO entra en realizado", () => {
+    const real = calcTotalIngresosReal({ ...base, cobrosPlataformaRecibidos: false });
+    expect(real).toBe(600); // solo iExtrasReal + iVentaPublico
+  });
+
+  it("cobros recibidos → iCorExt SÍ entra en realizado", () => {
+    const real = calcTotalIngresosReal({ ...base, cobrosPlataformaRecibidos: true });
+    expect(real).toBe(3600); // iCorExt + iExtrasReal + iVentaPublico
+  });
+
+  it("proyectado siempre incluye iCorExt independientemente de cobrosPlataformaRecibidos", () => {
+    const proy = calcTotalIngresosProyectado({ ...base });
+    expect(proy).toBe(3800); // iCorExt + iExtrasProyectado + iVentaPublico
+  });
+
+  it("si la fuente corredoresPlat está desactivada, iCorExt no entra ni en real ni en proyectado", () => {
+    const fuenteDesactivada = { ...base, fuentesActivas: { corredoresPlat: false } };
+    expect(calcTotalIngresosReal({ ...fuenteDesactivada, cobrosPlataformaRecibidos: true })).toBe(600);
+    expect(calcTotalIngresosProyectado(fuenteDesactivada)).toBe(800);
+  });
+
+  it("beneficioNetoReal sin liquidación es menor que con liquidación recibida", () => {
+    const totalGastos = 2000;
+    const realSin = calcTotalIngresosReal({ ...base, cobrosPlataformaRecibidos: false }) - totalGastos;
+    const realCon = calcTotalIngresosReal({ ...base, cobrosPlataformaRecibidos: true }) - totalGastos;
+    expect(realCon).toBeGreaterThan(realSin);
+    expect(realCon - realSin).toBe(base.iCorExt); // la diferencia es exactamente iCorExt
+  });
+});

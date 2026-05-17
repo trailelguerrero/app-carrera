@@ -447,7 +447,24 @@ export default function App() {
   const fuentesActivas = (rawFuentes && typeof rawFuentes === "object" && !Array.isArray(rawFuentes))
     ? { ...FUENTES_DEFAULT, ...rawFuentes } : FUENTES_DEFAULT;
 
-  const isLoading = loadCfg || loadP || loadCoste || loadCorredores || loadNino || loadVols || loadInclP || loadMargen || loadFuentes || loadVentaPublico;
+  /*
+   * INC-01 — cobrosPlataformaRecibidos
+   * ────────────────────────────────────
+   * Las plataformas de inscripción (Runedia, Sportmaniacs…) cobran al corredor
+   * en el momento de la inscripción, pero TRANSFIEREN el dinero al organizador
+   * en una liquidación posterior, normalmente tras el evento (2-8 semanas).
+   *
+   * Este booleano permite al organizador marcar cuándo el dinero ha llegado
+   * realmente a su cuenta:
+   *   false (por defecto) → iCorExt entra en "proyectado" pero NO en "realizado"
+   *   true                → iCorExt entra en "realizado" (liquidación recibida)
+   *
+   * Sin este campo, beneficioNetoReal estaría sistemáticamente inflado durante
+   * todas las semanas previas a la liquidación.
+   */
+  const [cobrosPlataformaRecibidos, setCobrosPlataformaRecibidos, loadCobros] = useData(LS + "_cobros_plataforma", false);
+
+  const isLoading = loadCfg || loadP || loadCoste || loadCorredores || loadNino || loadVols || loadInclP || loadMargen || loadFuentes || loadVentaPublico || loadCobros;
 
   // ─── Derivados ──────────────────────────────────────────────────────────────
   const generarPedidosVoluntarios = () => {
@@ -528,7 +545,11 @@ export default function App() {
     const iExtrasProyectado = extrasProyectados.reduce((s, l) => s + l.cantidad * (l.precioVenta || 0), 0);
     const iVentaPublico  = ventaPublico.cantidad * ventaPublico.precio;
     const gVentaPublico  = ventaPublico.cantidad * (coste.corredor || 0);
-    const totalIngresosReal        = (fuentesActivas.corredoresPlat ? iCorExt : 0) + iExtrasReal        + iVentaPublico;
+    // INC-01: iCorExt entra en "realizado" solo si la plataforma ya ha transferido
+    // los fondos (cobrosPlataformaRecibidos). En "proyectado" entra siempre porque
+    // el compromiso de pago existe desde la inscripción.
+    const iCorExtRealizado = (fuentesActivas.corredoresPlat && cobrosPlataformaRecibidos) ? iCorExt : 0;
+    const totalIngresosReal        = iCorExtRealizado + iExtrasReal        + iVentaPublico;
     const totalIngresosProyectado  = (fuentesActivas.corredoresPlat ? iCorExt : 0) + iExtrasProyectado  + iVentaPublico;
 
     const gCorExt  = uCorExt  * (coste.corredor   || 0);
@@ -563,7 +584,7 @@ export default function App() {
       totalPedidosExtras: pedidos.length,
       pendEnt: extrasLineas.filter(l => l.estadoEntrega === "pendiente").reduce((s, l) => s + l.cantidad, 0),
     };
-  }, [pedidos, coste, corredoresExt, ninoExt, voluntariosActivos, precioCorrExt, fuentesActivas, ventaPublico]);
+  }, [pedidos, coste, corredoresExt, ninoExt, voluntariosActivos, precioCorrExt, fuentesActivas, ventaPublico, cobrosPlataformaRecibidos]);
 
   const totalCorredoresConf = TALLAS.reduce((s, t) => s + (corredoresExt[t] || 0), 0);
   const esEstadoInicial = pedidos.length === 0 && totalCorredoresConf === 0;
@@ -760,6 +781,7 @@ export default function App() {
             precioCorrExt={precioCorrExt} setPrecioCorrExt={(v) => setPrecioPlatExt({ precio: v })}
             ventaPublico={ventaPublico} setVentaPublico={setVentaPublico}
             fuentesActivas={fuentesActivas} setFuentesActivas={setFuentesActivas}
+            cobrosPlataformaRecibidos={cobrosPlataformaRecibidos} setCobrosPlataformaRecibidos={setCobrosPlataformaRecibidos}
             corredoresExt={corredoresExt} voluntariosActivos={voluntariosActivos}
             voluntariosConfirmados={voluntariosConfirmados} voluntariosPendientes={voluntariosPendientes}
             ninoExt={ninoExt} />}

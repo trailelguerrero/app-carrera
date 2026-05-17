@@ -8,7 +8,7 @@ import { blockCls as cls } from "@/lib/blockStyles";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { TALLAS, TALLAS_NINO, TC, EP, EE, FUENTES_DEFAULT } from "./camisetasConstants";
 
-export function TabDashboard({ stats, pedidos, coste, setCoste, setTab, goToTab, abrirFicha, precioCorrExt, setPrecioCorrExt, ventaPublico, setVentaPublico, fuentesActivas, setFuentesActivas, ninoExt = {}, corredoresExt = {} }) {
+export function TabDashboard({ stats, pedidos, coste, setCoste, setTab, goToTab, abrirFicha, precioCorrExt, setPrecioCorrExt, ventaPublico, setVentaPublico, fuentesActivas, setFuentesActivas, cobrosPlataformaRecibidos = false, setCobrosPlataformaRecibidos, ninoExt = {}, corredoresExt = {} }) {
   const [editCoste,setEditCoste] = useState(false);
   const [wizardAbierto2, setWizardAbierto2] = useState(true);
   const [tmpCoste, setTmpCoste]  = useState({...coste});
@@ -140,6 +140,32 @@ export function TabDashboard({ stats, pedidos, coste, setCoste, setTab, goToTab,
             ))}
           </div>
         </div>
+      </div>
+
+      {/* ── INC-01 · Estado de cobros de plataforma ── */}
+      {/* Controla si iCorExt entra en "Realizado" o solo en "Proyectado".        */}
+      {/* La plataforma cobra al corredor al inscribirse pero transfiere al        */}
+      {/* organizador en una liquidación posterior (típicamente tras el evento).  */}
+      <div className="card" style={{ padding: ".75rem 1rem", marginBottom: ".85rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", border: `1px solid ${cobrosPlataformaRecibidos ? "rgba(52,211,153,.35)" : "rgba(251,191,36,.3)"}`, background: cobrosPlataformaRecibidos ? "rgba(52,211,153,.04)" : "rgba(251,191,36,.04)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: ".75rem" }}>
+          <span style={{ fontSize: "1.4rem" }}>{cobrosPlataformaRecibidos ? "✅" : "⏳"}</span>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: "var(--fs-sm)", color: cobrosPlataformaRecibidos ? "var(--green)" : "var(--amber)" }}>
+              Liquidación plataforma: {cobrosPlataformaRecibidos ? "recibida en cuenta" : "pendiente de transferencia"}
+            </div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: ".1rem" }}>
+              {cobrosPlataformaRecibidos
+                ? `${fmtEur2(stats.iCorExt ?? (stats.uCorExt * 0))} contabilizados en Realizado`
+                : "Los ingresos de plataforma aparecen en Proyectado hasta recibir la transferencia"}
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={() => setCobrosPlataformaRecibidos && setCobrosPlataformaRecibidos(!cobrosPlataformaRecibidos)}
+          title={cobrosPlataformaRecibidos ? "Marcar como pendiente" : "Marcar liquidación como recibida"}
+          style={{ width: 40, height: 22, borderRadius: 20, background: cobrosPlataformaRecibidos ? "var(--green)" : "var(--border)", border: "none", cursor: "pointer", position: "relative", transition: "all .2s", flexShrink: 0 }}>
+          <div style={{ position: "absolute", top: 3, left: cobrosPlataformaRecibidos ? 21 : 3, width: 16, height: 16, borderRadius: "50%", background: "white", transition: "all .2s" }} />
+        </button>
       </div>
 
       {/* ── KPIs operativos — solo lo que no está en la card principal ── */}
