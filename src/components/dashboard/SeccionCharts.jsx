@@ -3,16 +3,20 @@
  * Gráfico de inscritos por distancia, barras de ingresos vs costes, y MiniTimeline.
  * Props: d (datos KPIs), fmtEur (formateador), TOOLTIP_STYLE, navigate (fn)
  */
+import { useState } from "react";
 import {
   ResponsiveContainer,
   PieChart, Pie, Cell,
-  Tooltip as RechartsTip,
 } from "recharts";
 import { EmptyChart } from "@/components/dashboard/EmptyChart";
 import { MiniTimeline } from "@/components/dashboard/MiniTimeline";
 
+const DIST_COLORS = ["#22d3ee", "#a78bfa", "#34d399"];
+const DIST_NAMES  = ["TG7", "TG13", "TG25"];
+
 export function SeccionCharts({ d, fmtEur, TOOLTIP_STYLE, navigate }) {
   const resColor = d.resultado >= 0 ? "var(--green)" : "var(--red)";
+  const [hoveredDist, setHoveredDist] = useState(null); // "TG7" | "TG13" | "TG25" | null
 
   return (
     <div className="dash-charts-row mb">
@@ -23,21 +27,35 @@ export function SeccionCharts({ d, fmtEur, TOOLTIP_STYLE, navigate }) {
         {d.totalInscritos === 0
           ? <EmptyChart mensaje="Sin inscritos aún" sub="Introduce datos en Presupuesto → Inscritos" />
           : <>
-            <ResponsiveContainer width="100%" height={140}>
+            {/* Label de hover — fuera del SVG, encima de las barras */}
+            <div style={{ height: 22, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "0.2rem" }}>
+              {hoveredDist && (
+                <span style={{
+                  fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 700,
+                  color: DIST_COLORS[DIST_NAMES.indexOf(hoveredDist)],
+                  background: "var(--surface2)", border: "1px solid var(--border)",
+                  borderRadius: 6, padding: "0.1rem 0.7rem",
+                }}>
+                  {hoveredDist} · {d.inscritosPorDist[hoveredDist]} corredores
+                </span>
+              )}
+            </div>
+            <ResponsiveContainer width="100%" height={130}>
               <PieChart>
-                <Pie data={[
-                  { name: "TG7",  value: d.inscritosPorDist.TG7  || 0 },
-                  { name: "TG13", value: d.inscritosPorDist.TG13 || 0 },
-                  { name: "TG25", value: d.inscritosPorDist.TG25 || 0 },
-                ]} cx="50%" cy="50%" innerRadius={36} outerRadius={55} paddingAngle={3} dataKey="value">
-                  {["#22d3ee", "#a78bfa", "#34d399"].map((c, i) => <Cell key={i} fill={c} opacity={0.9} />)}
+                <Pie
+                  data={[
+                    { name: "TG7",  value: d.inscritosPorDist.TG7  || 0 },
+                    { name: "TG13", value: d.inscritosPorDist.TG13 || 0 },
+                    { name: "TG25", value: d.inscritosPorDist.TG25 || 0 },
+                  ]}
+                  cx="50%" cy="50%" innerRadius={36} outerRadius={55} paddingAngle={3} dataKey="value"
+                  onMouseEnter={(_, index) => setHoveredDist(DIST_NAMES[index])}
+                  onMouseLeave={() => setHoveredDist(null)}
+                >
+                  {DIST_COLORS.map((c, i) => (
+                    <Cell key={i} fill={c} opacity={hoveredDist === null || hoveredDist === DIST_NAMES[i] ? 0.9 : 0.4} />
+                  ))}
                 </Pie>
-                <RechartsTip
-                  contentStyle={TOOLTIP_STYLE}
-                  wrapperStyle={{ zIndex: 10, pointerEvents: "none" }}
-                  position={{ x: 0, y: 150 }}
-                  formatter={(v, n) => [`${v} corredores`, n]}
-                />
               </PieChart>
             </ResponsiveContainer>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
