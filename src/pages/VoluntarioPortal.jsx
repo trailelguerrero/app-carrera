@@ -1700,7 +1700,7 @@ function StepperForm({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, 
     if (!form.apellidos.trim()) e.apellidos = "Requerido";
     if (!form.telefono.trim() || !/^\d{9}$/.test(form.telefono.replace(/\s/g,""))) e.telefono = "Teléfono de 9 dígitos";
     if (opcionEmail && form.email?.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) e.email = "Email no válido";
-    if (!form.telefonoEmergencia?.trim()) e.telefonoEmergencia = "El teléfono de emergencia es obligatorio";
+    if (opcionEmergencia && !form.telefonoEmergencia?.trim()) e.telefonoEmergencia = "El teléfono de emergencia es obligatorio";
     setErrores(e); return Object.keys(e).length === 0;
   };
   const validarPaso2 = () => {
@@ -1831,12 +1831,14 @@ function StepperForm({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, 
                   value={form.email||""} onChange={e=>set("email",e.target.value)} />
               </FormField>
             )}
+            {opcionEmergencia && (
             <FormField label="🚨 Teléfono de emergencia *" error={errores.telefonoEmergencia}
               hint="Familiar o persona a avisar si ocurre alguna incidencia">
               <input className={`pub-input${errores.telefonoEmergencia?" error":""}`}
                 type="tel" placeholder="612 345 678" inputMode="tel"
                 value={form.telefonoEmergencia||""} onChange={e=>set("telefonoEmergencia",e.target.value)} />
             </FormField>
+            )}
             <FormField label="⚕️ ¿Tienes alguna alergia que debamos conocer?" hint="Por seguridad en carrera: alimentos, picaduras, medicamentos... (opcional)">
               <input className="pub-input" placeholder="Ej: Polen, frutos secos, picaduras de abejas…"
                 value={form.alergias||""} onChange={e=>set("alergias",e.target.value)} maxLength={200} />
@@ -1947,7 +1949,7 @@ function StepperForm({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, 
                 ["Talla",    form.talla],
                 ...(opcionPuesto && form.puestoId ? [["Puesto",puestos.find(p=>String(p.id)===String(form.puestoId))?.nombre||""]] : []),
                 ...(opcionVehiculo ? [["Vehículo", form.coche?"Sí ✓":"No"]] : []),
-                ["🚨 Tel. emergencia", form.telefonoEmergencia || "—"],
+                ...(opcionEmergencia ? [["🚨 Tel. emergencia", form.telefonoEmergencia || "—"]] : []),
                 ...(form.alergias ? [["⚕️ Alergias", form.alergias.slice(0,40)+(form.alergias.length>40?"…":"")]] : []),
                 ...(form.medicacion ? [["💊 Medicación", form.medicacion.slice(0,40)+(form.medicacion.length>40?"…":"")]] : []),
               ].map(([k,v])=>(
