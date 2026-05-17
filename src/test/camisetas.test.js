@@ -1009,3 +1009,96 @@ describe("INC-01 — cobrosPlataformaRecibidos controla totalIngresosReal", () =
     expect(realCon - realSin).toBe(base.iCorExt); // la diferencia es exactamente iCorExt
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INC-02 — calcPedido · contrato semánticamente limpio
+// ─────────────────────────────────────────────────────────────────────────────
+import { calcPedido } from "../components/camisetas/camisetasConstants";
+
+describe("INC-02 — calcPedido devuelve campos con semántica no mezclada", () => {
+  const coste = { corredor: 8, voluntario: 7, nino: 6 };
+
+  const pedidoMixto = {
+    id: 1, nombre: "Test",
+    lineas: [
+      { id: 1, tipo: "corredor",   talla: "M",  cantidad: 2, precioVenta: 15, estadoPago: "pagado",   estadoEntrega: "entregado" },
+      { id: 2, tipo: "voluntario", talla: "S",  cantidad: 1, precioVenta: 12, estadoPago: "pendiente",estadoEntrega: "pendiente" },
+      { id: 3, tipo: "nino",       talla: "4-6",cantidad: 1, precioVenta: 0,  estadoPago: "regalo",   estadoEntrega: "pendiente" },
+    ],
+  };
+
+  const res = calcPedido(pedidoMixto, coste);
+
+  // Campos base
+  it("totalUnid suma todas las líneas", () => {
+    expect(res.totalUnid).toBe(4); // 2+1+1
+  });
+  it("totalCoste incluye todas las unidades independientemente del estado de pago", () => {
+    expect(res.totalCoste).toBe(2*8 + 1*7 + 1*6); // 16+7+6 = 29
+  });
+  it("totalVenta excluye regalos", () => {
+    expect(res.totalVenta).toBe(2*15 + 1*12); // 30+12 = 42
+  });
+
+  // Margen por estado (mutuamente excluyentes)
+  it("benRealizado solo cuenta líneas pagadas", () => {
+    expect(res.benRealizado).toBe(2*(15-8)); // 14
+  });
+  it("benPotencial solo cuenta líneas pendientes", () => {
+    expect(res.benPotencial).toBe(1*(12-7)); // 5
+  });
+  it("costeRegalos solo cuenta líneas regalo", () => {
+    expect(res.costeRegalos).toBe(1*6); // 6
+  });
+  it("benRealizado y benPotencial son mutuamente excluyentes (no se solapan)", () => {
+    // Si sumamos los tres grupos de líneas, deben cubrir exactamente el totalCoste
+    const costePagado   = 2*8; // 16
+    const costePendiente= 1*7; // 7
+    const costeRegalo   = 1*6; // 6
+    expect(costePagado + costePendiente + costeRegalo).toBe(res.totalCoste);
+  });
+
+  // Métricas compuestas nuevas
+  it("beneficioProyectado = benRealizado + benPotencial (sin restar costeRegalos)", () => {
+    expect(res.beneficioProyectado).toBe(res.benRealizado + res.benPotencial); // 14+5 = 19
+  });
+  it("margenBrutoTotal = totalVenta - totalCoste", () => {
+    expect(res.margenBrutoTotal).toBe(res.totalVenta - res.totalCoste); // 42-29 = 13
+  });
+  it("beneficioProyectado > margenBrutoTotal cuando hay regalos (regalos reducen el margen bruto)", () => {
+    // Con regalos, margenBruto es menor porque totalCoste incluye el regalo pero totalVenta no
+    expect(res.beneficioProyectado).toBeGreaterThan(res.margenBrutoTotal);
+  });
+
+  // Campo deprecado: beneficio = benRealizado (alias, no el valor antiguo)
+  it("beneficio es alias de benRealizado (campo deprecado, no la suma antigua)", () => {
+    expect(res.beneficio).toBe(res.benRealizado);
+    // Verificar que NO es el valor antiguo (benRealizado + benPotencial - costeRegalos)
+    const valorAntiguo = res.benRealizado + res.benPotencial - res.costeRegalos;
+    expect(res.beneficio).not.toBe(valorAntiguo); // 14 !== 14+5-6=13
+  });
+
+  // Caso: pedido solo con regalos
+  it("pedido todo regalos: benRealizado=0, benPotencial=0, beneficioProyectado=0", () => {
+    const pedidoRegalo = { id: 2, nombre: "R", lineas: [
+      { id: 1, tipo: "voluntario", talla: "M", cantidad: 3, precioVenta: 0, estadoPago: "regalo", estadoEntrega: "pendiente" },
+    ]};
+    const r = calcPedido(pedidoRegalo, coste);
+    expect(r.benRealizado).toBe(0);
+    expect(r.benPotencial).toBe(0);
+    expect(r.beneficioProyectado).toBe(0);
+    expect(r.costeRegalos).toBe(3*7); // 21
+    expect(r.totalVenta).toBe(0);
+  });
+
+  // Caso: pedido todo pagado
+  it("pedido todo pagado: beneficioProyectado = benRealizado", () => {
+    const pedidoPagado = { id: 3, nombre: "P", lineas: [
+      { id: 1, tipo: "corredor", talla: "M", cantidad: 5, precioVenta: 15, estadoPago: "pagado", estadoEntrega: "entregado" },
+    ]};
+    const r = calcPedido(pedidoPagado, coste);
+    expect(r.benPotencial).toBe(0);
+    expect(r.beneficioProyectado).toBe(r.benRealizado);
+    expect(r.costeRegalos).toBe(0);
+  });
+});

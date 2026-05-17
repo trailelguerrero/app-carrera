@@ -81,6 +81,36 @@ export function esVoluntarioElegibleCamiseta(v, inclPendientes = false) {
  */
 export const COSTE_DEFAULT   = { corredor:8, voluntario:7, nino:6 };
 
+/**
+ * calcPedido — métricas financieras de un pedido individual
+ * ──────────────────────────────────────────────────────────
+ * Contrato de retorno:
+ *
+ * MÉTRICAS BASE
+ *   totalUnid       {number} Unidades físicas totales (todas las líneas)
+ *   totalCoste      {number} Gasto al proveedor: Σ cantidad × coste_unitario
+ *   totalVenta      {number} Ingreso facturable: Σ cantidad × precioVenta (excluye regalos)
+ *
+ * MÉTRICAS DE MARGEN POR ESTADO DE COBRO (mutuamente excluyentes entre sí)
+ *   benRealizado    {number} Margen bruto de líneas YA COBRADAS (estadoPago === "pagado")
+ *   benPotencial    {number} Margen bruto de líneas PENDIENTES de cobro (estadoPago === "pendiente")
+ *                            No incluye regalos (no generan ingreso futuro)
+ *   costeRegalos    {number} Coste de fabricación de unidades sin ingreso (estadoPago === "regalo")
+ *
+ * MÉTRICAS COMPUESTAS (semánticamente puras)
+ *   beneficioProyectado {number} benRealizado + benPotencial
+ *                                Margen si se cobran todos los pendientes.
+ *                                No resta costeRegalos: los regalos ya están excluidos
+ *                                de benRealizado y benPotencial por construcción.
+ *   margenBrutoTotal    {number} totalVenta - totalCoste
+ *                                Techo teórico: margen si todo se cobra y no hay regalos.
+ *
+ * CAMPO DEPRECADO — se mantiene por retrocompatibilidad
+ *   beneficio       {number} ALIAS de benRealizado.
+ *                            El valor anterior (benRealizado + benPotencial - costeRegalos)
+ *                            mezclaba tres certezas distintas en un número opaco.
+ *                            Migrar a beneficioProyectado (proyectado) o benRealizado (cobrado).
+ */
 export const calcPedido = (p, coste) => {
   const totalVenta    = p.lineas.reduce((s,l) => s + (l.estadoPago==="regalo" ? 0 : l.cantidad*(l.precioVenta||0)), 0);
   const totalCoste    = p.lineas.reduce((s,l) => s + l.cantidad*(coste[l.tipo]||0), 0);
@@ -91,8 +121,10 @@ export const calcPedido = (p, coste) => {
     .reduce((s,l) => s + l.cantidad*((l.precioVenta||0)-(coste[l.tipo]||0)), 0);
   const costeRegalos  = p.lineas.filter(l=>l.estadoPago==="regalo")
     .reduce((s,l) => s + l.cantidad*(coste[l.tipo]||0), 0);
-  const beneficio     = benRealizado + benPotencial - costeRegalos;
-  return { totalVenta, totalCoste, totalUnid, beneficio, benRealizado, benPotencial, costeRegalos };
+  const beneficioProyectado = benRealizado + benPotencial;
+  const margenBrutoTotal    = totalVenta - totalCoste;
+  const beneficio           = benRealizado; // alias deprecado
+  return { totalVenta, totalCoste, totalUnid, beneficio, benRealizado, benPotencial, costeRegalos, beneficioProyectado, margenBrutoTotal };
 };
 
 export const badgePago = (p) => {

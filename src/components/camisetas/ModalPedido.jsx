@@ -23,7 +23,7 @@ export function ModalPedido({
   const updL     = (i,k,v) => setForm(p=>({...p,lineas:p.lineas.map((l,j)=>j===i?{...l,[k]:v}:l)}));
   const addL     = ()      => setForm(p=>({...p,lineas:[...p.lineas,{id:genIdNum(p.lineas),tipo:"corredor",talla:"M",cantidad:1,precioVenta:0,estadoPago:"pendiente",estadoEntrega:"pendiente"}]}));
   const delL     = (i)     => setForm(p=>({...p,lineas:p.lineas.filter((_,j)=>j!==i)}));
-  const {totalVenta,totalCoste,beneficio,benRealizado,benPotencial,costeRegalos} = calcPedido(form,coste);
+  const {totalVenta,totalCoste,benRealizado,benPotencial,costeRegalos,beneficioProyectado} = calcPedido(form,coste);
   const [intentoGuardar, setIntentoGuardar] = useState(false);
   const [verAvanzado, setVerAvanzado] = useState(!!data?.id); // edición: mostrar todo
   const valido = form.nombre.trim()&&form.lineas.length>0;
@@ -96,13 +96,14 @@ export function ModalPedido({
 
           <div style={{background:"var(--surface2)",borderRadius:8,padding:".65rem .85rem",display:"flex",justifyContent:"space-around",gap:".75rem",flexWrap:"wrap"}}>
             {[
-              {l:"Total coste",      v:fmtEur2(totalCoste),      c:"var(--red)"},
-              {l:"Total venta",      v:fmtEur2(totalVenta),      c:"var(--green)"},
-              {l:"Ben. realizado",   v:fmtEur2(benRealizado),    c:benRealizado>=0?"var(--green)":"var(--red)"},
-              {l:"Ben. potencial",   v:fmtEur2(benPotencial),    c:benPotencial>=0?"var(--cyan)":"var(--amber)"},
-              {l:"Coste regalos",    v:fmtEur2(costeRegalos),    c:"var(--violet)"},
-            ].map(({l,v,c})=>(
-              <div key={l} style={{textAlign:"center"}}><div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-2xs)",color:"var(--text-muted)",marginBottom:".15rem",textTransform:"uppercase"}}>{l}</div><div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-base)",fontWeight:800,color:c}}>{v}</div></div>
+              {l:"Coste fabricación", v:fmtEur2(totalCoste),          c:"var(--red)",    t:"Gasto al proveedor por todas las unidades"},
+              {l:"Ingreso facturable",v:fmtEur2(totalVenta),          c:"var(--green)",  t:"Precio de venta total (excluye regalos)"},
+              {l:"Cobrado",           v:fmtEur2(benRealizado),        c:benRealizado>=0?"var(--green)":"var(--red)",   t:"Margen bruto de líneas ya pagadas"},
+              {l:"Pendiente cobro",   v:fmtEur2(benPotencial),        c:benPotencial>=0?"var(--cyan)":"var(--amber)",  t:"Margen bruto de líneas aún no cobradas"},
+              {l:"Proyectado",        v:fmtEur2(beneficioProyectado), c:beneficioProyectado>=0?"var(--green)":"var(--red)", t:"Margen si se cobran todos los pendientes"},
+              {l:"Coste regalos",     v:fmtEur2(costeRegalos),        c:"var(--violet)", t:"Gasto en unidades sin ingreso asociado"},
+            ].map(({l,v,c,t})=>(
+              <div key={l} style={{textAlign:"center"}} title={t}><div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-2xs)",color:"var(--text-muted)",marginBottom:".15rem",textTransform:"uppercase"}}>{l}</div><div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-base)",fontWeight:800,color:c}}>{v}</div></div>
             ))}
           </div>
           <div><label className="fl">Notas</label><input className="inp" value={form.notas} onChange={e=>upd("notas",e.target.value)} placeholder="Observaciones opcionales…" /></div>

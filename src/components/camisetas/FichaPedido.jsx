@@ -8,7 +8,7 @@ import { blockCls as cls } from "@/lib/blockStyles";
 import { TC, EP, EE, ESTADOS_PAGO, ESTADOS_ENTREGA, estadoCombinado, calcPedido } from "./camisetasConstants";
 
 export function FichaPedido({ pedido:p, coste, onClose, onEditar, onEliminar, updateLinea }) {
-  const {totalVenta,totalCoste,totalUnid,beneficio,benRealizado,benPotencial,costeRegalos} = calcPedido(p,coste);
+  const {totalVenta,totalCoste,totalUnid,benRealizado,benPotencial,costeRegalos,beneficioProyectado,margenBrutoTotal} = calcPedido(p,coste);
   const Row = ({label,value,color}) => (!value&&value!==0)?null:(
     <div style={{display:"flex",justifyContent:"space-between",padding:".4rem 0",borderBottom:"1px solid rgba(30,45,80,.3)"}}>
       <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",flexShrink:0,marginRight:"1rem"}}>{label}</span>
@@ -66,13 +66,14 @@ export function FichaPedido({ pedido:p, coste, onClose, onEditar, onEliminar, up
           </div>
           <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",display:"flex",justifyContent:"space-around",gap:".6rem",flexWrap:"wrap"}}>
             {[
-              {l:"Coste total",    v:fmtEur2(totalCoste),   c:"var(--red)"},
-              {l:"Venta total",    v:fmtEur2(totalVenta),   c:"var(--green)"},
-              {l:"Ben. realizado", v:fmtEur2(benRealizado), c:benRealizado>=0?"var(--green)":"var(--red)"},
-              {l:"Ben. potencial", v:fmtEur2(benPotencial), c:benPotencial>=0?"var(--cyan)":"var(--amber)"},
-              {l:"Coste regalos",  v:fmtEur2(costeRegalos), c:"var(--violet)"},
-            ].map(({l,v,c})=>(
-              <div key={l} style={{textAlign:"center"}}><div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-2xs)",color:"var(--text-muted)",marginBottom:".1rem",textTransform:"uppercase"}}>{l}</div><div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-base)",fontWeight:800,color:c}}>{v}</div></div>
+              {l:"Coste fabricación", v:fmtEur2(totalCoste),           c:"var(--red)",    t:"Gasto al proveedor por todas las unidades"},
+              {l:"Ingreso facturable",v:fmtEur2(totalVenta),           c:"var(--green)",  t:"Precio de venta total (excluye regalos)"},
+              {l:"Cobrado",           v:fmtEur2(benRealizado),         c:benRealizado>=0?"var(--green)":"var(--red)",   t:"Margen bruto de líneas ya pagadas"},
+              {l:"Pendiente cobro",   v:fmtEur2(benPotencial),         c:benPotencial>=0?"var(--cyan)":"var(--amber)",  t:"Margen bruto de líneas aún no cobradas"},
+              {l:"Proyectado",        v:fmtEur2(beneficioProyectado),  c:beneficioProyectado>=0?"var(--green)":"var(--red)", t:"Margen si se cobran todos los pendientes"},
+              {l:"Coste regalos",     v:fmtEur2(costeRegalos),         c:"var(--violet)", t:"Gasto en unidades sin ingreso asociado"},
+            ].map(({l,v,c,t})=>(
+              <div key={l} style={{textAlign:"center"}} title={t}><div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-2xs)",color:"var(--text-muted)",marginBottom:".1rem",textTransform:"uppercase"}}>{l}</div><div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-base)",fontWeight:800,color:c}}>{v}</div></div>
             ))}
           </div>
           {p.notas&&<div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",borderLeft:"2px solid var(--primary)"}}><div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginBottom:".25rem",textTransform:"uppercase"}}>Notas</div><div style={{fontSize:"var(--fs-base)",lineHeight:1.5}}>{p.notas}</div></div>}
