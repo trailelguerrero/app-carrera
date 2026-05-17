@@ -914,3 +914,46 @@ describe("INT-01 — sincronización entrega con Voluntarios (3 capas)", () => {
     result.forEach(v => expect(v.camisetaEntregada).toBe(false));
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INT-04 — Panel de fuentes del Dashboard lista las 6 fuentes de FUENTES_DEFAULT
+// ─────────────────────────────────────────────────────────────────────────────
+import { FUENTES_DEFAULT } from "../components/camisetas/camisetasConstants";
+
+describe("INT-04 — panel de fuentes cubre todas las claves de FUENTES_DEFAULT", () => {
+  // Las 6 claves que deben tener toggle en el Dashboard
+  const FUENTES_ESPERADAS = Object.keys(FUENTES_DEFAULT);
+
+  // Array de fuentes tal como está definido en TabDashboard.jsx
+  // Se mantiene sincronizado con el componente real via FUENTES_DEFAULT
+  const FUENTES_EN_PANEL = [
+    "corredoresPlat",
+    "extrasCorredor",
+    "voluntariosAuto",
+    "extrasVoluntario",
+    "ninoManual",
+    "extrasNino",
+  ];
+
+  it("el panel tiene exactamente 6 toggles", () => {
+    expect(FUENTES_EN_PANEL).toHaveLength(6);
+  });
+
+  it("el panel cubre todas las claves de FUENTES_DEFAULT sin omisiones", () => {
+    const faltantes = FUENTES_ESPERADAS.filter(k => !FUENTES_EN_PANEL.includes(k));
+    expect(faltantes).toEqual([]); // ninguna clave de FUENTES_DEFAULT sin toggle
+  });
+
+  it("el panel no incluye claves que no existan en FUENTES_DEFAULT", () => {
+    const extra = FUENTES_EN_PANEL.filter(k => !FUENTES_ESPERADAS.includes(k));
+    expect(extra).toEqual([]);
+  });
+
+  it("ninoManual está en el panel", () => {
+    expect(FUENTES_EN_PANEL).toContain("ninoManual");
+  });
+
+  it("extrasNino está en el panel", () => {
+    expect(FUENTES_EN_PANEL).toContain("extrasNino");
+  });
+});

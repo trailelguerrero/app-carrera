@@ -120,6 +120,8 @@ export function TabDashboard({ stats, pedidos, coste, setCoste, setTab, goToTab,
               { id: "extrasCorredor",  label: "Extras Corredor",     icon: "👕", sub: `${stats.uExtrasCor} ud`, color: "var(--cyan)" },
               { id: "voluntariosAuto", label: "Voluntarios (Gasto)", icon: "👥", sub: `${stats.uVolAuto} ud`, color: "var(--violet)", tab: "tallas" },
               { id: "extrasVoluntario", label: "Extras Voluntario",   icon: "🛍️", tab: "pedidos", sub: `${stats.uExtrasVol} ud`, color: "var(--violet)" },
+              { id: "ninoManual",      label: "Niño/a Manual",       icon: "👶", sub: `${stats.uNinoExt} ud`, color: "var(--green)" },
+              { id: "extrasNino",      label: "Extras Niño/a",       icon: "👶", sub: `${stats.uExtrasNino} ud`, color: "var(--green)" },
             ].map(f => (
               <div key={f.id} className="flex-between" style={{ padding: ".4rem .65rem", background: "var(--surface2)", borderRadius: 8, border: `1px solid ${fuentesActivas[f.id] ? f.color + "44" : "transparent"}`, transition: "all .15s" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: ".6rem" }}>
