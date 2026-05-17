@@ -88,7 +88,7 @@ export function TabReparto({ pedidos, updateLinea, rawVols }) {
       <div className="ph">
         <div>
           <div className="pt">📦 Reparto del día</div>
-          <div className="pd">{totalPendientes} pendientes · {totalEntregados} entregadas · {pct}% completado</div>
+          <div className="pd">{totalPendientes} ud pendientes · {totalEntregados} ud entregadas · {pct}% completado</div>
         </div>
       </div>
 
@@ -122,7 +122,7 @@ export function TabReparto({ pedidos, updateLinea, rawVols }) {
           className={`btn btn-sm${soloSinEntregar ? " btn-amber" : " btn-ghost"}`}
           onClick={() => setSoloSinEntregar(v => !v)}
         >
-          {soloSinEntregar ? "⏳ Solo pendientes" : "👁 Todas"}
+          {soloSinEntregar ? "⏳ Solo pendientes" : "👁 Todas las tallas"}
         </button>
       </div>
 

@@ -43,7 +43,7 @@ export function TabChecklist({ pedidos, updateLinea, abrirFicha, generarPedidosV
   return (
     <>
       <div className="ph">
-        <div><div className="pt">📬 Entrega de camisetas</div><div className="pd">{uPE} ud · {cPE} {cPE === 1 ? "pedido" : "pedidos"} por entregar · {cPP} sin cobrar</div></div>
+        <div><div className="pt">📬 Entrega de camisetas</div><div className="pd">{uPE} ud por entregar · {cPE} {cPE === 1 ? "pedido" : "pedidos"} · {cPP} sin cobrar</div></div>
         <div style={{ display:"flex", gap:".4rem", flexWrap:"wrap" }}>
         <button className={`btn btn-sm${modoRapido?" btn-cyan":" btn-ghost"}`}
           onClick={()=>setModoRapido(v=>!v)}
@@ -132,7 +132,7 @@ export function TabChecklist({ pedidos, updateLinea, abrirFicha, generarPedidosV
           <button key={f.id} onClick={()=>setFiltro(f.id)} style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,padding:".28rem .6rem",borderRadius:"var(--r-sm)",border:`1px solid ${filtro===f.id?f.color:"var(--border)"}`,background:filtro===f.id?`${f.color}18`:"transparent",color:filtro===f.id?f.color:"var(--text-muted)",cursor:"pointer",transition:"all .15s"}}>{f.label}</button>
         ))}
       </div>
-      {filtradas.length===0&&<div className="empty-state"><div className="empty-state-icon">✅</div>Sin líneas con estos filtros</div>}
+      {filtradas.length===0&&<div className="empty-state"><div className="empty-state-icon">✅</div>Sin resultados para este filtro</div>}
 
       {/* Agrupado por pedido — cada pedido colapsable */}
       {filtradas.length > 0 && (() => {
@@ -181,7 +181,7 @@ export function TabChecklist({ pedidos, updateLinea, abrirFicha, generarPedidosV
                           padding:".1rem .4rem",borderRadius:20,
                           background:"rgba(251,191,36,.15)",color:"var(--amber)",
                           border:"1px solid rgba(251,191,36,.3)"}}>
-                          {udPendEnt} ud · {pendEnt} {pendEnt===1?"línea":"líneas"} por entregar
+                          {udPendEnt} ud por entregar · {pendEnt} {pendEnt===1?"línea":"líneas"}
                         </span>
                       )}
                       {pendPago > 0 && (

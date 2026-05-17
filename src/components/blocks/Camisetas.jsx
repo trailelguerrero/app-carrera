@@ -340,7 +340,7 @@ export default function App() {
           </div>
           <div className="block-actions">
             {stats.cPendCobro > 0 && <span className="badge badge-amber">⏳ {fmtEur2(stats.cPendCobro)} pendiente</span>}
-            {stats.pendEnt   > 0 && <span className="badge badge-cyan" title={`${stats.pendEnt} camisetas · ${stats.pendEntLineas} línea${stats.pendEntLineas !== 1 ? "s" : ""} de pedido`}>📦 {stats.pendEnt} ud · {stats.pendEntLineas} {stats.pendEntLineas === 1 ? "pedido" : "pedidos"} por entregar</span>}
+            {stats.pendEnt   > 0 && <span className="badge badge-cyan" title={`${stats.pendEnt} camiseta${stats.pendEnt !== 1 ? "s" : ""} pendiente${stats.pendEnt !== 1 ? "s" : ""} · ${stats.pendEntLineas} pedido${stats.pendEntLineas !== 1 ? "s" : ""}`}>📦 {stats.pendEnt} ud por entregar · {stats.pendEntLineas} {stats.pendEntLineas === 1 ? "pedido" : "pedidos"}</span>}
             {/* CAM-01 — botón de importar tallas visible solo en la pestaña de tallas */}
             {tab === "tallas" && (
               <button
