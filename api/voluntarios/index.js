@@ -140,8 +140,21 @@ export default async function handler(req, res) {
       const tel = String(telefono).replace(/\D/g, '');
       const v = vols.find(x => String(x.telefono || '').replace(/\D/g, '') === tel);
       if (!v) return res.status(200).json({ existe: false, pinPersonalizado: false });
-      const pinPersonalizado = v.pinPersonalizado === true ||
-        (v.pinHash && v.pinHash !== hashPin(pinInicial(v.telefono)));
+      // SEC-BUG-02: bcrypt.hashSync() es no-determinista → nunca comparar hashes directamente.
+      // Escenario A: flag explícito en BD (cortocircuito, el más fiable).
+      // Escenario B: hash bcrypt sin flag → verificar con compareSync si el PIN ES el inicial.
+      // Escenario C: hash legacy djb2 → comparación directa sí es válida (determinista).
+      let pinPersonalizado = v.pinPersonalizado === true;
+      if (!pinPersonalizado && v.pinHash) {
+        if (v.pinHash.startsWith('$2')) {
+          // Bcrypt: el PIN está personalizado si NO coincide con el PIN inicial
+          const esInicial = bcrypt.compareSync(pinInicial(v.telefono), v.pinHash);
+          pinPersonalizado = !esInicial;
+        } else {
+          // Legacy djb2: comparación directa es válida
+          pinPersonalizado = hashPinLegacy(pinInicial(v.telefono)) !== v.pinHash;
+        }
+      }
       return res.status(200).json({ existe: true, pinPersonalizado: Boolean(pinPersonalizado) });
     }
 
