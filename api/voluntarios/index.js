@@ -268,7 +268,7 @@ export default async function handler(req, res) {
 
     // PATCH ficha — editar datos
     if ((action === 'ficha' || !action) && req.method === 'PATCH') {
-      const { telefono, telefonoEmergencia, talla, notaVoluntario, alergias, medicacion } = req.body || {};
+      const { telefono, telefonoEmergencia, talla, notaVoluntario, alergias, medicacion, email } = req.body || {};
       const upd = {};
       if (telefono !== undefined) upd.telefono = String(telefono).slice(0, 20);
       if (telefonoEmergencia !== undefined) { upd.telefonoEmergencia = String(telefonoEmergencia).slice(0, 20); upd.contactoEmergencia = String(telefonoEmergencia).slice(0, 20); }
@@ -276,6 +276,7 @@ export default async function handler(req, res) {
       if (notaVoluntario !== undefined) upd.notaVoluntario = String(notaVoluntario).slice(0, 500);
       if (alergias !== undefined) upd.alergias = String(alergias).slice(0, 200);
       if (medicacion !== undefined) upd.medicacion = String(medicacion).slice(0, 200);
+      if (email !== undefined) upd.email = String(email).trim().slice(0, 100);
       await saveVols(sql, vols.map(v => String(v.id) === String(voluntario.id) ? { ...v, ...upd } : v));
       return res.status(200).json({ success: true });
     }
