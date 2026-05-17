@@ -235,7 +235,7 @@ export default function App() {
   }, [puestos, voluntarios]);
 
   const puestosConStats = useMemo(() => (puestos || []).map(p => {
-    const vols = (voluntarios || []).filter(v => v?.puestoId === p?.id && v?.estado !== "cancelado");
+    const vols = (voluntarios || []).filter(v => v?.puestoId === p?.id && v?.estado !== "cancelado" && v?.estado !== "ausente");
     const confirmados = vols.filter(v => v?.estado === "confirmado").length;
     const cobertura = p?.necesarios > 0 ? Math.round((vols.length / p.necesarios) * 100) : 0;
     const coberturaConf = p?.necesarios > 0 ? Math.round((confirmados / p.necesarios) * 100) : 0;
