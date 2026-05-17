@@ -5,7 +5,7 @@
 import { createPortal } from "react-dom";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { useModalClose } from "@/hooks/useModalClose";
-import { fmt, diasHasta, EST_CFG, PRI_CFG, getArea, iniciales } from "./proyectoConstants";
+import { fmt, diasHasta, AREAS, EST_CFG, PRI_CFG, getArea, iniciales } from "./proyectoConstants";
 
 function FichaRow({ label, value, color }) {
   if (!value) return null;
