@@ -190,7 +190,7 @@ export const FUENTES_DEFAULT = {
 };
 
 /** Exporta consolidación de tallas como CSV para el proveedor */
-export function exportarPedidoProveedor(grandTallasCor, grandTallasVol, ninoExt, margenPct = 5) {
+export function exportarPedidoProveedor(grandTallasCor, grandTallasVol, ninoExt, margenPct = 5, eventRef = "evento") {
   const filas = [["Tipo","Talla","Unidades_Base","Margen_%","Total_A_Pedir","Coste_Unitario","Total_Coste"]];
   const agregar = (tipo, tallas, mapa) => {
     tallas.forEach(t => {
@@ -208,7 +208,7 @@ export function exportarPedidoProveedor(grandTallasCor, grandTallasVol, ninoExt,
   const url = URL.createObjectURL(blob);
   const a = Object.assign(document.createElement("a"), {
     href: url,
-    download: `pedido-proveedor-teg-${new Date().toISOString().slice(0,10)}.csv`,
+    download: `pedido-proveedor-${eventRef.toLowerCase()}-${new Date().toISOString().slice(0,10)}.csv`,
   });
   a.click();
   URL.revokeObjectURL(url);

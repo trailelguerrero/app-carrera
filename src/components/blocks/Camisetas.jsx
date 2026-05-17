@@ -418,7 +418,8 @@ export default function App() {
             inclPendientes={inclPendientes} setInclPendientes={setInclPendientes}
             ninoExt={ninoExt} setNino={setNino}
             margenSeguridad={margenSeguridad} setMargenSeguridad={setMargenSeguridad}
-            vistaSimple={vistaSimpleTallas} setVistaSimple={setVistaSimpleTallas} />}
+            vistaSimple={vistaSimpleTallas} setVistaSimple={setVistaSimpleTallas}
+            config={config} />}
           {tab === "checklist" && <TabChecklist pedidos={pedidos} updateLinea={updateLinea} abrirFicha={abrirFicha} generarPedidosVoluntarios={generarPedidosVoluntarios} />}
           {tab === "reparto"   && <TabReparto pedidos={pedidos} updateLinea={updateLinea} rawVols={rawVols} />}
         </div>

@@ -8,7 +8,27 @@ import { blockCls as cls } from "@/lib/blockStyles";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { TALLAS, TALLAS_NINO, TC, TIPOS, FUENTES_DEFAULT, CORREDORES_DEFAULT, NINO_DEFAULT, exportarPedidoProveedor } from "./camisetasConstants";
 
-export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, vistaSimple=true, setVistaSimple, fuentesActivas, voluntariosConfirmados, voluntariosPendientes, ninoExt = {}, setNino, margenSeguridad = 5, setMargenSeguridad }) {
+export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, vistaSimple=true, setVistaSimple, fuentesActivas, voluntariosConfirmados, voluntariosPendientes, ninoExt = {}, setNino, margenSeguridad = 5, setMargenSeguridad, config = {} }) {
+  /*
+   * MEJ-03 — nombre y referencia dinámicos en el PDF
+   * ─────────────────────────────────────────────────
+   * config.nombre  → "Trail El Guerrero"
+   * config.edicion → "2026"
+   * config.ref     → código corto opcional (ej: "TG26"); si no existe se genera
+   *                  automáticamente: iniciales del nombre + dos últimos dígitos del año.
+   *
+   * Nunca se hardcodea el nombre del evento aquí: cualquier cambio en la configuración
+   * del evento se propaga automáticamente al PDF sin tocar este archivo.
+   */
+  const eventNombre   = config.nombre   || "Evento";
+  const eventEdicion  = config.edicion  || String(new Date().getFullYear());
+  // Referencia: usa config.ref si existe; si no, construye "INICIALES + AÑO"
+  const eventRef = config.ref
+    || (eventNombre
+        .split(/\s+/)
+        .map(w => w[0]?.toUpperCase() || "")
+        .join("") + String(eventEdicion).slice(-2))
+    || "EV";
   const [editCorredores, setEditCorredores] = useState(false);
   const [tmpCor, setTmpCor] = useState({ ...corredoresExt });
   const [editNino, setEditNino] = useState(false);
@@ -192,7 +212,7 @@ export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosAc
                 : "";
 
               const html = "<!DOCTYPE html><html lang=\"es\"><head><meta charset=\"UTF-8\">" +
-                "<title>Pedido Camisetas — Trail El Guerrero 2026</title>" +
+                "<title>Pedido Camisetas \u2014 " + eventNombre + " " + eventEdicion + "</title>" +
                 "<style>*{margin:0;padding:0;box-sizing:border-box}" +
                 "body{font-family:Arial,sans-serif;font-size:11pt;color:#111;padding:24px;max-width:600px;margin:0 auto}" +
                 "h1{font-size:15pt;font-weight:900;color:#2B5468;margin-bottom:4px}" +
@@ -205,8 +225,8 @@ export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosAc
                 ".total-row td{font-weight:800;background:#f9f9f9;border-top:2px solid #2B5468;font-size:12pt}" +
                 ".section-title{font-size:11pt;font-weight:700;color:#2B5468;margin:16px 0 8px;border-bottom:2px solid #2B5468;padding-bottom:4px}" +
                 "@media print{body{padding:8px}}</style></head><body>" +
-                "<h1>\uD83D\uDC55 Pedido de Camisetas — Trail El Guerrero 2026</h1>" +
-                "<div class=\"meta\">Generado el " + fecha + " \u00B7 Referencia: TG2026-CAMISETAS</div>" +
+                "<h1>\uD83D\uDC55 Pedido de Camisetas \u2014 " + eventNombre + " " + eventEdicion + "</h1>" +
+                "<div class=\"meta\">Generado el " + fecha + " \u00B7 Referencia: " + eventRef + "-CAMISETAS</div>" +
                 secAdulto + secNino +
                 "<div style=\"margin-top:24px;padding:12px;background:#f5f5f5;border-radius:6px;font-size:9pt;color:#555\">" +
                 "TOTAL UNIDADES: <strong style=\"font-size:13pt;color:#2B5468\">" + totalFinal + "</strong></div>" +
