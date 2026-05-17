@@ -756,3 +756,70 @@ describe('ERR-04 — ModalImportarTallasVol no produce IDs duplicados en reimpor
     expect(todosIds.size).toBe(preview.length * 10);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INT-02 — esVoluntarioElegibleCamiseta · helper centralizado de elegibilidad
+// ─────────────────────────────────────────────────────────────────────────────
+import { esVoluntarioElegibleCamiseta } from "../components/camisetas/camisetasConstants";
+
+describe("INT-02 — esVoluntarioElegibleCamiseta helper centralizado", () => {
+  const base = { talla: "M" };
+
+  // Nunca elegibles
+  it("excluye cancelados siempre (inclPendientes=false)", () => {
+    expect(esVoluntarioElegibleCamiseta({ ...base, estado: "cancelado" }, false)).toBe(false);
+  });
+  it("excluye cancelados siempre (inclPendientes=true)", () => {
+    expect(esVoluntarioElegibleCamiseta({ ...base, estado: "cancelado" }, true)).toBe(false);
+  });
+  it("excluye ausentes siempre (inclPendientes=false)", () => {
+    expect(esVoluntarioElegibleCamiseta({ ...base, estado: "ausente" }, false)).toBe(false);
+  });
+  it("excluye ausentes siempre (inclPendientes=true)", () => {
+    expect(esVoluntarioElegibleCamiseta({ ...base, estado: "ausente" }, true)).toBe(false);
+  });
+
+  // Confirmados: siempre elegibles
+  it("incluye confirmados con inclPendientes=false", () => {
+    expect(esVoluntarioElegibleCamiseta({ ...base, estado: "confirmado" }, false)).toBe(true);
+  });
+  it("incluye confirmados con inclPendientes=true", () => {
+    expect(esVoluntarioElegibleCamiseta({ ...base, estado: "confirmado" }, true)).toBe(true);
+  });
+
+  // Pendientes: solo si inclPendientes=true
+  it("excluye pendientes si inclPendientes=false", () => {
+    expect(esVoluntarioElegibleCamiseta({ ...base, estado: "pendiente" }, false)).toBe(false);
+  });
+  it("incluye pendientes solo si inclPendientes=true", () => {
+    expect(esVoluntarioElegibleCamiseta({ ...base, estado: "pendiente" }, true)).toBe(true);
+  });
+
+  // Sin talla: nunca elegible
+  it("excluye voluntario sin talla aunque sea confirmado", () => {
+    expect(esVoluntarioElegibleCamiseta({ estado: "confirmado" }, false)).toBe(false);
+    expect(esVoluntarioElegibleCamiseta({ estado: "confirmado", talla: "" }, false)).toBe(false);
+    expect(esVoluntarioElegibleCamiseta({ estado: "confirmado", talla: null }, false)).toBe(false);
+  });
+
+  // Estado desconocido: excluir por defecto
+  it("excluye estados desconocidos por defecto", () => {
+    expect(esVoluntarioElegibleCamiseta({ ...base, estado: "baja" }, true)).toBe(false);
+    expect(esVoluntarioElegibleCamiseta({ ...base, estado: undefined }, true)).toBe(false);
+  });
+
+  // Caso de uso: generarPedidosVoluntarios respeta inclPendientes
+  it("un lote de voluntarios mixtos filtra correctamente según inclPendientes", () => {
+    const vols = [
+      { id: 1, talla: "S",  estado: "confirmado" },
+      { id: 2, talla: "M",  estado: "pendiente"  },
+      { id: 3, talla: "L",  estado: "cancelado"  },
+      { id: 4, talla: "XL", estado: "ausente"    },
+    ];
+    const sinPendientes = vols.filter(v => esVoluntarioElegibleCamiseta(v, false));
+    const conPendientes = vols.filter(v => esVoluntarioElegibleCamiseta(v, true));
+
+    expect(sinPendientes.map(v => v.id)).toEqual([1]);        // solo confirmado
+    expect(conPendientes.map(v => v.id)).toEqual([1, 2]);     // confirmado + pendiente
+  });
+});

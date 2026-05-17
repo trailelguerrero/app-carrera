@@ -17,6 +17,7 @@ import { SK_VOL_VOLUNTARIOS, SK_CAM_VENTA_PUBLICO } from "@/constants/storageKey
 import {
   LS, TALLAS, TALLAS_NINO, CORREDORES_DEFAULT, NINO_DEFAULT,
   PEDIDOS_DEFAULT, COSTE_DEFAULT, FUENTES_DEFAULT, CAM_CSS,
+  esVoluntarioElegibleCamiseta,
 } from "@/components/camisetas/camisetasConstants";
 
 // ── CAM-01: helper — genera preview de tallas de voluntarios ─────────────────
@@ -457,8 +458,11 @@ export default function App() {
         )
       )
     );
+    // INT-02: usa el helper centralizado esVoluntarioElegibleCamiseta para que
+    // el criterio de elegibilidad sea idéntico al de voluntariosActivos.
+    // inclPendientes controla si los voluntarios en estado "pendiente" se incluyen.
     const sinPedido = (Array.isArray(rawVols) ? rawVols : [])
-      .filter(v => v.estado !== "cancelado" && v.talla && !nombresConPedido.has(
+      .filter(v => esVoluntarioElegibleCamiseta(v, inclPendientes) && !nombresConPedido.has(
         `${v.nombre || ""} ${v.apellidos || ""}`.toLowerCase().trim()
       ));
     if (sinPedido.length === 0) { toast.success("Todos los voluntarios con talla ya tienen pedido"); return; }
@@ -491,11 +495,12 @@ export default function App() {
     toast.success(`${nuevos.length} pedidos generados desde voluntarios`);
   };
 
-  const voluntariosConfirmados = Array.isArray(rawVols) ? rawVols.filter(v => v?.estado === "confirmado" && v?.talla) : [];
-  const voluntariosPendientes  = Array.isArray(rawVols) ? rawVols.filter(v => v?.estado === "pendiente"  && v?.talla) : [];
-  const voluntariosActivos = inclPendientes
-    ? [...voluntariosConfirmados, ...voluntariosPendientes]
-    : [...voluntariosConfirmados];
+  // INT-02: voluntariosActivos usa esVoluntarioElegibleCamiseta como única fuente
+  // de criterio de elegibilidad. Las variables individuales se mantienen para los
+  // props de TabReparto y TabTallas que las necesitan por separado.
+  const voluntariosConfirmados = Array.isArray(rawVols) ? rawVols.filter(v => esVoluntarioElegibleCamiseta(v, false)) : [];
+  const voluntariosPendientes  = Array.isArray(rawVols) ? rawVols.filter(v => v?.estado === "pendiente" && v?.talla) : [];
+  const voluntariosActivos     = Array.isArray(rawVols) ? rawVols.filter(v => esVoluntarioElegibleCamiseta(v, inclPendientes)) : [];
 
   // ─── Stats calculados ───────────────────────────────────────────────────────
   const stats = useMemo(() => {

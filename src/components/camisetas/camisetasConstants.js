@@ -43,6 +43,31 @@ export const estadoCombinado = (lineas=[]) => {
 export const PEDIDOS_DEFAULT = [];
 
 /**
+ * esVoluntarioElegibleCamiseta — política centralizada de elegibilidad de voluntarios
+ * ──────────────────────────────────────────────────────────────────────────────────
+ * FUENTE ÚNICA DE VERDAD para decidir si un voluntario debe recibir camiseta.
+ *
+ * Política:
+ *   - "cancelado"  → NUNCA elegible (se retiró del evento)
+ *   - "ausente"    → NUNCA elegible (no se presentó; no corresponde asignar camiseta)
+ *   - "confirmado" → SIEMPRE elegible
+ *   - "pendiente"  → elegible SOLO si inclPendientes === true
+ *
+ * Requisito adicional: el voluntario debe tener talla asignada.
+ *
+ * @param {object}  v               - Registro de voluntario
+ * @param {boolean} inclPendientes  - Si true, los pendientes también son elegibles
+ * @returns {boolean}
+ */
+export function esVoluntarioElegibleCamiseta(v, inclPendientes = false) {
+  if (!v?.talla) return false;
+  if (v.estado === "cancelado" || v.estado === "ausente") return false;
+  if (v.estado === "confirmado") return true;
+  if (v.estado === "pendiente") return inclPendientes === true;
+  return false; // estados desconocidos: excluir por defecto
+}
+
+/**
  * COSTE_DEFAULT — coste unitario de fabricación por tipo de camiseta.
  *
  * FUENTE ÚNICA DE VERDAD (ECO-03): este objeto es el único lugar donde se definen
