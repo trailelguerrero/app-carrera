@@ -1168,37 +1168,12 @@ function PortalMain({ token, onLogout }) {
           </div>
         )}
 
-        {/* Botón en puesto */}
-        <div style={{ marginBottom:".85rem" }}>
-          {v.enPuesto ? (
+        {/* Indicador de estado de llegada — solo informativo, sin acción (CTA superior es el punto de acción) */}
+        {v.enPuesto && (
+          <div style={{ marginBottom:".85rem" }}>
             <button className="vp-btn vp-btn-done" disabled>✅ En puesto desde las {v.horaLlegada}</button>
-          ) : confirmLlegada ? (
-            <div style={{ display:"flex", flexDirection:"column", gap:".5rem" }}>
-              <div style={{ background:"rgba(52,211,153,.08)", border:"1px solid var(--green-border)",
-                borderRadius:10, padding:".75rem 1rem", textAlign:"center" }}>
-                <div className="vp-mono" style={{ fontSize:".85rem", fontWeight:700, color:"var(--green)", marginBottom:".3rem" }}>
-                  ¿Confirmas que ya estás en tu puesto?
-                </div>
-                <div className="vp-mono" style={{ fontSize:".72rem", color:"var(--text-muted)" }}>
-                  {puesto ? puesto.nombre : "Puesto pendiente de asignación"}
-                </div>
-              </div>
-              <div style={{ display:"flex", gap:".5rem" }}>
-                <button className="vp-btn vp-btn-ghost" style={{ minHeight:48 }}
-                  onClick={() => setConfirmLlegada(false)}>Cancelar</button>
-                <button className="vp-btn vp-btn-success" style={{ minHeight:48 }}
-                  onClick={marcarLlegada} disabled={marcando}>
-                  {marcando ? "Registrando…" : "✅ Sí, estoy en mi puesto"}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button className="vp-btn vp-btn-success"
-              onClick={() => setConfirmLlegada(true)} disabled={marcando}>
-              {marcando ? "Registrando…" : "📍 Ya estoy en mi puesto"}
-            </button>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Compañeros */}
         {companerosEnPuesto.length > 0 && (
