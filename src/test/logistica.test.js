@@ -1087,3 +1087,100 @@ describe('LOG-18 — DIS-01: Umbral avituallamiento por stockMinimo — sin UMBR
     expect(insuficientes[0].falta).toBe(10);
   });
 });
+
+// ══════════════════════════════════════════════════════════════════════════════
+// LOG-19 — DATO-05: Conflicto agenda Javier López resuelto
+// ══════════════════════════════════════════════════════════════════════════════
+describe('LOG-19 — DATO-05: Conflicto agenda Javier López', () => {
+  let TL0;
+
+  beforeAll(async () => {
+    const mod = await import('../components/logistica/logisticaConstants.js');
+    TL0 = mod.TL0;
+  });
+
+  // ── Test 1: TL0 id=2 ya no tiene a Javier López como responsable ──────────
+  it('TL0 id=2 (Apertura zona de meta, 05:00) no tiene responsable "Javier López"', () => {
+    const tarea = TL0.find(t => t.id === 2);
+    expect(tarea).toBeDefined();
+    expect(tarea.hora).toBe('05:00');
+    expect(tarea.responsable).not.toBe('Javier López');
+  });
+
+  // ── Test 2: TL0 id=2 tiene un responsable válido asignado ─────────────────
+  it('TL0 id=2 tiene un responsable no vacío asignado (no "Javier López")', () => {
+    const tarea = TL0.find(t => t.id === 2);
+    expect(tarea.responsable).toBeTruthy();
+    expect(tarea.responsable.length).toBeGreaterThan(0);
+  });
+
+  // ── Test 3: No existen dos tareas del mismo responsable con < 30 min entre ellas ─
+  it('ningún responsable tiene dos tareas separadas menos de 30 minutos en TL0', () => {
+    // Agrupar tareas por responsable
+    const porResponsable = {};
+    TL0.forEach(t => {
+      const r = t.responsable?.toLowerCase().trim();
+      if (!r) return;
+      if (!porResponsable[r]) porResponsable[r] = [];
+      porResponsable[r].push(t);
+    });
+
+    // Para cada responsable con > 1 tarea, verificar que no hay solapamiento < 30 min
+    const conflictos = [];
+    Object.entries(porResponsable).forEach(([responsable, tareas]) => {
+      if (tareas.length < 2) return;
+      // Convertir hora "HH:MM" a minutos totales
+      const toMinutos = hora => {
+        const [h, m] = hora.split(':').map(Number);
+        return h * 60 + m;
+      };
+      const ordenadas = [...tareas].sort((a, b) => toMinutos(a.hora) - toMinutos(b.hora));
+      for (let i = 0; i < ordenadas.length - 1; i++) {
+        const diff = toMinutos(ordenadas[i + 1].hora) - toMinutos(ordenadas[i].hora);
+        if (diff < 30) {
+          conflictos.push({
+            responsable,
+            tarea1: ordenadas[i].titulo,
+            hora1: ordenadas[i].hora,
+            tarea2: ordenadas[i + 1].titulo,
+            hora2: ordenadas[i + 1].hora,
+            diff,
+          });
+        }
+      }
+    });
+
+    expect(conflictos).toHaveLength(0);
+  });
+
+  // ── Test 4: Javier López solo aparece en tareas compatibles con 05:30 ──────
+  it('todas las tareas de Javier López son compatibles con la salida de furgoneta a las 05:30', () => {
+    const tareasJavier = TL0.filter(t => t.responsable === 'Javier López');
+    // Ninguna tarea de Javier debe ser antes de las 05:30 (salida furgoneta)
+    // o entre las 05:00 y 05:30 (ventana del conflicto original)
+    tareasJavier.forEach(t => {
+      const [h, m] = t.hora.split(':').map(Number);
+      const minutos = h * 60 + m;
+      // No debe haber tareas antes de 05:30 (330 min) o exactamente a las 05:00 (300 min)
+      const conflictivas = minutos < 330; // antes de 05:30
+      expect(conflictivas).toBe(false);
+    });
+  });
+
+  // ── Test 5: TL0 id=14 (recogida material) no solapa con trofeos (17:30) ───
+  it('TL0 id=14 (Inicio recogida material) tiene hora posterior a la ceremonia de trofeos (17:30)', () => {
+    const recogida = TL0.find(t => t.id === 14);
+    const trofeos  = TL0.find(t => t.id === 15);
+    expect(recogida).toBeDefined();
+    expect(trofeos).toBeDefined();
+
+    const toMinutos = hora => {
+      const [h, m] = hora.split(':').map(Number);
+      return h * 60 + m;
+    };
+
+    // La recogida debe empezar después o al mismo tiempo que los trofeos
+    // (no antes de que termine la ceremonia)
+    expect(toMinutos(recogida.hora)).toBeGreaterThanOrEqual(toMinutos(trofeos.hora));
+  });
+});
