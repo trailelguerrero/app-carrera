@@ -287,6 +287,19 @@ export default function App() {
     dataService.notify(); // CON-04: sincronizar módulos tras eliminar ítem en especie
   };
 
+  // CON-02/MEJ-04: añadir entrada de contacto manual al historial del patrocinador.
+  // Reemplaza el almacenamiento en localStorage aislado de LogContactos.
+  // entrada = { id, fecha, tipo: "contacto", texto, tipoContacto, fechaContacto }
+  const addHistorialEntry = (patId, entrada) => {
+    setPats(prev => prev.map(p => {
+      if (p.id !== patId) return p;
+      const historial = [...(Array.isArray(p.historial) ? p.historial : []), entrada].slice(-100);
+      return { ...p, historial };
+    }));
+    // No se llama dataService.notify() aquí porque el historial de contactos no afecta
+    // al Dashboard ni al módulo Presupuesto; es información CRM interna.
+  };
+
   if (isLoading) return <SkeletonBlock variant="patrocinadores" />;
 
   return (
@@ -380,6 +393,7 @@ export default function App() {
           deleteContraprestacion={deleteContraprestacion} updateEstado={updateEstado}
           addDoc={addDoc} deleteDoc={deleteDoc}
           addEspecieItem={addEspecieItem} updateEspecieItem={updateEspecieItem} deleteEspecieItem={deleteEspecieItem}
+          onAddContacto={addHistorialEntry}
           config={config}
         />
       , document.body)}

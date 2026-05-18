@@ -26,6 +26,13 @@ function generarInformePDF(pat, config = {}) {
   const contEntregadas = (pat.contraprestaciones || []).filter(c => c.estado === "entregado");
   const contPendientes = (pat.contraprestaciones || []).filter(c => c.estado === "pendiente");
 
+  // CON-02/MEJ-04: Historial unificado — incluir tanto cambios de estado como contactos manuales
+  const historial = Array.isArray(pat.historial) ? [...pat.historial].reverse() : [];
+  const histEstados   = historial.filter(e => e.tipo === "estado");
+  const histContactos = historial.filter(e => e.tipo === "contacto");
+
+  const TIPO_ICONS_CONTACTO = { Llamada:"📞", Email:"✉️", Reunión:"🤝", WhatsApp:"💬", Otro:"📝" };
+
   const html = `
 <!DOCTYPE html>
 <html lang="es">
@@ -33,26 +40,46 @@ function generarInformePDF(pat, config = {}) {
   <meta charset="UTF-8">
   <title>Informe patrocinador — ${pat.nombre}</title>
   <style>
+    /* CON-03/MEJ-06: Variables CSS resueltas en modo claro para documento standalone */
+    :root {
+      --doc-bg: #ffffff;
+      --doc-surface: #f8faff;
+      --doc-text: #1a1a2e;
+      --doc-text-muted: #555;
+      --doc-border: #e5e7eb;
+      --doc-cyan: #22d3ee;
+      --doc-cyan-dim: rgba(34,211,238,0.12);
+      --doc-cyan-border: rgba(34,211,238,0.35);
+      --doc-green: #16a34a;
+      --doc-amber: #d97706;
+      --doc-violet: #7c3aed;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; background: #fff; padding: 40px; max-width: 750px; margin: 0 auto; }
-    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 3px solid #22d3ee; }
-    .evento-nombre { font-size: 22px; font-weight: 800; color: var(--surface); }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: var(--doc-text); background: var(--doc-bg); padding: 40px; max-width: 750px; margin: 0 auto; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 3px solid var(--doc-cyan); }
+    .evento-nombre { font-size: 22px; font-weight: 800; color: var(--doc-text); }
     .evento-meta { font-size: 12px; color: #666; margin-top: 4px; font-family: monospace; }
-    .pat-block { background: #f8faff; border-radius: 10px; padding: 20px 24px; margin-bottom: 24px; border-left: 4px solid #22d3ee; }
+    .pat-block { background: var(--doc-surface); border-radius: 10px; padding: 20px 24px; margin-bottom: 24px; border-left: 4px solid var(--doc-cyan); }
     .pat-nombre { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
-    .pat-nivel { display: inline-block; background: #22d3ee22; color: var(--cyan); font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 20px; font-family: monospace; border: 1px solid #22d3ee44; }
+    .pat-nivel { display: inline-block; background: var(--doc-cyan-dim); color: var(--doc-cyan); font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 20px; font-family: monospace; border: 1px solid var(--doc-cyan-border); }
     .seccion-titulo { font-size: 13px; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 0.08em; margin: 20px 0 10px; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
     .dato { background: #f0f4ff; border-radius: 8px; padding: 10px 14px; }
     .dato-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.06em; font-family: monospace; margin-bottom: 3px; }
-    .dato-valor { font-size: 15px; font-weight: 700; color: #1a1a2e; }
+    .dato-valor { font-size: 15px; font-weight: 700; color: var(--doc-text); }
     .cont-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; font-size: 13px; }
     .cont-done { background: #f0fdf4; border: 1px solid #bbf7d0; }
     .cont-pend { background: #fffbeb; border: 1px solid #fde68a; }
     .ck { display: inline-block; width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0; }
     .ck-done { background: #22c55e; }
     .ck-pend { background: #d1d5db; }
-    .footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 11px; color: #9ca3af; font-family: monospace; display: flex; justify-content: space-between; }
+    .hist-row { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--doc-border); font-size: 12px; align-items: flex-start; }
+    .hist-fecha { font-family: monospace; color: #888; flex-shrink: 0; min-width: 140px; }
+    .hist-texto { color: var(--doc-text-muted); line-height: 1.5; flex: 1; }
+    .hist-badge { display: inline-block; font-family: monospace; font-size: 10px; padding: 1px 6px; border-radius: 3px; margin-right: 5px; }
+    .hist-estado  { background: rgba(34,211,238,0.12); color: #0891b2; }
+    .hist-contacto { background: rgba(124,58,237,0.1); color: #7c3aed; }
+    .footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--doc-border); font-size: 11px; color: #9ca3af; font-family: monospace; display: flex; justify-content: space-between; }
     @media print { body { padding: 20px; } }
   </style>
 </head>
@@ -108,6 +135,30 @@ function generarInformePDF(pat, config = {}) {
   ` : "<p style='font-size:13px;color:#999'>Sin contraprestaciones registradas.</p>"}
 
   ${pat.notas ? `<div class="seccion-titulo">Notas</div><div style="background:#f8faff;border-radius:8px;padding:12px 16px;font-size:13px;line-height:1.6;color:#555">${pat.notas}</div>` : ""}
+
+  ${histContactos.length > 0 ? `
+  <div class="seccion-titulo">Historial de contactos (${histContactos.length})</div>
+  ${histContactos.map(e => `
+    <div class="hist-row">
+      <span class="hist-fecha">${new Date(e.fecha).toLocaleDateString("es-ES")} ${new Date(e.fecha).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})}</span>
+      <span class="hist-texto">
+        <span class="hist-badge hist-contacto">${TIPO_ICONS_CONTACTO[e.tipoContacto]||"📝"} ${e.tipoContacto||"Contacto"}</span>
+        ${e.texto}
+      </span>
+    </div>`).join("")}
+  ` : ""}
+
+  ${histEstados.length > 0 ? `
+  <div class="seccion-titulo">Historial de estados (${histEstados.length})</div>
+  ${histEstados.map(e => `
+    <div class="hist-row">
+      <span class="hist-fecha">${new Date(e.fecha).toLocaleDateString("es-ES")} ${new Date(e.fecha).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})}</span>
+      <span class="hist-texto">
+        <span class="hist-badge hist-estado">🔄 estado</span>
+        ${e.texto}
+      </span>
+    </div>`).join("")}
+  ` : ""}
 
   <div class="footer">
     <span>${org}</span>
@@ -210,7 +261,7 @@ function InformePatrocinador({ pat, cfg, config = {} }) {
   );
 }
 
-export default function ModalDetalle({ pat, onClose, onEditar, onDelete, updateContraprestacion, addContraprestacion, deleteContraprestacion, updateEstado, addDoc, deleteDoc, addEspecieItem, updateEspecieItem, deleteEspecieItem, config = {} }) {
+export default function ModalDetalle({ pat, onClose, onEditar, onDelete, updateContraprestacion, addContraprestacion, deleteContraprestacion, updateEstado, addDoc, deleteDoc, addEspecieItem, updateEspecieItem, deleteEspecieItem, onAddContacto, config = {} }) {
   const { closing: detClosing, handleClose: detHandleClose } = useModalClose(onClose);
   const cfg = getCfg(pat.nivel);
   const ecfg = ESTADO_CFG[pat.estado];
@@ -246,16 +297,17 @@ export default function ModalDetalle({ pat, onClose, onEditar, onDelete, updateC
               {subTab === "info" && onDelete && <button className="btn btn-sm btn-red" onClick={() => onDelete(pat.id)} style={{marginLeft:".3rem"}}>🗑 Eliminar</button>}
               {subTab === "historial" && (() => {
                 const hist = Array.isArray(pat.historial) ? [...pat.historial].reverse() : [];
+                const TIPO_ICONS_H = { Llamada:"📞", Email:"✉️", Reunión:"🤝", WhatsApp:"💬", Otro:"📝" };
                 return (
                   <div>
                     <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)",
                       marginBottom:".75rem" }}>
-                      {hist.length} entradas · Los cambios de estado se registran automáticamente
+                      {hist.length} entradas · cambios de estado y contactos manuales
                     </div>
                     {hist.length === 0 ? (
                       <div style={{ color:"var(--text-dim)", fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                         padding:".75rem", background:"var(--surface2)", borderRadius:8 }}>
-                        Sin historial todavía. Los cambios de estado se registrarán automáticamente.
+                        Sin historial todavía. Los cambios de estado y contactos se registran aquí automáticamente.
                       </div>
                     ) : hist.map(e => (
                       <div key={e.id} style={{ display:"flex", gap:".75rem", padding:".45rem .5rem",
@@ -265,10 +317,17 @@ export default function ModalDetalle({ pat, onClose, onEditar, onDelete, updateC
                           {new Date(e.fecha).toLocaleDateString("es-ES")}{" "}
                           {new Date(e.fecha).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})}
                         </span>
-                        <span style={{ fontSize:"var(--fs-xs)", color:"var(--text-muted)", lineHeight:1.5 }}>
+                        <span style={{ fontSize:"var(--fs-xs)", color:"var(--text-muted)", lineHeight:1.5, flex:1, minWidth:0 }}>
                           {e.tipo === "estado" ? "🔄 " :
+                           e.tipo === "contacto" ? (TIPO_ICONS_H[e.tipoContacto] || "📞") + " " :
                            e.tipo === "nota" ? "📝 " : "ℹ️ "}
                           {e.texto}
+                          {e.tipo === "contacto" && e.tipoContacto && (
+                            <span style={{ marginLeft:".35rem", fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                              padding:".05rem .35rem", borderRadius:3, background:"rgba(167,139,250,.1)", color:"#a78bfa" }}>
+                              {e.tipoContacto}
+                            </span>
+                          )}
                         </span>
                       </div>
                     ))}
@@ -282,7 +341,7 @@ export default function ModalDetalle({ pat, onClose, onEditar, onDelete, updateC
             </div>
           </div>
           <div style={{ display: "flex", gap: "0", padding: "0 1.4rem" }}>
-            {[["info","ℹ️ Info"],["cont","🎁 Compromisos"],["especie","📦 En especie"],["docs","📁 Documentos"],["informe","📄 Informe"]].map(([id,label]) => (
+            {[["info","ℹ️ Info"],["cont","🎁 Compromisos"],["especie","📦 En especie"],["docs","📁 Documentos"],["historial","🕐 Historial"],["informe","📄 Informe"]].map(([id,label]) => (
               <button key={id} onClick={() => setSubTab(id)}
                 style={{ background:"none", border:"none", borderBottom: subTab===id ? `2px solid ${cfg.color}` : "2px solid transparent", color: subTab===id ? cfg.color : "var(--text-muted)", fontFamily:"Syne,sans-serif", fontSize:"var(--fs-sm)", fontWeight: subTab===id?700:500, padding:".4rem .75rem .5rem", cursor:"pointer", transition:"all .15s" }}>
                 {label}
@@ -294,6 +353,7 @@ export default function ModalDetalle({ pat, onClose, onEditar, onDelete, updateC
                 })()}
                 {id==="cont" && (pat.contraprestaciones || []).filter(c=>c.estado==="pendiente").length > 0 && <span style={{ marginLeft:".3rem", background:"rgba(248,113,113,.12)", color:"#f87171", fontSize:"var(--fs-xs)", padding:".05rem .3rem", borderRadius:3, fontFamily:"var(--font-mono)" }}>{(pat.contraprestaciones || []).filter(c=>c.estado==="pendiente").length}</span>}
                 {id==="especie" && especieItems.length > 0 && <span style={{ marginLeft:".3rem", background:cfg.dim, color:cfg.color, fontSize:"var(--fs-xs)", padding:".05rem .3rem", borderRadius:3, fontFamily:"var(--font-mono)" }}>{especieItems.length}</span>}
+                {id==="historial" && (Array.isArray(pat.historial) && pat.historial.length > 0) && <span style={{ marginLeft:".3rem", background:"rgba(124,139,250,.12)", color:"#a5b4fc", fontSize:"var(--fs-xs)", padding:".05rem .3rem", borderRadius:3, fontFamily:"var(--font-mono)" }}>{pat.historial.length}</span>}
               </button>
             ))}
           </div>
@@ -391,8 +451,9 @@ export default function ModalDetalle({ pat, onClose, onEditar, onDelete, updateC
             </div>
           )}
 
-          {/* Log de contactos */}
-          <LogContactos patId={pat.id} cfg={cfg} />
+          {/* Log de contactos — CON-02/MEJ-04: usa pat.historial en lugar de localStorage aislado */}
+          <LogContactos patId={pat.id} cfg={cfg} onAddContacto={onAddContacto}
+            historialContactos={(pat.historial || []).filter(e => e.tipo === "contacto")} />
           </>}
           {subTab === "cont" && <><div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ".5rem" }}>

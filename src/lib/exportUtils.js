@@ -121,9 +121,44 @@ export async function exportarPatrocinadores(pats = []) {
     });
   });
 
+  // MEJ-09: Tercera hoja — detalle de ítems en especie
+  const especieData = [];
+  pats.forEach((p) => {
+    (p.especieItems || []).forEach((i) => {
+      especieData.push({
+        Patrocinador:       p.nombre || '',
+        Nivel:              p.nivel || '',
+        'Nombre ítem':      i.nombre || '',
+        Cantidad:           i.cantidad || 0,
+        Unidad:             i.unidad || '',
+        'Valor unit. (€)':  i.valorUnitario || 0,
+        'Total (€)':        ((i.valorUnitario || 0) * (i.cantidad || 0)),
+        Recibido:           i.recibido ? 'Sí' : 'No',
+      });
+    });
+  });
+
+  // MEJ-09: Cuarta hoja — historial unificado (cambios de estado + contactos manuales)
+  const historialData = [];
+  pats.forEach((p) => {
+    (p.historial || []).forEach((e) => {
+      historialData.push({
+        Patrocinador:      p.nombre || '',
+        Fecha:             e.fecha ? new Date(e.fecha).toLocaleString('es-ES') : '',
+        Tipo:              e.tipo || '',
+        Descripción:       e.texto || '',
+        'Estado anterior': e.antes || '',
+        'Estado nuevo':    e.despues || '',
+        'Tipo contacto':   e.tipoContacto || '',
+      });
+    });
+  });
+
   const wb = new ExcelJS.Workbook();
   addSheet(wb, 'Patrocinadores', data);
-  if (contData.length > 0) addSheet(wb, 'Contraprestaciones', contData);
+  if (contData.length > 0)     addSheet(wb, 'Contraprestaciones', contData);
+  if (especieData.length > 0)  addSheet(wb, 'EspecieItems', especieData);
+  if (historialData.length > 0) addSheet(wb, 'Historial', historialData);
   await downloadWorkbook(wb, 'patrocinadores-trail-guerrero-2026.xlsx');
 }
 
