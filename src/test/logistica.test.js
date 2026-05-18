@@ -1328,3 +1328,63 @@ describe('LOG-20 — DIS-04: estado "en gestión" en ciclo de vida de incidencia
     expect(ciclo('resuelta')).toBe('abierta');
   });
 });
+
+
+// ── LOG-21: DATO-04 — Fases checklist completas (sin 0/0) ──────────────────
+describe('LOG-21 — DATO-04: CK0 contiene tareas para todas las fases de FASES_CHECKLIST', () => {
+  it('importa CK0 y FASES_CHECKLIST desde logisticaConstants', async () => {
+    const m = await import('../components/logistica/logisticaConstants.js');
+    expect(m.CK0).toBeDefined();
+    expect(m.FASES_CHECKLIST).toBeDefined();
+    expect(Array.isArray(m.CK0)).toBe(true);
+    expect(Array.isArray(m.FASES_CHECKLIST)).toBe(true);
+  });
+
+  it('cada fase de FASES_CHECKLIST tiene al menos 1 tarea en CK0', async () => {
+    const { CK0, FASES_CHECKLIST } = await import('../components/logistica/logisticaConstants.js');
+    for (const fase of FASES_CHECKLIST) {
+      const tareas = CK0.filter(t => t.fase === fase);
+      expect(tareas.length, `Fase "${fase}" tiene 0 tareas`).toBeGreaterThan(0);
+    }
+  });
+
+  it('"3 meses antes" tiene al menos 4 tareas', async () => {
+    const { CK0 } = await import('../components/logistica/logisticaConstants.js');
+    expect(CK0.filter(t => t.fase === '3 meses antes').length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('"2 meses antes" tiene al menos 4 tareas', async () => {
+    const { CK0 } = await import('../components/logistica/logisticaConstants.js');
+    expect(CK0.filter(t => t.fase === '2 meses antes').length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('"1 mes antes" tiene al menos 4 tareas', async () => {
+    const { CK0 } = await import('../components/logistica/logisticaConstants.js');
+    expect(CK0.filter(t => t.fase === '1 mes antes').length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('todos los ids de CK0 son únicos', async () => {
+    const { CK0 } = await import('../components/logistica/logisticaConstants.js');
+    const ids = CK0.map(t => t.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('ids de las nuevas tareas (25-36) continúan desde 25', async () => {
+    const { CK0 } = await import('../components/logistica/logisticaConstants.js');
+    const nuevas = CK0.filter(t => t.id >= 25);
+    expect(nuevas.length).toBeGreaterThanOrEqual(12);
+    const minId = Math.min(...nuevas.map(t => t.id));
+    expect(minId).toBe(25);
+  });
+
+  it('ninguna fase produce array vacío al filtrar CK0 (sin barras 0/0)', async () => {
+    const { CK0, FASES_CHECKLIST } = await import('../components/logistica/logisticaConstants.js');
+    const porFase = FASES_CHECKLIST.map(fase => ({
+      fase,
+      tareas: CK0.filter(t => t.fase === fase),
+    }));
+    for (const { fase, tareas } of porFase) {
+      expect(tareas.length, `porFase["${fase}"] es vacío → barra 0/0`).toBeGreaterThan(0);
+    }
+  });
+});
