@@ -52,6 +52,10 @@ function ModalPuesto({ puesto, locs, onSave, onClose }) {
                 const newData = { localizacionId: locId };
                 if (loc && !form.nombre) newData.nombre = loc.nombre;
                 if (loc) newData.tipo = loc.tipo;
+                // Copiar coordenadas de la localización maestra (el usuario puede sobrescribirlas manualmente)
+                if (loc && loc.lat != null) newData.lat = loc.lat;
+                if (loc && loc.lng != null) newData.lng = loc.lng;
+                if (!loc) { newData.lat = null; newData.lng = null; }
                 setForm(p => ({ ...p, ...newData }));
               }}>
               <option value="">-- Sin vincular --</option>
@@ -109,6 +113,24 @@ function ModalPuesto({ puesto, locs, onSave, onClose }) {
           </div>
           <div><label className="field-label">Notas / Instrucciones</label>
             <textarea className="inp" rows={2} value={form.notas} onChange={e => upd("notas", e.target.value)} placeholder="Material necesario, instrucciones específicas..." style={{ resize: "vertical" }} /></div>
+          <div style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 8, padding: "0.65rem 0.85rem" }}>
+            <label className="field-label" style={{ marginBottom: "0.35rem" }}>📍 Coordenadas GPS <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>(opcional — habilita "Cómo llegar" en el portal)</span></label>
+            <div className="field-row">
+              <div>
+                <label className="field-label" style={{ fontSize: "var(--fs-xs)" }}>Latitud</label>
+                <input className="inp" type="number" step="any" placeholder="Ej: 40.1698"
+                  value={form.lat ?? ""} onChange={e => upd("lat", e.target.value !== "" ? parseFloat(e.target.value) : null)} />
+              </div>
+              <div>
+                <label className="field-label" style={{ fontSize: "var(--fs-xs)" }}>Longitud</label>
+                <input className="inp" type="number" step="any" placeholder="Ej: -5.1923"
+                  value={form.lng ?? ""} onChange={e => upd("lng", e.target.value !== "" ? parseFloat(e.target.value) : null)} />
+              </div>
+            </div>
+            <div style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: "0.25rem", fontFamily: "var(--font-mono)" }}>
+              Al vincular una localización maestra las coordenadas se rellenan automáticamente.
+            </div>
+          </div>
         </div>
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>

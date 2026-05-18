@@ -275,10 +275,27 @@ export default async function handler(req, res) {
              .map(v => ({ nombre: v.nombre, apellidos: v.apellidos || '', telefono: v.telefono || '', estado: v.estado || 'pendiente', enPuesto: v.enPuesto || false, horaLlegada: v.horaLlegada || null }))
         : [];
 
+      // Enriquecer puesto con lat/lng: primero los coords explícitos del puesto,
+      // luego fallback a los de la localización maestra vinculada (localizacionId)
+      let puestoLat = null;
+      let puestoLng = null;
+      if (puesto) {
+        if (puesto.lat != null && puesto.lng != null) {
+          puestoLat = puesto.lat;
+          puestoLng = puesto.lng;
+        } else if (puesto.localizacionId) {
+          const locParaCoords = allLocs.find(l => l.id === puesto.localizacionId);
+          if (locParaCoords) {
+            puestoLat = locParaCoords.lat ?? null;
+            puestoLng = locParaCoords.lng ?? null;
+          }
+        }
+      }
+
       const { pinHash: _ph, sessionToken: _st, ...volPublico } = voluntario;
       return res.status(200).json({
         voluntario: { ...volPublico, mensajeOrganizador: voluntario.mensajeOrganizador || '' },
-        puesto: puesto ? { nombre: puesto.nombre, tipo: puesto.tipo, horaInicio: puesto.horaInicio, horaFin: puesto.horaFin, distancias: puesto.distancias, notas: puesto.notas, necesarios: puesto.necesarios || null } : null,
+        puesto: puesto ? { nombre: puesto.nombre, tipo: puesto.tipo, horaInicio: puesto.horaInicio, horaFin: puesto.horaFin, distancias: puesto.distancias, notas: puesto.notas, necesarios: puesto.necesarios || null, lat: puestoLat, lng: puestoLng } : null,
         companerosEnPuesto, materialPuesto,
         config: { nombre: orgConfig.nombre, fecha: orgConfig.fecha, lugar: orgConfig.lugar, organizador: orgConfig.organizador || '', telefonoContacto: orgConfig.telefonoContacto || '', emailContacto: orgConfig.emailContacto || '', organizadores },
       });
