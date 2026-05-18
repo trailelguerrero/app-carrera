@@ -110,7 +110,9 @@ export default function App() {
                   nuevos.find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
       if (dup) { dupes++; continue; }
       nuevos.push({
-        id: Date.now() + i, nombre,
+        // ERR-03: genIdNum sobre el array combinado (existentes + nuevos ya añadidos)
+        // garantiza unicidad tanto frente a IDs ya persistidos como dentro del propio lote
+        id: genIdNum([...pats, ...nuevos]), nombre,
         contacto: iContacto >= 0 ? cols[iContacto] || "" : "",
         email, telefono: iTel >= 0 ? cols[iTel] || "" : "",
         importe: iImporte >= 0 ? parseFloat(cols[iImporte]) || 0 : 0,
@@ -181,6 +183,10 @@ export default function App() {
       ...p,
       contraprestaciones: (p.contraprestaciones || []).map(c => c.id === cId ? { ...c, ...(typeof campo === "object" ? campo : { [campo]: valor }) } : c)
     } : p));
+    // CON-04: sincronizar Dashboard y Presupuesto tras cambio en contraprestación
+    // notify() es un dispatchEvent puro (O(1)); el debounce de escritura ya lo gestiona
+    // apiAdapter internamente, por lo que no se necesita debounce adicional aquí
+    dataService.notify();
   };
 
   const addContraprestacion = (patId, item) => {
@@ -188,6 +194,7 @@ export default function App() {
       ...p,
       contraprestaciones: [...(p.contraprestaciones || []), { ...item, id: genIdNum(p.contraprestaciones || []) }]
     } : p));
+    dataService.notify(); // CON-04: sincronizar módulos tras añadir contraprestación
   };
 
   const deleteContraprestacion = (patId, cId) => {
@@ -195,6 +202,7 @@ export default function App() {
       ...p,
       contraprestaciones: (p.contraprestaciones || []).filter(c => c.id !== cId)
     } : p));
+    dataService.notify(); // CON-04: sincronizar módulos tras eliminar contraprestación
   };
 
   // ── Gestión ítems en especie ─────────────────────────────────────────────────
@@ -203,18 +211,24 @@ export default function App() {
       ...p,
       especieItems: [...(p.especieItems || []), { ...item, id: genIdNum(p.especieItems || []) }]
     } : p));
+    dataService.notify(); // CON-04: sincronizar módulos tras añadir ítem en especie
   };
   const updateEspecieItem = (patId, itemId, campo, valor) => {
     setPats(prev => prev.map(p => p.id === patId ? {
       ...p,
       especieItems: (p.especieItems || []).map(i => i.id === itemId ? { ...i, ...(typeof campo === "object" ? campo : { [campo]: valor }) } : i)
     } : p));
+    // CON-04: sincronizar módulos tras actualizar ítem en especie
+    // NOTA: updateEspecieItem se llama solo en operaciones discretas (confirmación de edición),
+    // no en cada keystroke, por lo que no se necesita debounce adicional
+    dataService.notify();
   };
   const deleteEspecieItem = (patId, itemId) => {
     setPats(prev => prev.map(p => p.id === patId ? {
       ...p,
       especieItems: (p.especieItems || []).filter(i => i.id !== itemId)
     } : p));
+    dataService.notify(); // CON-04: sincronizar módulos tras eliminar ítem en especie
   };
 
   if (isLoading) return <SkeletonBlock variant="patrocinadores" />;
