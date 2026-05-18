@@ -352,6 +352,7 @@ function LoginScreen({ onLogin, onVolver, telefonoInicial }) {
   const [showRecoverPin, setShowRecoverPin] = useState(false);
   const [recoverEmail, setRecoverEmail] = useState('');
   const [recoverStatus, setRecoverStatus] = useState(null); // null | 'sending' | 'done' | 'error'
+  const [tieneEmail, setTieneEmail] = useState(true); // optimista: mostrar recuperación hasta saber que no hay email
   const telRef = useRef(null);
 
   useEffect(() => { if (paso === 1) setTimeout(() => telRef.current?.focus(), 100); }, [paso]);
@@ -368,6 +369,7 @@ function LoginScreen({ onLogin, onVolver, telefonoInicial }) {
       if (res.ok) {
         const d = await res.json();
         setPinCambiado(Boolean(d.pinPersonalizado));
+        if (d.tieneEmail !== undefined) setTieneEmail(Boolean(d.tieneEmail));
       }
     } catch { /* silencioso */ }
     setCheckingPin(false);
@@ -477,7 +479,9 @@ function LoginScreen({ onLogin, onVolver, telefonoInicial }) {
                 Verificando…
               </div>}
             </div>
-            {/* T5.4: Recuperación de PIN */}
+            {/* T5.4: Recuperación de PIN — solo si el voluntario tiene email registrado */}
+            {tieneEmail ? (
+              <>
             {!showRecoverPin ? (
               <div className="vp-hint">
                 ¿Olvidaste tu PIN?{' '}
@@ -541,6 +545,21 @@ function LoginScreen({ onLogin, onVolver, telefonoInicial }) {
                     </button>
                   </>
                 )}
+              </div>
+            )}
+              </>
+            ) : (
+              <div className="vp-hint">
+                ¿Olvidaste tu PIN? Contacta con el organizador
+                {config?.telefonoContacto ? (
+                  <>
+                    {" "}en el{" "}
+                    <a href={`tel:${config.telefonoContacto}`}
+                      style={{ color: "var(--cyan)", textDecoration: "underline", fontFamily: "var(--font-mono)" }}>
+                      {config.telefonoContacto}
+                    </a>
+                  </>
+                ) : "."}
               </div>
             )}
           </div>

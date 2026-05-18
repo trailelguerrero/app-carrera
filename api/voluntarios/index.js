@@ -160,7 +160,7 @@ export default async function handler(req, res) {
           pinPersonalizado = hashPinLegacy(pinInicial(v.telefono)) !== v.pinHash;
         }
       }
-      return res.status(200).json({ existe: true, pinPersonalizado: Boolean(pinPersonalizado) });
+      return res.status(200).json({ existe: true, pinPersonalizado: Boolean(pinPersonalizado), tieneEmail: Boolean(v.email && String(v.email).trim()) });
     }
 
     // ── RECOVER-PIN: POST ?action=recover-pin (portal público) ─────────────
