@@ -50,10 +50,15 @@ export default function App() {
     const activos = valid.filter(p => p.estado !== "cancelado");
     const confirmados = valid.filter(p => p.estado === "confirmado" || p.estado === "cobrado");
     const cobrado = valid.filter(p => p.estado === "cobrado").reduce((s, p) => s + getImporteCobrado(p), 0);
-    // Captado: suma importes de confirmados+cobrados (comprometido)
-    const comprometido = confirmados.reduce((s, p) => s + (p.importe || 0), 0);
-    // Pendiente de cobro: comprometido - cobrado
-    const pendienteCobro = comprometido - cobrado;
+    // INC-04: Captado incluye importe monetario + valor en especie de confirmados/cobrados.
+    // NOTA: getImporteComprometido() en budgetUtils (usado por el módulo Presupuesto) NO se
+    // modifica aquí: el Presupuesto opera solo con importes monetarios para su P&L.
+    // stats.comprometido es el KPI de captación total del módulo Patrocinadores, que sí
+    // debe reflejar el valor económico completo (dinero + especie) comprometido con el evento.
+    const comprometido = confirmados.reduce((s, p) => s + (p.importe || 0) + getEspecieValue(p), 0);
+    // Pendiente de cobro: solo monetario (especie no se "cobra" en tesorería)
+    const comprometidoMonetario = confirmados.reduce((s, p) => s + (p.importe || 0), 0);
+    const pendienteCobro = comprometidoMonetario - cobrado;
     // INC-01: usar getEspecieValue (fuente única de verdad, Opción C) en lugar de p.especie directo
     const especie = activos.reduce((s, p) => s + getEspecieValue(p), 0);
     const pipeline = valid.filter(p => p.estado === "negociando" || p.estado === "prospecto").reduce((s, p) => s + (p.importe || 0), 0);

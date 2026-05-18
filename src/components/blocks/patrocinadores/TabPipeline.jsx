@@ -4,10 +4,16 @@ import { fmtEur } from "@/lib/utils";
 // ─── TAB PIPELINE ─────────────────────────────────────────────────────────────
 export default function TabPipeline({ pats, onEditar, onDetalle, updateEstado, ordenAlfa, onNuevo }) {
   const patsOrdenados = ordenAlfa ? [...pats].sort((a,b) => a.nombre.localeCompare(b.nombre,"es")) : pats;
+
+  // INC-05: el total de columna usa la MISMA lógica que la tarjeta:
+  //   mostrar especie si > 0, si no mostrar importe.
+  // Así el usuario puede sumar mentalmente las tarjetas y llegar al total de la cabecera.
+  const valorTarjeta = (p) => p.especie > 0 ? (p.especie || 0) : (p.importe || 0);
+
   const porEstado = ESTADOS.map(e => ({
     e, cfg: ESTADO_CFG[e],
     pats: patsOrdenados.filter(p => p.estado === e),
-    total: patsOrdenados.filter(p => p.estado === e).reduce((s, p) => s + p.importe + (p.especie || 0), 0),
+    total: patsOrdenados.filter(p => p.estado === e).reduce((s, p) => s + valorTarjeta(p), 0),
   }));
 
   return (
@@ -24,14 +30,24 @@ export default function TabPipeline({ pats, onEditar, onDetalle, updateEstado, o
       </div>
 
       <div className="kanban">
-        {porEstado.map(col => (
-          <div key={col.e} className="kancol">
+        {porEstado.map(col => {
+          const esCancelado = col.e === "cancelado";
+          return (
+          <div key={col.e} className="kancol" style={esCancelado ? { opacity: 0.65 } : {}}>
             <div className="kancol-header" style={{ borderTopColor: col.cfg.color }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontWeight: 700, fontSize: "var(--fs-base)", color: col.cfg.color }}>{col.cfg.label}</span>
                 <span className="badge" style={{ background: col.cfg.bg, color: col.cfg.color }}>{col.pats.length}</span>
               </div>
-              {col.total > 0 && <div className="mono xs" style={{ color: col.cfg.color, marginTop: ".2rem" }}>{fmtEur(col.total)}</div>}
+              {/* MEJ-08: cancelado muestra el total en estilo "histórico", no como valor de pipeline */}
+              {col.total > 0 && !esCancelado && (
+                <div className="mono xs" style={{ color: col.cfg.color, marginTop: ".2rem" }}>{fmtEur(col.total)}</div>
+              )}
+              {col.total > 0 && esCancelado && (
+                <div className="mono xs" style={{ color: "var(--text-dim)", marginTop: ".2rem", fontStyle: "italic" }}>
+                  {fmtEur(col.total)} histórico
+                </div>
+              )}
             </div>
             <div className="kancol-body">
               {col.pats.length === 0 && (

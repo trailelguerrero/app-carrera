@@ -56,9 +56,9 @@ export default function TabDashboard({ stats, pats, objetivo, setObjetivo, setTa
       <div className="kpi-grid mb">
         <div className="kpi amber" style={{cursor:"pointer"}} onClick={()=>setTab("patrocinadores")}>
           <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>🤝 Captado
-            <Tooltip text={"Total comprometido: confirmado + cobrado. Incluye acuerdos firmados aunque no ingresados aún."}><TooltipIcon size={11}/></Tooltip></div>
+            <Tooltip text={"Total comprometido: confirmado + cobrado. Incluye importe monetario y valor en especie. No modifica el módulo Presupuesto (que opera solo con ingresos monetarios)."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value" style={{color:"#f59e0b"}}>{fmtEur(stats.comprometido)}</div>
-          <div className="kpi-sub">{stats.pctObj}% del objetivo · {stats.confirmados} patrocinadores</div>
+          <div className="kpi-sub">{stats.pctObj}% del objetivo · {stats.confirmados} patrocinadores · incl. especie</div>
         </div>
         <div className="kpi green" style={{cursor:"pointer"}} onClick={()=>setTab("patrocinadores")}>
           <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>💰 Cobrado
