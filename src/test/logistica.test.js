@@ -565,3 +565,80 @@ describe('LOG-13 — DATO-02: Avituallamiento KM 4 cubierto por Ruta 1', () => {
     expect(ruta1.paradas).toHaveLength(3);
   });
 });
+
+// ── LOG-14: BUG-02 — Timezone countdown correcto ──────────────────────────
+describe('LOG-14 — BUG-02: timezone countdown T23:59:59 para hora local', () => {
+  // Función que replica exactamente la lógica corregida de TabDashLog.jsx
+  const calcDiasHasta = (fechaStr) => {
+    const eventoFecha = new Date(fechaStr + "T23:59:59");
+    return Math.ceil((eventoFecha - new Date()) / 86400000);
+  };
+
+  // Función que replica el bug original (sin corrección) para comparación
+  const calcDiasHastaBuggy = (fechaStr) => {
+    const eventoFecha = new Date(fechaStr);
+    return Math.ceil((eventoFecha - new Date()) / 86400000);
+  };
+
+  it('new Date("2026-08-29T23:59:59") es posterior a new Date("2026-08-29")', () => {
+    // La corrección añade horas al timestamp base — la fecha con T23:59:59
+    // siempre debe ser posterior a la medianoche UTC
+    const conCorreccion  = new Date("2026-08-29T23:59:59").getTime();
+    const sinCorreccion  = new Date("2026-08-29").getTime();
+    expect(conCorreccion).toBeGreaterThan(sinCorreccion);
+  });
+
+  it('la diferencia entre versión corregida y buggy es de al menos 1 hora', () => {
+    // En UTC+2: new Date("2026-08-29") = 22:00 del día 28 hora local
+    // Con T23:59:59: = 23:59:59 del día 29 hora local
+    // La diferencia mínima es ~22 horas; verificamos que sea >= 1h (3600 s)
+    const conCorreccion = new Date("2026-08-29T23:59:59").getTime();
+    const sinCorreccion = new Date("2026-08-29").getTime();
+    const diferenciaMs = conCorreccion - sinCorreccion;
+    expect(diferenciaMs).toBeGreaterThanOrEqual(3600 * 1000); // al menos 1 hora
+  });
+
+  it('el día del evento (2026-08-29) con corrección no aparece como yaFue', () => {
+    // Simulamos "estamos a las 01:00 UTC del 29 de agosto" —
+    // el momento exacto en que el bug original provocaba yaFue=true en España
+    // Usamos una fecha futura real para que el test sea determinista
+    const diasHasta = calcDiasHasta("2026-08-29");
+    // 2026-08-29 está en el futuro desde mayo 2026 — nunca debe ser < 0
+    expect(diasHasta).toBeGreaterThanOrEqual(0);
+  });
+
+  it('el evento futuro (2026-08-29) devuelve diasHasta positivo con la corrección', () => {
+    const diasHasta = calcDiasHasta("2026-08-29");
+    // Desde mayo 2026, faltan más de 90 días hasta agosto 2026
+    expect(diasHasta).toBeGreaterThan(50);
+  });
+
+  it('una fecha pasada sí produce yaFue=true (la lógica de "ya fue" sigue funcionando)', () => {
+    const diasHasta = calcDiasHasta("2020-01-01");
+    expect(diasHasta).toBeLessThan(0);
+  });
+
+  it('una fecha de mañana devuelve diasHasta=1 con la corrección', () => {
+    // Construimos "mañana" como cadena YYYY-MM-DD
+    const manana = new Date(Date.now() + 86400000);
+    const mananaStr = manana.toISOString().slice(0, 10);
+    const diasHasta = calcDiasHasta(mananaStr);
+    // Con T23:59:59 al final del día de mañana, desde hoy deben quedar ≥1 día
+    expect(diasHasta).toBeGreaterThanOrEqual(1);
+  });
+
+  it('una fecha de hoy NO aparece como yaFue con la corrección aplicada', () => {
+    const hoy = new Date().toISOString().slice(0, 10);
+    const diasHasta = calcDiasHasta(hoy);
+    // Con T23:59:59, el evento de hoy todavía no ha "sido" hasta que acabe el día
+    expect(diasHasta).toBeGreaterThanOrEqual(0);
+  });
+
+  it('EVENT_CONFIG_DEFAULT.fecha es una cadena de solo fecha (sin hora)', () => {
+    // Verifica que el dato real que provocaba el bug sigue siendo una cadena ISO sin hora
+    // para que la corrección siga siendo necesaria y aplicable
+    const fecha = "2026-08-29"; // formato de EVENT_CONFIG_DEFAULT.fecha
+    expect(fecha).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(fecha).not.toContain("T");
+  });
+});

@@ -15,7 +15,13 @@ import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [], asigs = [], totalInscritos = 0 }) {
   const prox = [...tl].filter(t=>t.estado!=="completado").sort((a,b)=>a.hora.localeCompare(b.hora)).slice(0,6);
   const porFase = FASES_CHECKLIST.map(f0 => { const it=ck.filter(c=>c.fase===f0); const d=it.filter(c=>c.estado==="completado").length; return {f:f0,d,t:it.length,pct:it.length?Math.round(d/it.length*100):0}; });
-  const eventoFecha = config?.fecha ? new Date(config.fecha) : new Date(EVENT_CONFIG_DEFAULT.fecha);
+  // BUG-02: cadenas ISO de solo fecha ("YYYY-MM-DD") se interpretan como medianoche UTC.
+  // Desde España (UTC+2 en verano) eso hace que el evento "ya ocurriera" a las 02:00 AM
+  // del mismo día. Añadir "T23:59:59" fuerza interpretación en hora local del navegador,
+  // situando el vencimiento al final del día del evento en la zona horaria del organizador.
+  const eventoFecha = config?.fecha
+    ? new Date(config.fecha + "T23:59:59")
+    : new Date(EVENT_CONFIG_DEFAULT.fecha + "T23:59:59");
   const diasHasta = Math.ceil((eventoFecha - new Date()) / 86400000);
   const yaFue = diasHasta < 0;
   const esSemana = diasHasta >= 0 && diasHasta <= 7;
