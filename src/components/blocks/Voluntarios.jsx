@@ -399,12 +399,15 @@ export default function App() {
     { id: "dashboard",  icon: "📊", label: "Dashboard" },
     { id: "voluntarios",icon: "👥", label: "Voluntarios", badge: stats.total },
     { id: "puestos",    icon: "📍", label: "Puestos",     badge: puestos.length },
+    { id: "tallas",     icon: "👕", label: "Tallas",
+      badge: Object.values(stats.tallasCount).reduce((s, v) => s + v, 0) || undefined,
+      badgeColor: "badge-violet" },
     { id: "dia-d",      icon: "🏁", label: esSemanaCarrera ? "🚨 Día de Carrera" : "Día de Carrera",
       badge: stats.enPuesto > 0 ? stats.enPuesto : undefined, badgeColor: "badge-green" },
   ];
-  // En semana de carrera, Día de Carrera sube a primera posición
+  // En semana de carrera, Día de Carrera sube a primera posición (ahora en índice 4)
   const TABS_VOL = esSemanaCarrera
-    ? [TABS_BASE[3], ...TABS_BASE.slice(0, 3)]
+    ? [TABS_BASE[4], ...TABS_BASE.slice(0, 4)]
     : TABS_BASE;
 
   return (
