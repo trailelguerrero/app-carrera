@@ -95,6 +95,7 @@ const VEH0 = [
 ];
 const RUTAS0 = [
   {id:1,vehiculoId:1,nombre:"Ruta Avituallamiento Norte",horaInicio:"05:30",paradas:[
+    {puesto:"Avituallamiento KM 4",hora:"05:45",material:"Agua x8"},
     {puesto:"Avituallamiento KM 9",hora:"06:00",material:"Agua x10, Isotónico x8, Geles x60"},
     {puesto:"Avituallamiento KM 16",hora:"06:45",material:"Agua x15, Isotónico x12, Geles x100, Botiquín x2"},
   ]},

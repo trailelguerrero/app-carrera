@@ -449,3 +449,119 @@ describe('LOG-12 — DATO-01: medallas finisher stock y asignación correctos', 
     expect(asigMedallas.estado).toBe('pendiente');
   });
 });
+
+// ── LOG-13: DATO-02 — Parada KM4 en Ruta 1, cobertura de todos los puestos ─
+describe('LOG-13 — DATO-02: Avituallamiento KM 4 cubierto por Ruta 1', () => {
+  let RUTAS0, ASIG0;
+
+  beforeAll(async () => {
+    const mod = await import('../components/logistica/logisticaConstants.js');
+    RUTAS0 = mod.RUTAS0;
+    ASIG0  = mod.ASIG0;
+  });
+
+  // ── Existencia de la parada ───────────────────────────────────────────────
+  it('RUTAS0 id=1 existe', () => {
+    const ruta1 = RUTAS0.find(r => r.id === 1);
+    expect(ruta1).toBeDefined();
+  });
+
+  it('Ruta 1 contiene una parada con puesto "Avituallamiento KM 4"', () => {
+    const ruta1 = RUTAS0.find(r => r.id === 1);
+    const paradaKM4 = ruta1.paradas.find(p => p.puesto === 'Avituallamiento KM 4');
+    expect(paradaKM4).toBeDefined();
+  });
+
+  it('la parada KM 4 tiene hora "05:45"', () => {
+    const ruta1 = RUTAS0.find(r => r.id === 1);
+    const paradaKM4 = ruta1.paradas.find(p => p.puesto === 'Avituallamiento KM 4');
+    expect(paradaKM4.hora).toBe('05:45');
+  });
+
+  it('la parada KM 4 indica el material de agua', () => {
+    const ruta1 = RUTAS0.find(r => r.id === 1);
+    const paradaKM4 = ruta1.paradas.find(p => p.puesto === 'Avituallamiento KM 4');
+    expect(paradaKM4.material).toMatch(/agua/i);
+  });
+
+  // ── Orden cronológico ─────────────────────────────────────────────────────
+  it('la parada KM 4 (05:45) es anterior a la parada KM 9 (06:00)', () => {
+    const ruta1 = RUTAS0.find(r => r.id === 1);
+    const paradaKM4 = ruta1.paradas.find(p => p.puesto === 'Avituallamiento KM 4');
+    const paradaKM9 = ruta1.paradas.find(p => p.puesto === 'Avituallamiento KM 9');
+    expect(paradaKM4).toBeDefined();
+    expect(paradaKM9).toBeDefined();
+    // Comparación lexicográfica válida para HH:MM
+    expect(paradaKM4.hora < paradaKM9.hora).toBe(true);
+  });
+
+  it('el orden cronológico de paradas en Ruta 1 es KM4 → KM9 → KM16', () => {
+    const ruta1 = RUTAS0.find(r => r.id === 1);
+    const horas = ruta1.paradas.map(p => p.hora);
+    const horasOrdenadas = [...horas].sort();
+    // Las horas ya deben estar en orden ascendente (sin necesidad de reordenar)
+    expect(horas).toEqual(horasOrdenadas);
+  });
+
+  it('la parada KM 4 aparece antes que KM 9 en el array (posición 0 vs posición 1)', () => {
+    const ruta1 = RUTAS0.find(r => r.id === 1);
+    const idxKM4 = ruta1.paradas.findIndex(p => p.puesto === 'Avituallamiento KM 4');
+    const idxKM9 = ruta1.paradas.findIndex(p => p.puesto === 'Avituallamiento KM 9');
+    expect(idxKM4).toBeGreaterThanOrEqual(0);
+    expect(idxKM9).toBeGreaterThanOrEqual(0);
+    expect(idxKM4).toBeLessThan(idxKM9);
+  });
+
+  // ── Cobertura: todos los puestos con material tienen al menos una ruta ────
+  it('todos los puestos con asignaciones en ASIG0 tienen al menos una ruta que los cubre', () => {
+    // Recopilar todos los puestos cubiertos por alguna parada de alguna ruta
+    const puestosCubiertos = new Set(
+      RUTAS0.flatMap(r => r.paradas.map(p => p.puesto))
+    );
+
+    // Los puestos con asignaciones de avituallamiento/material de campo
+    // (excluimos puestos logísticos de base como Zona Salida/Meta, Primeros Auxilios Base,
+    //  Zona Llegada/Trofeos y controles de ruta que son estáticos y no necesitan ruta de reparto)
+    const puestosExentos = new Set([
+      'Zona Salida/Meta',
+      'Zona Llegada/Trofeos',
+      'Primeros Auxilios Base',
+      'Control KM 7',
+      'Control KM 13',
+    ]);
+
+    // Los puestos de avituallamiento deben tener cobertura de ruta
+    const puestosAvituallamiento = ASIG0
+      .filter(a => !puestosExentos.has(a.puesto))
+      .map(a => a.puesto);
+
+    const sinCobertura = puestosAvituallamiento.filter(p => !puestosCubiertos.has(p));
+    expect(sinCobertura).toHaveLength(0);
+  });
+
+  it('"Avituallamiento KM 4" queda cubierto por la Ruta 1 tras el fix', () => {
+    const puestosCubiertos = new Set(
+      RUTAS0.flatMap(r => r.paradas.map(p => p.puesto))
+    );
+    expect(puestosCubiertos.has('Avituallamiento KM 4')).toBe(true);
+  });
+
+  it('"Avituallamiento KM 9" sigue cubierto por la Ruta 1', () => {
+    const puestosCubiertos = new Set(
+      RUTAS0.flatMap(r => r.paradas.map(p => p.puesto))
+    );
+    expect(puestosCubiertos.has('Avituallamiento KM 9')).toBe(true);
+  });
+
+  it('"Avituallamiento KM 16" sigue cubierto por la Ruta 1', () => {
+    const puestosCubiertos = new Set(
+      RUTAS0.flatMap(r => r.paradas.map(p => p.puesto))
+    );
+    expect(puestosCubiertos.has('Avituallamiento KM 16')).toBe(true);
+  });
+
+  it('Ruta 1 tiene ahora 3 paradas (KM4, KM9, KM16)', () => {
+    const ruta1 = RUTAS0.find(r => r.id === 1);
+    expect(ruta1.paradas).toHaveLength(3);
+  });
+});
