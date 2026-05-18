@@ -256,8 +256,24 @@ export default async function handler(req, res) {
         }
       }
 
-      // Fusionar organizadores de config + logística
-      let organizadores = Array.isArray(orgConfig.organizadores) ? orgConfig.organizadores : [];
+      // Construir array base de organizadores normalizando todas las fuentes:
+      // 1. Si orgConfig.organizadores tiene entradas, usarlas como base.
+      // 2. Si está vacío, construir desde los campos legacy (organizador + telefonoContacto).
+      //    Esto evita que el mismo contacto aparezca en ambas fuentes y se duplique.
+      let organizadores;
+      if (Array.isArray(orgConfig.organizadores) && orgConfig.organizadores.length > 0) {
+        organizadores = orgConfig.organizadores;
+      } else if (orgConfig.organizador || orgConfig.telefonoContacto) {
+        organizadores = [{
+          nombre:   orgConfig.organizador     || 'Organizacion',
+          telefono: orgConfig.telefonoContacto || '',
+          email:    orgConfig.emailContacto    || '',
+        }];
+      } else {
+        organizadores = [];
+      }
+
+      // Fusionar con contactos de logística relevantes, deduplicando por teléfono normalizado
       try {
         const contRes = await sql`SELECT value FROM collections WHERE key = 'teg_logistica_v1_cont'`;
         if (contRes.length > 0 && Array.isArray(contRes[0].value)) {
