@@ -118,7 +118,7 @@ export const PAT0 = [
   {
     id: 4, nombre: "GU Energy Labs", sector: "Alimentación / Nutrición", nivel: "Especie",
     contacto: "Distribuidor ES", telefono: "93 000 1111", email: "iberia@guenergy.com",
-    importe: 0, importeCobrado: 0, especie: 800, estado: "confirmado",
+    importe: 0, importeCobrado: 0, especie: 520, estado: "confirmado",
     fechaAcuerdo: "2026-02-20", fechaVencimiento: "",
     notas: "Patrocinio en especie: 250 geles + 100 barritas para avituallamiento TG25 y TG13. Envío previsto julio.",
     contraprestaciones: [
@@ -127,8 +127,10 @@ export const PAT0 = [
     ],
     docs: [],
     especieItems: [
-      { id:1, nombre:"Geles energéticos", cantidad:250, unidad:"unidades", recibido:false },
-      { id:2, nombre:"Barritas energéticas", cantidad:100, unidad:"unidades", recibido:false },
+      // SEED-03: valorUnitario añadido a precio de proveedor (no PVP)
+      // calcularTotalEspecie: 250×1.60 + 100×1.20 = 400 + 120 = 520€ → actualizado especie: 520
+      { id:1, nombre:"Geles energéticos", cantidad:250, unidad:"unidades", valorUnitario:1.60, recibido:false },
+      { id:2, nombre:"Barritas energéticas", cantidad:100, unidad:"unidades", valorUnitario:1.20, recibido:false },
     ],
   },
   {

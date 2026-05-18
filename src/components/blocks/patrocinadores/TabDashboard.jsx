@@ -2,14 +2,16 @@ import { useState } from "react";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { fmtEur } from "@/lib/utils";
 import { NIVELES, NIVEL_CFG, getCfg } from "./constants";
+import { getEspecieValue } from "@/lib/budgetUtils";
 
 export default function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, openDetalle, config }) {
   const [editObj, setEditObj] = useState(false);
   const [tmpObj, setTmpObj] = useState(objetivo);
 
+  // INC-01: usar getEspecieValue (fuente única de verdad, Opción C) para coherencia con stats.especie
   const porNivel = NIVELES.map(n => {
     const np = pats.filter(p => p.nivel === n && p.estado !== "cancelado");
-    const total = np.reduce((s, p) => s + p.importe + (p.especie || 0), 0);
+    const total = np.reduce((s, p) => s + (p.importe || 0) + getEspecieValue(p), 0);
     return { n, count: np.length, total, cfg: NIVEL_CFG[n] };
   });
 

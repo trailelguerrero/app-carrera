@@ -55,6 +55,42 @@ export const detectarIncoherencias = (pat) => {
 export const calcularTotalEspecie = (especieItems = []) =>
   especieItems.reduce((s, i) => s + ((i.valorUnitario || 0) * (i.cantidad || 0)), 0);
 
+/**
+ * getEspecieValue — FUENTE ÚNICA DE VERDAD para el valor en especie de un patrocinador.
+ *
+ * DECISIÓN DE ARQUITECTURA (INC-01) — Opción C: fallback retrocompatible
+ * -----------------------------------------------------------------------
+ * Hay dos campos que pueden expresar el valor en especie:
+ *   1. p.especie         — campo numérico manual (legado, introducido a mano)
+ *   2. p.especieItems[]  — inventario detallado con valorUnitario × cantidad
+ *
+ * Estrategia elegida:
+ *   - Si existe al menos un ítem con valorUnitario > 0 → usar calcularTotalEspecie(especieItems)
+ *   - En caso contrario → usar p.especie como fallback (compatibilidad con datos sin ítems)
+ *
+ * Por qué Opción C (y no A ni B):
+ *   - Opción A (siempre calcular desde ítems): rompe registros con especie manual sin ítems
+ *   - Opción B (especie readonly sincronizado): requiere que todas las escrituras recalculen,
+ *     lo que añade complejidad sin beneficio real sobre C
+ *   - Opción C: retrocompatible, no requiere migración de datos, converge naturalmente
+ *     cuando el usuario añade valorUnitario a los ítems
+ *
+ * Esta función debe usarse en todos los puntos que consumen el valor en especie:
+ *   - stats.especie en Patrocinadores.jsx
+ *   - porNivel.total en TabDashboard.jsx
+ *   - savePat (para sincronizar p.especie al guardar cuando hay ítems)
+ *
+ * @param {object} pat - Objeto patrocinador completo
+ * @returns {number} Valor en especie en euros
+ */
+export const getEspecieValue = (pat) => {
+  const items = pat.especieItems || [];
+  const totalItems = calcularTotalEspecie(items);
+  // Usar ítems calculados solo si hay al menos un ítem con valorUnitario definido y > 0
+  const tieneItemsConValor = items.some(i => i.valorUnitario > 0);
+  return tieneItemsConValor ? totalItems : (pat.especie || 0);
+};
+
 export const fmt = (n) => 
   n === 0 ? "0,00 €" : `${n.toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".")} €`;
 

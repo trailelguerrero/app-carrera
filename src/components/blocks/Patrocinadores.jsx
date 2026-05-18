@@ -4,7 +4,7 @@ import { useModalClose } from "@/hooks/useModalClose";
 import { exportarPatrocinadores } from "@/lib/exportUtils";
 import { toast } from "@/lib/toast";
 import { genIdNum, fmtEur, scrollMainToTop } from "@/lib/utils";
-import { getImporteCobrado, detectarIncoherencias, calcularTotalEspecie } from "@/lib/budgetUtils";
+import { getImporteCobrado, detectarIncoherencias, calcularTotalEspecie, getEspecieValue } from "@/lib/budgetUtils";
 import EmptyState from "@/components/EmptyState";
 import { usePaginacion } from "@/hooks/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
@@ -54,7 +54,8 @@ export default function App() {
     const comprometido = confirmados.reduce((s, p) => s + (p.importe || 0), 0);
     // Pendiente de cobro: comprometido - cobrado
     const pendienteCobro = comprometido - cobrado;
-    const especie = activos.reduce((s, p) => s + (p.especie || 0), 0);
+    // INC-01: usar getEspecieValue (fuente única de verdad, Opción C) en lugar de p.especie directo
+    const especie = activos.reduce((s, p) => s + getEspecieValue(p), 0);
     const pipeline = valid.filter(p => p.estado === "negociando" || p.estado === "prospecto").reduce((s, p) => s + (p.importe || 0), 0);
     const pctObj = objetivo > 0 ? Math.min(Math.round(comprometido / objetivo * 100), 100) : 0;
     const pctCobrado = objetivo > 0 ? Math.min(Math.round(cobrado / objetivo * 100), 100) : 0;
@@ -130,15 +131,24 @@ export default function App() {
   };
 
   const savePat = (pat) => {
+    // INC-01/MEJ-01: sincronizar p.especie desde especieItems al guardar (Opción C SSOT)
+    // Si hay ítems con valorUnitario, recalcular p.especie para mantener coherencia con Dashboard
+    const items = pat.especieItems || [];
+    const tieneItemsConValor = items.some(i => i.valorUnitario > 0);
+    const especieSincronizado = tieneItemsConValor
+      ? items.reduce((s, i) => s + ((i.valorUnitario || 0) * (i.cantidad || 0)), 0)
+      : (pat.especie || 0);
+    const patConEspecie = { ...pat, especie: especieSincronizado };
+
     if (pat.id) {
       // Para edición: el modal ya trae las contraprestaciones y especieItems actualizados en form
       // Solo preservar docs, que ModalPat no gestiona (se gestionan desde ModalDetalle → TabDocumentos)
       setPats(prev => prev.map(p => p.id === pat.id
-        ? { ...pat, docs: p.docs || [] }
+        ? { ...patConEspecie, docs: p.docs || [] }
         : p
       ));
     } else {
-      setPats(prev => [...prev, { ...pat, id: genIdNum(pats), docs: [], especieItems: [] }]);
+      setPats(prev => [...prev, { ...patConEspecie, id: genIdNum(pats), docs: [], especieItems: [] }]);
     }
     dataService.notify(); // FIX BUG-ECO-02: sincronizar Dashboard tras crear/editar patrocinador
     setModal(null);
@@ -207,27 +217,46 @@ export default function App() {
 
   // ── Gestión ítems en especie ─────────────────────────────────────────────────
   const addEspecieItem = (patId, item) => {
-    setPats(prev => prev.map(p => p.id === patId ? {
-      ...p,
-      especieItems: [...(p.especieItems || []), { ...item, id: genIdNum(p.especieItems || []) }]
-    } : p));
+    setPats(prev => prev.map(p => {
+      if (p.id !== patId) return p;
+      const nuevosItems = [...(p.especieItems || []), { ...item, id: genIdNum(p.especieItems || []) }];
+      // MEJ-01: resincronizar p.especie si los nuevos ítems tienen valorUnitario (Opción C SSOT)
+      const tieneValor = nuevosItems.some(i => i.valorUnitario > 0);
+      const especieSync = tieneValor
+        ? nuevosItems.reduce((s, i) => s + ((i.valorUnitario || 0) * (i.cantidad || 0)), 0)
+        : p.especie;
+      return { ...p, especieItems: nuevosItems, especie: especieSync };
+    }));
     dataService.notify(); // CON-04: sincronizar módulos tras añadir ítem en especie
   };
   const updateEspecieItem = (patId, itemId, campo, valor) => {
-    setPats(prev => prev.map(p => p.id === patId ? {
-      ...p,
-      especieItems: (p.especieItems || []).map(i => i.id === itemId ? { ...i, ...(typeof campo === "object" ? campo : { [campo]: valor }) } : i)
-    } : p));
-    // CON-04: sincronizar módulos tras actualizar ítem en especie
-    // NOTA: updateEspecieItem se llama solo en operaciones discretas (confirmación de edición),
-    // no en cada keystroke, por lo que no se necesita debounce adicional
-    dataService.notify();
+    setPats(prev => prev.map(p => {
+      if (p.id !== patId) return p;
+      const updItems = (p.especieItems || []).map(i =>
+        i.id === itemId ? { ...i, ...(typeof campo === "object" ? campo : { [campo]: valor }) } : i
+      );
+      // MEJ-01: resincronizar p.especie si los ítems tienen valorUnitario (Opción C SSOT)
+      // NOTA: updateEspecieItem se llama solo en operaciones discretas (confirmación de edición),
+      // no en cada keystroke, por lo que no se necesita debounce adicional
+      const tieneValor = updItems.some(i => i.valorUnitario > 0);
+      const especieSync = tieneValor
+        ? updItems.reduce((s, i) => s + ((i.valorUnitario || 0) * (i.cantidad || 0)), 0)
+        : p.especie;
+      return { ...p, especieItems: updItems, especie: especieSync };
+    }));
+    dataService.notify(); // CON-04: sincronizar módulos tras actualizar ítem en especie
   };
   const deleteEspecieItem = (patId, itemId) => {
-    setPats(prev => prev.map(p => p.id === patId ? {
-      ...p,
-      especieItems: (p.especieItems || []).filter(i => i.id !== itemId)
-    } : p));
+    setPats(prev => prev.map(p => {
+      if (p.id !== patId) return p;
+      const filteredItems = (p.especieItems || []).filter(i => i.id !== itemId);
+      // MEJ-01: resincronizar p.especie tras eliminar ítem (Opción C SSOT)
+      const tieneValor = filteredItems.some(i => i.valorUnitario > 0);
+      const especieSync = tieneValor
+        ? filteredItems.reduce((s, i) => s + ((i.valorUnitario || 0) * (i.cantidad || 0)), 0)
+        : p.especie;
+      return { ...p, especieItems: filteredItems, especie: especieSync };
+    }));
     dataService.notify(); // CON-04: sincronizar módulos tras eliminar ítem en especie
   };
 
@@ -463,7 +492,7 @@ function ModalPat({
                 <span>📦 Detalle de productos/servicios</span>
                 <button className="btn btn-sm btn-ghost" style={{ fontSize: "var(--fs-xs)", padding: ".2rem .4rem" }}
                   onClick={() => {
-                    const newItem = { id: Date.now(), nombre: "", cantidad: 1, unidad: "ud", recibido: false };
+                    const newItem = { id: Date.now(), nombre: "", cantidad: 1, unidad: "ud", valorUnitario: 0, recibido: false };
                     setForm(p => ({ ...p, especieItems: [...(p.especieItems || []), newItem] }));
                   }}>+ Añadir ítem</button>
               </div>
@@ -474,28 +503,42 @@ function ModalPat({
               )}
               <div style={{ display: "flex", flexDirection: "column", gap: ".4rem" }}>
                 {(form.especieItems || []).map((item, idx) => (
-                  <div key={item.id} style={{ display: "flex", gap: ".4rem", alignItems: "center" }}>
-                    <input className="inp" style={{ flex: 2, fontSize: "var(--fs-sm)" }} placeholder="Nombre producto" value={item.nombre}
+                  <div key={item.id} style={{ display: "flex", gap: ".4rem", alignItems: "center", flexWrap: "wrap" }}>
+                    <input className="inp" style={{ flex: "2 1 120px", fontSize: "var(--fs-sm)" }} placeholder="Nombre producto" value={item.nombre}
                       onChange={e => {
                         setForm(p => ({
                           ...p,
                           especieItems: p.especieItems.map((it, i) => i === idx ? { ...it, nombre: e.target.value } : it),
                         }));
                       }} />
-                    <input className="inp" style={{ flex: 0.8, fontSize: "var(--fs-sm)" }} type="number" placeholder="Cant." value={item.cantidad}
+                    <input className="inp" style={{ flex: "0.8 1 60px", fontSize: "var(--fs-sm)" }} type="number" placeholder="Cant." value={item.cantidad}
                       onChange={e => {
                         setForm(p => ({
                           ...p,
                           especieItems: p.especieItems.map((it, i) => i === idx ? { ...it, cantidad: Number(e.target.value) } : it),
                         }));
                       }} />
-                    <input className="inp" style={{ flex: 1, fontSize: "var(--fs-sm)" }} placeholder="ud" value={item.unidad}
+                    <input className="inp" style={{ flex: "1 1 60px", fontSize: "var(--fs-sm)" }} placeholder="ud" value={item.unidad}
                       onChange={e => {
                         setForm(p => ({
                           ...p,
                           especieItems: p.especieItems.map((it, i) => i === idx ? { ...it, unidad: e.target.value } : it),
                         }));
                       }} />
+                    {/* MEJ-02: campo valorUnitario */}
+                    <input className="inp" style={{ flex: "1 1 80px", fontSize: "var(--fs-sm)" }} type="number" min="0" step="0.01" placeholder="€/ud"
+                      value={item.valorUnitario || ""}
+                      onChange={e => {
+                        setForm(p => ({
+                          ...p,
+                          especieItems: p.especieItems.map((it, i) => i === idx ? { ...it, valorUnitario: parseFloat(e.target.value) || 0 } : it),
+                        }));
+                      }} />
+                    {item.cantidad > 0 && item.valorUnitario > 0 && (
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--violet)", whiteSpace: "nowrap", padding: ".15rem .35rem", background: "rgba(167,139,250,.1)", borderRadius: 4 }}>
+                        {(item.cantidad * item.valorUnitario).toFixed(0)}€
+                      </span>
+                    )}
                     <button className="btn btn-sm btn-red" style={{ padding: ".2rem .4rem" }}
                       onClick={() => {
                         setForm(p => ({ ...p, especieItems: p.especieItems.filter((_, i) => i !== idx) }));

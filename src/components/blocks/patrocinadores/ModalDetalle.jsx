@@ -218,11 +218,11 @@ export default function ModalDetalle({ pat, onClose, onEditar, onDelete, updateC
   const [addingCont, setAddingCont] = useState(false);
   const [newC, setNewC] = useState({ tipo: CONTRAPRESTACIONES_TIPO[0], detalle: "", fechaEntrega: "" });
   const [addingEspecie, setAddingEspecie] = useState(false);
-  const [newEsp, setNewEsp] = useState({ nombre: "", cantidad: 0, unidad: "unidades" });
+  const [newEsp, setNewEsp] = useState({ nombre: "", cantidad: 0, unidad: "unidades", valorUnitario: 0 });
   const [editingCont, setEditingCont] = useState(null);
   const [editC, setEditC] = useState({ tipo: CONTRAPRESTACIONES_TIPO[0], detalle: "", fechaEntrega: "" });
   const [editingEspecie, setEditingEspecie] = useState(null);
-  const [editEsp, setEditEsp] = useState({ nombre: "", cantidad: 0, unidad: "unidades" });
+  const [editEsp, setEditEsp] = useState({ nombre: "", cantidad: 0, unidad: "unidades", valorUnitario: 0 });
   const especieItems = pat.especieItems || [];
   const esPatEspecie = pat.nivel === "Especie" || pat.especie > 0;
 
@@ -423,6 +423,15 @@ export default function ModalDetalle({ pat, onClose, onEditar, onDelete, updateC
                     <input type="number" min="0" className="inp" placeholder="Cantidad" value={editEsp.cantidad} onChange={e => setEditEsp(x => ({ ...x, cantidad: parseInt(e.target.value) || 0 }))} style={{ flex: 1 }} />
                     <input className="inp" placeholder="Unidad (uds, kg, litros…)" value={editEsp.unidad} onChange={e => setEditEsp(x => ({ ...x, unidad: e.target.value }))} style={{ flex: 1 }} />
                   </div>
+                  {/* MEJ-02: campo valorUnitario para calcular total en tiempo real */}
+                  <div style={{ display: "flex", gap: ".4rem", alignItems: "center" }}>
+                    <input type="number" min="0" step="0.01" className="inp" placeholder="Valor unit. (€)" value={editEsp.valorUnitario || ""} onChange={e => setEditEsp(x => ({ ...x, valorUnitario: parseFloat(e.target.value) || 0 }))} style={{ flex: 1 }} />
+                    {editEsp.cantidad > 0 && editEsp.valorUnitario > 0 && (
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--violet)", flexShrink: 0, padding: ".2rem .5rem", background: "rgba(167,139,250,.1)", borderRadius: 4 }}>
+                        = {(editEsp.cantidad * editEsp.valorUnitario).toFixed(2)} €
+                      </span>
+                    )}
+                  </div>
                   <div style={{ display: "flex", gap: ".4rem", justifyContent: "flex-end" }}>
                     <button className="btn btn-sm btn-ghost" onClick={() => setEditingEspecie(null)}>Cancelar</button>
                     <button className="btn btn-sm btn-gold" onClick={() => { if(editEsp.nombre.trim()){ updateEspecieItem(pat.id, item.id, editEsp); setEditingEspecie(null); } }}>Guardar</button>
@@ -436,7 +445,7 @@ export default function ModalDetalle({ pat, onClose, onEditar, onDelete, updateC
                 </button>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: "var(--fs-base)", fontWeight: 600, textDecoration: item.recibido ? "line-through" : "none", color: item.recibido ? "var(--text-muted)" : "var(--text)" }}>{item.nombre}</div>
-                  <div className="mono xs muted">{item.cantidad} {item.unidad}</div>
+                  <div className="mono xs muted">{item.cantidad} {item.unidad}{item.valorUnitario > 0 ? ` · ${item.valorUnitario.toFixed(2)}€/ud` : ""}</div>
                 </div>
                 <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", padding: ".1rem .4rem", borderRadius: 4,
                   background: item.recibido ? "rgba(52,211,153,.12)" : "rgba(251,191,36,.1)",
@@ -444,7 +453,7 @@ export default function ModalDetalle({ pat, onClose, onEditar, onDelete, updateC
                   {item.recibido ? "✓ Recibido" : "⏳ Pendiente"}
                 </span>
                 <div style={{display:"flex",gap:".3rem",flexShrink:0}}>
-                  <button className="btn btn-sm btn-ghost" onClick={() => { setEditingEspecie(item.id); setEditEsp({ nombre: item.nombre, cantidad: item.cantidad, unidad: item.unidad }); }} aria-label="Editar">✏️</button>
+                  <button className="btn btn-sm btn-ghost" onClick={() => { setEditingEspecie(item.id); setEditEsp({ nombre: item.nombre, cantidad: item.cantidad, unidad: item.unidad, valorUnitario: item.valorUnitario || 0 }); }} aria-label="Editar">✏️</button>
                   <button className="btn btn-sm btn-red" onClick={() => deleteEspecieItem(pat.id, item.id)} aria-label="Cerrar">✕</button>
                 </div>
               </div>
@@ -456,10 +465,19 @@ export default function ModalDetalle({ pat, onClose, onEditar, onDelete, updateC
                   <input type="number" min="0" className="inp" placeholder="Cantidad" value={newEsp.cantidad} onChange={e => setNewEsp(x => ({ ...x, cantidad: parseInt(e.target.value) || 0 }))} style={{ flex: 1 }} />
                   <input className="inp" placeholder="Unidad (uds, kg, litros…)" value={newEsp.unidad} onChange={e => setNewEsp(x => ({ ...x, unidad: e.target.value }))} style={{ flex: 1 }} />
                 </div>
+                {/* MEJ-02: campo valorUnitario para calcular total en tiempo real */}
+                <div style={{ display: "flex", gap: ".4rem", alignItems: "center" }}>
+                  <input type="number" min="0" step="0.01" className="inp" placeholder="Valor unit. (€)" value={newEsp.valorUnitario || ""} onChange={e => setNewEsp(x => ({ ...x, valorUnitario: parseFloat(e.target.value) || 0 }))} style={{ flex: 1 }} />
+                  {newEsp.cantidad > 0 && newEsp.valorUnitario > 0 && (
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--violet)", flexShrink: 0, padding: ".2rem .5rem", background: "rgba(167,139,250,.1)", borderRadius: 4 }}>
+                      = {(newEsp.cantidad * newEsp.valorUnitario).toFixed(2)} €
+                    </span>
+                  )}
+                </div>
                 <div style={{ display: "flex", gap: ".4rem", justifyContent: "flex-end" }}>
                   <button className="btn btn-ghost" onClick={() => setAddingEspecie(false)}>Cancelar</button>
                   <button className="btn btn-gold" onClick={() => {
-                    if (newEsp.nombre.trim()) { addEspecieItem(pat.id, { ...newEsp, recibido: false }); setNewEsp({ nombre: "", cantidad: 0, unidad: "unidades" }); setAddingEspecie(false); }
+                    if (newEsp.nombre.trim()) { addEspecieItem(pat.id, { ...newEsp, recibido: false }); setNewEsp({ nombre: "", cantidad: 0, unidad: "unidades", valorUnitario: 0 }); setAddingEspecie(false); }
                   }}>Añadir</button>
                 </div>
               </div>
