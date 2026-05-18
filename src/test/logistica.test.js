@@ -380,3 +380,72 @@ describe('LOG-11 — BUG-01: KPI Incidencias usa tab:"emergencias"', () => {
     expect(kpis.map(k => k.tab)).not.toContain("contactos");
   });
 });
+
+// ── LOG-12: DATO-01 — Stock medallas 620→650 y asignación Zona Llegada/Trofeos ──
+describe('LOG-12 — DATO-01: medallas finisher stock y asignación correctos', () => {
+  // Importamos los datos directamente desde logisticaConstants.js
+  // Como es un módulo ES, usamos dynamic import resuelto con vi
+  let MAT0, ASIG0;
+
+  beforeAll(async () => {
+    const mod = await import('../components/logistica/logisticaConstants.js');
+    MAT0  = mod.MAT0;
+    ASIG0 = mod.ASIG0;
+  });
+
+  it('MAT0 contiene el artículo medallas finisher con id=17', () => {
+    const medallas = MAT0.find(m => m.id === 17);
+    expect(medallas).toBeDefined();
+    expect(medallas.nombre).toMatch(/medalla/i);
+  });
+
+  it('medallas finisher (id=17) tiene stock=650 (igual al número de dorsales)', () => {
+    const medallas = MAT0.find(m => m.id === 17);
+    expect(medallas.stock).toBe(650);
+  });
+
+  it('dorsales impresos (id=16) tienen stock=650', () => {
+    const dorsales = MAT0.find(m => m.id === 16);
+    expect(dorsales).toBeDefined();
+    expect(dorsales.stock).toBe(650);
+  });
+
+  it('stock medallas === stock dorsales (sin déficit estructural)', () => {
+    const medallas = MAT0.find(m => m.id === 17);
+    const dorsales = MAT0.find(m => m.id === 16);
+    expect(medallas.stock).toBe(dorsales.stock);
+  });
+
+  it('ASIG0 contiene una asignación para materialId=17 (medallas)', () => {
+    const asigMedallas = ASIG0.filter(a => a.materialId === 17);
+    expect(asigMedallas.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('la asignación de medallas va a puesto "Zona Llegada/Trofeos"', () => {
+    const asigMedallas = ASIG0.find(a => a.materialId === 17);
+    expect(asigMedallas.puesto).toBe('Zona Llegada/Trofeos');
+  });
+
+  it('la cantidad asignada de medallas es 650', () => {
+    const asigMedallas = ASIG0.find(a => a.materialId === 17);
+    expect(asigMedallas.cantidad).toBe(650);
+  });
+
+  it('el déficit de medallas (asignado - stock) es 0', () => {
+    const medallas = MAT0.find(m => m.id === 17);
+    const asigMedallas = ASIG0.filter(a => a.materialId === 17)
+      .reduce((sum, a) => sum + a.cantidad, 0);
+    const deficit = asigMedallas - medallas.stock;
+    expect(deficit).toBe(0);
+  });
+
+  it('la asignación de medallas usa localizacionId=11 (Zona Llegada/Trofeos)', () => {
+    const asigMedallas = ASIG0.find(a => a.materialId === 17);
+    expect(asigMedallas.localizacionId).toBe(11);
+  });
+
+  it('la asignación de medallas tiene estado "pendiente"', () => {
+    const asigMedallas = ASIG0.find(a => a.materialId === 17);
+    expect(asigMedallas.estado).toBe('pendiente');
+  });
+});
