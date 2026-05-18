@@ -358,7 +358,6 @@ export default function App() {
     else if (data.estado === "cancelado") toast.warning(`${ids.length} voluntarios cancelados`);
     else if (data.estado === "pendiente") toast.info(`${ids.length} voluntarios movidos a pendiente`);
   };
-  const deleteVoluntario = (id) => { const sid = String(id); setVoluntarios(prev => prev.filter(v => String(v.id) !== sid)); setConfirmDelete(null); toast.success("Voluntario eliminado"); };
   const updatePuesto = (id, data) => { setPuestos(prev => prev.map(p => p.id === id ? { ...p, ...data } : p)); toast.success("Puesto actualizado"); };
   const addPuesto = (data) => { setPuestos(prev => [...prev, { id: genIdNum(puestos), ...data }]); toast.success("Puesto creado"); };
   const deletePuesto = (id) => { setPuestos(prev => prev.filter(p => p.id !== id)); setVoluntarios(prev => prev.map(v => v.puestoId === id ? { ...v, puestoId: null } : v)); toast.success("Puesto eliminado"); };
