@@ -196,7 +196,7 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
     const ckDone = ck.filter(c0 => c0.estado==="completado").length;
     const stockErr = material.filter(m0 => asigs.filter(a=>a.materialId===m0.id).reduce((s,a)=>s+a.cantidad,0) > m0.stock).length;
     const stockBajoMinimo = material.filter(m0 => m0.stockMinimo > 0 && m0.stock < m0.stockMinimo).length;
-    const incOpen = inc.filter(i0 => i0.estado==="abierta").length;
+    const incOpen = inc.filter(i0 => i0.estado==="abierta" || i0.estado==="en gestión").length;
     return { tlDone, tlTotal:tl.length, ckDone, ckTotal:ck.length, stockErr, stockBajoMinimo, incOpen };
   }, [tl, ck, material, asigs, inc]);
 

@@ -15,6 +15,7 @@
  * LOG-16  DATO-03: Botiquín inconsistente eliminado del texto de Ruta 1 KM 16
  * LOG-17  BUG-03: ESCALA_CON_INSCRITOS exportada y conectada al panel de alertas
  * LOG-18  DIS-01: Umbral avituallamiento por stockMinimo — UMBRAL_GENERICO eliminado
+ * LOG-20  DIS-04: Estado "en gestión" en ciclo de vida de incidencias
  */
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 
@@ -1182,5 +1183,148 @@ describe('LOG-19 — DATO-05: Conflicto agenda Javier López', () => {
     // La recogida debe empezar después o al mismo tiempo que los trofeos
     // (no antes de que termine la ceremonia)
     expect(toMinutos(recogida.hora)).toBeGreaterThanOrEqual(toMinutos(trofeos.hora));
+  });
+});
+
+// ── LOG-20: DIS-04 — Estado "en gestión" en ciclo de vida de incidencias ────
+describe('LOG-20 — DIS-04: estado "en gestión" en ciclo de vida de incidencias', () => {
+
+  // ── Test 1: ESTADO_COLORES contiene "en gestión" con un color CSS válido ──
+  it('ESTADO_COLORES contiene la clave "en gestión" con un valor de color CSS', async () => {
+    const mod = await import('../components/logistica/logisticaConstants.js');
+    const ESTADO_COLORES = mod.ESTADO_COLORES;
+
+    expect(ESTADO_COLORES).toHaveProperty('en gestión');
+    const color = ESTADO_COLORES['en gestión'];
+    expect(typeof color).toBe('string');
+    expect(color.length).toBeGreaterThan(0);
+    // Debe ser una variable CSS o valor de color
+    expect(color).toMatch(/^var\(--[\w-]+\)$|^#[0-9a-fA-F]{3,8}$|^rgb|^hsl/);
+  });
+
+  // ── Test 2: ESTADO_COLORES también contiene "abierta" y "resuelta" ─────────
+  it('ESTADO_COLORES contiene colores para los tres estados de incidencia', async () => {
+    const mod = await import('../components/logistica/logisticaConstants.js');
+    const ESTADO_COLORES = mod.ESTADO_COLORES;
+
+    expect(ESTADO_COLORES).toHaveProperty('abierta');
+    expect(ESTADO_COLORES).toHaveProperty('en gestión');
+    expect(ESTADO_COLORES).toHaveProperty('resuelta');
+  });
+
+  // ── Test 3: Las opciones de estado incluyen los 3 estados en el orden correcto ──
+  it('el selector de estado de incidencia incluye ["abierta","en gestión","resuelta"] en ese orden', async () => {
+    const { readFileSync } = await import('fs');
+    const { resolve } = await import('path');
+    const src = readFileSync(resolve(process.cwd(), 'src/components/logistica/FichaLogistica.jsx'), 'utf-8');
+
+    // El array de opciones del campo estado debe contener los 3 valores en orden
+    expect(src).toContain('"en gestión"');
+
+    // Buscar la subcadena exacta del array de opciones del selector
+    const arrayRegex = /o:\["abierta","en gestión","resuelta"\]/;
+    expect(src).toMatch(arrayRegex);
+  });
+
+  // ── Test 4: incOpen cuenta "abierta" Y "en gestión" ──────────────────────
+  it('stats.incOpen cuenta incidencias con estado "abierta" O "en gestión"', () => {
+    // Simular el cálculo de incOpen como está en Logistica.jsx
+    const inc = [
+      { id: 1, estado: 'abierta',      descripcion: 'Corredor caído KM3' },
+      { id: 2, estado: 'en gestión',   descripcion: 'Señalización caída KM7' },
+      { id: 3, estado: 'resuelta',     descripcion: 'Falta agua KM9' },
+      { id: 4, estado: 'abierta',      descripcion: 'Corredor perdido' },
+      { id: 5, estado: 'en gestión',   descripcion: 'Botiquín agotado' },
+    ];
+
+    // Replicar la fórmula actualizada de Logistica.jsx
+    const incOpen = inc.filter(i0 => i0.estado === 'abierta' || i0.estado === 'en gestión').length;
+
+    // Debe contar 4 (2 abiertas + 2 en gestión), NO 2 (solo abiertas)
+    expect(incOpen).toBe(4);
+  });
+
+  // ── Test 5: incidencias "en gestión" no se tratan como resueltas ──────────
+  it('una incidencia "en gestión" no se trata como resuelta en el KPI', () => {
+    const inc = [
+      { id: 1, estado: 'en gestión', descripcion: 'Señalización caída' },
+      { id: 2, estado: 'resuelta',   descripcion: 'Falta agua' },
+    ];
+
+    const incOpen = inc.filter(i0 => i0.estado === 'abierta' || i0.estado === 'en gestión').length;
+
+    // "en gestión" cuenta como abierta (no resuelta)
+    expect(incOpen).toBe(1);
+
+    // Confirmar que "resuelta" no se cuenta
+    const soloResueltas = inc.filter(i0 => i0.estado === 'resuelta').length;
+    expect(soloResueltas).toBe(1);
+    expect(incOpen + soloResueltas).toBe(inc.length);
+  });
+
+  // ── Test 6: ordenación coloca "abierta" antes de "en gestión" antes de "resuelta" ──
+  it('la ordenación de incidencias prioriza abierta > en gestión > resuelta', () => {
+    const estadoOrd = e => e === 'abierta' ? 0 : e === 'en gestión' ? 1 : 2;
+
+    const inc = [
+      { id: 1, estado: 'resuelta',   gravedad: 'alta'  },
+      { id: 2, estado: 'en gestión', gravedad: 'media' },
+      { id: 3, estado: 'abierta',    gravedad: 'baja'  },
+      { id: 4, estado: 'abierta',    gravedad: 'alta'  },
+    ];
+
+    const G = { alta: 0, media: 1, baja: 2 };
+    const sorted = [...inc].sort((a, b) => {
+      const byEstado = estadoOrd(a.estado) - estadoOrd(b.estado);
+      return byEstado || (G[a.gravedad] ?? 1) - (G[b.gravedad] ?? 1);
+    });
+
+    // Primera: abierta + alta
+    expect(sorted[0]).toMatchObject({ estado: 'abierta', gravedad: 'alta' });
+    // Segunda: abierta + baja
+    expect(sorted[1]).toMatchObject({ estado: 'abierta', gravedad: 'baja' });
+    // Tercera: en gestión
+    expect(sorted[2]).toMatchObject({ estado: 'en gestión' });
+    // Última: resuelta
+    expect(sorted[3]).toMatchObject({ estado: 'resuelta' });
+  });
+
+  // ── Test 7: TabEmergencias.jsx usa estadoOrd para la ordenación ───────────
+  it('TabEmergencias.jsx contiene la función estadoOrd con los 3 estados', async () => {
+    const { readFileSync } = await import('fs');
+    const { resolve } = await import('path');
+    const src = readFileSync(resolve(process.cwd(), 'src/components/logistica/TabEmergencias.jsx'), 'utf-8');
+
+    // Verificar que la nueva lógica de ordenación está presente
+    expect(src).toContain('estadoOrd');
+    // Usar comillas dobles como en el código fuente
+    expect(src).toContain('"abierta" ? 0');
+    expect(src).toContain('"en gestión" ? 1');
+  });
+
+  // ── Test 8: resueltaEn se asigna al pasar de "en gestión" a "resuelta" ────
+  it('resueltaEn se asigna cuando la incidencia pasa de "en gestión" a "resuelta"', () => {
+    // Simular el ciclo del botón toggle: en gestión → resuelta
+    const incEnGestion = { id: 1, estado: 'en gestión', resueltaEn: null };
+
+    const nuevoEstado = incEnGestion.estado === 'abierta' ? 'en gestión'
+      : incEnGestion.estado === 'en gestión' ? 'resuelta'
+      : 'abierta';
+    const nuevoResueltaEn = (incEnGestion.estado === 'en gestión') ? new Date().toISOString() : null;
+
+    expect(nuevoEstado).toBe('resuelta');
+    expect(nuevoResueltaEn).not.toBeNull();
+    expect(typeof nuevoResueltaEn).toBe('string');
+  });
+
+  // ── Test 9: el ciclo completo abierta → en gestión → resuelta → abierta ───
+  it('el ciclo de estados sigue el flujo: abierta → en gestión → resuelta → abierta', () => {
+    const ciclo = estado => estado === 'abierta' ? 'en gestión'
+      : estado === 'en gestión' ? 'resuelta'
+      : 'abierta';
+
+    expect(ciclo('abierta')).toBe('en gestión');
+    expect(ciclo('en gestión')).toBe('resuelta');
+    expect(ciclo('resuelta')).toBe('abierta');
   });
 });

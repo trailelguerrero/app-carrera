@@ -98,7 +98,7 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar })
               <Row label="Hora"        value={data.hora} />
               <Row label="Tipo"        value={data.tipo} />
               <Row label="Gravedad"    value={data.gravedad} color={data.gravedad==="alta"?"var(--red)":data.gravedad==="media"?"var(--amber)":"var(--green)"} />
-              <Row label="Estado"      value={data.estado} color={data.estado==="resuelta"?"var(--green)":"var(--amber)"} />
+              <Row label="Estado"      value={data.estado} color={data.estado==="resuelta"?"var(--green)":data.estado==="en gestión"?"var(--cyan)":"var(--amber)"} />
               <Row label="Responsable" value={data.responsable} />
               {data.resolucion && <Row label="Resolución" value={data.resolucion} color="var(--green)" />}
               {/* Protocolo de escalado automático según gravedad */}
@@ -226,7 +226,7 @@ function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setV
         {k:"descripcion", l:"Descripción *",   t:"text"},
         {k:"responsable", l:"Responsable",     t:"text"},
         ...(esNueva ? [] : [
-          {k:"estado",    l:"Estado",          t:"sel", o:["abierta","resuelta"]},
+          {k:"estado",    l:"Estado",          t:"sel", o:["abierta","en gestión","resuelta"]},
           {k:"resolucion",l:"Resolución",       t:"text"},
         ]),
       ]}

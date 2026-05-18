@@ -24,7 +24,7 @@ function TabEmergencias({cont,inc,setInc,abrirModal,abrirFicha,tiposContacto=[]}
 
   // Contactos urgentes = emergencia + médico
   const contUrgentes = cont.filter(c=>c.tipo==="emergencia"||c.tipo==="medico");
-  const incAbiertas  = inc.filter(i=>i.estado==="abierta").length;
+  const incAbiertas  = inc.filter(i=>i.estado==="abierta"||i.estado==="en gestión").length;
 
   return (
     <>
@@ -209,12 +209,13 @@ function TabEmergencias({cont,inc,setInc,abrirModal,abrirFicha,tiposContacto=[]}
           <div style={{display:"flex",flexDirection:"column",gap:".5rem"}}>
             {[...inc].sort((a,b)=>{
                 const G={alta:0,media:1,baja:2};
-                const byEstado = a.estado==="abierta"&&b.estado!=="abierta" ? -1 : b.estado==="abierta"&&a.estado!=="abierta" ? 1 : 0;
+                const estadoOrd = e => e==="abierta" ? 0 : e==="en gestión" ? 1 : 2;
+                const byEstado = estadoOrd(a.estado) - estadoOrd(b.estado);
                 return byEstado || (G[a.gravedad]??1)-(G[b.gravedad]??1);
               }).map(ic=>{
               const puestoLabel = ic.puestoNombre && ic.puestoNombre !== "— Sin puesto específico" ? ic.puestoNombre : null;
               const SLA_MIN={alta:15,media:30,baja:60};
-              const minAbierta = ic.creadaEn && ic.estado==="abierta"
+              const minAbierta = ic.creadaEn && (ic.estado==="abierta"||ic.estado==="en gestión")
                 ? Math.floor((Date.now()-new Date(ic.creadaEn))/60000) : null;
               const slaExcedido = minAbierta !== null && minAbierta > (SLA_MIN[ic.gravedad]||30);
               const tiempoResolucion = ic.creadaEn && ic.resueltaEn
@@ -237,6 +238,11 @@ function TabEmergencias({cont,inc,setInc,abrirModal,abrirFicha,tiposContacto=[]}
                       {ic.gravedad}
                     </span>
                     <span className="badge" style={{background:"var(--cyan-dim)",color:"var(--cyan)"}}>{ic.tipo}</span>
+                    <span className="badge" style={{
+                      background:ic.estado==="resuelta"?"var(--green-dim)":ic.estado==="en gestión"?"var(--cyan-dim)":"var(--amber-dim)",
+                      color:ic.estado==="resuelta"?"var(--green)":ic.estado==="en gestión"?"var(--cyan)":"var(--amber)"}}>
+                      {ic.estado}
+                    </span>
                     {minAbierta !== null && minAbierta >= 1 && (
                       <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                         color:slaExcedido?"var(--red)":"var(--text-muted)",
@@ -252,10 +258,11 @@ function TabEmergencias({cont,inc,setInc,abrirModal,abrirFicha,tiposContacto=[]}
                         border:"1px solid rgba(52,211,153,.2)"}}
                       onClick={()=>setInc(p=>p.map(x=>x.id===ic.id
                         ?{...x,
-                          estado:     x.estado==="resuelta"?"abierta":"resuelta",
-                          resueltaEn: x.estado!=="resuelta" ? new Date().toISOString() : null,
+                          // Ciclo: abierta → en gestión → resuelta → abierta
+                          estado:     x.estado==="abierta"?"en gestión":x.estado==="en gestión"?"resuelta":"abierta",
+                          resueltaEn: (x.estado==="en gestión") ? new Date().toISOString() : null,
                         }:x))}>
-                      {ic.estado==="resuelta"?"✓ Resuelta":"Marcar resuelta"}
+                      {ic.estado==="resuelta"?"↩ Reabrir":ic.estado==="en gestión"?"✓ Marcar resuelta":"▶ En gestión"}
                     </button>
                   </div>
                 </div>
