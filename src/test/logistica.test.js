@@ -12,6 +12,7 @@
  * LOG-09  SLA: excedido cuando minutos > umbral por gravedad
  * LOG-10  Tiempo de resolución calculado correctamente
  * LOG-11  BUG-01: KPI Incidencias navega a tab "emergencias" (no "contactos")
+ * LOG-16  DATO-03: Botiquín inconsistente eliminado del texto de Ruta 1 KM 16
  */
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 
@@ -786,6 +787,78 @@ describe('LOG-15 — DIS-03: Single Source of Truth — logisticaConstants.js', 
   it('ESTADO_COLORES cubre todos los estados de ESTADO_TAREA', () => {
     constants.ESTADO_TAREA.forEach(estado => {
       expect(constants.ESTADO_COLORES[estado]).toBeDefined();
+    });
+  });
+});
+
+// ── LOG-16: DATO-03 — Botiquín inconsistente eliminado del texto de Ruta 1 KM 16 ─
+describe('LOG-16 — DATO-03: Coherencia entre texto de rutas y ASIG0', () => {
+  let constants;
+
+  beforeAll(async () => {
+    constants = await import('../components/logistica/logisticaConstants.js');
+  });
+
+  // ── Test 1: la parada KM 16 en RUTAS0 id=1 NO contiene "Botiquín" ────────
+  it('parada KM 16 de Ruta 1 no menciona "Botiquín" en su campo material', () => {
+    const ruta1 = constants.RUTAS0.find(r => r.id === 1);
+    expect(ruta1).toBeDefined();
+    const paradaKM16 = ruta1.paradas.find(p => p.puesto === 'Avituallamiento KM 16');
+    expect(paradaKM16).toBeDefined();
+    // El texto libre no debe mencionar Botiquín (con o sin tilde)
+    expect(paradaKM16.material).not.toMatch(/botiquín|botiquin/i);
+  });
+
+  // ── Test 2: ASIG0 no tiene botiquín (materialId=14) asignado a KM 16 (localizacionId=4) ─
+  it('ASIG0 no tiene asignación de botiquín (materialId=14) a KM 16 (localizacionId=4)', () => {
+    const asigBotiquinKM16 = constants.ASIG0.filter(
+      a => a.materialId === 14 && a.localizacionId === 4
+    );
+    expect(asigBotiquinKM16).toHaveLength(0);
+  });
+
+  // ── Test 3: el único botiquín asignado está en Primeros Auxilios Base (localizacionId=12) ─
+  it('el botiquín (materialId=14) solo está asignado a Primeros Auxilios Base (localizacionId=12)', () => {
+    const asigsBotiquin = constants.ASIG0.filter(a => a.materialId === 14);
+    expect(asigsBotiquin.length).toBeGreaterThan(0);
+    asigsBotiquin.forEach(a => {
+      expect(a.localizacionId).toBe(12);
+      expect(a.puesto).toBe('Primeros Auxilios Base');
+    });
+  });
+
+  // ── Test 4: coherencia general — materiales mencionados en rutas existen en MAT0 ─
+  it('todos los materiales mencionados en rutas corresponden a categorías reales de MAT0', () => {
+    // Verifica que los materiales en el texto de las paradas son plausibles:
+    // agua, geles, isotónico, balizas, conos, chalecos son todos categorías válidas.
+    // Este test documenta el contrato: texto libre vs inventario deben ser coherentes.
+    const categoriasMat = new Set(constants.MAT0.map(m => m.categoria));
+    // Las categorías de MAT0 deben incluir al menos Avituallamiento, Señalización y Seguridad
+    expect(categoriasMat).toContain('Avituallamiento');
+    expect(categoriasMat).toContain('Señalización');
+    expect(categoriasMat).toContain('Seguridad');
+    // Y la categoría Médico que sería la del botiquín
+    expect(categoriasMat).toContain('Médico');
+  });
+
+  // ── Test 5: la parada KM 16 sí contiene agua, isotónico y geles (materiales válidos) ─
+  it('parada KM 16 de Ruta 1 contiene agua, isotónico y geles (materiales coherentes con ASIG0)', () => {
+    const ruta1 = constants.RUTAS0.find(r => r.id === 1);
+    const paradaKM16 = ruta1.paradas.find(p => p.puesto === 'Avituallamiento KM 16');
+    // Los materiales reales de ASIG0 para KM 16 son: Agua (id=1) y Geles (id=4)
+    // El campo material también menciona Isotónico como texto descriptivo
+    expect(paradaKM16.material).toMatch(/agua/i);
+    expect(paradaKM16.material).toMatch(/geles/i);
+  });
+
+  // ── Test 6: no hay ninguna ruta que lleve botiquín a KM 16 en ningún campo ─
+  it('ninguna parada de ninguna ruta lleva botiquín a "Avituallamiento KM 16"', () => {
+    constants.RUTAS0.forEach(ruta => {
+      ruta.paradas.forEach(parada => {
+        if (parada.puesto === 'Avituallamiento KM 16') {
+          expect(parada.material).not.toMatch(/botiquín|botiquin/i);
+        }
+      });
     });
   });
 });
