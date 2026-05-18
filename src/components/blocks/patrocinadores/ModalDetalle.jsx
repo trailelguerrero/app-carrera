@@ -223,6 +223,9 @@ export default function ModalDetalle({ pat, onClose, onEditar, onDelete, updateC
   const [editC, setEditC] = useState({ tipo: CONTRAPRESTACIONES_TIPO[0], detalle: "", fechaEntrega: "" });
   const [editingEspecie, setEditingEspecie] = useState(null);
   const [editEsp, setEditEsp] = useState({ nombre: "", cantidad: 0, unidad: "unidades", valorUnitario: 0 });
+  // INC-06/MEJ-03: panel inline de confirmación al marcar como cobrado
+  const [confirmandoCobro, setConfirmandoCobro] = useState(false);
+  const [importeConfirmado, setImporteConfirmado] = useState("");
   const especieItems = pat.especieItems || [];
   const esPatEspecie = pat.nivel === "Especie" || pat.especie > 0;
 
@@ -321,13 +324,64 @@ export default function ModalDetalle({ pat, onClose, onEditar, onDelete, updateC
                 const sc = ESTADO_CFG[s];
                 const active = pat.estado === s;
                 return (
-                  <button key={s} className="btn btn-sm" onClick={() => updateEstado(pat.id, s)}
+                  <button key={s} className="btn btn-sm"
+                    onClick={() => {
+                      // INC-06/MEJ-03: interceptar transición a "cobrado" para mostrar panel de confirmación
+                      if (s === "cobrado" && pat.estado !== "cobrado") {
+                        setImporteConfirmado(pat.importe > 0 ? String(pat.importe) : "");
+                        setConfirmandoCobro(true);
+                      } else {
+                        updateEstado(pat.id, s);
+                      }
+                    }}
                     style={{ background: active ? sc.bg : "transparent", color: active ? sc.color : "var(--text-muted)", border: `1px solid ${active ? sc.color + "55" : "var(--border)"}`, fontWeight: active ? 700 : 400 }}>
                     {active && "● "}{sc.label}
                   </button>
                 );
               })}
             </div>
+
+            {/* INC-06/MEJ-03: panel inline de confirmación de cobro */}
+            {confirmandoCobro && (
+              <div style={{ marginTop: ".75rem", background: "rgba(52,211,153,.07)", border: "1px solid rgba(52,211,153,.3)", borderRadius: 10, padding: ".85rem 1rem", display: "flex", flexDirection: "column", gap: ".55rem" }}>
+                <div style={{ fontWeight: 700, fontSize: "var(--fs-base)", color: "#34d399" }}>
+                  ✅ Confirmar cobro
+                </div>
+                <div style={{ fontSize: "var(--fs-sm)", color: "var(--text-muted)", lineHeight: 1.5 }}>
+                  Importe acordado: <strong style={{ color: "var(--text)" }}>{fmtEur(pat.importe || 0)}</strong>.
+                  Introduce el importe realmente cobrado:
+                </div>
+                <div style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="inp"
+                    placeholder="Importe cobrado (€)"
+                    value={importeConfirmado}
+                    onChange={e => setImporteConfirmado(e.target.value)}
+                    style={{ flex: 1 }}
+                    autoFocus
+                  />
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)", flexShrink: 0 }}>€</span>
+                </div>
+                <div style={{ display: "flex", gap: ".4rem", justifyContent: "flex-end" }}>
+                  <button className="btn btn-sm btn-ghost" onClick={() => { setConfirmandoCobro(false); setImporteConfirmado(""); }}>
+                    Cancelar
+                  </button>
+                  <button className="btn btn-sm"
+                    style={{ background: "rgba(52,211,153,.15)", color: "#34d399", border: "1px solid rgba(52,211,153,.4)", fontWeight: 700 }}
+                    onClick={() => {
+                      const importe = parseFloat(importeConfirmado) || 0;
+                      updateEstado(pat.id, "cobrado", importe);
+                      setConfirmandoCobro(false);
+                      setImporteConfirmado("");
+                    }}>
+                    Confirmar cobro
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {pat.notas && (

@@ -33,21 +33,51 @@ export const getImporteComprometido = (pat) =>
 /**
  * Detecta incoherencias entre estado y campos económicos.
  * Devuelve array de strings con los problemas encontrados.
+ *
+ * INC-03: Cobertura completa de casos anómalos:
+ *   - cobrado sin importe ni especie
+ *   - cobrado (importeCobrado) siendo prospecto, negociando o cancelado
+ *   - cobrado supera el importe acordado
+ *   - cobro parcial registrado como cobrado
+ *   - estado cobrado con contraprestaciones aún pendientes
  */
 export const detectarIncoherencias = (pat) => {
   const issues = [];
-  if (pat.estado === "cobrado" && !pat.importeCobrado && !pat.importe) {
-    issues.push("Estado 'cobrado' pero sin importe registrado");
+
+  // — Sin importe de ningún tipo pero marcado como cobrado
+  if (pat.estado === "cobrado" && !pat.importeCobrado && !pat.importe && !(pat.especie > 0)) {
+    issues.push("Está marcado como cobrado pero no tiene ningún importe ni aportación en especie registrada");
   }
+
+  // — Cobros registrados en estados que no deberían tenerlos
   if (pat.importeCobrado > 0 && pat.estado === "prospecto") {
-    issues.push("Tiene importe cobrado pero sigue como prospecto");
+    issues.push("Tiene importe cobrado registrado pero el acuerdo sigue como prospecto. Revisa el estado.");
   }
+  if (pat.importeCobrado > 0 && pat.estado === "negociando") {
+    issues.push("Hay un importe cobrado registrado aunque el acuerdo está en negociación y no está firmado.");
+  }
+  if (pat.importeCobrado > 0 && pat.estado === "cancelado") {
+    issues.push("Tiene importe cobrado registrado en un acuerdo cancelado. Verifica si corresponde a una devolución pendiente.");
+  }
+
+  // — Cobrado supera el importe acordado
   if (pat.importeCobrado > (pat.importe || 0) && pat.importe > 0) {
-    issues.push(`Cobrado (${pat.importeCobrado}€) supera el importe acordado (${pat.importe}€)`);
+    issues.push(`El importe cobrado (${pat.importeCobrado}€) supera el importe acordado (${pat.importe}€)`);
   }
+
+  // — Cobro parcial registrado con estado cobrado
   if (pat.importeCobrado > 0 && pat.importeCobrado < (pat.importe || 0) && pat.estado === "cobrado") {
-    issues.push(`Cobro parcial: cobrado ${pat.importeCobrado}€ de ${pat.importe}€ acordados`);
+    issues.push(`Cobro parcial: se han registrado ${pat.importeCobrado}€ de los ${pat.importe}€ acordados. Actualiza el importe cobrado o revisa el estado.`);
   }
+
+  // — Estado cobrado con contraprestaciones todavía pendientes
+  if (pat.estado === "cobrado") {
+    const pendientes = (pat.contraprestaciones || []).filter(c => c.estado === "pendiente");
+    if (pendientes.length > 0) {
+      issues.push(`El acuerdo está cobrado pero tiene ${pendientes.length} compromiso${pendientes.length > 1 ? "s" : ""} pendiente${pendientes.length > 1 ? "s" : ""} de entregar: ${pendientes.map(c => c.tipo).join(", ")}.`);
+    }
+  }
+
   return issues;
 };
 

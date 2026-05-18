@@ -162,7 +162,24 @@ export default function App() {
     dataService.notify(); // Sincronizar con Presupuesto tras eliminación
   };
 
-  const updateEstado = (id, estado) => {
+  const updateEstado = (id, estado, importeCobradoPanel = null) => {
+    // MEJ-07: Guardia 1 — impedir transición a "cobrado" desde "cancelado"
+    const patActual = pats.find(p => p.id === id);
+    if (estado === "cobrado" && patActual?.estado === "cancelado") {
+      toast.error("No es posible pasar directamente de cancelado a cobrado. Primero restablece el estado a negociando o confirmado.");
+      return;
+    }
+
+    // MEJ-07: Guardia 2 — impedir "cobrado" si no hay ningún importe ni especie registrado
+    if (estado === "cobrado" && patActual) {
+      const tieneImporte = (patActual.importe || 0) > 0;
+      const tieneEspecie = (patActual.especie || 0) > 0 || (patActual.especieItems || []).some(i => (i.valorUnitario || 0) > 0);
+      if (!tieneImporte && !tieneEspecie) {
+        toast.error("No se puede marcar como cobrado: el patrocinador no tiene ningún importe ni aportación en especie registrada. Edita el patrocinador primero.");
+        return;
+      }
+    }
+
     setPats(prev => prev.map(p => {
       if (p.id !== id) return p;
       // Registrar en historial automáticamente
@@ -175,7 +192,12 @@ export default function App() {
         despues: estado,
       };
       const historial = [...(Array.isArray(p.historial) ? p.historial : []), entrada].slice(-50);
-      return { ...p, estado, historial };
+      // INC-06: persistir el importeCobrado confirmado por el usuario en el panel inline
+      const updates = { estado, historial };
+      if (estado === "cobrado" && importeCobradoPanel !== null) {
+        updates.importeCobrado = importeCobradoPanel;
+      }
+      return { ...p, ...updates };
     }));
     dataService.notify(); // FIX BUG-ECO-02: el estado afecta importes comprometido/cobrado en Dashboard
     if (estado === "cobrado") toast.success("Patrocinador marcado como cobrado ✓");
