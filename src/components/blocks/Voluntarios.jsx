@@ -98,8 +98,10 @@ export default function App() {
       }
       // CORE-10: migrar nombre completo concatenado -> nombre + apellidos separados
       // Solo actua si apellidos esta vacio/undefined y nombre contiene un espacio
+      // Usa lastIndexOf para manejar nombres compuestos ibéricos: "María José García"
+      // → nombre="María José", apellidos="García" (en lugar de partir por el primer espacio)
       if (!out.apellidos && out.nombre && out.nombre.trim().includes(" ")) {
-        const spaceIdx = out.nombre.trim().indexOf(" ");
+        const spaceIdx = out.nombre.trim().lastIndexOf(" ");
         out = {
           ...out,
           nombre:    out.nombre.trim().slice(0, spaceIdx),
