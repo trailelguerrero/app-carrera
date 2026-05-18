@@ -12,7 +12,7 @@ import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { blockCls as cls } from "@/lib/blockStyles";
 
 // ─── TAB TALLAS ───────────────────────────────────────────────────────────────
-function TabTallas({ stats, voluntarios }) {
+function TabTallas({ stats, voluntarios, puestos = [] }) {
   const total = Object.values(stats.tallasCount).reduce((s, v) => s + v, 0);
   const maxVal = Math.max(...Object.values(stats.tallasCount), 1);
 
@@ -20,16 +20,23 @@ function TabTallas({ stats, voluntarios }) {
   const exportCSV = () => {
     const activos = voluntarios.filter(v => v.estado !== "cancelado" && v.talla);
     const rows = [
-      ["Nombre", "Talla", "Puesto", "Estado"],
-      ...activos.map(v => [
-        `"${v.nombre || ""}"`,
-        v.talla || "",
-        `"${v.puestoId || ""}"`,
-        v.estado || "",
-      ])
+      ["Nombre", "Apellidos", "Talla", "Puesto", "Estado"],
+      ...activos.map(v => {
+        const nombrePuesto = v.puestoId
+          ? (puestos.find(p => p.id === v.puestoId)?.nombre || `Puesto ${v.puestoId}`)
+          : "Sin asignar";
+        return [
+          `"${(v.nombre || "").replace(/"/g, '""')}"`,
+          `"${(v.apellidos || "").replace(/"/g, '""')}"`,
+          v.talla || "",
+          `"${nombrePuesto.replace(/"/g, '""')}"`,
+          v.estado || "",
+        ];
+      })
     ];
-    const csv = rows.map(r => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const csv = rows.map(r => r.join(";")).join("\n");
+    // BOM UTF-8 (\uFEFF) para compatibilidad con Excel en Windows y macOS
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement("a");
     a.href     = url;
@@ -46,8 +53,9 @@ function TabTallas({ stats, voluntarios }) {
       ...TALLAS.filter(t => stats.tallasCount[t] > 0)
                .map(t => [t, stats.tallasCount[t]])
     ];
-    const csv = rows.map(r => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const csv = rows.map(r => r.join(";")).join("\n");
+    // BOM UTF-8 para compatibilidad con Excel
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement("a");
     a.href     = url;

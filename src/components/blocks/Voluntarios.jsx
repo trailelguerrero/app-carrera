@@ -536,6 +536,7 @@ export default function App() {
             />
           )}
           {tab==="dia-d"  && <TabDiaD puestosConStats={puestosConStats} voluntarios={voluntarios} onUpdateVol={updateVoluntario} diasHastaEvento={diasHastaEvento} />}
+          {tab==="tallas" && <TabTallas stats={stats} voluntarios={voluntarios} puestos={puestos} />}
         </div>
       </div>
 
