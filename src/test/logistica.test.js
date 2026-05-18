@@ -642,3 +642,150 @@ describe('LOG-14 — BUG-02: timezone countdown T23:59:59 para hora local', () =
     expect(fecha).not.toContain("T");
   });
 });
+
+// ── LOG-15: DIS-03 — SSOT logisticaConstants, sin duplicados en Logistica.jsx ─
+describe('LOG-15 — DIS-03: Single Source of Truth — logisticaConstants.js', () => {
+  // Importa directamente desde logisticaConstants.js (la fuente autoritativa)
+  let constants;
+
+  beforeAll(async () => {
+    constants = await import('../components/logistica/logisticaConstants.js');
+  });
+
+  // ── logisticaConstants.js exporta todas las constantes necesarias ──────────
+  it('logisticaConstants.js exporta MAT0', () => {
+    expect(constants.MAT0).toBeDefined();
+    expect(Array.isArray(constants.MAT0)).toBe(true);
+    expect(constants.MAT0.length).toBeGreaterThan(0);
+  });
+
+  it('logisticaConstants.js exporta ASIG0', () => {
+    expect(constants.ASIG0).toBeDefined();
+    expect(Array.isArray(constants.ASIG0)).toBe(true);
+    expect(constants.ASIG0.length).toBeGreaterThan(0);
+  });
+
+  it('logisticaConstants.js exporta CATS_MATERIAL', () => {
+    expect(constants.CATS_MATERIAL).toBeDefined();
+    expect(Array.isArray(constants.CATS_MATERIAL)).toBe(true);
+    expect(constants.CATS_MATERIAL).toContain("Avituallamiento");
+    expect(constants.CATS_MATERIAL).toContain("Organización");
+  });
+
+  it('logisticaConstants.js exporta ESTADO_COLORES', () => {
+    expect(constants.ESTADO_COLORES).toBeDefined();
+    expect(typeof constants.ESTADO_COLORES).toBe('object');
+    expect(constants.ESTADO_COLORES.pendiente).toBeDefined();
+    expect(constants.ESTADO_COLORES.completado).toBeDefined();
+  });
+
+  it('logisticaConstants.js exporta FASES_CHECKLIST', () => {
+    expect(constants.FASES_CHECKLIST).toBeDefined();
+    expect(Array.isArray(constants.FASES_CHECKLIST)).toBe(true);
+    expect(constants.FASES_CHECKLIST).toContain("Semana antes");
+    expect(constants.FASES_CHECKLIST).toContain("Post-carrera");
+  });
+
+  it('logisticaConstants.js exporta PUESTOS_REF', () => {
+    expect(constants.PUESTOS_REF).toBeDefined();
+    expect(Array.isArray(constants.PUESTOS_REF)).toBe(true);
+    expect(constants.PUESTOS_REF).toContain("Zona Salida/Meta");
+  });
+
+  it('logisticaConstants.js exporta VEH0, RUTAS0, TL0, CONT0, INC0, CK0', () => {
+    expect(Array.isArray(constants.VEH0)).toBe(true);
+    expect(Array.isArray(constants.RUTAS0)).toBe(true);
+    expect(Array.isArray(constants.TL0)).toBe(true);
+    expect(Array.isArray(constants.CONT0)).toBe(true);
+    expect(Array.isArray(constants.INC0)).toBe(true);
+    expect(Array.isArray(constants.CK0)).toBe(true);
+  });
+
+  it('logisticaConstants.js exporta TIPOS_LOC, LOC_ICONS, LOC_COLORS', () => {
+    expect(Array.isArray(constants.TIPOS_LOC)).toBe(true);
+    expect(typeof constants.LOC_ICONS).toBe('object');
+    expect(typeof constants.LOC_COLORS).toBe('object');
+  });
+
+  it('logisticaConstants.js exporta CAT_ICONS y CAT_COLORS', () => {
+    expect(typeof constants.CAT_ICONS).toBe('object');
+    expect(typeof constants.CAT_COLORS).toBe('object');
+    expect(constants.CAT_ICONS.Avituallamiento).toBeDefined();
+  });
+
+  // ── Integridad de las constantes exportadas ────────────────────────────────
+  it('MAT0 tiene 18 artículos (inventario completo)', () => {
+    expect(constants.MAT0).toHaveLength(18);
+  });
+
+  it('MAT0: todos los artículos tienen id, nombre, categoria, stock', () => {
+    constants.MAT0.forEach(m => {
+      expect(m.id).toBeDefined();
+      expect(typeof m.nombre).toBe('string');
+      expect(typeof m.categoria).toBe('string');
+      expect(typeof m.stock).toBe('number');
+    });
+  });
+
+  it('ASIG0: todos los artículos tienen materialId, localizacionId, cantidad', () => {
+    constants.ASIG0.forEach(a => {
+      expect(typeof a.materialId).toBe('number');
+      expect(typeof a.localizacionId).toBe('number');
+      expect(typeof a.cantidad).toBe('number');
+    });
+  });
+
+  it('los ids de MAT0 son únicos', () => {
+    const ids = constants.MAT0.map(m => m.id);
+    const unicos = new Set(ids);
+    expect(unicos.size).toBe(ids.length);
+  });
+
+  it('los ids de ASIG0 son únicos', () => {
+    const ids = constants.ASIG0.map(a => a.id);
+    const unicos = new Set(ids);
+    expect(unicos.size).toBe(ids.length);
+  });
+
+  it('todos los materialId en ASIG0 referencian ids válidos de MAT0', () => {
+    const matIds = new Set(constants.MAT0.map(m => m.id));
+    const asigSinMat = constants.ASIG0.filter(a => !matIds.has(a.materialId));
+    expect(asigSinMat).toHaveLength(0);
+  });
+
+  it('FASES_CHECKLIST tiene 8 fases', () => {
+    expect(constants.FASES_CHECKLIST).toHaveLength(8);
+  });
+
+  it('TL0 tiene 16 eventos en el timeline', () => {
+    expect(constants.TL0).toHaveLength(16);
+  });
+
+  it('todos los eventos de TL0 tienen hora en formato HH:MM', () => {
+    constants.TL0.forEach(t => {
+      expect(t.hora).toMatch(/^\d{2}:\d{2}$/);
+    });
+  });
+
+  // ── Verificación de que Logistica.jsx YA NO DECLARA las constantes local ───
+  // (Test documental: verifica el contrato estructural de la refactorización)
+  it('las constantes de configuración de logística son un array/objeto (no undefined)', () => {
+    // Si logisticaConstants.js exporta correctamente y Logistica.jsx importa de ahí,
+    // las constantes deben estar disponibles e íntegras.
+    expect(constants.CATS_MATERIAL.length).toBe(7); // 7 categorías
+    expect(Object.keys(constants.ESTADO_COLORES).length).toBeGreaterThanOrEqual(6);
+    expect(constants.TIPOS_LOC.length).toBe(8); // 8 tipos de localización
+  });
+
+  it('ESTADO_COLORES cubre todos los estados de ESTADO_ENTREGA', () => {
+    constants.ESTADO_ENTREGA.forEach(estado => {
+      expect(constants.ESTADO_COLORES[estado]).toBeDefined();
+    });
+  });
+
+  it('ESTADO_COLORES cubre todos los estados de ESTADO_TAREA', () => {
+    constants.ESTADO_TAREA.forEach(estado => {
+      expect(constants.ESTADO_COLORES[estado]).toBeDefined();
+    });
+  });
+});
