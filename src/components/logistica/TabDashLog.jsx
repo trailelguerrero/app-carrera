@@ -1,6 +1,6 @@
 // Auto-extracted from Logistica.jsx — Sprint 2 refactor
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { FASES_CHECKLIST, ESTADO_ENTREGA, ESTADO_TAREA, ESTADO_COLORES, PUESTOS_REF, TIPOS_LOC, LOC_ICONS, LOC_COLORS, TLC } from "./logisticaConstants.js";
+import { FASES_CHECKLIST, ESTADO_ENTREGA, ESTADO_TAREA, ESTADO_COLORES, PUESTOS_REF, TIPOS_LOC, LOC_ICONS, LOC_COLORS, TLC, ESCALA_CON_INSCRITOS } from "./logisticaConstants.js";
 import { createPortal } from "react-dom";
 import { toast } from "@/lib/toast";
 import { genIdNum } from "@/lib/utils";
@@ -125,20 +125,18 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
         );
       })()}
 
-      {/* ── Panel de avituallamiento insuficiente por ratio inscritos [LOG-04] ── */}
+      {/* ── Panel de avituallamiento bajo mínimo configurado [LOG-04 / DIS-01] ── */}
+      {/* Solo alerta si el material tiene stockMinimo > 0 configurado explícitamente.  */}
+      {/* El umbral genérico (UMBRAL_GENERICO = 0.5 ud/corredor) fue eliminado porque   */}
+      {/* generaba falsos positivos: 60 bidones de 8L / 250 corredores = 0.24 < 0.5    */}
+      {/* disparaba alerta aunque 480L de agua sea más que suficiente para la carrera.   */}
       {totalInscritos > 0 && (() => {
-        // Umbral: usamos stockMinimo del material si está definido (ud/corredor),
-        // si no, el umbral genérico es 0.5 ud/corredor para Avituallamiento.
-        const UMBRAL_GENERICO = 0.5;
         const insuficientes = material
-          .filter(m => m.categoria === "Avituallamiento")
+          .filter(m => m.categoria === "Avituallamiento" && m.stockMinimo > 0)
           .map(m => {
-            const umbral = m.stockMinimo > 0
-              ? m.stockMinimo               // ud/corredor configurado en el material
-              : UMBRAL_GENERICO;
-            const ratio = m.stock / totalInscritos;
-            const necesario = Math.ceil(umbral * totalInscritos);
-            return ratio < umbral ? { ...m, ratio, necesario, falta: necesario - m.stock } : null;
+            return m.stock < m.stockMinimo
+              ? { ...m, falta: m.stockMinimo - m.stock }
+              : null;
           })
           .filter(Boolean);
         if (!insuficientes.length) return null;
@@ -155,7 +153,7 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
               <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                 fontWeight:700, color:"var(--amber)", textTransform:"uppercase",
                 letterSpacing:".06em" }}>
-                🍎 Avituallamiento insuficiente para {totalInscritos} inscritos
+                🍎 Avituallamiento bajo mínimo configurado
               </span>
               <button className="btn btn-ghost btn-sm"
                 style={{ fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}
@@ -181,7 +179,68 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
                   </span>
                   <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                     color:"var(--text-muted)", flexShrink:0 }}>
-                    {m.stock} ud · {m.necesario} necesarios
+                    {m.stock} ud · mín {m.stockMinimo}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Panel de materiales que escalan con inscritos [BUG-03] ── */}
+      {/* Detecta déficit en dorsales, medallas, chips y camisetas de corredor  */}
+      {/* cuando stock < totalInscritos. Usa los patrones de ESCALA_CON_INSCRITOS */}
+      {/* exportados desde logisticaConstants.js (antes declarado pero nunca usado). */}
+      {totalInscritos > 0 && (() => {
+        const enDeficitPorInscritos = material
+          .filter(m => ESCALA_CON_INSCRITOS.some(e => e.patron.test(m.nombre)))
+          .map(m => {
+            const deficit = totalInscritos - m.stock;
+            return deficit > 0 ? { ...m, deficit } : null;
+          })
+          .filter(Boolean);
+        if (!enDeficitPorInscritos.length) return null;
+        return (
+          <div style={{
+            marginBottom: ".85rem", padding: ".65rem .85rem",
+            background: "rgba(248,113,113,.05)",
+            border: "1px solid rgba(248,113,113,.2)",
+            borderLeft: "3px solid var(--red)",
+            borderRadius: "var(--r-sm)",
+          }}>
+            <div style={{ display:"flex", justifyContent:"space-between",
+              alignItems:"center", marginBottom:".45rem" }}>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                fontWeight:700, color:"var(--red)", textTransform:"uppercase",
+                letterSpacing:".06em" }}>
+                🏅 Stock insuficiente para {totalInscritos} inscritos
+              </span>
+              <button className="btn btn-ghost btn-sm"
+                style={{ fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}
+                onClick={() => setTab("material")}>
+                Ver material →
+              </button>
+            </div>
+            <div style={{ display:"flex", flexDirection:"column", gap:".3rem" }}>
+              {enDeficitPorInscritos.map(m => (
+                <div key={m.id} style={{
+                  display:"flex", alignItems:"center", gap:".6rem",
+                  fontSize:"var(--fs-base)",
+                }}>
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                    fontWeight:800, color:"var(--red)",
+                    background:"rgba(248,113,113,.1)", padding:".08rem .4rem",
+                    borderRadius:3, flexShrink:0, minWidth:48, textAlign:"center" }}>
+                    -{m.deficit} {m.unidad}
+                  </span>
+                  <span style={{ fontWeight:600, flex:1, minWidth:0,
+                    overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                    {m.nombre}
+                  </span>
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                    color:"var(--text-muted)", flexShrink:0 }}>
+                    {m.stock} stock · {totalInscritos} inscritos
                   </span>
                 </div>
               ))}

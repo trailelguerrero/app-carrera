@@ -27,6 +27,17 @@ const LOC_COLORS = { meta:"var(--green)", avituallamiento:"var(--cyan)", control
 
 // LOCS_DEFAULT importado de @/constants/localizaciones
 
+// ─── MATERIALES QUE ESCALAN CON INSCRITOS ────────────────────────────────────
+// Artículos cuyo stock mínimo necesario es 1 unidad por corredor inscrito.
+// Usados en el panel de alertas del Dashboard para detectar déficit respecto
+// al número total de inscritos (stock < totalInscritos).
+const ESCALA_CON_INSCRITOS = [
+  { patron: /dorsal/i,                                  label: "dorsales" },
+  { patron: /medalla/i,                                 label: "medallas" },
+  { patron: /chip/i,                                    label: "chips" },
+  { patron: /camiseta.*corredor|corredor.*camiseta/i,   label: "camisetas corredor" },
+];
+
 // ─── DATOS DEFAULT ────────────────────────────────────────────────────────────
 const MAT0 = [
   {id:1,nombre:"Agua (bidones 8L)",categoria:"Avituallamiento",cantidad:60,unidad:"ud",stock:60},
@@ -142,5 +153,6 @@ export {
   PUESTOS_REF, TIPOS_LOC, LOC_ICONS, LOC_COLORS,
   MAT0, ASIG0, VEH0, RUTAS0, TL0, CONT0, INC0, CK0,
   CATS_MATERIAL, CAT_ICONS, CAT_COLORS,
-  TLC, TLI, PROTO_PASOS
+  TLC, TLI, PROTO_PASOS,
+  ESCALA_CON_INSCRITOS
 };

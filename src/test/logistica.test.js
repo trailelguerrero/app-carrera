@@ -13,6 +13,8 @@
  * LOG-10  Tiempo de resolución calculado correctamente
  * LOG-11  BUG-01: KPI Incidencias navega a tab "emergencias" (no "contactos")
  * LOG-16  DATO-03: Botiquín inconsistente eliminado del texto de Ruta 1 KM 16
+ * LOG-17  BUG-03: ESCALA_CON_INSCRITOS exportada y conectada al panel de alertas
+ * LOG-18  DIS-01: Umbral avituallamiento por stockMinimo — UMBRAL_GENERICO eliminado
  */
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 
@@ -860,5 +862,228 @@ describe('LOG-16 — DATO-03: Coherencia entre texto de rutas y ASIG0', () => {
         }
       });
     });
+  });
+});
+
+// ── LOG-17: BUG-03 — ESCALA_CON_INSCRITOS exportada y conectada al Dashboard ─
+describe('LOG-17 — BUG-03: ESCALA_CON_INSCRITOS activa y conectada al panel de alertas', () => {
+  let constants;
+
+  beforeAll(async () => {
+    constants = await import('../components/logistica/logisticaConstants.js');
+  });
+
+  // ── Test 1: ESCALA_CON_INSCRITOS está exportada desde logisticaConstants.js ──
+  it('logisticaConstants.js exporta ESCALA_CON_INSCRITOS', () => {
+    expect(constants.ESCALA_CON_INSCRITOS).toBeDefined();
+    expect(Array.isArray(constants.ESCALA_CON_INSCRITOS)).toBe(true);
+    expect(constants.ESCALA_CON_INSCRITOS.length).toBeGreaterThan(0);
+  });
+
+  // ── Test 2: cada entrada tiene patron (RegExp) y label (string) ──────────────
+  it('cada entrada de ESCALA_CON_INSCRITOS tiene patron y label correctos', () => {
+    constants.ESCALA_CON_INSCRITOS.forEach(e => {
+      expect(e.patron).toBeInstanceOf(RegExp);
+      expect(typeof e.label).toBe('string');
+      expect(e.label.length).toBeGreaterThan(0);
+    });
+  });
+
+  // ── Test 3: los patrones detectan dorsales y medallas ────────────────────────
+  it('el patrón de dorsales detecta nombres con "dorsal" (case-insensitive)', () => {
+    const patronDorsales = constants.ESCALA_CON_INSCRITOS.find(e => e.label === 'dorsales');
+    expect(patronDorsales).toBeDefined();
+    expect(patronDorsales.patron.test('Dorsales impresos')).toBe(true);
+    expect(patronDorsales.patron.test('dorsales')).toBe(true);
+    expect(patronDorsales.patron.test('DORSALES')).toBe(true);
+    expect(patronDorsales.patron.test('Agua (bidones 8L)')).toBe(false);
+  });
+
+  it('el patrón de medallas detecta nombres con "medalla" (case-insensitive)', () => {
+    const patronMedallas = constants.ESCALA_CON_INSCRITOS.find(e => e.label === 'medallas');
+    expect(patronMedallas).toBeDefined();
+    expect(patronMedallas.patron.test('Medallas finisher')).toBe(true);
+    expect(patronMedallas.patron.test('medalla')).toBe(true);
+    expect(patronMedallas.patron.test('Geles energéticos')).toBe(false);
+  });
+
+  // ── Test 4: lógica de detección de déficit cuando stock < totalInscritos ─────
+  it('material con patrón ESCALA genera alerta cuando stock < totalInscritos', () => {
+    const material = [
+      { id: 16, nombre: 'Dorsales impresos', categoria: 'Organización', stock: 620, unidad: 'ud' },
+      { id: 17, nombre: 'Medallas finisher', categoria: 'Organización', stock: 590, unidad: 'ud' },
+      { id: 1,  nombre: 'Agua (bidones 8L)', categoria: 'Avituallamiento', stock: 60, unidad: 'ud' },
+    ];
+    const totalInscritos = 650;
+    const enDeficit = material
+      .filter(m => constants.ESCALA_CON_INSCRITOS.some(e => e.patron.test(m.nombre)))
+      .map(m => {
+        const deficit = totalInscritos - m.stock;
+        return deficit > 0 ? { ...m, deficit } : null;
+      })
+      .filter(Boolean);
+
+    // Dorsales (620) y Medallas (590) tienen déficit con 650 inscritos
+    expect(enDeficit).toHaveLength(2);
+    expect(enDeficit.find(m => m.nombre === 'Dorsales impresos').deficit).toBe(30);
+    expect(enDeficit.find(m => m.nombre === 'Medallas finisher').deficit).toBe(60);
+  });
+
+  it('material SIN patrón ESCALA no genera alerta por este bloque', () => {
+    const material = [
+      { id: 1, nombre: 'Agua (bidones 8L)', categoria: 'Avituallamiento', stock: 10, unidad: 'ud' },
+      { id: 2, nombre: 'Geles energéticos', categoria: 'Avituallamiento', stock: 5,  unidad: 'ud' },
+      { id: 8, nombre: 'Mesas plegables',   categoria: 'Infraestructura', stock: 2,  unidad: 'ud' },
+    ];
+    const totalInscritos = 650;
+    const enDeficit = material
+      .filter(m => constants.ESCALA_CON_INSCRITOS.some(e => e.patron.test(m.nombre)))
+      .map(m => {
+        const deficit = totalInscritos - m.stock;
+        return deficit > 0 ? { ...m, deficit } : null;
+      })
+      .filter(Boolean);
+
+    // Ninguno de estos materiales coincide con los patrones de ESCALA
+    expect(enDeficit).toHaveLength(0);
+  });
+
+  it('material con stock >= totalInscritos NO genera alerta (sin déficit)', () => {
+    const material = [
+      { id: 16, nombre: 'Dorsales impresos', categoria: 'Organización', stock: 650, unidad: 'ud' },
+    ];
+    const totalInscritos = 650;
+    const enDeficit = material
+      .filter(m => constants.ESCALA_CON_INSCRITOS.some(e => e.patron.test(m.nombre)))
+      .map(m => {
+        const deficit = totalInscritos - m.stock;
+        return deficit > 0 ? { ...m, deficit } : null;
+      })
+      .filter(Boolean);
+
+    expect(enDeficit).toHaveLength(0);
+  });
+
+  it('el panel muestra el déficit real (totalInscritos - stock)', () => {
+    const material = [
+      { id: 17, nombre: 'Medallas finisher', categoria: 'Organización', stock: 620, unidad: 'ud' },
+    ];
+    const totalInscritos = 650;
+    const enDeficit = material
+      .filter(m => constants.ESCALA_CON_INSCRITOS.some(e => e.patron.test(m.nombre)))
+      .map(m => {
+        const deficit = totalInscritos - m.stock;
+        return deficit > 0 ? { ...m, deficit } : null;
+      })
+      .filter(Boolean);
+
+    // El déficit real es 650 - 620 = 30
+    expect(enDeficit[0].deficit).toBe(30);
+  });
+
+  // ── Test 5: MAT0 tiene dorsales y medallas (para que los tests sean realistas) ─
+  it('MAT0 contiene materiales con nombres que coinciden con patrones ESCALA', () => {
+    const materialesEscala = constants.MAT0.filter(
+      m => constants.ESCALA_CON_INSCRITOS.some(e => e.patron.test(m.nombre))
+    );
+    // Al menos dorsales y medallas deben estar en MAT0
+    expect(materialesEscala.length).toBeGreaterThanOrEqual(2);
+    const nombres = materialesEscala.map(m => m.nombre);
+    expect(nombres.some(n => /dorsal/i.test(n))).toBe(true);
+    expect(nombres.some(n => /medalla/i.test(n))).toBe(true);
+  });
+});
+
+// ── LOG-18: DIS-01 — Umbral de avituallamiento corregido (solo stockMinimo > 0) ─
+describe('LOG-18 — DIS-01: Umbral avituallamiento por stockMinimo — sin UMBRAL_GENERICO', () => {
+  let constants;
+
+  beforeAll(async () => {
+    constants = await import('../components/logistica/logisticaConstants.js');
+  });
+
+  // Función que replica la lógica del panel DIS-01 corregida en TabDashLog.jsx
+  const calcularInsuficientesAvituallamiento = (material, totalInscritos) => {
+    return material
+      .filter(m => m.categoria === 'Avituallamiento' && m.stockMinimo > 0)
+      .map(m => m.stock < m.stockMinimo ? { ...m, falta: m.stockMinimo - m.stock } : null)
+      .filter(Boolean);
+  };
+
+  // ── Test 1: material con stockMinimo=0 NO entra en la evaluación ──────────────
+  it('material con stockMinimo=0 NO genera alerta aunque stock/corredor < 0.5', () => {
+    const material = [
+      { id: 1, nombre: 'Agua (bidones 8L)', categoria: 'Avituallamiento', stock: 60, unidad: 'ud', stockMinimo: 0 },
+    ];
+    // 60 bidones / 250 corredores = 0.24 → antes disparaba UMBRAL_GENERICO=0.5
+    const insuficientes = calcularInsuficientesAvituallamiento(material, 250);
+    expect(insuficientes).toHaveLength(0);
+  });
+
+  // ── Test 2: material con stockMinimo > 0 y stock insuficiente SÍ alerta ───────
+  it('material con stockMinimo=30 y stock=25 genera alerta con falta=5', () => {
+    const material = [
+      { id: 4, nombre: 'Geles energéticos', categoria: 'Avituallamiento', stock: 25, unidad: 'ud', stockMinimo: 30 },
+    ];
+    const insuficientes = calcularInsuficientesAvituallamiento(material, 250);
+    expect(insuficientes).toHaveLength(1);
+    expect(insuficientes[0].falta).toBe(5);
+  });
+
+  // ── Test 3: material con stock >= stockMinimo NO genera alerta ────────────────
+  it('material con stockMinimo=30 y stock=35 NO genera alerta', () => {
+    const material = [
+      { id: 4, nombre: 'Geles energéticos', categoria: 'Avituallamiento', stock: 35, unidad: 'ud', stockMinimo: 30 },
+    ];
+    const insuficientes = calcularInsuficientesAvituallamiento(material, 250);
+    expect(insuficientes).toHaveLength(0);
+  });
+
+  // ── Test 4: el agua (60 bidones, stockMinimo=0) no genera alerta falsa ────────
+  it('el agua de MAT0 (60 bidones, stockMinimo=0 o undefined) NO genera alerta con 250 corredores', () => {
+    const agua = constants.MAT0.find(m => m.nombre === 'Agua (bidones 8L)');
+    expect(agua).toBeDefined();
+    // stockMinimo debe ser 0 o no estar definido para que no genere alerta
+    const stockMinimoAgua = agua.stockMinimo ?? 0;
+    expect(stockMinimoAgua).toBe(0);
+
+    const insuficientes = calcularInsuficientesAvituallamiento([agua], 250);
+    expect(insuficientes).toHaveLength(0);
+  });
+
+  // ── Test 5: el UMBRAL_GENERICO ya no se aplica como fallback universal ────────
+  it('sin stockMinimo configurado, ningún material de avituallamiento genera alerta por ratio', () => {
+    // Simula MAT0 con todos los materiales de avituallamiento sin stockMinimo
+    const materialSinMinimo = constants.MAT0
+      .filter(m => m.categoria === 'Avituallamiento')
+      .map(m => ({ ...m, stockMinimo: 0 })); // forzar stockMinimo=0
+
+    const insuficientes = calcularInsuficientesAvituallamiento(materialSinMinimo, 250);
+    // Sin stockMinimo configurado, la lista debe ser vacía (no hay UMBRAL_GENERICO)
+    expect(insuficientes).toHaveLength(0);
+  });
+
+  // ── Test 6: material de otras categorías no entra en la evaluación ────────────
+  it('material de categoría "Organización" con stockMinimo>0 no entra en panel de avituallamiento', () => {
+    const material = [
+      { id: 16, nombre: 'Dorsales impresos', categoria: 'Organización', stock: 100, unidad: 'ud', stockMinimo: 650 },
+    ];
+    const insuficientes = calcularInsuficientesAvituallamiento(material, 650);
+    // No es Avituallamiento → no entra en este panel (va al panel de ESCALA_CON_INSCRITOS)
+    expect(insuficientes).toHaveLength(0);
+  });
+
+  // ── Test 7: multiple materiales de avituallamiento, solo alerta el que tiene déficit ─
+  it('con varios materiales, solo alerta el que tiene stock < stockMinimo', () => {
+    const material = [
+      { id: 1, nombre: 'Agua',      categoria: 'Avituallamiento', stock: 60, unidad: 'ud', stockMinimo: 0  },
+      { id: 2, nombre: 'Isotónico', categoria: 'Avituallamiento', stock: 20, unidad: 'ud', stockMinimo: 30 },
+      { id: 4, nombre: 'Geles',     categoria: 'Avituallamiento', stock: 50, unidad: 'ud', stockMinimo: 40 },
+    ];
+    const insuficientes = calcularInsuficientesAvituallamiento(material, 250);
+    // Solo Isotónico (20 < 30) debe alertar; Agua tiene stockMinimo=0; Geles (50 >= 40) no
+    expect(insuficientes).toHaveLength(1);
+    expect(insuficientes[0].nombre).toBe('Isotónico');
+    expect(insuficientes[0].falta).toBe(10);
   });
 });

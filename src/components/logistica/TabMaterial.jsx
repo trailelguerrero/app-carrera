@@ -1,6 +1,6 @@
 // Auto-extracted from Logistica.jsx — Sprint 2 refactor
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { FASES_CHECKLIST, ESTADO_ENTREGA, ESTADO_TAREA, ESTADO_COLORES, PUESTOS_REF, TIPOS_LOC, LOC_ICONS, LOC_COLORS, CATS_MATERIAL, CAT_COLORS, CAT_ICONS } from "./logisticaConstants.js";
+import { FASES_CHECKLIST, ESTADO_ENTREGA, ESTADO_TAREA, ESTADO_COLORES, PUESTOS_REF, TIPOS_LOC, LOC_ICONS, LOC_COLORS, CATS_MATERIAL, CAT_COLORS, CAT_ICONS, ESCALA_CON_INSCRITOS } from "./logisticaConstants.js";
 import { createPortal } from "react-dom";
 import { toast } from "@/lib/toast";
 import { genIdNum } from "@/lib/utils";
@@ -19,14 +19,7 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
   const [busqMat,setBusqMat]=useState("");
 
   // (rawTramos, rawInscritos, totalInscritos, totalMaximos vienen del componente padre vía props)
-
-  // Artículos cuyo stock debería escalar con los inscritos
-  const ESCALA_CON_INSCRITOS = [
-    { patron: /dorsal/i,   label: "dorsales" },
-    { patron: /medalla/i,  label: "medallas" },
-    { patron: /chip/i,     label: "chips" },
-    { patron: /camiseta.*corredor|corredor.*camiseta/i, label: "camisetas corredor" },
-  ];
+  // ESCALA_CON_INSCRITOS se importa desde logisticaConstants.js (exportado desde ahí)
   const ms=useMemo(()=>material.map(m=>{const a=asigs.filter(x=>x.materialId===m.id);const asig=a.reduce((s,x)=>s+x.cantidad,0);const ent=a.filter(x=>x.estado==="entregado").reduce((s,x)=>s+x.cantidad,0);return{...m,asig,ent,def:Math.max(asig-m.stock,0)}}),[material,asigs]);
   const mf=useMemo(()=>{
     let list = ms.filter(m => cat === "todas" || m.categoria === cat);
