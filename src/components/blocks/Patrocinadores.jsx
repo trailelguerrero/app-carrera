@@ -712,10 +712,8 @@ function ModalPat({
                         upd("contraprestaciones", updc);
                       }} />
                     <datalist id={`contra-tipos-${c.id || i}`}>
-                      {["Logo en camiseta corredores","Logo en camiseta voluntarios","Banner en zona meta",
-                        "Banner en avituallamiento","Mención en RRSS","Mención en megafonía",
-                        "Logo en web oficial","Logo en díptico/programa","Producto en bolsa corredor",
-                        "Stand en zona exposición"].map(t => (
+                      {/* MEJ-10/SEED-02: fuente única de tipos — CONTRAPRESTACIONES_TIPO en constants.js */}
+                      {CONTRAPRESTACIONES_TIPO.map(t => (
                         <option key={t} value={t} />
                       ))}
                     </datalist>

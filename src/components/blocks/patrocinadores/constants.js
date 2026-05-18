@@ -4,28 +4,43 @@
 
 export const NIVELES = ["Oro", "Plata", "Bronce", "Colaborador", "Especie"];
 
+// SEED-02/MEJ-10: todos los tipos usan los valores canónicos de CONTRAPRESTACIONES_TIPO.
+// "Logo en web oficial" → "Mención en web oficial"
+// "Mención en RRSS" → "Mención en RRSS (x posts)"
+// "Logo en díptico/programa" → "Logo en diptico/programa"
+// "Stand en zona exposición" → "Stand/carpa en meta"
+// "Producto en bolsa del corredor" → "Producto en bolsa del corredor" (correcto)
 export const PLANTILLAS_CONTRAPRESTACION = {
   "Oro":         [
     { tipo:"Logo en camiseta corredores", detalle:"Pecho izq. 8×4cm", estado:"pendiente" },
     { tipo:"Logo en camiseta voluntarios", detalle:"Espalda 6×3cm", estado:"pendiente" },
     { tipo:"Banner en zona meta", detalle:"Banner 2×1m", estado:"pendiente" },
-    { tipo:"Mención en RRSS", detalle:"5 posts + story Instagram", estado:"pendiente" },
-    { tipo:"Stand en zona exposición", detalle:"3m²", estado:"pendiente" },
+    { tipo:"Mención en RRSS (x posts)", detalle:"5 posts + story Instagram", estado:"pendiente" },
+    { tipo:"Stand/carpa en meta", detalle:"3m²", estado:"pendiente" },
   ],
   "Plata":       [
     { tipo:"Logo en camiseta corredores", detalle:"Pecho 6×3cm", estado:"pendiente" },
     { tipo:"Banner en avituallamiento", detalle:"Roll-up 0.85×2m", estado:"pendiente" },
-    { tipo:"Mención en RRSS", detalle:"3 posts Instagram", estado:"pendiente" },
-    { tipo:"Logo en web oficial", detalle:"Sección patrocinadores", estado:"pendiente" },
+    { tipo:"Mención en RRSS (x posts)", detalle:"3 posts Instagram", estado:"pendiente" },
+    { tipo:"Mención en web oficial", detalle:"Sección patrocinadores", estado:"pendiente" },
   ],
   "Bronce":      [
-    { tipo:"Logo en díptico/programa", detalle:"Logo 4×2cm", estado:"pendiente" },
-    { tipo:"Mención en RRSS", detalle:"1 post Instagram", estado:"pendiente" },
-    { tipo:"Logo en web oficial", detalle:"Sección colaboradores", estado:"pendiente" },
+    { tipo:"Logo en diptico/programa", detalle:"Logo 4×2cm", estado:"pendiente" },
+    { tipo:"Mención en RRSS (x posts)", detalle:"1 post Instagram", estado:"pendiente" },
+    { tipo:"Mención en web oficial", detalle:"Sección colaboradores", estado:"pendiente" },
   ],
   "Colaborador": [
-    { tipo:"Logo en web oficial", detalle:"Sección colaboradores", estado:"pendiente" },
+    { tipo:"Mención en web oficial", detalle:"Sección colaboradores", estado:"pendiente" },
     { tipo:"Mención en megafonía", detalle:"Mención durante la carrera", estado:"pendiente" },
+  ],
+  // INC-02: plantilla para patrocinadores en especie (aportación en productos/servicios).
+  // Contraprestaciones orientadas a visibilidad de marca y presencia física del producto,
+  // no al aspecto económico (ya que no hay aportación monetaria).
+  "Especie": [
+    { tipo:"Producto en bolsa del corredor", detalle:"1 unidad por corredor inscrito", estado:"pendiente" },
+    { tipo:"Mención en web oficial", detalle:"Sección patrocinadores en especie", estado:"pendiente" },
+    { tipo:"Mención en megafonía", detalle:"Mención con nombre de marca durante la carrera", estado:"pendiente" },
+    { tipo:"Logo en camiseta voluntarios", detalle:"Logo en manga o espalda", estado:"pendiente" },
   ],
 };
 
@@ -38,6 +53,9 @@ export const NIVEL_CFG = {
 };
 
 export const getCfg = (nivel) => NIVEL_CFG[nivel] || NIVEL_CFG.Colaborador;
+
+// INC-02: acceso seguro a la plantilla — devuelve [] si el nivel no tiene plantilla definida
+export const getPlantilla = (nivel) => PLANTILLAS_CONTRAPRESTACION[nivel] ?? [];
 
 export const ESTADOS = ["prospecto", "negociando", "confirmado", "cobrado", "cancelado"];
 
@@ -87,6 +105,9 @@ export const PAT0 = [
       { id:1, tipo:"Logo en camiseta corredores", detalle:"Logo 8x4cm pecho derecho", estado:"pendiente" },
       { id:2, tipo:"Banner en zona meta", detalle:"Banner 2x1m fondo meta", estado:"pendiente" },
       { id:3, tipo:"Mención en RRSS (x posts)", detalle:"3 posts en Instagram + story apertura inscripciones", estado:"pendiente" },
+      // SEED-01: completadas las 5 contraprestaciones de la plantilla Oro
+      { id:4, tipo:"Logo en camiseta voluntarios", detalle:"Espalda 6×3cm — camiseta equipo organizador", estado:"pendiente" },
+      { id:5, tipo:"Stand/carpa en meta", detalle:"Stand 3m² zona exposición meta", estado:"pendiente" },
     ],
     docs: [],
   },
@@ -149,8 +170,10 @@ export const PAT0 = [
     fechaAcuerdo: "2026-01-10", fechaVencimiento: "2026-02-01",
     notas: "Colaborador local histórico. Cede el local para la pasta-party pre-carrera.",
     contraprestaciones: [
-      { id:1, tipo:"Mención en megafonía", detalle:"Mención en acto inaugural y entrega trofeos", estado:"pendiente" },
-      { id:2, tipo:"Banner en zona meta", detalle:"Lona 1x0.5m en zona de llegada", estado:"pendiente" },
+      // SEED-04: marcadas como "entregado" — INC-03 ya implementado, estado "cobrado"
+      // con compromisos pendientes quedaría detectado por detectarIncoherencias.
+      { id:1, tipo:"Mención en megafonía", detalle:"Mención en acto inaugural y entrega trofeos", estado:"entregado" },
+      { id:2, tipo:"Banner en zona meta", detalle:"Lona 1x0.5m en zona de llegada", estado:"entregado" },
     ],
     docs: [],
   },
