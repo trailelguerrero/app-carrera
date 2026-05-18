@@ -60,7 +60,7 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
           <div className="kpi green cursor-ptr" onClick={() => setTab("dia-d")} title="Ver checklist día de carrera">
             <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>📍 En su puesto</div>
             <div className="kpi-value" style={{color:"var(--green)"}}>{stats.enPuesto}</div>
-            <div className="kpi-sub">{stats.total>0?Math.round(stats.enPuesto/stats.total*100):0}% confirmados</div>
+            <div className="kpi-sub">{stats.confirmados>0?Math.round(stats.enPuesto/stats.confirmados*100):0}% de confirmados</div>
           </div>
         )}
       </div>
