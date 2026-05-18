@@ -17,6 +17,8 @@ export default function TabContraprestaciones({
   const allConts = activos.flatMap(p => (p.contraprestaciones || []).map(c => ({ ...c, patNombre: p.nombre, patId: p.id, patNivel: p.nivel })));
   const pendientes = allConts.filter(c => c.estado === "pendiente");
   const entregados = allConts.filter(c => c.estado === "entregado");
+  // CON-05: separar canceladas para que el usuario pueda reconciliar los contadores
+  const canceladas = allConts.filter(c => c.estado === "cancelado");
   const activosBase = filtroPatId === "todos" ? activos : activos.filter(p => String(p.id) === filtroPatId);
   const activosFiltrados = ordenAlfa ? [...activosBase].sort((a,b) => a.nombre.localeCompare(b.nombre,"es")) : activosBase;
 
@@ -25,7 +27,10 @@ export default function TabContraprestaciones({
       <div className="ph">
         <div>
           <div className="pt">🎁 Compromisos con patrocinadores</div>
-          <div className="pd">{pendientes.length} pendientes · {entregados.length} entregados · {allConts.length} total</div>
+          <div className="pd">
+            {pendientes.length} pendientes · {entregados.length} entregados
+            {canceladas.length > 0 ? ` · ${canceladas.length} canceladas` : ""}
+          </div>
         </div>
         <div style={{display:"flex",gap:".4rem",flexWrap:"wrap",alignItems:"center"}}>
           <select className="inp" value={filtroPatId} onChange={e=>setFiltroPatId(e.target.value)} style={{width:"auto",maxWidth:200}}>
