@@ -135,6 +135,11 @@ export default async function handler(req, res) {
     if (action === 'check') {
       if (req.method !== 'GET') return res.status(405).end();
       const { telefono } = req.query;
+      // SEC-MISC-03: Rate limiting independiente del de 'auth' para prevenir enumeracion de telefonos.
+      const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+      if (await checkRateLimit(sql, ip, 'check', { max: 10, windowMs: 5 * 60 * 1000 })) {
+        return res.status(429).json({ error: 'Demasiadas solicitudes. Intentalo mas tarde.' });
+      }
       if (!telefono) return res.status(400).json({ error: 'Falta telefono' });
       const vols = await getVols(sql);
       const tel = String(telefono).replace(/\D/g, '');
