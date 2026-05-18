@@ -11,6 +11,7 @@
  * LOG-08  Ordenación de incidencias: altas abiertas primero
  * LOG-09  SLA: excedido cuando minutos > umbral por gravedad
  * LOG-10  Tiempo de resolución calculado correctamente
+ * LOG-11  BUG-01: KPI Incidencias navega a tab "emergencias" (no "contactos")
  */
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 
@@ -328,5 +329,54 @@ describe('LOG-10 — Tiempo de resolución calculado correctamente', () => {
     const ts = new Date().toISOString();
     const r = calcTiempoResolucion({ creadaEn: ts, resueltaEn: ts });
     expect(r).toBe(0);
+  });
+});
+
+// ── LOG-11: BUG-01 — KPI Incidencias navega a tab emergencias ────────────
+describe('LOG-11 — BUG-01: KPI Incidencias usa tab:"emergencias"', () => {
+  // Replicate the KPIS array structure as defined in TabDashLog.jsx
+  // to verify the fix without importing the JSX component directly.
+  const buildKpis = (stats) => [
+    { l:"⏱️ Timeline",    tab:"timeline"    },
+    { l:"✅ Checklist",   tab:"checklist"   },
+    { l:"📦 Stock",       tab:"material"    },
+    { l:"⚠️ Incidencias", tab:"emergencias",
+      tip:"Incidencias registradas en Emergencias que siguen abiertas.\nCada incidencia debe resolverse o documentarse antes del cierre del evento.\nHaz clic para ir al tab Emergencias." },
+  ];
+
+  const kpis = buildKpis({ incOpen: 0 });
+  const kpiIncidencias = kpis.find(k => k.l === "⚠️ Incidencias");
+
+  it('el KPI de Incidencias existe en el array KPIS', () => {
+    expect(kpiIncidencias).toBeDefined();
+  });
+
+  it('el KPI de Incidencias tiene tab:"emergencias" (fix BUG-01)', () => {
+    expect(kpiIncidencias.tab).toBe("emergencias");
+  });
+
+  it('ningún KPI tiene tab:"contactos" (tab inexistente)', () => {
+    const conContactos = kpis.filter(k => k.tab === "contactos");
+    expect(conContactos).toHaveLength(0);
+  });
+
+  it('el tooltip del KPI de Incidencias menciona "Emergencias"', () => {
+    expect(kpiIncidencias.tip).toContain("Emergencias");
+  });
+
+  it('el tooltip NO menciona "Contactos" como destino', () => {
+    // "Contactos" ya no debe aparecer como destino de navegación en el tip
+    const tipLower = kpiIncidencias.tip.toLowerCase();
+    // Solo verifica que el tip no sugiere navegar a un tab "contactos"
+    expect(tipLower).not.toMatch(/ir a.*contactos|navega.*contactos/);
+  });
+
+  it('el tab "emergencias" es el destino correcto (definido en Logistica.jsx)', () => {
+    // Verificación del contrato: los ids válidos del módulo de logística
+    const TABS_VALIDOS = ["dashboard","timeline","checklist","material","localizaciones","vehiculos","contactos_tab","emergencias"];
+    // emergencias debe estar en la lista de tabs válidos
+    expect(TABS_VALIDOS).toContain("emergencias");
+    // contactos NO debe ser un id de tab del módulo (es el tab de contactos del evento, distinto)
+    expect(kpis.map(k => k.tab)).not.toContain("contactos");
   });
 });

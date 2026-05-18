@@ -39,8 +39,8 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
     { l:"⚠️ Incidencias", v:stats.incOpen,
       s:"abiertas sin resolver",
       color: stats.incOpen>0 ? "red" : "green",
-      tab:"contactos",
-      tip:"Incidencias registradas en Emergencias que siguen abiertas.\nCada incidencia debe resolverse o documentarse antes del cierre del evento." },
+      tab:"emergencias",
+      tip:"Incidencias registradas en Emergencias que siguen abiertas.\nCada incidencia debe resolverse o documentarse antes del cierre del evento.\nHaz clic para ir al tab Emergencias." },
   ];
 
   return (
@@ -215,7 +215,7 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
           <div style={{display:"flex",gap:"0.5rem",flexWrap:"wrap"}}>
             <button className="btn btn-ghost btn-sm" onClick={()=>setTab("checklist")}>✅ Checklist</button>
             <button className="btn btn-sm" style={{background:"rgba(248,113,113,0.1)",color:"var(--red)",border:"1px solid rgba(248,113,113,0.25)",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)"}}
-              onClick={()=>setTab("contactos")}>🚨 Emergencias</button>
+              onClick={()=>setTab("emergencias")}>🚨 Emergencias</button>
           </div>
         </div>
       </div>
