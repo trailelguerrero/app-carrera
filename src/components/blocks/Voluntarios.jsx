@@ -216,7 +216,10 @@ export default function App() {
         const movibles = Math.min(origen.exceso, destino.deficit);
         if (movibles > 0) {
           const candidatos = origen.confirmados
-            .filter(v => origen.responsableId !== v.id)
+            // FORMULA-03: responsableId siempre es null (no implementado en ModalPuesto).
+            // Usamos v.rol !== "responsable" como proxy null-safe para excluir al responsable
+            // del puesto de las sugerencias de reubicacion.
+            .filter(v => v.rol !== "responsable")
             .slice(0, movibles);
           if (candidatos.length > 0) {
             sug.push({
