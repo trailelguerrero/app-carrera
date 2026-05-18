@@ -129,10 +129,10 @@ export default function App() {
 
   const savePat = (pat) => {
     if (pat.id) {
-      // Para edición: el modal ya trae las contraprestaciones actualizadas en form.contraprestaciones
-      // Solo preservar docs y especieItems que el modal no maneja
+      // Para edición: el modal ya trae las contraprestaciones y especieItems actualizados en form
+      // Solo preservar docs, que ModalPat no gestiona (se gestionan desde ModalDetalle → TabDocumentos)
       setPats(prev => prev.map(p => p.id === pat.id
-        ? { ...pat, docs: p.docs || [], especieItems: p.especieItems || [] }
+        ? { ...pat, docs: p.docs || [] }
         : p
       ));
     } else {
@@ -463,21 +463,24 @@ function ModalPat({
                   <div key={item.id} style={{ display: "flex", gap: ".4rem", alignItems: "center" }}>
                     <input className="inp" style={{ flex: 2, fontSize: "var(--fs-sm)" }} placeholder="Nombre producto" value={item.nombre}
                       onChange={e => {
-                        const newItems = [...form.especieItems];
-                        newItems[idx].nombre = e.target.value;
-                        setForm(p => ({ ...p, especieItems: newItems }));
+                        setForm(p => ({
+                          ...p,
+                          especieItems: p.especieItems.map((it, i) => i === idx ? { ...it, nombre: e.target.value } : it),
+                        }));
                       }} />
                     <input className="inp" style={{ flex: 0.8, fontSize: "var(--fs-sm)" }} type="number" placeholder="Cant." value={item.cantidad}
                       onChange={e => {
-                        const newItems = [...form.especieItems];
-                        newItems[idx].cantidad = Number(e.target.value);
-                        setForm(p => ({ ...p, especieItems: newItems }));
+                        setForm(p => ({
+                          ...p,
+                          especieItems: p.especieItems.map((it, i) => i === idx ? { ...it, cantidad: Number(e.target.value) } : it),
+                        }));
                       }} />
                     <input className="inp" style={{ flex: 1, fontSize: "var(--fs-sm)" }} placeholder="ud" value={item.unidad}
                       onChange={e => {
-                        const newItems = [...form.especieItems];
-                        newItems[idx].unidad = e.target.value;
-                        setForm(p => ({ ...p, especieItems: newItems }));
+                        setForm(p => ({
+                          ...p,
+                          especieItems: p.especieItems.map((it, i) => i === idx ? { ...it, unidad: e.target.value } : it),
+                        }));
                       }} />
                     <button className="btn btn-sm btn-red" style={{ padding: ".2rem .4rem" }}
                       onClick={() => {
