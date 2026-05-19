@@ -1918,3 +1918,45 @@ describe('LOG-27 — MEJ-05: exportarMaterial con modo filtro y columna Estado e
     });
   });
 });
+
+// ── LOG-28: MEJ-03 — Tiempo estimado primer finisher TG7 realista ─────────
+describe('LOG-28 — MEJ-03: Tiempo estimado primer finisher TG7 realista', () => {
+  it('TL0 id=9 tiene hora 08:50 o posterior a 08:45', async () => {
+    const { TL0 } = await import('../components/logistica/logisticaConstants.js');
+    const finisher = TL0.find(t => t.id === 9);
+    expect(finisher).toBeDefined();
+    // hora must be >= "08:45" (string comparison works for HH:MM format)
+    expect(finisher.hora >= '08:45').toBe(true);
+  });
+
+  it('tiempo entre salida TG7 (id=8) y primer finisher (id=9) es >= 40 minutos', async () => {
+    const { TL0 } = await import('../components/logistica/logisticaConstants.js');
+    const salida = TL0.find(t => t.id === 8);
+    const finisher = TL0.find(t => t.id === 9);
+    expect(salida).toBeDefined();
+    expect(finisher).toBeDefined();
+
+    const toMinutes = (hora) => {
+      const [h, m] = hora.split(':').map(Number);
+      return h * 60 + m;
+    };
+    const diff = toMinutes(finisher.hora) - toMinutes(salida.hora);
+    expect(diff).toBeGreaterThanOrEqual(40);
+  });
+
+  it('no existe otra tarea en TL0 con la misma hora que el primer finisher TG7', async () => {
+    const { TL0 } = await import('../components/logistica/logisticaConstants.js');
+    const finisher = TL0.find(t => t.id === 9);
+    expect(finisher).toBeDefined();
+    const conflicto = TL0.filter(t => t.id !== 9 && t.hora === finisher.hora);
+    expect(conflicto).toHaveLength(0);
+  });
+
+  it('descripción de TL0 id=9 menciona estimación de tiempo (~50 min)', async () => {
+    const { TL0 } = await import('../components/logistica/logisticaConstants.js');
+    const finisher = TL0.find(t => t.id === 9);
+    expect(finisher).toBeDefined();
+    // description should mention time estimate
+    expect(finisher.descripcion).toMatch(/50\s*min|~50/i);
+  });
+});
