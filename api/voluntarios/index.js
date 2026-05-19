@@ -312,7 +312,7 @@ export default async function handler(req, res) {
       const { pinHash: _ph, sessionToken: _st, ...volPublico } = voluntario;
       return res.status(200).json({
         voluntario: { ...volPublico, mensajeOrganizador: voluntario.mensajeOrganizador || '', mensajeParaOrganizador: voluntario.mensajeParaOrganizador || '' },
-        puesto: puesto ? { nombre: puesto.nombre, tipo: puesto.tipo, horaInicio: puesto.horaInicio, horaFin: puesto.horaFin, distancias: puesto.distancias, notas: puesto.notas, necesarios: puesto.necesarios || null, lat: puestoLat, lng: puestoLng } : null,
+        puesto: puesto ? { nombre: puesto.nombre, tipo: puesto.tipo, horaInicio: puesto.horaInicio, horaFin: puesto.horaFin, distancias: puesto.distancias, notas: puesto.notas, necesarios: puesto.necesarios || null, tiempoLimite: puesto.tiempoLimite || null, lat: puestoLat, lng: puestoLng } : null,
         companerosEnPuesto, materialPuesto,
         config: { nombre: orgConfig.nombre, fecha: orgConfig.fecha, lugar: orgConfig.lugar, organizador: orgConfig.organizador || '', telefonoContacto: orgConfig.telefonoContacto || '', emailContacto: orgConfig.emailContacto || '', organizadores },
       });

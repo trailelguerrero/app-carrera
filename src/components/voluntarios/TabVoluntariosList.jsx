@@ -92,7 +92,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
           <button className="btn btn-ghost" aria-label="Exportar lista de voluntarios"
             onClick={() => {
               const activos = todosVols.filter(v => v.estado !== "cancelado");
-              const rows = [["Nombre","Teléfono","Email","Puesto","Talla","Rol","Estado","Tel.Emergencia","Vehículo","Notas"]];
+              const rows = [["Nombre","Teléfono","Email","Puesto","Talla","Rol","Estado","Tel.Emergencia","Vehículo","Notas","Alergias","Medicación","Mensaje voluntario"]];
               activos.forEach(v => {
                 const puesto = puestos.find(p => p.id === v.puestoId);
                 rows.push([
@@ -100,7 +100,10 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
                   puesto?.nombre||"Sin asignar", v.talla||"",
                   v.rol||"apoyo", v.estado||"pendiente",
                   v.telefonoEmergencia||v.contactoEmergencia||"",
-                  v.coche?"Sí":"No", (v.notas||"").replace(/\n/g," ")
+                  v.coche?"Sí":"No", (v.notas||"").replace(/\n/g," "),
+                  (v.alergias||"").replace(/\n/g," "),
+                  (v.medicacion||"").replace(/\n/g," "),
+                  (v.mensajeParaOrganizador||"").replace(/\n/g," ")
                 ]);
               });
               const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
@@ -397,6 +400,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
                                 {v.coche && <span style={{ fontSize:"var(--fs-sm)" }} title="Tiene vehículo">🚗</span>}
                                 {v.enPuesto && <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.5rem", fontWeight:700, color:"var(--green)", background:"rgba(52,211,153,.12)", border:"1px solid rgba(52,211,153,.25)", borderRadius:3, padding:"0 .3rem" }} title={`En puesto${v.horaLlegada ? " desde las "+v.horaLlegada : ""}`}>📍 EN PUESTO</span>}
                                 {v.notaVoluntario && <span style={{ fontSize:"var(--fs-sm)" }} title={"Nota: "+v.notaVoluntario}>📝</span>}
+                                {v.mensajeParaOrganizador && <span style={{ fontSize:"var(--fs-sm)" }} title={"Mensaje: "+v.mensajeParaOrganizador}>💬</span>}
                               </div>
                               <div style={{ display:"flex", gap:"0.75rem", flexWrap:"wrap" }}>
                                 <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",

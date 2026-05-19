@@ -1552,8 +1552,8 @@ function PortalMain({ token, onLogout }) {
                     </div>
                   </>)}
                   {/* Mensaje del voluntario a la organización — editable via ✏️ */}
-                  <div id="sec-mensaje" className="vp-divider"/>
-                  <div style={{paddingTop:".4rem"}}>
+                  <div className="vp-divider"/>
+                  <div id="sec-mensaje" style={{paddingTop:".4rem"}}>
                     <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:".3rem"}}>
                       <div className="vp-label" style={{marginBottom:0}}>💬 Tu mensaje a la organización</div>
                       <button className="vp-btn vp-btn-ghost vp-btn-sm"
@@ -1736,7 +1736,7 @@ function StepperForm({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, 
       telefono: form.telefono.trim(),
       ...(opcionEmail ? { email: form.email?.trim()||"" } : {}),
       talla:    form.talla,
-      puestoId: form.puestoId ? parseInt(form.puestoId) : null,
+      puestoId: form.puestoId ? (parseInt(form.puestoId) || null) : null,
       coche:    form.coche,
       notas:    "",
       fechaRegistro: new Date().toISOString().split("T")[0],
