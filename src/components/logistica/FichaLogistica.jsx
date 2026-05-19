@@ -10,6 +10,36 @@ import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { useData } from "@/hooks/useData";
 
+// ─── MEJ-06: Detección de solapamiento de horarios en Timeline ───────────────
+// Pure helper — exported for testing.
+// Returns the first conflicting task, or null if no overlap found.
+// Two tasks overlap when same responsable (case-insensitive), diferent id,
+// and |hora_a - hora_b| < UMBRAL_MIN minutes.
+export const UMBRAL_SOLAP_MIN = 30;
+
+export function detectarSolapamiento(tareasExistentes, nuevaTarea) {
+  const { hora, responsable, id } = nuevaTarea;
+  if (!responsable || responsable.trim() === "") return null;
+  if (!hora) return null;
+
+  const toMinutes = (h) => {
+    const [hh, mm] = h.split(":").map(Number);
+    return hh * 60 + mm;
+  };
+
+  const minNueva = toMinutes(hora);
+  const respNorm = responsable.trim().toLowerCase();
+
+  for (const t of tareasExistentes) {
+    if (t.id === id) continue; // misma tarea (edición sin cambios)
+    if (!t.responsable || !t.hora) continue;
+    if (t.responsable.trim().toLowerCase() !== respNorm) continue;
+    const diff = Math.abs(toMinutes(t.hora) - minNueva);
+    if (diff <= UMBRAL_SOLAP_MIN) return t;
+  }
+  return null;
+}
+
 // ─── FICHA LOGÍSTICA ──────────────────────────────────────────────────────────
 function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar }) {
   const { tipo, data } = ficha;
@@ -190,7 +220,14 @@ function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setV
   if(tipo==="tl") return <MF title={data?"✏️ Editar entrada":"⏱️ Nueva entrada del Runbook"} onClose={onClose}
     fields={[{k:"hora",l:"Hora",t:"time"},{k:"titulo",l:"Título *",t:"text"},{k:"descripcion",l:"Descripción",t:"text"},{k:"responsable",l:"Responsable",t:"text"},{k:"categoria",l:"Categoría",t:"sel",o:["logistica","organizacion","voluntarios","carrera","comunicacion"]},{k:"estado",l:"Estado",t:"sel",o:ESTADO_TAREA}]}
     init={data||{hora:"08:00",titulo:"",descripcion:"",responsable:"",categoria:"organizacion",estado:"pendiente"}}
-    onSave={v=>sv(setTl,tl,v,"tl")} />;
+    onSave={v=>{
+      // MEJ-06: check overlap BEFORE saving — warning only, does NOT block save
+      const conflicto = detectarSolapamiento(tl, { ...v, id: data?.id });
+      if (conflicto) {
+        toast.warning(`⚠ ${v.responsable} ya tiene asignada "${conflicto.titulo}" a las ${conflicto.hora}. Verifica que sea operativamente viable.`, 6000);
+      }
+      sv(setTl,tl,v,"tl");
+    }} />;
 
   if(tipo==="cont") {
     const TIPOS_BASE_IDS = ["emergencia","proveedor","staff","institucional","medico","media"];

@@ -1437,3 +1437,95 @@ describe('LOG-22 — DIS-02: campo cantidadInicial en modelo material', () => {
     }
   });
 });
+
+// ── LOG-23: MEJ-06 — Detección solapamiento horarios en Timeline ─────────────
+describe('LOG-23 — MEJ-06: Validación solapamiento de horarios en Timeline', () => {
+  let detectarSolapamiento, UMBRAL_SOLAP_MIN;
+
+  beforeAll(async () => {
+    const mod = await import('../components/logistica/FichaLogistica.jsx');
+    detectarSolapamiento = mod.detectarSolapamiento;
+    UMBRAL_SOLAP_MIN = mod.UMBRAL_SOLAP_MIN;
+  });
+
+  it('helper exportado existe', () => {
+    expect(typeof detectarSolapamiento).toBe('function');
+  });
+
+  it('UMBRAL_SOLAP_MIN es 30 minutos', () => {
+    expect(UMBRAL_SOLAP_MIN).toBe(30);
+  });
+
+  it('detecta solapamiento: mismo responsable, <30 min de diferencia', () => {
+    const tareas = [
+      { id: 1, responsable: 'Javier López', hora: '05:00', titulo: 'Apertura zona de meta' },
+    ];
+    const nueva = { hora: '05:30', responsable: 'Javier López', titulo: 'Salida furgoneta', id: undefined };
+    const conflicto = detectarSolapamiento(tareas, nueva);
+    expect(conflicto).not.toBeNull();
+    expect(conflicto.id).toBe(1);
+  });
+
+  it('caso Javier López (05:00 y 05:30): detecta conflicto', () => {
+    const tareas = [
+      { id: 2, responsable: 'Javier López', hora: '05:00', titulo: 'Apertura zona de meta' },
+      { id: 1, responsable: 'Javier López', hora: '05:30', titulo: 'Furgoneta Organización sale' },
+    ];
+    // Editar la tarea de las 05:30 o crear nueva a las 05:00
+    const nueva = { hora: '05:00', responsable: 'Javier López', titulo: 'Otra tarea', id: 99 };
+    const conflicto = detectarSolapamiento(tareas, nueva);
+    expect(conflicto).not.toBeNull();
+  });
+
+  it('NO alerta: responsables diferentes', () => {
+    const tareas = [
+      { id: 1, responsable: 'Ana García', hora: '05:00', titulo: 'Tarea A' },
+    ];
+    const nueva = { hora: '05:15', responsable: 'Javier López', titulo: 'Tarea B', id: undefined };
+    expect(detectarSolapamiento(tareas, nueva)).toBeNull();
+  });
+
+  it('NO alerta: mismo responsable pero diferencia > 30 min', () => {
+    const tareas = [
+      { id: 1, responsable: 'Javier López', hora: '05:00', titulo: 'Tarea A' },
+    ];
+    const nueva = { hora: '05:31', responsable: 'Javier López', titulo: 'Tarea B', id: undefined };
+    // 31 min de diferencia → NO solapa (diff > 30)
+    expect(detectarSolapamiento(tareas, nueva)).toBeNull();
+  });
+
+  it('NO alerta: editar tarea sin cambiar hora ni responsable (mismo id)', () => {
+    const tareas = [
+      { id: 5, responsable: 'Javier López', hora: '05:00', titulo: 'Apertura zona de meta' },
+    ];
+    // Editar tarea id=5 con misma hora y responsable
+    const misma = { hora: '05:00', responsable: 'Javier López', titulo: 'Apertura zona de meta (editada)', id: 5 };
+    expect(detectarSolapamiento(tareas, misma)).toBeNull();
+  });
+
+  it('NO alerta: responsable vacío', () => {
+    const tareas = [
+      { id: 1, responsable: '', hora: '05:00', titulo: 'Tarea A' },
+    ];
+    const nueva = { hora: '05:10', responsable: '', titulo: 'Tarea B', id: undefined };
+    expect(detectarSolapamiento(tareas, nueva)).toBeNull();
+  });
+
+  it('comparación de responsable es case-insensitive', () => {
+    const tareas = [
+      { id: 1, responsable: 'javier lópez', hora: '09:00', titulo: 'Tarea A' },
+    ];
+    const nueva = { hora: '09:20', responsable: 'Javier López', titulo: 'Tarea B', id: undefined };
+    expect(detectarSolapamiento(tareas, nueva)).not.toBeNull();
+  });
+
+  it('el guardado no se bloquea aunque haya solapamiento (función no lanza excepción)', () => {
+    // detectarSolapamiento retorna el conflicto pero nunca lanza — el caller decide
+    const tareas = [{ id: 1, responsable: 'Javier López', hora: '05:00', titulo: 'A' }];
+    const nueva = { hora: '05:15', responsable: 'Javier López', titulo: 'B', id: undefined };
+    expect(() => detectarSolapamiento(tareas, nueva)).not.toThrow();
+    const result = detectarSolapamiento(tareas, nueva);
+    // La función solo devuelve el conflicto; no bloquea nada por sí misma
+    expect(result).toBeDefined();
+  });
+});
