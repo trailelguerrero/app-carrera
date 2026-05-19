@@ -15,13 +15,14 @@ import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [], asigs = [], totalInscritos = 0 }) {
   const prox = [...tl].filter(t=>t.estado!=="completado").sort((a,b)=>a.hora.localeCompare(b.hora)).slice(0,6);
   const porFase = FASES_CHECKLIST.map(f0 => { const it=ck.filter(c=>c.fase===f0); const d=it.filter(c=>c.estado==="completado").length; return {f:f0,d,t:it.length,pct:it.length?Math.round(d/it.length*100):0}; });
-  // BUG-02: cadenas ISO de solo fecha ("YYYY-MM-DD") se interpretan como medianoche UTC.
-  // Desde España (UTC+2 en verano) eso hace que el evento "ya ocurriera" a las 02:00 AM
-  // del mismo día. Añadir "T23:59:59" fuerza interpretación en hora local del navegador,
-  // situando el vencimiento al final del día del evento en la zona horaria del organizador.
-  const eventoFecha = config?.fecha
-    ? new Date(config.fecha + "T23:59:59")
-    : new Date(EVENT_CONFIG_DEFAULT.fecha + "T23:59:59");
+  // fix(FUNC-01): parseo explícito en hora local — new Date("YYYY-MM-DD") parsea como
+  // medianoche UTC, lo que en España (UTC+2) adelanta el evento 2h al día anterior.
+  // new Date(y, m-1, d, 23, 59, 59) siempre usa hora local del navegador (ECMAScript spec).
+  const parseEventDate = (fechaStr) => {
+    const [y, m, d] = fechaStr.split("-").map(Number);
+    return new Date(y, m - 1, d, 23, 59, 59); // hora local garantizada
+  };
+  const eventoFecha = parseEventDate(config?.fecha || EVENT_CONFIG_DEFAULT.fecha);
   const diasHasta = Math.ceil((eventoFecha - new Date()) / 86400000);
   const yaFue = diasHasta < 0;
   const esSemana = diasHasta >= 0 && diasHasta <= 7;

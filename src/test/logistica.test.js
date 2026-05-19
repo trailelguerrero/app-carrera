@@ -570,12 +570,16 @@ describe('LOG-13 — DATO-02: Avituallamiento KM 4 cubierto por Ruta 1', () => {
   });
 });
 
-// ── LOG-14: BUG-02 — Timezone countdown correcto ──────────────────────────
-describe('LOG-14 — BUG-02: timezone countdown T23:59:59 para hora local', () => {
-  // Función que replica exactamente la lógica corregida de TabDashLog.jsx
+// ── LOG-14: BUG-02 — Timezone countdown correcto (fix: FUNC-01) ────────────
+describe('LOG-14 — BUG-02: timezone countdown parseEventDate hora local', () => {
+  // fix(FUNC-01): parseEventDate usa new Date(y, m-1, d, 23, 59, 59) — siempre hora local
+  // por spec ECMAScript, a diferencia de new Date("YYYY-MM-DD") que parsea como UTC.
+  const parseEventDate = (fechaStr) => {
+    const [y, m, d] = fechaStr.split("-").map(Number);
+    return new Date(y, m - 1, d, 23, 59, 59);
+  };
   const calcDiasHasta = (fechaStr) => {
-    const eventoFecha = new Date(fechaStr + "T23:59:59");
-    return Math.ceil((eventoFecha - new Date()) / 86400000);
+    return Math.ceil((parseEventDate(fechaStr) - new Date()) / 86400000);
   };
 
   // Función que replica el bug original (sin corrección) para comparación
@@ -584,22 +588,20 @@ describe('LOG-14 — BUG-02: timezone countdown T23:59:59 para hora local', () =
     return Math.ceil((eventoFecha - new Date()) / 86400000);
   };
 
-  it('new Date("2026-08-29T23:59:59") es posterior a new Date("2026-08-29")', () => {
-    // La corrección añade horas al timestamp base — la fecha con T23:59:59
-    // siempre debe ser posterior a la medianoche UTC
-    const conCorreccion  = new Date("2026-08-29T23:59:59").getTime();
-    const sinCorreccion  = new Date("2026-08-29").getTime();
-    expect(conCorreccion).toBeGreaterThan(sinCorreccion);
+  it('parseEventDate("2026-08-29") es posterior a new Date("2026-08-29") UTC', () => {
+    // new Date("2026-08-29") = medianoche UTC = 22:00h del día 28 en España (UTC+2)
+    // parseEventDate("2026-08-29") = 23:59:59 hora local del día 29 → siempre posterior
+    const conFix     = parseEventDate("2026-08-29").getTime();
+    const sinFix     = new Date("2026-08-29").getTime();
+    expect(conFix).toBeGreaterThan(sinFix);
   });
 
-  it('la diferencia entre versión corregida y buggy es de al menos 1 hora', () => {
-    // En UTC+2: new Date("2026-08-29") = 22:00 del día 28 hora local
-    // Con T23:59:59: = 23:59:59 del día 29 hora local
-    // La diferencia mínima es ~22 horas; verificamos que sea >= 1h (3600 s)
-    const conCorreccion = new Date("2026-08-29T23:59:59").getTime();
-    const sinCorreccion = new Date("2026-08-29").getTime();
-    const diferenciaMs = conCorreccion - sinCorreccion;
-    expect(diferenciaMs).toBeGreaterThanOrEqual(3600 * 1000); // al menos 1 hora
+  it('parseEventDate produce hora local: getHours()===23, getMinutes()===59', () => {
+    // Verifica que el resultado tiene exactamente 23:59:59 en hora local
+    const d = parseEventDate("2026-08-29");
+    expect(d.getHours()).toBe(23);
+    expect(d.getMinutes()).toBe(59);
+    expect(d.getSeconds()).toBe(59);
   });
 
   it('el día del evento (2026-08-29) con corrección no aparece como yaFue', () => {
