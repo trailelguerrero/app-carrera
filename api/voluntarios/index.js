@@ -311,7 +311,7 @@ export default async function handler(req, res) {
 
       const { pinHash: _ph, sessionToken: _st, ...volPublico } = voluntario;
       return res.status(200).json({
-        voluntario: { ...volPublico, mensajeOrganizador: voluntario.mensajeOrganizador || '' },
+        voluntario: { ...volPublico, mensajeOrganizador: voluntario.mensajeOrganizador || '', mensajeParaOrganizador: voluntario.mensajeParaOrganizador || '' },
         puesto: puesto ? { nombre: puesto.nombre, tipo: puesto.tipo, horaInicio: puesto.horaInicio, horaFin: puesto.horaFin, distancias: puesto.distancias, notas: puesto.notas, necesarios: puesto.necesarios || null, lat: puestoLat, lng: puestoLng } : null,
         companerosEnPuesto, materialPuesto,
         config: { nombre: orgConfig.nombre, fecha: orgConfig.fecha, lugar: orgConfig.lugar, organizador: orgConfig.organizador || '', telefonoContacto: orgConfig.telefonoContacto || '', emailContacto: orgConfig.emailContacto || '', organizadores },
@@ -320,7 +320,7 @@ export default async function handler(req, res) {
 
     // PATCH ficha — editar datos
     if ((action === 'ficha' || !action) && req.method === 'PATCH') {
-      const { telefono, telefonoEmergencia, talla, notaVoluntario, alergias, medicacion, email } = req.body || {};
+      const { telefono, telefonoEmergencia, talla, notaVoluntario, alergias, medicacion, email, mensajeParaOrganizador } = req.body || {};
       const upd = {};
       if (telefono !== undefined) upd.telefono = String(telefono).slice(0, 20);
       if (telefonoEmergencia !== undefined) { upd.telefonoEmergencia = String(telefonoEmergencia).slice(0, 20); upd.contactoEmergencia = String(telefonoEmergencia).slice(0, 20); }
@@ -329,6 +329,7 @@ export default async function handler(req, res) {
       if (alergias !== undefined) upd.alergias = String(alergias).slice(0, 200);
       if (medicacion !== undefined) upd.medicacion = String(medicacion).slice(0, 200);
       if (email !== undefined) upd.email = String(email).trim().slice(0, 100);
+      if (mensajeParaOrganizador !== undefined) upd.mensajeParaOrganizador = String(mensajeParaOrganizador).trim().slice(0, 500);
       await saveVols(sql, vols.map(v => String(v.id) === String(voluntario.id) ? { ...v, ...upd } : v));
       return res.status(200).json({ success: true });
     }

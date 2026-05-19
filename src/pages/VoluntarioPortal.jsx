@@ -339,7 +339,7 @@ function RegistroOkScreen({ telefono, nombre, onAcceder }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // SCREEN: LOGIN — 2 pasos (teléfono + PIN)
 // ─────────────────────────────────────────────────────────────────────────────
-function LoginScreen({ onLogin, onVolver, telefonoInicial }) {
+function LoginScreen({ onLogin, onVolver, telefonoInicial, config }) {
   const telInicial = typeof telefonoInicial === "string" ? telefonoInicial : "";
   const [paso, setPaso]         = useState(telInicial ? 2 : 1);
   const [telefono, setTelefono] = useState(telInicial);
@@ -704,8 +704,8 @@ function PortalMain({ token, onLogout }) {
   const [confirmLlegada, setConfirmLlegada] = useState(false);
   const [msg,         setMsg]         = useState("");
   // PORTAL-01: estado del formulario de autoedición restringida
-  const [editForm,   setEditForm]   = useState({ talla:"", email:"", telefonoEmergencia:"" });
-  const [editOrig,   setEditOrig]   = useState({ talla:"", email:"", telefonoEmergencia:"" });
+  const [editForm,   setEditForm]   = useState({ talla:"", email:"", telefonoEmergencia:"", mensajeParaOrganizador:"" });
+  const [editOrig,   setEditOrig]   = useState({ talla:"", email:"", telefonoEmergencia:"", mensajeParaOrganizador:"" });
   const [editError,  setEditError]  = useState("");
 
   const showMsg = (m, ms=3500) => { setMsg(m); setTimeout(() => setMsg(""), ms); };
@@ -741,6 +741,7 @@ function PortalMain({ token, onLogout }) {
         talla:              v.talla || "M",
         email:              v.email || "",
         telefonoEmergencia: v.telefonoEmergencia || v.contactoEmergencia || "",
+        mensajeParaOrganizador: v.mensajeParaOrganizador || "",
       };
       setEditForm(orig);
       setEditOrig(orig);
@@ -788,7 +789,8 @@ function PortalMain({ token, onLogout }) {
 
   const haycambiosEdit = editForm.talla !== editOrig.talla
     || editForm.email !== editOrig.email
-    || editForm.telefonoEmergencia !== editOrig.telefonoEmergencia;
+    || editForm.telefonoEmergencia !== editOrig.telefonoEmergencia
+    || editForm.mensajeParaOrganizador !== editOrig.mensajeParaOrganizador;
 
   const guardarEdit = async () => {
     setEditError("");
@@ -805,6 +807,7 @@ function PortalMain({ token, onLogout }) {
           talla:              editForm.talla,
           email:              editForm.email,
           telefonoEmergencia: editForm.telefonoEmergencia,
+          mensajeParaOrganizador: editForm.mensajeParaOrganizador,
         }),
       });
       if (res.ok) {
@@ -1432,6 +1435,26 @@ function PortalMain({ token, onLogout }) {
                     </div>
                   </div>
 
+                  {/* Mensaje para el organizador — siempre editable */}
+                  <div style={styleFieldWrap}>
+                    <div className="vp-label">💬 Mensaje para la organización</div>
+                    <div className="vp-mono" style={{ fontSize:".68rem", color:"var(--text-muted)", marginBottom:".35rem", lineHeight:1.55 }}>
+                      Cualquier pregunta, necesidad especial o comentario para el equipo organizador.
+                    </div>
+                    <textarea
+                      className="vp-input"
+                      placeholder="Ej: Tengo dudas sobre el horario, llegaré en transporte público…"
+                      value={editForm.mensajeParaOrganizador}
+                      onChange={e => setEditForm(f=>({...f,mensajeParaOrganizador:e.target.value}))}
+                      maxLength={500}
+                      rows={3}
+                      style={{ resize:"vertical", minHeight:72, fontFamily:"var(--font-mono)", fontSize:".82rem" }}
+                    />
+                    <div className="vp-mono" style={{ fontSize:".65rem", color:"var(--text-dim)", textAlign:"right", marginTop:".2rem" }}>
+                      {editForm.mensajeParaOrganizador.length}/500
+                    </div>
+                  </div>
+
                   {/* Nota: campos no editables */}
                   <div className="vp-mono" style={{
                     fontSize:".67rem", color:"var(--text-dim)", marginBottom:".9rem",
@@ -1553,6 +1576,29 @@ function PortalMain({ token, onLogout }) {
                         borderLeft:"2px solid var(--cyan)"}}>{v.notaVoluntario}</div>
                     </div>
                   </>)}
+                  {/* Mensaje del voluntario a la organización — editable via ✏️ */}
+                  <div className="vp-divider"/>
+                  <div style={{paddingTop:".4rem"}}>
+                    <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:".3rem"}}>
+                      <div className="vp-label" style={{marginBottom:0}}>💬 Tu mensaje a la organización</div>
+                      <button className="vp-btn vp-btn-ghost vp-btn-sm"
+                        onClick={() => { setEditError(""); setEditando(true); }}
+                        style={{fontSize:".7rem", minHeight:28}}>
+                        ✏️ Editar
+                      </button>
+                    </div>
+                    {v.mensajeParaOrganizador ? (
+                      <div className="vp-mono" style={{fontSize:".8rem",color:"var(--text)",lineHeight:1.7,
+                        background:"rgba(34,211,238,.06)",borderRadius:8,padding:".6rem .75rem",
+                        border:"1px solid rgba(34,211,238,.2)",borderLeft:"3px solid var(--cyan)"}}>
+                        {v.mensajeParaOrganizador}
+                      </div>
+                    ) : (
+                      <div className="vp-mono" style={{fontSize:".75rem",color:"var(--text-dim)",fontStyle:"italic",padding:".3rem 0"}}>
+                        Sin mensaje — pulsa Editar para añadir uno
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
             </div>
@@ -2092,6 +2138,12 @@ export default function VoluntarioPortal() {
   const [regNombre,setRegNombre]= useState("");
   const [loginTelPreload, setLoginTelPreload] = useState("");
 
+  // Carga config pública para landing y login (telefonoContacto, fecha, lugar)
+  const [publicConfig, setPublicConfig] = useState(null);
+  React.useEffect(() => {
+    fetchPublic("teg_event_config_v1").then(cfg => { if (cfg && typeof cfg === "object") setPublicConfig(cfg); });
+  }, []);
+
   // PWA-03: detectar estado de conexión para mostrar banner offline
   const isOnline = useOnlineStatus();
 
@@ -2130,10 +2182,10 @@ export default function VoluntarioPortal() {
     </div>
   );
 
-  if (pantalla === "landing")      return <>{bannerOffline}<LandingScreen onNuevo={goRegistro} onLogin={goLogin} /></>;
+  if (pantalla === "landing")      return <>{bannerOffline}<LandingScreen onNuevo={goRegistro} onLogin={goLogin} config={publicConfig} /></>;
   if (pantalla === "registro")     return <>{bannerOffline}<RegistroScreen onVolver={goLanding} onRegistroOk={onRegistroOk} /></>;
   if (pantalla === "registro-ok")  return <>{bannerOffline}<RegistroOkScreen telefono={regTel} nombre={regNombre} onAcceder={() => goLogin(regTel)} /></>;
-  if (pantalla === "login")        return <>{bannerOffline}<LoginScreen onLogin={goPortal} onVolver={goLanding} telefonoInicial={loginTelPreload} /></>;
+  if (pantalla === "login")        return <>{bannerOffline}<LoginScreen onLogin={goPortal} onVolver={goLanding} telefonoInicial={loginTelPreload} config={publicConfig} /></>;
   if (pantalla === "portal")       return <>{bannerOffline}<PortalMain token={token} onLogout={goLogout} /></>;
   return null;
 }

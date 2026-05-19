@@ -306,6 +306,19 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
             </div>
           )}
 
+          {/* Mensaje del voluntario a la organización */}
+          {v.mensajeParaOrganizador && (
+            <div style={{ background:"rgba(34,211,238,.08)", borderRadius:8, padding:"0.75rem 0.85rem",
+              borderLeft:"3px solid var(--cyan)", marginTop:"0.5rem",
+              border:"1px solid rgba(34,211,238,.2)", borderLeftWidth:3 }}>
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--cyan)",
+                marginBottom:"0.35rem", textTransform:"uppercase", fontWeight:700, letterSpacing:".06em" }}>
+                💬 Mensaje del voluntario
+              </div>
+              <div style={{ fontSize:"var(--fs-base)", lineHeight:1.6, color:"var(--text)" }}>{v.mensajeParaOrganizador}</div>
+            </div>
+          )}
+
           {/* Mensaje del organizador visible por el voluntario en su portal */}
           {onUpdate && (
             <MensajeOrganizadorEdit
@@ -412,6 +425,30 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
           </div>
         )}
         <div className="modal-footer" style={{ justifyContent:"space-between" }}>
+          {onUpdate && (
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+              padding:".65rem .85rem", borderTop:"1px solid var(--border)",
+              background: v.coche ? "rgba(34,211,238,.06)" : "var(--surface2)",
+              transition:"background .2s" }}>
+              <div>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                  color: v.coche ? "var(--cyan)" : "var(--text-muted)" }}>
+                  🚗 Vehículo propio
+                </div>
+                {v.coche && (
+                  <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", color:"var(--cyan)", marginTop:"0.1rem" }}>
+                    Tiene coche disponible
+                  </div>
+                )}
+              </div>
+              <button
+                className={`btn btn-sm ${v.coche ? "btn-cyan" : "btn-ghost"}`}
+                onClick={() => onUpdate({ coche: !v.coche })}
+                style={{ minWidth:100, fontWeight:700 }}>
+                {v.coche ? "✓ Con coche" : "Sin coche"}
+              </button>
+            </div>
+          )}
           {/* ── Entrega de camiseta (toggle organizador) ── */}
           {onUpdate && (
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
