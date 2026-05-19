@@ -67,11 +67,17 @@ export default async function handler(req, res) {
   }
 
   // Construir la URL interna (llamada server-to-server dentro de Vercel)
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : null;
+  // fix(SEC-MED-01): VERCEL_PROJECT_PRODUCTION_URL apunta siempre al dominio
+  // de producción y está disponible en todos los entornos (producción y preview).
+  // VERCEL_URL cambia en cada preview deploy (incluye el hash del commit) y
+  // puede no estar disponible en algunos contextos de desarrollo.
+  const baseUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : null;
   if (!baseUrl) {
-    console.error('[proxy] VERCEL_URL no configurada');
+    console.error('[proxy] VERCEL_PROJECT_PRODUCTION_URL y VERCEL_URL no configuradas');
     return res.status(503).json({ error: 'Servicio no disponible: configuración de entorno incompleta.' });
   }
 

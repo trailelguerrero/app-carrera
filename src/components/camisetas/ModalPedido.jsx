@@ -27,6 +27,10 @@ export function ModalPedido({
   const [intentoGuardar, setIntentoGuardar] = useState(false);
   const [verAvanzado, setVerAvanzado] = useState(!!data?.id); // edición: mostrar todo
   const valido = form.nombre.trim()&&form.lineas.length>0;
+  // fix(FUNC-02): validación de formato de teléfono español (9 dígitos, empieza por 6-9)
+  const telefonoVacio  = !form.telefono || !form.telefono.trim();
+  const telefonoValido = telefonoVacio || /^[6-9]\d{8}$/.test(form.telefono.replace(/\s/g,''));
+  const puedeGuardar   = valido && telefonoValido;
   return (
     <div className={`modal-backdrop${mpedClosing ? " modal-backdrop-closing" : ""}`} onClick={e=>e.target===e.currentTarget&&mpedHandleClose()}>
       <div className={`modal modal-ficha${mpedClosing ? " modal-closing" : ""}`} style={{maxWidth:540}}>
@@ -44,7 +48,17 @@ export function ModalPedido({
               )}
             </div>
             {verAvanzado && <>
-              <div><label className="fl">Teléfono</label><input className="inp" value={form.telefono} onChange={e=>upd("telefono",e.target.value)} placeholder="6XX XXX XXX" /></div>
+              <div>
+                <label className="fl" style={{color:intentoGuardar&&!telefonoValido?"var(--red)":undefined}}>Teléfono</label>
+                <input className="inp" value={form.telefono}
+                  onChange={e=>upd("telefono",e.target.value)}
+                  placeholder="6XX XXX XXX"
+                  inputMode="tel"
+                  style={{borderColor:intentoGuardar&&!telefonoValido?"var(--red)":undefined}} />
+                {intentoGuardar&&!telefonoValido&&(
+                  <div className="xs mono" style={{color:"var(--red)",marginTop:".2rem"}}>⚠ 9 dígitos, empieza por 6-9</div>
+                )}
+              </div>
               <div><label className="fl">Email</label><input className="inp" value={form.email} onChange={e=>upd("email",e.target.value)} placeholder="email@ejemplo.com" /></div>
             </>}
           </div>
@@ -107,7 +121,7 @@ export function ModalPedido({
           </div>
           <div><label className="fl">Notas</label><input className="inp" value={form.notas} onChange={e=>upd("notas",e.target.value)} placeholder="Observaciones opcionales…" /></div>
         </div>
-        <div className="modal-footer"><button className="btn btn-ghost" onClick={mpedHandleClose}>Cancelar</button><button className="btn btn-primary" onClick={()=>{ if(valido) onSave(form); else setIntentoGuardar(true); }} style={{opacity:valido?1:.65}}>{esEdit?"Guardar cambios":"Crear pedido"}</button></div>
+        <div className="modal-footer"><button className="btn btn-ghost" onClick={mpedHandleClose}>Cancelar</button><button className="btn btn-primary" onClick={()=>{ if(puedeGuardar) onSave(form); else setIntentoGuardar(true); }} style={{opacity:puedeGuardar?1:.65}}>{esEdit?"Guardar cambios":"Crear pedido"}</button></div>
       </div>
     </div>
   );

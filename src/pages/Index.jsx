@@ -69,9 +69,21 @@ const TOAST_ICONS = { success: "✓", error: "✕", info: "ℹ", warning: "⚠" 
 function ToastStack({ toasts, dismiss, navH }) {
   if (!toasts.length) return null;
   return (
-    <div className="teg-toast-stack" style={{ bottom: `calc(${navH}px + 12px)` }}>
+    <div
+      className="teg-toast-stack"
+      style={{ bottom: `calc(${navH}px + 12px)` }}
+      role="region"
+      aria-label="Notificaciones"
+      aria-live="polite"
+      aria-atomic="false"
+    >
       {toasts.map(t => (
-        <div key={t.id} className={`teg-toast ${t.type}${t.leaving ? " leaving" : ""}`}>
+        <div
+          key={t.id}
+          role="alert"
+          aria-live={t.type === "error" ? "assertive" : "polite"}
+          className={`teg-toast ${t.type}${t.leaving ? " leaving" : ""}`}
+        >
           <span className="teg-toast-icon">{TOAST_ICONS[t.type]}</span>
           <span className="teg-toast-msg">{t.message}</span>
           <button className="teg-toast-close" onClick={() => dismiss(t.id)} aria-label="Cerrar">×</button>
