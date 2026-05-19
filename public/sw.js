@@ -45,24 +45,14 @@ const PRECACHE_URLS = [
   "/logo.webp",
 ];
 
-// ── Rutas con estrategia Network Only (datos sensibles) ────────────────────
-const NETWORK_ONLY_PATTERNS = [
-  /\/api\/proxy\/data\/teg_presupuesto/,
-  /\/api\/proxy\/data\/teg_pat_/,
-  /\/api\/proxy\/budget/,
-  /\/api\/panel\/auth/,
-  /\/api\/proxy\/documents/,
-  /\/api\/proxy\/docs/,
-  /\/api\/setup/,
-];
-
-// ── Rutas con estrategia Stale While Revalidate (datos operativos) ─────────
-const STALE_WHILE_REVALIDATE_PATTERNS = [
-  /\/api\/proxy\/data\/teg_voluntarios_/,       // voluntarios (SK_VOL_*) — fix(SW-BUG-01)
-  /\/api\/proxy\/data\/teg_logistica_/,        // logística (SK_LOG_*) — fix(SW-BUG-01)
-  /\/api\/proxy\/data\/teg_dia_/,       // día de carrera
-  /\/api\/proxy\/voluntarios/,          // portal del voluntario
-];
+// ── Patrones de caché importados desde módulo compartido ──────────────────
+// TEST-01: src/constants/swPatterns.js es la fuente única de verdad.
+// Cualquier cambio en storageKeys.js que desincronice los patrones
+// fallará automáticamente en src/test/sw-patterns.test.js
+import {
+  STALE_WHILE_REVALIDATE_PATTERNS,
+  NETWORK_ONLY_PATTERNS,
+} from '../src/constants/swPatterns.js';
 
 // ── INSTALL — precargar assets críticos ────────────────────────────────────
 self.addEventListener("install", (event) => {
