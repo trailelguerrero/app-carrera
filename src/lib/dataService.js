@@ -155,7 +155,7 @@ const apiAdapter = {
           await localAdapter.set(`__pending_sync_${collection}`, Date.now());
           resolve({ success: true, offline: true });
         }
-      }, 2000); // debounce 2s
+      }, 300); // debounce 300ms — reducido de 2s para persistencia más rápida
 
       saveTimeouts.set(collection, timeoutId);
     });

@@ -1,123 +1,164 @@
 /**
- * BFF (Backend-For-Frontend) Proxy — SEC-01 Fix
+ * BFF (Backend-For-Frontend) Proxy — SEC-01
  *
- * Recibe las peticiones del frontend SIN api-key y las reenvía
- * a los endpoints internos añadiendo el API_KEY desde las variables
- * de entorno del servidor (nunca expuesto al cliente).
+ * Rutas /api/proxy/data/:collection → Neon directamente (sin HTTP interno).
+ * Resto de rutas → forward HTTP con x-api-key inyectada server-side.
  *
- * Rutas soportadas:
- *   GET/PUT/DELETE/POST /api/proxy/data/:collection
- *   GET/PUT             /api/proxy/data/batch
- *   GET/PUT/DELETE      /api/proxy/documents/:id
- *   GET/PUT/DELETE      /api/proxy/budget-log
- *   GET/POST/DELETE     /api/proxy/docs/:patId
- *   POST                /api/proxy/voluntarios  (action=reset-pin, action=delete)
- *
- * El frontend llama a /api/proxy/* y este módulo hace el forward interno.
+ * La llamada HTTP interna (proxy→/api/data/*) causaba timeouts en Vercel
+ * cuando VERCEL_PROJECT_PRODUCTION_URL no estaba configurada.
+ * Solución: manejar /data/:collection aquí mismo con el SDK de Neon.
  */
+import { neon } from '@neondatabase/serverless';
 
-const ALLOWED_PATHS = /^\/api\/(data|documents|budget-log|docs|voluntarios|panel\/auth|images)(\/[a-zA-Z0-9_\-[\]{}@.]*)?(\?.*)?$/; // fix(STOR-CRIT-01): añadir images
+const ALLOWED_COLLECTIONS = /^teg_(voluntarios|logistica|presupuesto|camisetas|patrocinadores|pat_log|localizaciones|documentos|proyecto|event_config|scenarios|codigos_promo|panel_pin_hash|panel_pin_length|escenarios|dia_carrera|scenario_active_name|auto_backup)_?v?\d*(_[a-zA-Z0-9]+)*$/;
 
-export default async function handler(req, res) {
-  // CORS — solo el propio dominio Vercel o localhost en dev
+function setCors(req, res) {
   const origin = req.headers.origin || '';
-  const allowedOrigins = [
-    process.env.ALLOWED_ORIGIN || '',   // ej: https://app-carrera.vercel.app
+  const allowed = [
+    process.env.ALLOWED_ORIGIN || '',
     'http://localhost:5173',
     'http://localhost:4173',
   ].filter(Boolean);
-
-  if (origin && allowedOrigins.some(o => origin.startsWith(o))) {
+  if (origin && allowed.some(o => origin.startsWith(o))) {
     res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
   }
   res.setHeader('Access-Control-Allow-Methods', 'GET,PUT,DELETE,POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
 
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end();
-  }
+export default async function handler(req, res) {
+  setCors(req, res);
+  if (req.method === 'OPTIONS') return res.status(204).end();
 
-  // Validar que API_KEY está configurado en el servidor
   const apiKey = process.env.API_KEY;
   if (!apiKey) {
-    console.error('[proxy] API_KEY no configurada en el servidor');
-    return res.status(503).json({ error: 'Service misconfigured' });
+    return res.status(503).json({ error: 'Service misconfigured: API_KEY not set' });
   }
 
-  // Reconstruir la ruta real: /api/proxy/data/X → /api/data/X
-  // req.url en Vercel incluye el path completo desde la función
-  const proxyPath = req.query.path; // capturado por vercel.json rewrite
-  if (!proxyPath) {
-    return res.status(400).json({ error: 'Missing path param' });
+  const proxyPath = req.query.path;
+  if (!proxyPath) return res.status(400).json({ error: 'Missing path param' });
+
+  const pathStr = Array.isArray(proxyPath) ? proxyPath.join('/') : String(proxyPath);
+
+  // ── Ruta directa: /api/proxy/data/:collection → Neon sin HTTP interno ──────
+  const dataMatch = pathStr.match(/^data\/([^/?]+)$/);
+  if (dataMatch) {
+    const collection = dataMatch[1];
+    if (!ALLOWED_COLLECTIONS.test(collection)) {
+      return res.status(403).json({ error: 'Collection not allowed' });
+    }
+    if (!['GET','PUT','DELETE'].includes(req.method)) {
+      return res.status(405).json({ error: 'Method Not Allowed' });
+    }
+    try {
+      const sql = neon(process.env.DATABASE_URL);
+
+      if (req.method === 'GET') {
+        const result = await sql`SELECT value, version FROM collections WHERE key = ${collection}`;
+        if (!result.length) return res.status(404).json({ error: 'Not found' });
+        return res.status(200).json({ data: result[0].value, version: result[0].version || 1 });
+      }
+
+      if (req.method === 'PUT') {
+        const body = req.body;
+        const jsonValue = JSON.stringify(body);
+        await sql`
+          INSERT INTO collections (key, value, version)
+          VALUES (${collection}, ${jsonValue}::jsonb, 1)
+          ON CONFLICT (key) DO UPDATE
+          SET value = EXCLUDED.value,
+              version = collections.version + 1,
+              updated_at = CURRENT_TIMESTAMP
+        `;
+        const updated = await sql`SELECT version FROM collections WHERE key = ${collection}`;
+        return res.status(200).json({ success: true, version: updated[0]?.version || 1 });
+      }
+
+      if (req.method === 'DELETE') {
+        await sql`DELETE FROM collections WHERE key = ${collection}`;
+        return res.status(200).json({ success: true });
+      }
+    } catch (err) {
+      console.error('[proxy/data] Neon error:', err.message);
+      return res.status(500).json({ error: 'Database error' });
+    }
   }
 
-  // Normalizar a string si es array (Vercel catch-all)
-  const pathStr = Array.isArray(proxyPath) ? proxyPath.join('/') : proxyPath;
-  const targetPath = `/api/${pathStr}`;
+  // ── Ruta directa: /api/proxy/data/batch → Neon sin HTTP interno ─────────────
+  if (pathStr === 'data/batch') {
+    try {
+      const sql = neon(process.env.DATABASE_URL);
+      if (req.method === 'GET') {
+        const keys = (req.query.keys || '').split(',').filter(Boolean);
+        const result = {};
+        for (const key of keys) {
+          if (!ALLOWED_COLLECTIONS.test(key)) continue;
+          const rows = await sql`SELECT value, version FROM collections WHERE key = ${key}`;
+          if (rows.length) result[key] = { data: rows[0].value, version: rows[0].version || 1 };
+        }
+        return res.status(200).json(result);
+      }
+      if (req.method === 'PUT') {
+        const entries = req.body || {};
+        for (const [key, value] of Object.entries(entries)) {
+          if (!ALLOWED_COLLECTIONS.test(key)) continue;
+          const jsonValue = JSON.stringify(value);
+          await sql`
+            INSERT INTO collections (key, value, version) VALUES (${key}, ${jsonValue}::jsonb, 1)
+            ON CONFLICT (key) DO UPDATE
+            SET value = EXCLUDED.value, version = collections.version + 1, updated_at = CURRENT_TIMESTAMP
+          `;
+        }
+        return res.status(200).json({ success: true });
+      }
+    } catch (err) {
+      console.error('[proxy/batch] Neon error:', err.message);
+      return res.status(500).json({ error: 'Database error' });
+    }
+  }
 
-  // Allowlist de rutas para evitar SSRF
-  if (!ALLOWED_PATHS.test(targetPath)) {
+  // ── Resto de rutas: forward HTTP con x-api-key ──────────────────────────────
+  const ALLOWED_FORWARD = /^(documents|budget-log|docs|voluntarios|panel\/auth|images)(\/[a-zA-Z0-9_\-[\]{}@.]*)?$/;
+  if (!ALLOWED_FORWARD.test(pathStr)) {
     return res.status(400).json({ error: 'Invalid path' });
   }
 
-  // Solo permitir los métodos esperados
-  const allowed = ['GET', 'PUT', 'DELETE', 'POST'];
-  if (!allowed.includes(req.method)) {
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  }
-
-  // Construir la URL interna (llamada server-to-server dentro de Vercel)
-  // fix(SEC-MED-01): VERCEL_PROJECT_PRODUCTION_URL apunta siempre al dominio
-  // de producción y está disponible en todos los entornos (producción y preview).
-  // VERCEL_URL cambia en cada preview deploy (incluye el hash del commit) y
-  // puede no estar disponible en algunos contextos de desarrollo.
   const baseUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
     : process.env.VERCEL_URL
       ? `https://${process.env.VERCEL_URL}`
-      : null;
+      : req.headers.host
+        ? `https://${req.headers.host}`
+        : null;
+
   if (!baseUrl) {
-    console.error('[proxy] VERCEL_PROJECT_PRODUCTION_URL y VERCEL_URL no configuradas');
-    return res.status(503).json({ error: 'Servicio no disponible: configuración de entorno incompleta.' });
+    return res.status(503).json({ error: 'Cannot determine server base URL' });
   }
 
-  // Preservar query params del request original (ej: keys=... para batch, id=... para documents)
   const searchParams = new URLSearchParams();
   for (const [k, v] of Object.entries(req.query || {})) {
-    if (k !== 'path') searchParams.set(k, v); // excluir el param 'path' que es interno al proxy
+    if (k !== 'path') searchParams.set(k, v);
   }
   const queryStr = searchParams.toString() ? `?${searchParams.toString()}` : '';
-  const targetUrl = `${baseUrl}${targetPath}${queryStr}`;
+  const targetUrl = `${baseUrl}/api/${pathStr}${queryStr}`;
 
   try {
     const fetchOptions = {
       method: req.method,
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,          // ← inyectado server-side, nunca al cliente
-        'x-forwarded-for': req.headers['x-forwarded-for'] || '',
-      },
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey,
+        'x-forwarded-for': req.headers['x-forwarded-for'] || '' },
     };
-
-    if (['PUT', 'POST'].includes(req.method) && req.body) {
+    if (['PUT','POST'].includes(req.method) && req.body) {
       fetchOptions.body = JSON.stringify(req.body);
     }
-
     const response = await fetch(targetUrl, fetchOptions);
-    const contentType = response.headers.get('content-type') || '';
-    
+    const ct = response.headers.get('content-type') || '';
     res.status(response.status);
-    
-    if (contentType.includes('application/json')) {
-      const data = await response.json();
-      return res.json(data);
-    }
-    
-    const text = await response.text();
-    return res.send(text);
-
+    if (ct.includes('application/json')) return res.json(await response.json());
+    return res.send(await response.text());
   } catch (err) {
-    console.error('[proxy] Error forwarding request:', err.message);
+    console.error('[proxy] HTTP forward error:', err.message);
     return res.status(502).json({ error: 'Proxy error' });
   }
 }

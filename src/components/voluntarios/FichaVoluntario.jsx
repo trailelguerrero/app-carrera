@@ -306,18 +306,22 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
             </div>
           )}
 
-          {/* Mensaje del voluntario a la organización */}
-          {v.mensajeParaOrganizador && (
-            <div style={{ background:"rgba(34,211,238,.08)", borderRadius:8, padding:"0.75rem 0.85rem",
-              borderLeft:"3px solid var(--cyan)", marginTop:"0.5rem",
-              border:"1px solid rgba(34,211,238,.2)", borderLeftWidth:3 }}>
-              <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--cyan)",
-                marginBottom:"0.35rem", textTransform:"uppercase", fontWeight:700, letterSpacing:".06em" }}>
-                💬 Mensaje del voluntario
-              </div>
-              <div style={{ fontSize:"var(--fs-base)", lineHeight:1.6, color:"var(--text)" }}>{v.mensajeParaOrganizador}</div>
+          {/* Mensaje del voluntario a la organización — siempre visible */}
+          <div style={{ background: v.mensajeParaOrganizador ? "rgba(34,211,238,.08)" : "var(--surface2)",
+            borderRadius:8, padding:"0.75rem 0.85rem", marginTop:"0.5rem",
+            border: v.mensajeParaOrganizador ? "1px solid rgba(34,211,238,.2)" : "1px solid var(--border)",
+            borderLeft: `3px solid ${v.mensajeParaOrganizador ? "var(--cyan)" : "var(--border)"}` }}>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+              color: v.mensajeParaOrganizador ? "var(--cyan)" : "var(--text-dim)",
+              marginBottom:".25rem", textTransform:"uppercase", fontWeight:700, letterSpacing:".06em" }}>
+              💬 Mensaje del voluntario
             </div>
-          )}
+            <div style={{ fontSize:"var(--fs-base)", lineHeight:1.6,
+              color: v.mensajeParaOrganizador ? "var(--text)" : "var(--text-dim)",
+              fontStyle: v.mensajeParaOrganizador ? "normal" : "italic" }}>
+              {v.mensajeParaOrganizador || "Sin mensaje — el voluntario puede enviarlo desde su portal"}
+            </div>
+          </div>
 
           {/* Mensaje del organizador visible por el voluntario en su portal */}
           {onUpdate && (
