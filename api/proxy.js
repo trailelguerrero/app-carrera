@@ -31,11 +31,6 @@ export default async function handler(req, res) {
   setCors(req, res);
   if (req.method === 'OPTIONS') return res.status(204).end();
 
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    return res.status(503).json({ error: 'Service misconfigured: API_KEY not set' });
-  }
-
   const proxyPath = req.query.path;
   if (!proxyPath) return res.status(400).json({ error: 'Missing path param' });
 
@@ -122,6 +117,12 @@ export default async function handler(req, res) {
   const ALLOWED_FORWARD = /^(documents|budget-log|docs|voluntarios|panel\/auth|images)(\/[a-zA-Z0-9_\-[\]{}@.]*)?$/;
   if (!ALLOWED_FORWARD.test(pathStr)) {
     return res.status(400).json({ error: 'Invalid path' });
+  }
+
+  // API_KEY solo necesaria para forward HTTP (no para Neon directo)
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    return res.status(503).json({ error: 'Service misconfigured: API_KEY not set' });
   }
 
   const baseUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
