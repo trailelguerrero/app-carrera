@@ -81,7 +81,8 @@ export default function TabPipeline({ pats, onEditar, onDetalle, updateEstado, o
               })}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </>
   );
