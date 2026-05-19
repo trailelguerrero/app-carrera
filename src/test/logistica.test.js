@@ -1629,3 +1629,117 @@ describe('LOG-24 — MEJ-01: paradas de ruta vinculadas al inventario mediante a
     }
   });
 });
+
+// ── LOG-25: MEJ-02 Indicador cobertura por puesto ────────────────────────────
+describe('LOG-25 — MEJ-02: Indicador cobertura completa por puesto en TabLocalizaciones', () => {
+  // Importar calcularCobertura directamente desde el componente
+  let calcularCobertura;
+
+  beforeAll(async () => {
+    // La función está exportada desde TabLocalizaciones.jsx
+    const mod = await import('../components/logistica/TabLocalizaciones.jsx');
+    calcularCobertura = mod.calcularCobertura;
+  });
+
+  it('calcularCobertura existe y es función', () => {
+    expect(typeof calcularCobertura).toBe('function');
+  });
+
+  it('devuelve "completa" cuando hay material Y voluntario', () => {
+    expect(calcularCobertura(true, true)).toBe('completa');
+  });
+
+  it('devuelve "sin_voluntario" cuando hay material pero no voluntario', () => {
+    expect(calcularCobertura(true, false)).toBe('sin_voluntario');
+  });
+
+  it('devuelve "sin_material" cuando hay voluntario pero no material', () => {
+    expect(calcularCobertura(false, true)).toBe('sin_material');
+  });
+
+  it('devuelve null cuando no hay material ni voluntario (puesto vacío)', () => {
+    expect(calcularCobertura(false, false)).toBeNull();
+  });
+
+  it('resumen X/Y calcula correctamente puestos completos y evaluables', () => {
+    // Simular la lógica de resumenCobertura del componente
+    const locs = [
+      { id: 1 }, // material + voluntario → completa
+      { id: 2 }, // material sin voluntario → sin_voluntario
+      { id: 3 }, // voluntario sin material → sin_material
+      { id: 4 }, // nada → no evaluable
+    ];
+    const matPorLoc = {
+      1: [{ nombre: 'Agua', cantidad: 10, unidad: 'ud' }],
+      2: [{ nombre: 'Balizas', cantidad: 5, unidad: 'ud' }],
+      3: [],
+    };
+    const volsPorLoc = {
+      1: [{ vol: { nombre: 'Juan', estado: 'confirmado' }, puesto: { nombre: 'Avituallamiento' } }],
+      3: [{ vol: { nombre: 'Ana', estado: 'pendiente' }, puesto: { nombre: 'Señalización' } }],
+    };
+
+    const evaluables = locs.filter(l => {
+      const tieneMat = (matPorLoc[l.id] || []).length > 0;
+      const tieneVol = (volsPorLoc[l.id] || []).length > 0;
+      return tieneMat || tieneVol;
+    });
+    const completos = evaluables.filter(l => {
+      const tieneMat = (matPorLoc[l.id] || []).length > 0;
+      const tieneVol = (volsPorLoc[l.id] || []).length > 0;
+      return tieneMat && tieneVol;
+    });
+
+    expect(evaluables.length).toBe(3); // loc 4 excluida (ni mat ni vol)
+    expect(completos.length).toBe(1);  // solo loc 1 tiene ambos
+  });
+
+  it('puestos sin material ni voluntario NO cuentan en el denominador', () => {
+    const locs = [{ id: 1 }, { id: 2 }, { id: 3 }];
+    const matPorLoc = { 1: [{ nombre: 'Agua', cantidad: 5, unidad: 'ud' }] };
+    const volsPorLoc = { 1: [{ vol: { nombre: 'Luis', estado: 'confirmado' }, puesto: { nombre: 'Meta' } }] };
+
+    // loc 2 y loc 3 sin nada → no evaluables
+    const evaluables = locs.filter(l => {
+      const tieneMat = (matPorLoc[l.id] || []).length > 0;
+      const tieneVol = (volsPorLoc[l.id] || []).length > 0;
+      return tieneMat || tieneVol;
+    });
+
+    expect(evaluables.length).toBe(1);
+    expect(evaluables[0].id).toBe(1);
+  });
+
+  it('resumen muestra "X/Y puestos" coherente con datos reales de logisticaConstants', async () => {
+    const { MAT0, ASIG0, VEH0, RUTAS0, TL0, CONT0, INC0, CK0 } = await import('../components/logistica/logisticaConstants.js');
+    // Solo verificamos que la lógica no crashea con datos reales
+    // matPorLoc: agrupar asignaciones por localizacionId
+    const matPorLoc = {};
+    for (const a of ASIG0) {
+      if (!matPorLoc[a.localizacionId]) matPorLoc[a.localizacionId] = [];
+      const mat = MAT0.find(m => m.id === a.materialId);
+      if (mat) matPorLoc[a.localizacionId].push({ nombre: mat.nombre, cantidad: a.cantidad, unidad: mat.unidad || 'ud' });
+    }
+
+    // volsPorLoc vacío (no tenemos datos de voluntarios en logisticaConstants)
+    const volsPorLoc = {};
+
+    // Con los datos reales: algunos puestos tienen material → sin_voluntario (sin vols)
+    const locIds = [...new Set(ASIG0.map(a => a.localizacionId))];
+    const evaluables = locIds.filter(id => {
+      const tieneMat = (matPorLoc[id] || []).length > 0;
+      const tieneVol = (volsPorLoc[id] || []).length > 0;
+      return tieneMat || tieneVol;
+    });
+
+    // Con 0 voluntarios, ningún puesto tiene cobertura completa
+    const completos = evaluables.filter(id => {
+      const tieneMat = (matPorLoc[id] || []).length > 0;
+      const tieneVol = (volsPorLoc[id] || []).length > 0;
+      return tieneMat && tieneVol;
+    });
+
+    expect(evaluables.length).toBeGreaterThan(0);
+    expect(completos.length).toBeLessThanOrEqual(evaluables.length);
+  });
+});

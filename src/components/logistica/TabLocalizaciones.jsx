@@ -165,6 +165,19 @@ function MapaLocalizaciones({ locs, matPorLoc = {} }) {
   );
 }
 
+// ─── UTILIDAD DE COBERTURA ───────────────────────────────────────────────────
+// Calcula el estado de cobertura de un puesto dado su material y voluntarios.
+// "completa"      → tiene material Y voluntario
+// "sin_voluntario"→ tiene material pero NO voluntario
+// "sin_material"  → tiene voluntario pero NO material
+// null            → sin material ni voluntario (puesto vacío — no se evalúa)
+export function calcularCobertura(tieneMaterial, tieneVoluntario) {
+  if (!tieneMaterial && !tieneVoluntario) return null;
+  if (tieneMaterial && tieneVoluntario)  return "completa";
+  if (tieneMaterial && !tieneVoluntario) return "sin_voluntario";
+  return "sin_material";
+}
+
 // ─── LOCALIZACIONES MAESTRAS ─────────────────────────────────────────────────
 function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {} }) {
     const [modal, setModal] = useState(null); // null | {data: loc|null}
@@ -173,6 +186,21 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {} }) {
   const [form, setForm] = useState({ nombre: "", tipo: "otro", descripcion: "", lat: "", lng: "" });
 
   const locsF = filtroTipo === "todos" ? locs : locs.filter(l0 => l0.tipo === filtroTipo);
+
+  // ── Resumen de cobertura ──────────────────────────────────────────────────
+  const resumenCobertura = useMemo(() => {
+    const evaluables = locs.filter(l => {
+      const tieneMat = (matPorLoc[l.id] || []).length > 0;
+      const tieneVol = (volsPorLoc[l.id] || []).length > 0;
+      return tieneMat || tieneVol; // al menos uno de los dos
+    });
+    const completos = evaluables.filter(l => {
+      const tieneMat = (matPorLoc[l.id] || []).length > 0;
+      const tieneVol = (volsPorLoc[l.id] || []).length > 0;
+      return tieneMat && tieneVol;
+    });
+    return { completos: completos.length, total: evaluables.length };
+  }, [locs, matPorLoc, volsPorLoc]);
 
   const openNueva = () => { setForm({ nombre: "", tipo: "otro", descripcion: "", lat: "", lng: "" }); setModal({ data: null }); };
   const openEditar = (l) => {
@@ -198,7 +226,20 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {} }) {
     <>
       <div className="ph">
         <div><div className="pt">📍 Localizaciones Maestras</div><div className="pd">{locs.length} ubicaciones · Compartidas con Voluntarios · <span style={{cursor:"pointer",color:"var(--text-dim)"}} onClick={()=>window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"configuracion"}}))} title="Abrir Configuración">⚙️ Configuración</span></div></div>
-        <div style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: ".5rem", alignItems: "center", flexWrap: "wrap" }}>
+          {/* Resumen cobertura */}
+          {resumenCobertura.total > 0 && (
+            <span style={{
+              fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+              padding: ".2rem .55rem", borderRadius: 20,
+              background: resumenCobertura.completos === resumenCobertura.total ? "rgba(34,197,94,.12)" : "rgba(251,191,36,.12)",
+              color: resumenCobertura.completos === resumenCobertura.total ? "var(--green)" : "var(--amber)",
+              border: `1px solid ${resumenCobertura.completos === resumenCobertura.total ? "rgba(34,197,94,.3)" : "rgba(251,191,36,.3)"}`,
+              whiteSpace: "nowrap",
+            }}>
+              {resumenCobertura.completos === resumenCobertura.total ? "✅" : "⚠️"} {resumenCobertura.completos}/{resumenCobertura.total} cobertura completa
+            </span>
+          )}
           <select style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text)", borderRadius: "var(--r-sm)", padding: ".3rem .5rem" }}
             value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
             <option value="todos">Todos los tipos</option>
@@ -225,8 +266,30 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {} }) {
                     <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color, textTransform: "uppercase", letterSpacing: ".06em" }}>{l.tipo}</div>
                   </div>
                 </div>
-                <button className="btn btn-sm btn-red" onClick={e => { e.stopPropagation(); setDel(l.id); }}
-                  style={{ flexShrink: 0, padding: ".15rem .4rem", fontSize: "var(--fs-sm)" }}>✕</button>
+                <div style={{ display: "flex", gap: ".35rem", alignItems: "center", flexShrink: 0 }}>
+                  {/* Badge de cobertura */}
+                  {(() => {
+                    const tieneMat = (matPorLoc[l.id] || []).length > 0;
+                    const tieneVol = (volsPorLoc[l.id] || []).length > 0;
+                    const cob = calcularCobertura(tieneMat, tieneVol);
+                    if (!cob) return null;
+                    const cfg = {
+                      completa:       { label: "✅ Completa",       bg: "rgba(34,197,94,.12)",  color: "var(--green)", border: "rgba(34,197,94,.3)" },
+                      sin_voluntario: { label: "⚠️ Sin voluntario", bg: "rgba(251,191,36,.12)", color: "var(--amber)", border: "rgba(251,191,36,.3)" },
+                      sin_material:   { label: "📦 Sin material",   bg: "rgba(251,191,36,.12)", color: "var(--amber)", border: "rgba(251,191,36,.3)" },
+                    }[cob];
+                    return (
+                      <span style={{
+                        fontFamily: "var(--font-mono)", fontSize: "var(--fs-2xs)",
+                        padding: ".1rem .4rem", borderRadius: 20,
+                        background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`,
+                        whiteSpace: "nowrap",
+                      }}>{cfg.label}</span>
+                    );
+                  })()}
+                  <button className="btn btn-sm btn-red" onClick={e => { e.stopPropagation(); setDel(l.id); }}
+                    style={{ flexShrink: 0, padding: ".15rem .4rem", fontSize: "var(--fs-sm)" }}>✕</button>
+                </div>
               </div>
               {l.descripcion && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)", fontStyle: "italic", marginTop: ".2rem" }}>{l.descripcion}</div>}
               {/* Coordenadas GPS si existen */}
