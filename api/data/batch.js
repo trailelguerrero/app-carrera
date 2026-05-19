@@ -8,6 +8,9 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized: Invalid or missing API Key' });
   }
 
+  // fix(SEC-CRIT-01): allowlist de colecciones — misma regex que [collection].js
+  const ALLOWED_COLLECTIONS = /^teg_(voluntarios|logistica|presupuesto|camisetas|patrocinadores|pat_log|localizaciones|documentos|proyecto|event_config|scenarios|codigos_promo|panel_pin_hash|panel_pin_length|escenarios|dia_carrera|scenario_active_name|auto_backup)_?v?\d*(_[a-zA-Z0-9]+)*$/;
+
   // Rate limiting: 60 peticiones/minuto por IP
   const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket?.remoteAddress || 'unknown';
   try {
@@ -29,6 +32,8 @@ export default async function handler(req, res) {
       if (!keysParam) return res.status(400).json({ error: 'Missing keys' });
       
       const keys = keysParam.split(',');
+      const invalidKey = keys.find(k => !ALLOWED_COLLECTIONS.test(k.trim()));
+      if (invalidKey) return res.status(403).json({ error: 'Collection not allowed', key: invalidKey });
       const result = await sql`SELECT key, value FROM collections WHERE key = ANY(${keys})`;
       
       const data = {};
@@ -40,8 +45,10 @@ export default async function handler(req, res) {
     } 
     
     if (req.method === 'PUT') {
-      const entries = req.body; 
-      
+      const entries = req.body;
+      const invalidPutKey = Object.keys(entries).find(k => !ALLOWED_COLLECTIONS.test(k));
+      if (invalidPutKey) return res.status(403).json({ error: 'Collection not allowed', key: invalidPutKey });
+
       const promises = Object.entries(entries).map(([key, value]) => {
         const jsonValue = JSON.stringify(value);
         return sql`

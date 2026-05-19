@@ -10,6 +10,12 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized: Invalid or missing API Key' });
   }
 
+  // fix(SEC-CRIT-01): allowlist de colecciones — previene acceso no autorizado entre módulos
+  const ALLOWED_COLLECTIONS = /^teg_(voluntarios|logistica|presupuesto|camisetas|patrocinadores|pat_log|localizaciones|documentos|proyecto|event_config|scenarios|codigos_promo|panel_pin_hash|panel_pin_length|escenarios|dia_carrera|scenario_active_name|auto_backup)_?v?\d*(_[a-zA-Z0-9]+)*$/;
+  if (!collection || !ALLOWED_COLLECTIONS.test(collection)) {
+    return res.status(403).json({ error: 'Collection not allowed' });
+  }
+
   // Rate limiting: 60 peticiones/minuto por IP en endpoints autenticados
   const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket?.remoteAddress || 'unknown';
 
