@@ -17,6 +17,7 @@
  */
 import { neon } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 import { checkRateLimit } from '../lib/rateLimiter.js';
 
 const BCRYPT_SALT_ROUNDS = 10;
@@ -131,7 +132,7 @@ export default async function handler(req, res) {
     const pinHashValue = await bcrypt.hash(pinRaw, BCRYPT_SALT_ROUNDS);
 
     const sanitized = {
-      id:                  newVoluntario.id              || `pub_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,
+      id:                  newVoluntario.id              || `pub_${Date.now()}_${randomBytes(4).toString('hex')}`,
       nombre:              String(newVoluntario.nombre   || '').slice(0, 100),
       apellidos:           String(newVoluntario.apellidos|| '').slice(0, 100),
       telefono:            String(newVoluntario.telefono || '').slice(0, 20),
@@ -142,6 +143,8 @@ export default async function handler(req, res) {
       notas:               String(newVoluntario.notas    || '').slice(0, 500),
       telefonoEmergencia:  String(newVoluntario.telefonoEmergencia || newVoluntario.contactoEmergencia || '').slice(0, 200), // T1.4: campo canónico
       contactoEmergencia:  String(newVoluntario.telefonoEmergencia || newVoluntario.contactoEmergencia || '').slice(0, 200), // T1.4: compat legacy
+      alergias:            String(newVoluntario.alergias   || '').slice(0, 200),
+      medicacion:          String(newVoluntario.medicacion || '').slice(0, 200),
       estado:              'pendiente', // SIEMPRE pendiente desde registro público
       fechaRegistro:       new Date().toISOString(),
       fuenteRegistro:      'formulario_publico',

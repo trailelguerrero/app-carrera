@@ -576,7 +576,7 @@ function LoginScreen({ onLogin, onVolver, telefonoInicial, config }) {
 function PuestoDetalle({ puesto }) {
   const [expandido, setExpandido] = useState(true); // abierto por defecto
   if (!puesto) return (
-    <div className="vp-card" style={{ borderLeft:"3px solid var(--border)", textAlign:"center", padding:"1.5rem 1rem" }}>
+    <div id="sec-puesto" className="vp-card" style={{ borderLeft:"3px solid var(--border)", textAlign:"center", padding:"1.5rem 1rem", marginBottom:".75rem" }}>
       <div style={{ fontSize:"2rem", marginBottom:".5rem" }}>⏳</div>
       <div style={{ fontWeight:700, fontSize:".92rem", color:"var(--text)", marginBottom:".3rem" }}>
         Tu puesto aún no está asignado
@@ -588,7 +588,7 @@ function PuestoDetalle({ puesto }) {
     </div>
   );
   return (
-    <div className="vp-card" style={{ borderLeft:"3px solid var(--cyan)", padding:0, overflow:"hidden" }}>
+    <div id="sec-puesto" className="vp-card" style={{ borderLeft:"3px solid var(--cyan)", padding:0, overflow:"hidden" }}>
       {/* Cabecera siempre visible */}
       <button
         onClick={() => setExpandido(v => !v)}
@@ -1028,6 +1028,7 @@ function PortalMain({ token, onLogout }) {
             ? [{ id:"sec-diacarrera", icon:"🏁", label:"El día" }]
             : []),
           { id:"sec-datos",    icon:"👤", label:"Mis datos" },
+          { id:"sec-mensaje",  icon:"💬", label:"Mensaje" },
           ...(organizadores.length > 0 ? [{ id:"sec-contacto", icon:"📞", label:"Contacto" }] : []),
         ].map(s => (
           <button key={s.id}
@@ -1045,7 +1046,7 @@ function PortalMain({ token, onLogout }) {
         {msg && <div className="vp-toast">{msg}</div>}
 
         {/* Banner PIN automático — SEC-02. PIN temporal activo: el voluntario usa el PIN inicial (últimos 4 dígitos del teléfono) sin haberlo personalizado. */}
-        {!v.pinPersonalizado && v.estado !== "cancelado" && !bannerPinDismissed && (
+        {v.pinPersonalizado === false && v.estado !== "cancelado" && !bannerPinDismissed && (
           <div style={{
             background: "rgba(251,191,36,.07)",
             border: "1px solid rgba(251,191,36,.28)",
@@ -1128,33 +1129,7 @@ function PortalMain({ token, onLogout }) {
         )}
 
         {/* Puesto */}
-        <div className="vp-card" style={{ borderLeft:`3px solid ${puesto?"var(--cyan)":"var(--border)"}` }}>
-          <div className="vp-label">📍 Tu puesto</div>
-          {puesto ? (<>
-            <div style={{ fontWeight:700, fontSize:"1.1rem", marginBottom:".35rem" }}>{puesto.nombre}</div>
-            <div className="vp-mono" style={{ fontSize:".78rem", color:"var(--text-muted)", lineHeight:1.9 }}>
-              🕗 <strong style={{color:"var(--text)"}}>{puesto.horaInicio}</strong>
-              {puesto.horaFin && ` · Hasta: ${puesto.horaFin}`}
-              {puesto.distancias?.length > 0 && <><br/>📏 {puesto.distancias.join(" · ")}</>}
-              {puesto.tipo && <><br/>🏷 {puesto.tipo}</>}
-            </div>
-            {puesto.notas && (
-              <div className="vp-mono" style={{ fontSize:".72rem", color:"var(--text-dim)",
-                marginTop:".5rem", padding:".4rem .6rem", background:"var(--surface2)",
-                borderRadius:6, borderLeft:"2px solid var(--border)" }}>📋 {puesto.notas}</div>
-            )}
-          </>) : (
-            <div style={{ textAlign:"center", padding:".75rem 0" }}>
-              <div style={{ fontSize:"1.5rem", marginBottom:".35rem" }}>⏳</div>
-              <div style={{ fontWeight:700, fontSize:".85rem", color:"var(--text)", marginBottom:".2rem" }}>
-                Tu puesto aún no está asignado
-              </div>
-              <div className="vp-mono" style={{ fontSize:".7rem", color:"var(--text-muted)", lineHeight:1.65 }}>
-                Te lo comunicaremos por email cuando esté confirmado.
-              </div>
-            </div>
-          )}
-        </div>
+        <PuestoDetalle puesto={puesto} />
 
         {/* Material */}
         {materialPuesto.length > 0 && (
@@ -1442,13 +1417,13 @@ function PortalMain({ token, onLogout }) {
                       Cualquier pregunta, necesidad especial o comentario para el equipo organizador.
                     </div>
                     <textarea
-                      className="vp-input"
+                      className="vp-textarea"
                       placeholder="Ej: Tengo dudas sobre el horario, llegaré en transporte público…"
                       value={editForm.mensajeParaOrganizador}
                       onChange={e => setEditForm(f=>({...f,mensajeParaOrganizador:e.target.value}))}
                       maxLength={500}
                       rows={3}
-                      style={{ resize:"vertical", minHeight:72, fontFamily:"var(--font-mono)", fontSize:".82rem" }}
+                      style={{ resize:"vertical" }}
                     />
                     <div className="vp-mono" style={{ fontSize:".65rem", color:"var(--text-dim)", textAlign:"right", marginTop:".2rem" }}>
                       {editForm.mensajeParaOrganizador.length}/500
@@ -1577,7 +1552,7 @@ function PortalMain({ token, onLogout }) {
                     </div>
                   </>)}
                   {/* Mensaje del voluntario a la organización — editable via ✏️ */}
-                  <div className="vp-divider"/>
+                  <div id="sec-mensaje" className="vp-divider"/>
                   <div style={{paddingTop:".4rem"}}>
                     <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:".3rem"}}>
                       <div className="vp-label" style={{marginBottom:0}}>💬 Tu mensaje a la organización</div>

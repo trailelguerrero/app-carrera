@@ -46,6 +46,7 @@
   .vp-btn-primary { background: var(--cyan);      color: #0f172a; }
   .vp-btn-primary:not(:disabled):hover { filter: brightness(1.08); }
   .vp-btn-success { background: var(--green);     color: #0f172a; }
+  .vp-btn-success:not(:disabled):hover { filter: brightness(1.08); }
   .vp-btn-done    { background: var(--green-dim); color: var(--green);
     border: 1px solid var(--green-border); cursor: default; }
   .vp-btn-ghost   { background: transparent; color: var(--text-muted);
