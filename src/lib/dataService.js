@@ -126,6 +126,7 @@ const apiAdapter = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
           });
+          // MISSING-02: detección de conflictos entre dispositivos — emite teg-conflict con datos del servidor
           if (res.status === 409) {
             const conflictData = await res.json().catch(() => ({}));
             window.dispatchEvent(new CustomEvent('teg-conflict', {

@@ -1041,7 +1041,7 @@ function PortalMain({ token, onLogout }) {
       <div className="vp-wrap">
         {msg && <div className="vp-toast">{msg}</div>}
 
-        {/* Banner PIN automático — SEC-02 */}
+        {/* Banner PIN automático — SEC-02. PIN temporal activo: el voluntario usa el PIN inicial (últimos 4 dígitos del teléfono) sin haberlo personalizado. */}
         {!v.pinPersonalizado && v.estado !== "cancelado" && !bannerPinDismissed && (
           <div style={{
             background: "rgba(251,191,36,.07)",
@@ -2064,7 +2064,24 @@ function CancelarAsistencia({ token, nombreVoluntario, onCancelado }) {
   );
 }
 
+// UX-10: estilos de foco accesibles — portal de voluntarios
+const PORTAL_FOCUS_STYLES = `
+  button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; border-radius: 4px; }
+  input:focus-visible  { outline: 2px solid var(--cyan); outline-offset: 2px; border-radius: 4px; }
+  select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; border-radius: 4px; }
+  textarea:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; border-radius: 4px; }
+  a:focus-visible      { outline: 2px solid var(--cyan); outline-offset: 2px; border-radius: 4px; }
+`;
+
 export default function VoluntarioPortal() {
+  // Inyectar estilos focus-visible al montar (UX-10)
+  React.useEffect(() => {
+    const styleEl = document.createElement('style');
+    styleEl.setAttribute('data-portal-focus', '');
+    styleEl.textContent = PORTAL_FOCUS_STYLES;
+    document.head.appendChild(styleEl);
+    return () => styleEl.remove();
+  }, []);
   // pantalla: 'landing' | 'registro' | 'registro-ok' | 'login' | 'portal'
   const [pantalla, setPantalla] = useState(() => {
     const sess = loadSession();

@@ -763,7 +763,8 @@ export default function Index() {
                 Más secciones
               </div>
               <div style={{ display: "flex", gap: "0.5rem" }}>
-                {navMore.filter(b => b.id !== "configuracion").map(b => {
+                {navMore.map(b => {
+                  if (b.id === 'configuracion') return null; // SP6-01: configuracion se renderiza por separado abajo
                   const isActive = activeBlock === b.id;
                   return (
                     <button
