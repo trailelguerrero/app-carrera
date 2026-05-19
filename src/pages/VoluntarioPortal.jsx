@@ -577,13 +577,13 @@ function PuestoDetalle({ puesto }) {
   const [expandido, setExpandido] = useState(true); // abierto por defecto
   if (!puesto) return (
     <div id="sec-puesto" className="vp-card" style={{ borderLeft:"3px solid var(--border)", textAlign:"center", padding:"1.5rem 1rem", marginBottom:".75rem" }}>
-      <div style={{ fontSize:"2rem", marginBottom:".5rem" }}>⏳</div>
+      <div style={{ fontSize:"2rem", marginBottom:".5rem" }}>📋</div>
       <div style={{ fontWeight:700, fontSize:".92rem", color:"var(--text)", marginBottom:".3rem" }}>
-        Tu puesto aún no está asignado
+        Tu puesto estará visible aquí
       </div>
-      <div className="vp-mono" style={{ fontSize:".72rem", color:"var(--text-muted)", lineHeight:1.65 }}>
-        El organizador te lo comunicará por email cuando esté confirmado.<br />
-        No necesitas hacer nada por ahora.
+      <div className="vp-mono" style={{ fontSize:".72rem", color:"var(--text-muted)", lineHeight:1.8 }}>
+        La organización asignará tu puesto en esta sección.<br />
+        Vuelve a consultar esta página cuando se acerque el evento.
       </div>
     </div>
   );
@@ -740,7 +740,7 @@ function PortalMain({ token, onLogout }) {
       const orig = {
         talla:              v.talla || "M",
         email:              v.email || "",
-        telefonoEmergencia: v.telefonoEmergencia || v.contactoEmergencia || "",
+        telefonoEmergencia: v.telefonoEmergencia || v.contactoEmergencia || v.telefono || "",
         mensajeParaOrganizador: v.mensajeParaOrganizador || "",
       };
       setEditForm(orig);
@@ -1089,8 +1089,8 @@ function PortalMain({ token, onLogout }) {
           </div>
         )}
 
-        {/* CTA prominente de llegada — antes que todo cuando confirmar es la acción clave */}
-        {v.estado === "confirmado" && !v.enPuesto && puesto && (
+        {/* CTA prominente de llegada — visible si confirmado o pendiente con puesto */}
+        {(v.estado === "confirmado" || (v.estado === "pendiente" && puesto)) && !v.enPuesto && (
           <div style={{ background:"linear-gradient(135deg, rgba(52,211,153,.12) 0%, rgba(34,211,238,.08) 100%)",
             border:"2px solid var(--green-border)", borderRadius:12, padding:"1rem",
             marginBottom:".85rem", textAlign:"center" }}
@@ -1098,10 +1098,10 @@ function PortalMain({ token, onLogout }) {
             <div style={{ fontSize:"2rem", lineHeight:1, marginBottom:".4rem" }}>🏔️</div>
             <div style={{ fontWeight:800, fontSize:"var(--fs-md)", color:"var(--green)",
               fontFamily:"var(--font-display)", marginBottom:".2rem" }}>
-              {confirmLlegada ? "¿Confirmas que estás en tu puesto?" : "¿Ya estás en tu puesto?"}
+              {confirmLlegada ? "¿Confirmas que ya estás?" : "¿Ya estás en el evento?"}
             </div>
             <div className="vp-mono" style={{ fontSize:"var(--fs-xs)", color:"var(--text-muted)", marginBottom:".75rem" }}>
-              {puesto.nombre}
+              {puesto ? puesto.nombre : "Confirmar tu asistencia al evento"}
             </div>
             {confirmLlegada ? (
               <div style={{ display:"flex", gap:".5rem", justifyContent:"center" }}>
@@ -1114,7 +1114,7 @@ function PortalMain({ token, onLogout }) {
               </div>
             ) : (
               <button className="vp-btn vp-btn-success" style={{ width:"100%", maxWidth:280 }}>
-                ✅ Confirmar llegada al puesto
+                ✅ Confirmar llegada al evento
               </button>
             )}
           </div>
@@ -1454,6 +1454,15 @@ function PortalMain({ token, onLogout }) {
                   )}
 
                   {/* Botones Guardar / Cancelar */}
+                  {/* soloMensaje: campos bloqueados no cambiaron, solo el mensaje (siempre editable) */}
+                  {(() => {
+                    const soloMensaje = bloqueado
+                      && editForm.talla === editOrig.talla
+                      && editForm.email === editOrig.email
+                      && editForm.telefonoEmergencia === editOrig.telefonoEmergencia
+                      && editForm.mensajeParaOrganizador !== editOrig.mensajeParaOrganizador;
+                    const puedeGuardar = haycambiosEdit && (!bloqueado || soloMensaje);
+                    return (
                   <div style={{display:"flex", gap:".5rem"}}>
                     <button
                       className="vp-btn vp-btn-ghost"
@@ -1466,12 +1475,14 @@ function PortalMain({ token, onLogout }) {
                       className="vp-btn vp-btn-primary"
                       style={{minHeight:48, flex:2}}
                       onClick={guardarEdit}
-                      disabled={saving || !haycambiosEdit || bloqueado}
-                      title={bloqueado ? tooltipBloqueo : !haycambiosEdit ? "No hay cambios que guardar" : undefined}
+                      disabled={saving || !puedeGuardar}
+                      title={!puedeGuardar && bloqueado && !soloMensaje ? tooltipBloqueo : !haycambiosEdit ? "No hay cambios que guardar" : undefined}
                     >
                       {saving ? "Guardando…" : "💾 Guardar cambios"}
                     </button>
                   </div>
+                    );
+                  })()}
                 </>
               ) : (
                 <>
@@ -1715,7 +1726,7 @@ function StepperForm({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, 
     if (!form.apellidos.trim()) e.apellidos = "Requerido";
     if (!form.telefono.trim() || !/^\d{9}$/.test(form.telefono.replace(/\s/g,""))) e.telefono = "Teléfono de 9 dígitos";
     if (opcionEmail && form.email?.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) e.email = "Email no válido";
-    if (opcionEmergencia && !form.telefonoEmergencia?.trim()) e.telefonoEmergencia = "El teléfono de emergencia es obligatorio";
+    if (!form.telefonoEmergencia?.trim()) e.telefonoEmergencia = "El teléfono de emergencia es obligatorio";
     setErrores(e); return Object.keys(e).length === 0;
   };
   const validarPaso2 = () => {
@@ -1846,14 +1857,12 @@ function StepperForm({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, 
                   value={form.email||""} onChange={e=>set("email",e.target.value)} />
               </FormField>
             )}
-            {opcionEmergencia && (
             <FormField label="🚨 Teléfono de emergencia *" error={errores.telefonoEmergencia}
               hint="Familiar o persona a avisar si ocurre alguna incidencia">
               <input className={`pub-input${errores.telefonoEmergencia?" error":""}`}
                 type="tel" placeholder="612 345 678" inputMode="tel"
                 value={form.telefonoEmergencia||""} onChange={e=>set("telefonoEmergencia",e.target.value)} />
             </FormField>
-            )}
             <FormField label="⚕️ ¿Tienes alguna alergia que debamos conocer?" hint="Por seguridad en carrera: alimentos, picaduras, medicamentos... (opcional)">
               <input className="pub-input" placeholder="Ej: Polen, frutos secos, picaduras de abejas…"
                 value={form.alergias||""} onChange={e=>set("alergias",e.target.value)} maxLength={200} />
@@ -1964,7 +1973,7 @@ function StepperForm({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, 
                 ["Talla",    form.talla],
                 ...(opcionPuesto && form.puestoId ? [["Puesto",puestos.find(p=>String(p.id)===String(form.puestoId))?.nombre||""]] : []),
                 ...(opcionVehiculo ? [["Vehículo", form.coche?"Sí ✓":"No"]] : []),
-                ...(opcionEmergencia ? [["🚨 Tel. emergencia", form.telefonoEmergencia || "—"]] : []),
+                ["🚨 Tel. emergencia", form.telefonoEmergencia || "—"],
                 ...(form.alergias ? [["⚕️ Alergias", form.alergias.slice(0,40)+(form.alergias.length>40?"…":"")]] : []),
                 ...(form.medicacion ? [["💊 Medicación", form.medicacion.slice(0,40)+(form.medicacion.length>40?"…":"")]] : []),
               ].map(([k,v])=>(

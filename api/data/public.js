@@ -141,8 +141,8 @@ export default async function handler(req, res) {
       puestoId:            newVoluntario.puestoId        || null,
       coche:               Boolean(newVoluntario.coche),
       notas:               String(newVoluntario.notas    || '').slice(0, 500),
-      telefonoEmergencia:  String(newVoluntario.telefonoEmergencia || newVoluntario.contactoEmergencia || '').slice(0, 200), // T1.4: campo canónico
-      contactoEmergencia:  String(newVoluntario.telefonoEmergencia || newVoluntario.contactoEmergencia || '').slice(0, 200), // T1.4: compat legacy
+      telefonoEmergencia:  String(newVoluntario.telefonoEmergencia || newVoluntario.contactoEmergencia || newVoluntario.telefono || '').slice(0, 200), // fallback: propio teléfono
+      contactoEmergencia:  String(newVoluntario.telefonoEmergencia || newVoluntario.contactoEmergencia || newVoluntario.telefono || '').slice(0, 200), // compat legacy
       alergias:            String(newVoluntario.alergias   || '').slice(0, 200),
       medicacion:          String(newVoluntario.medicacion || '').slice(0, 200),
       estado:              'pendiente', // SIEMPRE pendiente desde registro público

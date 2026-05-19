@@ -129,7 +129,7 @@ export default async function handler(req, res) {
         ? { ...x, pinHash: pinHashEsperado, sessionToken, sessionTokenExpiry } : x);
       await saveVols(sql, updated);
       const { pinHash: _ph, sessionToken: _st, ...pub } = v;
-      return res.status(200).json({ voluntario: { ...pub, sessionToken }, token: sessionToken });
+      return res.status(200).json({ voluntario: { ...pub, sessionToken, pinPersonalizado: v.pinPersonalizado === true }, token: sessionToken });
     }
 
     // ── CHECK: GET ?action=check&telefono=XXX ─────────────────────────────
@@ -245,7 +245,10 @@ export default async function handler(req, res) {
       const allAsig  = asigRes.length > 0 && Array.isArray(asigRes[0].value) ? asigRes[0].value : [];
       const allLocs  = locsRes.length > 0 && Array.isArray(locsRes[0].value) ? locsRes[0].value : [];
 
-      const puesto = puestos.find(p => p.id === voluntario.puestoId) || null;
+      // Coerción explícita: puestoId puede ser number o string según la fuente de registro
+      const puesto = voluntario.puestoId != null
+        ? puestos.find(p => String(p.id) === String(voluntario.puestoId)) || null
+        : null;
       let materialPuesto = [];
       if (puesto && puesto.localizacionId) {
         const loc = allLocs.find(l => l.id === puesto.localizacionId);
@@ -287,8 +290,8 @@ export default async function handler(req, res) {
         }
       } catch {}
 
-      const companerosEnPuesto = voluntario.puestoId
-        ? vols.filter(v => v.puestoId === voluntario.puestoId && (v.estado === 'confirmado' || v.estado === 'pendiente') && String(v.id) !== String(voluntario.id))
+      const companerosEnPuesto = voluntario.puestoId != null
+        ? vols.filter(v => v.puestoId != null && String(v.puestoId) === String(voluntario.puestoId) && (v.estado === 'confirmado' || v.estado === 'pendiente') && String(v.id) !== String(voluntario.id))
              .map(v => ({ nombre: v.nombre, apellidos: v.apellidos || '', telefono: v.telefono || '', estado: v.estado || 'pendiente', enPuesto: v.enPuesto || false, horaLlegada: v.horaLlegada || null }))
         : [];
 
@@ -296,7 +299,7 @@ export default async function handler(req, res) {
       // luego fallback a los de la localización maestra vinculada (localizacionId)
       let puestoLat = null;
       let puestoLng = null;
-      if (puesto) {
+      if (puesto) {  // puesto ya usa String() coercion arriba
         if (puesto.lat != null && puesto.lng != null) {
           puestoLat = puesto.lat;
           puestoLng = puesto.lng;
@@ -310,8 +313,10 @@ export default async function handler(req, res) {
       }
 
       const { pinHash: _ph, sessionToken: _st, ...volPublico } = voluntario;
+      // Migración on-the-fly: si no tiene telefonoEmergencia, usar el propio teléfono
+      const telEmergencia = voluntario.telefonoEmergencia || voluntario.contactoEmergencia || voluntario.telefono || '';
       return res.status(200).json({
-        voluntario: { ...volPublico, mensajeOrganizador: voluntario.mensajeOrganizador || '', mensajeParaOrganizador: voluntario.mensajeParaOrganizador || '' },
+        voluntario: { ...volPublico, telefonoEmergencia: telEmergencia, contactoEmergencia: telEmergencia, mensajeOrganizador: voluntario.mensajeOrganizador || '', mensajeParaOrganizador: voluntario.mensajeParaOrganizador || '' },
         puesto: puesto ? { nombre: puesto.nombre, tipo: puesto.tipo, horaInicio: puesto.horaInicio, horaFin: puesto.horaFin, distancias: puesto.distancias, notas: puesto.notas, necesarios: puesto.necesarios || null, tiempoLimite: puesto.tiempoLimite || null, lat: puestoLat, lng: puestoLng } : null,
         companerosEnPuesto, materialPuesto,
         config: { nombre: orgConfig.nombre, fecha: orgConfig.fecha, lugar: orgConfig.lugar, organizador: orgConfig.organizador || '', telefonoContacto: orgConfig.telefonoContacto || '', emailContacto: orgConfig.emailContacto || '', organizadores },
