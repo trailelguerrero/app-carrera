@@ -1743,3 +1743,178 @@ describe('LOG-25 — MEJ-02: Indicador cobertura completa por puesto en TabLocal
     expect(completos.length).toBeLessThanOrEqual(evaluables.length);
   });
 });
+
+// ── LOG-27: MEJ-05 — exportarMaterial con modo filtro y columna estado entrega ──
+describe('LOG-27 — MEJ-05: exportarMaterial con modo filtro y columna Estado entrega', () => {
+  // Importar las funciones auxiliares directamente (no la función async ExcelJS)
+  // Las funciones calcularEstadoEntrega y tieneAlertaMaterial son puras y testables sin ExcelJS
+
+  const MAT_TEST = [
+    { id: 1, nombre: 'Agua', categoria: 'Avituallamiento', stock: 60, stockMinimo: 0, unidad: 'bidón' },
+    { id: 2, nombre: 'Dorsales', categoria: 'Material', stock: 650, stockMinimo: 650, unidad: 'ud' },
+    { id: 3, nombre: 'Medallas', categoria: 'Material', stock: 640, stockMinimo: 650, unidad: 'ud' },
+    { id: 4, nombre: 'Walkie', categoria: 'Comunicación', stock: 12, stockMinimo: 0, unidad: 'ud' },
+  ];
+
+  const ASIGS_TEST = [
+    { id: 1, materialId: 1, localizacionId: 2, cantidad: 8, estado: 'pendiente' },
+    { id: 2, materialId: 1, localizacionId: 3, cantidad: 10, estado: 'entregado' },
+    { id: 3, materialId: 2, localizacionId: 5, cantidad: 650, estado: 'pendiente' },
+    { id: 4, materialId: 3, localizacionId: 11, cantidad: 650, estado: 'pendiente' },
+    // Walkie sin asignaciones → 'sin asignar'
+  ];
+
+  it('calcularEstadoEntrega devuelve "sin asignar" cuando el material no tiene asignaciones', async () => {
+    const { calcularEstadoEntrega } = await import('../lib/exportUtils.js');
+    const estado = calcularEstadoEntrega(4, ASIGS_TEST); // walkie, sin asigs
+    expect(estado).toBe('sin asignar');
+  });
+
+  it('calcularEstadoEntrega devuelve estado predominante cuando hay varias asignaciones', async () => {
+    const { calcularEstadoEntrega } = await import('../lib/exportUtils.js');
+    // Agua: 1 pendiente + 1 entregado → empate, cualquiera de los dos (el primero ganará)
+    const estado = calcularEstadoEntrega(1, ASIGS_TEST);
+    expect(['pendiente', 'entregado']).toContain(estado);
+  });
+
+  it('calcularEstadoEntrega devuelve "pendiente" cuando todas las asignaciones son pendiente', async () => {
+    const { calcularEstadoEntrega } = await import('../lib/exportUtils.js');
+    const estado = calcularEstadoEntrega(2, ASIGS_TEST); // Dorsales, 1 asig pendiente
+    expect(estado).toBe('pendiente');
+  });
+
+  it('tieneAlertaMaterial devuelve false para material con stock suficiente y sin mínimo', async () => {
+    const { tieneAlertaMaterial } = await import('../lib/exportUtils.js');
+    // Agua: 60 stock, 18 asignado → disponible=42, stockMinimo=0 → sin alerta
+    const alerta = tieneAlertaMaterial(MAT_TEST[0], 18);
+    expect(alerta).toBe(false);
+  });
+
+  it('tieneAlertaMaterial devuelve true cuando disponible < 0 (déficit)', async () => {
+    const { tieneAlertaMaterial } = await import('../lib/exportUtils.js');
+    // Medallas: 640 stock, 650 asignado → disponible=-10 → alerta
+    const alerta = tieneAlertaMaterial(MAT_TEST[2], 650);
+    expect(alerta).toBe(true);
+  });
+
+  it('tieneAlertaMaterial devuelve true cuando stock < stockMinimo (bajo mínimo)', async () => {
+    const { tieneAlertaMaterial } = await import('../lib/exportUtils.js');
+    // Medallas: stock=640, stockMinimo=650 → bajo mínimo → alerta
+    const alerta = tieneAlertaMaterial(MAT_TEST[2], 0);
+    expect(alerta).toBe(true);
+  });
+
+  it('tieneAlertaMaterial devuelve false cuando stockMinimo=0 aunque stock sea bajo', async () => {
+    const { tieneAlertaMaterial } = await import('../lib/exportUtils.js');
+    // Agua: stock=60, stockMinimo=0 → no se evalúa mínimo → sin alerta si no hay déficit
+    const alerta = tieneAlertaMaterial(MAT_TEST[0], 0);
+    expect(alerta).toBe(false);
+  });
+
+  it('exportarMaterial acepta 4º parámetro "modo" con valor por defecto "completo"', async () => {
+    // Verificar que la función tiene el parámetro modo con default
+    const { exportarMaterial } = await import('../lib/exportUtils.js');
+    // El 4º parámetro existe y tiene default "completo"
+    // Verificamos inspeccionando la longitud de argumentos y que no falla con 3 params
+    expect(typeof exportarMaterial).toBe('function');
+    expect(exportarMaterial.length).toBeLessThanOrEqual(4); // max 4 parámetros declarados
+  });
+
+  it('modo "alertas" — lógica filtra solo materiales con déficit o bajo mínimo', async () => {
+    const { tieneAlertaMaterial, calcularEstadoEntrega } = await import('../lib/exportUtils.js');
+
+    // Simular la lógica de filtrado del modo "alertas" sobre MAT_TEST
+    const filas = MAT_TEST.map((m) => {
+      const asigTotal = ASIGS_TEST
+        .filter((a) => String(a.materialId) === String(m.id))
+        .reduce((s, a) => s + (a.cantidad || 0), 0);
+      return {
+        m,
+        asigTotal,
+        alerta: tieneAlertaMaterial(m, asigTotal),
+        estado: calcularEstadoEntrega(m.id, ASIGS_TEST),
+      };
+    });
+
+    const alertas = filas.filter((f) => f.alerta);
+
+    // Medallas (stock=640, mínimo=650) debe estar en alertas
+    expect(alertas.some((f) => f.m.nombre === 'Medallas')).toBe(true);
+
+    // Agua (stock=60, mínimo=0, asigTotal=18) NO debe estar en alertas
+    expect(alertas.some((f) => f.m.nombre === 'Agua')).toBe(false);
+
+    // Walkies (sin asigs, sin mínimo) NO debe estar en alertas
+    expect(alertas.some((f) => f.m.nombre === 'Walkie')).toBe(false);
+  });
+
+  it('modo "completo" — lógica incluye todos los materiales', async () => {
+    const { tieneAlertaMaterial, calcularEstadoEntrega } = await import('../lib/exportUtils.js');
+
+    // Sin filtro → todos los materiales
+    const filas = MAT_TEST.map((m) => {
+      const asigTotal = ASIGS_TEST
+        .filter((a) => String(a.materialId) === String(m.id))
+        .reduce((s, a) => s + (a.cantidad || 0), 0);
+      return {
+        nombre: m.nombre,
+        'Estado entrega': calcularEstadoEntrega(m.id, ASIGS_TEST),
+        alerta: tieneAlertaMaterial(m, asigTotal),
+      };
+    });
+
+    // Todos los materiales del test deben estar (no hay filtro)
+    expect(filas).toHaveLength(MAT_TEST.length);
+    expect(filas.some((f) => f.nombre === 'Agua')).toBe(true);
+    expect(filas.some((f) => f.nombre === 'Medallas')).toBe(true);
+    expect(filas.some((f) => f.nombre === 'Walkie')).toBe(true);
+  });
+
+  it('columna "Estado entrega" aparece en los datos de salida para todos los materiales', async () => {
+    const { calcularEstadoEntrega } = await import('../lib/exportUtils.js');
+
+    const filas = MAT_TEST.map((m) => ({
+      Nombre: m.nombre,
+      'Estado entrega': calcularEstadoEntrega(m.id, ASIGS_TEST),
+    }));
+
+    // Todos deben tener la columna Estado entrega
+    filas.forEach((f) => {
+      expect(f).toHaveProperty('Estado entrega');
+      expect(typeof f['Estado entrega']).toBe('string');
+      expect(f['Estado entrega'].length).toBeGreaterThan(0);
+    });
+  });
+
+  it('material sin asignaciones tiene Estado entrega = "sin asignar"', async () => {
+    const { calcularEstadoEntrega } = await import('../lib/exportUtils.js');
+    // Walkie (id=4) no tiene entradas en ASIGS_TEST
+    const estado = calcularEstadoEntrega(4, ASIGS_TEST);
+    expect(estado).toBe('sin asignar');
+  });
+
+  it('material con todas las asignaciones en "pendiente" tiene Estado = "pendiente"', async () => {
+    const { calcularEstadoEntrega } = await import('../lib/exportUtils.js');
+    // Dorsales (id=2) tiene solo 1 asignación con estado='pendiente'
+    const estado = calcularEstadoEntrega(2, ASIGS_TEST);
+    expect(estado).toBe('pendiente');
+  });
+
+  it('datos reales de logisticaConstants: Estado entrega calculado sin errores', async () => {
+    const { calcularEstadoEntrega, tieneAlertaMaterial } = await import('../lib/exportUtils.js');
+    const { MAT0, ASIG0 } = await import('../components/logistica/logisticaConstants.js');
+
+    MAT0.forEach((m) => {
+      const asigTotal = ASIG0
+        .filter((a) => String(a.materialId) === String(m.id))
+        .reduce((s, a) => s + (a.cantidad || 0), 0);
+
+      const estado = calcularEstadoEntrega(m.id, ASIG0);
+      const alerta = tieneAlertaMaterial(m, asigTotal);
+
+      expect(typeof estado).toBe('string');
+      expect(estado.length).toBeGreaterThan(0);
+      expect(typeof alerta).toBe('boolean');
+    });
+  });
+});

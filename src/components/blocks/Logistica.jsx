@@ -262,9 +262,14 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
               ✅ {stats.ckDone}/{stats.ckTotal}
             </span>
             <button className="btn btn-ghost btn-sm"
-              onClick={() => exportarMaterial(material, asigs, locs)}
-              title="Exportar material a Excel">
+              onClick={() => exportarMaterial(material, asigs, locs, 'completo')}
+              title="Exportar todo el inventario a Excel">
               📊 Excel
+            </button>
+            <button className="btn btn-ghost btn-sm"
+              onClick={() => exportarMaterial(material, asigs, locs, 'alertas')}
+              title="Exportar solo materiales con alertas (déficit o bajo mínimo)">
+              ⚠️ Alertas
             </button>
           </div>
         </div>

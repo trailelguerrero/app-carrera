@@ -9,9 +9,10 @@
  * Todas las funciones son async porque ExcelJS usa una API basada en Promises.
  *
  * Funciones exportadas:
- *   exportarVoluntarios(voluntarios, puestos)   → async
- *   exportarPatrocinadores(pats)                → async
- *   exportarMaterial(material, asigs, locs)     → async
+ *   exportarVoluntarios(voluntarios, puestos)              → async
+ *   exportarPatrocinadores(pats)                           → async
+ *   exportarMaterial(material, asigs, locs, modo)          → async
+ *     modo: "completo" (default) | "alertas" | "pendiente"
  */
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -164,43 +165,153 @@ export async function exportarPatrocinadores(pats = []) {
 
 // ─── Material de Logística ────────────────────────────────────────────────────
 
-export async function exportarMaterial(material = [], asigs = [], locs = []) {
+/**
+ * Calcula el estado de entrega predominante para un material dado sus asignaciones.
+ * Devuelve el estado más frecuente entre sus asignaciones, o "sin asignar" si no tiene.
+ */
+export function calcularEstadoEntrega(materialId, asigs = []) {
+  const propias = asigs.filter((a) => String(a.materialId) === String(materialId));
+  if (propias.length === 0) return 'sin asignar';
+
+  const conteo = {};
+  propias.forEach((a) => {
+    const estado = a.estado || 'pendiente';
+    conteo[estado] = (conteo[estado] || 0) + 1;
+  });
+
+  return Object.entries(conteo).sort((a, b) => b[1] - a[1])[0][0];
+}
+
+/**
+ * Determina si un material tiene alerta activa (déficit o stock bajo mínimo).
+ * Usado para filtrar en modo "alertas".
+ */
+export function tieneAlertaMaterial(m, asigTotal) {
+  const disponible = (m.stock || 0) - asigTotal;
+  const bajoMinimo = (m.stockMinimo || 0) > 0 && (m.stock || 0) < (m.stockMinimo || 0);
+  return disponible < 0 || bajoMinimo;
+}
+
+/**
+ * Exporta el inventario de material a Excel.
+ *
+ * @param {Array}  material  - Array de objetos de material
+ * @param {Array}  asigs     - Array de asignaciones
+ * @param {Array}  locs      - Array de localizaciones
+ * @param {string} modo      - "completo" (default) | "alertas" | "pendiente"
+ *   · "completo":  exporta todo el inventario (comportamiento anterior)
+ *   · "alertas":   solo materiales con déficit (disponible < 0) o bajo mínimo
+ *   · "pendiente": solo materiales con alguna asignación en estado "pendiente" o "en tránsito"
+ */
+export async function exportarMaterial(material = [], asigs = [], locs = [], modo = 'completo') {
   const { default: ExcelJS } = await import('exceljs');
 
-  const data = material.map((m) => {
+  // ── Construir filas enriquecidas ──────────────────────────────────────────
+  const filas = material.map((m) => {
     const asigTotal = asigs
       .filter((a) => String(a.materialId) === String(m.id))
       .reduce((s, a) => s + (a.cantidad || 0), 0);
     const locNombre = locs.find((l) => l.id === m.localizacionId)?.nombre || '';
+    const estadoEntrega = calcularEstadoEntrega(m.id, asigs);
+    const disponible = (m.stock || 0) - asigTotal;
+    const alerta = tieneAlertaMaterial(m, asigTotal);
+    const bajoMinimo = (m.stockMinimo || 0) > 0 && (m.stock || 0) < (m.stockMinimo || 0);
+
     return {
-      Nombre:         m.nombre || '',
-      Categoría:      m.categoria || '',
-      'Stock total':  m.stock || 0,
-      Asignado:       asigTotal,
-      Disponible:     (m.stock || 0) - asigTotal,
-      'Stock mínimo': m.stockMinimo || 0,
-      Unidad:         m.unidad || '',
-      Localización:   locNombre,
-      Proveedor:      m.proveedor || '',
-      Notas:          m.notas || '',
+      _alerta: alerta,           // campo interno, no se exporta como columna
+      _bajoMinimo: bajoMinimo,   // campo interno
+      _estadoEntrega: estadoEntrega,
+      _asigTotal: asigTotal,
+      Nombre:              m.nombre || '',
+      Categoría:           m.categoria || '',
+      'Stock total':       m.stock || 0,
+      Asignado:            asigTotal,
+      Disponible:          disponible,
+      'Stock mínimo':      m.stockMinimo || 0,
+      'Estado entrega':    estadoEntrega,
+      Unidad:              m.unidad || '',
+      Localización:        locNombre,
+      Proveedor:           m.proveedor || '',
+      Notas:               m.notas || '',
     };
   });
 
-  // Segunda hoja: asignaciones detalladas
-  const asigData = asigs.map((a) => {
+  // ── Filtrar según modo ────────────────────────────────────────────────────
+  let filasFiltradas;
+  if (modo === 'alertas') {
+    filasFiltradas = filas.filter((f) => f._alerta);
+  } else if (modo === 'pendiente') {
+    const idConPendiente = new Set(
+      asigs
+        .filter((a) => a.estado === 'pendiente' || a.estado === 'en tránsito')
+        .map((a) => String(a.materialId))
+    );
+    filasFiltradas = filas.filter((f) => {
+      const mat = material.find((m) => String(m.id) !== undefined &&
+        idConPendiente.has(String(m.id)) &&
+        filas.find((ff) => ff.Nombre === m.nombre) === f
+      );
+      // Buscar por nombre para evitar complicar la lógica
+      const matMatch = material.find((m) => m.nombre === f.Nombre);
+      return matMatch ? idConPendiente.has(String(matMatch.id)) : false;
+    });
+  } else {
+    // "completo" — comportamiento original
+    filasFiltradas = filas;
+  }
+
+  // ── Limpiar campos internos para exportar ────────────────────────────────
+  const data = filasFiltradas.map(({ _alerta, _bajoMinimo, _estadoEntrega, _asigTotal, ...rest }) => rest);
+
+  // ── Segunda hoja: asignaciones detalladas ────────────────────────────────
+  // En modo alertas/pendiente, filtrar asignaciones correspondientes a los materiales incluidos
+  const nombresIncluidos = new Set(data.map((d) => d.Nombre));
+  const asigsFiltradas = asigs.filter((a) => {
     const mat = material.find((m) => String(m.id) === String(a.materialId));
-    const loc = locs.find((l) => l.id === a.locId);
+    return !mat || nombresIncluidos.has(mat.nombre);
+  });
+
+  const asigData = asigsFiltradas.map((a) => {
+    const mat = material.find((m) => String(m.id) === String(a.materialId));
+    const loc = locs.find((l) => l.id === a.locId || l.id === a.localizacionId);
     return {
-      Material:     mat?.nombre || a.materialId,
-      Cantidad:     a.cantidad || 0,
-      Unidad:       mat?.unidad || '',
-      Localización: loc?.nombre || a.locId || '',
-      Notas:        a.notas || '',
+      Material:        mat?.nombre || a.materialId,
+      Cantidad:        a.cantidad || 0,
+      Unidad:          mat?.unidad || '',
+      Localización:    loc?.nombre || a.locId || a.localizacionId || '',
+      'Estado entrega': a.estado || 'pendiente',
+      Notas:           a.notas || '',
     };
   });
 
+  // ── Construir workbook ───────────────────────────────────────────────────
   const wb = new ExcelJS.Workbook();
-  addSheet(wb, 'Material', data);
+  const ws = addSheet(wb, 'Material', data);
+
+  // MEJ-05 Mejora C — Colorear filas con déficit o bajo mínimo
+  if (data.length > 0) {
+    filasFiltradas.forEach((fila, idx) => {
+      const excelRow = ws.getRow(idx + 2); // +2: fila 1 = header, datos desde fila 2
+      if (fila._alerta && (fila._asigTotal > 0 || (fila['Disponible'] < 0))) {
+        // Déficit real (disponible < 0) → rojo claro
+        excelRow.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFFEE2E2' },
+        };
+      } else if (fila._bajoMinimo) {
+        // Bajo mínimo pero sin déficit formal → amarillo claro
+        excelRow.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFFEF9C3' },
+        };
+      }
+    });
+  }
+
   if (asigData.length > 0) addSheet(wb, 'Asignaciones', asigData);
-  await downloadWorkbook(wb, 'material-logistica-trail-guerrero-2026.xlsx');
+
+  const sufijo = modo !== 'completo' ? `-${modo}` : '';
+  await downloadWorkbook(wb, `material-logistica-trail-guerrero-2026${sufijo}.xlsx`);
 }
