@@ -10,7 +10,26 @@ import { blockCls as cls } from "@/lib/blockStyles";
 import { useData } from "@/hooks/useData";
 
 // ─── VEHÍCULOS ────────────────────────────────────────────────────────────────
-function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,voluntariosConCoche=[]}) {
+
+/** Construye la descripción de material de una parada a partir de asigIds.
+ *  Si asigIds existe y no está vacío, resuelve contra asigs+material (inventario real).
+ *  Fallback: campo material de texto libre.
+ */
+function buildMaterialLabel(parada, asigs = [], material = []) {
+  if (!parada.asigIds || parada.asigIds.length === 0) return parada.material || "";
+  const partes = parada.asigIds
+    .map(id => {
+      const asig = asigs.find(a => a.id === id);
+      if (!asig) return null;
+      const mat = material.find(m => m.id === asig.materialId);
+      const nombre = mat ? mat.nombre : `Material #${asig.materialId}`;
+      return `${nombre} x${asig.cantidad}`;
+    })
+    .filter(Boolean);
+  return partes.length > 0 ? partes.join(", ") : (parada.material || "");
+}
+
+function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,voluntariosConCoche=[],material=[],asigs=[]}) {
   const [vistaKanban,setVistaKanban]=useState(false);
   const [vehColapsado,setVehCol]=useState(true); // colapsado por defecto
   const [rutasColapsadas,setRutasCol]=useState(true); // colapsado por defecto
@@ -161,7 +180,7 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
                     <div className="pcon"><div className="pdot"/>{i<(r.paradas||[]).length-1&&<div className="pline"/>}</div>
                     <div className="pcont">
                       <div className="ptop"><span className="pnom">{p.puesto}</span><span className="phora mono">{p.hora}</span></div>
-                      <div className="pmat">{p.material}</div>
+                      <div className="pmat">{buildMaterialLabel(p,asigs,material)}</div>
                     </div>
                   </div>
                 ))}</div>
