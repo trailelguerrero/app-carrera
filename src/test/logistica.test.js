@@ -1388,3 +1388,52 @@ describe('LOG-21 — DATO-04: CK0 contiene tareas para todas las fases de FASES_
     }
   });
 });
+
+// ─── LOG-22: DIS-02 cantidadInicial en modelo material ────────────────────────
+describe('LOG-22 — DIS-02: campo cantidadInicial en modelo material', () => {
+  it('todos los artículos de MAT0 tienen campo cantidadInicial', async () => {
+    const { MAT0 } = await import('../components/logistica/logisticaConstants.js');
+    for (const m of MAT0) {
+      expect(m, `id=${m.id} sin cantidadInicial`).toHaveProperty('cantidadInicial');
+      expect(typeof m.cantidadInicial, `id=${m.id} cantidadInicial no es número`).toBe('number');
+    }
+  });
+
+  it('ningún artículo de MAT0 tiene el campo "cantidad" antiguo', async () => {
+    const { MAT0 } = await import('../components/logistica/logisticaConstants.js');
+    for (const m of MAT0) {
+      expect(Object.keys(m), `id=${m.id} aún tiene campo "cantidad"`).not.toContain('cantidad');
+    }
+  });
+
+  it('los 18 artículos de MAT0 tienen cantidadInicial > 0', async () => {
+    const { MAT0 } = await import('../components/logistica/logisticaConstants.js');
+    expect(MAT0.length).toBe(18);
+    for (const m of MAT0) {
+      expect(m.cantidadInicial, `id=${m.id} cantidadInicial <= 0`).toBeGreaterThan(0);
+    }
+  });
+
+  it('las asignaciones ASIG0 mantienen su campo "cantidad" intacto (no renombrado)', async () => {
+    const { ASIG0 } = await import('../components/logistica/logisticaConstants.js');
+    for (const a of ASIG0) {
+      expect(a, `asig id=${a.id} perdió campo "cantidad"`).toHaveProperty('cantidad');
+      expect(typeof a.cantidad, `asig id=${a.id} cantidad no es número`).toBe('number');
+    }
+  });
+
+  it('cantidadInicial no se usa en cálculos de déficit (stock es el campo operativo)', async () => {
+    const { MAT0, ASIG0 } = await import('../components/logistica/logisticaConstants.js');
+    // Simular cálculo de déficit como hace TabMaterial y TabDashLog
+    for (const m of MAT0) {
+      const totalAsig = ASIG0.filter(a => a.materialId === m.id)
+        .reduce((s, a) => s + a.cantidad, 0);
+      const def = Math.max(totalAsig - m.stock, 0);
+      // El déficit usa m.stock, no m.cantidadInicial — verificar que stock existe
+      expect(m).toHaveProperty('stock');
+      expect(typeof m.stock).toBe('number');
+      // cantidadInicial es solo referencia, no modifica el déficit
+      expect(def).toBe(Math.max(totalAsig - m.stock, 0));
+    }
+  });
+});

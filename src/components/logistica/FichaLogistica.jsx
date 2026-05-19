@@ -63,9 +63,10 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar })
               {data.notas && <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",borderLeft:`2px solid ${accent}`,marginTop:".25rem"}}><div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginBottom:".25rem",textTransform:"uppercase"}}>Notas</div><div style={{fontSize:"var(--fs-base)",lineHeight:1.5}}>{data.notas}</div></div>}
             </>)}
             {tipo==="mat" && (<>
-              <Row label="Categoría"   value={`${CAT_ICONS[data.categoria]} ${data.categoria}`} />
-              <Row label="Stock total" value={`${data.stock} ${data.unidad}`} />
-              <Row label="Asignado"    value={`${data.asig||0} ${data.unidad}`} />
+              <Row label="Categoría"      value={`${CAT_ICONS[data.categoria]} ${data.categoria}`} />
+              <Row label="Stock total"    value={`${data.stock} ${data.unidad}`} />
+              {data.cantidadInicial != null && <Row label="Cantidad inicial" value={`${data.cantidadInicial} ${data.unidad}`} color="var(--text-muted)" />}
+              <Row label="Asignado"       value={`${data.asig||0} ${data.unidad}`} />
               {(data.def||0)>0 && <Row label="⚠️ Déficit" value={`-${data.def} ${data.unidad}`} color="var(--red)" />}
             </>)}
             {tipo==="asig" && (<>
