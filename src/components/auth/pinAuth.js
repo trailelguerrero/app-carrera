@@ -33,7 +33,8 @@ export const FAIL_COUNT_KEY    = SK_AUTH_FAIL_COUNT;
 export const LOCKOUT_UNTIL_KEY = SK_AUTH_LOCKOUT_UNTIL;
 /** Incrementar para invalidar todas las sesiones activas */
 export const CURRENT_VER       = "2";
-export const DEFAULT_PIN       = "1975";
+// fix(SEC-CRIT-03): DEFAULT_PIN eliminado — ya no se expone el PIN inicial en el repositorio.
+// Si no hay PIN guardado, verifyPin() devuelve false y el flujo de onboarding se activa.
 /** Duración de sesión del panel: 8 horas */
 export const SESSION_TTL_PANEL = 8 * 3600 * 1000;
 /** Intentos fallidos antes de bloquear */
@@ -73,7 +74,10 @@ export function createSession() {
 
 /** Verifica el PIN introducido contra el hash almacenado */
 export function verifyPin(pin) {
-  const stored = localStorage.getItem(PIN_KEY) || hashPin(DEFAULT_PIN);
+  // fix(SEC-CRIT-03): sin DEFAULT_PIN — si no hay hash guardado el onboarding
+  // no se ha completado y no debe haber acceso al panel.
+  const stored = localStorage.getItem(PIN_KEY);
+  if (!stored) return false;
   return hashPin(pin) === stored;
 }
 

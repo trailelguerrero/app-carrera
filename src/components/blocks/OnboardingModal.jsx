@@ -9,7 +9,7 @@
 import { useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { SK_EVENT_CONFIG, SK_UI_ONBOARDING_DONE, SK_VOL_PUESTOS } from "@/constants/storageKeys";
-import { DEFAULT_PIN, savePin } from "@/components/auth/pinAuth";
+import { savePin } from "@/components/auth/pinAuth";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 
 // ── Puestos por defecto ──────────────────────────────────────────────────────
@@ -63,7 +63,7 @@ function validarPaso(paso, d) {
   if (paso === 3) return true;
   if (paso === 4) {
     return /^\d{4}$/.test(d.nuevoPin)
-      && d.nuevoPin !== DEFAULT_PIN
+      && d.nuevoPin !== "1975"
       && d.nuevoPin === d.confirmarPin;
   }
   return false;
@@ -228,13 +228,13 @@ function Paso4({ d, set }) {
 
   const pVacio    = d.nuevoPin === "";
   const pCorto    = !pVacio && d.nuevoPin.length < 4;
-  const pDefault  = !pVacio && d.nuevoPin.length === 4 && d.nuevoPin === DEFAULT_PIN;
+  const pDefault  = !pVacio && d.nuevoPin.length === 4 && d.nuevoPin === "1975";
   const noMatch   = d.confirmarPin !== "" && d.nuevoPin !== d.confirmarPin;
-  const pinOk     = /^\d{4}$/.test(d.nuevoPin) && d.nuevoPin !== DEFAULT_PIN;
+  const pinOk     = /^\d{4}$/.test(d.nuevoPin) && d.nuevoPin !== "1975";
   const confOk    = pinOk && d.nuevoPin === d.confirmarPin;
 
   const errPin = pCorto   ? "El PIN debe tener 4 dígitos"
-               : pDefault ? `No puedes usar el PIN por defecto (${DEFAULT_PIN})`
+               : pDefault ? `No puedes usar el PIN por defecto (1975)`
                : null;
 
   const ToggleBtn = ({ ver, onToggle }) => (
@@ -275,7 +275,7 @@ function Paso4({ d, set }) {
         background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.2)",
         borderRadius: 8, fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "#f87171", lineHeight: 1.6,
       }}>
-        🔒 El PIN por defecto <strong style={{ color: "#fca5a5" }}>({DEFAULT_PIN})</strong> es conocido
+        🔒 El PIN por defecto <strong style={{ color: "#fca5a5" }}>(1975)</strong> es conocido
         por todos los usuarios de la app. Cambiarlo es obligatorio.
       </div>
     </>
