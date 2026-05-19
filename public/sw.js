@@ -58,8 +58,8 @@ const NETWORK_ONLY_PATTERNS = [
 
 // ── Rutas con estrategia Stale While Revalidate (datos operativos) ─────────
 const STALE_WHILE_REVALIDATE_PATTERNS = [
-  /\/api\/proxy\/data\/teg_vol_/,       // voluntarios
-  /\/api\/proxy\/data\/teg_log_/,       // logística (directorio, checklist)
+  /\/api\/proxy\/data\/teg_voluntarios_/,       // voluntarios (SK_VOL_*) — fix(SW-BUG-01)
+  /\/api\/proxy\/data\/teg_logistica_/,        // logística (SK_LOG_*) — fix(SW-BUG-01)
   /\/api\/proxy\/data\/teg_dia_/,       // día de carrera
   /\/api\/proxy\/voluntarios/,          // portal del voluntario
 ];
