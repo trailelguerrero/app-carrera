@@ -15,6 +15,7 @@ import { neon } from '@neondatabase/serverless';
 import { checkRateLimit } from '../lib/rateLimiter.js';
 
 import bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto'; // fix(SEC-CRIT-02): CSPRNG para sessionToken
 
 const LS_KEY    = 'teg_voluntarios_v1_voluntarios';
 const LS_PUESTOS = 'teg_voluntarios_v1_puestos';
@@ -122,7 +123,7 @@ export default async function handler(req, res) {
       }
       if (!pinCorrecto) return res.status(401).json({ error: 'Teléfono o PIN incorrecto' });
 
-      const sessionToken = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+      const sessionToken = randomBytes(32).toString('hex'); // fix(SEC-CRIT-02): 256 bits CSPRNG, no Math.random()
       const sessionTokenExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
       const updated = vols.map(x => String(x.telefono || '').replace(/\D/g, '') === tel
         ? { ...x, pinHash: pinHashEsperado, sessionToken, sessionTokenExpiry } : x);
