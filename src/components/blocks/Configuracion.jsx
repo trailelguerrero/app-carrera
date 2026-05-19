@@ -122,21 +122,47 @@ export default function Configuracion() {
     // Preview local con URL de objeto (no consume memoria innecesariamente)
     const previewUrl = URL.createObjectURL(file);
     setImgPreviews(prev => ({ ...prev, [slot]: previewUrl }));
-    // Leer como base64 para persistir
+    // fix(STOR-CRIT-01): subir a Vercel Blob en vez de guardar base64 en localStorage/Neon
     const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result;
+    reader.onload = async () => {
       setImgSaving(prev => ({ ...prev, [slot]: true }));
-      if (slot === 'front') setImgFront(dataUrl);
-      if (slot === 'back')  setImgBack(dataUrl);
-      if (slot === 'guia')  setImgGuia(dataUrl);
-      setImgSaving(prev => ({ ...prev, [slot]: false }));
+      try {
+        const dataUrl  = reader.result;
+        const ext      = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+        const filename = `camiseta-${slot}-${Date.now()}.${ext}`;
+        const resp     = await fetch('/api/proxy/images', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ base64: dataUrl, filename, mimeType: file.type }),
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const { url } = await resp.json();
+        // Guardar solo la URL (~80 chars) en vez del base64 (~667 KB)
+        if (slot === 'front') setImgFront(url);
+        if (slot === 'back')  setImgBack(url);
+        if (slot === 'guia')  setImgGuia(url);
+      } catch (err) {
+        console.error('[Configuracion] Error subiendo imagen a Blob:', err);
+        setImgError(prev => ({ ...prev, [slot]: 'Error al subir la imagen. Inténtalo de nuevo.' }));
+      } finally {
+        setImgSaving(prev => ({ ...prev, [slot]: false }));
+      }
     };
     reader.readAsDataURL(file);
     e.target.value = ''; // limpiar input para permitir re-selección del mismo archivo
   };
 
+  // fix(STOR-CRIT-01): borrar del Blob al eliminar imagen
   const handleImgRemove = (slot) => {
+    // Obtener URL actual para borrarla del Blob (fire-and-forget)
+    const currentUrl = slot === 'front' ? imgFront : slot === 'back' ? imgBack : imgGuia;
+    if (currentUrl && currentUrl.startsWith('http')) {
+      fetch('/api/proxy/images', {
+        method:  'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ url: currentUrl }),
+      }).catch(() => {}); // silencioso — no bloquear la UI
+    }
     setImgPreviews(prev => ({ ...prev, [slot]: null }));
     if (slot === 'front') setImgFront(null);
     if (slot === 'back')  setImgBack(null);
