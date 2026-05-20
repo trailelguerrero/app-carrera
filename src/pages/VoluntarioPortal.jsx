@@ -1741,7 +1741,7 @@ function StepperForm({ puestos, imgFront, imgBack, imgGuiaTallas, opcionPuesto, 
     if (!form.apellidos.trim()) e.apellidos = "Requerido";
     if (!form.telefono.trim() || !/^\d{9}$/.test(form.telefono.replace(/\s/g,""))) e.telefono = "Teléfono de 9 dígitos";
     if (opcionEmail && form.email?.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) e.email = "Email no válido";
-    if (!form.telefonoEmergencia?.trim()) e.telefonoEmergencia = "El teléfono de emergencia es obligatorio";
+    if (opcionEmergencia && !form.telefonoEmergencia?.trim()) e.telefonoEmergencia = "El teléfono de emergencia es obligatorio";
     setErrores(e); return Object.keys(e).length === 0;
   };
   const validarPaso2 = () => {
