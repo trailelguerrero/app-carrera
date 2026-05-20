@@ -174,7 +174,7 @@ export const TabPresupuesto = ({
               <Toggle value={c.activoDistancias[d]} onChange={v => updateActivoDistancia(c.id, d, v)} />
               <span className="mono text-xs" style={{ color: c.activoDistancias[d] ? DISTANCIA_COLORS[d] : "var(--text-muted)" }}>
                 {prorrata !== null
-                  ? <>{fmtN(prorrata)} €<br/><span style={{opacity:0.55,fontSize:"0.7em"}}>{porCorredor !== null ? `${fmtN(porCorredor)} €/cte` : ""}</span></>
+                  ? <>{porCorredor !== null ? `${fmtN(porCorredor)} €/cte` : "—"}<br/><span style={{opacity:0.55,fontSize:"0.7em"}}>{fmtN(prorrata)} €</span></>
                   : "—"}
               </span>
             </div>
