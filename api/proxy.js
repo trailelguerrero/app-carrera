@@ -36,6 +36,42 @@ export default async function handler(req, res) {
 
   const pathStr = Array.isArray(proxyPath) ? proxyPath.join('/') : String(proxyPath);
 
+  // ── Ruta de diagnóstico: /api/proxy/health ───────────────────────────────
+  // Visitar: https://appcarrera.vercel.app/api/proxy/health
+  if (pathStr === 'health') {
+    const out = {};
+    out.env_DATABASE_URL    = process.env.DATABASE_URL    ? '✓ configurada' : '✗ NO CONFIGURADA — ESTE ES EL PROBLEMA';
+    out.env_API_KEY         = process.env.API_KEY         ? '✓ configurada' : '✗ no configurada (solo necesaria para auth de panel)';
+    out.env_ALLOWED_ORIGIN  = process.env.ALLOWED_ORIGIN  || '(no configurada — OK si mismo dominio)';
+    out.env_VERCEL_URL      = process.env.VERCEL_URL      || '(no configurada)';
+    if (!process.env.DATABASE_URL) return res.status(200).json(out);
+    try {
+      const sql = neon(process.env.DATABASE_URL);
+      const tableCheck = await sql`SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'collections') as exists`;
+      out.table_collections = tableCheck[0]?.exists ? '✓ existe' : '✗ NO EXISTE — ejecutar /api/setup';
+      if (tableCheck[0]?.exists) {
+        const cols = await sql`SELECT column_name FROM information_schema.columns WHERE table_name='collections' ORDER BY ordinal_position`;
+        out.columns = cols.map(c => c.column_name).join(', ');
+        const count = await sql`SELECT COUNT(*) as n FROM collections`;
+        out.total_collections = parseInt(count[0]?.n || 0);
+        const vols = await sql`SELECT jsonb_array_length(value) as n FROM collections WHERE key='teg_voluntarios_v1_voluntarios'`;
+        out.voluntarios_en_neon = vols.length > 0 ? `${vols[0].n} voluntarios` : '✗ colección no existe aún';
+        // Test write/read
+        const testKey = '__health_test__';
+        const testVal = JSON.stringify({ ts: new Date().toISOString() });
+        await sql`INSERT INTO collections (key,value,version) VALUES (${testKey},${testVal}::jsonb,1) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=CURRENT_TIMESTAMP`;
+        const rb = await sql`SELECT value FROM collections WHERE key=${testKey}`;
+        out.write_test = rb.length > 0 ? '✓ escritura y lectura OK' : '✗ escritura falló';
+        await sql`DELETE FROM collections WHERE key=${testKey}`;
+      }
+      out.status = '✅ Neon funciona correctamente';
+    } catch(err) {
+      out.neon_error = err.message;
+      out.status = '❌ ERROR DE NEON';
+    }
+    return res.status(200).json(out);
+  }
+
   // ── Ruta directa: /api/proxy/data/:collection → Neon sin HTTP interno ──────
   const dataMatch = pathStr.match(/^data\/([^/?]+)$/);
   if (dataMatch) {
