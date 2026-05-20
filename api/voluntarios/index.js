@@ -329,11 +329,12 @@ export default async function handler(req, res) {
 
     // PATCH ficha — editar datos
     if ((action === 'ficha' || !action) && req.method === 'PATCH') {
-      const { telefono, telefonoEmergencia, talla, notaVoluntario, alergias, medicacion, email, mensajeParaOrganizador } = req.body || {};
+      const { telefono, telefonoEmergencia, talla, tallaConfirmadaEn, notaVoluntario, alergias, medicacion, email, mensajeParaOrganizador } = req.body || {};
       const upd = {};
       if (telefono !== undefined) upd.telefono = String(telefono).slice(0, 20);
       if (telefonoEmergencia !== undefined) { upd.telefonoEmergencia = String(telefonoEmergencia).slice(0, 20); upd.contactoEmergencia = String(telefonoEmergencia).slice(0, 20); }
       if (talla !== undefined) upd.talla = String(talla).slice(0, 5);
+      if (tallaConfirmadaEn !== undefined) upd.tallaConfirmadaEn = String(tallaConfirmadaEn).slice(0, 30);
       if (notaVoluntario !== undefined) upd.notaVoluntario = String(notaVoluntario).slice(0, 500);
       if (alergias !== undefined) upd.alergias = String(alergias).slice(0, 200);
       if (medicacion !== undefined) upd.medicacion = String(medicacion).slice(0, 200);
@@ -348,6 +349,13 @@ export default async function handler(req, res) {
       const horaLlegada = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
       await saveVols(sql, vols.map(v => String(v.id) === String(voluntario.id) ? { ...v, enPuesto: true, horaLlegada } : v));
       return res.status(200).json({ success: true, enPuesto: true, horaLlegada });
+    }
+
+    // POST salida — registra horaSalida y marca enPuesto=false
+    if (action === 'salida' && req.method === 'POST') {
+      const horaSalida = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+      await saveVols(sql, vols.map(v => String(v.id) === String(voluntario.id) ? { ...v, enPuesto: false, horaSalida } : v));
+      return res.status(200).json({ success: true, enPuesto: false, horaSalida });
     }
 
     // POST cancelar

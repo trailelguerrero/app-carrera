@@ -777,6 +777,19 @@ function PortalMain({ token, onLogout }) {
     finally  { setMarcando(false); }
   };
 
+  const marcarSalida = async () => {
+    if (!data?.voluntario?.enPuesto) return;
+    setMarcando(true);
+    try {
+      const res = await fetch(`${API_BASE}?action=salida`, {
+        method: "POST", headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      const json = await res.json();
+      if (json.success) { showMsg(`👋 Salida registrada a las ${json.horaSalida}. ¡Gracias por tu ayuda!`); await fetchData(); }
+    } catch { showMsg("❌ Error al registrar salida."); }
+    finally  { setMarcando(false); }
+  };
+
   const guardar = async () => {
     setSaving(true);
     try {
@@ -811,6 +824,7 @@ function PortalMain({ token, onLogout }) {
         headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           talla:              editForm.talla,
+          tallaConfirmadaEn:  editForm.talla !== editOrig.talla ? new Date().toISOString() : undefined,
           email:              editForm.email,
           telefonoEmergencia: editForm.telefonoEmergencia,
           mensajeParaOrganizador: editForm.mensajeParaOrganizador,
@@ -1161,12 +1175,94 @@ function PortalMain({ token, onLogout }) {
           </div>
         )}
 
-        {/* Indicador de estado de llegada — solo informativo */}
-        {v.enPuesto && (
-          <div style={{ marginBottom:".85rem" }}>
-            <button className="vp-btn vp-btn-done" disabled>✅ En tu puesto desde las {v.horaLlegada}</button>
-          </div>
-        )}
+        {/* Indicador post-llegada: cronómetro de turno (Mejora 7) */}
+        {v.enPuesto && (() => {
+          const [ahora, setAhora] = useState(Date.now());
+          useEffect(() => { const t = setInterval(() => setAhora(Date.now()), 30000); return () => clearInterval(t); }, []);
+          // Calcular tiempo en puesto desde horaLlegada (formato HH:MM)
+          const calcMin = () => {
+            if (!v.horaLlegada) return null;
+            const [hh, mm] = v.horaLlegada.split(":").map(Number);
+            const hoy = new Date();
+            const llegada = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), hh, mm, 0);
+            return Math.max(0, Math.floor((ahora - llegada.getTime()) / 60000));
+          };
+          const mins = calcMin();
+          const horas = mins !== null ? Math.floor(mins / 60) : null;
+          const minResto = mins !== null ? mins % 60 : null;
+          // Turno si el puesto tiene horaFin
+          const tieneTurno = puesto?.horaFin;
+          let pctTurno = 0;
+          if (puesto?.horaInicio && puesto?.horaFin) {
+            const toMins = h => { const [hh,mm] = h.split(":").map(Number); return hh*60+mm; };
+            const ini = toMins(puesto.horaInicio), fin = toMins(puesto.horaFin);
+            const [hh2,mm2] = v.horaLlegada.split(":").map(Number);
+            const llegMin = hh2*60+mm2;
+            const ahMin = new Date(ahora).getHours()*60 + new Date(ahora).getMinutes();
+            pctTurno = Math.min(100, Math.max(0, Math.round((ahMin - llegMin) / Math.max(1, fin - llegMin) * 100)));
+          }
+          return (
+            <div style={{ marginBottom:".85rem", padding:".75rem 1rem",
+              background:"rgba(52,211,153,.07)", border:"1px solid var(--green-border)",
+              borderRadius:10, textAlign:"center" }}>
+              <div style={{ fontWeight:700, color:"var(--green)", fontSize:"var(--fs-md)", marginBottom:".3rem" }}>
+                ✅ En tu puesto desde las {v.horaLlegada}
+              </div>
+              {mins !== null && (
+                <div className="vp-mono" style={{ fontSize:"var(--fs-xs)", color:"var(--text-muted)", marginBottom: tieneTurno ? ".5rem" : 0 }}>
+                  {horas > 0 ? `${horas}h ${minResto}min` : `${minResto} min`} en el puesto
+                </div>
+              )}
+              {tieneTurno && (
+                <>
+                  <div style={{ display:"flex", justifyContent:"space-between",
+                    fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)",
+                    marginBottom:".25rem" }}>
+                    <span>{puesto.horaInicio}</span>
+                    <span style={{ color:"var(--green)" }}>Tu turno termina a las {puesto.horaFin}</span>
+                  </div>
+                  <div style={{ height:5, background:"var(--surface2)", borderRadius:3, overflow:"hidden" }}>
+                    <div style={{ height:"100%", width:`${pctTurno}%`, background:"var(--green)", borderRadius:3, transition:"width 1s" }} />
+                  </div>
+                </>
+              )}
+              <button
+                onClick={marcarSalida} disabled={marcando}
+                style={{ marginTop:".65rem", width:"100%", padding:".4rem",
+                  fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                  background:"rgba(248,113,113,.08)", color:"var(--red)",
+                  border:"1px solid rgba(248,113,113,.2)", borderRadius:6, cursor:"pointer" }}>
+                {marcando ? "Registrando…" : "✋ Salir del puesto"}
+              </button>
+            </div>
+          );
+        })()}
+
+        {/* Compañeros — barra de progreso de equipo (Mejora 3) */}
+        {companerosEnPuesto.length > 0 && puesto && (() => {
+          const enPuesto = companerosEnPuesto.filter(c => c.enPuesto).length;
+          const total = companerosEnPuesto.length;
+          const pct = total > 0 ? Math.round(enPuesto / total * 100) : 0;
+          const col = pct >= 80 ? "var(--green)" : pct >= 50 ? "var(--amber)" : "var(--red)";
+          return (
+            <div style={{ marginBottom:".6rem", padding:".55rem .85rem",
+              background:"var(--surface2)", borderRadius:8,
+              border:"1px solid var(--border)" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
+                marginBottom:".3rem" }}>
+                <span className="vp-mono" style={{ fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>
+                  👥 Equipo en el puesto
+                </span>
+                <span className="vp-mono" style={{ fontSize:"var(--fs-xs)", color: col, fontWeight:700 }}>
+                  {enPuesto}/{total} ya están aquí
+                </span>
+              </div>
+              <div style={{ height:5, background:"var(--surface3)", borderRadius:3, overflow:"hidden" }}>
+                <div style={{ height:"100%", width:`${pct}%`, background: col, borderRadius:3, transition:"width .4s" }} />
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Compañeros */}
         {companerosEnPuesto.length > 0 && (

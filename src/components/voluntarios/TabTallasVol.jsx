@@ -20,15 +20,18 @@ function TabTallas({ stats, voluntarios, puestos = [] }) {
   const exportCSV = () => {
     const activos = voluntarios.filter(v => v.estado !== "cancelado" && v.talla);
     const rows = [
-      ["Nombre", "Apellidos", "Talla", "Puesto", "Estado"],
+      ["Nombre", "Apellidos", "Talla", "Confirmada", "Puesto", "Estado"],
       ...activos.map(v => {
         const nombrePuesto = v.puestoId
           ? (puestos.find(p => p.id === v.puestoId)?.nombre || `Puesto ${v.puestoId}`)
           : "Sin asignar";
+        const confirmada = v.tallaConfirmadaEn
+          ? new Date(v.tallaConfirmadaEn).toLocaleDateString("es-ES") : "—";
         return [
           `"${(v.nombre || "").replace(/"/g, '""')}"`,
           `"${(v.apellidos || "").replace(/"/g, '""')}"`,
           v.talla || "",
+          confirmada,
           `"${nombrePuesto.replace(/"/g, '""')}"`,
           v.estado || "",
         ];
@@ -133,6 +136,27 @@ function TabTallas({ stats, voluntarios, puestos = [] }) {
 
       <div className="card">
         <div className="card-title">Listado para pedido</div>
+        {(() => {
+          const activos = voluntarios.filter(v => v.estado !== "cancelado" && v.talla);
+          const confirmadas = activos.filter(v => v.tallaConfirmadaEn).length;
+          const pctConf = activos.length > 0 ? Math.round(confirmadas / activos.length * 100) : 0;
+          const col = pctConf >= 80 ? "var(--green)" : pctConf >= 50 ? "var(--amber)" : "var(--red)";
+          return (
+            <div style={{ display:"flex", alignItems:"center", gap:".75rem",
+              padding:".5rem .75rem", borderRadius:6, marginBottom:".75rem",
+              background: pctConf >= 80 ? "rgba(52,211,153,.06)" : "rgba(251,191,36,.06)",
+              border: `1px solid ${pctConf >= 80 ? "rgba(52,211,153,.2)" : "rgba(251,191,36,.2)"}` }}>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color: col, fontWeight:700 }}>
+                {pctConf >= 80 ? "✅" : "⚠️"} {confirmadas}/{activos.length} tallas confirmadas por los voluntarios ({pctConf}%)
+              </span>
+              {pctConf < 80 && (
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>
+                  · Las restantes son las introducidas por el organizador o importadas
+                </span>
+              )}
+            </div>
+          );
+        })()}
         <div className="tallas-grid">
           {TALLAS.filter(t => stats.tallasCount[t] > 0).map(t => (
             <div key={t} className="talla-cell">

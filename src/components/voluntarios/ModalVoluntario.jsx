@@ -31,6 +31,8 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose, onEliminar }) {
     rol: voluntario?.rol || "apoyo",
     estado: voluntario?.estado || "pendiente",
     coche: voluntario?.coche ?? false,
+    cocheMatricula: voluntario?.cocheMatricula || "",
+    cochePlazas: voluntario?.cochePlazas || "",
     notas: voluntario?.notas || "",
     fechaRegistro: voluntario?.fechaRegistro || new Date().toISOString().split("T")[0],
     fechaNacimiento: voluntario?.fechaNacimiento || "",
@@ -173,6 +175,24 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose, onEliminar }) {
                   <span className="toggle-pill-dot" style={{ left: form.coche ? 23 : 3 }} />
                 </button>
               </div>
+              {form.coche && (
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:".65rem",
+                  padding:".65rem .85rem", background:"rgba(52,211,153,.05)",
+                  border:"1px solid rgba(52,211,153,.15)", borderRadius:"var(--r-sm)" }}>
+                  <div>
+                    <label className="field-label">Matrícula</label>
+                    <input className="inp" value={form.cocheMatricula}
+                      onChange={e => upd("cocheMatricula", e.target.value.toUpperCase())}
+                      placeholder="1234-ABC" maxLength={10} />
+                  </div>
+                  <div>
+                    <label className="field-label">Plazas disponibles</label>
+                    <input className="inp" type="number" min={1} max={9} value={form.cochePlazas}
+                      onChange={e => upd("cochePlazas", e.target.value)}
+                      placeholder="4" />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

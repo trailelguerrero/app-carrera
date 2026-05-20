@@ -85,7 +85,7 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
                 {voluntariosConCoche.map(vol => (
                   <div key={vol.id} className="log-k-card" style={{borderLeftColor:"var(--violet)",background:"var(--violet-dim)"}}>
                     <div style={{fontWeight:700,fontSize:"var(--fs-base)",marginBottom:".2rem"}}>{vol.nombre}</div>
-                    <div className="mono xs muted">🚙 Vehículo propio</div>
+                    <div className="mono xs muted">{vol.cocheMatricula ? `🚙 ${vol.cocheMatricula}` : "🚙 Vehículo propio"}{vol.cochePlazas ? ` · ${vol.cochePlazas} plazas` : ""}</div>
                     <a href={`tel:${vol.telefono}`} style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--violet)",textDecoration:"none"}}>📞 {vol.telefono}</a>
                   </div>
                 ))}
@@ -148,7 +148,7 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
                   <div key={vol.id} className="card vcard" style={{borderLeft:"2px solid var(--violet)",background:"var(--violet-dim)"}}>
                     <div className="vh" style={{marginBottom:"0.5rem"}}>
                       <div className="vi" style={{color:"var(--violet)"}}>🚙</div>
-                      <div style={{flex:1}}><div className="vn">{vol.nombre}</div><div className="vm mono" style={{color:"var(--violet)"}}>Vehículo propio</div></div>
+                      <div style={{flex:1}}><div className="vn">{vol.nombre}</div><div className="vm mono" style={{color:"var(--violet)"}}>{vol.cocheMatricula ? vol.cocheMatricula : "Vehículo propio"}{vol.cochePlazas ? ` · ${vol.cochePlazas} plazas` : ""}</div></div>
                       <a href={`tel:${vol.telefono}`} className="btn btn-sm" style={{background:"var(--violet-dim)",color:"var(--violet)"}}>📞 Llamar</a>
                     </div>
                   </div>

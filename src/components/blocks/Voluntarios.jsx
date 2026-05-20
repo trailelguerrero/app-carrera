@@ -23,6 +23,7 @@ import { PanelCompartir } from "@/components/voluntarios/PanelCompartir";
 // Sprint 2: sub-components extracted to src/components/voluntarios/
 import { TabDashboard } from "@/components/voluntarios/TabDashboardVol";
 import { TabVoluntarios } from "@/components/voluntarios/TabVoluntariosList";
+import { TabKanbanVol } from "@/components/voluntarios/TabKanbanVol";
 import { TabPuestos, PuestoCard } from "@/components/voluntarios/TabPuestosVol";
 import { TabTallas } from "@/components/voluntarios/TabTallasVol";
 import { TabDiaD } from "@/components/voluntarios/TabDiaDVol";
@@ -413,6 +414,7 @@ export default function App() {
   const TABS_BASE = [
     { id: "dashboard",  icon: "📊", label: "Dashboard" },
     { id: "voluntarios",icon: "👥", label: "Voluntarios", badge: stats.total },
+    { id: "kanban",     icon: "🗂️", label: "Kanban" },
     { id: "puestos",    icon: "📍", label: "Puestos",     badge: puestos.length },
     { id: "tallas",     icon: "👕", label: "Tallas",
       badge: Object.values(stats.tallasCount).reduce((s, v) => s + v, 0) || undefined,
@@ -420,9 +422,9 @@ export default function App() {
     { id: "dia-d",      icon: "🏁", label: esSemanaCarrera ? "🚨 Día de Carrera" : "Día de Carrera",
       badge: stats.enPuesto > 0 ? stats.enPuesto : undefined, badgeColor: "badge-green" },
   ];
-  // En semana de carrera, Día de Carrera sube a primera posición (ahora en índice 4)
+  // En semana de carrera, Día de Carrera sube a primera posición (ahora en índice 5)
   const TABS_VOL = esSemanaCarrera
-    ? [TABS_BASE[4], ...TABS_BASE.slice(0, 4)]
+    ? [TABS_BASE[5], ...TABS_BASE.slice(0, 5)]
     : TABS_BASE;
 
   return (
@@ -524,6 +526,7 @@ export default function App() {
         {/* CONTENIDO */}
         <div key={tab}>
           {tab==="dashboard" && <TabDashboard stats={stats} puestosConStats={puestosConStats} voluntarios={voluntarios} setTab={setTab} onEditarVol={(v) => abrirFicha("vol", v)} onEditarPuesto={(p) => abrirFicha("puesto", p)} sugerenciasReubicacion={sugerenciasReubicacion} onReasignar={(volId, puestoId) => updateVoluntario(volId, { puestoId })} />}
+          {tab==="kanban" && <TabKanbanVol voluntarios={voluntarios} puestos={puestos} onUpdate={updateVoluntario} onFicha={(v) => abrirFicha("vol", v)} />}
           {tab==="voluntarios" && (
             <TabVoluntarios
               voluntarios={volsFiltrados} todosVols={voluntarios} puestos={puestos}
@@ -544,6 +547,7 @@ export default function App() {
               onEditarVol={(v) => setModalVol(v)}
               onFichaPuesto={(p) => abrirFicha("puesto", p)}
               onFichaVol={(v) => abrirFicha("vol", v)}
+              onAddVoluntario={(puestoId) => setModalVol({ _nuevo: true, puestoId })}
             />
           )}
           {tab==="dia-d"  && <TabDiaD puestosConStats={puestosConStats} voluntarios={voluntarios} onUpdateVol={updateVoluntario} diasHastaEvento={diasHastaEvento} />}
@@ -588,12 +592,12 @@ export default function App() {
       , document.body)}
       {modalVol && createPortal(
         <ModalVoluntario
-          key={modalVol==="nuevo" ? "nuevo" : modalVol.id}
-          voluntario={modalVol==="nuevo" ? null : modalVol}
+          key={modalVol==="nuevo" || modalVol?._nuevo ? "nuevo" : modalVol.id}
+          voluntario={modalVol==="nuevo" || modalVol?._nuevo ? (modalVol?._nuevo ? { puestoId: modalVol.puestoId } : null) : modalVol}
           puestos={puestos}
-          onSave={(data) => { if (modalVol==="nuevo") addVoluntario(data); else updateVoluntario(modalVol.id, data); setModalVol(null); }}
+          onSave={(data) => { if (modalVol==="nuevo" || modalVol?._nuevo) addVoluntario(data); else updateVoluntario(modalVol.id, data); setModalVol(null); }}
           onClose={() => setModalVol(null)}
-          onEliminar={modalVol!=="nuevo" ? () => { const id = modalVol?.id; if (!id) return; setModalVol(null); setConfirmDelete(id); } : undefined}
+          onEliminar={modalVol!=="nuevo" && !modalVol?._nuevo ? () => { const id = modalVol?.id; if (!id) return; setModalVol(null); setConfirmDelete(id); } : undefined}
         />
       , document.body)}
       {modalPuesto && createPortal(

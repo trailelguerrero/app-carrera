@@ -13,7 +13,7 @@ import { blockCls as cls } from "@/lib/blockStyles";
 import { DIST_COLORS } from "@/constants/voluntariosConstants";
 
 // ─── TAB PUESTOS ──────────────────────────────────────────────────────────────
-function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpdatePuesto, onDeletePuesto, onNuevoPuesto, onEditPuesto, onFichaPuesto, onFichaVol }) {
+function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpdatePuesto, onDeletePuesto, onNuevoPuesto, onEditPuesto, onFichaPuesto, onFichaVol, onAddVoluntario }) {
   const [ordenAlfa, setOrdenAlfa]   = useState(false);
   const [busqPuesto, setBusqPuesto] = useState("");
   const [vistaAgrupada, setVistaAgrupada] = useState(false);
@@ -96,7 +96,7 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
                     padding: ".5rem", background: "var(--surface)" }}>
                     {items.map(p => <PuestoCard key={p.id} p={p} locs={locs} matPorLoc={matPorLoc}
                       onFichaPuesto={onFichaPuesto} onFichaVol={onFichaVol}
-                      onEditPuesto={onEditPuesto} onDeletePuesto={onDeletePuesto} />)}
+                      onEditPuesto={onEditPuesto} onDeletePuesto={onDeletePuesto} onAddVoluntario={onAddVoluntario} />)}
                   </div>
                 )}
               </div>
@@ -106,7 +106,7 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
           puestosFiltrados.map(p => (
             <PuestoCard key={p.id} p={p} locs={locs} matPorLoc={matPorLoc}
               onFichaPuesto={onFichaPuesto} onFichaVol={onFichaVol}
-              onEditPuesto={onEditPuesto} onDeletePuesto={onDeletePuesto} />
+              onEditPuesto={onEditPuesto} onDeletePuesto={onDeletePuesto} onAddVoluntario={onAddVoluntario} />
           ))
         )}
       </div>
@@ -114,9 +114,10 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
   );
 }
 
-function PuestoCard({ p, locs, matPorLoc, onFichaPuesto, onFichaVol, onEditPuesto, onDeletePuesto }) {
+function PuestoCard({ p, locs, matPorLoc, onFichaPuesto, onFichaVol, onEditPuesto, onDeletePuesto, onAddVoluntario }) {
           const pct = Math.min(p.coberturaConf, 100);
           const color = pct >= 80 ? "var(--green)" : pct >= 50 ? "var(--amber)" : "var(--red)";
+          const deficit = Math.max(0, p.necesarios - p.confirmados);
           return (
             <div key={p.id} className="card" style={{ padding: "1rem", cursor: "pointer" }}
               onClick={() => onFichaPuesto(p)}
@@ -163,6 +164,20 @@ function PuestoCard({ p, locs, matPorLoc, onFichaPuesto, onFichaVol, onEditPuest
                   <div className="prog-bar" style={{ marginBottom: "0.4rem" }}>
                     <div className="prog-fill" style={{ width: `${pct}%`, background: color }} />
                   </div>
+                  {deficit > 0 && onAddVoluntario && (
+                    <div style={{ marginBottom:".4rem" }} onClick={e => e.stopPropagation()}>
+                      <button
+                        onClick={() => onAddVoluntario(p.id)}
+                        style={{ display:"inline-flex", alignItems:"center", gap:".3rem",
+                          padding:".22rem .6rem", borderRadius:5, cursor:"pointer",
+                          fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                          background: pct < 50 ? "var(--red-dim)" : "var(--amber-dim)",
+                          color: pct < 50 ? "var(--red)" : "var(--amber)",
+                          border: `1px solid ${pct < 50 ? "rgba(248,113,113,.25)" : "rgba(251,191,36,.25)"}` }}>
+                        + Añadir voluntario · {deficit} plaza{deficit !== 1 ? "s" : ""} libre{deficit !== 1 ? "s" : ""}
+                      </button>
+                    </div>
+                  )}
                   {p.notas && <div style={{ fontSize: "var(--fs-sm)", color: "var(--text-muted)", fontStyle: "italic" }}>{p.notas}</div>}
                   {p.voluntariosAsignados.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", marginTop: "0.5rem" }}>

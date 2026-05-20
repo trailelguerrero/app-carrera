@@ -128,6 +128,15 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol, diasHastaEvento = 
             📍{v.horaLlegada || ""}
           </span>
         )}
+        {!v.enPuesto && v.horaSalida && (
+          <span title={`Salida registrada a las ${v.horaSalida}`}
+            style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+              color:"var(--text-muted)", background:"var(--surface2)",
+              border:"1px solid var(--border)", borderRadius:4,
+              padding:"0 .35rem", flexShrink:0 }}>
+            👋 {v.horaSalida}
+          </span>
+        )}
         {v.camisetaEntregada && (
           <span title="Camiseta entregada"
             style={{ fontSize:"var(--fs-base)", flexShrink:0 }}>🎽</span>
