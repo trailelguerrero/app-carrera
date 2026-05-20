@@ -115,15 +115,24 @@ export const TabPresupuesto = ({
   };
 
   const renderFilaFija = (c, idx, arr) => {
+    // Prorrata por concepto individual: cada fila muestra cuánto aporta ESE concepto por corredor.
+    // Usa la misma lógica que calculateCostesFijos en budgetUtils.js (fuente única de verdad):
+    //   - Si hay inscritos: prorrata = costeTotal * (inscritos[d] / totalActivos)
+    //   - Si no hay inscritos: reparto igual entre distancias activas
+    //   - €/cte = prorrata / inscritos[d], o null si inscritos[d] === 0
+    // INVARIANTE: la suma de porCorredor[d] × inscritos[d] para todas las filas activas
+    // debe ser igual a costesFijos[d] (verificable en TabResumen).
+
     const distActivas  = DISTANCIAS.filter(d => c.activoDistancias[d] && c.activo);
-    const totalActivos = distActivas.reduce((s, d) => s + totalInscritos[d], 0);
+    const totalActivos = distActivas.reduce((s, d) => s + (totalInscritos[d] || 0), 0);
 
     const distData = DISTANCIAS.map(d => {
-      const prorrata = c.activo && c.activoDistancias[d] && totalActivos > 0
-        ? (c.costeTotal * totalInscritos[d] / totalActivos)
-        : (c.activo && c.activoDistancias[d] ? c.costeTotal / Math.max(distActivas.length, 1) : 0);
-      const porCorredor = totalInscritos[d] > 0 && c.activoDistancias[d]
-        ? prorrata / totalInscritos[d] : 0;
+      if (!c.activo || !c.activoDistancias[d]) return { d, porCorredor: null };
+      const prorrata = totalActivos > 0
+        ? c.costeTotal * ((totalInscritos[d] || 0) / totalActivos)
+        : c.costeTotal / Math.max(distActivas.length, 1);
+      // Si no hay inscritos en esta distancia, no se puede expresar €/cte
+      const porCorredor = (totalInscritos[d] || 0) > 0 ? prorrata / totalInscritos[d] : null;
       return { d, porCorredor };
     });
 
@@ -165,7 +174,7 @@ export const TabPresupuesto = ({
             <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
               <Toggle value={c.activoDistancias[d]} onChange={v => updateActivoDistancia(c.id, d, v)} />
               <span className="mono text-xs" style={{ color: c.activoDistancias[d] ? DISTANCIA_COLORS[d] : "var(--text-muted)" }}>
-                {fmtN(porCorredor)} €/cte
+                {porCorredor !== null ? `${fmtN(porCorredor)} €/cte` : "— €/cte"}
               </span>
             </div>
           </td>
