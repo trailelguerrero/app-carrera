@@ -57,7 +57,12 @@ export default async function handler(req, res) {
 
       if (req.method === 'PUT') {
         const body = req.body;
+        if (body === undefined || body === null) {
+          console.error(`[proxy/data] PUT ${collection}: body vacío o undefined`);
+          return res.status(400).json({ error: 'Body vacío' });
+        }
         const jsonValue = JSON.stringify(body);
+        console.log(`[proxy/data] PUT ${collection}: ${jsonValue.length} bytes`);
         await sql`
           INSERT INTO collections (key, value, version)
           VALUES (${collection}, ${jsonValue}::jsonb, 1)
@@ -67,6 +72,7 @@ export default async function handler(req, res) {
               updated_at = CURRENT_TIMESTAMP
         `;
         const updated = await sql`SELECT version FROM collections WHERE key = ${collection}`;
+        console.log(`[proxy/data] PUT ${collection}: OK, version=${updated[0]?.version}`);
         return res.status(200).json({ success: true, version: updated[0]?.version || 1 });
       }
 

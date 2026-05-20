@@ -1098,10 +1098,10 @@ function PortalMain({ token, onLogout }) {
             <div style={{ fontSize:"2rem", lineHeight:1, marginBottom:".4rem" }}>🏔️</div>
             <div style={{ fontWeight:800, fontSize:"var(--fs-md)", color:"var(--green)",
               fontFamily:"var(--font-display)", marginBottom:".2rem" }}>
-              {confirmLlegada ? "¿Confirmas que ya estás?" : "¿Ya estás en el evento?"}
+              {confirmLlegada ? "¿Confirmas que estás en tu puesto?" : "¿Ya estás en tu puesto?"}
             </div>
             <div className="vp-mono" style={{ fontSize:"var(--fs-xs)", color:"var(--text-muted)", marginBottom:".75rem" }}>
-              {puesto ? puesto.nombre : "Confirmar tu asistencia al evento"}
+              {puesto ? puesto.nombre : "Confirmar llegada al puesto"}
             </div>
             {confirmLlegada ? (
               <div style={{ display:"flex", gap:".5rem", justifyContent:"center" }}>
@@ -1114,7 +1114,7 @@ function PortalMain({ token, onLogout }) {
               </div>
             ) : (
               <button className="vp-btn vp-btn-success" style={{ width:"100%", maxWidth:280 }}>
-                ✅ Confirmar llegada al evento
+                ✅ Confirmar llegada al puesto
               </button>
             )}
           </div>
@@ -1123,7 +1123,7 @@ function PortalMain({ token, onLogout }) {
           <div style={{ background:"rgba(52,211,153,.08)", border:"1px solid var(--green-border)",
             borderRadius:10, padding:".75rem 1rem", marginBottom:".85rem", textAlign:"center" }}>
             <div style={{ fontWeight:700, color:"var(--green)", fontSize:"var(--fs-md)" }}>
-              ✅ En puesto desde las {v.horaLlegada}
+              ✅ En tu puesto desde las {v.horaLlegada}
             </div>
           </div>
         )}
@@ -1146,10 +1146,10 @@ function PortalMain({ token, onLogout }) {
           </div>
         )}
 
-        {/* Indicador de estado de llegada — solo informativo, sin acción (CTA superior es el punto de acción) */}
+        {/* Indicador de estado de llegada — solo informativo */}
         {v.enPuesto && (
           <div style={{ marginBottom:".85rem" }}>
-            <button className="vp-btn vp-btn-done" disabled>✅ En puesto desde las {v.horaLlegada}</button>
+            <button className="vp-btn vp-btn-done" disabled>✅ En tu puesto desde las {v.horaLlegada}</button>
           </div>
         )}
 
