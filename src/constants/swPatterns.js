@@ -11,14 +11,14 @@
 
 /** Rutas servidas desde caché con actualización en background (Stale While Revalidate) */
 export const STALE_WHILE_REVALIDATE_PATTERNS = [
-  /\/api\/proxy\/data\/teg_voluntarios_/,  // SK_VOL_* — voluntarios y puestos
+  /\/api\/proxy\/data\/teg_voluntarios_/,  // SK_VOL_* — voluntarios y puestos (panel)
   /\/api\/proxy\/data\/teg_logistica_/,    // SK_LOG_* — logística completa
   /\/api\/proxy\/data\/teg_dia_/,          // día de carrera
-  /\/api\/proxy\/voluntarios/,             // portal del voluntario (auth + ficha)
 ];
 
 /** Rutas que NUNCA se sirven desde caché (datos sensibles o de escritura) */
 export const NETWORK_ONLY_PATTERNS = [
+  /\/api\/voluntarios/,                    // portal del voluntario — datos personales en tiempo real
   /\/api\/proxy\/data\/teg_presupuesto/,   // SK_PPTO_* — datos financieros
   /\/api\/proxy\/data\/teg_pat_/,          // patrocinadores
   /\/api\/proxy\/budget/,                  // historial de presupuesto

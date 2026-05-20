@@ -216,7 +216,7 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
                 {iniciales(v.nombre)}
               </div>
               <div>
-                <div style={{ fontWeight:800, fontSize:"var(--fs-md)" }}>{v.nombre || "Sin nombre"}</div>
+                <div style={{ fontWeight:800, fontSize:"var(--fs-md)" }}>{nombreCompleto}</div>
                 <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", marginTop:"0.1rem" }}>
                   <span style={{ color:estadoColor, fontWeight:700 }}>{v.estado}</span>
                   {v.rol && <> · {v.rol}</>}
@@ -274,7 +274,7 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
             ["👕 Talla",      v.talla],
             ["🏷️ Rol",        v.rol ? (v.rol === "responsable" ? "Responsable de puesto" : "Voluntario de apoyo") : null],
             ["📍 Puesto",     puesto?.nombre || "Sin asignar"],
-            ["🗓 Registrado", v.fechaRegistro],
+            ["🗓 Registrado", v.fechaRegistro ? new Date(v.fechaRegistro).toLocaleDateString("es-ES", {day:"2-digit", month:"short", year:"numeric"}) : "—"],
             ["🚗 Vehículo",   v.coche ? "Sí, tiene coche" : "No"],
             ["🎂 Nacimiento", v.fechaNacimiento ? (() => {
               const años = Math.floor((new Date() - new Date(v.fechaNacimiento)) / (365.25 * 86400000));
