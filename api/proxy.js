@@ -54,8 +54,27 @@ export default async function handler(req, res) {
         out.columns = cols.map(c => c.column_name).join(', ');
         const count = await sql`SELECT COUNT(*) as n FROM collections`;
         out.total_collections = parseInt(count[0]?.n || 0);
-        const vols = await sql`SELECT jsonb_array_length(value) as n FROM collections WHERE key='teg_voluntarios_v1_voluntarios'`;
-        out.voluntarios_en_neon = vols.length > 0 ? `${vols[0].n} voluntarios` : '✗ colección no existe aún';
+        const vols = await sql`SELECT jsonb_array_length(value) as n, value as data FROM collections WHERE key='teg_voluntarios_v1_voluntarios'`;
+        if (vols.length > 0) {
+          const arr = vols[0].data;
+          out.voluntarios_en_neon = `${vols[0].n} voluntarios`;
+          // Muestra los primeros 5 voluntarios con campos clave para diagnóstico
+          out.muestra_voluntarios = arr.slice(0, 5).map(v => ({
+            id: v.id,
+            nombre: `${v.nombre || ''} ${v.apellidos || ''}`.trim(),
+            estado: v.estado,
+            puestoId: v.puestoId ?? 'null',
+            puestoId_tipo: typeof v.puestoId,
+            tieneSessionToken: !!v.sessionToken,
+            mensajeOrganizador: v.mensajeOrganizador ? v.mensajeOrganizador.substring(0,30)+'...' : null,
+            mensajeParaOrg: v.mensajeParaOrganizador ? v.mensajeParaOrganizador.substring(0,30)+'...' : null,
+          }));
+          // Cuántos tienen puestoId asignado
+          out.con_puesto = arr.filter(v => v.puestoId != null).length;
+          out.sin_puesto = arr.filter(v => v.puestoId == null).length;
+        } else {
+          out.voluntarios_en_neon = '✗ colección no existe aún';
+        }
         // Test write/read
         const testKey = '__health_test__';
         const testVal = JSON.stringify({ ts: new Date().toISOString() });

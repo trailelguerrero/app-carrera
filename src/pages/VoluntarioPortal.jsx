@@ -711,6 +711,11 @@ function PortalMain({ token, onLogout }) {
   const showMsg = (m, ms=3500) => { setMsg(m); setTimeout(() => setMsg(""), ms); };
 
   const [ultimaActualizacion, setUltimaActualizacion] = useState(null);
+  const [tick, setTick] = useState(0); // para re-render del timestamp "hace Xs"
+  useEffect(() => {
+    const t = setInterval(() => setTick(n => n + 1), 10000); // refresca cada 10s
+    return () => clearInterval(t);
+  }, []);
 
   const fetchData = useCallback(async (silencioso = false) => {
     if (!silencioso) setLoading(true);
@@ -722,7 +727,7 @@ function PortalMain({ token, onLogout }) {
       if (res.status === 401) { clearSession(); onLogout(); return; }
       const json = await res.json();
       setData(json);
-      setUltimaActualizacion(new Date());
+      setUltimaActualizacion(Date.now());
       // SEC-06: si el PIN no ha sido personalizado, forzar cambio inmediato
       if (json.voluntario && json.voluntario.pinPersonalizado === false) {
         setMustChangePin(true);
@@ -753,8 +758,9 @@ function PortalMain({ token, onLogout }) {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   // Auto-refresh cada 5 minutos (silencioso — no muestra spinner)
+  // Auto-refresh cada 30 segundos para ver cambios del organizador sin recargar manualmente
   useEffect(() => {
-    const interval = setInterval(() => { fetchData(true); }, 5 * 60 * 1000);
+    const interval = setInterval(() => { fetchData(true); }, 30 * 1000);
     return () => clearInterval(interval);
   }, [fetchData]);
 
@@ -984,6 +990,14 @@ function PortalMain({ token, onLogout }) {
             <span className={`vp-badge ${v.estado==="confirmado"?"vp-badge-green":v.estado==="cancelado"?"vp-badge-red":"vp-badge-amber"}`}>
               {v.estado==="confirmado" ? "✓ Confirmado" : v.estado==="cancelado" ? "✕ Cancelado" : "⏳ Pendiente"}
             </span>
+            <button onClick={() => fetchData(true)}
+              title="Actualizar mi ficha"
+              style={{ background:"rgba(34,211,238,.1)", border:"1px solid rgba(34,211,238,.3)",
+                borderRadius:8, cursor:"pointer", fontFamily:"var(--font-mono)",
+                fontSize:".75rem", color:"var(--cyan)", padding:".4rem .6rem",
+                fontWeight:700, minHeight:"44px", display:"flex", alignItems:"center", gap:".25rem" }}>
+              ⟳ Actualizar
+            </button>
             <button onClick={() => { clearSession(); onLogout(); }}
               title="Cerrar sesión"
               style={{ background:"rgba(248,113,113,.1)", border:"1px solid rgba(248,113,113,.25)",
@@ -993,15 +1007,16 @@ function PortalMain({ token, onLogout }) {
                 minHeight:"44px", display:"flex", alignItems:"center" }}>
               Salir
             </button>
-            <button onClick={() => fetchData(true)}
-              title="Actualizar mi ficha"
-              style={{ background:"none", border:"none", cursor:"pointer",
-                fontFamily:"var(--font-mono)", fontSize:"1rem", color:"var(--text-muted)",
-                padding:".2rem .35rem", lineHeight:1, borderRadius:6,
-                transition:"color .15s" }}
-              onMouseEnter={e=>e.currentTarget.style.color="var(--cyan)"}
-              onMouseLeave={e=>e.currentTarget.style.color="var(--text-muted)"}>⟳</button>
           </div>
+          {ultimaActualizacion && (
+            <div className="vp-mono" style={{ fontSize:".58rem", color:"var(--text-dim)" }}>
+              Actualizado {(() => {
+                const s = Math.round((Date.now() - ultimaActualizacion) / 1000);
+                if (s < 60) return `hace ${s}s`;
+                return `hace ${Math.round(s/60)}min`;
+              })()}
+            </div>
+          )}
           {config.fecha && (() => {
             const hoy = new Date();
             const evento = new Date(config.fecha);

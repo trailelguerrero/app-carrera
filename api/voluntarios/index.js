@@ -312,6 +312,10 @@ export default async function handler(req, res) {
         }
       }
 
+      // Sin caché — los datos del voluntario deben ser siempre frescos
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+
       const { pinHash: _ph, sessionToken: _st, ...volPublico } = voluntario;
       // Migración on-the-fly: si no tiene telefonoEmergencia, usar el propio teléfono
       const telEmergencia = voluntario.telefonoEmergencia || voluntario.contactoEmergencia || voluntario.telefono || '';
