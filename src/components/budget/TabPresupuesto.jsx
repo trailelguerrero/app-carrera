@@ -115,25 +115,24 @@ export const TabPresupuesto = ({
   };
 
   const renderFilaFija = (c, idx, arr) => {
-    // Prorrata por concepto individual: cada fila muestra cuánto aporta ESE concepto por corredor.
-    // Usa la misma lógica que calculateCostesFijos en budgetUtils.js (fuente única de verdad):
-    //   - Si hay inscritos: prorrata = costeTotal * (inscritos[d] / totalActivos)
-    //   - Si no hay inscritos: reparto igual entre distancias activas
-    //   - €/cte = prorrata / inscritos[d], o null si inscritos[d] === 0
-    // INVARIANTE: la suma de porCorredor[d] × inscritos[d] para todas las filas activas
-    // debe ser igual a costesFijos[d] (verificable en TabResumen).
+    // Muestra la prorrata bruta (€ asignados a cada distancia) usando la misma lógica
+    // que calculateCostesFijos en budgetUtils.js:
+    //   prorrata[d] = costeTotal × (inscritos[d] / totalActivos)
+    // Este valor SÍ varía entre distancias según sus inscritos reales.
+    // Nota: el €/cte (costeTotal/totalActivos) es matemáticamente igual en todas
+    // las distancias — la prorrata proporcional lo garantiza por diseño.
+    // INVARIANTE: suma(prorrata[d] para distancias activas) == costeTotal.
 
     const distActivas  = DISTANCIAS.filter(d => c.activoDistancias[d] && c.activo);
     const totalActivos = distActivas.reduce((s, d) => s + (totalInscritos[d] || 0), 0);
 
     const distData = DISTANCIAS.map(d => {
-      if (!c.activo || !c.activoDistancias[d]) return { d, porCorredor: null };
+      if (!c.activo || !c.activoDistancias[d]) return { d, prorrata: null, porCorredor: null };
       const prorrata = totalActivos > 0
         ? c.costeTotal * ((totalInscritos[d] || 0) / totalActivos)
         : c.costeTotal / Math.max(distActivas.length, 1);
-      // Si no hay inscritos en esta distancia, no se puede expresar €/cte
-      const porCorredor = (totalInscritos[d] || 0) > 0 ? prorrata / totalInscritos[d] : null;
-      return { d, porCorredor };
+      const porCorredor = totalActivos > 0 ? c.costeTotal / totalActivos : null;
+      return { d, prorrata, porCorredor };
     });
 
     return (
@@ -169,12 +168,14 @@ export const TabPresupuesto = ({
         <td className="text-right">
           <NumInput value={c.costeTotal} onChange={v => updateConcepto(c.id, "costeTotal", v)} step={1} />
         </td>
-        {distData.map(({ d, porCorredor }) => (
+        {distData.map(({ d, prorrata, porCorredor }) => (
           <td key={d} className="text-right" style={{ opacity: c.activo ? 1 : 0.35 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
               <Toggle value={c.activoDistancias[d]} onChange={v => updateActivoDistancia(c.id, d, v)} />
               <span className="mono text-xs" style={{ color: c.activoDistancias[d] ? DISTANCIA_COLORS[d] : "var(--text-muted)" }}>
-                {porCorredor !== null ? `${fmtN(porCorredor)} €/cte` : "— €/cte"}
+                {prorrata !== null
+                  ? <>{fmtN(prorrata)} €<br/><span style={{opacity:0.55,fontSize:"0.7em"}}>{porCorredor !== null ? `${fmtN(porCorredor)} €/cte` : ""}</span></>
+                  : "—"}
               </span>
             </div>
           </td>
@@ -403,7 +404,7 @@ export const TabPresupuesto = ({
 </th>
                 {DISTANCIAS.map(d => (
                   <th key={d} className="text-right">
-                    <Tooltip position="top" text={"Toggle: activa o desactiva este coste para esta distancia.\nEl valor €/cte muestra la parte prorrateada que le corresponde a cada corredor de esta distancia."}>
+                    <Tooltip position="top" text={"Toggle: activa o desactiva este coste para esta distancia.\nEl valor en € muestra la parte del coste total asignada a esta distancia (proporcional a sus inscritos).\nEl €/cte secundario es el coste por corredor de este concepto — igual en todas las distancias por diseño."}>
                       <span className="dist-dot" style={{ background: DISTANCIA_COLORS[d] }} />
                       <span>{DISTANCIA_LABELS[d]}</span>
                       <TooltipIcon />
