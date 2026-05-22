@@ -22,10 +22,12 @@ El frontend llama **exclusivamente** a `/api/proxy/*`. Este endpoint actúa como
 ### Configuración local
 
 1. Copia `.env.example` a `.env.local`.
-2. Rellena `DATABASE_URL`, `API_KEY` y `ALLOWED_ORIGIN`.
+2. Rellena las variables requeridas:
    - `DATABASE_URL`: Cadena de conexión Neon PostgreSQL.
    - `API_KEY`: Clave privada usada **solo por las funciones de Vercel**. No añadir prefijo `VITE_`.
    - `ALLOWED_ORIGIN`: Dominio permitido para CORS (ej: `https://appcarrera.vercel.app`).
+   - `BLOB_READ_WRITE_TOKEN`: Token de Vercel Blob (requerido para subida de documentos e imágenes). Sin este valor, las APIs `api/docs/[patId].js` e `api/images/index.js` fallan con 500.
+   - `VITE_ADAPTER`: Selector de adapter de persistencia (`api` para producción con Neon, `localStorage` para desarrollo offline). Si no se define, el fallback es `api`.
 3. Para desarrollo local con funciones serverless: `vercel dev` (requiere Vercel CLI).
 
 ### Despliegue (Vercel)
@@ -34,6 +36,8 @@ Variables de entorno necesarias en el panel de Vercel:
 - `DATABASE_URL`
 - `API_KEY`
 - `ALLOWED_ORIGIN`
+- `BLOB_READ_WRITE_TOKEN`
+- `VITE_ADAPTER`
 
 ## Estructura del Proyecto
 
