@@ -10,7 +10,6 @@ import {
   SK_UI_LAST_BACKUP,
   SK_UI_AUTO_BACKUP,
   SK_UI_AUTO_BACKUP_TS,
-  SK_UI_ONBOARDING_DONE,
   SK_PAT_LOG_PREFIX,
   SK_EVENT_CONFIG,
   // Presupuesto
@@ -490,10 +489,38 @@ export default function Configuracion() {
     }
   };
   const diasRestantes = fechaEvento ? Math.ceil((fechaEvento - new Date()) / 86400000) : null;
+  const esConfigInicial = !savedConfig?.nombre || savedConfig.nombre === EVENT_CONFIG_DEFAULT.nombre;
 
   return (
     <>
       <div className="block-container">
+
+        {/* B1 — Banner configuración inicial (sustituye OnboardingModal) */}
+        {esConfigInicial && (
+          <div style={{
+            margin: "0 0 1rem 0",
+            padding: "0.85rem 1.1rem",
+            background: "var(--teg-amber-dim, rgba(251,191,36,0.08))",
+            border: "1px solid var(--teg-amber-border, rgba(251,191,36,0.35))",
+            borderRadius: 10,
+            display: "flex", alignItems: "flex-start", gap: "0.75rem",
+          }}>
+            <span style={{ fontSize: "1.4rem", flexShrink: 0 }}>⚙️</span>
+            <div>
+              <div style={{
+                fontFamily: "var(--font-mono)", fontWeight: 700,
+                fontSize: "var(--fs-sm)", color: "var(--amber, #f59e0b)",
+                marginBottom: "0.25rem",
+              }}>
+                Configura tu evento antes de empezar
+              </div>
+              <div style={{ fontSize: "var(--fs-sm)", color: "var(--text-dim)", lineHeight: 1.5 }}>
+                Rellena los campos obligatorios: <strong>nombre</strong>, <strong>fecha</strong> y <strong>lugar</strong>.
+                Los datos se guardarán en Neon al pulsar <em>Guardar cambios</em>.
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="block-header">
           <div>
@@ -1048,18 +1075,6 @@ export default function Configuracion() {
                 {form.autoOpenDia ? "Activo" : "Inactivo"}
               </button>
             </div>
-            <button
-              className="backup-btn"
-              style={{
-                background: "var(--violet-dim)", color: "var(--violet)",
-                border: "1px solid rgba(167,139,250,.3)"
-              }}
-              onClick={() => {
-                localStorage.removeItem(SK_UI_ONBOARDING_DONE);
-                window.location.reload();
-              }}>
-              🎓 Ver tutorial de inicio
-            </button>
           </div>
           <div style={{
             fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",

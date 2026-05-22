@@ -23,6 +23,7 @@ export const SK_AUTH_LOCKOUT     = "teg_auth_lockout_v1";
 export const SK_AUTH_PIN_LENGTH  = "teg_panel_pin_length";
 
 // ── UI / Estado global ────────────────────────────────────────────────────────
+/** @deprecated B1 — OnboardingModal eliminado. Clave conservada para compatibilidad con instalaciones existentes. */
 export const SK_UI_ONBOARDING_DONE    = "teg_onboarding_done";
 export const SK_UI_DASH_ALERTAS_OPEN  = "teg_dash_alertas_open";
 export const SK_UI_CODIGOS_INIT       = "teg_codigos_initialized";

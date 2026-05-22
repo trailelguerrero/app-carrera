@@ -5,11 +5,9 @@ import { checkSession, createSession } from "@/components/auth/pinAuth.js";
 import React, { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from "react";
 import ErrorBoundary from "../components/ErrorBoundary";
 const DiaCarrera = lazy(() => import("../components/blocks/DiaCarrera"));
-import OnboardingModal from "../components/blocks/OnboardingModal";
 import ConflictModal from "../components/blocks/ConflictModal";
 import { ThemeToggle } from "../components/ui/ThemeToggle";
 import { LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
-import { SK_UI_ONBOARDING_DONE } from "@/constants/storageKeys";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import QuickNav from "../components/common/QuickNav";
 
@@ -229,21 +227,6 @@ export default function Index() {
   const [showDiaCarrera, setShowDiaCarrera] = useState(false);
   const [pendingSubtab, setPendingSubtab] = useState(null);
   const [readmeBlock, setReadmeBlock] = useState(null);
-  const [showOnboarding, setShowOnboarding] = useState(() => {
-    if (localStorage.getItem(SK_UI_ONBOARDING_DONE)) return false;
-    // Si ya hay configuración de evento guardada, marcar onboarding como completado
-    // y no mostrar el wizard (evita que aparezca en instalaciones existentes)
-    const hasConfig = !!localStorage.getItem(LS_KEY_CONFIG);
-    if (hasConfig) {
-      localStorage.setItem(SK_UI_ONBOARDING_DONE, "1");
-      return false;
-    }
-    return true;
-  });
-  // CFG-01: cerrar sin guardar — los datos parciales NO se persisten
-  const cerrarOnboarding = () => setShowOnboarding(false);
-  // CFG-01: wizard completado — los datos ya fueron guardados por OnboardingModal
-  const completarOnboarding = () => setShowOnboarding(false);
   const ActiveComponent = BLOCKS.find(b => b.id === activeBlock)?.component;
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -858,7 +841,6 @@ export default function Index() {
 
         {/* MODALS */}
         {showDiaCarrera && <DiaCarrera onClose={() => setShowDiaCarrera(false)} />}
-        {showOnboarding && <OnboardingModal onClose={cerrarOnboarding} onComplete={completarOnboarding} />}
         {showChangePin && <ChangePinModal onClose={() => setShowChangePin(false)} />}
         {/* Modal de conflictos de sync — autónomo, escucha teg-conflict globalmente */}
         <ConflictModal />
