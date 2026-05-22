@@ -165,6 +165,19 @@ export default async function handler(req, res) {
         ? result[0].value
         : [];
 
+      // C3: Validar capacidad del puesto si se seleccionó uno [F4-02]
+      if (sanitized.puestoId) {
+        const puestosResult = await sql`SELECT value FROM collections WHERE key = 'teg_voluntarios_v1_puestos'`;
+        const puestos = puestosResult.length > 0 && Array.isArray(puestosResult[0].value) ? puestosResult[0].value : [];
+        const puesto = puestos.find(p => p.id === sanitized.puestoId);
+        if (puesto && typeof puesto.necesarios === 'number') {
+          const ocupados = current.filter(v => v.puestoId === sanitized.puestoId && v.estado !== 'cancelado').length;
+          if (ocupados >= puesto.necesarios) {
+            return res.status(409).json({ error: 'Puesto completo. No quedan plazas disponibles.' });
+          }
+        }
+      }
+
       // Comprobar duplicado por email o teléfono
       const isDuplicate = current.some(v =>
         (sanitized.email    && v.email    === sanitized.email)    ||

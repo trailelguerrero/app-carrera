@@ -37,6 +37,8 @@ const Presupuesto = () => {
   const [eventCfg, , isLoading] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
   const [confirmReset, setConfirmReset] = useState(false);
+  const [limpiarHistorial, setLimpiarHistorial] = useState(false);
+  const [resettingData, setResettingData] = useState(false);
   const [delConceptoId, setDelConceptoId] = useState(null); // T5.2
 
   const [scenarioOverrides, setScenarioOverrides] = useState({
@@ -172,13 +174,21 @@ const Presupuesto = () => {
 
   // BUG-P6 fix: eliminado argumento innecesario `true`
   // INC-P3 fix: persiste el estado tras el reset para evitar reversión si el autosave tarda
-  const handleReset = () => {
+  // C2: async con spinner + borrado opcional de historial [F3-02/03]
+  const handleReset = async () => {
+    setResettingData(true);
     resetAllData();
     // Eliminar escenarios guardados — sus datos base ya no existen tras el reset
     deleteScenario && savedScenarios?.forEach(sc => deleteScenario(sc.id));
-    setConfirmReset(false);
     // Persistir inmediatamente sin esperar al autosave de 2s
-    setTimeout(() => saveData(), 50);
+    await new Promise(resolve => setTimeout(resolve, 50));
+    await saveData();
+    if (limpiarHistorial) {
+      try { await fetch('/api/budget-log', { method: 'DELETE' }); } catch { /* ignore */ }
+    }
+    setResettingData(false);
+    setConfirmReset(false);
+    setLimpiarHistorial(false);
   };
 
   useEffect(() => {
@@ -503,24 +513,39 @@ const Presupuesto = () => {
       </div>
 
       {confirmReset && (
-        <div className="reset-overlay" onClick={() => setConfirmReset(false)}>
+        <div className="reset-overlay" onClick={() => !resettingData && setConfirmReset(false)}>
           <div className="reset-modal" onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: "var(--fs-xl)", marginBottom: "0.75rem" }}>⚠️</div>
             <div style={{ fontWeight: 800, fontSize: "var(--fs-md)", marginBottom: "0.5rem", color: "var(--text)" }}>
               ¿Restablecer todos los datos?
             </div>
-            <div className="mono" style={{ fontSize: "0.72rem", color: "var(--text-muted)", lineHeight: 1.6, marginBottom: "1.5rem" }}>
+            <div className="mono" style={{ fontSize: "0.72rem", color: "var(--text-muted)", lineHeight: 1.6, marginBottom: "1rem" }}>
               Se eliminarán todos los tramos, inscritos, conceptos de coste e ingresos.
               Esta acción no se puede deshacer.
             </div>
-            <div style={{ display: "flex", gap: "0.6rem", justifyContent: "center" }}>
-              <button className="btn btn-ghost" onClick={() => setConfirmReset(false)}>
-                Cancelar
-              </button>
-              <button className="btn btn-red" onClick={handleReset}>
-                Sí, restablecer todo
-              </button>
-            </div>
+            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "1.25rem", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={limpiarHistorial}
+                onChange={e => setLimpiarHistorial(e.target.checked)}
+                disabled={resettingData}
+              />
+              Limpiar también el historial de cambios
+            </label>
+            {resettingData ? (
+              <div style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "0.8rem" }}>
+                ⏳ Borrando datos...
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: "0.6rem", justifyContent: "center" }}>
+                <button className="btn btn-ghost" onClick={() => setConfirmReset(false)}>
+                  Cancelar
+                </button>
+                <button className="btn btn-red" onClick={handleReset}>
+                  Sí, restablecer todo
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

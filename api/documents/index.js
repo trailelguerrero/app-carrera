@@ -81,7 +81,12 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Faltan campos: id, nombre, categoria, data' });
 
       // Convertir base64 → Buffer → Vercel Blob
+      // C6: límite 10MB antes de crear el buffer [F8-02]
       const base64  = data.includes(',') ? data.split(',')[1] : data;
+      const sizeBytes = Buffer.byteLength(Buffer.from(base64, 'base64'));
+      if (sizeBytes > 10 * 1024 * 1024) {
+        return res.status(413).json({ error: 'Archivo demasiado grande. Máximo 10MB.' });
+      }
       const buffer  = Buffer.from(base64, 'base64');
       const ext     = nombre.split('.').pop()?.toLowerCase() || 'bin';
       const mimeMap = { pdf:'application/pdf', png:'image/png',

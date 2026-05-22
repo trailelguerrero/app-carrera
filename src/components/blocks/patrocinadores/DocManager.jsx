@@ -40,13 +40,14 @@ export default function DocManager({ pat, addDoc, deleteDoc, cfg }) {
           data: e.target.result, size: file.size,
           fecha: new Date().toISOString().split("T")[0],
         };
+        // C5: escritura atómica — addDoc solo si API responde con éxito [F6-01]
         const res = await fetch(API, { method:"POST", headers, body: JSON.stringify(body) }); // proxy inyecta x-api-key
         if (!res.ok) { setUploadError("Error al subir el archivo."); setUploading(false); return; }
         const { id, blob_url } = await res.json();
-        // Guardar con blob_url — necesario para Ver/Descargar sin recargar
+        // Solo actualizamos estado local DESPUÉS de confirmar éxito de la API
         setDocs(prev => [{ ...body, id, blob_url, data: null }, ...prev]);
         addDoc(pat.id, { id, nombre: file.name, tipo, mime: file.type, size: file.size, fecha: body.fecha });
-      } catch(e) { setUploadError("Error al subir el archivo."); }
+      } catch(err) { setUploadError("Error al subir el archivo."); }
       setUploading(false);
     };
     reader.readAsDataURL(file);

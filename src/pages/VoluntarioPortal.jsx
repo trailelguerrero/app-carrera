@@ -21,16 +21,18 @@ const API_BASE   = "/api/voluntarios";
 const PUBLIC_API = "/api/data/public";
 const SESSION_TTL = 30 * 24 * 60 * 60 * 1000; // T1.3: sync with backend (30 days)
 
+// C4: sessionToken migrado de localStorage a sessionStorage [F4-03]
+// sessionStorage no persiste entre pestañas → mitiga robo de token por XSS
 function loadSession() {
   try {
-    const raw = JSON.parse(localStorage.getItem(SK_VOL_SESSION) || "null");
+    const raw = JSON.parse(sessionStorage.getItem(SK_VOL_SESSION) || "null");
     if (!raw) return null;
-    if (raw.ts && Date.now() - raw.ts > SESSION_TTL) { localStorage.removeItem(SK_VOL_SESSION); return null; }
+    if (raw.ts && Date.now() - raw.ts > SESSION_TTL) { sessionStorage.removeItem(SK_VOL_SESSION); return null; }
     return raw;
   } catch { return null; }
 }
-function saveSession(data) { localStorage.setItem(SK_VOL_SESSION, JSON.stringify({ ...data, ts: Date.now() })); }
-function clearSession() { localStorage.removeItem(SK_VOL_SESSION); }
+function saveSession(data) { sessionStorage.setItem(SK_VOL_SESSION, JSON.stringify({ ...data, ts: Date.now() })); }
+function clearSession() { sessionStorage.removeItem(SK_VOL_SESSION); }
 
 async function fetchPublic(collection) {
   try {

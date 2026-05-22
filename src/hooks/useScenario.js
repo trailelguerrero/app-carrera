@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useData } from "@/hooks/useData";
 import { SK_SCENARIOS, SK_PPTO_SCENARIO_ACTIVE } from "@/constants/storageKeys";
 
@@ -15,6 +15,12 @@ const LS_ACTIVE_SCENARIO = SK_PPTO_SCENARIO_ACTIVE;
  *   del escenario: se pasan aquí como referencia, nunca se modifican.
  */
 export const useScenario = (realInscritos, realConceptos, realIngresosExtra, realMerchandising) => {
+  // ── Limpiar residuo de sesión anterior al montar ─────────────────────────
+  // activeScenario arranca en null → ghost banner si LS_ACTIVE_SCENARIO tiene valor
+  useEffect(() => {
+    try { localStorage.removeItem(LS_ACTIVE_SCENARIO); } catch { /* ignore */ }
+  }, []); // al montar: limpiar clave de sesión anterior
+
   // ── Escenarios guardados (persistidos) ──────────────────────────────────
   const [savedScenarios, setSavedScenarios] = useData(LS_KEY, []);
 
