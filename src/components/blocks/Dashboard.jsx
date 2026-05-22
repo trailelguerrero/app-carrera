@@ -81,8 +81,7 @@ export default function Dashboard() {
   );
 
   const { rawData, loading, isRefreshing, lastUpdated, loadData } = useDashboardData(ALL_KEYS);
-  const cfg = { ...EVENT_CONFIG_DEFAULT, ...((() => { try { const r = localStorage.getItem(LS_KEY_CONFIG); return r ? JSON.parse(r) : {}; } catch { return {}; } })()) };
-  const data = useDashboardKpis(rawData, cfg.volDiasCritico, cfg.volDiasAviso);
+  const data = useDashboardKpis(rawData);
 
   // ─── Loading ──────────────────────────────────────────────────────────────
   if (loading) {
