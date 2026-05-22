@@ -16,6 +16,7 @@ import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { getEventDate } from "@/lib/eventUtils";
 import { LOCS_DEFAULT, LOCS_KEY } from "@/constants/localizaciones";
 import { useData } from "@/hooks/useData";
+import dataService from "@/lib/dataService";
 import { ImagenUploader } from "@/components/common/ImagenUploader";
 import { PanelCompartir } from "@/components/voluntarios/PanelCompartir";
 
@@ -151,6 +152,21 @@ export default function App() {
     });
     return map;
   }, [rawMat, rawAsig, locs]);
+
+  // F4-01 — Polling 30s: detectar cambios del portal en tabs dashboard y diaD
+  useEffect(() => {
+    if (tab !== "dashboard" && tab !== "diaD") return;
+
+    const interval = setInterval(async () => {
+      const fresco = await dataService.get(SK_VOL_VOLUNTARIOS, []);
+      if (JSON.stringify(fresco) !== JSON.stringify(rawVoluntarios)) {
+        setVoluntarios(fresco);
+      }
+    }, 30 * 1000);
+
+    return () => clearInterval(interval);
+  }, [tab, rawVoluntarios]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [saveStatus, setSaveStatus] = useState("idle");
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
