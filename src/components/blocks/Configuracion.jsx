@@ -236,6 +236,10 @@ export default function Configuracion() {
       localStorage.setItem(SK_UI_AUTO_BACKUP, json);
       localStorage.setItem(SK_UI_AUTO_BACKUP_TS, autoBackup.fecha);
       localStorage.setItem(SK_UI_LAST_BACKUP, autoBackup.fecha);
+      // F10-05: persistir también en Neon para acceso multi-dispositivo
+      dataService.set(SK_UI_AUTO_BACKUP, autoBackup).catch(err =>
+        console.warn("[CFG-02] Auto-backup no guardado en Neon:", err)
+      );
       console.info("[CFG-02] Backup automático generado:", autoBackup.fecha);
     } catch {
       console.warn("[CFG-02] Backup automático no guardado (sin espacio)");
