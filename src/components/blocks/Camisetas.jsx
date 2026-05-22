@@ -553,11 +553,17 @@ export default function App() {
       }));
       if ((lineaNueva.tipo === "voluntario" || lineaNueva.tipo === "extra-voluntario") && lineaNueva.estadoEntrega === "entregado") {
         const pedido = pedidos.find(p => p.id === pedidoId);
-        if (pedido?.nombre) {
+        if (pedido) {
           setRawVoluntarios(prev => (Array.isArray(prev) ? prev : []).map(v => {
-            const nc = ((v.nombre || "") + " " + (v.apellidos || "")).toLowerCase().trim();
-            const np = (pedido.nombre || "").toLowerCase().trim();
-            return (nc === np || nc.includes(np) || np.includes(nc)) ? { ...v, camisetaEntregada: true } : v;
+            if (pedido.voluntarioId != null) {
+              // Match primario por ID — único y exacto
+              return String(v.id) === String(pedido.voluntarioId) ? { ...v, camisetaEntregada: true } : v;
+            } else {
+              // Fallback por nombre exacto solo si no hay ID (compatibilidad líneas antiguas)
+              const nc = ((v.nombre || "") + " " + (v.apellidos || "")).toLowerCase().trim();
+              const np = (pedido.nombre || "").toLowerCase().trim();
+              return nc === np ? { ...v, camisetaEntregada: true } : v;
+            }
           }), { force: true });
         }
       }
@@ -571,9 +577,15 @@ export default function App() {
         const linea  = pedido?.lineas?.find(l => l.id === lineaId);
         if (pedido?.nombre && (linea?.tipo === "voluntario" || linea?.tipo === "extra-voluntario")) {
           setRawVoluntarios(prev => (Array.isArray(prev) ? prev : []).map(v => {
-            const nc = ((v.nombre || "") + " " + (v.apellidos || "")).toLowerCase().trim();
-            const np = (pedido.nombre || "").toLowerCase().trim();
-            return (nc === np || nc.includes(np) || np.includes(nc)) ? { ...v, camisetaEntregada: valor === "entregado" } : v;
+            if (pedido.voluntarioId != null) {
+              // Match primario por ID — único y exacto
+              return String(v.id) === String(pedido.voluntarioId) ? { ...v, camisetaEntregada: valor === "entregado" } : v;
+            } else {
+              // Fallback por nombre exacto solo si no hay ID (compatibilidad líneas antiguas)
+              const nc = ((v.nombre || "") + " " + (v.apellidos || "")).toLowerCase().trim();
+              const np = (pedido.nombre || "").toLowerCase().trim();
+              return nc === np ? { ...v, camisetaEntregada: valor === "entregado" } : v;
+            }
           }), { force: true });
         }
       }
