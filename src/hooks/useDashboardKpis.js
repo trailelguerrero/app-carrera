@@ -292,7 +292,7 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
       saludModulos, saludGlobal,
       alertasCriticas, alertasAvisos,
       docsVencidos, docsProxVencer,
-      tramos, rawInscritos: inscritos, syncConfig,
+      tramos, rawInscritos: inscritos, syncConfig, scenarioActivo,
     };
   }, [rawData, volDiasCritico, volDiasAviso]);
 }
