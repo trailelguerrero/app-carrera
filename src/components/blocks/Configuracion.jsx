@@ -447,17 +447,24 @@ export default function Configuracion() {
     e.target.value = "";
   };
 
-  const aplicarImport = () => {
+  const aplicarImport = async () => {
     if (!importPreview) return;
+    const writePromises = [];
     let count = 0;
     for (const [key, value] of Object.entries(importPreview.datos)) {
       if (ALL_DATA_KEYS.includes(key)) {
-        localStorage.setItem(key, JSON.stringify(value));
+        writePromises.push(dataService.set(key, value));
         count++;
       }
     }
     setImportPreview(null);
-    setImportMsg({ tipo: "ok", texto: `✓ Backup restaurado — ${count} colecciones importadas. Recarga la app para ver los cambios.` });
+    setImportMsg({ tipo: "ok", texto: `Restaurando ${count} colecciones en Neon…` });
+    try {
+      await Promise.all(writePromises);
+      setImportMsg({ tipo: "ok", texto: `✓ Backup restaurado y sincronizado con Neon — ${count} colecciones importadas.` });
+    } catch {
+      setImportMsg({ tipo: "error", texto: `Error al sincronizar con Neon. Algunos datos pueden no haberse guardado.` });
+    }
     window.dispatchEvent(new CustomEvent("teg-sync", { detail: {} })); // INC-06: CustomEvent uniforme
   };
 
