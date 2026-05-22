@@ -1223,19 +1223,22 @@ export default function Configuracion() {
                 className="btn btn-red"
                 disabled={resetInput.trim() !== "BORRAR"}
                 style={{ opacity: resetInput.trim() === "BORRAR" ? 1 : .4, cursor: resetInput.trim() === "BORRAR" ? "pointer" : "not-allowed" }}
-                onClick={() => {
-                  for (const key of ALL_DATA_KEYS) {
-                    localStorage.removeItem(key);
-                  }
-                  // Limpiar también logs dinámicos de patrocinadores
-                  const keysToRemove = [];
-                  for (let i = 0; i < localStorage.length; i++) {
-                    const k = localStorage.key(i);
-                    if (k && k.startsWith(SK_PAT_LOG_PREFIX)) keysToRemove.push(k);
-                  }
-                  keysToRemove.forEach(k => localStorage.removeItem(k));
+                onClick={async () => {
                   setResetModal(false);
                   setResetInput('');
+                  // Escribir defaults en Neon para cada clave de datos
+                  const writePromises = ALL_DATA_KEYS.map(key => {
+                    const defaultVal = key === SK_EVENT_CONFIG ? EVENT_CONFIG_DEFAULT : [];
+                    return dataService.set(key, defaultVal);
+                  });
+                  // Eliminar logs dinámicos de patrocinadores
+                  const patLogKeys = [];
+                  for (let i = 0; i < localStorage.length; i++) {
+                    const k = localStorage.key(i);
+                    if (k && k.startsWith(SK_PAT_LOG_PREFIX)) patLogKeys.push(k);
+                  }
+                  const removePromises = patLogKeys.map(k => dataService.remove(k));
+                  await Promise.all([...writePromises, ...removePromises]);
                   window.location.reload();
                 }}
               >
