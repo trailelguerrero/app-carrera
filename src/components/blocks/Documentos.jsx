@@ -136,13 +136,17 @@ export default function Documentos() {
           // Los docs tienen blobUrl — no necesitan data en memoria
           // Auto-marcar como "vencido" si la fecha ya pasó y no está vigente
           const hoy = new Date();
-          setDocs(rows.map(d => {
+          const docsConEstado = rows.map(d => {
             if (d.fechaVencimiento && d.estado !== "vigente" && d.estado !== "vencido") {
               if (Math.ceil((new Date(d.fechaVencimiento) - hoy) / 86400000) < 0)
                 return { ...d, estado: "vencido" };
             }
             return d;
-          }));
+          });
+          setDocs(docsConEstado);
+          // F8-01: sincronizar SK_DOC_DOCS tras carga inicial para que Dashboard,
+          // Proyecto y useAlertasBadges lean datos reales en lugar de array vacío
+          dataService.set(LS_KEY, docsConEstado);
         } else {
           // Fallback a localStorage si la API no responde
           dataService.get(LS_KEY, []).then(d => setDocs(Array.isArray(d) ? d : []));
@@ -157,8 +161,12 @@ export default function Documentos() {
     load();
   }, []);
 
-  // save() solo actualiza el estado local — cada operación llama a la API directamente
-  const save = useCallback((next) => { setDocs(next); }, []);
+  // save() actualiza el estado local Y sincroniza SK_DOC_DOCS en Neon [F8-01]
+  const save = useCallback((next) => {
+    setDocs(next);
+    dataService.set(LS_KEY, next);
+    dataService.notify();
+  }, []);
   const saveGestiones = useCallback((next) => {
     setGestiones(next);
     dataService.set(LS_KEY + "_gestiones", next).then(() => dataService.notify());
