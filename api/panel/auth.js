@@ -36,9 +36,8 @@ function hashPinLegacy(pin) {
   return String(h);
 }
 
-// PIN por defecto (djb2) — usado solo cuando no hay hash almacenado
-const DEFAULT_PIN = '1975';
-const DEFAULT_PIN_HASH_LEGACY = hashPinLegacy(DEFAULT_PIN);
+// DEFAULT_PIN eliminado [F10-01] — sin hash almacenado → acceso denegado.
+// Usar flujo de primer uso para establecer el PIN inicial.
 
 function getCorsHeaders(req) {
   const origin = req.headers.origin || '';
@@ -52,7 +51,7 @@ function getCorsHeaders(req) {
 
 /**
  * Obtiene el hash almacenado en Neon para la clave del panel.
- * Devuelve null si no existe (se usará fallback al hash legacy del DEFAULT_PIN).
+ * Devuelve null si no existe — en ese caso el acceso es denegado (no hay fallback).
  */
 async function getStoredHash(sql) {
   try {
@@ -86,15 +85,9 @@ async function saveHash(sql, hash) {
 async function verifyAndMaybeUpgrade(sql, pin) {
   let stored = await getStoredHash(sql);
 
-  // Sin hash almacenado → comparar contra DEFAULT_PIN con djb2
+  // Sin hash almacenado → PIN no establecido → acceso denegado. Usar flujo de primer uso.
   if (!stored) {
-    const valid = hashPinLegacy(String(pin)) === DEFAULT_PIN_HASH_LEGACY;
-    if (valid) {
-      // Migrar: guardar bcrypt del DEFAULT_PIN
-      const newHash = bcrypt.hashSync(String(pin), 10);
-      await saveHash(sql, newHash).catch(() => {}); // best-effort
-    }
-    return { valid, needsUpgrade: false };
+    return { valid: false, needsUpgrade: false };
   }
 
   // El value en Neon viene como JSON string — desenvuelto por el driver
