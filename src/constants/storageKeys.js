@@ -72,6 +72,12 @@ export const SK_CAM_COSTE             = "teg_camisetas_v1_coste";
 export const SK_CAM_PRECIO_PLATAFORMA = "teg_camisetas_v1_precio_plataforma";
 /** Estadísticas calculadas de camisetas */
 export const SK_CAM_STATS             = "teg_camisetas_v1_stats";
+export const SK_CAM_FECHA_PEDIDO       = "teg_camisetas_v1_fecha_pedido";
+export const SK_CAM_ESTADO_PEDIDO      = "teg_camisetas_v1_estado_pedido";
+export const SK_CAM_INCLUIR_PENDIENTES = "teg_camisetas_v1_incluir_pendientes";
+export const SK_CAM_MARGEN_SEGURIDAD   = "teg_camisetas_v1_margen_seguridad";
+export const SK_CAM_FUENTES            = "teg_camisetas_v1_fuentes";
+
 /**
  * Configuración de venta al público general (precio unitario y cantidad estimada).
  * Prerequisito de ECO-04: esta clave debe existir aquí para que el Presupuesto
@@ -192,6 +198,11 @@ export const SK = {
   CAM_PRECIO_PLATAFORMA: SK_CAM_PRECIO_PLATAFORMA,
   CAM_STATS:             SK_CAM_STATS,
   CAM_VENTA_PUBLICO:     SK_CAM_VENTA_PUBLICO,
+  CAM_FECHA_PEDIDO:       SK_CAM_FECHA_PEDIDO,
+  CAM_ESTADO_PEDIDO:      SK_CAM_ESTADO_PEDIDO,
+  CAM_INCLUIR_PENDIENTES: SK_CAM_INCLUIR_PENDIENTES,
+  CAM_MARGEN_SEGURIDAD:   SK_CAM_MARGEN_SEGURIDAD,
+  CAM_FUENTES:            SK_CAM_FUENTES,
 
   // Documentos
   DOC_DOCS:      SK_DOC_DOCS,
