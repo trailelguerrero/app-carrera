@@ -76,10 +76,10 @@ const ASIG0 = [
   {id:12,materialId:17,localizacionId:11,puesto:"Zona Llegada/Trofeos",    cantidad:650,estado:"pendiente"},
 ];
 const VEH0 = [
-  {id:1,nombre:"Furgoneta Organización",matricula:"1234-ABC",conductor:"Javier López",capacidad:"1.5 ton",telefono:"612000001",notas:"Reparto material avituallamiento"},
-  {id:2,nombre:"Pick-up Señalización",matricula:"5678-DEF",conductor:"Pedro Sánchez",capacidad:"500 kg",telefono:"612000002",notas:"Balizas y señalización de ruta"},
-  {id:3,nombre:"Todoterreno Dirección",matricula:"9012-GHI",conductor:"Laura Martín",capacidad:"5 personas",telefono:"612000003",notas:"Vehículo de coordinación en ruta"},
-  {id:4,nombre:"Ambulancia Cruz Roja",matricula:"CR-001",conductor:"Cruz Roja",capacidad:"2 camillas",telefono:"112",notas:"Servicio de emergencias médicas"},
+  {id:1,nombre:"Furgoneta Organización",matricula:"0000-AAA",conductor:"Conductor Ejemplo 1",capacidad:"1.5 ton",telefono:"600 000 001",notas:"Reparto material avituallamiento"},
+  {id:2,nombre:"Pick-up Señalización",matricula:"0000-BBB",conductor:"Conductor Ejemplo 2",capacidad:"500 kg",telefono:"600 000 002",notas:"Balizas y señalización de ruta"},
+  {id:3,nombre:"Todoterreno Dirección",matricula:"0000-CCC",conductor:"Conductor Ejemplo 3",capacidad:"5 personas",telefono:"600 000 003",notas:"Vehículo de coordinación en ruta"},
+  {id:4,nombre:"Ambulancia Servicio Médico",matricula:"0000-DDD",conductor:"Servicio Médico",capacidad:"2 camillas",telefono:"112",notas:"Servicio de emergencias médicas"},
 ];
 const RUTAS0 = [
   {id:1,vehiculoId:1,nombre:"Ruta Avituallamiento Norte",horaInicio:"05:30",paradas:[
@@ -111,15 +111,15 @@ const TL0 = [
   {id:16,hora:"19:00",titulo:"Cierre del evento",descripcion:"Desmontaje zona meta, recuento material, briefing post-evento",responsable:"Coordinación",categoria:"organizacion",estado:"pendiente"},
 ];
 const CONT0 = [
-  {id:1,nombre:"Ayuntamiento de Candeleda",rol:"Administración local",telefono:"920 380 001",email:"ayto@candeleda.es",tipo:"institucional",notas:"Autorización evento, apoyo local"},
-  {id:2,nombre:"Guardia Civil Candeleda",rol:"Seguridad vial",telefono:"920 380 100",email:"",tipo:"emergencia",notas:"Corte de tráfico y seguridad en carretera"},
-  {id:3,nombre:"Cruz Roja Ávila",rol:"Servicio médico",telefono:"920 350 033",email:"cruzroja@avila.es",tipo:"emergencia",notas:"Ambulancia + 2 sanitarios. Contacto Dr. Ruiz"},
+  {id:1,nombre:"Administración Local",rol:"Administración local",telefono:"600 000 001",email:"admin@ejemplo.es",tipo:"institucional",notas:"Autorización evento, apoyo local"},
+  {id:2,nombre:"Seguridad Vial",rol:"Seguridad vial",telefono:"600 000 002",email:"",tipo:"emergencia",notas:"Corte de tráfico y seguridad en carretera"},
+  {id:3,nombre:"Servicio Médico",rol:"Servicio médico",telefono:"600 000 003",email:"medico@ejemplo.es",tipo:"emergencia",notas:"Ambulancia + 2 sanitarios"},
   {id:4,nombre:"112 Emergencias",rol:"Emergencias generales",telefono:"112",email:"",tipo:"emergencia",notas:""},
-  {id:5,nombre:"Empresa Cronometraje",rol:"Proveedor cronometraje",telefono:"915 000 111",email:"info@crono.es",tipo:"proveedor",notas:"Contacto: Marcos García. Llegar a las 05:00"},
-  {id:6,nombre:"Proveedor Avituallamiento",rol:"Suministro agua e isotónico",telefono:"900 111 222",email:"pedidos@avitu.es",tipo:"proveedor",notas:"Entrega 28 agosto antes de las 18:00"},
-  {id:7,nombre:"Miguel Torres",rol:"Delegado TG25",telefono:"611 222 333",email:"miguel@trailelguerrero.es",tipo:"staff",notas:"Responsable seguimiento corredor TG25"},
-  {id:8,nombre:"Sofía Ruiz",rol:"Delegada TG13",telefono:"611 333 444",email:"sofia@trailelguerrero.es",tipo:"staff",notas:"Responsable seguimiento corredor TG13"},
-  {id:9,nombre:"Rubén Castro",rol:"Delegado TG7",telefono:"611 444 555",email:"ruben@trailelguerrero.es",tipo:"staff",notas:"Responsable seguimiento corredor TG7"},
+  {id:5,nombre:"Empresa Cronometraje",rol:"Proveedor cronometraje",telefono:"600 000 004",email:"crono@ejemplo.es",tipo:"proveedor",notas:"Llegar a las 05:00"},
+  {id:6,nombre:"Proveedor Avituallamiento",rol:"Suministro agua e isotónico",telefono:"600 000 005",email:"avitu@ejemplo.es",tipo:"proveedor",notas:"Entrega antes de las 18:00"},
+  {id:7,nombre:"Delegado Distancia Larga",rol:"Delegado TG25",telefono:"600 000 006",email:"delegado1@ejemplo.es",tipo:"staff",notas:"Responsable seguimiento corredor TG25"},
+  {id:8,nombre:"Delegada Distancia Media",rol:"Delegada TG13",telefono:"600 000 007",email:"delegada2@ejemplo.es",tipo:"staff",notas:"Responsable seguimiento corredor TG13"},
+  {id:9,nombre:"Delegado Distancia Corta",rol:"Delegado TG7",telefono:"600 000 008",email:"delegado3@ejemplo.es",tipo:"staff",notas:"Responsable seguimiento corredor TG7"},
 ];
 const INC0 = [];
 const CK0 = [

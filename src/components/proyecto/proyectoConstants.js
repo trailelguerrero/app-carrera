@@ -36,11 +36,11 @@ export const PRI_CFG = {
 
 // ─── EQUIPO DEFAULT ───────────────────────────────────────────────────────────
 export const EQUIPO0 = [
-  { id:1, nombre:"Iván García",    rol:"Director General",          area:"diaD",          color:"#22d3ee", email:"ivan@trailelguerrero.es",    telefono:"611 100 001" },
-  { id:2, nombre:"María López",    rol:"Coordinadora de Voluntarios",area:"voluntarios",   color:"#f472b6", email:"maria@trailelguerrero.es",   telefono:"611 100 002" },
-  { id:3, nombre:"Pedro Sánchez",  rol:"Responsable Logística",     area:"logistica",      color:"#fb923c", email:"pedro@trailelguerrero.es",   telefono:"611 100 003" },
-  { id:4, nombre:"Laura Martín",   rol:"Comunicación y RRSS",       area:"comunicacion",   color:"#a78bfa", email:"laura@trailelguerrero.es",   telefono:"611 100 004" },
-  { id:5, nombre:"Carlos Ruiz",    rol:"Tesorero y Patrocinadores", area:"economico",      color:"#34d399", email:"carlos@trailelguerrero.es",  telefono:"611 100 005" },
+  { id:1, nombre:"Persona Ejemplo 1",  rol:"Director General",          area:"diaD",          color:"#22d3ee", email:"director@ejemplo.es",      telefono:"600 000 001" },
+  { id:2, nombre:"Persona Ejemplo 2",  rol:"Coordinadora de Voluntarios",area:"voluntarios",   color:"#f472b6", email:"voluntarios@ejemplo.es",   telefono:"600 000 002" },
+  { id:3, nombre:"Persona Ejemplo 3",  rol:"Responsable Logística",     area:"logistica",      color:"#fb923c", email:"logistica@ejemplo.es",     telefono:"600 000 003" },
+  { id:4, nombre:"Persona Ejemplo 4",  rol:"Comunicación y RRSS",       area:"comunicacion",   color:"#a78bfa", email:"comunicacion@ejemplo.es",  telefono:"600 000 004" },
+  { id:5, nombre:"Persona Ejemplo 5",  rol:"Tesorero y Patrocinadores", area:"economico",      color:"#34d399", email:"tesorero@ejemplo.es",      telefono:"600 000 005" },
 ];
 
 // ─── HITOS DEFAULT ────────────────────────────────────────────────────────────
@@ -58,16 +58,16 @@ export const HITOS0 = [
 // ─── TAREAS DEFAULT ───────────────────────────────────────────────────────────
 export const TAREAS0 = [
   // PERMISOS
-  { id:1,  area:"permisos", titulo:"Solicitud autorización Ayuntamiento Candeleda", responsableId:1, fechaLimite:"2026-04-01", estado:"en curso",   prioridad:"alta",  notas:"Reunión prevista con alcaldía el 25 marzo", dependeDe:null },
-  { id:2,  area:"permisos", titulo:"Contratación seguro RC del evento",             responsableId:5, fechaLimite:"2026-04-15", estado:"pendiente", prioridad:"alta",  notas:"Mínimo 600.000€ cobertura. Pedir presupuesto a Mapfre y Allianz", dependeDe:null },
-  { id:3,  area:"permisos", titulo:"Tramitar licencia federativa colectiva",        responsableId:1, fechaLimite:"2026-05-10", estado:"pendiente", prioridad:"alta",  notas:"FEMM — Federación Española Montaña y Escalada", dependeDe:2 },
-  { id:4,  area:"permisos", titulo:"Permiso de corte de tráfico Guardia Civil",    responsableId:1, fechaLimite:"2026-06-01", estado:"pendiente", prioridad:"alta",  notas:"Presentar plano de ruta y horario de corte", dependeDe:null },
-  { id:5,  area:"permisos", titulo:"Comunicación a Protección Civil",              responsableId:1, fechaLimite:"2026-06-15", estado:"pendiente", prioridad:"media", notas:"Incluir plan de emergencias y contacto Cruz Roja", dependeDe:null },
+  { id:1,  area:"permisos", titulo:"Solicitud autorización administración local", responsableId:1, fechaLimite:"2026-04-01", estado:"en curso",   prioridad:"alta",  notas:"Reunión prevista con la administración local", dependeDe:null },
+  { id:2,  area:"permisos", titulo:"Contratación seguro RC del evento",             responsableId:5, fechaLimite:"2026-04-15", estado:"pendiente", prioridad:"alta",  notas:"Mínimo 600.000€ cobertura. Solicitar presupuesto a aseguradoras", dependeDe:null },
+  { id:3,  area:"permisos", titulo:"Tramitar licencia federativa colectiva",        responsableId:1, fechaLimite:"2026-05-10", estado:"pendiente", prioridad:"alta",  notas:"Federación competente de montaña y escalada", dependeDe:2 },
+  { id:4,  area:"permisos", titulo:"Permiso de corte de tráfico fuerza de seguridad",    responsableId:1, fechaLimite:"2026-06-01", estado:"pendiente", prioridad:"alta",  notas:"Presentar plano de ruta y horario de corte", dependeDe:null },
+  { id:5,  area:"permisos", titulo:"Comunicación a Protección Civil",              responsableId:1, fechaLimite:"2026-06-15", estado:"pendiente", prioridad:"media", notas:"Incluir plan de emergencias y contacto servicio médico", dependeDe:null },
   { id:6,  area:"permisos", titulo:"Aprobación bases del reglamento",              responsableId:1, fechaLimite:"2026-04-10", estado:"en curso",   prioridad:"alta",  notas:"Revisar con asesor deportivo. Publicar en web antes de abrir inscripciones", dependeDe:null },
   // ECONÓMICO
   { id:7,  area:"economico", titulo:"Cierre presupuesto definitivo 2026",          responsableId:5, fechaLimite:"2026-04-01", estado:"en curso",   prioridad:"alta",  notas:"Módulo de presupuesto actualizado — exportar resumen ejecutivo", dependeDe:null },
   { id:8,  area:"economico", titulo:"Apertura cuenta bancaria del evento",         responsableId:5, fechaLimite:"2026-04-15", estado:"pendiente", prioridad:"media", notas:"Cuenta separada para ingresos y gastos del evento", dependeDe:null },
-  { id:9,  area:"economico", titulo:"Configurar plataforma de pago inscripciones", responsableId:5, fechaLimite:"2026-04-20", estado:"pendiente", prioridad:"alta",  notas:"SportEntry o Runnea — revisar comisiones", dependeDe:null },
+  { id:9,  area:"economico", titulo:"Configurar plataforma de pago inscripciones", responsableId:5, fechaLimite:"2026-04-20", estado:"pendiente", prioridad:"alta",  notas:"Plataforma de inscripción deportiva — revisar comisiones", dependeDe:null },
   { id:10, area:"economico", titulo:"Primer seguimiento cobro patrocinadores",     responsableId:5, fechaLimite:"2026-06-01", estado:"pendiente", prioridad:"alta",  notas:"Confirmados deben tener primera transferencia recibida", dependeDe:null },
   { id:11, area:"economico", titulo:"Revisión P&L a mitad de inscripciones",       responsableId:5, fechaLimite:"2026-07-01", estado:"pendiente", prioridad:"media", notas:"Comparar inscritos reales vs escenario del presupuesto", dependeDe:null },
   { id:12, area:"economico", titulo:"Cierre económico post-evento",                responsableId:5, fechaLimite:"2026-09-15", estado:"pendiente", prioridad:"alta",  notas:"Balance final, facturas pendientes, informe para patrocinadores", dependeDe:null },
@@ -76,14 +76,14 @@ export const TAREAS0 = [
   { id:14, area:"comunicacion", titulo:"Lanzamiento web trail 2026 actualizada",      responsableId:4, fechaLimite:"2026-04-15", estado:"pendiente", prioridad:"alta",  notas:"Incluir bases, recorridos, fotos edición anterior", dependeDe:6 },
   { id:15, area:"comunicacion", titulo:"Campaña anuncio apertura inscripciones",      responsableId:4, fechaLimite:"2026-04-28", estado:"pendiente", prioridad:"alta",  notas:"Post Instagram + Facebook + historia + newsletter. Programar con 3 días de antelación", dependeDe:null },
   { id:16, area:"comunicacion", titulo:"Diseño y producción cartel oficial",          responsableId:4, fechaLimite:"2026-05-15", estado:"pendiente", prioridad:"media", notas:"Formato A3 para impresión + versión digital RRSS", dependeDe:13 },
-  { id:17, area:"comunicacion", titulo:"Vídeo promo para RRSS (60s)",                responsableId:4, fechaLimite:"2026-06-01", estado:"pendiente", prioridad:"media", notas:"Usar footage edición 2025. Incluir corredores y paisaje Gredos", dependeDe:null },
+  { id:17, area:"comunicacion", titulo:"Vídeo promo para RRSS (60s)",                responsableId:4, fechaLimite:"2026-06-01", estado:"pendiente", prioridad:"media", notas:"Usar footage edición anterior. Incluir corredores y paisaje", dependeDe:null },
   { id:18, area:"comunicacion", titulo:"Comunicado cierre inscripciones + lista espera",responsableId:4, fechaLimite:"2026-08-16", estado:"pendiente", prioridad:"media", notas:"Publicar listado provisional de inscritos por distancia", dependeDe:null },
   { id:19, area:"comunicacion", titulo:"Dossier info corredores (PDF)",               responsableId:4, fechaLimite:"2026-08-20", estado:"pendiente", prioridad:"alta",  notas:"Recogida dorsales, parking, avituallamiento, normas, contacto emergencias", dependeDe:null },
   { id:20, area:"comunicacion", titulo:"Publicación resultados oficiales",             responsableId:4, fechaLimite:"2026-08-30", estado:"pendiente", prioridad:"alta",  notas:"Subir a web + publicar clasificación en RRSS dentro de las 24h", dependeDe:null },
   // PATROCINADORES
   { id:21, area:"patrocinadores", titulo:"Dossier de patrocinio 2026",               responsableId:5, fechaLimite:"2026-03-31", estado:"en curso",   prioridad:"alta",  notas:"Incluir métricas edición anterior, propuesta de valor, niveles y contraprestaciones", dependeDe:null },
-  { id:22, area:"patrocinadores", titulo:"Contacto patrocinadores habituales edición anterior", responsableId:5, fechaLimite:"2026-04-01", estado:"en curso", prioridad:"alta", notas:"Llamar antes de enviar dossier. Turismo Candeleda, Decathlon, Bar El Guerrero", dependeDe:21 },
-  { id:23, area:"patrocinadores", titulo:"Prospección nuevos patrocinadores locales", responsableId:5, fechaLimite:"2026-04-15", estado:"pendiente", prioridad:"media", notas:"Empresas de Candeleda y Ávila. Preparar lista de 20 prospectos", dependeDe:21 },
+  { id:22, area:"patrocinadores", titulo:"Contacto patrocinadores habituales edición anterior", responsableId:5, fechaLimite:"2026-04-01", estado:"en curso", prioridad:"alta", notas:"Llamar antes de enviar dossier. Contactar patrocinadores habituales", dependeDe:21 },
+  { id:23, area:"patrocinadores", titulo:"Prospección nuevos patrocinadores locales", responsableId:5, fechaLimite:"2026-04-15", estado:"pendiente", prioridad:"media", notas:"Empresas locales y provinciales. Preparar lista de 20 prospectos", dependeDe:21 },
   { id:24, area:"patrocinadores", titulo:"Cierre acuerdos patrocinio nivel Oro",     responsableId:5, fechaLimite:"2026-05-01", estado:"pendiente", prioridad:"alta",  notas:"Necesario para bloquear espacio en camiseta antes de diseño", dependeDe:null },
   { id:25, area:"patrocinadores", titulo:"Firma contratos y facturas patrocinadores", responsableId:5, fechaLimite:"2026-05-15", estado:"pendiente", prioridad:"alta",  notas:"Todos los confirmados deben tener contrato firmado antes del 15 mayo", dependeDe:22 },
   { id:26, area:"patrocinadores", titulo:"Entrega contraprestaciones digitales",      responsableId:4, fechaLimite:"2026-07-01", estado:"pendiente", prioridad:"media", notas:"Logos en web, menciones en RRSS, newsletter patrocinadores", dependeDe:25 },
@@ -104,7 +104,7 @@ export const TAREAS0 = [
   { id:38, area:"logistica", titulo:"Inventario y revisión material del año anterior", responsableId:3, fechaLimite:"2026-04-30", estado:"pendiente", prioridad:"media", notas:"Revisar estado de carpas, mesas, walkie-talkies, material médico", dependeDe:null },
   { id:39, area:"logistica", titulo:"Lista definitiva de material necesario",          responsableId:3, fechaLimite:"2026-05-15", estado:"pendiente", prioridad:"alta",  notas:"Cruzar con módulo de inventario. Identificar qué hay que comprar o alquilar", dependeDe:38 },
   { id:40, area:"logistica", titulo:"Contratación empresa cronometraje",              responsableId:1, fechaLimite:"2026-05-01", estado:"pendiente", prioridad:"alta",  notas:"Solicitar presupuesto a 3 empresas. Experiencia en trail obligatoria", dependeDe:null },
-  { id:41, area:"logistica", titulo:"Confirmación servicio médico (Cruz Roja)",       responsableId:1, fechaLimite:"2026-05-15", estado:"pendiente", prioridad:"alta",  notas:"Ambulancia + 2 sanitarios titulados. Protocolo de comunicación", dependeDe:null },
+  { id:41, area:"logistica", titulo:"Confirmación servicio médico",       responsableId:1, fechaLimite:"2026-05-15", estado:"pendiente", prioridad:"alta",  notas:"Ambulancia + 2 sanitarios titulados. Protocolo de comunicación", dependeDe:null },
   { id:42, area:"logistica", titulo:"Pedido avituallamiento y material fungible",     responsableId:3, fechaLimite:"2026-07-15", estado:"pendiente", prioridad:"alta",  notas:"Agua, isotónico, fruta, geles. Confirmar cantidades con módulo logística", dependeDe:39 },
   { id:43, area:"logistica", titulo:"Organización parking y accesos",                 responsableId:3, fechaLimite:"2026-07-30", estado:"pendiente", prioridad:"media", notas:"Coordinación con Ayuntamiento para habilitación zona parking extra", dependeDe:4 },
   { id:44, area:"logistica", titulo:"Preparar plan de rutas de vehículos (día D)",   responsableId:3, fechaLimite:"2026-08-15", estado:"pendiente", prioridad:"alta",  notas:"Módulo logística — rutas de reparto y recogida por puesto y horario", dependeDe:42 },

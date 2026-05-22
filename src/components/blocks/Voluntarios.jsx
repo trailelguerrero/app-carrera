@@ -60,9 +60,9 @@ const PUESTOS_DEFAULT = [
 ];
 
 const VOLUNTARIOS_DEFAULT = [
-  { id: 1, nombre: "María García López", telefono: "612345678", email: "maria@trailelguerrero.es", talla: "S", puestoId: 1, rol: "responsable", estado: "confirmado", coche: true, notas: "Experiencia 3 ediciones anteriores", fechaRegistro: "2026-02-15" },
-  { id: 2, nombre: "Carlos Martínez", telefono: "623456789", email: "carlos@trailelguerrero.es", talla: "L", puestoId: 2, rol: "apoyo", estado: "confirmado", coche: false, notas: "", fechaRegistro: "2026-02-20" },
-  { id: 3, nombre: "Ana Rodríguez", telefono: "634567890", email: "ana@trailelguerrero.es", talla: "M", puestoId: 3, rol: "responsable", estado: "pendiente", coche: true, notas: "Habla inglés", fechaRegistro: "2026-03-01" },
+  { id: 1, nombre: "Voluntario Ejemplo 1", telefono: "600 000 001", email: "voluntario1@ejemplo.es", talla: "S", puestoId: 1, rol: "responsable", estado: "confirmado", coche: true, notas: "", fechaRegistro: "2026-02-15" },
+  { id: 2, nombre: "Voluntario Ejemplo 2", telefono: "600 000 002", email: "voluntario2@ejemplo.es", talla: "L", puestoId: 2, rol: "apoyo", estado: "confirmado", coche: false, notas: "", fechaRegistro: "2026-02-20" },
+  { id: 3, nombre: "Voluntario Ejemplo 3", telefono: "600 000 003", email: "voluntario3@ejemplo.es", talla: "M", puestoId: 3, rol: "responsable", estado: "pendiente", coche: true, notas: "", fechaRegistro: "2026-03-01" },
 ];
 
 // useData maneja la persistencia automáticamente

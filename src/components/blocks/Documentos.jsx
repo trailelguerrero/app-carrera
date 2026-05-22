@@ -41,15 +41,15 @@ const SUBCATEGORIAS = {
 
 // Gestiones legales predefinidas (registro sin archivo)
 const GESTIONES_DEFAULT = [
-  { id:"g1", nombre:"Autorización Ayuntamiento Candeleda", subcategoria:"Ayuntamiento",
-    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Solicitud prevista reunión con alcaldía. Renovar anualmente.", url:"", fechaSubida: "", responsable: "" },
-  { id:"g2", nombre:"Licencia federativa colectiva (FEMM)", subcategoria:"Federación",
-    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Federación Española Montaña y Escalada. Requiere seguro RC previo.", url:"", fechaSubida: "", responsable: "" },
+  { id:"g1", nombre:"Autorización Administración Local", subcategoria:"Ayuntamiento",
+    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Solicitar autorización al organismo local competente.", url:"", fechaSubida: "", responsable: "" },
+  { id:"g2", nombre:"Licencia federativa colectiva", subcategoria:"Federación",
+    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Federación correspondiente. Requiere seguro RC previo.", url:"", fechaSubida: "", responsable: "" },
   { id:"g3", nombre:"Seguro Responsabilidad Civil", subcategoria:"Seguro RC",
-    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Mínimo 600.000 € cobertura. Pedir presupuesto a Mapfre y Allianz.", url:"", fechaSubida: "", responsable: "" },
-  { id:"g4", nombre:"Autorización Medio Ambiente / JCYL", subcategoria:"Medio Ambiente",
+    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Mínimo 600.000 € cobertura. Solicitar presupuesto a aseguradoras.", url:"", fechaSubida: "", responsable: "" },
+  { id:"g4", nombre:"Autorización Medio Ambiente", subcategoria:"Medio Ambiente",
     estado:"pendiente", fechaVencimiento:"2026-06-30", nota:"Necesaria para uso de montes de utilidad pública.", url:"", fechaSubida: "", responsable: "" },
-  { id:"g5", nombre:"Protocolo Cruz Roja / Servicio médico", subcategoria:"Cruz Roja",
+  { id:"g5", nombre:"Protocolo Servicio médico", subcategoria:"Servicio Médico",
     estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Ambulancia + 2 sanitarios titulados. Confirmar antes del 15 mayo.", url:"", fechaSubida: "", responsable: "" },
 ];
 

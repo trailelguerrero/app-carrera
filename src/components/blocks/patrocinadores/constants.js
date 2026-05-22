@@ -96,40 +96,39 @@ export const SECTORES = [
 // ─── DATOS SEMILLA ─────────────────────────────────────────────────────────────
 export const PAT0 = [
   {
-    id: 1, nombre: "Decathlon Ávila", sector: "Deportes / Outdoor", nivel: "Oro",
-    contacto: "Carlos Méndez", telefono: "920 111 222", email: "cmendez@decathlon.es",
+    id: 1, nombre: "Empresa Ejemplo Oro", sector: "Deportes / Outdoor", nivel: "Oro",
+    contacto: "Contacto Ejemplo 1", telefono: "600 000 001", email: "contacto1@ejemplo.es",
     importe: 2000, importeCobrado: 0, especie: 0, estado: "confirmado",
     fechaAcuerdo: "2026-02-01", fechaVencimiento: "2026-06-01",
-    notas: "Interesados en imagen de marca en camiseta y banner en meta. Reunión el 3 de marzo.",
+    notas: "",
     contraprestaciones: [
       { id:1, tipo:"Logo en camiseta corredores", detalle:"Logo 8x4cm pecho derecho", estado:"pendiente" },
       { id:2, tipo:"Banner en zona meta", detalle:"Banner 2x1m fondo meta", estado:"pendiente" },
       { id:3, tipo:"Mención en RRSS (x posts)", detalle:"3 posts en Instagram + story apertura inscripciones", estado:"pendiente" },
-      // SEED-01: completadas las 5 contraprestaciones de la plantilla Oro
       { id:4, tipo:"Logo en camiseta voluntarios", detalle:"Espalda 6×3cm — camiseta equipo organizador", estado:"pendiente" },
       { id:5, tipo:"Stand/carpa en meta", detalle:"Stand 3m² zona exposición meta", estado:"pendiente" },
     ],
     docs: [],
   },
   {
-    id: 2, nombre: "Turismo Candeleda", sector: "Hostelería / Turismo", nivel: "Plata",
-    contacto: "Ana Rodríguez (Ayuntamiento)", telefono: "920 380 001", email: "turismo@candeleda.es",
+    id: 2, nombre: "Institución Ejemplo Plata", sector: "Hostelería / Turismo", nivel: "Plata",
+    contacto: "Contacto Ejemplo 2", telefono: "600 000 002", email: "contacto2@ejemplo.es",
     importe: 800, importeCobrado: 800, especie: 0, estado: "cobrado",
     fechaAcuerdo: "2026-01-15", fechaVencimiento: "2026-03-01",
-    notas: "Apoyo institucional confirmado. Importe ya transferido. Piden mención en todos los comunicados.",
+    notas: "",
     contraprestaciones: [
       { id:1, tipo:"Logo en camiseta corredores", detalle:"Logo trasero parte inferior", estado:"entregado" },
       { id:2, tipo:"Mención en web oficial", detalle:"Logo + enlace en sección patrocinadores", estado:"entregado" },
-      { id:3, tipo:"Mención en RRSS (x posts)", detalle:"2 posts mencionando Candeleda como sede", estado:"pendiente" },
+      { id:3, tipo:"Mención en RRSS (x posts)", detalle:"2 posts mencionando la sede", estado:"pendiente" },
     ],
     docs: [],
   },
   {
-    id: 3, nombre: "Clínica Fisio TrailRun", sector: "Salud / Fisioterapia", nivel: "Bronce",
-    contacto: "Marta Jiménez", telefono: "612 333 444", email: "marta@fisiotrailrun.es",
+    id: 3, nombre: "Empresa Ejemplo Bronce", sector: "Salud / Fisioterapia", nivel: "Bronce",
+    contacto: "Contacto Ejemplo 3", telefono: "600 000 003", email: "contacto3@ejemplo.es",
     importe: 500, importeCobrado: 0, especie: 0, estado: "negociando",
     fechaAcuerdo: "", fechaVencimiento: "2026-05-01",
-    notas: "Ofrecen servicio de fisio gratuito en meta además del patrocinio económico. Pendiente firma contrato.",
+    notas: "",
     contraprestaciones: [
       { id:1, tipo:"Banner en avituallamiento", detalle:"Banner KM 16 (tramo TG25)", estado:"pendiente" },
       { id:2, tipo:"Logo en diptico/programa", detalle:"Logo en programa oficial", estado:"pendiente" },
@@ -137,41 +136,37 @@ export const PAT0 = [
     docs: [],
   },
   {
-    id: 4, nombre: "GU Energy Labs", sector: "Alimentación / Nutrición", nivel: "Especie",
-    contacto: "Distribuidor ES", telefono: "93 000 1111", email: "iberia@guenergy.com",
+    id: 4, nombre: "Proveedor Ejemplo Especie", sector: "Alimentación / Nutrición", nivel: "Especie",
+    contacto: "Distribuidor Ejemplo", telefono: "600 000 004", email: "especie@ejemplo.es",
     importe: 0, importeCobrado: 0, especie: 520, estado: "confirmado",
     fechaAcuerdo: "2026-02-20", fechaVencimiento: "",
-    notas: "Patrocinio en especie: 250 geles + 100 barritas para avituallamiento TG25 y TG13. Envío previsto julio.",
+    notas: "",
     contraprestaciones: [
       { id:1, tipo:"Producto en bolsa del corredor", detalle:"1 gel + 1 barrita en bolsa de cada corredor", estado:"pendiente" },
       { id:2, tipo:"Logo en camiseta voluntarios", detalle:"Logo pequeño manga derecha", estado:"pendiente" },
     ],
     docs: [],
     especieItems: [
-      // SEED-03: valorUnitario añadido a precio de proveedor (no PVP)
-      // calcularTotalEspecie: 250×1.60 + 100×1.20 = 400 + 120 = 520€ → actualizado especie: 520
       { id:1, nombre:"Geles energéticos", cantidad:250, unidad:"unidades", valorUnitario:1.60, recibido:false },
       { id:2, nombre:"Barritas energéticas", cantidad:100, unidad:"unidades", valorUnitario:1.20, recibido:false },
     ],
   },
   {
-    id: 5, nombre: "Hotel Gredos Sierra", sector: "Hostelería / Turismo", nivel: "Colaborador",
-    contacto: "José Luis Parra", telefono: "920 380 050", email: "jlparra@hotelgredos.es",
+    id: 5, nombre: "Empresa Ejemplo Colaboradora 1", sector: "Hostelería / Turismo", nivel: "Colaborador",
+    contacto: "Contacto Ejemplo 5", telefono: "600 000 005", email: "contacto5@ejemplo.es",
     importe: 300, importeCobrado: 0, especie: 0, estado: "prospecto",
     fechaAcuerdo: "", fechaVencimiento: "",
-    notas: "Primera toma de contacto por correo. Sin respuesta aún. Seguimiento pendiente.",
+    notas: "",
     contraprestaciones: [],
     docs: [],
   },
   {
-    id: 6, nombre: "Bar Restaurante El Guerrero", sector: "Hostelería / Turismo", nivel: "Colaborador",
-    contacto: "Pedro Alonso", telefono: "920 380 090", email: "",
+    id: 6, nombre: "Empresa Ejemplo Colaboradora 2", sector: "Hostelería / Turismo", nivel: "Colaborador",
+    contacto: "Contacto Ejemplo 6", telefono: "600 000 006", email: "",
     importe: 150, importeCobrado: 150, especie: 0, estado: "cobrado",
     fechaAcuerdo: "2026-01-10", fechaVencimiento: "2026-02-01",
-    notas: "Colaborador local histórico. Cede el local para la pasta-party pre-carrera.",
+    notas: "",
     contraprestaciones: [
-      // SEED-04: marcadas como "entregado" — INC-03 ya implementado, estado "cobrado"
-      // con compromisos pendientes quedaría detectado por detectarIncoherencias.
       { id:1, tipo:"Mención en megafonía", detalle:"Mención en acto inaugural y entrega trofeos", estado:"entregado" },
       { id:2, tipo:"Banner en zona meta", detalle:"Lona 1x0.5m en zona de llegada", estado:"entregado" },
     ],
