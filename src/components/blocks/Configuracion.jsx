@@ -57,6 +57,18 @@ import {
   SK_CAM_PEDIDOS,
   SK_CAM_COSTE,
   SK_CAM_VENTA_PUBLICO,
+  SK_CAM_CORREDORES,
+  SK_CAM_NINO,
+  SK_CAM_PRECIO_PLATAFORMA,
+  SK_CAM_FECHA_PEDIDO,
+  SK_CAM_ESTADO_PEDIDO,
+  SK_CAM_INCLUIR_PENDIENTES,
+  SK_CAM_MARGEN_SEGURIDAD,
+  SK_CAM_FUENTES,
+  // Presupuesto extra
+  SK_PPTO_SYNC_CONFIG,
+  SK_PPTO_MARGEN_CONFIG,
+  SK_SCENARIOS,
 } from "@/constants/storageKeys";
 import dataService from "@/lib/dataService";
 
@@ -319,6 +331,21 @@ export default function Configuracion() {
     SK_CAM_PEDIDOS,
     SK_CAM_COSTE,
     SK_CAM_VENTA_PUBLICO,
+    SK_CAM_CORREDORES,
+    SK_CAM_NINO,
+    SK_CAM_PRECIO_PLATAFORMA,
+    SK_CAM_FECHA_PEDIDO,
+    SK_CAM_ESTADO_PEDIDO,
+    SK_CAM_INCLUIR_PENDIENTES,
+    SK_CAM_MARGEN_SEGURIDAD,
+    SK_CAM_FUENTES,
+    // Presupuesto extra
+    SK_PPTO_SYNC_CONFIG,
+    SK_PPTO_MARGEN_CONFIG,
+    SK_SCENARIOS,
+    // Voluntarios opciones formulario
+    SK_VOL_OPCION_EMAIL,
+    SK_VOL_OPCION_EMERGENCIA,
   ];
 
   // ── Exportar todos los datos como JSON ───────────────────────────────────
