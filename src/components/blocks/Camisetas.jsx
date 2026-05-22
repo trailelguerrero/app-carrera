@@ -12,7 +12,7 @@ import { toast } from "@/lib/toast";
 import { genIdNum, fmtEur2, scrollMainToTop } from "@/lib/utils";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { blockCls as cls } from "@/lib/blockStyles";
-import { SK_VOL_VOLUNTARIOS, SK_CAM_VENTA_PUBLICO, SK_CAM_FECHA_PEDIDO, SK_CAM_ESTADO_PEDIDO, SK_CAM_INCLUIR_PENDIENTES, SK_CAM_MARGEN_SEGURIDAD, SK_CAM_FUENTES } from "@/constants/storageKeys";
+import { SK_VOL_VOLUNTARIOS, SK_CAM_VENTA_PUBLICO, SK_CAM_FECHA_PEDIDO, SK_CAM_ESTADO_PEDIDO, SK_CAM_INCLUIR_PENDIENTES, SK_CAM_MARGEN_SEGURIDAD, SK_CAM_FUENTES, SK_PPTO_INSCRITOS } from "@/constants/storageKeys";
 
 import {
   LS, TALLAS, TALLAS_NINO, CORREDORES_DEFAULT, NINO_DEFAULT,
@@ -426,6 +426,7 @@ export default function App() {
   const [inclPendientes, setInclPendientes, loadInclP] = useData(SK_CAM_INCLUIR_PENDIENTES, false);
   const [margenSeguridad, setMargenSeguridad, loadMargen] = useData(SK_CAM_MARGEN_SEGURIDAD, 5);
   const [rawFuentes, setFuentesActivas, loadFuentes] = useData(SK_CAM_FUENTES, FUENTES_DEFAULT);
+  const [rawInscritos] = useData(SK_PPTO_INSCRITOS, { tramos: {} });
   const fuentesActivas = (rawFuentes && typeof rawFuentes === "object" && !Array.isArray(rawFuentes))
     ? { ...FUENTES_DEFAULT, ...rawFuentes } : FUENTES_DEFAULT;
 
@@ -716,6 +717,7 @@ export default function App() {
             voluntariosConfirmados={voluntariosConfirmados} voluntariosPendientes={voluntariosPendientes}
             inclPendientes={inclPendientes} setInclPendientes={setInclPendientes}
             ninoExt={ninoExt} setNino={setNino}
+            rawInscritos={rawInscritos}
             vistaSimple={vistaSimpleTallas} setVistaSimple={setVistaSimpleTallas} />}
           {tab === "checklist" && <TabChecklist pedidos={pedidos} updateLinea={updateLinea} abrirFicha={abrirFicha} generarPedidosVoluntarios={generarPedidosVoluntarios} />}
           {tab === "reparto"   && <TabReparto pedidos={pedidos} updateLinea={updateLinea} rawVols={rawVols} />}

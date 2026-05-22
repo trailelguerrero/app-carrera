@@ -8,7 +8,7 @@ import { blockCls as cls } from "@/lib/blockStyles";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { TALLAS, TALLAS_NINO, TC, TIPOS, FUENTES_DEFAULT, CORREDORES_DEFAULT, NINO_DEFAULT, exportarPedidoProveedor } from "./camisetasConstants";
 
-export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, vistaSimple=true, setVistaSimple, fuentesActivas, voluntariosConfirmados, voluntariosPendientes, ninoExt = {}, setNino }) {
+export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, vistaSimple=true, setVistaSimple, fuentesActivas, voluntariosConfirmados, voluntariosPendientes, ninoExt = {}, setNino, rawInscritos = { tramos: {} } }) {
   const [margenSeguridad, setMargenSeguridad] = useState(5); // % de buffer sobre el total
   const [editCorredores, setEditCorredores] = useState(false);
   const [tmpCor, setTmpCor] = useState({ ...corredoresExt });
@@ -16,6 +16,48 @@ export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosAc
   const [secColapsadas, setSecCol] = useState({ corredor:true, voluntario:true, nino:true, tabla:true, fuentes:false }); // fuentes abierta por defecto para que Editar sea visible
   const toggleSec = (k) => setSecCol(p => ({...p,[k]:!p[k]}));
   const [tmpNino, setTmpNino] = useState({ ...ninoExt });
+
+  // ── Asistente de importación desde Presupuesto (M7-02) ──
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importPct, setImportPct] = useState(80);
+  const [importPreview, setImportPreview] = useState(null);
+
+  // Distribución típica de tallas (suma = 1.0)
+  const DIST_TALLAS = { XS: 0.05, S: 0.18, M: 0.27, L: 0.25, XL: 0.15, XXL: 0.07, "3XL": 0.03 };
+
+  const calcImportPreview = (pct) => {
+    const tramos = rawInscritos?.tramos || {};
+    const totalInscritos = Object.values(tramos).reduce((s, t) => {
+      if (typeof t === "object" && t !== null) {
+        return s + Object.values(t).reduce((ss, v) => ss + (typeof v === "number" ? v : 0), 0);
+      }
+      return s + (typeof t === "number" ? t : 0);
+    }, 0);
+    const conCamiseta = Math.round(totalInscritos * pct / 100);
+    const preview = {};
+    let assigned = 0;
+    TALLAS.forEach((talla, i) => {
+      const dist = DIST_TALLAS[talla] ?? 0;
+      const val = i === TALLAS.length - 1
+        ? Math.max(0, conCamiseta - assigned)
+        : Math.round(conCamiseta * dist);
+      preview[talla] = val;
+      assigned += val;
+    });
+    return { totalInscritos, conCamiseta, preview };
+  };
+
+  const abrirImportModal = () => {
+    setImportPreview(calcImportPreview(importPct));
+    setShowImportModal(true);
+  };
+
+  const confirmarImport = () => {
+    if (importPreview) {
+      setCorredores({ ...importPreview.preview });
+    }
+    setShowImportModal(false);
+  };
 
   // Al abrir edición, sincronizar el estado temporal
   const abrirEdicion     = () => { setTmpCor({ ...corredoresExt }); setEditCorredores(true); };
@@ -468,7 +510,10 @@ export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosAc
             color={TC.corredor.color}
             action={
               !editCorredores
-                ? <button className="btn btn-ghost btn-sm" onClick={abrirEdicion}>✏️ Editar</button>
+                ? <div style={{ display: 'flex', gap: '.35rem' }}>
+                    <button className="btn btn-ghost btn-sm" onClick={abrirImportModal} title="Importar tallas estimadas desde inscritos de Presupuesto">📥 Importar desde Presupuesto</button>
+                    <button className="btn btn-ghost btn-sm" onClick={abrirEdicion}>✏️ Editar</button>
+                  </div>
                 : <div style={{ display: 'flex', gap: '.35rem' }}>
                     <button className="btn btn-primary btn-sm" onClick={guardarCorredores}>✓ Guardar</button>
                     <button className="btn btn-ghost btn-sm" onClick={() => setEditCorredores(false)} aria-label="Cerrar">✕</button>
@@ -592,6 +637,89 @@ export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosAc
       </div>
         </div>}
       </div>
+
+      {/* ── MODAL: Asistente importación de tallas desde Presupuesto (M7-02) ── */}
+      {showImportModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(0,0,0,.6)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', padding: '1rem'
+        }} onClick={() => setShowImportModal(false)}>
+          <div style={{
+            background: 'var(--surface)', border: '1px solid var(--border)',
+            borderRadius: 12, padding: '1.5rem', maxWidth: 480, width: '100%',
+            maxHeight: '90vh', overflowY: 'auto'
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 'var(--fs-md)', marginBottom: '.75rem' }}>
+              📥 Importar tallas desde Presupuesto
+            </div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+              Estima las tallas de corredores con camiseta aplicando un porcentaje sobre los inscritos totales de Presupuesto. Revisa los valores antes de confirmar.
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '.75rem', marginBottom: '1rem' }}>
+              <label style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--text-dim)', flexShrink: 0 }}>
+                % inscritos con camiseta:
+              </label>
+              <input
+                type="number" min="1" max="100" value={importPct}
+                onChange={e => {
+                  const v = Math.min(100, Math.max(1, parseInt(e.target.value) || 80));
+                  setImportPct(v);
+                  setImportPreview(calcImportPreview(v));
+                }}
+                style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)',
+                  borderRadius: 'var(--r-sm)', padding: '.3rem .5rem', fontFamily: 'var(--font-mono)',
+                  fontSize: 'var(--fs-base)', width: 72, textAlign: 'right' }}
+              />
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>%</span>
+            </div>
+
+            {importPreview && (
+              <>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--text-dim)', marginBottom: '.6rem' }}>
+                  Inscritos en Presupuesto: <strong>{importPreview.totalInscritos}</strong>
+                  {' → '}con camiseta: <strong style={{ color: 'var(--cyan)' }}>{importPreview.conCamiseta}</strong>
+                </div>
+
+                {importPreview.totalInscritos === 0 && (
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--amber)',
+                    background: 'var(--amber-dim)', borderRadius: 6, padding: '.5rem .75rem', marginBottom: '.75rem' }}>
+                    ⚠️ No hay inscritos registrados en Presupuesto. Introduce los datos primero.
+                  </div>
+                )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: '.4rem', marginBottom: '1rem' }}>
+                  {TALLAS.map(t => (
+                    <div key={t} style={{ background: 'var(--surface2)', border: '1px solid var(--border)',
+                      borderRadius: 8, padding: '.4rem .5rem', textAlign: 'center' }}>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', fontWeight: 700,
+                        color: TC.corredor.color }}>{t}</div>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-md)', fontWeight: 800 }}>
+                        {importPreview.preview[t] ?? 0}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                  Distribución estimada según proporciones típicas. Puedes editar manualmente después.
+                </div>
+              </>
+            )}
+
+            <div style={{ display: 'flex', gap: '.5rem', justifyContent: 'flex-end' }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowImportModal(false)}>Cancelar</button>
+              <button
+                className="btn btn-primary btn-sm"
+                disabled={!importPreview || importPreview.totalInscritos === 0}
+                onClick={confirmarImport}
+              >
+                ✓ Confirmar importación
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
