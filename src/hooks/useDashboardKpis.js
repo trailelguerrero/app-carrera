@@ -86,13 +86,34 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
     };
     const ocupacionGlobal = totalMaximos > 0 ? Math.round(totalInscritos / totalMaximos * 100) : null;
 
-    // totalIngresosExtra: suma de líneas activas CON sus valores ya resueltos en el snapshot,
-    // EXCLUYENDO la línea de camisetas (syncKey="camisetas") que se recalcula abajo por separado.
-    // Esto evita doble cómputo: si camisetas está en ingresosExtra con valor guardado,
-    // ese valor puede estar desactualizado respecto al cálculo real del módulo Camisetas.
+    // totalIngresosExtra: suma de líneas activas del snapshot, excluyendo camisetas
+    // (que se recalcula en vivo abajo) y recalculando en vivo patrocinios/subvención
+    // para aplicar la invariante ECO-01 (evitar doble cómputo subvencionPublica).
+    //
+    // BUG-DASH-03 fix: el snapshot puede tener el valor de la línea "patrocinios"
+    // sin excluir el sector público cuando subvencionPublica está activo.
+    // Recalculamos desde rawPats aplicando el mismo filtro que useBudgetLogic.
+    const _rawPatsSnap = get(SK_PAT_PATS, []);
+    const _excluirPublicos = syncConfig?.subvencionPublica === true;
+    const _totalPatLive = (Array.isArray(_rawPatsSnap) ? _rawPatsSnap : [])
+      .filter(p => !p.especie && (!_excluirPublicos || p.sector !== "Administración pública"))
+      .reduce((s, p) => (p.estado === "confirmado" || p.estado === "cobrado") ? s + (p.importe || 0) : s, 0);
+    const _totalPatCobradoLive = (Array.isArray(_rawPatsSnap) ? _rawPatsSnap : [])
+      .filter(p => !p.especie && p.estado === "cobrado")
+      .reduce((s, p) => s + (p.importeCobrado > 0 ? p.importeCobrado : (p.importe || 0)), 0);
+    const _totalSubvLive = (Array.isArray(_rawPatsSnap) ? _rawPatsSnap : [])
+      .filter(p => p.sector === "Administración pública" && !p.especie)
+      .reduce((s, p) => (p.estado === "confirmado" || p.estado === "cobrado") ? s + (p.importe || 0) : s, 0);
+
     const totalIngresosExtra = (Array.isArray(ingresosExtra) ? ingresosExtra : [])
       .filter(ie => ie.activo && ie.syncKey !== "camisetas")
-      .reduce((s, ie) => s + (ie.valor || 0), 0);
+      .reduce((s, ie) => {
+        // Para líneas sincronizadas con patrocinios, usar valor recalculado en vivo
+        if (ie.syncKey === "patrocinios")          return s + _totalPatLive;
+        if (ie.syncKey === "patrociniosCobrado")    return s + _totalPatCobradoLive;
+        if (ie.syncKey === "subvencionPublica")     return s + _totalSubvLive;
+        return s + (ie.valor || 0);
+      }, 0);
 
     // ECO-05: calcular totalMerchBeneficio desde el snapshot de camisetas,
     // usando la misma función (calculateCosteCamisetasDesglosado) que usa useBudgetLogic.
@@ -112,8 +133,12 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
       .filter(v => (v.estado === "confirmado" || v.estado === "pendiente") && v.talla);
 
     let totalMerchBeneficio = 0;
+    // BUG-DASH-02 fix: guardar el desglose para exponerlo en el retorno.
+    // Antes se calculaba pero se descartaba (variable local) → camisetasDesglose: null siempre
+    // → SeccionCharts y MiniDesglose no mostraban líneas de camisetas.
+    let camisetasDesglose = null;
     if (camisetasActiva) {
-      const desglose = calculateCosteCamisetasDesglosado({
+      camisetasDesglose = calculateCosteCamisetasDesglosado({
         camCoste,
         camPedidos: Array.isArray(camPedidos) ? camPedidos : [],
         corredoresExt: camCorredores || {},
@@ -122,7 +147,7 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
         voluntariosActivos: camVolActivos,
         ventaPublico: camVentaPublico || { precio: 0, cantidad: 0 },
       });
-      totalMerchBeneficio = desglose.beneficioNeto;
+      totalMerchBeneficio = camisetasDesglose.beneficioNeto;
     }
 
     // calculateResultado: misma función que Presupuesto → resultado idéntico con los mismos datos
@@ -164,7 +189,9 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
     // PATROCINADORES
     const objetivo = get(SK_PAT_OBJ, 8000);
     const pats = get(SK_PAT_PATS, []);
-    const patComprometido = pats.filter(p => p.estado === "confirmado" || p.estado === "cobrado").reduce((s, p) => s + (p.importe || 0), 0);
+    // BUG-DASH-01 fix: excluir patrocinios en especie (!p.especie) y usar getImporteComprometido
+    // para alinearse con totalPatConfirmado de useBudgetLogic y evitar inflar el KPI.
+    const patComprometido = pats.filter(p => !p.especie && (p.estado === "confirmado" || p.estado === "cobrado")).reduce((s, p) => s + (p.importe || 0), 0);
     const patCobrado  = pats.filter(p => p.estado === "cobrado").reduce((s, p) => s + getImporteCobrado(p), 0);
     const patPipeline = pats.filter(p => p.estado === "negociando" || p.estado === "prospecto").reduce((s, p) => s + (p.importe || 0), 0);
     const contPendientes = pats.reduce((s, p) => s + (p.contraprestaciones || []).filter(c => c.estado === "pendiente").length, 0);
@@ -283,7 +310,7 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
       eventoNombre, eventoEdicion, eventoFechaStr, eventoFecha,
       diasHasta, yaFue, esSemana,
       totalInscritos, inscritosPorDist, totalIngresos, totalCostesFijos, totalCostesVars,
-      totalIngresosExtra, merchBeneficio: totalMerchBeneficio, totalOtrosIngresos, resultado, roiGlobal, camisetasDesglose: null,
+      totalIngresosExtra, merchBeneficio: totalMerchBeneficio, totalOtrosIngresos, resultado, roiGlobal, camisetasDesglose,
       maximosPorDist, ocupacionPorDist, ocupacionGlobal, totalMaximos,
       voluntarios: voluntarios.length, volConfirmados, volPendientes, totalNecesarios, coberturaVol, puestosAlerta,
       pats: pats.length, patComprometido, patCobrado, patPipeline, objetivo, contPendientes, patsSinSeguimiento,

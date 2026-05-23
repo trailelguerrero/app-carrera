@@ -8,10 +8,15 @@ import { fmtEur } from "@/lib/utils";
 export function MiniDesglose({ totalIngresos, totalIngresosExtra, camisetasDesglose, totalCostesFijos, totalCostesVars, resultado, roiGlobal, navigate }) {
   const [open, setOpen] = useState(false);
   const cam = camisetasDesglose || {};
-  const camIngresos = (cam.ingresosExterno || 0) + (cam.ingresosPedidos || 0);
+  // BUG-DASH-04 fix: el resumen del header debe coincidir con el resultado.
+  // resultado = totalIngresos + totalIngresosExtra + beneficioNeto(cam) - costesFijos - costesVar
+  // Por tanto, los totales del header NO deben separar costes de camisetas del beneficio:
+  // totalIng = inscripciones + extras (ya incluye beneficioNeto camisetas via totalIngresosExtra+merch)
+  // totalCostes = fijos + var (costes de camisetas ya están descontados en beneficioNeto)
+  // Calculamos como resultado + costes para garantizar que totalIng - totalCostes === resultado.
   const camCoste = cam.costeTotal || 0;
-  const totalIng = totalIngresos + totalIngresosExtra + camIngresos;
-  const totalCostes = totalCostesFijos + totalCostesVars + camCoste;
+  const totalCostes = totalCostesFijos + totalCostesVars;
+  const totalIng = resultado + totalCostes;
   const resColor = resultado >= 0 ? "var(--green)" : "var(--red)";
 
   return (

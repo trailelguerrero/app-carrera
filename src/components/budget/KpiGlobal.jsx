@@ -25,6 +25,9 @@ export const KpiGlobal = ({
     ? costesCarrera * (mc.valor / 100)
     : mc.valor;
   const margenActual = res;
+  // BUG-DASH-05 fix: denominador explicitado como costesCarrera (fijos+var, excluye merch).
+  // El Dashboard usa el mismo denominador al calcular ROI (totalCostesFijos+totalCostesVars).
+  // La diferencia con el % del Dashboard es que allí se llama "Margen" y aquí "% sobre objetivo".
   const pctMargen = costesCarrera > 0 ? Math.round(margenActual / costesCarrera * 100) : 0;
   const estadoMargen = margenActual >= margenObjetivo ? "verde"
     : margenActual >= margenObjetivo * 0.5 ? "ambar"
@@ -80,7 +83,7 @@ export const KpiGlobal = ({
       {/* Semáforo de margen — semáforo visual sobre el objetivo */}
       <div className="kpi" style={{ borderColor: colorMargen, background: `${colorMargen}08` }}>
         <div className="kpi-label">
-          <Tooltip text={`Margen actual sobre los costes totales (${pctMargen}%).
+          <Tooltip text={`Margen actual sobre los costes de carrera (fijos + variables, sin merch) (${pctMargen}%).
 Objetivo: ${mc.tipo === "porcentaje" ? mc.valor + "%" : fmt(mc.valor)} sobre costes.
 Verde ≥ objetivo · Ámbar ≥ 50% objetivo · Rojo < 50% objetivo.`}>
             <span>🎯 Margen sobre objetivo</span><TooltipIcon />
