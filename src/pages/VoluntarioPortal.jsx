@@ -1077,7 +1077,7 @@ function PortalMain({ token, onLogout }) {
         {msg && <div className="vp-toast">{msg}</div>}
 
         {/* Banner PIN automático — SEC-02. PIN temporal activo: el voluntario usa el PIN inicial (últimos 4 dígitos del teléfono) sin haberlo personalizado. */}
-        {v.pinPersonalizado === false && v.estado !== "cancelado" && !bannerPinDismissed && (
+        {!v.pinPersonalizado && v.estado !== "cancelado" && !bannerPinDismissed && (
           <div style={{
             background: "rgba(251,191,36,.07)",
             border: "1px solid rgba(251,191,36,.28)",

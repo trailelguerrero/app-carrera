@@ -1,16 +1,11 @@
 /**
- * TEG DESIGN SYSTEM — CSS compartido para todos los bloques
+ * blockStyles.js — utilidades de clases CSS compartidas
  *
- * @deprecated BLOCK_CSS — Tarea 2.1 (Fase 2)
- * El CSS ha sido movido a src/styles/blocks.css e importado
- * una sola vez en main.tsx. Mantener esta exportación vacía
- * evita romper los imports existentes mientras se eliminan
- * los <style>{BLOCK_CSS...} de cada bloque en Tarea 2.2.
+ * BLOCK_CSS fue eliminado en la Fase 2 (Tarea 2.1).
+ * El CSS vive en src/styles/blocks.css, importado una vez en main.tsx.
  *
- * blockCls sigue siendo válida y no se depreca.
+ * blockCls sigue siendo la única exportación útil de este módulo.
+ * Equivale a clsx/cx sin dependencia externa.
  */
-
-/** @deprecated — el CSS vive en src/styles/blocks.css */
-export const BLOCK_CSS = ``;
 
 export const blockCls = (...args) => args.filter(Boolean).join(" ");

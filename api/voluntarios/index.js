@@ -128,8 +128,11 @@ export default async function handler(req, res) {
       const updated = vols.map(x => String(x.telefono || '').replace(/\D/g, '') === tel
         ? { ...x, pinHash: pinHashEsperado, sessionToken, sessionTokenExpiry } : x);
       await saveVols(sql, updated);
-      const { pinHash: _ph, sessionToken: _st, ...pub } = v;
-      return res.status(200).json({ voluntario: { ...pub, sessionToken, pinPersonalizado: v.pinPersonalizado === true }, token: sessionToken });
+      // Normalizar pinPersonalizado antes del spread: undefined → false
+      // Garantiza que pub.pinPersonalizado sea siempre boolean en la respuesta.
+      const vNorm = { ...v, pinPersonalizado: v.pinPersonalizado === true };
+      const { pinHash: _ph, sessionToken: _st, ...pub } = vNorm;
+      return res.status(200).json({ voluntario: { ...pub, sessionToken }, token: sessionToken });
     }
 
     // ── CHECK: GET ?action=check&telefono=XXX ─────────────────────────────
