@@ -3,7 +3,6 @@ import { readFileSync } from "fs";
 const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf-8"));
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 
 // El target del proxy se configura por entorno para evitar que dev apunte a producción.
@@ -33,7 +32,6 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === "development" && componentTagger(),
     // PWA — estrategia injectManifest para control total sobre sw.js
     // El SW vive en public/sw.js y se copia al dist con el manifest inyectado.
     // En desarrollo el SW no se registra (ver src/main.tsx).

@@ -531,10 +531,11 @@ describe('SP1-03 — syncPendingQueue: manejo de API key ausente', () => {
   });
 });
 
-describe('SP1-04 — usePaginacion.jsx: lib/ es re-export de hooks/', () => {
-  it('lib/usePaginacion.jsx re-exporta desde hooks/', () => {
-    const lib = read('src/lib/usePaginacion.jsx');
-    expect(lib).toContain('from "@/hooks/usePaginacion');
+describe('SP1-04 — usePaginacion.jsx: hooks/ contiene la implementación', () => {
+  // lib/usePaginacion.jsx eliminado en limpieza 2026-05 (era re-export de 6 líneas,
+  // todos los consumidores ya importan directamente desde @/hooks/usePaginacion).
+  it('lib/usePaginacion.jsx ha sido eliminado (re-export innecesario)', () => {
+    expect(exists('src/lib/usePaginacion.jsx')).toBe(false);
   });
   it('hooks/usePaginacion.jsx tiene la implementación real', () => {
     const hook = read('src/hooks/usePaginacion.jsx');
