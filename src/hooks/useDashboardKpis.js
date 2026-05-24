@@ -13,6 +13,7 @@ import {
   calculateResultado,
   calculateROI,
   calculateCosteCamisetasDesglosado,
+  calculateMerchTotales,
   getImporteCobrado,
 } from "@/lib/budgetUtils";
 import { fmtEur } from "@/lib/utils";
@@ -21,7 +22,7 @@ import { COSTE_DEFAULT as CAM_COSTE_DEFAULT } from "@/components/camisetas/camis
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import {
   SK_PPTO_CONCEPTOS, SK_PPTO_TRAMOS, SK_PPTO_INSCRITOS, SK_PPTO_INGRESOS_EXTRA,
-  SK_PPTO_SYNC_CONFIG, SK_PPTO_MAXIMOS, SK_PPTO_SCENARIO_ACTIVE,
+  SK_PPTO_MERCHANDISING, SK_PPTO_SYNC_CONFIG, SK_PPTO_MAXIMOS, SK_PPTO_SCENARIO_ACTIVE,
   SK_VOL_VOLUNTARIOS, SK_VOL_PUESTOS,
   SK_PAT_PATS, SK_PAT_OBJ,
   SK_LOG_MAT, SK_LOG_ASIG, SK_LOG_TL, SK_LOG_CK, SK_LOG_INC,
@@ -132,6 +133,12 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
     const camVolActivos = (Array.isArray(rawVoluntariosSnap) ? rawVoluntariosSnap : [])
       .filter(v => (v.estado === "confirmado" || v.estado === "pendiente") && v.talla);
 
+    // BUG-DASH-06 fix: leer merchandising local (TabIngresos → Venta de Productos).
+    // useBudgetLogic suma beneficio(camisetasDesglosado) + beneficio(merchandising local).
+    // El Dashboard tenía la segunda parte a cero → resultado inferior al de Presupuesto.
+    const merchandising = get(SK_PPTO_MERCHANDISING, []);
+    const merchTotalesSnap = calculateMerchTotales(Array.isArray(merchandising) ? merchandising : []);
+
     let totalMerchBeneficio = 0;
     // BUG-DASH-02 fix: guardar el desglose para exponerlo en el retorno.
     // Antes se calculaba pero se descartaba (variable local) → camisetasDesglose: null siempre
@@ -147,7 +154,11 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
         voluntariosActivos: camVolActivos,
         ventaPublico: camVentaPublico || { precio: 0, cantidad: 0 },
       });
-      totalMerchBeneficio = camisetasDesglose.beneficioNeto;
+      // Alinear con useBudgetLogic: beneficioNeto(camisetas) + beneficio(merchandising local)
+      totalMerchBeneficio = camisetasDesglose.beneficioNeto + merchTotalesSnap.beneficio;
+    } else {
+      // Camisetas inactivas pero merchandising local sigue sumando al resultado
+      totalMerchBeneficio = merchTotalesSnap.beneficio;
     }
 
     // calculateResultado: misma función que Presupuesto → resultado idéntico con los mismos datos

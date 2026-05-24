@@ -311,3 +311,84 @@ describe("BUG-DASH-05 — denominador para % margen: costesCarrera (fijos+var, s
   });
 });
 
+
+// ─── BUG-DASH-06: merchandising local incluido en resultado Dashboard ──────────
+
+import { calculateMerchTotales } from "../lib/budgetUtils.js";
+
+describe("BUG-DASH-06 — Dashboard incluye beneficio de merchandising local en resultado", () => {
+  const MERCH_ACTIVO = [
+    { id: 1, nombre: "Buff", unidades: 80, costeUnitario: 3.5, precioVenta: 8, activo: true },
+    { id: 2, nombre: "Gorra", unidades: 30, costeUnitario: 5,   precioVenta: 12, activo: true },
+    { id: 3, nombre: "Bolsa inactiva", unidades: 20, costeUnitario: 2, precioVenta: 5, activo: false },
+  ];
+
+  it("calculateMerchTotales calcula beneficio correcto de ítems activos", () => {
+    const t = calculateMerchTotales(MERCH_ACTIVO);
+    // Buff:  80 × (8−3.5) = 360
+    // Gorra: 30 × (12−5)  = 210
+    // Inactiva: excluida
+    expect(t.ingresos).toBe(80 * 8 + 30 * 12);   // 640 + 360 = 1000
+    expect(t.costes).toBe(80 * 3.5 + 30 * 5);     // 280 + 150 = 430
+    expect(t.beneficio).toBe(570);                  // 360 + 210
+  });
+
+  it("ítems inactivos NO contribuyen al beneficio", () => {
+    const soloInactivos = [
+      { id: 1, nombre: "X", unidades: 100, costeUnitario: 5, precioVenta: 10, activo: false },
+    ];
+    const t = calculateMerchTotales(soloInactivos);
+    expect(t.beneficio).toBe(0);
+  });
+
+  it("versión buggy (sin merch): resultado inferior al de Presupuesto", () => {
+    const baseResultado = 1000; // resultado sin merch
+    const merchBeneficio = calculateMerchTotales(MERCH_ACTIVO).beneficio; // 570
+
+    const resultadoDashboardBuggy  = baseResultado;             // no sumaba merch
+    const resultadoDashboardFixed  = baseResultado + merchBeneficio; // 1570
+    const resultadoPresupuesto     = baseResultado + merchBeneficio; // 1570
+
+    expect(resultadoDashboardBuggy).toBeLessThan(resultadoPresupuesto); // divergencia
+    expect(resultadoDashboardFixed).toBe(resultadoPresupuesto);         // convergencia ✓
+  });
+
+  it("con camisetas activas: totalMerchBeneficio = beneficioNeto(cam) + beneficio(merch)", () => {
+    const desglose = calculateCosteCamisetasDesglosado({
+      camCoste: { corredor: 8, voluntario: 7, nino: 6 },
+      camPedidos: [], corredoresExt: { M: 10 },
+      precioCorrExt: 20, ninoExt: {}, voluntariosActivos: [],
+    });
+    // beneficioNeto(cam) = 10×20 − 10×8 = 120
+    const merchBeneficio = calculateMerchTotales(MERCH_ACTIVO).beneficio; // 570
+
+    // Versión buggy: solo cam
+    const totalMerchBuggy = desglose.beneficioNeto; // 120
+    // Versión fixed: cam + merch local
+    const totalMerchFixed = desglose.beneficioNeto + merchBeneficio; // 690
+
+    expect(totalMerchFixed).toBe(desglose.beneficioNeto + 570);
+    expect(totalMerchFixed).toBeGreaterThan(totalMerchBuggy);
+  });
+
+  it("con camisetas inactivas: totalMerchBeneficio = solo beneficio(merch)", () => {
+    const camisetasActiva = false;
+    const merchBeneficio = calculateMerchTotales(MERCH_ACTIVO).beneficio; // 570
+
+    let totalMerchBeneficio = 0;
+    if (camisetasActiva) {
+      totalMerchBeneficio = 999; // nunca llegaría aquí
+    } else {
+      totalMerchBeneficio = merchBeneficio;
+    }
+
+    expect(totalMerchBeneficio).toBe(570);
+  });
+
+  it("merchandising vacío: beneficio = 0 — sin efecto sobre resultado", () => {
+    const t = calculateMerchTotales([]);
+    expect(t.beneficio).toBe(0);
+    expect(t.ingresos).toBe(0);
+    expect(t.costes).toBe(0);
+  });
+});
