@@ -5,6 +5,7 @@ import { DISTANCIAS, DISTANCIA_COLORS, DISTANCIA_LABELS } from "../../constants/
 import { NumInput } from "./common/NumInput";
 import { cls } from "../../lib/budgetUtils";
 import { SK_UI_CODIGOS_PROMO, SK_UI_CODIGOS_INIT } from "@/constants/storageKeys";
+import dataService from "@/lib/dataService";
 
 // MEJ-01: getTramoStatus ahora acepta fechaInicio (opcional) para distinguir
 // "Próximo" (no abierto aún) de "Abierto" (plazo largo pero ya activo).
@@ -249,7 +250,8 @@ export const TabInscripciones = ({
 
   // ── Códigos promocionales ──────────────────────────────────────────────────
   const LS_CODIGOS = SK_UI_CODIGOS_PROMO;
-  const [rawCodigos, setCodigos] = useData(LS_CODIGOS, []);
+  const [rawCodigos, setCodigos, codigosLoading] = useData(LS_CODIGOS, []);
+  const [rawCodigosInit, setCodigosInit] = useData(SK_UI_CODIGOS_INIT, null);
   const codigos = Array.isArray(rawCodigos) ? rawCodigos : [];
   const [codigosTab, setCodigosTab]   = useState("todos");
   const [busquedaCod, setBusquedaCod] = useState("");
@@ -263,13 +265,19 @@ export const TabInscripciones = ({
   const [colapsadas, setColapsadas]   = useState({ TG7: true, TG13: true, TG25: true }); // todas colapsadas por defecto
   const toggleDistancia = (d) => setColapsadas(p => ({...p, [d]: !p[d]}));
 
-  // Cargar códigos iniciales solo si nunca se han inicializado.
-  // FIX BUG-PROMO-01: usar la misma guarda que Configuracion.jsx (SK_UI_CODIGOS_INIT)
-  // para evitar que los códigos reaparezcan cuando el usuario los elimina todos
-  // y el array queda vacío (condición que antes disparaba el init erróneamente).
+  // Cargar códigos iniciales solo la primera vez (cuando Neon tampoco tiene datos).
+  // FIX BUG-PROMO-02: esperar a que codigosLoading sea false (Neon ya respondió)
+  // antes de decidir si inicializar. Así evitamos recrear códigos borrados en
+  // otro dispositivo donde localStorage estaba vacío pero Neon ya tenía el array.
+  // La guarda SK_UI_CODIGOS_INIT se persiste en Neon para que sea multi-dispositivo.
   const codigosRef = useRef(codigos);
   useEffect(() => {
-    const yaInicializado = localStorage.getItem(SK_UI_CODIGOS_INIT);
+    codigosRef.current = codigos;
+  });
+  useEffect(() => {
+    if (codigosLoading) return; // esperar respuesta de Neon antes de evaluar
+    // rawCodigosInit es null solo si Neon (y localStorage) no tienen la clave
+    const yaInicializado = rawCodigosInit !== null && rawCodigosInit !== undefined;
     if (codigosRef.current.length === 0 && !yaInicializado) {
       setCodigos([
         {id:"7G7-1",     codigo:"7G7",      distancia:"TG7",  estado:"disponible",usadoPor:null,fechaUso:null},
@@ -289,9 +297,10 @@ export const TabInscripciones = ({
         {id:"K5RBRVHK",  codigo:"K5RBRVHK", distancia:"TG25", estado:"disponible",usadoPor:null,fechaUso:null},
         {id:"UUCTJWSV",  codigo:"UUCTJWSV", distancia:"TG25", estado:"disponible",usadoPor:null,fechaUso:null},
       ]);
-      localStorage.setItem(SK_UI_CODIGOS_INIT, "1");
+      // Persistir la guarda en Neon (no solo localStorage) para que sea multi-dispositivo
+      setCodigosInit("1");
     }
-  }, [setCodigos]);
+  }, [codigosLoading, rawCodigosInit, setCodigos, setCodigosInit]);
 
   const fmtDate = (iso) => iso ? iso.split("T")[0] : "—";
 

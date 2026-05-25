@@ -80,7 +80,8 @@ export default function Configuracion() {
   const [draft, setDraft] = useState(null);
 
   // ── Códigos promocionales ──────────────────────────────────────────────────
-  const [rawCodigos, setCodigos] = useData(SK_UI_CODIGOS_PROMO, []);
+  const [rawCodigos, setCodigos, codigosLoading] = useData(SK_UI_CODIGOS_PROMO, []);
+  const [rawCodigosInit, setCodigosInit] = useData(SK_UI_CODIGOS_INIT, null);
   const codigos = Array.isArray(rawCodigos) ? rawCodigos : [];
   const [codigosTab, setCodigosTab] = useState("todos");
   const [importText, setImportText] = useState("");
@@ -247,10 +248,14 @@ export default function Configuracion() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Solo al montar — no repetir en cada render
 
-  // Usamos useEffect para evitar side effects en render
+  // FIX BUG-PROMO-02: esperar a que Neon haya respondido (codigosLoading=false)
+  // antes de evaluar si inicializar. La guarda se persiste en Neon para ser
+  // multi-dispositivo — un código eliminado en un dispositivo no reaparece en otro.
   const codigosRef = useRef(codigos);
+  useEffect(() => { codigosRef.current = codigos; });
   useEffect(() => {
-    const yaInicializado = localStorage.getItem(SK_UI_CODIGOS_INIT);
+    if (codigosLoading) return;
+    const yaInicializado = rawCodigosInit !== null && rawCodigosInit !== undefined;
     if (codigosRef.current.length === 0 && !yaInicializado) {
       const CODIGOS_INICIALES = [
         // TG7
@@ -274,9 +279,9 @@ export default function Configuracion() {
         { id: "UUCTJWSV", codigo: "UUCTJWSV", distancia: "TG25", estado: "disponible", usadoPor: null, fechaUso: null },
       ];
       setCodigos(CODIGOS_INICIALES);
-      localStorage.setItem(SK_UI_CODIGOS_INIT, "1");
+      setCodigosInit("1"); // persiste en Neon — multi-dispositivo
     }
-  }, [setCodigos]); // setCodigos es estable; codigosRef.current evita re-ejecución por cambios de estado
+  }, [codigosLoading, rawCodigosInit, setCodigos, setCodigosInit]);
 
   const handleSave = async () => {
     const merged = { ...EVENT_CONFIG_DEFAULT, ...form };
