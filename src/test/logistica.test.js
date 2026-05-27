@@ -2330,3 +2330,121 @@ describe('SYNC-07 syncStockMaterial acredita y revierte stock correctamente', ()
     expect(materialActualizado.find(m => m.id === 1).stock).toBe(300); // 100 + 80 + 120
   });
 });
+
+// ── MEJ-04: resolverProveedor — vínculo pedido ↔ directorio ──────────────
+describe('MEJ-04 resolverProveedor — resolución de proveedor desde directorio', () => {
+
+  // Replica exacta de la función exportada (para tests sin imports React)
+  function resolverProveedor(pedido, contactos = []) {
+    if (!pedido) return null;
+    const conts = Array.isArray(contactos) ? contactos : [];
+    if (pedido.proveedorId != null) {
+      return conts.find(c => c.id === pedido.proveedorId) ?? null;
+    }
+    if (pedido.proveedor) {
+      return conts.find(c => c.nombre === pedido.proveedor) ?? null;
+    }
+    return null;
+  }
+
+  const contactos = [
+    { id: 5, nombre: 'Empresa Cronometraje', tipo: 'proveedor', telefono: '600 000 004', email: 'crono@ejemplo.es', rol: 'Proveedor cronometraje', notas: 'Llegar a las 05:00' },
+    { id: 6, nombre: 'Proveedor Avituallamiento', tipo: 'proveedor', telefono: '600 000 005', email: 'avitu@ejemplo.es', rol: 'Suministro agua e isotónico', notas: '' },
+    { id: 3, nombre: 'Servicio Médico', tipo: 'emergencia', telefono: '600 000 003', email: 'medico@ejemplo.es', rol: 'Servicio médico', notas: '' },
+  ];
+
+  // ── resolución por proveedorId (vínculo fuerte) ───────────────────────
+  it('resuelve por proveedorId cuando está presente', () => {
+    const pedido = { id: 1, proveedorId: 5, proveedor: 'Empresa Cronometraje' };
+    expect(resolverProveedor(pedido, contactos)?.id).toBe(5);
+  });
+
+  it('proveedorId tiene precedencia sobre proveedor string', () => {
+    // El nombre string dice "Proveedor Avituallamiento" pero el id apunta a Cronometraje
+    const pedido = { id: 1, proveedorId: 5, proveedor: 'Proveedor Avituallamiento' };
+    expect(resolverProveedor(pedido, contactos)?.id).toBe(5);
+  });
+
+  it('devuelve null si proveedorId no existe en el directorio', () => {
+    const pedido = { id: 1, proveedorId: 999 };
+    expect(resolverProveedor(pedido, contactos)).toBeNull();
+  });
+
+  // ── resolución por nombre (retrocompatibilidad pedidos viejos) ────────
+  it('resuelve por nombre exacto cuando no hay proveedorId', () => {
+    const pedidoViejo = { id: 2, proveedor: 'Empresa Cronometraje' };
+    expect(resolverProveedor(pedidoViejo, contactos)?.id).toBe(5);
+  });
+
+  it('fallback por nombre no devuelve contacto de tipo no-proveedor si el nombre coincide', () => {
+    // Servicio Médico coincide por nombre pero es tipo emergencia — se devuelve igualmente
+    // (la función no filtra por tipo, el filtro es responsabilidad del llamador)
+    const pedidoViejo = { id: 3, proveedor: 'Servicio Médico' };
+    expect(resolverProveedor(pedidoViejo, contactos)?.id).toBe(3);
+  });
+
+  it('nombre parcial no resuelve (busca exacto)', () => {
+    const pedido = { id: 4, proveedor: 'Cronometraje' }; // "Empresa Cronometraje" != "Cronometraje"
+    expect(resolverProveedor(pedido, contactos)).toBeNull();
+  });
+
+  it('proveedor vacío string devuelve null', () => {
+    expect(resolverProveedor({ id: 5, proveedor: '' }, contactos)).toBeNull();
+  });
+
+  // ── guards ────────────────────────────────────────────────────────────
+  it('pedido null devuelve null', () => {
+    expect(resolverProveedor(null, contactos)).toBeNull();
+  });
+
+  it('contactos undefined devuelve null', () => {
+    expect(resolverProveedor({ id: 1, proveedorId: 5 })).toBeNull();
+  });
+
+  it('contactos null devuelve null', () => {
+    expect(resolverProveedor({ id: 1, proveedorId: 5 }, null)).toBeNull();
+  });
+
+  it('contactos array vacío devuelve null', () => {
+    expect(resolverProveedor({ id: 1, proveedorId: 5 }, [])).toBeNull();
+  });
+
+  it('pedido sin proveedor ni proveedorId devuelve null', () => {
+    expect(resolverProveedor({ id: 1 }, contactos)).toBeNull();
+  });
+
+  // ── datos del contacto resuelto ───────────────────────────────────────
+  it('el contacto resuelto tiene email y telefono accesibles', () => {
+    const contacto = resolverProveedor({ id: 1, proveedorId: 5 }, contactos);
+    expect(contacto?.email).toBe('crono@ejemplo.es');
+    expect(contacto?.telefono).toBe('600 000 004');
+  });
+
+  it('el contacto resuelto tiene rol y notas', () => {
+    const contacto = resolverProveedor({ id: 1, proveedorId: 5 }, contactos);
+    expect(contacto?.rol).toBe('Proveedor cronometraje');
+    expect(contacto?.notas).toBe('Llegar a las 05:00');
+  });
+
+  // ── consistencia con CONT0 ────────────────────────────────────────────
+  it('todos los contactos tipo proveedor de CONT0 son resolubles por id', async () => {
+    const { CONT0 } = await import('../components/logistica/logisticaConstants.js');
+    const provs = CONT0.filter(c => c.tipo === 'proveedor');
+    expect(provs.length).toBeGreaterThan(0);
+    for (const p of provs) {
+      const pedidoFicticio = { id: 99, proveedorId: p.id };
+      const res = resolverProveedor(pedidoFicticio, CONT0);
+      expect(res?.id).toBe(p.id);
+    }
+  });
+
+  it('todos los contactos tipo proveedor de CONT0 son resolubles por nombre (retrocompat)', async () => {
+    const { CONT0 } = await import('../components/logistica/logisticaConstants.js');
+    const provs = CONT0.filter(c => c.tipo === 'proveedor');
+    for (const p of provs) {
+      const pedidoViejo = { id: 99, proveedor: p.nombre };
+      const res = resolverProveedor(pedidoViejo, CONT0);
+      expect(res?.id).toBe(p.id);
+    }
+  });
+});

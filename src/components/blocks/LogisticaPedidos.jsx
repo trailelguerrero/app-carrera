@@ -112,7 +112,25 @@ const ESTADOS_FACTURA = [
 ];
 const genPedidoId = (arr) => arr.length ? Math.max(...arr.map(x=>x.id||0))+1 : 1;
 
-function TabPedidosProv({ pedidos, setPedidos, cont, material=[], setMaterial, conceptosPres=[], totalInscritos, inscritos }) {
+// ─── MEJ-04: vínculo Pedido ↔ Directorio de Contactos ─────────────────────
+/**
+ * Resuelve el contacto proveedor de un pedido.
+ * Estrategia con retrocompatibilidad:
+ *   1. Por proveedorId (vínculo fuerte, id numérico — nuevo)
+ *   2. Por nombre exacto en directorio (pedidos guardados antes del cambio)
+ * @returns {object|null} contacto encontrado, o null
+ */
+export function resolverProveedor(pedido, contactos = []) {
+  if (!pedido) return null;
+  const conts = Array.isArray(contactos) ? contactos : [];
+  if (pedido.proveedorId != null) {
+    return conts.find(c => c.id === pedido.proveedorId) ?? null;
+  }
+  if (pedido.proveedor) {
+    return conts.find(c => c.nombre === pedido.proveedor) ?? null;
+  }
+  return null;
+}({ pedidos, setPedidos, cont, material=[], setMaterial, conceptosPres=[], totalInscritos, inscritos }) {
   const [modal, setModal]   = useState(null); // null | "nuevo" | {pedido}
   const [delId, setDelId]   = useState(null);
   const [expanded, setExpanded] = useState(null);
@@ -344,6 +362,73 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], setMaterial, c
                 {isExp && (
                   <div style={{borderTop:"1px solid var(--border)",
                     padding:".75rem .9rem",display:"flex",flexDirection:"column",gap:".6rem"}}>
+
+                    {/* ── Tarjeta de contacto del proveedor ── */}
+                    {(() => {
+                      const contacto = resolverProveedor(p, cont);
+                      if (!contacto) return (p.proveedor && !proveedores.find(pv=>pv.nombre===p.proveedor)) ? (
+                        <div style={{padding:".5rem .7rem",borderRadius:8,
+                          background:"rgba(251,191,36,.06)",border:"1px solid rgba(251,191,36,.2)"}}>
+                          <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
+                            color:"var(--amber)"}}>
+                            ⚠ Proveedor «{p.proveedor}» no está en el directorio
+                          </div>
+                        </div>
+                      ) : null;
+                      return (
+                        <div style={{padding:".55rem .75rem",borderRadius:8,
+                          background:"var(--surface2)",border:"1px solid var(--border)",
+                          display:"flex",alignItems:"flex-start",gap:".75rem",flexWrap:"wrap"}}>
+                          <div style={{flex:1,minWidth:160}}>
+                            <div style={{fontWeight:700,fontSize:"var(--fs-sm)",
+                              display:"flex",alignItems:"center",gap:".4rem"}}>
+                              🏢 {contacto.nombre}
+                              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
+                                padding:".05rem .3rem",borderRadius:10,
+                                background:"rgba(34,211,238,.1)",color:"var(--cyan)",
+                                border:"1px solid rgba(34,211,238,.2)"}}>
+                                directorio
+                              </span>
+                            </div>
+                            {contacto.rol && (
+                              <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
+                                color:"var(--text-muted)",marginTop:".1rem"}}>
+                                {contacto.rol}
+                              </div>
+                            )}
+                            {contacto.notas && (
+                              <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
+                                color:"var(--text-dim)",marginTop:".2rem",
+                                fontStyle:"italic"}}>
+                                {contacto.notas}
+                              </div>
+                            )}
+                          </div>
+                          <div style={{display:"flex",flexDirection:"column",gap:".3rem",flexShrink:0}}>
+                            {contacto.telefono && (
+                              <a href={`tel:${contacto.telefono}`} style={{
+                                display:"flex",alignItems:"center",gap:".35rem",
+                                fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
+                                color:"var(--cyan)",textDecoration:"none",
+                                padding:".25rem .5rem",borderRadius:6,
+                                background:"rgba(34,211,238,.06)",border:"1px solid rgba(34,211,238,.18)"}}>
+                                📞 {contacto.telefono}
+                              </a>
+                            )}
+                            {contacto.email && (
+                              <a href={`mailto:${contacto.email}`} style={{
+                                display:"flex",alignItems:"center",gap:".35rem",
+                                fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
+                                color:"var(--violet)",textDecoration:"none",
+                                padding:".25rem .5rem",borderRadius:6,
+                                background:"rgba(167,139,250,.06)",border:"1px solid rgba(167,139,250,.18)"}}>
+                                ✉ {contacto.email}
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* Artículos */}
                     {(p.articulos||[]).length > 0 && (
@@ -1073,14 +1158,25 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
             </div>
             <div>
               <label className="fl">Proveedor</label>
-              <select className="inp" value={form.proveedor}
-                onChange={e=>upd("proveedor",e.target.value)}>
+              <select className="inp"
+                value={form.proveedorId ?? (form.proveedor ? (proveedores.find(p=>p.nombre===form.proveedor)?.id ?? "") : "")}
+                onChange={e => {
+                  const id = e.target.value === "" ? null : e.target.value === "__otro__" ? null : Number(e.target.value);
+                  const cont = proveedores.find(p => p.id === id);
+                  upd("proveedorId", id);
+                  upd("proveedor", cont ? cont.nombre : (e.target.value === "__otro__" ? form.proveedor : ""));
+                }}>
                 <option value="">Sin asignar</option>
                 {proveedores.map(p=>(
-                  <option key={p.id} value={p.nombre}>{p.nombre}</option>
+                  <option key={p.id} value={p.id}>{p.nombre}</option>
                 ))}
                 <option value="__otro__">Otro (escribir abajo)</option>
               </select>
+              {/* Nombre libre cuando se elige "Otro" */}
+              {(form.proveedorId == null && form.proveedor && !proveedores.find(p=>p.nombre===form.proveedor)) && (
+                <input className="inp" style={{marginTop:".4rem"}} placeholder="Nombre del proveedor"
+                  value={form.proveedor} onChange={e=>upd("proveedor",e.target.value)} />
+              )}
             </div>
             <div>
               <label className="fl" style={{display:"flex",alignItems:"center",gap:".35rem"}}>
