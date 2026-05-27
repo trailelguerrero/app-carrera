@@ -659,3 +659,131 @@ export const calculateResultadoFinanciero = ({
     camisetasDesglose, // null si camisetas inactivo o modo legado
   };
 };
+
+// ─── MEJ-03: costes reales vs estimados desde pedidos a proveedores ────────────
+
+/**
+ * Estados de pedido que representan gasto comprometido (pedido en curso).
+ * El proveedor ya tiene el encargo pero aún no se ha recibido ni facturado.
+ */
+export const ESTADOS_COMPROMETIDO = new Set(["confirmado"]);
+
+/**
+ * Estados de pedido que representan gasto real (materializado).
+ */
+export const ESTADOS_REAL = new Set(["recibido", "facturado"]);
+
+/**
+ * calcCostesRealesDesdePedidos — fuente única de verdad para costes reales vs estimados.
+ *
+ * Para cada concepto de presupuesto (fijo o variable), agrega los importes de
+ * los artículos de pedido vinculados (via conceptoId) según su estado:
+ *   - comprometido: pedido confirmado (encargado, no recibido aún)
+ *   - real:         pedido recibido o facturado
+ *
+ * Un pedido sin conceptoId en sus artículos va al bucket "sin clasificar".
+ *
+ * @param {Array} pedidos   - Array de pedidos a proveedores (SK_LOG_PEDIDOS_PROV)
+ * @param {Array} conceptos - Array de conceptos de presupuesto (SK_PPTO_CONCEPTOS)
+ * @returns {{
+ *   porConcepto: Array<{
+ *     conceptoId: number,
+ *     nombre: string,
+ *     tipo: string,
+ *     costeEstimado: number,
+ *     costeComprometido: number,
+ *     costeReal: number,
+ *     desviacion: number,       // costeReal - costeEstimado (negativo = ahorro)
+ *     pct: number|null,         // desviacion / costeEstimado * 100, null si estimado=0
+ *     pedidosVinculados: Array  // pedidos que tienen al menos un artículo de este concepto
+ *   }>,
+ *   sinClasificar: { costeComprometido, costeReal },
+ *   totales: { costeEstimado, costeComprometido, costeReal, desviacion, pct }
+ * }}
+ */
+export function calcCostesRealesDesdePedidos(pedidos = [], conceptos = []) {
+  const peds   = Array.isArray(pedidos)   ? pedidos   : [];
+  const concs  = Array.isArray(conceptos) ? conceptos : [];
+
+  // Acumuladores por conceptoId
+  const acum = {}; // conceptoId → { comprometido, real, pedidosIds: Set }
+  let sinClaComprometido = 0;
+  let sinClaReal         = 0;
+
+  for (const pedido of peds) {
+    const esComprometido = ESTADOS_COMPROMETIDO.has(pedido.estado);
+    const esReal         = ESTADOS_REAL.has(pedido.estado);
+    if (!esComprometido && !esReal) continue;
+
+    const articulos = Array.isArray(pedido.articulos) ? pedido.articulos : [];
+
+    // Si el pedido no tiene artículos con conceptoId, usar importeTotal como sin clasificar
+    const tieneConceptos = articulos.some(a => a.conceptoId != null);
+    if (!tieneConceptos) {
+      const imp = pedido.importeTotal || 0;
+      if (esComprometido) sinClaComprometido += imp;
+      if (esReal)         sinClaReal         += imp;
+      continue;
+    }
+
+    for (const art of articulos) {
+      if (art.conceptoId == null) continue;
+      const imp = art.esFijo
+        ? (art.costeTotal || 0)
+        : (art.cantidad || 0) * (art.precioUnit || 0);
+
+      if (!acum[art.conceptoId]) {
+        acum[art.conceptoId] = { comprometido: 0, real: 0, pedidosIds: new Set() };
+      }
+      if (esComprometido) acum[art.conceptoId].comprometido += imp;
+      if (esReal)         acum[art.conceptoId].real         += imp;
+      acum[art.conceptoId].pedidosIds.add(pedido.id);
+    }
+  }
+
+  // Construir porConcepto para todos los conceptos activos
+  const porConcepto = concs
+    .filter(c => c.activo !== false)
+    .map(c => {
+      const a               = acum[c.id] || { comprometido: 0, real: 0, pedidosIds: new Set() };
+      const costeEstimado   = c.costeTotal || 0;
+      const costeComprometido = a.comprometido;
+      const costeReal       = a.real;
+      const desviacion      = costeReal - costeEstimado;
+      const pct             = costeEstimado > 0
+        ? Math.round((desviacion / costeEstimado) * 100)
+        : null;
+      return {
+        conceptoId:         c.id,
+        nombre:             c.nombre,
+        tipo:               c.tipo,
+        costeEstimado,
+        costeComprometido,
+        costeReal,
+        desviacion,
+        pct,
+        pedidosVinculados:  [...(a.pedidosIds || new Set())],
+      };
+    });
+
+  // Totales globales (solo conceptos activos)
+  const totEstimado      = porConcepto.reduce((s, r) => s + r.costeEstimado,    0);
+  const totComprometido  = porConcepto.reduce((s, r) => s + r.costeComprometido, 0) + sinClaComprometido;
+  const totReal          = porConcepto.reduce((s, r) => s + r.costeReal,         0) + sinClaReal;
+  const totDesviacion    = totReal - totEstimado;
+  const totPct           = totEstimado > 0
+    ? Math.round((totDesviacion / totEstimado) * 100)
+    : null;
+
+  return {
+    porConcepto,
+    sinClasificar: { costeComprometido: sinClaComprometido, costeReal: sinClaReal },
+    totales: {
+      costeEstimado:      totEstimado,
+      costeComprometido:  totComprometido,
+      costeReal:          totReal,
+      desviacion:         totDesviacion,
+      pct:                totPct,
+    },
+  };
+}

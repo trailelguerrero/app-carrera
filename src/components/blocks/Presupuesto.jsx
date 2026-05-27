@@ -4,6 +4,8 @@ import { blockCls as cls } from "@/lib/blockStyles";
 import SkeletonBlock from "@/components/common/SkeletonBlock";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { useData } from "@/hooks/useData";
+import { SK_LOG_PEDIDOS_PROV } from "@/constants/storageKeys";
+import { calcCostesRealesDesdePedidos, fmt } from "@/lib/budgetUtils";
 import { useBudgetLogic } from "../../hooks/useBudgetLogic";
 import { useScenario }    from "../../hooks/useScenario";
 import { KpiGlobal }      from "../budget/KpiGlobal";
@@ -14,6 +16,7 @@ import { TabInscripciones } from "../budget/TabInscripciones";
 import { TabResumen }     from "../budget/TabResumen";
 import { TabEquilibrio }  from "../budget/TabEquilibrio";
 import { TabHistorial }   from "../budget/TabHistorial";
+import { TabCostesReales } from "../budget/TabCostesReales";
 import { DISTANCIAS }       from "@/constants/budgetConstants";
 
 const FLOW_STEPS = [
@@ -30,12 +33,14 @@ const TABS = [
   { id: "ingresos",    label: "Otros Ingresos",        short: "Otros ingresos", icon: "🟣" },
   { id: "resumen",     label: "Resumen P&L", short: "P&L Resumen", icon: "📉" },
   { id: "equilibrio",  label: "Puntos de Equilibrio", short: "Equilibrio", icon: "⚖️" },
+  { id: "costesreales", label: "Costes Reales", short: "Real vs Est.", icon: "💸" },
   { id: "historial",   label: "Historial", short: "Historial", icon: "🕐" },
 ];
 
 const Presupuesto = () => {
   const [eventCfg, , isLoading] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
+  const [rawPedidosProv] = useData(SK_LOG_PEDIDOS_PROV, []);
   const [confirmReset, setConfirmReset] = useState(false);
   const [limpiarHistorial, setLimpiarHistorial] = useState(false);
   const [resettingData, setResettingData] = useState(false);
@@ -361,6 +366,51 @@ const Presupuesto = () => {
           );
         })()}
 
+        {/* ── Insight Desviación Costes Reales ── */}
+        {(() => {
+          const pedidos   = Array.isArray(rawPedidosProv) ? rawPedidosProv : [];
+          const conceptos = Array.isArray(budgetLogic?.conceptos) ? budgetLogic.conceptos : [];
+          const { totales } = calcCostesRealesDesdePedidos(pedidos, conceptos);
+          if (totales.costeReal === 0) return null;
+          const sobre = totales.desviacion > 0;
+          const ahorro = totales.desviacion < 0;
+          return (
+            <div style={{
+              display:"flex", alignItems:"center", gap:".65rem",
+              padding:".55rem .9rem", borderRadius:8, marginBottom:".75rem",
+              background: sobre ? "rgba(248,113,113,.07)" : "rgba(52,211,153,.07)",
+              border: sobre ? "1px solid rgba(248,113,113,.25)" : "1px solid rgba(52,211,153,.25)",
+            }}>
+              <span style={{ fontSize:"var(--fs-md)", flexShrink:0 }}>
+                {sobre ? "📈" : "📉"}
+              </span>
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", flex:1 }}>
+                {sobre ? (
+                  <span style={{ color:"var(--red)", fontWeight:700 }}>
+                    Sobrecosto real: +{fmt(totales.desviacion)} ({totales.pct !== null ? `+${totales.pct}%` : ""} sobre estimado)
+                  </span>
+                ) : ahorro ? (
+                  <span style={{ color:"var(--green)", fontWeight:700 }}>
+                    Ahorro real: {fmt(Math.abs(totales.desviacion))} ({totales.pct !== null ? `${totales.pct}%` : ""} bajo estimado)
+                  </span>
+                ) : (
+                  <span style={{ color:"var(--green)", fontWeight:700 }}>
+                    Costes reales = estimado · Sin desviación
+                  </span>
+                )}
+                <span style={{ fontWeight:400, color:"var(--text-muted)", marginLeft:".4rem" }}>
+                  · Real: {fmt(totales.costeReal)} · Est: {fmt(totales.costeEstimado)}
+                </span>
+              </div>
+              <button className="btn btn-ghost btn-sm"
+                style={{ fontSize:"var(--fs-2xs)", flexShrink:0 }}
+                onClick={() => setTab("costesreales")}>
+                Ver detalle →
+              </button>
+            </div>
+          );
+        })()}
+
         <div className="tabs">
           {TABS.map(t => {
             const isDone = (() => {
@@ -508,6 +558,20 @@ const Presupuesto = () => {
             />
           )}
           {tab === "historial" && <TabHistorial />}
+
+          {tab === "costesreales" && (() => {
+            const pedidos   = Array.isArray(rawPedidosProv) ? rawPedidosProv : [];
+            const conceptos = Array.isArray(budgetLogic?.conceptos) ? budgetLogic.conceptos : [];
+            const costesReales = calcCostesRealesDesdePedidos(pedidos, conceptos);
+            return (
+              <TabCostesReales
+                costesReales={costesReales}
+                onNavigatePedidos={() => window.dispatchEvent(
+                  new CustomEvent("teg-navigate", { detail: { block: "logistica", subtab: "pedidosprov" } })
+                )}
+              />
+            );
+          })()}
         </div>
 
       </div>

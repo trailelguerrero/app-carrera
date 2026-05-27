@@ -401,3 +401,162 @@ describe('PRE-12 — Sincronización cross-block Patrocinadores → Presupuesto'
     expect(getSubv(confirmado)).toBe(3000); // confirmado sí cuenta
   });
 });
+
+// ── MEJ-03: calcCostesRealesDesdePedidos ─────────────────────────────────
+import { calcCostesRealesDesdePedidos, ESTADOS_COMPROMETIDO, ESTADOS_REAL } from '../lib/budgetUtils.js';
+
+describe('MEJ-03 calcCostesRealesDesdePedidos — costes reales vs estimados', () => {
+
+  const conceptos = [
+    { id: 1, nombre: 'Cronometraje',   tipo: 'fijo',     activo: true, costeTotal: 1200 },
+    { id: 2, nombre: 'Avituallamiento', tipo: 'variable', activo: true, costeTotal: 800  },
+    { id: 3, nombre: 'Dorsales',        tipo: 'fijo',     activo: true, costeTotal: 600  },
+    { id: 4, nombre: 'Inactivo',        tipo: 'fijo',     activo: false, costeTotal: 500 },
+  ];
+
+  const artCrono    = { nombre: 'Servicio cronometraje', conceptoId: 1, cantidad: 1, precioUnit: 1100, esFijo: false };
+  const artAvit     = { nombre: 'Agua',                  conceptoId: 2, cantidad: 500, precioUnit: 0.5,  esFijo: false };
+  const artDorsal   = { nombre: 'Dorsales pack',         conceptoId: 3, cantidad: 1,   precioUnit: 0,    esFijo: true, costeTotal: 580 };
+  const artSinId    = { nombre: 'Varios',                conceptoId: null, cantidad: 1, precioUnit: 200, esFijo: false };
+
+  const mkPedido = (id, estado, arts) => ({ id, estado, articulos: arts, importeTotal: arts.reduce((s,a) => s + (a.esFijo ? a.costeTotal||0 : (a.cantidad||0)*(a.precioUnit||0)), 0) });
+
+  // ── estados ─────────────────────────────────────────────────────────────
+  it('ESTADOS_COMPROMETIDO incluye confirmado', () => {
+    expect(ESTADOS_COMPROMETIDO.has('confirmado')).toBe(true);
+  });
+
+  it('ESTADOS_REAL incluye recibido y facturado', () => {
+    expect(ESTADOS_REAL.has('recibido')).toBe(true);
+    expect(ESTADOS_REAL.has('facturado')).toBe(true);
+  });
+
+  it('borradores no se contabilizan', () => {
+    const pedidos = [mkPedido(1, 'borrador', [artCrono])];
+    const r = calcCostesRealesDesdePedidos(pedidos, conceptos);
+    expect(r.totales.costeComprometido).toBe(0);
+    expect(r.totales.costeReal).toBe(0);
+  });
+
+  // ── coste comprometido ───────────────────────────────────────────────────
+  it('pedido confirmado alimenta costeComprometido, no costeReal', () => {
+    const pedidos = [mkPedido(1, 'confirmado', [artCrono])];
+    const r = calcCostesRealesDesdePedidos(pedidos, conceptos);
+    const crono = r.porConcepto.find(c => c.conceptoId === 1);
+    expect(crono.costeComprometido).toBe(1100);
+    expect(crono.costeReal).toBe(0);
+  });
+
+  // ── coste real ───────────────────────────────────────────────────────────
+  it('pedido recibido alimenta costeReal', () => {
+    const pedidos = [mkPedido(1, 'recibido', [artCrono])];
+    const r = calcCostesRealesDesdePedidos(pedidos, conceptos);
+    expect(r.porConcepto.find(c => c.conceptoId === 1).costeReal).toBe(1100);
+  });
+
+  it('pedido facturado alimenta costeReal', () => {
+    const pedidos = [mkPedido(1, 'facturado', [artCrono])];
+    const r = calcCostesRealesDesdePedidos(pedidos, conceptos);
+    expect(r.porConcepto.find(c => c.conceptoId === 1).costeReal).toBe(1100);
+  });
+
+  // ── artículos con esFijo ─────────────────────────────────────────────────
+  it('artículo esFijo usa costeTotal en lugar de cantidad*precioUnit', () => {
+    const pedidos = [mkPedido(1, 'recibido', [artDorsal])];
+    const r = calcCostesRealesDesdePedidos(pedidos, conceptos);
+    expect(r.porConcepto.find(c => c.conceptoId === 3).costeReal).toBe(580);
+  });
+
+  // ── desviación ───────────────────────────────────────────────────────────
+  it('desviación = costeReal - costeEstimado', () => {
+    const pedidos = [mkPedido(1, 'recibido', [artCrono])]; // real 1100, estimado 1200
+    const r = calcCostesRealesDesdePedidos(pedidos, conceptos);
+    const crono = r.porConcepto.find(c => c.conceptoId === 1);
+    expect(crono.desviacion).toBe(1100 - 1200); // -100
+  });
+
+  it('pct = round(desviacion / estimado * 100)', () => {
+    const pedidos = [mkPedido(1, 'recibido', [artCrono])]; // -100 / 1200 = -8.33 → -8%
+    const r = calcCostesRealesDesdePedidos(pedidos, conceptos);
+    expect(r.porConcepto.find(c => c.conceptoId === 1).pct).toBe(-8);
+  });
+
+  it('pct es null cuando estimado es 0', () => {
+    const conceptoSinEstimado = [{ id: 99, nombre: 'X', tipo: 'fijo', activo: true, costeTotal: 0 }];
+    const pedidos = [mkPedido(1, 'recibido', [{ nombre: 'X', conceptoId: 99, cantidad: 1, precioUnit: 100, esFijo: false }])];
+    const r = calcCostesRealesDesdePedidos(pedidos, conceptoSinEstimado);
+    expect(r.porConcepto.find(c => c.conceptoId === 99).pct).toBeNull();
+  });
+
+  // ── sin clasificar ───────────────────────────────────────────────────────
+  it('pedido sin conceptoId en artículos va a sinClasificar', () => {
+    const pedidos = [{ id: 1, estado: 'recibido', articulos: [artSinId], importeTotal: 200 }];
+    const r = calcCostesRealesDesdePedidos(pedidos, conceptos);
+    expect(r.sinClasificar.costeReal).toBe(200);
+  });
+
+  it('sinClasificar no suma a porConcepto de ningún concepto', () => {
+    const pedidos = [{ id: 1, estado: 'recibido', articulos: [artSinId], importeTotal: 200 }];
+    const r = calcCostesRealesDesdePedidos(pedidos, conceptos);
+    const totalPorConcepto = r.porConcepto.reduce((s, c) => s + c.costeReal, 0);
+    expect(totalPorConcepto).toBe(0);
+  });
+
+  // ── totales ──────────────────────────────────────────────────────────────
+  it('totales.costeEstimado suma todos los conceptos activos', () => {
+    const r = calcCostesRealesDesdePedidos([], conceptos);
+    expect(r.totales.costeEstimado).toBe(1200 + 800 + 600); // 2600 (activo:false excluido)
+  });
+
+  it('concepto inactivo (activo:false) no aparece en porConcepto', () => {
+    const r = calcCostesRealesDesdePedidos([], conceptos);
+    expect(r.porConcepto.find(c => c.conceptoId === 4)).toBeUndefined();
+  });
+
+  it('totales incluyen sinClasificar en comprometido y real', () => {
+    const pedidos = [
+      mkPedido(1, 'recibido', [artCrono]),       // real +1100, concepto 1
+      { id: 2, estado: 'recibido', articulos: [artSinId], importeTotal: 200 }, // real +200 sinClasificar
+    ];
+    const r = calcCostesRealesDesdePedidos(pedidos, conceptos);
+    expect(r.totales.costeReal).toBe(1100 + 200);
+  });
+
+  it('múltiples pedidos al mismo concepto se acumulan', () => {
+    const pedidos = [
+      mkPedido(1, 'recibido',  [artCrono]),                                     // 1100
+      mkPedido(2, 'facturado', [{ ...artCrono, precioUnit: 150 }]),              // 150
+    ];
+    const r = calcCostesRealesDesdePedidos(pedidos, conceptos);
+    expect(r.porConcepto.find(c => c.conceptoId === 1).costeReal).toBe(1250);
+  });
+
+  it('pedidosVinculados lista los ids de pedidos con artículos de ese concepto', () => {
+    const pedidos = [
+      mkPedido(10, 'recibido', [artCrono]),
+      mkPedido(11, 'recibido', [artCrono]),
+    ];
+    const r = calcCostesRealesDesdePedidos(pedidos, conceptos);
+    const vinc = r.porConcepto.find(c => c.conceptoId === 1).pedidosVinculados;
+    expect(vinc).toContain(10);
+    expect(vinc).toContain(11);
+  });
+
+  // ── guards ───────────────────────────────────────────────────────────────
+  it('funciona con arrays vacíos', () => {
+    const r = calcCostesRealesDesdePedidos([], []);
+    expect(r.totales.costeReal).toBe(0);
+    expect(r.porConcepto).toHaveLength(0);
+  });
+
+  it('funciona con null/undefined', () => {
+    expect(() => calcCostesRealesDesdePedidos(null, null)).not.toThrow();
+  });
+
+  it('no muta los arrays originales', () => {
+    const pedidos   = [mkPedido(1, 'recibido', [artCrono])];
+    const concOrig  = [...conceptos];
+    calcCostesRealesDesdePedidos(pedidos, conceptos);
+    expect(conceptos).toEqual(concOrig);
+  });
+});
