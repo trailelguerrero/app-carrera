@@ -306,6 +306,66 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
             </div>
           )}
 
+          {/* ── MEJ-06: localización del puesto con coordenadas y enlace mapa ── */}
+          {puesto && loc && (
+            <div style={{ background:"var(--surface2)", borderRadius:8, padding:"0.6rem 0.75rem",
+              borderLeft:"2px solid var(--violet)", marginTop:"0.25rem" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
+                marginBottom:"0.3rem" }}>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                  color:"var(--violet)", textTransform:"uppercase", fontWeight:700 }}>
+                  📍 Ubicación del puesto
+                </div>
+                {loc.lat && loc.lng && (
+                  <a
+                    href={`https://maps.google.com/?q=${loc.lat},${loc.lng}`}
+                    target="_blank" rel="noopener noreferrer"
+                    style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", padding:".08rem .3rem",
+                      borderRadius:3, border:"1px solid rgba(167,139,250,.3)",
+                      background:"rgba(167,139,250,.1)", color:"var(--violet)",
+                      cursor:"pointer", textDecoration:"none" }}>
+                    🗺 Abrir mapa →
+                  </a>
+                )}
+              </div>
+              {loc.descripcion && (
+                <div style={{ fontSize:"var(--fs-sm)", color:"var(--text-muted)", marginBottom:"0.3rem",
+                  lineHeight:1.4 }}>
+                  {loc.descripcion}
+                </div>
+              )}
+              {loc.lat && loc.lng && (
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                  color:"var(--text-dim)", display:"flex", gap:".75rem" }}>
+                  <span>🌐 {loc.lat.toFixed(4)}°N</span>
+                  <span>{loc.lng.toFixed(4)}°E</span>
+                </div>
+              )}
+              {puesto.horaInicio && puesto.horaFin && (
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                  color:"var(--cyan)", marginTop:"0.25rem" }}>
+                  ⏰ Horario: {puesto.horaInicio} – {puesto.horaFin}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Muestra el puesto sin coordenadas si existe pero no tiene loc */}
+          {puesto && !loc && (
+            <div style={{ background:"var(--surface2)", borderRadius:8, padding:"0.5rem 0.75rem",
+              borderLeft:"2px solid var(--border)", marginTop:"0.25rem" }}>
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                color:"var(--text-muted)" }}>
+                📍 {puesto.nombre}
+                {puesto.horaInicio && puesto.horaFin && (
+                  <span style={{ marginLeft:".5rem", color:"var(--cyan)" }}>
+                    · {puesto.horaInicio} – {puesto.horaFin}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Mensaje del voluntario a la organización — siempre visible */}
           <div style={{ background: v.mensajeParaOrganizador ? "rgba(34,211,238,.08)" : "var(--surface2)",
             borderRadius:8, padding:"0.75rem 0.85rem", marginTop:"0.5rem",

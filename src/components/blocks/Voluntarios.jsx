@@ -45,18 +45,18 @@ import SkeletonBlock from "@/components/common/SkeletonBlock";
 
 
 const PUESTOS_DEFAULT = [
-  { id: 1, nombre: "Zona de Salida / Meta", tipo: "Salida/Meta", distancias: ["Todas"], horaInicio: "06:30", horaFin: "18:00", necesarios: 8, responsableId: null, notas: "Control de dorsales, gestión de salidas escalonadas" },
-  { id: 2, nombre: "Avituallamiento KM 4", tipo: "Avituallamiento", distancias: ["TG7","TG13","TG25"], horaInicio: "07:30", horaFin: "14:00", necesarios: 4, responsableId: null, notas: "Agua, isotónico, fruta, barritas" },
-  { id: 3, nombre: "Avituallamiento KM 9", tipo: "Avituallamiento", distancias: ["TG13","TG25"], horaInicio: "08:00", horaFin: "15:00", necesarios: 4, responsableId: null, notas: "Agua, isotónico, fruta, geles, sándwiches" },
-  { id: 4, nombre: "Avituallamiento KM 16", tipo: "Avituallamiento", distancias: ["TG25"], horaInicio: "08:30", horaFin: "16:00", necesarios: 5, responsableId: null, notas: "Avituallamiento principal TG25 — comida caliente" },
-  { id: 5, nombre: "Punto Control KM 7", tipo: "Control", distancias: ["TG13","TG25"], horaInicio: "08:00", horaFin: "13:00", necesarios: 2, responsableId: null, notas: "Registro de dorsales, corte de tiempos" },
-  { id: 6, nombre: "Punto Control KM 13", tipo: "Control", distancias: ["TG25"], horaInicio: "09:00", horaFin: "15:00", necesarios: 2, responsableId: null, tiempoLimite: "14:00", notas: "Registro de dorsales, corte de tiempos. Corredores que lleguen después del tiempo límite deben ser retirados de la competición." },
-  { id: 7, nombre: "Seguridad Vial Cruce 1", tipo: "Seguridad", distancias: ["Todas"], horaInicio: "07:00", horaFin: "14:00", necesarios: 2, responsableId: null, notas: "Control de tráfico en cruce principal" },
-  { id: 8, nombre: "Seguridad Vial Cruce 2", tipo: "Seguridad", distancias: ["TG13","TG25"], horaInicio: "07:30", horaFin: "16:00", necesarios: 2, responsableId: null, notas: "Control de tráfico en cruce secundario" },
-  { id: 9, nombre: "Señalización Ruta Alta", tipo: "Señalización", distancias: ["TG25"], horaInicio: "06:00", horaFin: "08:00", necesarios: 3, responsableId: null, notas: "Colocación de balizas tramo alto — madrugada" },
-  { id: 10, nombre: "Parking y Accesos", tipo: "Parking", distancias: ["Todas"], horaInicio: "06:00", horaFin: "12:00", necesarios: 4, responsableId: null, notas: "Gestión de aparcamiento y acceso peatonal" },
-  { id: 11, nombre: "Zona de Llegada / Trofeos", tipo: "Organización", distancias: ["Todas"], horaInicio: "09:00", horaFin: "18:00", necesarios: 5, responsableId: null, notas: "Recepción finishers, entrega medallas, clasificaciones" },
-  { id: 12, nombre: "Primeros Auxilios Base", tipo: "Primeros Auxilios", distancias: ["Todas"], horaInicio: "06:30", horaFin: "18:00", necesarios: 3, responsableId: null, notas: "Titulación requerida: socorrismo o enfermería" },
+  { id: 1,  nombre: "Zona de Salida / Meta",    tipo: "Salida/Meta",      distancias: ["Todas"],           horaInicio: "06:30", horaFin: "18:00", necesarios: 8,  responsableId: null, localizacionId: 1,  notas: "Control de dorsales, gestión de salidas escalonadas" },
+  { id: 2,  nombre: "Avituallamiento KM 4",     tipo: "Avituallamiento",  distancias: ["TG7","TG13","TG25"],horaInicio: "07:30", horaFin: "14:00", necesarios: 4,  responsableId: null, localizacionId: 2,  notas: "Agua, isotónico, fruta, barritas" },
+  { id: 3,  nombre: "Avituallamiento KM 9",     tipo: "Avituallamiento",  distancias: ["TG13","TG25"],     horaInicio: "08:00", horaFin: "15:00", necesarios: 4,  responsableId: null, localizacionId: 3,  notas: "Agua, isotónico, fruta, geles, sándwiches" },
+  { id: 4,  nombre: "Avituallamiento KM 16",    tipo: "Avituallamiento",  distancias: ["TG25"],            horaInicio: "08:30", horaFin: "16:00", necesarios: 5,  responsableId: null, localizacionId: 4,  notas: "Avituallamiento principal TG25 — comida caliente" },
+  { id: 5,  nombre: "Punto Control KM 7",       tipo: "Control",          distancias: ["TG13","TG25"],     horaInicio: "08:00", horaFin: "13:00", necesarios: 2,  responsableId: null, localizacionId: 5,  notas: "Registro de dorsales, corte de tiempos" },
+  { id: 6,  nombre: "Punto Control KM 13",      tipo: "Control",          distancias: ["TG25"],            horaInicio: "09:00", horaFin: "15:00", necesarios: 2,  responsableId: null, localizacionId: 6,  tiempoLimite: "14:00", notas: "Registro de dorsales, corte de tiempos. Corredores que lleguen después del tiempo límite deben ser retirados de la competición." },
+  { id: 7,  nombre: "Seguridad Vial Cruce 1",   tipo: "Seguridad",        distancias: ["Todas"],           horaInicio: "07:00", horaFin: "14:00", necesarios: 2,  responsableId: null, localizacionId: 7,  notas: "Control de tráfico en cruce principal" },
+  { id: 8,  nombre: "Seguridad Vial Cruce 2",   tipo: "Seguridad",        distancias: ["TG13","TG25"],     horaInicio: "07:30", horaFin: "16:00", necesarios: 2,  responsableId: null, localizacionId: 8,  notas: "Control de tráfico en cruce secundario" },
+  { id: 9,  nombre: "Señalización Ruta Alta",   tipo: "Señalización",     distancias: ["TG25"],            horaInicio: "06:00", horaFin: "08:00", necesarios: 3,  responsableId: null, localizacionId: 9,  notas: "Colocación de balizas tramo alto — madrugada" },
+  { id: 10, nombre: "Parking y Accesos",        tipo: "Parking",          distancias: ["Todas"],           horaInicio: "06:00", horaFin: "12:00", necesarios: 4,  responsableId: null, localizacionId: 10, notas: "Gestión de aparcamiento y acceso peatonal" },
+  { id: 11, nombre: "Zona de Llegada / Trofeos",tipo: "Organización",     distancias: ["Todas"],           horaInicio: "09:00", horaFin: "18:00", necesarios: 5,  responsableId: null, localizacionId: 11, notas: "Recepción finishers, entrega medallas, clasificaciones" },
+  { id: 12, nombre: "Primeros Auxilios Base",   tipo: "Primeros Auxilios",distancias: ["Todas"],           horaInicio: "06:30", horaFin: "18:00", necesarios: 3,  responsableId: null, localizacionId: 12, notas: "Titulación requerida: socorrismo o enfermería" },
 ];
 
 const VOLUNTARIOS_DEFAULT = [
@@ -66,6 +66,40 @@ const VOLUNTARIOS_DEFAULT = [
 ];
 
 // useData maneja la persistencia automáticamente
+
+// ─── MEJ-06: triángulo voluntario ↔ puesto ↔ localización ────────────────────
+
+/**
+ * Resuelve la localización de un voluntario a través de su puesto.
+ * Cadena: voluntario.puestoId → puesto.localizacionId → localización (lat/lng/descripcion)
+ *
+ * Estrategia de resolución con retrocompatibilidad:
+ *   1. Por localizacionId (vínculo fuerte — nuevo campo en puesto)
+ *   2. Por nombre exacto en locs (puestos guardados antes del cambio)
+ *
+ * @param {object}       voluntario  - objeto voluntario con puestoId
+ * @param {Array}        puestos     - lista de puestos
+ * @param {Array}        locs        - lista de localizaciones (LOCS_DEFAULT)
+ * @returns {{ puesto: object|null, localizacion: object|null }}
+ */
+export function resolverLocalizacionDeVoluntario(voluntario, puestos = [], locs = []) {
+  if (!voluntario) return { puesto: null, localizacion: null };
+  const pts  = Array.isArray(puestos) ? puestos : [];
+  const lsArr = Array.isArray(locs)   ? locs    : [];
+
+  const puesto = pts.find(p => p.id === voluntario.puestoId) ?? null;
+  if (!puesto) return { puesto: null, localizacion: null };
+
+  // 1. Vínculo fuerte por localizacionId
+  if (puesto.localizacionId != null) {
+    const loc = lsArr.find(l => l.id === puesto.localizacionId) ?? null;
+    return { puesto, localizacion: loc };
+  }
+
+  // 2. Fallback por nombre exacto (puestos sin localizacionId aún)
+  const locPorNombre = lsArr.find(l => l.nombre === puesto.nombre) ?? null;
+  return { puesto, localizacion: locPorNombre };
+}
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
