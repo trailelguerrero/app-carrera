@@ -1963,7 +1963,63 @@ describe('LOG-28 — MEJ-03: Tiempo estimado primer finisher TG7 realista', () =
   });
 });
 
-// ── SYNC-01: toggle CK → Proyecto estado correcto ─────────────────────────
+// ── SYNC-02: integridad referencial proyectoTareaId en CK0 ────────────────
+describe('SYNC-02 CK0 proyectoTareaId apunta a tareas reales de TAREAS0', () => {
+  it('todos los proyectoTareaId de CK0 existen en TAREAS0', async () => {
+    const { CK0 } = await import('../components/logistica/logisticaConstants.js');
+    const { TAREAS0 } = await import('../components/proyecto/proyectoConstants.js');
+    const tareaIds = new Set(TAREAS0.map(t => t.id));
+    const rotos = CK0
+      .filter(c => c.proyectoTareaId != null)
+      .filter(c => !tareaIds.has(c.proyectoTareaId));
+    expect(rotos).toHaveLength(0);
+  });
+
+  it('los ítems de CK0 sin proyectoTareaId no lo tienen undefined sino ausente o null', async () => {
+    const { CK0 } = await import('../components/logistica/logisticaConstants.js');
+    const mal = CK0.filter(c => 'proyectoTareaId' in c && c.proyectoTareaId === undefined);
+    expect(mal).toHaveLength(0);
+  });
+
+  it('los vínculos clave de CK0 apuntan a las tareas de Proyecto correctas', async () => {
+    const { CK0 } = await import('../components/logistica/logisticaConstants.js');
+    const { TAREAS0 } = await import('../components/proyecto/proyectoConstants.js');
+    const link = (ckId, tareaId) => {
+      const ck = CK0.find(c => c.id === ckId);
+      const t  = TAREAS0.find(t => t.id === tareaId);
+      expect(ck, `CK id=${ckId} no existe`).toBeDefined();
+      expect(t,  `Tarea Proyecto id=${tareaId} no existe`).toBeDefined();
+      expect(ck.proyectoTareaId).toBe(tareaId);
+    };
+    link(1,  1);  // Confirmar autorización ayuntamiento → Solicitud autorización admin. local
+    link(2,  41); // Confirmar servicio médico → Confirmación servicio médico
+    link(5,  42); // Pedido avituallamiento → Pedido avituallamiento y material
+    link(7,  40); // Probar cronometraje → Contratación empresa cronometraje
+    link(9,  35); // Señalizar ruta → Colocación señalización permanente
+    link(10, 48); // Montar zona meta → Montaje zona meta y salida
+    link(12, 31); // Confirmar voluntarios → Envío instrucciones voluntarios
+    link(14, 45); // Carga furgoneta → Carga de vehículos y verificación
+    link(15, 32); // Briefing voluntarios → Briefing presencial voluntarios
+    link(21, 49); // Recogida material → Recogida de material post-evento
+    link(34, 30); // Confirmar voluntarios 1mes → Cierre de plazas voluntarios
+    link(35, 39); // Encargar dorsales → Lista definitiva de material necesario
+  });
+
+  it('no existen proyectoTareaId duplicados en CK0 para la misma tarea de Proyecto', async () => {
+    const { CK0 } = await import('../components/logistica/logisticaConstants.js');
+    const vinculados = CK0.filter(c => c.proyectoTareaId != null);
+    // Se permite duplicar si son fases distintas del mismo hito (ej. CK1 y CK25 → T1)
+    // pero no duplicar en la misma fase
+    const porFaseYTarea = {};
+    const dupes = [];
+    for (const c of vinculados) {
+      const key = `${c.fase}::${c.proyectoTareaId}`;
+      if (porFaseYTarea[key]) dupes.push(c);
+      else porFaseYTarea[key] = c;
+    }
+    expect(dupes).toHaveLength(0);
+  });
+});
 describe('SYNC-01 toggle CK sincroniza estado correcto con Proyecto', () => {
   // Simulación pura de la lógica de toggle extraída de TabComunicaciones.jsx
   function simulateToggle(ckPrev, ckId, tareasProyecto) {
