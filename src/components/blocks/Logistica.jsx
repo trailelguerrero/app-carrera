@@ -360,7 +360,7 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
                 <TabPedidosProv
                   pedidos={pedidosProv} setPedidos={setPedidosProv}
                   cont={cont}
-                  material={material}
+                  material={material} setMaterial={setMaterial}
                   conceptosPres={conceptosPres}
                   totalInscritos={totalInscritos}
                   inscritos={(() => {

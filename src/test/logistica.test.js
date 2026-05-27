@@ -2173,3 +2173,160 @@ describe('SYNC-06 syncHitoPedido crea, actualiza y elimina hitos correctamente',
     expect(result.find(h => h._pedidoId === 101).id).toBe(11);
   });
 });
+
+// ── SYNC-07: syncStockMaterial — cierre del ciclo stock ↔ pedidos ─────────
+describe('SYNC-07 syncStockMaterial acredita y revierte stock correctamente', () => {
+
+  // Réplica exacta de la función de producción (sin I/O)
+  function syncStockMaterial(pedido, estadoNuevo, material) {
+    const estadoAnterior = pedido.estado;
+    const articulos = Array.isArray(pedido.articulos) ? pedido.articulos : [];
+    const mat = Array.isArray(material) ? material : [];
+
+    const acreditar    = estadoAnterior !== 'recibido' && estadoNuevo === 'recibido';
+    const desacreditar = estadoAnterior === 'recibido' && estadoNuevo !== 'recibido';
+
+    if (!acreditar && !desacreditar) {
+      return { pedidoActualizado: { ...pedido, estado: estadoNuevo }, materialActualizado: mat };
+    }
+
+    const articulosActualizados = articulos.map(a => {
+      if (!a.materialId) return a;
+      if (acreditar    && !a.stockAcreditado) return { ...a, stockAcreditado: true };
+      if (desacreditar &&  a.stockAcreditado) return { ...a, stockAcreditado: false };
+      return a;
+    });
+
+    const delta = {};
+    articulos.forEach((a, i) => {
+      if (!a.materialId) return;
+      const nuevo = articulosActualizados[i];
+      if (acreditar    && !a.stockAcreditado && nuevo.stockAcreditado)  delta[a.materialId] = (delta[a.materialId] || 0) + (a.cantidad || 0);
+      if (desacreditar &&  a.stockAcreditado && !nuevo.stockAcreditado) delta[a.materialId] = (delta[a.materialId] || 0) - (a.cantidad || 0);
+    });
+
+    const materialActualizado = mat.map(m =>
+      delta[m.id] !== undefined
+        ? { ...m, stock: Math.max(0, (m.stock || 0) + delta[m.id]) }
+        : m
+    );
+
+    return {
+      pedidoActualizado: { ...pedido, estado: estadoNuevo, articulos: articulosActualizados },
+      materialActualizado,
+    };
+  }
+
+  const mat = [
+    { id: 1, nombre: 'Medallas finisher', stock: 100 },
+    { id: 2, nombre: 'Dorsales',          stock: 200 },
+    { id: 3, nombre: 'Agua bidones',      stock: 50  },
+  ];
+
+  const pedidoBase = {
+    id: 1,
+    estado: 'confirmado',
+    articulos: [
+      { nombre: 'Medallas', materialId: 1, cantidad: 150, stockAcreditado: false },
+      { nombre: 'Dorsales', materialId: 2, cantidad: 100, stockAcreditado: false },
+      { nombre: 'Sin vínculo', materialId: null, cantidad: 5, stockAcreditado: false },
+    ],
+  };
+
+  it('al pasar a "recibido" el stock se incrementa en los artículos vinculados', () => {
+    const { materialActualizado } = syncStockMaterial(pedidoBase, 'recibido', mat);
+    expect(materialActualizado.find(m => m.id === 1).stock).toBe(250); // 100 + 150
+    expect(materialActualizado.find(m => m.id === 2).stock).toBe(300); // 200 + 100
+    expect(materialActualizado.find(m => m.id === 3).stock).toBe(50);  // sin cambio
+  });
+
+  it('al pasar a "recibido" stockAcreditado se pone en true en artículos con materialId', () => {
+    const { pedidoActualizado } = syncStockMaterial(pedidoBase, 'recibido', mat);
+    expect(pedidoActualizado.articulos[0].stockAcreditado).toBe(true);
+    expect(pedidoActualizado.articulos[1].stockAcreditado).toBe(true);
+    expect(pedidoActualizado.articulos[2].stockAcreditado).toBe(false); // sin materialId
+  });
+
+  it('revertir desde "recibido" descuenta el stock', () => {
+    const pedidoRecibido = {
+      ...pedidoBase,
+      estado: 'recibido',
+      articulos: pedidoBase.articulos.map(a => a.materialId ? { ...a, stockAcreditado: true } : a),
+    };
+    const matConStock = mat.map(m =>
+      m.id === 1 ? { ...m, stock: 250 } : m.id === 2 ? { ...m, stock: 300 } : m
+    );
+    const { materialActualizado } = syncStockMaterial(pedidoRecibido, 'confirmado', matConStock);
+    expect(materialActualizado.find(m => m.id === 1).stock).toBe(100); // 250 - 150
+    expect(materialActualizado.find(m => m.id === 2).stock).toBe(200); // 300 - 100
+  });
+
+  it('stockAcreditado vuelve a false al revertir', () => {
+    const pedidoRecibido = {
+      ...pedidoBase, estado: 'recibido',
+      articulos: pedidoBase.articulos.map(a => ({ ...a, stockAcreditado: !!a.materialId })),
+    };
+    const { pedidoActualizado } = syncStockMaterial(pedidoRecibido, 'borrador', mat);
+    expect(pedidoActualizado.articulos[0].stockAcreditado).toBe(false);
+    expect(pedidoActualizado.articulos[1].stockAcreditado).toBe(false);
+  });
+
+  it('cambio entre estados no-recibido no altera el stock', () => {
+    const { materialActualizado } = syncStockMaterial(pedidoBase, 'facturado', mat);
+    expect(materialActualizado).toEqual(mat);
+  });
+
+  it('cambio entre estados no-recibido no altera stockAcreditado', () => {
+    const { pedidoActualizado } = syncStockMaterial(pedidoBase, 'facturado', mat);
+    expect(pedidoActualizado.articulos[0].stockAcreditado).toBe(false);
+  });
+
+  it('no acredita stock dos veces si ya está acreditado (idempotente)', () => {
+    const pedidoYaAcreditado = {
+      ...pedidoBase, estado: 'confirmado',
+      articulos: [{ ...pedidoBase.articulos[0], stockAcreditado: true }],
+    };
+    const { materialActualizado } = syncStockMaterial(pedidoYaAcreditado, 'recibido', mat);
+    expect(materialActualizado.find(m => m.id === 1).stock).toBe(100); // sin cambio
+  });
+
+  it('no descuenta si aún no estaba acreditado (idempotente en reversa)', () => {
+    const pedidoRecibidoSinAcreditar = {
+      ...pedidoBase, estado: 'recibido',
+      articulos: [{ ...pedidoBase.articulos[0], stockAcreditado: false }],
+    };
+    const { materialActualizado } = syncStockMaterial(pedidoRecibidoSinAcreditar, 'borrador', mat);
+    expect(materialActualizado.find(m => m.id === 1).stock).toBe(100); // sin cambio
+  });
+
+  it('stock no baja de 0 aunque los números resulten negativos', () => {
+    const matVacio = [{ id: 1, nombre: 'Medallas', stock: 0 }];
+    const pedidoRecibido = {
+      ...pedidoBase, estado: 'recibido',
+      articulos: [{ nombre: 'Medallas', materialId: 1, cantidad: 150, stockAcreditado: true }],
+    };
+    const { materialActualizado } = syncStockMaterial(pedidoRecibido, 'borrador', matVacio);
+    expect(materialActualizado.find(m => m.id === 1).stock).toBe(0); // Math.max(0, ...)
+  });
+
+  it('artículos sin materialId no afectan a ningún material', () => {
+    const pedidoSinVinculo = {
+      id: 2, estado: 'borrador',
+      articulos: [{ nombre: 'Artículo libre', materialId: null, cantidad: 99, stockAcreditado: false }],
+    };
+    const { materialActualizado } = syncStockMaterial(pedidoSinVinculo, 'recibido', mat);
+    expect(materialActualizado).toEqual(mat);
+  });
+
+  it('múltiples artículos del mismo material se acumulan en un solo delta', () => {
+    const pedidoDoble = {
+      id: 3, estado: 'borrador',
+      articulos: [
+        { nombre: 'Medallas TG7',  materialId: 1, cantidad: 80,  stockAcreditado: false },
+        { nombre: 'Medallas TG25', materialId: 1, cantidad: 120, stockAcreditado: false },
+      ],
+    };
+    const { materialActualizado } = syncStockMaterial(pedidoDoble, 'recibido', mat);
+    expect(materialActualizado.find(m => m.id === 1).stock).toBe(300); // 100 + 80 + 120
+  });
+});

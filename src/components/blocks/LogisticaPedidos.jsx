@@ -52,7 +52,54 @@ async function syncHitoPedido(pedido, action = "upsert") {
   }
 }
 
-// ─── TAB PEDIDOS A PROVEEDORES ────────────────────────────────────────────────
+// Sincroniza el stock de material cuando un pedido cambia de/a estado "recibido".
+// - estadoAnterior !== "recibido" && estadoNuevo === "recibido":
+//     acreditar stock (suma cantidad) en cada artículo con materialId no acreditado aún.
+// - estadoAnterior === "recibido" && estadoNuevo !== "recibido":
+//     revertir stock (resta cantidad) en cada artículo con materialId ya acreditado.
+// Devuelve { pedidoActualizado, materialActualizado } para que el caller actualice ambos estados.
+function syncStockMaterial(pedido, estadoNuevo, material) {
+  const estadoAnterior = pedido.estado;
+  const articulos = Array.isArray(pedido.articulos) ? pedido.articulos : [];
+  const mat = Array.isArray(material) ? material : [];
+
+  const acreditar  = estadoAnterior !== "recibido" && estadoNuevo === "recibido";
+  const desacreditar = estadoAnterior === "recibido" && estadoNuevo !== "recibido";
+
+  if (!acreditar && !desacreditar) {
+    // Sin cambio de stock — solo actualizar estado
+    return {
+      pedidoActualizado: { ...pedido, estado: estadoNuevo },
+      materialActualizado: mat,
+    };
+  }
+
+  const articulosActualizados = articulos.map(a => {
+    if (!a.materialId) return a;
+    if (acreditar  && !a.stockAcreditado) return { ...a, stockAcreditado: true };
+    if (desacreditar &&  a.stockAcreditado) return { ...a, stockAcreditado: false };
+    return a;
+  });
+
+  const delta = {}; // materialId → Δstock
+  articulos.forEach((a, i) => {
+    if (!a.materialId) return;
+    const nuevo = articulosActualizados[i];
+    if (acreditar   && !a.stockAcreditado && nuevo.stockAcreditado)  delta[a.materialId] = (delta[a.materialId] || 0) + (a.cantidad || 0);
+    if (desacreditar &&  a.stockAcreditado && !nuevo.stockAcreditado) delta[a.materialId] = (delta[a.materialId] || 0) - (a.cantidad || 0);
+  });
+
+  const materialActualizado = mat.map(m =>
+    delta[m.id] !== undefined
+      ? { ...m, stock: Math.max(0, (m.stock || 0) + delta[m.id]) }
+      : m
+  );
+
+  return {
+    pedidoActualizado: { ...pedido, estado: estadoNuevo, articulos: articulosActualizados },
+    materialActualizado,
+  };
+}
 const ESTADOS_PEDIDO = [
   { id:"borrador",    label:"Borrador",    color:"var(--text-muted)", bg:"var(--surface2)" },
   { id:"confirmado",  label:"Confirmado",  color:"var(--cyan)",       bg:"var(--cyan-dim)" },
@@ -65,7 +112,7 @@ const ESTADOS_FACTURA = [
 ];
 const genPedidoId = (arr) => arr.length ? Math.max(...arr.map(x=>x.id||0))+1 : 1;
 
-function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=[], totalInscritos, inscritos }) {
+function TabPedidosProv({ pedidos, setPedidos, cont, material=[], setMaterial, conceptosPres=[], totalInscritos, inscritos }) {
   const [modal, setModal]   = useState(null); // null | "nuevo" | {pedido}
   const [delId, setDelId]   = useState(null);
   const [expanded, setExpanded] = useState(null);
@@ -150,12 +197,32 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
   const abrirEditar = (p) => setModal(p);
   const guardar = (p) => {
     if (p.id) {
-      setPedidos(prev => prev.map(x => x.id===p.id ? p : x));
-      syncHitoPedido(p);
+      const pedidoAnterior = pedidos.find(x => x.id === p.id);
+      const estadoAnterior = pedidoAnterior?.estado ?? p.estado;
+      // Si el estado cambió desde/hacia "recibido" vía modal, sincronizar stock
+      if (estadoAnterior !== p.estado && setMaterial) {
+        const { pedidoActualizado, materialActualizado } = syncStockMaterial(
+          { ...p, estado: estadoAnterior }, p.estado, material
+        );
+        setPedidos(prev => prev.map(x => x.id === p.id ? pedidoActualizado : x));
+        setMaterial(materialActualizado);
+        syncHitoPedido(pedidoActualizado);
+      } else {
+        setPedidos(prev => prev.map(x => x.id === p.id ? p : x));
+        syncHitoPedido(p);
+      }
     } else {
       setPedidos(prev => {
         const nuevo = { ...p, id: genPedidoId(prev) };
         syncHitoPedido(nuevo);
+        // Nuevo pedido ya en "recibido": acreditar stock inmediatamente
+        if (nuevo.estado === "recibido" && setMaterial) {
+          const { pedidoActualizado, materialActualizado } = syncStockMaterial(
+            { ...nuevo, estado: "borrador" }, "recibido", material
+          );
+          setMaterial(materialActualizado);
+          return [...prev, pedidoActualizado];
+        }
         return [...prev, nuevo];
       });
     }
@@ -303,7 +370,31 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
                           <tbody>
                             {p.articulos.map((a,i) => (
                               <tr key={i} style={{borderBottom:"1px solid rgba(255,255,255,.04)"}}>
-                                <td style={{padding:".3rem .4rem"}}>{a.nombre}</td>
+                                <td style={{padding:".3rem .4rem"}}>
+                                  {a.nombre}
+                                  {a.stockAcreditado && a.materialId && (
+                                    <span style={{
+                                      marginLeft:".4rem",fontFamily:"var(--font-mono)",
+                                      fontSize:"var(--fs-2xs)",padding:".05rem .3rem",
+                                      borderRadius:10,background:"rgba(52,211,153,.15)",
+                                      color:"var(--green)",border:"1px solid rgba(52,211,153,.25)",
+                                      fontWeight:700,verticalAlign:"middle",
+                                    }} title="Stock acreditado en inventario">
+                                      +stock ✓
+                                    </span>
+                                  )}
+                                  {!a.stockAcreditado && a.materialId && p.estado === "recibido" && (
+                                    <span style={{
+                                      marginLeft:".4rem",fontFamily:"var(--font-mono)",
+                                      fontSize:"var(--fs-2xs)",padding:".05rem .3rem",
+                                      borderRadius:10,background:"rgba(251,191,36,.12)",
+                                      color:"var(--amber)",border:"1px solid rgba(251,191,36,.25)",
+                                      fontWeight:700,verticalAlign:"middle",
+                                    }} title="Pendiente acreditar stock">
+                                      stock⚠
+                                    </span>
+                                  )}
+                                </td>
                                 <td style={{textAlign:"right",padding:".3rem .4rem",
                                   fontWeight:700}}>{a.cantidad}</td>
                                 <td style={{textAlign:"right",padding:".3rem .4rem",
@@ -461,10 +552,18 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
                               transition:"background .12s,color .12s",
                             }}
                             onClick={()=>{
-                              const upd = {...p, estado:e.id};
-                              setPedidos(prev=>prev.map(x=>x.id===p.id?upd:x));
-                              syncHitoPedido(upd); // actualiza completado del hito si hay fecha límite
-                              if(e.id==="recibido") toast.success("Pedido marcado como recibido");
+                              const { pedidoActualizado, materialActualizado } =
+                                syncStockMaterial(p, e.id, material);
+                              setPedidos(prev=>prev.map(x=>x.id===p.id ? pedidoActualizado : x));
+                              if (setMaterial) setMaterial(materialActualizado);
+                              syncHitoPedido(pedidoActualizado);
+                              if (e.id==="recibido") {
+                                const acreditados = (pedidoActualizado.articulos||[])
+                                  .filter(a => a.materialId && a.stockAcreditado).length;
+                                toast.success(acreditados > 0
+                                  ? `Pedido recibido · +stock en ${acreditados} material${acreditados!==1?"es":""} ✓`
+                                  : "Pedido marcado como recibido");
+                              }
                             }}>
                             {e.label}
                           </button>
