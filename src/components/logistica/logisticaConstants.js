@@ -95,9 +95,9 @@ const RUTAS0 = [
 const TL0 = [
   {id:1,hora:"04:30",titulo:"Salida equipo señalización",descripcion:"Pick-up con balizas y conos sale hacia ruta alta",responsable:"Pedro Sánchez",categoria:"logistica",estado:"pendiente"},
   {id:2,hora:"05:00",titulo:"Apertura zona de meta",descripcion:"Montaje carpas, mesas, sistema de cronometraje",responsable:"Coordinación",categoria:"organizacion",estado:"pendiente"},
-  {id:3,hora:"05:30",titulo:"Briefing voluntarios",descripcion:"Reunión general — zona parking. Entrega de walkies y dorsales de voluntario",responsable:"Coordinación",categoria:"voluntarios",estado:"pendiente"},
-  {id:4,hora:"06:00",titulo:"Apertura inscripciones y dorsales",descripcion:"Inicio entrega de dorsales a corredores inscritos",responsable:"Zona Salida/Meta",categoria:"organizacion",estado:"pendiente"},
-  {id:5,hora:"06:30",titulo:"Confirmación puestos activos",descripcion:"Todos los puestos confirman por walkie que están operativos",responsable:"Dirección carrera",categoria:"comunicacion",estado:"pendiente"},
+  {id:3,hora:"05:30",titulo:"Briefing voluntarios",descripcion:"Reunión general — zona parking. Entrega de walkies y dorsales de voluntario",responsable:"Coordinación",categoria:"voluntarios",estado:"pendiente",_ckId:15},
+  {id:4,hora:"06:00",titulo:"Apertura inscripciones y dorsales",descripcion:"Inicio entrega de dorsales a corredores inscritos",responsable:"Zona Salida/Meta",categoria:"organizacion",estado:"pendiente",_ckId:16},
+  {id:5,hora:"06:30",titulo:"Confirmación puestos activos",descripcion:"Todos los puestos confirman por walkie que están operativos",responsable:"Dirección carrera",categoria:"comunicacion",estado:"pendiente",_ckId:17},
   {id:6,hora:"07:00",titulo:"Salida TG25 (élite)",descripcion:"Salida oleada élite TG25 — 70 corredores",responsable:"Juez árbitro",categoria:"carrera",estado:"pendiente"},
   {id:7,hora:"07:30",titulo:"Salida TG13",descripcion:"Salida TG13 — 100 corredores",responsable:"Juez árbitro",categoria:"carrera",estado:"pendiente"},
   {id:8,hora:"08:00",titulo:"Salida TG7",descripcion:"Salida TG7 — 80 corredores",responsable:"Juez árbitro",categoria:"carrera",estado:"pendiente"},
@@ -106,7 +106,7 @@ const TL0 = [
   {id:11,hora:"12:00",titulo:"Cierre TG7 (corte tiempo)",descripcion:"Cierre oficial TG7 — retirada balizas segmento inicial",responsable:"Control de ruta",categoria:"carrera",estado:"pendiente"},
   {id:12,hora:"14:00",titulo:"Cierre TG13 (corte tiempo)",descripcion:"Cierre oficial TG13",responsable:"Control de ruta",categoria:"carrera",estado:"pendiente"},
   {id:13,hora:"16:00",titulo:"Cierre TG25 (corte tiempo)",descripcion:"Cierre oficial TG25 — recogida material puestos",responsable:"Control de ruta",categoria:"carrera",estado:"pendiente"},
-  {id:14,hora:"18:00",titulo:"Inicio recogida material",descripcion:"Furgoneta inicia recogida de puestos en orden inverso (tras ceremonia trofeos)",responsable:"Javier López",categoria:"logistica",estado:"pendiente"},
+  {id:14,hora:"18:00",titulo:"Inicio recogida material",descripcion:"Furgoneta inicia recogida de puestos en orden inverso (tras ceremonia trofeos)",responsable:"Javier López",categoria:"logistica",estado:"pendiente",_ckId:21},
   {id:15,hora:"17:30",titulo:"Entrega de trofeos y pódios",descripcion:"Ceremonia oficial de trofeos — zona meta",responsable:"Organización",categoria:"organizacion",estado:"pendiente"},
   {id:16,hora:"19:00",titulo:"Cierre del evento",descripcion:"Desmontaje zona meta, recuento material, briefing post-evento",responsable:"Coordinación",categoria:"organizacion",estado:"pendiente"},
 ];
@@ -139,13 +139,13 @@ const CK0 = [
   {id:12,fase:"Día antes",tarea:"Confirmar asistencia todos los voluntarios",responsable:"Coordinación",estado:"pendiente",prioridad:"alta",notas:"",proyectoTareaId:31},
   {id:13,fase:"Día antes",tarea:"Preparar kits voluntarios (camiseta+walkie+instrucciones)",responsable:"Organización",estado:"pendiente",prioridad:"media",notas:""},
   {id:14,fase:"Día antes",tarea:"Carga furgoneta material avituallamiento",responsable:"Javier López",estado:"pendiente",prioridad:"alta",notas:"",proyectoTareaId:45},
-  {id:15,fase:"Mañana carrera",tarea:"Briefing voluntarios 05:30",responsable:"Coordinación",estado:"pendiente",prioridad:"alta",notas:"",proyectoTareaId:32},
-  {id:16,fase:"Mañana carrera",tarea:"Entrega dorsales (06:00-07:00)",responsable:"Zona Salida/Meta",estado:"pendiente",prioridad:"alta",notas:""},
-  {id:17,fase:"Mañana carrera",tarea:"Todos los puestos operativos confirmados",responsable:"Dirección",estado:"pendiente",prioridad:"alta",notas:""},
+  {id:15,fase:"Mañana carrera",tarea:"Briefing voluntarios 05:30",responsable:"Coordinación",estado:"pendiente",prioridad:"alta",notas:"",proyectoTareaId:32,_tlId:3},
+  {id:16,fase:"Mañana carrera",tarea:"Entrega dorsales (06:00-07:00)",responsable:"Zona Salida/Meta",estado:"pendiente",prioridad:"alta",notas:"",_tlId:4},
+  {id:17,fase:"Mañana carrera",tarea:"Todos los puestos operativos confirmados",responsable:"Dirección",estado:"pendiente",prioridad:"alta",notas:"",_tlId:5},
   {id:18,fase:"Mañana carrera",tarea:"Ambulancia en posición (06:30)",responsable:"Cruz Roja",estado:"pendiente",prioridad:"alta",notas:""},
   {id:19,fase:"Durante carrera",tarea:"Seguimiento llegada corredores por walkie",responsable:"Dirección",estado:"pendiente",prioridad:"alta",notas:""},
   {id:20,fase:"Durante carrera",tarea:"Control cierres de ruta en horario",responsable:"Control de ruta",estado:"pendiente",prioridad:"alta",notas:""},
-  {id:21,fase:"Post-carrera",tarea:"Recogida de todo el material en puestos",responsable:"Javier López",estado:"pendiente",prioridad:"alta",notas:"",proyectoTareaId:49},
+  {id:21,fase:"Post-carrera",tarea:"Recogida de todo el material en puestos",responsable:"Javier López",estado:"pendiente",prioridad:"alta",notas:"",proyectoTareaId:49,_tlId:14},
   {id:22,fase:"Post-carrera",tarea:"Retirada señalización de ruta completa",responsable:"Pedro Sánchez",estado:"pendiente",prioridad:"alta",notas:""},
   {id:23,fase:"Post-carrera",tarea:"Entrega resultados oficiales",responsable:"Cronometraje",estado:"pendiente",prioridad:"alta",notas:""},
   {id:24,fase:"Post-carrera",tarea:"Verificar recuento material — ninguna pérdida",responsable:"Organización",estado:"pendiente",prioridad:"media",notas:""},
@@ -163,6 +163,66 @@ const CK0 = [
   {id:36,fase:"1 mes antes",tarea:"Reunión de coordinación interna del equipo organizador",responsable:"Dirección",estado:"pendiente",prioridad:"media",notas:"Revisar plan operativo, asignar responsabilidades y resolver dudas pendientes"},
 ];
 
+
+// ─── MEJ-05: sincronización CK ↔ TL (checklist ↔ timeline día D) ─────────────
+/**
+ * syncCkTl — función pura que propaga un cambio de estado entre CK y TL.
+ *
+ * Cuando un ítem CK con _tlId cambia de estado, actualiza el TL vinculado.
+ * Cuando un ítem TL con _ckId cambia de estado, actualiza el CK vinculado.
+ *
+ * Mapeo de estados:
+ *   CK "completado"  → TL "completado"
+ *   CK otro          → TL "pendiente"
+ *   TL "completado"  → CK "completado"
+ *   TL otro          → CK "pendiente"
+ *
+ * @param {"ck"|"tl"} origen  - qué sistema disparó el cambio
+ * @param {number}    id      - id del ítem que cambió
+ * @param {string}    estado  - nuevo estado del ítem que cambió
+ * @param {Array}     ck      - lista actual de ítems CK
+ * @param {Array}     tl      - lista actual de ítems TL
+ * @param {string}    [hora]  - hora actual HH:MM para completadoEn (solo TL)
+ * @returns {{ ckNext: Array, tlNext: Array, ckCambio: boolean, tlCambio: boolean }}
+ */
+export function syncCkTl(origen, id, estado, ck, tl, hora = "") {
+  const ckList = Array.isArray(ck) ? ck : [];
+  const tlList = Array.isArray(tl) ? tl : [];
+
+  if (origen === "ck") {
+    const item = ckList.find(c => c.id === id);
+    if (!item?._tlId) return { ckNext: ckList, tlNext: tlList, ckCambio: false, tlCambio: false };
+
+    const tlEstado = estado === "completado" ? "completado" : "pendiente";
+    let tlCambio = false;
+    const tlNext = tlList.map(t => {
+      if (t.id !== item._tlId) return t;
+      if (t.estado === tlEstado) return t;          // sin cambio real
+      tlCambio = true;
+      return { ...t, estado: tlEstado,
+        completadoEn: tlEstado === "completado" ? (hora || t.completadoEn) : undefined };
+    });
+    return { ckNext: ckList, tlNext, ckCambio: false, tlCambio };
+  }
+
+  if (origen === "tl") {
+    const item = tlList.find(t => t.id === id);
+    if (!item?._ckId) return { ckNext: ckList, tlNext: tlList, ckCambio: false, tlCambio: false };
+
+    const ckEstado = estado === "completado" ? "completado" : "pendiente";
+    let ckCambio = false;
+    const ckNext = ckList.map(c => {
+      if (c.id !== item._ckId) return c;
+      if (c.estado === ckEstado) return c;           // sin cambio real
+      ckCambio = true;
+      return { ...c, estado: ckEstado,
+        completadoEn: ckEstado === "completado" ? (hora || c.completadoEn) : undefined };
+    });
+    return { ckNext, tlNext: tlList, ckCambio, tlCambio: false };
+  }
+
+  return { ckNext: ckList, tlNext: tlList, ckCambio: false, tlCambio: false };
+}
 
 export {
   ESTADO_ENTREGA, ESTADO_TAREA, ESTADO_COLORES, FASES_CHECKLIST,

@@ -2448,3 +2448,179 @@ describe('MEJ-04 resolverProveedor — resolución de proveedor desde directorio
     }
   });
 });
+
+// ── MEJ-05: syncCkTl — sincronización checklist ↔ timeline ───────────────
+describe('MEJ-05 syncCkTl — propagación bidireccional CK ↔ TL', () => {
+
+  // Replica exacta de la función exportada
+  function syncCkTl(origen, id, estado, ck, tl, hora = "") {
+    const ckList = Array.isArray(ck) ? ck : [];
+    const tlList = Array.isArray(tl) ? tl : [];
+
+    if (origen === "ck") {
+      const item = ckList.find(c => c.id === id);
+      if (!item?._tlId) return { ckNext: ckList, tlNext: tlList, ckCambio: false, tlCambio: false };
+      const tlEstado = estado === "completado" ? "completado" : "pendiente";
+      let tlCambio = false;
+      const tlNext = tlList.map(t => {
+        if (t.id !== item._tlId) return t;
+        if (t.estado === tlEstado) return t;
+        tlCambio = true;
+        return { ...t, estado: tlEstado,
+          completadoEn: tlEstado === "completado" ? (hora || t.completadoEn) : undefined };
+      });
+      return { ckNext: ckList, tlNext, ckCambio: false, tlCambio };
+    }
+
+    if (origen === "tl") {
+      const item = tlList.find(t => t.id === id);
+      if (!item?._ckId) return { ckNext: ckList, tlNext: tlList, ckCambio: false, tlCambio: false };
+      const ckEstado = estado === "completado" ? "completado" : "pendiente";
+      let ckCambio = false;
+      const ckNext = ckList.map(c => {
+        if (c.id !== item._ckId) return c;
+        if (c.estado === ckEstado) return c;
+        ckCambio = true;
+        return { ...c, estado: ckEstado,
+          completadoEn: ckEstado === "completado" ? (hora || c.completadoEn) : undefined };
+      });
+      return { ckNext, tlNext: tlList, ckCambio, tlCambio: false };
+    }
+
+    return { ckNext: ckList, tlNext: tlList, ckCambio: false, tlCambio: false };
+  }
+
+  const ck = [
+    { id: 15, tarea: 'Briefing voluntarios 05:30', estado: 'pendiente', _tlId: 3 },
+    { id: 16, tarea: 'Entrega dorsales',           estado: 'pendiente', _tlId: 4 },
+    { id: 17, tarea: 'Puestos operativos',         estado: 'pendiente', _tlId: 5 },
+    { id: 99, tarea: 'Sin vínculo',                estado: 'pendiente' },
+  ];
+  const tl = [
+    { id: 3,  titulo: 'Briefing voluntarios', estado: 'pendiente', _ckId: 15 },
+    { id: 4,  titulo: 'Apertura dorsales',    estado: 'pendiente', _ckId: 16 },
+    { id: 5,  titulo: 'Confirmación puestos', estado: 'pendiente', _ckId: 17 },
+    { id: 99, titulo: 'Sin vínculo TL',       estado: 'pendiente' },
+  ];
+
+  // ── dirección CK → TL ───────────────────────────────────────────────────
+  it('CK completado propaga "completado" al TL vinculado', () => {
+    const { tlNext, tlCambio } = syncCkTl("ck", 15, "completado", ck, tl);
+    expect(tlCambio).toBe(true);
+    expect(tlNext.find(t => t.id === 3).estado).toBe("completado");
+  });
+
+  it('CK pendiente propaga "pendiente" al TL vinculado', () => {
+    const ckComp = ck.map(c => c.id === 15 ? { ...c, estado: "completado" } : c);
+    const tlComp = tl.map(t => t.id === 3  ? { ...t, estado: "completado" } : t);
+    const { tlNext } = syncCkTl("ck", 15, "pendiente", ckComp, tlComp);
+    expect(tlNext.find(t => t.id === 3).estado).toBe("pendiente");
+  });
+
+  it('CK sin _tlId no afecta al TL', () => {
+    const { tlNext, tlCambio } = syncCkTl("ck", 99, "completado", ck, tl);
+    expect(tlCambio).toBe(false);
+    expect(tlNext).toBe(tl); // misma referencia — sin cambios
+  });
+
+  it('CK no muta ckNext cuando origen es "ck"', () => {
+    const { ckNext } = syncCkTl("ck", 15, "completado", ck, tl);
+    expect(ckNext).toBe(ck);
+  });
+
+  it('CK completado guarda completadoEn con la hora pasada', () => {
+    const { tlNext } = syncCkTl("ck", 15, "completado", ck, tl, "05:30");
+    expect(tlNext.find(t => t.id === 3).completadoEn).toBe("05:30");
+  });
+
+  it('CK pendiente limpia completadoEn del TL', () => {
+    const tlConHora = tl.map(t => t.id === 3 ? { ...t, estado: "completado", completadoEn: "05:30" } : t);
+    const { tlNext } = syncCkTl("ck", 15, "pendiente", ck, tlConHora);
+    expect(tlNext.find(t => t.id === 3).completadoEn).toBeUndefined();
+  });
+
+  // ── dirección TL → CK ───────────────────────────────────────────────────
+  it('TL completado propaga "completado" al CK vinculado', () => {
+    const { ckNext, ckCambio } = syncCkTl("tl", 3, "completado", ck, tl);
+    expect(ckCambio).toBe(true);
+    expect(ckNext.find(c => c.id === 15).estado).toBe("completado");
+  });
+
+  it('TL pendiente propaga "pendiente" al CK vinculado', () => {
+    const ckComp = ck.map(c => c.id === 15 ? { ...c, estado: "completado" } : c);
+    const tlComp = tl.map(t => t.id === 3  ? { ...t, estado: "completado" } : t);
+    const { ckNext } = syncCkTl("tl", 3, "pendiente", ckComp, tlComp);
+    expect(ckNext.find(c => c.id === 15).estado).toBe("pendiente");
+  });
+
+  it('TL sin _ckId no afecta al CK', () => {
+    const { ckNext, ckCambio } = syncCkTl("tl", 99, "completado", ck, tl);
+    expect(ckCambio).toBe(false);
+    expect(ckNext).toBe(ck);
+  });
+
+  it('TL no muta tlNext cuando origen es "tl"', () => {
+    const { tlNext } = syncCkTl("tl", 3, "completado", ck, tl);
+    expect(tlNext).toBe(tl);
+  });
+
+  // ── idempotencia ────────────────────────────────────────────────────────
+  it('no marca tlCambio si el TL ya tiene ese estado (idempotente)', () => {
+    const tlYaCompletado = tl.map(t => t.id === 3 ? { ...t, estado: "completado" } : t);
+    const { tlCambio } = syncCkTl("ck", 15, "completado", ck, tlYaCompletado);
+    expect(tlCambio).toBe(false);
+  });
+
+  it('no marca ckCambio si el CK ya tiene ese estado (idempotente)', () => {
+    const ckYaCompletado = ck.map(c => c.id === 15 ? { ...c, estado: "completado" } : c);
+    const { ckCambio } = syncCkTl("tl", 3, "completado", ckYaCompletado, tl);
+    expect(ckCambio).toBe(false);
+  });
+
+  // ── otros estados ───────────────────────────────────────────────────────
+  it('"bloqueado" en CK → TL pasa a "pendiente" (solo completado/pendiente)', () => {
+    const { tlNext } = syncCkTl("ck", 15, "bloqueado", ck, tl);
+    expect(tlNext.find(t => t.id === 3).estado).toBe("pendiente");
+  });
+
+  it('"bloqueado" en TL → CK pasa a "pendiente"', () => {
+    const { ckNext } = syncCkTl("tl", 3, "bloqueado", ck, tl);
+    expect(ckNext.find(c => c.id === 15).estado).toBe("pendiente");
+  });
+
+  // ── guards ──────────────────────────────────────────────────────────────
+  it('arrays null no lanzan error', () => {
+    expect(() => syncCkTl("ck", 15, "completado", null, null)).not.toThrow();
+  });
+
+  it('origen desconocido devuelve listas originales sin cambios', () => {
+    const r = syncCkTl("otro", 15, "completado", ck, tl);
+    expect(r.ckNext).toBe(ck);
+    expect(r.tlNext).toBe(tl);
+  });
+
+  // ── integridad de vínculos en datos semilla ──────────────────────────────
+  it('todos los _tlId de CK0 apuntan a ids que existen en TL0', async () => {
+    const { CK0, TL0 } = await import('../components/logistica/logisticaConstants.js');
+    const tlIds = new Set(TL0.map(t => t.id));
+    const rotos = CK0.filter(c => c._tlId != null && !tlIds.has(c._tlId));
+    expect(rotos).toHaveLength(0);
+  });
+
+  it('todos los _ckId de TL0 apuntan a ids que existen en CK0', async () => {
+    const { CK0, TL0 } = await import('../components/logistica/logisticaConstants.js');
+    const ckIds = new Set(CK0.map(c => c.id));
+    const rotos = TL0.filter(t => t._ckId != null && !ckIds.has(t._ckId));
+    expect(rotos).toHaveLength(0);
+  });
+
+  it('vínculos son simétricos: si CK._tlId = X entonces TL X tiene _ckId = CK.id', async () => {
+    const { CK0, TL0 } = await import('../components/logistica/logisticaConstants.js');
+    const ckConTl = CK0.filter(c => c._tlId != null);
+    for (const c of ckConTl) {
+      const tlItem = TL0.find(t => t.id === c._tlId);
+      expect(tlItem, `TL id=${c._tlId} no existe para CK id=${c.id}`).toBeDefined();
+      expect(tlItem._ckId, `TL id=${c._tlId} no apunta de vuelta a CK id=${c.id}`).toBe(c.id);
+    }
+  });
+});

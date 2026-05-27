@@ -43,6 +43,7 @@ import {
   FASES_CHECKLIST, PUESTOS_REF,
   TIPOS_LOC, LOC_ICONS, LOC_COLORS,
   MAT0, ASIG0, VEH0, RUTAS0, TL0, CONT0, INC0, CK0,
+  syncCkTl,
 } from "@/components/logistica/logisticaConstants.js";
 
 // ─── APP ──────────────────────────────────────────────────────────────────────
@@ -335,9 +336,17 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
           {tab==="dashboard" && <TabDash stats={stats} tl={tl} ck={ck} setTab={setTab} config={config} patsConEspecie={patsConEspecie} material={material} asigs={asigs} totalInscritos={totalInscritos} />}
           {tab==="material" && <TabMat material={material} setMaterial={setMaterial} asigs={asigs} setAsigs={setAsigs} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenMat} setOrdenAlfa={setOrdenMat} locs={locs} patsConEspecie={patsConEspecie} totalInscritos={totalInscritos} totalMaximos={totalMaximos} rawInscritos={rawInscritos} rawTramos={rawTramos} conceptosPres={conceptosPres} />}
           {tab==="vehiculos" && <TabVeh veh={veh} setVeh={setVeh} rutas={rutas} setRutas={setRutas} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenVeh} setOrdenAlfa={setOrdenVeh} voluntariosConCoche={voluntariosConCoche} material={material} asigs={asigs} />}
-          {tab==="timeline" && <TabTL tl={tl} setTl={setTl} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenTL} setOrdenAlfa={setOrdenTL} config={config} />}
+          {tab==="timeline" && <TabTL tl={tl} setTl={setTl} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenTL} setOrdenAlfa={setOrdenTL} config={config}
+            onUpdSync={(id, estado, hora) => {
+              const { ckNext, ckCambio } = syncCkTl("tl", id, estado, ck, tl, hora);
+              if (ckCambio) setCk(ckNext);
+            }} />}
           {tab==="emergencias" && <TabEmergencias cont={cont} inc={inc} setInc={setInc} abrirModal={abrirModal} abrirFicha={abrirFicha} tiposContacto={tiposContacto} />}
-          {tab==="checklist" && <TabCK ck={ck} setCk={setCk} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCK} setOrdenAlfa={setOrdenCK} config={config} tareasProyecto={tareasProyecto} setTareasProyecto={(fn)=>{ const next=typeof fn==="function"?fn(tareasProyecto):fn; import("@/lib/dataService").then(m=>{ m.default.set(SK_PROY_TAREAS, next); m.default.notify(); /* INC-05: notificar a Proyecto.jsx del cambio externo */ }); }} />}
+          {tab==="checklist" && <TabCK ck={ck} setCk={setCk} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCK} setOrdenAlfa={setOrdenCK} config={config} tareasProyecto={tareasProyecto} setTareasProyecto={(fn)=>{ const next=typeof fn==="function"?fn(tareasProyecto):fn; import("@/lib/dataService").then(m=>{ m.default.set(SK_PROY_TAREAS, next); m.default.notify(); /* INC-05: notificar a Proyecto.jsx del cambio externo */ }); }}
+            onToggleSync={(id, estadoNuevo, hora) => {
+              const { tlNext, tlCambio } = syncCkTl("ck", id, estadoNuevo, ck, tl, hora);
+              if (tlCambio) setTl(tlNext);
+            }} />}
           {tab==="localizaciones" && <TabLocalizaciones locs={locs} setLocs={setLocs} volsPorLoc={volsPorLoc} matPorLoc={matPorLoc} />}
           {tab==="proveedores" && (
             <div style={{ display:"flex", flexDirection:"column", gap:"1.5rem" }}>

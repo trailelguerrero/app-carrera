@@ -12,7 +12,7 @@ import { blockCls as cls } from "@/lib/blockStyles";
 import { useData } from "@/hooks/useData";
 
 // ─── TIMELINE ─────────────────────────────────────────────────────────────────
-function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,config}) {
+function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,config,onUpdSync}) {
   const [vistaKanban,setVistaKanban]=useState(false);
   const [ahora,setAhora] = useState(new Date());
   const [filtroResp,setFiltroResp] = useState("todos");
@@ -42,7 +42,12 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
       return prev.map(x=>x.id===arr[i].id?{...x,hora:horaJ}:x.id===arr[j].id?{...x,hora:horaI}:x);
     });
   };
-  const upd=(id,estado)=>setTl(p=>p.map(t=>t.id===id?{...t,estado,completadoEn:estado==="completado"?new Date().toTimeString().slice(0,5):undefined}:t));
+  const upd=(id,estado)=>{
+    const hora = new Date().toTimeString().slice(0,5);
+    setTl(p=>p.map(t=>t.id===id?{...t,estado,completadoEn:estado==="completado"?hora:undefined}:t));
+    // MEJ-05: sincronizar CK vinculado si existe _ckId
+    if (onUpdSync) onUpdSync(id, estado, hora);
+  };
   return(
     <>
       <div className="ph">
@@ -135,6 +140,11 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
               <div className="tlcf">
                 <span className="tlchip" style={{borderColor:`${color}44`,color}}>{TLI[t.categoria]} {t.categoria}</span>
                 <span className="tlresp">👤 {t.responsable}</span>
+                {t._ckId && <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-2xs)",
+                  padding:".05rem .3rem",borderRadius:10,
+                  background:"rgba(167,139,250,.1)",color:"var(--violet)",
+                  border:"1px solid rgba(167,139,250,.2)"}}
+                  title="Vinculado a ítem del checklist operativo">↔ checklist</span>}
               </div>
             </div>
           </div>

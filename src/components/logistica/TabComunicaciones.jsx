@@ -350,7 +350,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
 }
 
 
-function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,config,tareasProyecto=[],setTareasProyecto}) {
+function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,config,tareasProyecto=[],setTareasProyecto,onToggleSync}) {
   const eventFecha = config?.fecha ? new Date(config.fecha) : new Date(EVENT_CONFIG_DEFAULT.fecha);
   const diasHasta = Math.ceil((eventFecha - new Date()) / 86400000);
   const faseActiva = (() => {
@@ -381,6 +381,10 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
             return ckTr.id===ckHit.proyectoTareaId ? {...ckTr, estado: ckNuevoEst} : ckTr;
           });
         });
+      }
+      // MEJ-05: sincronizar TL vinculado si existe _tlId
+      if (ckHit?._tlId && onToggleSync) {
+        onToggleSync(ckId, ckHit.estado, ckNow);
       }
       return ckNext;
     });
@@ -454,7 +458,7 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
                       return(
                         <div key={item.id} style={{background:"var(--surface2)",border:"1px solid var(--border)",borderLeft:`3px solid ${ec}`,borderRadius:7,padding:".5rem .6rem",cursor:"pointer",opacity:item.estado==="completado"?.55:1}}
                           onClick={()=>abrirFicha("ck",item)}>
-                          <div style={{fontSize:"var(--fs-sm)",fontWeight:600,marginBottom:".2rem",textDecoration:item.estado==="completado"?"line-through":"none",color:item.estado==="completado"?"var(--text-muted)":"var(--text)"}}>{item.tarea}{item.proyectoTareaId && <span title="Vinculada a tarea de Planificación" style={{marginLeft:".35rem",fontSize:"var(--fs-xs)",color:"var(--green)",fontFamily:"var(--font-mono)",verticalAlign:"middle"}}>↗ Proyecto</span>}</div>
+                          <div style={{fontSize:"var(--fs-sm)",fontWeight:600,marginBottom:".2rem",textDecoration:item.estado==="completado"?"line-through":"none",color:item.estado==="completado"?"var(--text-muted)":"var(--text)"}}>{item.tarea}{item.proyectoTareaId && <span title="Vinculada a tarea de Planificación" style={{marginLeft:".35rem",fontSize:"var(--fs-xs)",color:"var(--green)",fontFamily:"var(--font-mono)",verticalAlign:"middle"}}>↗ Proyecto</span>}{item._tlId && <span title="Vinculada a entrada del runbook del día D" style={{marginLeft:".35rem",fontSize:"var(--fs-xs)",color:"var(--violet)",fontFamily:"var(--font-mono)",verticalAlign:"middle"}}>↔ runbook</span>}</div>
                           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                             <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>👤 {item.responsable}</span>
                             <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".08rem .3rem",borderRadius:3,background:item.prioridad==="alta"?"var(--red-dim)":"var(--amber-dim)",color:item.prioridad==="alta"?"var(--red)":"var(--amber)"}}>{item.prioridad}</span>
