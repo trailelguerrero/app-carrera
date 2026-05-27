@@ -432,3 +432,232 @@ describe('DASH-10 — calculateResultadoFinanciero integración con ambos toggle
     expect(result).toBe(sinConfirmado);
   });
 });
+
+// ── MEJ-07: calcSemaforoRiesgos ────────────────────────────────────────────
+import {
+  calcSemaforoRiesgos,
+  calcAreaPermisos, calcAreaEconomico, calcAreaLogistico, calcAreaOperativo,
+  estadoDesdeFlags, estadoDesdeScore,
+} from '../lib/semaforoRiesgos.js';
+
+describe('MEJ-07a estadoDesdeFlags — utilidad RAG', () => {
+  it('sin flags → verde', () => { expect(estadoDesdeFlags([])).toBe('verde'); });
+  it('null → verde',      () => { expect(estadoDesdeFlags(null)).toBe('verde'); });
+  it('flag rojo → rojo',  () => { expect(estadoDesdeFlags([{ rojo: true }])).toBe('rojo'); });
+  it('flag ambar → ambar',() => { expect(estadoDesdeFlags([{ ambar: true }])).toBe('ambar'); });
+  it('rojo y ambar → rojo',() => { expect(estadoDesdeFlags([{ ambar: true },{ rojo: true }])).toBe('rojo'); });
+});
+
+describe('MEJ-07b estadoDesdeScore — umbrales', () => {
+  it('score 100 → verde', () => { expect(estadoDesdeScore(100)).toBe('verde'); });
+  it('score 71 → verde',  () => { expect(estadoDesdeScore(71)).toBe('verde'); });
+  it('score 70 → ambar',  () => { expect(estadoDesdeScore(70)).toBe('ambar'); });
+  it('score 41 → ambar',  () => { expect(estadoDesdeScore(41)).toBe('ambar'); }); // rojoMax=40 → score 41 es ambar
+  it('score 40 → rojo',   () => { expect(estadoDesdeScore(40)).toBe('rojo'); }); // <= rojoMax → rojo
+  it('score 39 → rojo',   () => { expect(estadoDesdeScore(39)).toBe('rojo'); });
+  it('NaN → ambar',       () => { expect(estadoDesdeScore(NaN)).toBe('ambar'); });
+  it('umbrales custom',   () => { expect(estadoDesdeScore(50, { rojoMax: 60, ambarMax: 80 })).toBe('rojo'); });
+});
+
+describe('MEJ-07c calcAreaPermisos', () => {
+  it('sin problemas → verde, score 100', () => {
+    const r = calcAreaPermisos({});
+    expect(r.estado).toBe('verde');
+    expect(r.score).toBe(100);
+    expect(r.detalles).toHaveLength(0);
+  });
+
+  it('gestión denegada → rojo', () => {
+    const r = calcAreaPermisos({ gestionesDenegadas: [{ nombre: 'Seguro RC' }] });
+    expect(r.estado).toBe('rojo');
+    expect(r.detalles.length).toBeGreaterThan(0);
+  });
+
+  it('permiso vencido → rojo', () => {
+    const r = calcAreaPermisos({ gestionesVencidas: [{ nombre: 'Autorización' }] });
+    expect(r.estado).toBe('rojo');
+  });
+
+  it('gestión urgente (≤30d) → ambar', () => {
+    const r = calcAreaPermisos({ gestionesUrgentes: [{ nombre: 'Licencia' }] });
+    expect(r.estado).toBe('ambar');
+  });
+
+  it('docs vencidos + gestión urgente → rojo (rojo gana)', () => {
+    const r = calcAreaPermisos({
+      docsVencidos: [{ nombre: 'Certificado' }],
+      gestionesUrgentes: [{ nombre: 'Licencia' }],
+    });
+    expect(r.estado).toBe('rojo');
+  });
+
+  it('devuelve area, icon, razon, score, detalles', () => {
+    const r = calcAreaPermisos({});
+    expect(r.area).toBe('Permisos');
+    expect(r.icon).toBeDefined();
+    expect(r.razon).toBeDefined();
+    expect(typeof r.score).toBe('number');
+    expect(Array.isArray(r.detalles)).toBe(true);
+  });
+});
+
+describe('MEJ-07d calcAreaEconomico', () => {
+  it('resultado positivo con inscritos → verde', () => {
+    const r = calcAreaEconomico({ resultado: 1000, totalCostesFijos: 500, totalCostesVars: 200, totalInscritos: { total: 300 }, patComprometido: 800, objetivo: 1000 });
+    expect(r.estado).toBe('verde');
+  });
+
+  it('resultado negativo → rojo', () => {
+    const r = calcAreaEconomico({ resultado: -500, totalCostesFijos: 1000, totalCostesVars: 0, totalInscritos: { total: 100 } });
+    expect(r.estado).toBe('rojo');
+  });
+
+  it('patrocinio < 50% objetivo → señal de riesgo', () => {
+    const r = calcAreaEconomico({ resultado: 100, patComprometido: 100, objetivo: 1000, totalInscritos: { total: 100 } });
+    expect(r.estado).not.toBe('verde');
+  });
+
+  it('sin inscritos con costes activos → ambar', () => {
+    const r = calcAreaEconomico({ resultado: 0, totalCostesFijos: 1000, totalCostesVars: 0, totalInscritos: { total: 0 } });
+    expect(['ambar','rojo']).toContain(r.estado);
+  });
+
+  it('score >= 100 cuando resultado >= costes totales', () => {
+    const r = calcAreaEconomico({ resultado: 1000, totalCostesFijos: 500, totalCostesVars: 500, totalInscritos: { total: 300 } });
+    expect(r.score).toBeGreaterThanOrEqual(100);
+  });
+});
+
+describe('MEJ-07e calcAreaLogistico', () => {
+  it('todo OK → verde', () => {
+    const r = calcAreaLogistico({ stockAlerts: [], materialesBajoMinimo: [], ckDone: 10, ckTotal: 10, coberturaVol: 100, puestosAlerta: [], diasHasta: 90 });
+    expect(r.estado).toBe('verde');
+  });
+
+  it('cobertura vol < 50% con días lejanos → ambar', () => {
+    const r = calcAreaLogistico({ coberturaVol: 40, diasHasta: 90, ckDone: 8, ckTotal: 10, stockAlerts: [], materialesBajoMinimo: [], puestosAlerta: [] });
+    expect(r.estado).toBe('ambar');
+  });
+
+  it('cobertura vol < 50% con ≤30 días → rojo', () => {
+    const r = calcAreaLogistico({ coberturaVol: 30, diasHasta: 15, ckDone: 0, ckTotal: 10, stockAlerts: [], materialesBajoMinimo: [], puestosAlerta: [] });
+    expect(r.estado).toBe('rojo');
+  });
+
+  it('score = promedio ck y cobertura', () => {
+    const r = calcAreaLogistico({ ckDone: 6, ckTotal: 10, coberturaVol: 80, stockAlerts: [], materialesBajoMinimo: [], puestosAlerta: [], diasHasta: 90 });
+    expect(r.score).toBe(Math.round(60 * 0.5 + 80 * 0.5));
+  });
+
+  it('ckTotal=0 → ckPct=100 (no penaliza)', () => {
+    const r = calcAreaLogistico({ ckDone: 0, ckTotal: 0, coberturaVol: 100, stockAlerts: [], materialesBajoMinimo: [], puestosAlerta: [], diasHasta: 90 });
+    expect(r.estado).toBe('verde');
+  });
+});
+
+describe('MEJ-07f calcAreaOperativo', () => {
+  it('sin problemas → verde', () => {
+    const r = calcAreaOperativo({ tareasVencidas: 0, tareasBloqueadas: 0, progresoGlobal: 80, incidenciasActivas: 0, hitosProximos: [], diasHasta: 90 });
+    expect(r.estado).toBe('verde');
+  });
+
+  it('tarea vencida → rojo', () => {
+    const r = calcAreaOperativo({ tareasVencidas: 1 });
+    expect(r.estado).toBe('rojo');
+  });
+
+  it('3+ incidencias abiertas → rojo', () => {
+    const r = calcAreaOperativo({ incidenciasActivas: 3, tareasVencidas: 0 });
+    expect(r.estado).toBe('rojo');
+  });
+
+  it('1 incidencia abierta → ambar', () => {
+    const r = calcAreaOperativo({ incidenciasActivas: 1, tareasVencidas: 0 });
+    expect(r.estado).toBe('ambar');
+  });
+
+  it('hito crítico en ≤14 días → ambar', () => {
+    const manana = new Date(Date.now() + 86400000 * 3).toISOString().slice(0,10);
+    const r = calcAreaOperativo({
+      hitosProximos: [{ id: 1, nombre: 'Seguro', fecha: manana, critico: true, completado: false }],
+      tareasVencidas: 0, incidenciasActivas: 0,
+    });
+    expect(r.estado).toBe('ambar');
+  });
+
+  it('hito completado no cuenta como urgente', () => {
+    const manana = new Date(Date.now() + 86400000 * 3).toISOString().slice(0,10);
+    const r = calcAreaOperativo({
+      hitosProximos: [{ id: 1, nombre: 'Seguro', fecha: manana, critico: true, completado: true }],
+      tareasVencidas: 0, incidenciasActivas: 0,
+    });
+    expect(r.estado).toBe('verde');
+  });
+
+  it('score = progresoGlobal', () => {
+    const r = calcAreaOperativo({ progresoGlobal: 65, tareasVencidas: 0, incidenciasActivas: 0, hitosProximos: [] });
+    expect(r.score).toBe(65);
+  });
+});
+
+describe('MEJ-07g calcSemaforoRiesgos — función principal', () => {
+  const kpisOK = {
+    gestionesDenegadas: [], gestionesVencidas: [], gestionesUrgentes: [],
+    docsVencidos: [], docsProxVencer: [],
+    resultado: 1000, totalCostesFijos: 500, totalCostesVars: 200,
+    patComprometido: 800, objetivo: 1000,
+    totalInscritos: { total: 300 },
+    stockAlerts: [], materialesBajoMinimo: [],
+    ckDone: 10, ckTotal: 10, coberturaVol: 90, puestosAlerta: [], diasHasta: 90,
+    tareasVencidas: 0, tareasBloqueadas: 0, progresoGlobal: 75,
+    incidenciasActivas: 0, hitosProximos: [],
+  };
+
+  it('kpis perfectos → estadoGlobal verde', () => {
+    expect(calcSemaforoRiesgos(kpisOK).estadoGlobal).toBe('verde');
+  });
+
+  it('devuelve exactamente 4 zonas', () => {
+    expect(calcSemaforoRiesgos(kpisOK).zonas).toHaveLength(4);
+  });
+
+  it('zonas tienen area, icon, estado, razon, score, detalles', () => {
+    const { zonas } = calcSemaforoRiesgos(kpisOK);
+    for (const z of zonas) {
+      expect(z.area).toBeDefined();
+      expect(z.icon).toBeDefined();
+      expect(['verde','ambar','rojo']).toContain(z.estado);
+      expect(z.razon).toBeDefined();
+      expect(typeof z.score).toBe('number');
+      expect(Array.isArray(z.detalles)).toBe(true);
+    }
+  });
+
+  it('gestión denegada hace estadoGlobal rojo', () => {
+    const kpisMalos = { ...kpisOK, gestionesDenegadas: [{ nombre: 'Seguro RC' }] };
+    expect(calcSemaforoRiesgos(kpisMalos).estadoGlobal).toBe('rojo');
+  });
+
+  it('scoreGlobal es promedio de los 4 scores', () => {
+    const { zonas, scoreGlobal } = calcSemaforoRiesgos(kpisOK);
+    const media = Math.round(zonas.reduce((s, z) => s + z.score, 0) / 4);
+    expect(scoreGlobal).toBe(media);
+  });
+
+  it('null → retorna objeto válido con zonas vacías', () => {
+    const r = calcSemaforoRiesgos(null);
+    expect(r.zonas).toHaveLength(0);
+    expect(r.estadoGlobal).toBe('verde');
+  });
+
+  it('razonGlobal menciona la zona más problemática cuando hay riesgo', () => {
+    const kpisMalos = { ...kpisOK, resultado: -999, totalCostesFijos: 1000, totalCostesVars: 0 };
+    const r = calcSemaforoRiesgos(kpisMalos);
+    expect(r.razonGlobal).toContain('Económico');
+  });
+
+  it('los 4 nombres de área son correctos', () => {
+    const { zonas } = calcSemaforoRiesgos(kpisOK);
+    expect(zonas.map(z => z.area)).toEqual(['Permisos','Económico','Logístico','Operativo']);
+  });
+});

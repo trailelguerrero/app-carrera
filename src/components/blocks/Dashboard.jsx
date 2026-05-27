@@ -23,7 +23,7 @@ import SeccionBanners from "@/components/dashboard/SeccionBanners";
 import SeccionHero from "@/components/dashboard/SeccionHero";
 import SeccionCentroControl from "@/components/dashboard/SeccionCentroControl";
 import { SeccionCharts } from "@/components/dashboard/SeccionCharts";
-import ModoEvento from "@/components/dashboard/ModoEvento";
+import { SemaforoRiesgos } from "@/components/dashboard/SemaforoRiesgos";
 import dataService from "@/lib/dataService";
 
 const ALL_KEYS = {
@@ -190,6 +190,21 @@ export default function Dashboard() {
 
         {/* ── Centro de control: acciones priorizadas + alertas unificadas ── */}
         <SeccionCentroControl d={d} avisosExpandidos={avisosExpandidos} setAvisosExpandidos={setAvisosExpandidos} />
+
+        {/* ── MEJ-07: Semáforo de riesgo RAG ── */}
+        <SemaforoRiesgos
+          kpis={d}
+          onNavigate={(zona) => {
+            const mapa = {
+              "Permisos":   "documentos",
+              "Económico":  "presupuesto",
+              "Logístico":  "logistica",
+              "Operativo":  "proyecto",
+            };
+            const bloque = mapa[zona.area];
+            if (bloque) navigate(bloque);
+          }}
+        />
 
         {/* ── KPIs — Sprint 2.1 KPIs accionables ── */}
         <div className="kpi-grid mb">

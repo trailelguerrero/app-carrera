@@ -330,6 +330,8 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
       saludModulos, saludGlobal,
       alertasCriticas, alertasAvisos,
       docsVencidos, docsProxVencer,
+      gestionesDenegadas, gestionesVencidas, gestionesUrgentes,
+      incidenciasActivas,
       tramos, rawInscritos: inscritos, syncConfig, scenarioActivo,
     };
   }, [rawData, volDiasCritico, volDiasAviso]);
