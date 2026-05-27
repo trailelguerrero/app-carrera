@@ -405,3 +405,81 @@ describe('SYNC-03 updEstado Proyecto propaga estado a ítems CK vinculados', () 
     expect(propagarACK(null, 1, 'completado')).toBe(null);
   });
 });
+
+// ── SYNC-04: cálculo del widget de progreso cruzado ───────────────────────
+describe('SYNC-04 widget CK en TabDash Proyecto — cálculos correctos', () => {
+  const ckSample = [
+    { id:1, estado:'completado',  proyectoTareaId: 1  },
+    { id:2, estado:'completado',  proyectoTareaId: 41 },
+    { id:3, estado:'pendiente',   proyectoTareaId: 42 },
+    { id:4, estado:'pendiente',   proyectoTareaId: null },
+    { id:5, estado:'completado',  proyectoTareaId: null },
+  ];
+
+  const calcWidget = (ck) => {
+    const total    = ck.length;
+    const done     = ck.filter(c => c.estado === 'completado').length;
+    const pct      = total > 0 ? Math.round(done / total * 100) : 0;
+    const vinc     = ck.filter(c => c.proyectoTareaId != null);
+    const vincDone = vinc.filter(c => c.estado === 'completado').length;
+    return { total, done, pct, vincTotal: vinc.length, vincDone };
+  };
+
+  it('total, done y pct correctos', () => {
+    const r = calcWidget(ckSample);
+    expect(r.total).toBe(5);
+    expect(r.done).toBe(3);
+    expect(r.pct).toBe(60);
+  });
+
+  it('vinculados totales y completados correctos', () => {
+    const r = calcWidget(ckSample);
+    expect(r.vincTotal).toBe(3); // ids 1,2,3 tienen proyectoTareaId
+    expect(r.vincDone).toBe(2);  // ids 1,2 están completados
+  });
+
+  it('pct es 100 cuando todos completados', () => {
+    const todos = ckSample.map(c => ({ ...c, estado:'completado' }));
+    expect(calcWidget(todos).pct).toBe(100);
+  });
+
+  it('pct es 0 con array vacío (no divide por cero)', () => {
+    expect(calcWidget([]).pct).toBe(0);
+  });
+});
+
+// ── SYNC-05: widget de Proyecto en TabDashLog — filtro de áreas ──────────
+describe('SYNC-05 widget Proyecto en TabDashLog — filtro áreas logistica/ruta/diaD/sanitario', () => {
+  const tareasSample = [
+    { id:38, area:'logistica', estado:'pendiente',   titulo:'Inventario material',  fechaLimite:'2026-04-30' },
+    { id:39, area:'logistica', estado:'completado',  titulo:'Lista material',        fechaLimite:'2026-05-15' },
+    { id:35, area:'ruta',      estado:'pendiente',   titulo:'Señalización ruta',     fechaLimite:'2026-08-25' },
+    { id:48, area:'diaD',      estado:'pendiente',   titulo:'Montaje zona meta',     fechaLimite:'2026-08-29' },
+    { id:41, area:'sanitario', estado:'completado',  titulo:'Servicio médico',       fechaLimite:'2026-05-15' },
+    { id:1,  area:'permisos',  estado:'pendiente',   titulo:'Autorización local',    fechaLimite:'2026-04-01' },
+    { id:7,  area:'economico', estado:'pendiente',   titulo:'Cierre presupuesto',    fechaLimite:'2026-04-01' },
+  ];
+
+  const AREAS_LOG = ['logistica','ruta','diaD','sanitario'];
+  const filtrar = (ts) => ts.filter(t => AREAS_LOG.includes(t.area));
+
+  it('solo incluye áreas logistica, ruta, diaD, sanitario', () => {
+    const r = filtrar(tareasSample);
+    expect(r).toHaveLength(5);
+    expect(r.every(t => AREAS_LOG.includes(t.area))).toBe(true);
+  });
+
+  it('excluye permisos, economico y otras áreas', () => {
+    const r = filtrar(tareasSample);
+    expect(r.find(t => t.area === 'permisos')).toBeUndefined();
+    expect(r.find(t => t.area === 'economico')).toBeUndefined();
+  });
+
+  it('pct logístico correcto sobre las tareas filtradas', () => {
+    const r = filtrar(tareasSample);
+    const done = r.filter(t => t.estado === 'completado').length;
+    const pct  = Math.round(done / r.length * 100);
+    expect(done).toBe(2); // logistica(completado) + sanitario(completado)
+    expect(pct).toBe(40);
+  });
+});

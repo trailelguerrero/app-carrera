@@ -6,9 +6,21 @@ import { useState } from "react";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { diasHasta, fmt, AREAS, EST_CFG, PRI_CFG, getArea, iniciales } from "./proyectoConstants";
+import { useData } from "@/hooks/useData";
+import { SK_LOG_CK } from "@/constants/storageKeys";
 
 export function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hitos, updEstado, isMobile, setFiltroArea, setFiltroResponsable, gestiones }) {
   const [cargaColapsada, setCargaColapsada] = useState(true); // colapsado por defecto
+
+  // Widget cruzado: progreso del pre-operativo (checklist) de Logística
+  const [rawCK] = useData(SK_LOG_CK, []);
+  const ck = Array.isArray(rawCK) ? rawCK : [];
+  const ckTotal = ck.length;
+  const ckDone  = ck.filter(c => c.estado === "completado").length;
+  const ckPct   = ckTotal > 0 ? Math.round(ckDone / ckTotal * 100) : 0;
+  // Ítems vinculados a tareas de Proyecto — para mostrar coherencia
+  const ckVinculados = ck.filter(c => c.proyectoTareaId != null);
+  const ckVinculadosDone = ckVinculados.filter(c => c.estado === "completado").length;
   return (
     <>
       {/* Semáforo por área */}
@@ -239,6 +251,44 @@ export function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hit
           })}
         </div>
       </div>
+      {/* ── Widget: Pre-operativo Logística ── */}
+      {ckTotal > 0 && (
+        <div className="card" style={{ marginTop:".85rem", borderLeft:"3px solid var(--violet)" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:".5rem" }}>
+            <div>
+              <div className="ct" style={{ marginBottom:".1rem" }}>✅ Pre-operativo · Logística</div>
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>
+                {ckDone}/{ckTotal} ítems completados
+                {ckVinculados.length > 0 && (
+                  <span style={{ marginLeft:".5rem", color:"var(--green)" }}>
+                    · {ckVinculadosDone}/{ckVinculados.length} vinculados ↗
+                  </span>
+                )}
+              </div>
+            </div>
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{ fontSize:"var(--fs-xs)", flexShrink:0 }}
+              onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail:{ block:"logistica", subtab:"checklist" } }))}>
+              Ver checklist →
+            </button>
+          </div>
+          <div className="pbar" style={{ marginBottom:".4rem" }}>
+            <div className="pfill" style={{
+              width:`${ckPct}%`,
+              background: ckPct===100 ? "var(--green)" : ckPct>60 ? "var(--violet)" : "var(--amber)"
+            }}/>
+          </div>
+          <div style={{ display:"flex", justifyContent:"space-between",
+            fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>
+            <span>0%</span>
+            <span style={{ color: ckPct===100 ? "var(--green)" : "var(--text-muted)", fontWeight:700 }}>
+              {ckPct}%
+            </span>
+            <span>100%</span>
+          </div>
+        </div>
+      )}
     </>
   );
 }

@@ -10,11 +10,24 @@ import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { useData } from "@/hooks/useData";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
+import { SK_PROY_TAREAS } from "@/constants/storageKeys";
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [], asigs = [], totalInscritos = 0 }) {
   const prox = [...tl].filter(t=>t.estado!=="completado").sort((a,b)=>a.hora.localeCompare(b.hora)).slice(0,6);
   const porFase = FASES_CHECKLIST.map(f0 => { const it=ck.filter(c=>c.fase===f0); const d=it.filter(c=>c.estado==="completado").length; return {f:f0,d,t:it.length,pct:it.length?Math.round(d/it.length*100):0}; });
+
+  // Widget cruzado: tareas de Proyecto de área logistica/ruta/diaD/sanitario
+  const [rawTareasProyecto] = useData(SK_PROY_TAREAS, []);
+  const tareasLogProyecto = useMemo(() => {
+    const ts = Array.isArray(rawTareasProyecto) ? rawTareasProyecto : [];
+    return ts.filter(t => ["logistica","ruta","diaD","sanitario"].includes(t.area));
+  }, [rawTareasProyecto]);
+  const tareasLogPendientes = tareasLogProyecto.filter(t => t.estado !== "completado");
+  const tareasLogCompletadas = tareasLogProyecto.filter(t => t.estado === "completado");
+  const pctLogProyecto = tareasLogProyecto.length > 0
+    ? Math.round(tareasLogCompletadas.length / tareasLogProyecto.length * 100)
+    : 0;
   // fix(FUNC-01): parseo explícito en hora local — new Date("YYYY-MM-DD") parsea como
   // medianoche UTC, lo que en España (UTC+2) adelanta el evento 2h al día anterior.
   // new Date(y, m-1, d, 23, 59, 59) siempre usa hora local del navegador (ECMAScript spec).
@@ -355,6 +368,90 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
           <button className="btn btn-ghost mt1" style={{width:"100%"}} onClick={()=>setTab("checklist")}>Ir al checklist →</button>
         </div>
       </div>
+      {/* ── Widget: Tareas logísticas en Proyecto ── */}
+      {tareasLogProyecto.length > 0 && (
+        <div className="card mb">
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:".6rem" }}>
+            <div>
+              <div className="ct" style={{ marginBottom:".1rem" }}>🏔️ Planificación · Logística &amp; Día D</div>
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>
+                {tareasLogCompletadas.length}/{tareasLogProyecto.length} tareas completadas en Proyecto
+              </div>
+            </div>
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{ fontSize:"var(--fs-xs)", flexShrink:0 }}
+              onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail:{ block:"proyecto" } }))}>
+              Ver en Proyecto →
+            </button>
+          </div>
+          {/* Barra de progreso */}
+          <div style={{ marginBottom:".65rem" }}>
+            <div className="pbar">
+              <div className="pfill" style={{
+                width:`${pctLogProyecto}%`,
+                background: pctLogProyecto===100 ? "var(--green)" : pctLogProyecto>60 ? "var(--cyan)" : "var(--amber)"
+              }}/>
+            </div>
+            <div style={{ display:"flex", justifyContent:"flex-end", marginTop:".2rem" }}>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                color: pctLogProyecto===100 ? "var(--green)" : "var(--text-muted)" }}>
+                {pctLogProyecto}%
+              </span>
+            </div>
+          </div>
+          {/* Tareas pendientes — máx 5 */}
+          {tareasLogPendientes.length > 0 && (
+            <div style={{ display:"flex", flexDirection:"column", gap:".3rem" }}>
+              {tareasLogPendientes.slice(0,5).map(t => {
+                const dias = t.fechaLimite
+                  ? Math.ceil((new Date(t.fechaLimite) - new Date()) / 86400000)
+                  : null;
+                const vencida = dias !== null && dias < 0;
+                const urgente = dias !== null && dias >= 0 && dias <= 7;
+                const colorFecha = vencida ? "var(--red)" : urgente ? "var(--orange)" : "var(--text-muted)";
+                const AREA_LABELS = { logistica:"📦 Logística", ruta:"🏔️ Ruta", diaD:"🏁 Día D", sanitario:"🏥 Sanitario" };
+                const estadoC = { pendiente:"var(--text-muted)", "en curso":"var(--cyan)", bloqueado:"var(--red)" };
+                return (
+                  <div key={t.id} style={{
+                    display:"flex", alignItems:"center", gap:".5rem",
+                    padding:".35rem .5rem", borderRadius:"var(--r-sm)",
+                    background:"var(--surface2)", border:"1px solid var(--border)",
+                  }}>
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                      color:"var(--text-dim)", flexShrink:0, minWidth:68 }}>
+                      {AREA_LABELS[t.area] || t.area}
+                    </span>
+                    <span style={{ flex:1, fontSize:"var(--fs-sm)", fontWeight:600,
+                      overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
+                      color: estadoC[t.estado] || "var(--text)" }}>
+                      {t.titulo}
+                    </span>
+                    {dias !== null && (
+                      <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                        color:colorFecha, flexShrink:0 }}>
+                        {vencida ? `⚠ ${Math.abs(dias)}d` : urgente ? `⚡ ${dias}d` : `${dias}d`}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+              {tareasLogPendientes.length > 5 && (
+                <div style={{ textAlign:"center", fontFamily:"var(--font-mono)",
+                  fontSize:"var(--fs-xs)", color:"var(--text-dim)", padding:".25rem 0" }}>
+                  +{tareasLogPendientes.length - 5} más pendientes
+                </div>
+              )}
+            </div>
+          )}
+          {tareasLogPendientes.length === 0 && (
+            <div style={{ textAlign:"center", padding:".5rem 0",
+              fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", color:"var(--green)" }}>
+              ✓ Todas las tareas logísticas completadas
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 }
