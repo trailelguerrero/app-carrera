@@ -154,8 +154,18 @@ export default function Documentos() {
       } catch {
         dataService.get(LS_KEY, []).then(d => setDocs(Array.isArray(d) ? d : []));
       }
-      // Gestiones siguen en colección JSON normal
-      dataService.get(LS_KEY + "_gestiones", GESTIONES_DEFAULT).then(v => setGestiones(Array.isArray(v) ? v : GESTIONES_DEFAULT));
+      // Gestiones siguen en colección JSON normal.
+      // Si Neon no tiene la clave (404, primer uso), se guardan los defaults explícitamente
+      // para que futuras eliminaciones persistan correctamente y no se restauren los defaults.
+      dataService.get(LS_KEY + "_gestiones", null).then(v => {
+        if (Array.isArray(v)) {
+          setGestiones(v);
+        } else {
+          // Primera vez: guardar defaults en Neon/localStorage para que el estado inicial sea persistible
+          setGestiones(GESTIONES_DEFAULT);
+          dataService.set(LS_KEY + "_gestiones", GESTIONES_DEFAULT);
+        }
+      });
       setIsLoading(false);
     };
     load();
