@@ -1962,3 +1962,62 @@ describe('LOG-28 — MEJ-03: Tiempo estimado primer finisher TG7 realista', () =
     expect(finisher.descripcion).toMatch(/50\s*min|~50/i);
   });
 });
+
+// ── SYNC-01: toggle CK → Proyecto estado correcto ─────────────────────────
+describe('SYNC-01 toggle CK sincroniza estado correcto con Proyecto', () => {
+  // Simulación pura de la lógica de toggle extraída de TabComunicaciones.jsx
+  function simulateToggle(ckPrev, ckId, tareasProyecto) {
+    const ckNow = '10:00';
+    let updatedTareas = [...tareasProyecto];
+    const ckNext = ckPrev.map(ckItm => {
+      const nuevoEstado = ckItm.id === ckId
+        ? (ckItm.estado === 'completado' ? 'pendiente' : 'completado')
+        : ckItm.estado;
+      return ckItm.id === ckId
+        ? { ...ckItm, estado: nuevoEstado, completadoEn: nuevoEstado === 'completado' ? ckNow : undefined }
+        : ckItm;
+    });
+    const ckHit = ckNext.find(c => c.id === ckId);
+    if (ckHit && ckHit.proyectoTareaId) {
+      const ckNuevoEst = ckHit.estado === 'completado' ? 'completado' : 'pendiente';
+      updatedTareas = tareasProyecto.map(t =>
+        t.id === ckHit.proyectoTareaId ? { ...t, estado: ckNuevoEst } : t
+      );
+    }
+    return { ckNext, updatedTareas };
+  }
+
+  const ckBase = [
+    { id: 1, tarea: 'Confirmar autorización', estado: 'pendiente', proyectoTareaId: 10 },
+    { id: 2, tarea: 'Otro ítem sin vínculo', estado: 'pendiente', proyectoTareaId: null },
+  ];
+  const tareasBase = [
+    { id: 10, titulo: 'Tarea Proyecto vinculada', estado: 'pendiente' },
+    { id: 11, titulo: 'Tarea Proyecto sin vínculo', estado: 'pendiente' },
+  ];
+
+  it('al completar CK vinculado → tarea Proyecto pasa a "completado"', () => {
+    const { ckNext, updatedTareas } = simulateToggle(ckBase, 1, tareasBase);
+    expect(ckNext.find(c => c.id === 1).estado).toBe('completado');
+    expect(updatedTareas.find(t => t.id === 10).estado).toBe('completado');
+  });
+
+  it('al desmarcar CK vinculado → tarea Proyecto vuelve a "pendiente" (no "en curso")', () => {
+    const ckConCompletado = ckBase.map(c => c.id === 1 ? { ...c, estado: 'completado' } : c);
+    const tareasConCompletado = tareasBase.map(t => t.id === 10 ? { ...t, estado: 'completado' } : t);
+    const { ckNext, updatedTareas } = simulateToggle(ckConCompletado, 1, tareasConCompletado);
+    expect(ckNext.find(c => c.id === 1).estado).toBe('pendiente');
+    expect(updatedTareas.find(t => t.id === 10).estado).toBe('pendiente');
+    expect(updatedTareas.find(t => t.id === 10).estado).not.toBe('en curso');
+  });
+
+  it('CK sin proyectoTareaId no afecta a ninguna tarea Proyecto', () => {
+    const { updatedTareas } = simulateToggle(ckBase, 2, tareasBase);
+    expect(updatedTareas).toEqual(tareasBase);
+  });
+
+  it('CK sin vínculo no altera tareas de Proyecto ajenas', () => {
+    const { updatedTareas } = simulateToggle(ckBase, 2, tareasBase);
+    expect(updatedTareas.find(t => t.id === 11).estado).toBe('pendiente');
+  });
+});

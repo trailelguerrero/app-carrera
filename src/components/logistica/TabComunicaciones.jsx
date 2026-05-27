@@ -373,7 +373,9 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
       });
       var ckHit = ckNext.find(function(ckItm) { return ckItm.id===ckId; });
       if (ckHit && ckHit.proyectoTareaId && setTareasProyecto) {
-        var ckNuevoEst = ckHit.estado==="completado" ? "completado" : "en curso";
+        // ckHit.estado es ya el estado NUEVO (post-toggle desde ckNext).
+        // Al desmarcar: volver a "pendiente", no "en curso" (en curso = trabajo activo, no deshacer).
+        var ckNuevoEst = ckHit.estado==="completado" ? "completado" : "pendiente";
         setTareasProyecto(function(ckTrPrev) {
           return ckTrPrev.map(function(ckTr) {
             return ckTr.id===ckHit.proyectoTareaId ? {...ckTr, estado: ckNuevoEst} : ckTr;
