@@ -69,6 +69,8 @@ export function TabHitos({ hitos, updHito, setModal, setDelConf, setFicha }) {
                   <span style={{fontSize:"var(--fs-base)",fontWeight:700,textDecoration:h.completado?"line-through":"none",color:h.completado?"var(--text-muted)":"var(--text)"}}>{h.nombre}</span>
                   {h.critico && !h.completado && <span className="badge" style={{background:"rgba(248,113,113,.1)",color:"#f87171",fontSize:"var(--fs-2xs)"}}>CRÍTICO</span>}
                   {h.completado && <span className="badge" style={{background:"rgba(52,211,153,.1)",color:"#34d399",fontSize:"var(--fs-2xs)"}}>COMPLETADO</span>}
+                  {h._tareaId  && <span className="badge" style={{background:"rgba(34,211,238,.08)",color:"var(--cyan)",  fontSize:"var(--fs-2xs)",border:"1px solid rgba(34,211,238,.2)"}} title="Generado automáticamente desde tarea de Proyecto">auto · tarea</span>}
+                  {h._pedidoId && <span className="badge" style={{background:"rgba(167,139,250,.08)",color:"var(--violet)",fontSize:"var(--fs-2xs)",border:"1px solid rgba(167,139,250,.2)"}} title="Generado automáticamente desde pedido a proveedor">auto · pedido</span>}
                 </div>
                 <div style={{display:"flex",gap:".75rem",alignItems:"center",flexWrap:"wrap"}}>
                   <span className="mono xs" style={{color:vencido?"#f87171":"var(--text-muted)"}}>{fmt(h.fecha)}</span>

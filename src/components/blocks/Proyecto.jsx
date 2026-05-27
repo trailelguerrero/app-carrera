@@ -31,6 +31,64 @@ import { validarTarea, QuickCreateTarea, ModalTarea, ModalHito, ModalPersona } f
 import { FichaProyecto }  from "@/components/proyecto/FichaProyecto";
 
 // ─── APP ──────────────────────────────────────────────────────────────────────
+
+// Áreas que generan hito automático cuando prioridad=alta y tienen fechaLimite.
+// Permite excluir áreas puramente administrativas (economico, comunicacion…).
+const AREAS_CON_HITO_AUTO = new Set(["logistica","diaD","ruta","sanitario"]);
+
+/**
+ * Calcula si una tarea debe generar un hito automático y devuelve los datos del hito.
+ * Función pura — no tiene efectos secundarios.
+ * @returns {object|null} datos del hito, o null si la tarea no cumple los criterios.
+ */
+export function calcHitoDesdeArea(tarea) {
+  if (!tarea) return null;
+  if (!AREAS_CON_HITO_AUTO.has(tarea.area)) return null;
+  if (tarea.prioridad !== "alta") return null;
+  if (!tarea.fechaLimite) return null;
+  return {
+    nombre:    `📋 ${tarea.titulo}`,
+    fecha:     tarea.fechaLimite,
+    critico:   false,
+    completado: tarea.estado === "completado",
+    _tareaId:  tarea.id,   // vínculo de vuelta — identifica este hito como auto-generado
+  };
+}
+
+/**
+ * Aplica upsert/remove de un hito auto-generado en la lista de hitos.
+ * @param {Array}  hitos       lista actual de hitos
+ * @param {object} tarea       tarea que dispara el cambio
+ * @param {"upsert"|"remove"} action
+ * @returns {Array} nueva lista de hitos (sin mutar la original)
+ */
+export function syncHitoTarea(hitos, tarea, action = "upsert") {
+  const lista = Array.isArray(hitos) ? hitos : [];
+  const idx   = lista.findIndex(h => h._tareaId === tarea.id);
+
+  if (action === "remove") {
+    return idx === -1 ? lista : lista.filter((_, i) => i !== idx);
+  }
+
+  const datos = calcHitoDesdeArea(tarea);
+
+  if (!datos) {
+    // La tarea ya no cumple criterios (ej. bajó prioridad) → eliminar hito si existía
+    return idx === -1 ? lista : lista.filter((_, i) => i !== idx);
+  }
+
+  if (idx === -1) {
+    // Crear nuevo hito con id > máximo existente
+    const maxId = lista.reduce((m, h) => Math.max(m, typeof h.id === "number" ? h.id : 0), 0);
+    return [...lista, { ...datos, id: maxId + 1 }];
+  }
+
+  // Actualizar hito existente preservando el id y el flag critico manual si el usuario lo tocó
+  return lista.map((h, i) =>
+    i === idx ? { ...h, ...datos, id: h.id } : h
+  );
+}
+
 export default function App() {
   const [tab, setTab]         = useState("dashboard");
   // FIX Guard más robusto: si la BD devuelve datos, usarlos; si no, cargar TAREAS0 como defaults
@@ -140,8 +198,21 @@ export default function App() {
   // ── CRUD ───────────────────────────────────────────────────────────────────
   const saveTarea = (t) => {
     const esNuevo = !t.id;
-    if (t.id) setTareas(p => p.map(x => x.id===t.id ? t : x));
-    else setTareas(p => [...p, {...t, id:genIdNum(p)}]);
+    let tareaFinal = t;
+    if (esNuevo) {
+      setTareas(p => {
+        tareaFinal = { ...t, id: genIdNum(p) };
+        return [...p, tareaFinal];
+      });
+    } else {
+      setTareas(p => p.map(x => x.id===t.id ? t : x));
+    }
+    // Sincronizar hito automático. Para tareas nuevas usamos un useEffect en la lista,
+    // pero para evitar doble-render, la lógica de hito se dispara en el mismo ciclo
+    // con un timeout mínimo que permite que setTareas haya resuelto el id.
+    setTimeout(() => {
+      setHitos(prev => syncHitoTarea(prev, esNuevo ? tareaFinal : t));
+    }, 0);
     setModal(null);
     toast.success(esNuevo ? "Tarea creada" : "Tarea actualizada");
   };
@@ -162,7 +233,11 @@ export default function App() {
   const doDelete = () => {
     if (!delConf) return;
     const {tipo,id} = delConf;
-    if (tipo==="tarea") setTareas(p => p.filter(x => x.id!==id));
+    if (tipo==="tarea") {
+      setTareas(p => p.filter(x => x.id!==id));
+      // Eliminar hito auto-generado vinculado a esta tarea (si existía)
+      setHitos(prev => syncHitoTarea(prev, { id }, "remove"));
+    }
     if (tipo==="hito") setHitos(p => p.filter(x => x.id!==id));
     if (tipo==="persona") setEquipo(p => p.filter(x => x.id!==id));
     setDelConf(null);
@@ -203,6 +278,12 @@ export default function App() {
       }
 
       const nextTareas = prevTareas.map(t => t.id === id ? { ...t, estado, historial } : t);
+      const tareaActualizada = nextTareas.find(t => t.id === id);
+
+      // SYNC-HITO: si la tarea actualizada tiene hito auto-generado, sincronizar completado.
+      if (tareaActualizada) {
+        setTimeout(() => setHitos(prev => syncHitoTarea(prev, tareaActualizada)), 0);
+      }
 
       // SYNC-INV: propagar cambio de estado a ítems del pre-operativo (CK) vinculados a esta tarea.
       // Se hace async para no bloquear el render — error silencioso si CK no está disponible.

@@ -483,3 +483,239 @@ describe('SYNC-05 widget Proyecto en TabDashLog — filtro áreas logistica/ruta
     expect(pct).toBe(40);
   });
 });
+
+// ── MEJORA-02: auto-promoción de tareas a hitos ───────────────────────────
+// Las funciones son exports nombrados de Proyecto.jsx. Las replicamos aquí
+// como funciones puras para testear sin el entorno React.
+
+const AREAS_CON_HITO_AUTO = new Set(["logistica","diaD","ruta","sanitario"]);
+
+function calcHitoDesdeArea(tarea) {
+  if (!tarea) return null;
+  if (!AREAS_CON_HITO_AUTO.has(tarea.area)) return null;
+  if (tarea.prioridad !== "alta") return null;
+  if (!tarea.fechaLimite) return null;
+  return {
+    nombre:    `📋 ${tarea.titulo}`,
+    fecha:     tarea.fechaLimite,
+    critico:   false,
+    completado: tarea.estado === "completado",
+    _tareaId:  tarea.id,
+  };
+}
+
+function syncHitoTarea(hitos, tarea, action = "upsert") {
+  const lista = Array.isArray(hitos) ? hitos : [];
+  const idx   = lista.findIndex(h => h._tareaId === tarea.id);
+
+  if (action === "remove") {
+    return idx === -1 ? lista : lista.filter((_, i) => i !== idx);
+  }
+
+  const datos = calcHitoDesdeArea(tarea);
+
+  if (!datos) {
+    return idx === -1 ? lista : lista.filter((_, i) => i !== idx);
+  }
+
+  if (idx === -1) {
+    const maxId = lista.reduce((m, h) => Math.max(m, typeof h.id === "number" ? h.id : 0), 0);
+    return [...lista, { ...datos, id: maxId + 1 }];
+  }
+
+  return lista.map((h, i) =>
+    i === idx ? { ...h, ...datos, id: h.id } : h
+  );
+}
+
+// ── calcHitoDesdeArea ────────────────────────────────────────────────────
+describe('MEJORA-02a calcHitoDesdeArea — criterios de promoción', () => {
+  const tareaBase = { id:38, area:"logistica", titulo:"Inventario material", prioridad:"alta", fechaLimite:"2026-04-30", estado:"pendiente" };
+
+  it('genera hito para logistica+alta+fecha', () => {
+    expect(calcHitoDesdeArea(tareaBase)).not.toBeNull();
+  });
+
+  it('genera hito para diaD+alta+fecha', () => {
+    expect(calcHitoDesdeArea({ ...tareaBase, area:"diaD" })).not.toBeNull();
+  });
+
+  it('genera hito para ruta+alta+fecha', () => {
+    expect(calcHitoDesdeArea({ ...tareaBase, area:"ruta" })).not.toBeNull();
+  });
+
+  it('genera hito para sanitario+alta+fecha', () => {
+    expect(calcHitoDesdeArea({ ...tareaBase, area:"sanitario" })).not.toBeNull();
+  });
+
+  it('NO genera hito para permisos (área excluida)', () => {
+    expect(calcHitoDesdeArea({ ...tareaBase, area:"permisos" })).toBeNull();
+  });
+
+  it('NO genera hito para economico', () => {
+    expect(calcHitoDesdeArea({ ...tareaBase, area:"economico" })).toBeNull();
+  });
+
+  it('NO genera hito con prioridad media', () => {
+    expect(calcHitoDesdeArea({ ...tareaBase, prioridad:"media" })).toBeNull();
+  });
+
+  it('NO genera hito sin fechaLimite', () => {
+    expect(calcHitoDesdeArea({ ...tareaBase, fechaLimite:null })).toBeNull();
+  });
+
+  it('nombre del hito incluye el título de la tarea con prefijo 📋', () => {
+    const h = calcHitoDesdeArea(tareaBase);
+    expect(h.nombre).toBe("📋 Inventario material");
+  });
+
+  it('fecha del hito coincide con fechaLimite de la tarea', () => {
+    expect(calcHitoDesdeArea(tareaBase).fecha).toBe("2026-04-30");
+  });
+
+  it('hito completado=true si tarea está completada', () => {
+    expect(calcHitoDesdeArea({ ...tareaBase, estado:"completado" }).completado).toBe(true);
+  });
+
+  it('hito completado=false si tarea en curso', () => {
+    expect(calcHitoDesdeArea({ ...tareaBase, estado:"en curso" }).completado).toBe(false);
+  });
+
+  it('_tareaId del hito es el id de la tarea', () => {
+    expect(calcHitoDesdeArea(tareaBase)._tareaId).toBe(38);
+  });
+
+  it('critico siempre false (el usuario puede editarlo manualmente)', () => {
+    expect(calcHitoDesdeArea(tareaBase).critico).toBe(false);
+  });
+
+  it('devuelve null para null', () => {
+    expect(calcHitoDesdeArea(null)).toBeNull();
+  });
+});
+
+// ── syncHitoTarea ────────────────────────────────────────────────────────
+describe('MEJORA-02b syncHitoTarea — upsert / remove de hitos', () => {
+  const tarea = { id:38, area:"logistica", titulo:"Inventario material", prioridad:"alta", fechaLimite:"2026-04-30", estado:"pendiente" };
+  const hitosPrevios = [
+    { id:1, nombre:"Hito manual",   fecha:"2026-05-01", critico:true, completado:false },
+    { id:2, nombre:"Hito manual 2", fecha:"2026-06-01", critico:false, completado:false },
+  ];
+
+  it('crea hito nuevo cuando no existe ninguno con ese _tareaId', () => {
+    const r = syncHitoTarea(hitosPrevios, tarea);
+    expect(r).toHaveLength(3);
+    expect(r.find(h => h._tareaId === 38)).toBeDefined();
+  });
+
+  it('el nuevo hito tiene id > máximo existente', () => {
+    const r = syncHitoTarea(hitosPrevios, tarea);
+    const nuevo = r.find(h => h._tareaId === 38);
+    expect(nuevo.id).toBeGreaterThan(2);
+  });
+
+  it('no crea duplicados si ya existe un hito para esa tarea', () => {
+    const hitosConExistente = [...hitosPrevios, { id:3, _tareaId:38, nombre:"📋 Inventario material", fecha:"2026-04-30", critico:false, completado:false }];
+    const r = syncHitoTarea(hitosConExistente, tarea);
+    expect(r.filter(h => h._tareaId === 38)).toHaveLength(1);
+    expect(r).toHaveLength(3);
+  });
+
+  it('actualiza nombre y fecha al editar la tarea sin cambiar el id del hito', () => {
+    const hitosConExistente = [...hitosPrevios, { id:99, _tareaId:38, nombre:"📋 Viejo nombre", fecha:"2026-01-01", critico:false, completado:false }];
+    const r = syncHitoTarea(hitosConExistente, { ...tarea, titulo:"Inventario actualizado", fechaLimite:"2026-05-15" });
+    const h = r.find(h => h._tareaId === 38);
+    expect(h.nombre).toBe("📋 Inventario actualizado");
+    expect(h.fecha).toBe("2026-05-15");
+    expect(h.id).toBe(99); // id preservado
+  });
+
+  it('marca hito como completado cuando la tarea se completa', () => {
+    const r = syncHitoTarea(hitosPrevios, { ...tarea, estado:"completado" });
+    expect(r.find(h => h._tareaId === 38).completado).toBe(true);
+  });
+
+  it('desmarca hito al revertir tarea a pendiente', () => {
+    const hitosConCompletado = [...hitosPrevios, { id:3, _tareaId:38, completado:true }];
+    const r = syncHitoTarea(hitosConCompletado, { ...tarea, estado:"pendiente" });
+    expect(r.find(h => h._tareaId === 38).completado).toBe(false);
+  });
+
+  it('elimina hito con action="remove"', () => {
+    const hitosConExistente = [...hitosPrevios, { id:3, _tareaId:38 }];
+    const r = syncHitoTarea(hitosConExistente, tarea, "remove");
+    expect(r.find(h => h._tareaId === 38)).toBeUndefined();
+    expect(r).toHaveLength(2);
+  });
+
+  it('remove no afecta a hitos manuales sin _tareaId', () => {
+    const r = syncHitoTarea(hitosPrevios, tarea, "remove");
+    expect(r).toHaveLength(2); // nada que eliminar, los manuales intactos
+  });
+
+  it('si la tarea baja prioridad a media, elimina el hito existente', () => {
+    const hitosConExistente = [...hitosPrevios, { id:3, _tareaId:38 }];
+    const r = syncHitoTarea(hitosConExistente, { ...tarea, prioridad:"media" });
+    expect(r.find(h => h._tareaId === 38)).toBeUndefined();
+  });
+
+  it('si la tarea pierde fechaLimite, elimina el hito existente', () => {
+    const hitosConExistente = [...hitosPrevios, { id:3, _tareaId:38 }];
+    const r = syncHitoTarea(hitosConExistente, { ...tarea, fechaLimite:null });
+    expect(r.find(h => h._tareaId === 38)).toBeUndefined();
+  });
+
+  it('hitos manuales nunca se modifican', () => {
+    const r = syncHitoTarea(hitosPrevios, tarea);
+    expect(r.find(h => h.id === 1)).toEqual(hitosPrevios[0]);
+    expect(r.find(h => h.id === 2)).toEqual(hitosPrevios[1]);
+  });
+
+  it('funciona con lista de hitos vacía', () => {
+    const r = syncHitoTarea([], tarea);
+    expect(r).toHaveLength(1);
+    expect(r[0]._tareaId).toBe(38);
+  });
+
+  it('funciona con lista null (guard)', () => {
+    expect(() => syncHitoTarea(null, tarea)).not.toThrow();
+    expect(syncHitoTarea(null, tarea)).toHaveLength(1);
+  });
+});
+
+// ── Coherencia con TAREAS0 — todas las altas+área+fecha generan hito ─────
+describe('MEJORA-02c coherencia TAREAS0 — auto-promoción de datos semilla', () => {
+  it('al menos 10 tareas de TAREAS0 cumplen criterios de auto-promoción', async () => {
+    const { TAREAS0 } = await import('../components/proyecto/proyectoConstants.js');
+    const candidatas = TAREAS0.filter(t => calcHitoDesdeArea(t) !== null);
+    expect(candidatas.length).toBeGreaterThanOrEqual(10);
+  });
+
+  it('ninguna tarea de área permisos/economico/comunicacion genera hito automático', async () => {
+    const { TAREAS0 } = await import('../components/proyecto/proyectoConstants.js');
+    const no_deben = TAREAS0.filter(t =>
+      ["permisos","economico","comunicacion","camisetas","patrocinadores"].includes(t.area)
+    );
+    const generan = no_deben.filter(t => calcHitoDesdeArea(t) !== null);
+    expect(generan).toHaveLength(0);
+  });
+
+  it('ids de hitos auto-generados son únicos si se aplican todos a lista vacía', async () => {
+    const { TAREAS0 } = await import('../components/proyecto/proyectoConstants.js');
+    const candidatas = TAREAS0.filter(t => calcHitoDesdeArea(t) !== null);
+    let hitos = [];
+    for (const t of candidatas) {
+      hitos = syncHitoTarea(hitos, t);
+    }
+    const ids = hitos.map(h => h.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('aplicar syncHitoTarea dos veces con la misma tarea no duplica hitos (idempotente)', async () => {
+    const { TAREAS0 } = await import('../components/proyecto/proyectoConstants.js');
+    const tarea = TAREAS0.find(t => t.area === "logistica" && t.prioridad === "alta" && t.fechaLimite);
+    let hitos = syncHitoTarea([], tarea);
+    hitos = syncHitoTarea(hitos, tarea);
+    expect(hitos.filter(h => h._tareaId === tarea.id)).toHaveLength(1);
+  });
+});
