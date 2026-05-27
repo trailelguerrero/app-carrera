@@ -15,7 +15,7 @@ import {
   SK_PROY_TAREAS, SK_PROY_HITOS, SK_PROY_EQUIPO,
   SK_DOC_DOCS, SK_DOC_GESTIONES,
   SK_VOL_VOLUNTARIOS,
-  SK_LOG_CONT,
+  SK_LOG_CONT, SK_LOG_CK,
 } from "@/constants/storageKeys";
 
 import {
@@ -202,7 +202,26 @@ export default function App() {
         }
       }
 
-      return prevTareas.map(t => t.id === id ? { ...t, estado, historial } : t);
+      const nextTareas = prevTareas.map(t => t.id === id ? { ...t, estado, historial } : t);
+
+      // SYNC-INV: propagar cambio de estado a ítems del pre-operativo (CK) vinculados a esta tarea.
+      // Se hace async para no bloquear el render — error silencioso si CK no está disponible.
+      import("@/lib/dataService").then(m => {
+        m.default.get(SK_LOG_CK, []).then(ckActual => {
+          if (!Array.isArray(ckActual)) return;
+          const ckEstado = estado === "completado" ? "completado" : "pendiente";
+          const ckNext = ckActual.map(c =>
+            c.proyectoTareaId === id ? { ...c, estado: ckEstado } : c
+          );
+          const cambio = ckNext.some((c, i) => c.estado !== ckActual[i].estado);
+          if (cambio) {
+            m.default.set(SK_LOG_CK, ckNext);
+            m.default.notify(); // notifica a Logística.jsx del cambio externo
+          }
+        }).catch(() => {/* CK no disponible — ignorar */});
+      });
+
+      return nextTareas;
     });
   };
   const updHito = (id, field, val) => { setHitos(p => p.map(h => h.id===id ? {...h,[field]:val} : h)); if(field==="completado") toast.success(val ? "Hito completado ✓" : "Hito reabierto"); };

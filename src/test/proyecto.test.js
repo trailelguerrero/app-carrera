@@ -351,3 +351,57 @@ describe('PROY-10 — Estructura correcta de entrada de historial', () => {
     expect(new Date(fecha).getTime()).toBeGreaterThan(0);
   });
 });
+
+// ── SYNC-03: sincronización inversa Proyecto → CK ─────────────────────────
+describe('SYNC-03 updEstado Proyecto propaga estado a ítems CK vinculados', () => {
+  // Simulación de la lógica de propagación inversa de updEstado
+  function propagarACK(ckActual, tareaId, nuevoEstado) {
+    if (!Array.isArray(ckActual)) return ckActual;
+    const ckEstado = nuevoEstado === 'completado' ? 'completado' : 'pendiente';
+    return ckActual.map(c =>
+      c.proyectoTareaId === tareaId ? { ...c, estado: ckEstado } : c
+    );
+  }
+
+  const ckBase = [
+    { id: 1, tarea: 'Confirmar autorización', estado: 'pendiente', proyectoTareaId: 1 },
+    { id: 2, tarea: 'Señalizar ruta',         estado: 'pendiente', proyectoTareaId: 35 },
+    { id: 3, tarea: 'Sin vínculo',             estado: 'pendiente', proyectoTareaId: null },
+  ];
+
+  it('completar tarea Proyecto → CK vinculado pasa a "completado"', () => {
+    const resultado = propagarACK(ckBase, 1, 'completado');
+    expect(resultado.find(c => c.id === 1).estado).toBe('completado');
+  });
+
+  it('revertir tarea Proyecto → CK vinculado vuelve a "pendiente"', () => {
+    const ckConCompletado = ckBase.map(c => c.id === 1 ? { ...c, estado: 'completado' } : c);
+    const resultado = propagarACK(ckConCompletado, 1, 'pendiente');
+    expect(resultado.find(c => c.id === 1).estado).toBe('pendiente');
+  });
+
+  it('cambio en tarea Proyecto no afecta a ítems CK sin vínculo', () => {
+    const resultado = propagarACK(ckBase, 1, 'completado');
+    expect(resultado.find(c => c.id === 3).estado).toBe('pendiente');
+  });
+
+  it('cambio en tarea Proyecto no afecta a ítems CK vinculados a OTRA tarea', () => {
+    const resultado = propagarACK(ckBase, 1, 'completado');
+    expect(resultado.find(c => c.id === 2).estado).toBe('pendiente');
+  });
+
+  it('"en curso" en Proyecto pone CK en "pendiente" (no en curso — CK no tiene ese estado)', () => {
+    const resultado = propagarACK(ckBase, 1, 'en curso');
+    expect(resultado.find(c => c.id === 1).estado).toBe('pendiente');
+    expect(resultado.find(c => c.id === 1).estado).not.toBe('en curso');
+  });
+
+  it('propagación con CK vacío no falla', () => {
+    expect(() => propagarACK([], 1, 'completado')).not.toThrow();
+    expect(propagarACK([], 1, 'completado')).toEqual([]);
+  });
+
+  it('propagación con CK null devuelve el mismo valor (guard)', () => {
+    expect(propagarACK(null, 1, 'completado')).toBe(null);
+  });
+});
