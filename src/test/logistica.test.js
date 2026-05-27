@@ -2077,3 +2077,99 @@ describe('SYNC-01 toggle CK sincroniza estado correcto con Proyecto', () => {
     expect(updatedTareas.find(t => t.id === 11).estado).toBe('pendiente');
   });
 });
+
+// ── SYNC-06: syncHitoPedido — lógica de upsert/remove de hitos ───────────
+describe('SYNC-06 syncHitoPedido crea, actualiza y elimina hitos correctamente', () => {
+
+  // Simulación pura de la lógica de syncHitoPedido sin I/O
+  function simulateSync(hitos, pedido, action = 'upsert') {
+    const lista = Array.isArray(hitos) ? [...hitos] : [];
+
+    if (action === 'remove' || !pedido.fechaLimitePedido) {
+      return lista.filter(h => h._pedidoId !== pedido.id);
+    }
+
+    const hitoData = {
+      nombre:    `🛒 Pedido: ${pedido.nombre}`,
+      fecha:     pedido.fechaLimitePedido,
+      critico:   false,
+      completado: pedido.estado === 'recibido' || pedido.estado === 'facturado',
+      _pedidoId: pedido.id,
+    };
+
+    const idx = lista.findIndex(h => h._pedidoId === pedido.id);
+    if (idx === -1) {
+      const maxId = lista.reduce((m, h) => Math.max(m, typeof h.id === 'number' ? h.id : 0), 0);
+      return [...lista, { ...hitoData, id: maxId + 1 }];
+    }
+    return lista.map((h, i) => i === idx ? { ...h, ...hitoData } : h);
+  }
+
+  const pedido1 = { id: 101, nombre: 'Pedido medallas', fechaLimitePedido: '2026-07-01', estado: 'borrador' };
+
+  it('crea un hito nuevo cuando no existe ninguno con ese _pedidoId', () => {
+    const result = simulateSync([], pedido1);
+    expect(result).toHaveLength(1);
+    expect(result[0]._pedidoId).toBe(101);
+    expect(result[0].fecha).toBe('2026-07-01');
+    expect(result[0].nombre).toBe('🛒 Pedido: Pedido medallas');
+  });
+
+  it('el hito creado NO está completado si el pedido es borrador/confirmado', () => {
+    const result = simulateSync([], pedido1);
+    expect(result[0].completado).toBe(false);
+  });
+
+  it('el hito se marca completado cuando el pedido pasa a "recibido"', () => {
+    const pedidoRecibido = { ...pedido1, estado: 'recibido' };
+    const result = simulateSync([], pedidoRecibido);
+    expect(result[0].completado).toBe(true);
+  });
+
+  it('el hito se marca completado cuando el pedido pasa a "facturado"', () => {
+    const pedidoFacturado = { ...pedido1, estado: 'facturado' };
+    const result = simulateSync([], pedidoFacturado);
+    expect(result[0].completado).toBe(true);
+  });
+
+  it('actualiza el hito existente sin crear duplicados', () => {
+    const hitosIniciales = [{ id: 5, nombre: '🛒 Pedido: Pedido medallas', fecha: '2026-07-01', _pedidoId: 101, completado: false, critico: false }];
+    const pedidoActualizado = { ...pedido1, fechaLimitePedido: '2026-07-15', nombre: 'Pedido medallas v2' };
+    const result = simulateSync(hitosIniciales, pedidoActualizado);
+    expect(result).toHaveLength(1);
+    expect(result[0].fecha).toBe('2026-07-15');
+    expect(result[0].nombre).toBe('🛒 Pedido: Pedido medallas v2');
+    expect(result[0].id).toBe(5); // preserva el id original
+  });
+
+  it('elimina el hito con action="remove"', () => {
+    const hitosIniciales = [{ id: 5, _pedidoId: 101 }];
+    const result = simulateSync(hitosIniciales, pedido1, 'remove');
+    expect(result).toHaveLength(0);
+  });
+
+  it('no elimina hitos de otros pedidos con remove', () => {
+    const hitosIniciales = [{ id: 5, _pedidoId: 101 }, { id: 6, _pedidoId: 202 }];
+    const result = simulateSync(hitosIniciales, pedido1, 'remove');
+    expect(result).toHaveLength(1);
+    expect(result[0]._pedidoId).toBe(202);
+  });
+
+  it('sin fechaLimitePedido actúa como remove (limpia el hito si existía)', () => {
+    const hitosIniciales = [{ id: 5, _pedidoId: 101 }];
+    const pedidoSinFecha = { ...pedido1, fechaLimitePedido: '' };
+    const result = simulateSync(hitosIniciales, pedidoSinFecha);
+    expect(result).toHaveLength(0);
+  });
+
+  it('no hace nada si no hay hito y se llama remove', () => {
+    const result = simulateSync([], pedido1, 'remove');
+    expect(result).toHaveLength(0);
+  });
+
+  it('genera id superior al máximo existente', () => {
+    const hitosIniciales = [{ id: 10, _pedidoId: 999 }];
+    const result = simulateSync(hitosIniciales, pedido1);
+    expect(result.find(h => h._pedidoId === 101).id).toBe(11);
+  });
+});

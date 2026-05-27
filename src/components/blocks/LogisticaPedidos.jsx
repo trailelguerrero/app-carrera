@@ -5,6 +5,52 @@ import { genIdNum, fmtEur2 as fmtEur } from "@/lib/utils";
 import { usePaginacion } from "@/hooks/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { blockCls as cls } from "@/lib/blockStyles";
+import { SK_PROY_HITOS } from "@/constants/storageKeys";
+import dataService from "@/lib/dataService";
+import { HITOS0 } from "@/components/proyecto/proyectoConstants";
+
+// Sincroniza un hito de "fecha límite de pedido" con SK_PROY_HITOS.
+// - Si el pedido tiene fechaLimitePedido → crea o actualiza el hito (id derivado del pedido).
+// - Si no tiene fecha o se llama con action="remove" → elimina el hito si existía.
+async function syncHitoPedido(pedido, action = "upsert") {
+  try {
+    const hitos = await dataService.get(SK_PROY_HITOS, HITOS0);
+    const lista  = Array.isArray(hitos) ? hitos : [];
+    // Identificador único estable: "pedido-{id}" para no colisionar con hitos manuales
+    const hitoKey = `pedido-${pedido.id}`;
+    const idx = lista.findIndex(h => h._pedidoId === pedido.id);
+
+    if (action === "remove" || !pedido.fechaLimitePedido) {
+      if (idx === -1) return; // nada que eliminar
+      const next = lista.filter((_, i) => i !== idx);
+      await dataService.set(SK_PROY_HITOS, next);
+      dataService.notify();
+      return;
+    }
+
+    const hitoData = {
+      nombre:    `🛒 Pedido: ${pedido.nombre}`,
+      fecha:     pedido.fechaLimitePedido,
+      critico:   false,
+      completado: pedido.estado === "recibido" || pedido.estado === "facturado",
+      _pedidoId: pedido.id,   // vínculo de vuelta al pedido
+    };
+
+    let next;
+    if (idx === -1) {
+      // Crear nuevo — id numérico único
+      const maxId = lista.reduce((m, h) => Math.max(m, typeof h.id === "number" ? h.id : 0), 0);
+      next = [...lista, { ...hitoData, id: maxId + 1 }];
+    } else {
+      // Actualizar existente — preservar id original
+      next = lista.map((h, i) => i === idx ? { ...h, ...hitoData } : h);
+    }
+    await dataService.set(SK_PROY_HITOS, next);
+    dataService.notify();
+  } catch (e) {
+    console.error("[LogisticaPedidos] syncHitoPedido:", e.message);
+  }
+}
 
 // ─── TAB PEDIDOS A PROVEEDORES ────────────────────────────────────────────────
 const ESTADOS_PEDIDO = [
@@ -103,11 +149,21 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
   const abrirNuevo = () => setModal("nuevo");
   const abrirEditar = (p) => setModal(p);
   const guardar = (p) => {
-    if (p.id) setPedidos(prev => prev.map(x => x.id===p.id ? p : x));
-    else setPedidos(prev => [...prev, { ...p, id: genPedidoId(prev) }]);
+    if (p.id) {
+      setPedidos(prev => prev.map(x => x.id===p.id ? p : x));
+      syncHitoPedido(p);
+    } else {
+      setPedidos(prev => {
+        const nuevo = { ...p, id: genPedidoId(prev) };
+        syncHitoPedido(nuevo);
+        return [...prev, nuevo];
+      });
+    }
     setModal(null);
   };
   const eliminar = () => {
+    const pedido = pedidos.find(x => x.id === delId);
+    if (pedido) syncHitoPedido(pedido, "remove");
     setPedidos(prev => prev.filter(x => x.id !== delId));
     setDelId(null);
   };
@@ -279,8 +335,43 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
                       </div>
                     )}
 
-                    {/* Factura */}
+                    {/* Fechas + Factura */}
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
+                      {/* Fecha límite pedido — con indicador de urgencia */}
+                      {(() => {
+                        const dias = p.fechaLimitePedido
+                          ? Math.ceil((new Date(p.fechaLimitePedido) - new Date()) / 86400000)
+                          : null;
+                        const vencida = dias !== null && dias < 0;
+                        const urgente = dias !== null && dias >= 0 && dias <= 7;
+                        const color   = vencida ? "var(--red)" : urgente ? "var(--orange)" : "var(--violet)";
+                        const bg      = vencida ? "rgba(248,113,113,.08)" : urgente ? "rgba(251,146,60,.08)" : "rgba(167,139,250,.06)";
+                        return (
+                          <div style={{padding:".55rem .7rem",borderRadius:8,
+                            background: p.fechaLimitePedido ? bg : "var(--surface2)",
+                            border:`1px solid ${p.fechaLimitePedido ? color+"44" : "var(--border)"}`}}>
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
+                              color:"var(--text-muted)",marginBottom:".25rem",display:"flex",alignItems:"center",gap:".3rem"}}>
+                              ⏰ Límite pedido
+                              {p.fechaLimitePedido && (
+                                <span style={{fontSize:"var(--fs-2xs)",padding:".05rem .25rem",
+                                  borderRadius:10,background:color+"22",color,border:`1px solid ${color}44`,fontWeight:700}}>
+                                  → hito
+                                </span>
+                              )}
+                            </div>
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-base)",
+                              fontWeight:700,color: p.fechaLimitePedido ? color : "var(--text-dim)"}}>
+                              {p.fechaLimitePedido || "—"}
+                            </div>
+                            {dias !== null && (
+                              <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color,marginTop:".1rem"}}>
+                                {vencida ? `⚠ Venció hace ${Math.abs(dias)}d` : dias === 0 ? "⚡ HOY" : `${dias}d restantes`}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                       <div style={{padding:".55rem .7rem",borderRadius:8,
                         background:"var(--surface2)",border:"1px solid var(--border)"}}>
                         <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
@@ -369,7 +460,12 @@ function TabPedidosProv({ pedidos, setPedidos, cont, material=[], conceptosPres=
                               color: p.estado===e.id ? e.color : "var(--text-dim)",
                               transition:"background .12s,color .12s",
                             }}
-                            onClick={()=>{ setPedidos(prev=>prev.map(x=>x.id===p.id?{...x,estado:e.id}:x)); if(e.id==="recibido") toast.success("Pedido marcado como recibido"); }}>
+                            onClick={()=>{
+                              const upd = {...p, estado:e.id};
+                              setPedidos(prev=>prev.map(x=>x.id===p.id?upd:x));
+                              syncHitoPedido(upd); // actualiza completado del hito si hay fecha límite
+                              if(e.id==="recibido") toast.success("Pedido marcado como recibido");
+                            }}>
                             {e.label}
                           </button>
                         ))}
@@ -828,6 +924,7 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
       importeEstimado: sugerido.importeEstimado||0,
       importeTotal: sugerido.importeTotal||0,
       estado: "borrador",
+      fechaLimitePedido: sugerido.fechaLimitePedido||"",
       fechaEntrega: sugerido.fechaEntrega||"",
       notas: sugerido.notas||"",
       factura: null,
@@ -835,7 +932,7 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
     return {
       nombre:"", proveedor:"", articulos:[{nombre:"",cantidad:1,precioUnit:0}],
       importeEstimado:0, importeTotal:0, estado:"borrador",
-      fechaEntrega:"", notas:"", factura:null,
+      fechaLimitePedido:"", fechaEntrega:"", notas:"", factura:null,
     };
   });
 
@@ -885,6 +982,25 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
                 ))}
                 <option value="__otro__">Otro (escribir abajo)</option>
               </select>
+            </div>
+            <div>
+              <label className="fl" style={{display:"flex",alignItems:"center",gap:".35rem"}}>
+                📅 Fecha límite para realizar el pedido
+                <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-2xs)",
+                  padding:".05rem .3rem",borderRadius:10,
+                  background:"rgba(167,139,250,.15)",color:"var(--violet)",
+                  border:"1px solid rgba(167,139,250,.25)"}}>
+                  → hito automático
+                </span>
+              </label>
+              <input className="inp" type="date" value={form.fechaLimitePedido||""}
+                onChange={e=>upd("fechaLimitePedido",e.target.value)} />
+              {form.fechaLimitePedido && (
+                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
+                  color:"var(--violet)",marginTop:".25rem"}}>
+                  ✓ Se creará un hito «🛒 Pedido: {form.nombre||"este pedido"}» en Proyecto → Hitos
+                </div>
+              )}
             </div>
             <div>
               <label className="fl">Fecha entrega esperada</label>
