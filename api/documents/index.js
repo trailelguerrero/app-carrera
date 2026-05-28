@@ -45,8 +45,20 @@ export default async function handler(req, res) {
     const sql = neon(process.env.DATABASE_URL);
     if (!tableReady) { await ensureTable(sql); tableReady = true; }
 
-    // ── GET — listar metadatos ──────────────────────────────────────────────
+    // ── GET — un documento (redirect a blob) o listar metadatos ──────────
     if (req.method === 'GET') {
+      // GET /api/documents?id=xxx → redirige al blob (absorbe /api/documents/[id])
+      const onlyId = req.query.id && Object.keys(req.query).length === 1;
+      if (onlyId) {
+        const rows = await sql`
+          SELECT blob_url, tipo, nombre FROM documents WHERE id = ${req.query.id}
+        `;
+        if (!rows.length) return res.status(404).json({ error: 'Not found' });
+        const doc = rows[0];
+        if (doc.blob_url) return res.redirect(302, doc.blob_url);
+        return res.status(404).json({ error: 'Documento sin archivo asociado' });
+      }
+
       const rows = await sql`
         SELECT id, nombre, nombre_display, emisor, categoria, subcategoria,
                nota, estado, fecha_vencimiento, size, tipo, blob_url,

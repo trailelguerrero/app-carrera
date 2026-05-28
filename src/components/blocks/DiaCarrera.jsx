@@ -153,7 +153,7 @@ export default function DiaCarrera({ onClose }) {
     // PWA-10: push servidor — notifica a TODOS los dispositivos suscritos
     // Solo incidencias altas y medias (las bajas no justifican interrumpir)
     if (nueva.gravedad !== "baja") {
-      fetch("/api/push/send", {
+      fetch("/api/push?action=send", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-api-key": import.meta.env.VITE_API_KEY || "" },
         body: JSON.stringify({

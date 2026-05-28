@@ -113,14 +113,14 @@ export function usePushNotifications() {
       // 4. Enviar suscripción al servidor (si hay API disponible)
       if (VAPID_PUBLIC_KEY) {
         try {
-          await fetch('/api/push/subscribe', {
+          await fetch('/api/push?action=subscribe', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(pushSub.toJSON()),
           });
         } catch {
           // El servidor no tiene endpoint de push — modo local funcional
-          console.info('[Push] Servidor sin endpoint /api/push/subscribe — modo local activo.');
+          console.info('[Push] Servidor sin endpoint /api/push?action=subscribe — modo local activo.');
         }
       }
 
@@ -149,7 +149,7 @@ export function usePushNotifications() {
       // Informar al servidor
       if (VAPID_PUBLIC_KEY) {
         try {
-          await fetch('/api/push/unsubscribe', {
+          await fetch('/api/push?action=unsubscribe', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ endpoint: subscription.endpoint }),
