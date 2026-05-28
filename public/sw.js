@@ -39,7 +39,7 @@
 // ── Versión de caché ────────────────────────────────────────────────────────
 // Se inyecta en build por vite-plugin-pwa (injectManifest).
 // En desarrollo se usa un timestamp para invalidar siempre.
-const CACHE_VERSION = self.__WB_MANIFEST ? "pwa-v3" : `dev-${Date.now()}`;
+const CACHE_VERSION = self.__WB_MANIFEST ? "pwa-v4" : `dev-${Date.now()}`;
 
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 const CACHE_DATA    = `${CACHE_VERSION}-data`;
