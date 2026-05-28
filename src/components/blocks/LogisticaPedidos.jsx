@@ -130,7 +130,9 @@ export function resolverProveedor(pedido, contactos = []) {
     return conts.find(c => c.nombre === pedido.proveedor) ?? null;
   }
   return null;
-}({ pedidos, setPedidos, cont, material=[], setMaterial, conceptosPres=[], totalInscritos, inscritos }) {
+}
+
+export function TabPedidosProv({ pedidos, setPedidos, cont, material=[], setMaterial, conceptosPres=[], totalInscritos, inscritos }) {
   const [modal, setModal]   = useState(null); // null | "nuevo" | {pedido}
   const [delId, setDelId]   = useState(null);
   const [expanded, setExpanded] = useState(null);
@@ -1428,4 +1430,3 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
   );
 }
 
-export { TabPedidosProv };
