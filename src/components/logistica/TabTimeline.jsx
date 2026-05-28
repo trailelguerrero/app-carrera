@@ -11,16 +11,40 @@ import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { useData } from "@/hooks/useData";
 
+// ─── LÍNEA "AHORA" — componente aislado para no re-renderizar la lista ────────
+// El intervalo de 30s solo actualiza este componente, no TabTL ni el sorted.map()
+function LineaAhora({ horaActual }) {
+  return (
+    <div style={{display:"flex",alignItems:"center",gap:".6rem",margin:".3rem 0",padding:"0 .5rem"}}>
+      <div style={{flex:1,height:1,background:"rgba(34,211,238,0.35)"}}/>
+      <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
+        color:"var(--cyan)",padding:".12rem .5rem",borderRadius:20,
+        background:"rgba(34,211,238,0.1)",border:"1px solid rgba(34,211,238,0.3)",
+        whiteSpace:"nowrap"}}>
+        ● AHORA {horaActual}
+      </span>
+      <div style={{flex:1,height:1,background:"rgba(34,211,238,0.35)"}}/>
+    </div>
+  );
+}
+
+function useHoraActual(intervaloMs = 30000) {
+  const [ahora, setAhora] = useState(() => new Date().toTimeString().slice(0, 5));
+  useEffect(() => {
+    const t = setInterval(() => setAhora(new Date().toTimeString().slice(0, 5)), intervaloMs);
+    return () => clearInterval(t);
+  }, [intervaloMs]);
+  return ahora;
+}
+
 // ─── TIMELINE ─────────────────────────────────────────────────────────────────
 function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,config,onUpdSync}) {
   const [vistaKanban,setVistaKanban]=useState(false);
-  const [ahora,setAhora] = useState(new Date());
   const [filtroResp,setFiltroResp] = useState("todos");
-  useEffect(() => {
-    const t = setInterval(() => setAhora(new Date()), 30000);
-    return () => clearInterval(t);
-  }, []);
-  const horaActual = ahora.toTimeString().slice(0,5); // "HH:MM"
+  // horaActual vive en un hook separado — sus actualizaciones (cada 30s) no
+  // re-renderizan TabTL completo porque solo el hook contiene el estado del reloj.
+  // El componente <LineaAhora> es el único que se re-renderiza cuando cambia la hora.
+  const horaActual = useHoraActual();
   const responsables = useMemo(() =>
     [...new Set(tl.map(t0 => t0.responsable).filter(Boolean))].sort()
   , [tl]);
@@ -31,7 +55,7 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
     else arr.sort((a,b)=>a.hora.localeCompare(b.hora));
     return arr;
   },[tl,ordenAlfa,filtroResp]);
-  const mover=(id,dir)=>{
+  const mover=useCallback((id,dir)=>{
     if(ordenAlfa) return;
     setTl(prev=>{
       const arr=[...prev].sort((a,b)=>a.hora.localeCompare(b.hora));
@@ -41,13 +65,13 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
       const horaI=arr[i].hora,horaJ=arr[j].hora;
       return prev.map(x=>x.id===arr[i].id?{...x,hora:horaJ}:x.id===arr[j].id?{...x,hora:horaI}:x);
     });
-  };
-  const upd=(id,estado)=>{
+  },[ordenAlfa,setTl]);
+  const upd=useCallback((id,estado)=>{
     const hora = new Date().toTimeString().slice(0,5);
     setTl(p=>p.map(t=>t.id===id?{...t,estado,completadoEn:estado==="completado"?hora:undefined}:t));
     // MEJ-05: sincronizar CK vinculado si existe _ckId
     if (onUpdSync) onUpdSync(id, estado, hora);
-  };
+  },[setTl,onUpdSync]);
   return(
     <>
       <div className="ph">
@@ -106,18 +130,7 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
           (i === 0 || sorted[i-1].hora < horaActual);
         return(
           <div key={t.id} style={{display:"contents"}}>
-          {esPrimeroFuturo && (
-            <div style={{display:"flex",alignItems:"center",gap:".6rem",margin:".3rem 0",padding:"0 .5rem"}}>
-              <div style={{flex:1,height:1,background:"rgba(34,211,238,0.35)"}}/>
-              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
-                color:"var(--cyan)",padding:".12rem .5rem",borderRadius:20,
-                background:"rgba(34,211,238,0.1)",border:"1px solid rgba(34,211,238,0.3)",
-                whiteSpace:"nowrap"}}>
-                ● AHORA {horaActual}
-              </span>
-              <div style={{flex:1,height:1,background:"rgba(34,211,238,0.35)"}}/>
-            </div>
-          )}
+          {esPrimeroFuturo && <LineaAhora horaActual={horaActual} />}
           <div className={cls("tlrow",t.estado==="completado"&&"tldone",t.estado==="bloqueado"&&"tlblk")}>
             <div className="tlleft">
               <div className="tltime">{t.hora}</div>

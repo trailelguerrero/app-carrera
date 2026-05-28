@@ -1,8 +1,20 @@
 /**
- * useDashboardKpis.js — Tarea 3.4
+ * useDashboardKpis.js — Tarea 3.4 + Mejora 7
  * Encapsula todos los cálculos de KPIs del Dashboard.
  * Recibe rawData y devuelve el objeto data con métricas calculadas.
- * Extrae el useMemo de ~200 líneas del componente Dashboard.
+ *
+ * MEJ-07: el useMemo monolítico (~300 líneas, deps [rawData]) se ha partido en
+ * submemos por área. Cada área solo se recalcula cuando cambian SUS datos:
+ *   - presupuesto: conceptos, tramos, inscritos, ingresosExtra, camisetas
+ *   - voluntarios: voluntarios, puestos
+ *   - patrocinadores: pats, obj
+ *   - logistica: material, asigs, tl, ck, inc
+ *   - proyecto: tareas, hitos
+ *   - documentos: docs, gestiones
+ *   - config: fecha, nombre, edición del evento
+ *   - resultado final: composición de los anteriores + alertas + salud
+ *
+ * Cambiar un voluntario ya no recalcula logística ni presupuesto.
  */
 import { useMemo } from "react";
 import {
@@ -32,176 +44,192 @@ import {
   SK_CAM_NINO, SK_CAM_VENTA_PUBLICO,
 } from "@/constants/storageKeys";
 
-export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
-  return useMemo(() => {
-    const d = rawData ?? {};
-    const get = (key, def) => {
-      const v = d[key];
-      if (v === undefined || v === null) return def;
-      if (Array.isArray(def) && !Array.isArray(v)) return def;
-      return v;
-    };
+// Helper estable (no cambia entre renders) para leer rawData con fallback
+function makeGetter(d) {
+  return function get(key, def) {
+    const v = d[key];
+    if (v === undefined || v === null) return def;
+    if (Array.isArray(def) && !Array.isArray(v)) return def;
+    return v;
+  };
+}
 
+export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
+  // ── Extraer slices de rawData una sola vez ──────────────────────────────
+  // Cada submemo depende solo de su slice, no de rawData completo.
+  const d = rawData ?? {};
+  const get = makeGetter(d);
+
+  // Extraer primitivos/arrays estables para usar como deps de submemos
+  const rawConfig       = d[LS_KEY_CONFIG];
+  const rawConceptos    = d[SK_PPTO_CONCEPTOS];
+  const rawTramos       = d[SK_PPTO_TRAMOS];
+  const rawInscritos    = d[SK_PPTO_INSCRITOS];
+  const rawSyncConfig   = d[SK_PPTO_SYNC_CONFIG];
+  const rawIngresosExtra= d[SK_PPTO_INGRESOS_EXTRA];
+  const rawMerchandising= d[SK_PPTO_MERCHANDISING];
+  const rawMaximos      = d[SK_PPTO_MAXIMOS];
+  const rawScenario     = d[SK_PPTO_SCENARIO_ACTIVE];
+  const rawPats         = d[SK_PAT_PATS];
+  const rawPatObj       = d[SK_PAT_OBJ];
+  const rawVoluntarios  = d[SK_VOL_VOLUNTARIOS];
+  const rawPuestos      = d[SK_VOL_PUESTOS];
+  const rawMaterial     = d[SK_LOG_MAT];
+  const rawAsigs        = d[SK_LOG_ASIG];
+  const rawTl           = d[SK_LOG_TL];
+  const rawCk           = d[SK_LOG_CK];
+  const rawInc          = d[SK_LOG_INC];
+  const rawTareas       = d[SK_PROY_TAREAS];
+  const rawHitos        = d[SK_PROY_HITOS];
+  const rawDocs         = d[SK_DOC_DOCS];
+  const rawGestiones    = d[SK_DOC_GESTIONES];
+  const rawCamPedidos   = d[SK_CAM_PEDIDOS];
+  const rawCamCoste     = d[SK_CAM_COSTE];
+  const rawCamCorredores= d[SK_CAM_CORREDORES];
+  const rawCamPrecioPlat= d[SK_CAM_PRECIO_PLATAFORMA];
+  const rawCamNino      = d[SK_CAM_NINO];
+  const rawCamVentaPub  = d[SK_CAM_VENTA_PUBLICO];
+
+  // ── SUBMEMO: config del evento ──────────────────────────────────────────
+  const configKpis = useMemo(() => {
+    const cfg = { ...EVENT_CONFIG_DEFAULT, ...(rawConfig || {}) };
     const TODAY = new Date();
-    const cfg = { ...EVENT_CONFIG_DEFAULT, ...(get(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT) || {}) };
     const eventoFecha = cfg.fecha ? new Date(cfg.fecha) : EVENT_DATE;
     const diasHasta = Math.ceil((eventoFecha - TODAY) / 86400000);
     const yaFue = diasHasta < 0;
     const esSemana = diasHasta >= 0 && diasHasta <= cfg.volDiasCritico;
-    const _volDiasCritico = volDiasCritico ?? cfg.volDiasCritico;
-    const _volDiasAviso   = volDiasAviso   ?? cfg.volDiasAviso;
-    const eventoNombre = cfg.nombre;
-    const eventoEdicion = cfg.edicion;
+    const eventoFechaStr = eventoFecha.toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" });
+    return {
+      cfg, eventoFecha, diasHasta, yaFue, esSemana, eventoFechaStr,
+      eventoNombre: cfg.nombre, eventoEdicion: cfg.edicion,
+      volDiasCritico: cfg.volDiasCritico, volDiasAviso: cfg.volDiasAviso,
+    };
+  }, [rawConfig]);
 
-    // PRESUPUESTO — cálculo financiero
-    // FIX: usar calculateResultado (misma función que useBudgetLogic/Presupuesto) en lugar de
-    // calculateResultadoFinanciero, que recalculaba patrocinadores desde el snapshot y podía
-    // divergir si el snapshot estaba desactualizado. Los valores de ingresosExtra ya llegan
-    // resueltos desde localStorage (actualizados por teg-sync tras BUG-ECO-02), por lo que
-    // sumar ie.valor directamente es equivalente a recalcular — y garantiza el mismo número.
-    const conceptos = get(SK_PPTO_CONCEPTOS, []);
-    const tramos = get(SK_PPTO_TRAMOS, []);
-    const inscritos = get(SK_PPTO_INSCRITOS, { tramos: {} });
-    const syncConfig = get(SK_PPTO_SYNC_CONFIG, { patrocinios: true, camisetas: true });
-    const scenarioActivo = get(SK_PPTO_SCENARIO_ACTIVE, null);
-    const ingresosExtra = get(SK_PPTO_INGRESOS_EXTRA, []);
-    const maximos = get(SK_PPTO_MAXIMOS, {});
+  // ── SUBMEMO: presupuesto ────────────────────────────────────────────────
+  const presupuestoKpis = useMemo(() => {
+    const conceptos   = Array.isArray(rawConceptos)    ? rawConceptos    : [];
+    const tramos      = Array.isArray(rawTramos)       ? rawTramos       : [];
+    const inscritos   = rawInscritos || { tramos: {} };
+    const syncConfig  = { patrocinios: true, camisetas: true, ...(rawSyncConfig || {}) };
+    const ingresosExtra = Array.isArray(rawIngresosExtra) ? rawIngresosExtra : [];
+    const maximos     = rawMaximos || {};
+    const scenarioActivo = rawScenario ?? null;
+    const merchandising = Array.isArray(rawMerchandising) ? rawMerchandising : [];
 
-    const inscritosBU = calculateTotalInscritos(tramos, inscritos);
-    const ingresosBU = calculateIngresosPorDistancia(tramos, inscritos);
+    const inscritosBU   = calculateTotalInscritos(tramos, inscritos);
+    const ingresosBU    = calculateIngresosPorDistancia(tramos, inscritos);
     const costesFijosBU = calculateCostesFijos(conceptos, inscritosBU);
-    const costesVarsBU = calculateCostesVariables(conceptos, inscritosBU);
+    const costesVarsBU  = calculateCostesVariables(conceptos, inscritosBU);
 
-    const totalInscritos = inscritosBU.total;
-    const inscritosPorDist = { TG7: inscritosBU.TG7, TG13: inscritosBU.TG13, TG25: inscritosBU.TG25 };
-    const totalIngresos = ingresosBU.total;
-    const totalCostesFijos = costesFijosBU.total;
-    const totalCostesVars = costesVarsBU.total;
-
-    const maximosPorDist = { TG7: maximos?.TG7 || 0, TG13: maximos?.TG13 || 0, TG25: maximos?.TG25 || 0 };
-    const totalMaximos = maximosPorDist.TG7 + maximosPorDist.TG13 + maximosPorDist.TG25;
-    const ocupacionPorDist = {
+    const totalInscritos     = inscritosBU.total;
+    const inscritosPorDist   = { TG7: inscritosBU.TG7, TG13: inscritosBU.TG13, TG25: inscritosBU.TG25 };
+    const totalIngresos      = ingresosBU.total;
+    const totalCostesFijos   = costesFijosBU.total;
+    const totalCostesVars    = costesVarsBU.total;
+    const maximosPorDist     = { TG7: maximos?.TG7 || 0, TG13: maximos?.TG13 || 0, TG25: maximos?.TG25 || 0 };
+    const totalMaximos       = maximosPorDist.TG7 + maximosPorDist.TG13 + maximosPorDist.TG25;
+    const ocupacionPorDist   = {
       TG7:  maximosPorDist.TG7  > 0 ? Math.round(inscritosPorDist.TG7  / maximosPorDist.TG7  * 100) : null,
       TG13: maximosPorDist.TG13 > 0 ? Math.round(inscritosPorDist.TG13 / maximosPorDist.TG13 * 100) : null,
       TG25: maximosPorDist.TG25 > 0 ? Math.round(inscritosPorDist.TG25 / maximosPorDist.TG25 * 100) : null,
     };
     const ocupacionGlobal = totalMaximos > 0 ? Math.round(totalInscritos / totalMaximos * 100) : null;
 
-    // totalIngresosExtra: suma de líneas activas del snapshot, excluyendo camisetas
-    // (que se recalcula en vivo abajo) y recalculando en vivo patrocinios/subvención
-    // para aplicar la invariante ECO-01 (evitar doble cómputo subvencionPublica).
-    //
-    // BUG-DASH-03 fix: el snapshot puede tener el valor de la línea "patrocinios"
-    // sin excluir el sector público cuando subvencionPublica está activo.
-    // Recalculamos desde rawPats aplicando el mismo filtro que useBudgetLogic.
-    const _rawPatsSnap = get(SK_PAT_PATS, []);
+    // Patrocinios live (mismo filtro que useBudgetLogic ECO-01)
+    const _rawPatsSnap = Array.isArray(rawPats) ? rawPats : [];
     const _excluirPublicos = syncConfig?.subvencionPublica === true;
-    const _totalPatLive = (Array.isArray(_rawPatsSnap) ? _rawPatsSnap : [])
+    const _totalPatLive = _rawPatsSnap
       .filter(p => !p.especie && (!_excluirPublicos || p.sector !== "Administración pública"))
       .reduce((s, p) => (p.estado === "confirmado" || p.estado === "cobrado") ? s + (p.importe || 0) : s, 0);
-    const _totalPatCobradoLive = (Array.isArray(_rawPatsSnap) ? _rawPatsSnap : [])
+    const _totalPatCobradoLive = _rawPatsSnap
       .filter(p => !p.especie && p.estado === "cobrado")
       .reduce((s, p) => s + (p.importeCobrado > 0 ? p.importeCobrado : (p.importe || 0)), 0);
-    const _totalSubvLive = (Array.isArray(_rawPatsSnap) ? _rawPatsSnap : [])
+    const _totalSubvLive = _rawPatsSnap
       .filter(p => p.sector === "Administración pública" && !p.especie)
       .reduce((s, p) => (p.estado === "confirmado" || p.estado === "cobrado") ? s + (p.importe || 0) : s, 0);
 
-    const totalIngresosExtra = (Array.isArray(ingresosExtra) ? ingresosExtra : [])
+    const totalIngresosExtra = ingresosExtra
       .filter(ie => ie.activo && ie.syncKey !== "camisetas")
       .reduce((s, ie) => {
-        // Para líneas sincronizadas con patrocinios, usar valor recalculado en vivo
-        if (ie.syncKey === "patrocinios")          return s + _totalPatLive;
-        if (ie.syncKey === "patrociniosCobrado")    return s + _totalPatCobradoLive;
-        if (ie.syncKey === "subvencionPublica")     return s + _totalSubvLive;
+        if (ie.syncKey === "patrocinios")       return s + _totalPatLive;
+        if (ie.syncKey === "patrociniosCobrado") return s + _totalPatCobradoLive;
+        if (ie.syncKey === "subvencionPublica") return s + _totalSubvLive;
         return s + (ie.valor || 0);
       }, 0);
 
-    // ECO-05: calcular totalMerchBeneficio desde el snapshot de camisetas,
-    // usando la misma función (calculateCosteCamisetasDesglosado) que usa useBudgetLogic.
-    // Esto garantiza que el ROI del Dashboard incluye el beneficio de camisetas, igual que
-    // lo hace calculateResultadoFinanciero en el módulo Presupuesto.
-    const camisetasIe = (Array.isArray(ingresosExtra) ? ingresosExtra : []).find(ie => ie.syncKey === "camisetas");
+    // Camisetas
+    const camisetasIe = ingresosExtra.find(ie => ie.syncKey === "camisetas");
     const camisetasActiva = camisetasIe ? camisetasIe.activo : (syncConfig?.camisetas ?? true);
-    const camPedidos    = get(SK_CAM_PEDIDOS, []);
-    const camCoste      = get(SK_CAM_COSTE, CAM_COSTE_DEFAULT) || CAM_COSTE_DEFAULT;
-    const camCorredores = get(SK_CAM_CORREDORES, {});
-    const camPrecioPlat = get(SK_CAM_PRECIO_PLATAFORMA, { precio: 0 });
-    const camNino       = get(SK_CAM_NINO, {});
-    const camVentaPublico = get(SK_CAM_VENTA_PUBLICO, { precio: 0, cantidad: 0 });
-    // Voluntarios activos con talla (misma lógica que useBudgetLogic._camVoluntariosActivos)
-    const rawVoluntariosSnap = get(SK_VOL_VOLUNTARIOS, []);
-    const camVolActivos = (Array.isArray(rawVoluntariosSnap) ? rawVoluntariosSnap : [])
+    const camPedidos    = Array.isArray(rawCamPedidos) ? rawCamPedidos : [];
+    const camCoste      = rawCamCoste || CAM_COSTE_DEFAULT;
+    const camCorredores = rawCamCorredores || {};
+    const camPrecioPlat = rawCamPrecioPlat || { precio: 0 };
+    const camNino       = rawCamNino || {};
+    const camVentaPublico = rawCamVentaPub || { precio: 0, cantidad: 0 };
+    const camVolActivos = (Array.isArray(rawVoluntarios) ? rawVoluntarios : [])
       .filter(v => (v.estado === "confirmado" || v.estado === "pendiente") && v.talla);
-
-    // BUG-DASH-06 fix: leer merchandising local (TabIngresos → Venta de Productos).
-    // useBudgetLogic suma beneficio(camisetasDesglosado) + beneficio(merchandising local).
-    // El Dashboard tenía la segunda parte a cero → resultado inferior al de Presupuesto.
-    const merchandising = get(SK_PPTO_MERCHANDISING, []);
-    const merchTotalesSnap = calculateMerchTotales(Array.isArray(merchandising) ? merchandising : []);
+    const merchTotalesSnap = calculateMerchTotales(merchandising);
 
     let totalMerchBeneficio = 0;
-    // BUG-DASH-02 fix: guardar el desglose para exponerlo en el retorno.
-    // Antes se calculaba pero se descartaba (variable local) → camisetasDesglose: null siempre
-    // → SeccionCharts y MiniDesglose no mostraban líneas de camisetas.
     let camisetasDesglose = null;
     if (camisetasActiva) {
       camisetasDesglose = calculateCosteCamisetasDesglosado({
-        camCoste,
-        camPedidos: Array.isArray(camPedidos) ? camPedidos : [],
-        corredoresExt: camCorredores || {},
-        precioCorrExt: camPrecioPlat?.precio ?? 0,
-        ninoExt: camNino || {},
-        voluntariosActivos: camVolActivos,
-        ventaPublico: camVentaPublico || { precio: 0, cantidad: 0 },
+        camCoste, camPedidos, corredoresExt: camCorredores,
+        precioCorrExt: camPrecioPlat?.precio ?? 0, ninoExt: camNino,
+        voluntariosActivos: camVolActivos, ventaPublico: camVentaPublico,
       });
-      // Alinear con useBudgetLogic: beneficioNeto(camisetas) + beneficio(merchandising local)
       totalMerchBeneficio = camisetasDesglose.beneficioNeto + merchTotalesSnap.beneficio;
     } else {
-      // Camisetas inactivas pero merchandising local sigue sumando al resultado
       totalMerchBeneficio = merchTotalesSnap.beneficio;
     }
 
-    // calculateResultado: misma función que Presupuesto → resultado idéntico con los mismos datos
     const totalIngresosConMerch = totalIngresosExtra + totalMerchBeneficio;
-    const resultadoObj = calculateResultado(
-      inscritosBU, ingresosBU, costesFijosBU, costesVarsBU, totalIngresosConMerch
-    );
+    const resultadoObj = calculateResultado(inscritosBU, ingresosBU, costesFijosBU, costesVarsBU, totalIngresosConMerch);
     const resultado = resultadoObj.total;
     const costes = totalCostesFijos + totalCostesVars;
-
-    // ECO-05: ROI calculado con calculateROI (fuente única de verdad en budgetUtils).
-    // Definición adoptada: ROI = (ingresosBrutos − costes) / costes × 100
-    // donde ingresosBrutos = inscripciones + extras activos (sin camisetas) + beneficio camisetas.
-    // Antes: totalMerchBeneficio = 0, lo que producía un ROI inferior al del módulo Presupuesto
-    // cuando había camisetas configuradas. Ahora ambos módulos usan la misma fórmula y los mismos datos.
     const totalIngresosBrutos = totalIngresos + totalIngresosExtra + totalMerchBeneficio;
     const roiGlobal = calculateROI(totalIngresosBrutos, costes);
-
-    // Compatibilidad con MiniDesglose (espera merchBeneficio y totalOtrosIngresos)
     const totalOtrosIngresos = totalIngresosExtra + totalMerchBeneficio;
 
-    // VOLUNTARIOS
-    const voluntarios = get(SK_VOL_VOLUNTARIOS, []);
-    const puestos = get(SK_VOL_PUESTOS, []);
-    const volConfirmados = voluntarios.filter(v => v.estado === "confirmado").length;
-    const volPendientes  = voluntarios.filter(v => v.estado === "pendiente").length;
+    return {
+      conceptos, tramos, inscritos, syncConfig, scenarioActivo, maximos,
+      totalInscritos, inscritosPorDist, totalIngresos, totalCostesFijos, totalCostesVars,
+      maximosPorDist, ocupacionPorDist, ocupacionGlobal, totalMaximos,
+      totalIngresosExtra, totalMerchBeneficio, totalOtrosIngresos,
+      totalIngresosConMerch, resultado, roiGlobal, camisetasDesglose,
+      merchBeneficio: totalMerchBeneficio,
+    };
+  }, [rawConceptos, rawTramos, rawInscritos, rawSyncConfig, rawIngresosExtra,
+      rawMerchandising, rawMaximos, rawScenario, rawPats,
+      rawCamPedidos, rawCamCoste, rawCamCorredores, rawCamPrecioPlat,
+      rawCamNino, rawCamVentaPub, rawVoluntarios]);
+
+  // ── SUBMEMO: voluntarios ────────────────────────────────────────────────
+  const voluntariosKpis = useMemo(() => {
+    const voluntarios = Array.isArray(rawVoluntarios) ? rawVoluntarios : [];
+    const puestos     = Array.isArray(rawPuestos)     ? rawPuestos     : [];
+    const volConfirmados  = voluntarios.filter(v => v.estado === "confirmado").length;
+    const volPendientes   = voluntarios.filter(v => v.estado === "pendiente").length;
     const totalNecesarios = puestos.reduce((s, p) => s + p.necesarios, 0);
-    const coberturaVol = totalNecesarios > 0 ? Math.round(volConfirmados / totalNecesarios * 100) : 0;
+    const coberturaVol    = totalNecesarios > 0 ? Math.round(volConfirmados / totalNecesarios * 100) : 0;
     const puestosConCobertura = puestos.map(p => {
-      const asig = voluntarios.filter(v => v.puestoId === p.id && v.estado !== "cancelado").length;
-      const confirmados = voluntarios.filter(v => v.puestoId === p.id && v.estado === "confirmado").length;
-      const deficit = Math.max(0, p.necesarios - asig);
-      const pct = p.necesarios > 0 ? Math.round(asig / p.necesarios * 100) : 100;
+      const asig       = voluntarios.filter(v => v.puestoId === p.id && v.estado !== "cancelado").length;
+      const confirmados= voluntarios.filter(v => v.puestoId === p.id && v.estado === "confirmado").length;
+      const deficit    = Math.max(0, p.necesarios - asig);
+      const pct        = p.necesarios > 0 ? Math.round(asig / p.necesarios * 100) : 100;
       return { ...p, asig, confirmados, deficit, pct };
     });
     const puestosAlerta = puestosConCobertura.filter(p => p.pct < 50);
     const puestosBajos  = puestosConCobertura.filter(p => p.pct >= 50 && p.pct < 100);
+    return { voluntarios, volConfirmados, volPendientes, totalNecesarios, coberturaVol, puestosAlerta, puestosBajos };
+  }, [rawVoluntarios, rawPuestos]);
 
-    // PATROCINADORES
-    const objetivo = get(SK_PAT_OBJ, 8000);
-    const pats = get(SK_PAT_PATS, []);
-    // BUG-DASH-01 fix: excluir patrocinios en especie (!p.especie) y usar getImporteComprometido
-    // para alinearse con totalPatConfirmado de useBudgetLogic y evitar inflar el KPI.
+  // ── SUBMEMO: patrocinadores ─────────────────────────────────────────────
+  const patrociniosKpis = useMemo(() => {
+    const TODAY = new Date();
+    const objetivo = rawPatObj ?? 8000;
+    const pats = Array.isArray(rawPats) ? rawPats : [];
     const patComprometido = pats.filter(p => !p.especie && (p.estado === "confirmado" || p.estado === "cobrado")).reduce((s, p) => s + (p.importe || 0), 0);
     const patCobrado  = pats.filter(p => p.estado === "cobrado").reduce((s, p) => s + getImporteCobrado(p), 0);
     const patPipeline = pats.filter(p => p.estado === "negociando" || p.estado === "prospecto").reduce((s, p) => s + (p.importe || 0), 0);
@@ -209,50 +237,103 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
     const patsSinSeguimiento = pats.filter(p =>
       p.estado === "negociando" && p.proximoContacto && new Date(p.proximoContacto) < TODAY
     );
+    return { objetivo, pats, patComprometido, patCobrado, patPipeline, contPendientes, patsSinSeguimiento };
+  }, [rawPats, rawPatObj]);
 
-    // LOGÍSTICA
-    const material = get(SK_LOG_MAT, []);
-    const asigs = get(SK_LOG_ASIG, []);
-    const tl = get(SK_LOG_TL, []);
-    const ck = get(SK_LOG_CK, []);
-    const inc = get(SK_LOG_INC, []);
-    const tlDone = tl.filter(t => t.estado === "completado").length;
-    const ckDone = ck.filter(c => c.estado === "completado").length;
+  // ── SUBMEMO: logística ──────────────────────────────────────────────────
+  const logisticaKpis = useMemo(() => {
+    const material = Array.isArray(rawMaterial) ? rawMaterial : [];
+    const asigs    = Array.isArray(rawAsigs)    ? rawAsigs    : [];
+    const tl       = Array.isArray(rawTl)       ? rawTl       : [];
+    const ck       = Array.isArray(rawCk)       ? rawCk       : [];
+    const inc      = Array.isArray(rawInc)      ? rawInc      : [];
+    const tlDone   = tl.filter(t => t.estado === "completado").length;
+    const ckDone   = ck.filter(c => c.estado === "completado").length;
     const incidenciasActivas = inc.filter(i => i.estado === "abierta").length;
     const stockAlerts = material.filter(m => {
       const asig = asigs.filter(a => a.materialId === m.id).reduce((s, a) => s + a.cantidad, 0);
       return asig > m.stock;
     });
     const materialesBajoMinimo = material.filter(m => m.stockMinimo > 0 && m.stock < m.stockMinimo);
+    return { material, tlDone, tlTotal: tl.length, ckDone, ckTotal: ck.length, incidenciasActivas, stockAlerts, materialesBajoMinimo };
+  }, [rawMaterial, rawAsigs, rawTl, rawCk, rawInc]);
 
-    // PROYECTO
-    const tareas = get(SK_PROY_TAREAS, []);
-    const hitos  = get(SK_PROY_HITOS,  []);
+  // ── SUBMEMO: proyecto ───────────────────────────────────────────────────
+  const proyectoKpis = useMemo(() => {
+    const TODAY = new Date();
+    const tareas = Array.isArray(rawTareas) ? rawTareas : [];
+    const hitos  = Array.isArray(rawHitos)  ? rawHitos  : [];
     const tareasTotal       = tareas.length;
     const tareasCompletadas = tareas.filter(t => t.estado === "completado").length;
     const tareasBloqueadas  = tareas.filter(t => t.estado === "bloqueado").length;
     const tareasVencidas    = tareas.filter(t => t.estado !== "completado" && t.fechaLimite && new Date(t.fechaLimite) < TODAY).length;
     const progresoGlobal    = tareasTotal > 0 ? Math.round(tareasCompletadas / tareasTotal * 100) : 0;
     const hitosProximos     = hitos.filter(h => !h.completado && h.fecha).sort((a, b) => a.fecha.localeCompare(b.fecha)).slice(0, 5);
+    return { tareas, tareasTotal, tareasCompletadas, tareasBloqueadas, tareasVencidas, progresoGlobal, hitosProximos };
+  }, [rawTareas, rawHitos]);
 
-    // DOCUMENTOS
-    const _rawDocumentos = get(SK_DOC_DOCS, []);
+  // ── SUBMEMO: documentos ─────────────────────────────────────────────────
+  const documentosKpis = useMemo(() => {
+    const TODAY = new Date();
+    const _rawDocumentos = rawDocs;
     const documentos = Array.isArray(_rawDocumentos) ? _rawDocumentos : [];
+    const gestiones  = Array.isArray(rawGestiones)   ? rawGestiones   : [];
     const diasHastaDoc = (iso) => iso ? Math.ceil((new Date(iso) - TODAY) / 86400000) : null;
-    const docsVencidos   = documentos.filter(d => { const dias = diasHastaDoc(d.fechaVencimiento); return dias !== null && dias < 0 && d.estado !== "aprobado"; });
-    const docsProxVencer = documentos.filter(d => { const dias = diasHastaDoc(d.fechaVencimiento); return dias !== null && dias >= 0 && dias <= 30 && d.estado !== "aprobado"; });
-
-    // GESTIONES LEGALES
-    const gestiones = Array.isArray(get(SK_DOC_GESTIONES, [])) ? get(SK_DOC_GESTIONES, []) : [];
+    const docsVencidos    = documentos.filter(d => { const dias = diasHastaDoc(d.fechaVencimiento); return dias !== null && dias < 0 && d.estado !== "aprobado"; });
+    const docsProxVencer  = documentos.filter(d => { const dias = diasHastaDoc(d.fechaVencimiento); return dias !== null && dias >= 0 && dias <= 30 && d.estado !== "aprobado"; });
     const gestionesDenegadas = gestiones.filter(g => g.estado === "denegado");
     const gestionesVencidas  = gestiones.filter(g => { const dias = diasHastaDoc(g.fechaVencimiento); return dias !== null && dias < 0 && g.estado !== "aprobado" && g.estado !== "denegado"; });
     const gestionesUrgentes  = gestiones.filter(g => { const dias = diasHastaDoc(g.fechaVencimiento); return dias !== null && dias >= 0 && dias <= 30 && g.estado !== "aprobado"; });
+    return { documentos, gestiones, docsVencidos, docsProxVencer, gestionesDenegadas, gestionesVencidas, gestionesUrgentes };
+  }, [rawDocs, rawGestiones]);
+
+  // ── SUBMEMO FINAL: composición + alertas + salud ────────────────────────
+  // Solo se recalcula cuando cambia alguno de los submemos anteriores.
+  return useMemo(() => {
+    const TODAY = new Date();
+    const {
+      eventoNombre, eventoEdicion, eventoFechaStr, eventoFecha,
+      diasHasta, yaFue, esSemana,
+      volDiasCritico: cfgVolDiasCritico, volDiasAviso: cfgVolDiasAviso,
+    } = configKpis;
+
+    const _volDiasCritico = volDiasCritico ?? cfgVolDiasCritico;
+    const _volDiasAviso   = volDiasAviso   ?? cfgVolDiasAviso;
+
+    const {
+      totalInscritos, inscritosPorDist, totalIngresos, totalCostesFijos, totalCostesVars,
+      maximosPorDist, ocupacionPorDist, ocupacionGlobal, totalMaximos,
+      totalIngresosExtra, totalMerchBeneficio, totalOtrosIngresos,
+      resultado, roiGlobal, camisetasDesglose, merchBeneficio,
+      syncConfig, scenarioActivo, tramos, inscritos: rawInscritosVal,
+    } = presupuestoKpis;
+
+    const {
+      voluntarios, volConfirmados, volPendientes, totalNecesarios, coberturaVol, puestosAlerta, puestosBajos,
+    } = voluntariosKpis;
+
+    const {
+      objetivo, pats, patComprometido, patCobrado, patPipeline, contPendientes, patsSinSeguimiento,
+    } = patrociniosKpis;
+
+    const {
+      material, tlDone, tlTotal, ckDone, ckTotal, incidenciasActivas, stockAlerts, materialesBajoMinimo,
+    } = logisticaKpis;
+
+    const {
+      tareas, tareasTotal, tareasCompletadas, tareasBloqueadas, tareasVencidas, progresoGlobal, hitosProximos,
+    } = proyectoKpis;
+
+    const {
+      documentos, gestiones, docsVencidos, docsProxVencer,
+      gestionesDenegadas, gestionesVencidas, gestionesUrgentes,
+    } = documentosKpis;
 
     // SALUD DEL EVENTO
     const saludModulos = [
       { label: "Proyecto",       icon: "🏔️", bloque: "proyecto",       score: progresoGlobal, color: progresoGlobal >= 80 ? "var(--green)" : progresoGlobal >= 50 ? "var(--amber)" : "var(--red)" },
       { label: "Voluntarios",    icon: "👥", bloque: "voluntarios",    score: coberturaVol,   color: coberturaVol >= 80 ? "var(--green)" : coberturaVol >= 50 ? "var(--amber)" : "var(--red)" },
-      { label: "Logística",      icon: "📦", bloque: "logistica",      score: ck.length > 0 ? Math.round(ckDone / ck.length * 100) : 0, color: ck.length === 0 ? "var(--text-muted)" : ckDone >= ck.length * 0.8 ? "var(--green)" : ckDone >= ck.length * 0.5 ? "var(--amber)" : "var(--red)" },
+      { label: "Logística",      icon: "📦", bloque: "logistica",      score: ckTotal > 0 ? Math.round(ckDone / ckTotal * 100) : 0, color: ckTotal === 0 ? "var(--text-muted)" : ckDone >= ckTotal * 0.8 ? "var(--green)" : ckDone >= ckTotal * 0.5 ? "var(--amber)" : "var(--red)" },
       { label: "Documentos",     icon: "📁", bloque: "documentos",     score: (() => { const total = documentos.length + gestiones.length; if (total === 0) return 100; const problemas = docsVencidos.length + gestionesDenegadas.length + gestionesVencidas.length; return Math.max(0, Math.round((1 - problemas / total) * 100)); })(), color: docsVencidos.length > 0 || gestionesDenegadas.length > 0 ? "var(--red)" : docsProxVencer.length > 0 || gestionesUrgentes.length > 0 ? "var(--amber)" : "var(--green)" },
       { label: "Presupuesto",    icon: "💰", bloque: "presupuesto",    score: resultado >= 0 ? 100 : Math.max(0, 100 + Math.round(resultado / Math.max(totalCostesFijos + totalCostesVars, 1) * 100)), color: resultado >= 0 ? "var(--green)" : resultado > -(totalCostesFijos + totalCostesVars) * 0.2 ? "var(--amber)" : "var(--red)" },
       { label: "Patrocinadores", icon: "🤝", bloque: "patrocinadores", score: objetivo > 0 ? Math.min(100, Math.round(patComprometido / objetivo * 100)) : 100, color: patComprometido >= objetivo * 0.8 ? "var(--green)" : patComprometido >= objetivo * 0.5 ? "var(--amber)" : "var(--red)" },
@@ -278,13 +359,13 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
       if (coberturaVol < 50) alertasAvisos.push({ icon: "🟡", texto: `Cobertura de voluntarios al ${coberturaVol}% — conviene confirmar puestos`, modulo: "voluntarios" });
       if (puestosAlerta.length > 0) alertasAvisos.push({ icon: "🟡", texto: `${puestosAlerta.length} puesto${puestosAlerta.length > 1 ? "s" : ""} pendientes de cubrir: ${puestosAlerta.map(p => `${p.nombre} (${p.asig}/${p.necesarios})`).join(", ")}`, modulo: "voluntarios" });
     }
-    if (resultado < 0)            alertasCriticas.push({ icon: "🔴", texto: `Resultado negativo: ${fmtEur(resultado)}`, modulo: "presupuesto" });
+    if (resultado < 0) alertasCriticas.push({ icon: "🔴", texto: `Resultado negativo: ${fmtEur(resultado)}`, modulo: "presupuesto" });
 
-    // PPTO-02: Alertas de tramo próximo a agotar (≥80%) y completo (≥100%)
+    // PPTO-02: Alertas de tramo próximo a agotar
     tramos.forEach(tramo => {
       const maximo = tramo.maximo ?? 0;
-      if (maximo <= 0) return; // tramo sin máximo configurado → no alertar
-      const totalTramo = ["TG7","TG13","TG25"].reduce((s, d) => s + (inscritos?.tramos?.[tramo.id]?.[d] || 0), 0);
+      if (maximo <= 0) return;
+      const totalTramo = ["TG7","TG13","TG25"].reduce((s, d) => s + (rawInscritosVal?.tramos?.[tramo.id]?.[d] || 0), 0);
       const pct = totalTramo / maximo;
       if (pct >= 1.0) {
         alertasCriticas.push({ icon: "⛔", texto: `Tramo '${tramo.nombre}' completo (${totalTramo}/${maximo} plazas)`, modulo: "presupuesto" });
@@ -315,24 +396,23 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
         alertasAvisos.push({ icon: "⚡", texto: `Hito crítico en ${dias}d: ${h.nombre}`, modulo: "proyecto" });
     });
 
-    const eventoFechaStr = eventoFecha.toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" });
-
     return {
       eventoNombre, eventoEdicion, eventoFechaStr, eventoFecha,
       diasHasta, yaFue, esSemana,
       totalInscritos, inscritosPorDist, totalIngresos, totalCostesFijos, totalCostesVars,
-      totalIngresosExtra, merchBeneficio: totalMerchBeneficio, totalOtrosIngresos, resultado, roiGlobal, camisetasDesglose,
+      totalIngresosExtra, merchBeneficio, totalOtrosIngresos, resultado, roiGlobal, camisetasDesglose,
       maximosPorDist, ocupacionPorDist, ocupacionGlobal, totalMaximos,
       voluntarios: voluntarios.length, volConfirmados, volPendientes, totalNecesarios, coberturaVol, puestosAlerta,
       pats: pats.length, patComprometido, patCobrado, patPipeline, objetivo, contPendientes, patsSinSeguimiento,
-      material: material.length, stockAlerts, materialesBajoMinimo, tlDone, tlTotal: tl.length, ckDone, ckTotal: ck.length, incidenciasActivas,
+      material: material.length, stockAlerts, materialesBajoMinimo, tlDone, tlTotal, ckDone, ckTotal, incidenciasActivas,
       tareasTotal, tareasCompletadas, tareasBloqueadas, tareasVencidas, progresoGlobal, hitosProximos,
       saludModulos, saludGlobal,
       alertasCriticas, alertasAvisos,
       docsVencidos, docsProxVencer,
       gestionesDenegadas, gestionesVencidas, gestionesUrgentes,
-      incidenciasActivas,
-      tramos, rawInscritos: inscritos, syncConfig, scenarioActivo,
+      tramos, rawInscritos: rawInscritosVal, syncConfig, scenarioActivo,
     };
-  }, [rawData, volDiasCritico, volDiasAviso]);
+  }, [configKpis, presupuestoKpis, voluntariosKpis, patrociniosKpis,
+      logisticaKpis, proyectoKpis, documentosKpis,
+      volDiasCritico, volDiasAviso]);
 }

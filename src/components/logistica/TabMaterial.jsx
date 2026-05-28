@@ -21,6 +21,20 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
   // (rawTramos, rawInscritos, totalInscritos, totalMaximos vienen del componente padre vía props)
   // ESCALA_CON_INSCRITOS se importa desde logisticaConstants.js (exportado desde ahí)
   const ms=useMemo(()=>material.map(m=>{const a=asigs.filter(x=>x.materialId===m.id);const asig=a.reduce((s,x)=>s+x.cantidad,0);const ent=a.filter(x=>x.estado==="entregado").reduce((s,x)=>s+x.cantidad,0);return{...m,asig,ent,def:Math.max(asig-m.stock,0)}}),[material,asigs]);
+
+  // Mapa id→concepto para O(1) lookup en el render de cada fila (evita .find() por fila)
+  const conceptosPresMap = useMemo(() => {
+    const map = new Map();
+    (conceptosPres || []).forEach(cp => map.set(cp.id, cp));
+    return map;
+  }, [conceptosPres]);
+
+  // Mapa id→material para O(1) lookup en la vista de asignaciones
+  const materialMap = useMemo(() => {
+    const map = new Map();
+    material.forEach(m => map.set(m.id, m));
+    return map;
+  }, [material]);
   const mf=useMemo(()=>{
     let list = ms.filter(m => cat === "todas" || m.categoria === cat);
     if(busqMat.trim()) {
@@ -31,14 +45,14 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
     return list;
   },[ms,cat,ordenAlfa,busqMat]);
   const { items: mfPag, total: totalMat, PaginadorUI: PagMat } = usePaginacion(mf, 20);
-  const mover=(id,dir)=>{
+  const mover=useCallback((id,dir)=>{
     if(ordenAlfa) return;
     setMaterial(prev=>{
       const arr=[...prev]; const i=arr.findIndex(x=>x.id===id); const j=i+dir;
       if(j<0||j>=arr.length) return arr;
       [arr[i],arr[j]]=[arr[j],arr[i]]; return arr;
     });
-  };
+  },[ordenAlfa,setMaterial]);
   return(
     <>
       <div className="ph">
@@ -107,7 +121,7 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
                   <div style={{display:"flex",alignItems:"center",gap:".35rem",flexWrap:"wrap"}}>
                     {m.nombre}
                     {m.presupuestoConceptoId && (() => {
-                      const conceptoPresu=conceptosPres.find(function(cp){return cp.id===m.presupuestoConceptoId;});
+                      const conceptoPresu = conceptosPresMap.get(m.presupuestoConceptoId);
                       return conceptoPresu ? (
                         <button
                           onClick={e => { e.stopPropagation(); window.dispatchEvent(new CustomEvent("teg-navigate", { detail:{ block:"presupuesto" } })); }}
@@ -143,7 +157,7 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
       </>):(
         <div className="card p0"><div className="ox"><table className="tbl">
           <thead><tr><th>Material</th><th>Puesto destino</th><th className="tr">Cantidad</th><th>Estado</th></tr></thead>
-          <tbody>{asigs.map(a=>{const m=material.find(x=>x.id===a.materialId);return(
+          <tbody>{asigs.map(a=>{const m=materialMap.get(a.materialId);return(
             <tr key={a.id} style={{cursor:"pointer"}} onClick={()=>abrirFicha("asig",{...a,materialNombre:m?.nombre,unidad:m?.unidad})}>
               <td className="f6">{m?.nombre||"—"}</td>
               <td><span className="pbadge">{a.puesto}</span></td>
