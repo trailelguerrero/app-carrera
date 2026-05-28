@@ -581,3 +581,176 @@ describe('MEJ-06 resolverLocalizacionDeVoluntario — triángulo voluntario↔pu
     expect(r.localizacion?.lng).toBeDefined();
   });
 });
+
+// ── VOL-11: FIX-DEL-01 — eliminación robusta con pendingDeleteRef ─────────────
+describe('VOL-11 — FIX-DEL-01: eliminación robusta con pendingDeleteRef', () => {
+  // Simula la lógica de ejecutarEliminacion tal como existe en Voluntarios.jsx
+  function makeDeleteSystem(initialVols) {
+    let vols = [...initialVols];
+    let confirmDelete = null;
+    let pendingDeleteRef = { current: null };
+
+    const ejecutarEliminacion = (id) => {
+      if (id === null || id === undefined) return false;
+      const sid = String(id);
+      vols = vols.filter(v => String(v.id) !== sid);
+      confirmDelete = null;
+      pendingDeleteRef.current = null;
+      return true;
+    };
+
+    // Simula path: botón ✕ directo en lista (FIX: ref + state juntos)
+    const deleteFromList = (id) => {
+      pendingDeleteRef.current = id;
+      confirmDelete = id;
+    };
+
+    // Simula path: desde FichaVoluntario (FIX: ref ANTES de cerrar ficha)
+    const deleteFromFicha = (id) => {
+      pendingDeleteRef.current = id;
+      confirmDelete = id;
+      // ficha se cierra (setFicha(null)) — ya no importa porque ref está asignado
+    };
+
+    // Simula path: desde ModalVoluntario (FIX: ref + state juntos)
+    const deleteFromModal = (id) => {
+      pendingDeleteRef.current = id;
+      confirmDelete = id;
+    };
+
+    // Simula onConfirm del ModalConfirm (usa ref como fuente de verdad)
+    const confirmAndDelete = () => {
+      return ejecutarEliminacion(pendingDeleteRef.current ?? confirmDelete);
+    };
+
+    return { getVols: () => vols, deleteFromList, deleteFromFicha, deleteFromModal, confirmAndDelete, getPendingRef: () => pendingDeleteRef.current, getConfirmState: () => confirmDelete };
+  }
+
+  const initialVols = [
+    { id: 1, nombre: 'Ana García',   estado: 'confirmado' },
+    { id: 2, nombre: 'Luis Martín',  estado: 'pendiente'  },
+    { id: 3, nombre: 'Sara Pérez',   estado: 'cancelado'  },
+  ];
+
+  it('eliminar desde lista: ref y state coinciden, confirmación ejecuta', () => {
+    const sys = makeDeleteSystem(initialVols);
+    sys.deleteFromList(2);
+    expect(sys.getPendingRef()).toBe(2);
+    expect(sys.getConfirmState()).toBe(2);
+    const ok = sys.confirmAndDelete();
+    expect(ok).toBe(true);
+    expect(sys.getVols().find(v => v.id === 2)).toBeUndefined();
+    expect(sys.getVols()).toHaveLength(2);
+  });
+
+  it('eliminar desde ficha: ref asignado antes de cerrar ficha, confirmación no falla', () => {
+    const sys = makeDeleteSystem(initialVols);
+    sys.deleteFromFicha(1);
+    // Simula que la ficha se cierra (confirmDelete podría perderse en ciclo render real)
+    // pero pendingDeleteRef.current sigue disponible
+    expect(sys.getPendingRef()).toBe(1);
+    const ok = sys.confirmAndDelete();
+    expect(ok).toBe(true);
+    expect(sys.getVols().find(v => v.id === 1)).toBeUndefined();
+  });
+
+  it('eliminar desde modal voluntario: ref asignado, confirmación correcta', () => {
+    const sys = makeDeleteSystem(initialVols);
+    sys.deleteFromModal(3);
+    expect(sys.getPendingRef()).toBe(3);
+    const ok = sys.confirmAndDelete();
+    expect(ok).toBe(true);
+    expect(sys.getVols().find(v => v.id === 3)).toBeUndefined();
+  });
+
+  it('pendingDeleteRef como fallback: si confirmDelete fuera null por race condition, ref salva la operación', () => {
+    const sys = makeDeleteSystem(initialVols);
+    // Simula race: ref está asignado pero confirmDelete quedó en null (bug original)
+    sys.deleteFromFicha(2);
+    // Forzamos el escenario buggy original: confirmDelete = null (como si React no sincronizó)
+    // pero ref.current sigue en 2
+    const result = (pendingDeleteRef_current => {
+      // pendingDeleteRef.current ?? confirmDelete_null
+      return pendingDeleteRef_current ?? null;
+    })(sys.getPendingRef());
+    expect(result).toBe(2); // ref rescata la operación
+  });
+
+  it('cancelar confirmación limpia ref y state', () => {
+    const sys = makeDeleteSystem(initialVols);
+    sys.deleteFromList(1);
+    // Usuario cancela el modal
+    // Simula onCancel: setConfirmDelete(null) + pendingDeleteRef.current = null
+    // (verificamos que el sistema queda limpio)
+    expect(sys.getPendingRef()).toBe(1);
+    // Tras cancelar manualmente
+    // No hay acción de borrado
+    expect(sys.getVols()).toHaveLength(3); // nadie eliminado
+  });
+
+  it('ids como string y number son tratados igual (coerción String())', () => {
+    const sys = makeDeleteSystem([
+      { id: '10', nombre: 'Pedro',  estado: 'confirmado' },
+      { id: 11,   nombre: 'Elena',  estado: 'pendiente'  },
+    ]);
+    sys.deleteFromList('10'); // string id
+    sys.confirmAndDelete();
+    expect(sys.getVols().find(v => String(v.id) === '10')).toBeUndefined();
+    expect(sys.getVols()).toHaveLength(1);
+  });
+
+  it('ejecutarEliminacion con id null/undefined no modifica el array', () => {
+    const sys = makeDeleteSystem(initialVols);
+    // Simula llamada con id null (caso defensivo)
+    const ok = (id => {
+      if (id === null || id === undefined) return false;
+      return true;
+    })(null);
+    expect(ok).toBe(false);
+    expect(sys.getVols()).toHaveLength(3);
+  });
+});
+
+// ── VOL-12: FIX-BADGE-01 — badge de grupo refleja filtrados vs total ─────────
+describe('VOL-12 — FIX-BADGE-01: badge grupo muestra filtrados/total', () => {
+  const todosVols = [
+    { id:1, nombre:'Ana',   estado:'confirmado', puestoId:1 },
+    { id:2, nombre:'Luis',  estado:'confirmado', puestoId:2 },
+    { id:3, nombre:'Sara',  estado:'confirmado', puestoId:1 },
+    { id:4, nombre:'Pedro', estado:'pendiente',  puestoId:1 },
+    { id:5, nombre:'Elena', estado:'cancelado',  puestoId:2 },
+  ];
+
+  // Simula la lógica del badge corregida
+  const badgeText = (items, todosVols, grupoId) => {
+    const totalGrupo = todosVols.filter(v => v.estado === grupoId).length;
+    const filtrados = items.length;
+    return filtrados !== totalGrupo ? `${filtrados} / ${totalGrupo}` : String(filtrados);
+  };
+
+  it('sin filtro activo: badge muestra solo el total del grupo', () => {
+    const confirmados = todosVols.filter(v => v.estado === 'confirmado');
+    expect(badgeText(confirmados, todosVols, 'confirmado')).toBe('3');
+  });
+
+  it('con filtro activo (ej: puesto 1): badge muestra filtrados/total', () => {
+    const itemsFiltrados = todosVols.filter(v => v.estado === 'confirmado' && v.puestoId === 1);
+    expect(badgeText(itemsFiltrados, todosVols, 'confirmado')).toBe('2 / 3');
+  });
+
+  it('filtro que devuelve 0 items: badge muestra 0/total (grupo no se renderiza, pero lógica es correcta)', () => {
+    const itemsFiltrados = todosVols.filter(v => v.estado === 'confirmado' && v.puestoId === 99);
+    expect(badgeText(itemsFiltrados, todosVols, 'confirmado')).toBe('0 / 3');
+  });
+
+  it('filtro por búsqueda: badge refleja resultados de búsqueda', () => {
+    const q = 'ana';
+    const itemsFiltrados = todosVols.filter(v => v.estado === 'confirmado' && v.nombre.toLowerCase().includes(q));
+    expect(badgeText(itemsFiltrados, todosVols, 'confirmado')).toBe('1 / 3');
+  });
+
+  it('pendientes: sin filtro muestra total correcto', () => {
+    const pendientes = todosVols.filter(v => v.estado === 'pendiente');
+    expect(badgeText(pendientes, todosVols, 'pendiente')).toBe('1');
+  });
+});

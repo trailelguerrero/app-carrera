@@ -616,16 +616,18 @@ export default function App() {
           onEliminar={() => {
             const id = ficha.data?.id;
             if (id === null || id === undefined) return;
+            // FIX-DEL-01: asignar ref ANTES de cualquier setState para evitar race condition
+            // setConfirmDelete primero, setFicha después — el modal ya tiene el ID cuando se monta
             pendingDeleteRef.current = id;
+            setConfirmDelete(id);
             setFicha(null);
-            setTimeout(() => setConfirmDelete(id), 30);
           }}
           onEliminarConfirmado={() => {
             const id = ficha.data?.id ?? pendingDeleteRef.current;
             if (id === null || id === undefined) return;
             pendingDeleteRef.current = id;
             setFicha(null);
-            setTimeout(() => ejecutarEliminacion(id), 0);
+            ejecutarEliminacion(id);
           }}
           onUpdate={(data) => { updateVoluntario(ficha.data.id, data); setFicha(f => ({ ...f, data: { ...f.data, ...data } })); }}
         />
@@ -647,7 +649,7 @@ export default function App() {
           puestos={puestos}
           onSave={(data) => { if (modalVol==="nuevo" || modalVol?._nuevo) addVoluntario(data); else updateVoluntario(modalVol.id, data); setModalVol(null); }}
           onClose={() => setModalVol(null)}
-          onEliminar={modalVol!=="nuevo" && !modalVol?._nuevo ? () => { const id = modalVol?.id; if (!id) return; setModalVol(null); setConfirmDelete(id); } : undefined}
+          onEliminar={modalVol!=="nuevo" && !modalVol?._nuevo ? () => { const id = modalVol?.id; if (!id) return; pendingDeleteRef.current = id; setModalVol(null); setConfirmDelete(id); } : undefined}
         />
       , document.body)}
       {modalPuesto && createPortal(
@@ -659,7 +661,7 @@ export default function App() {
           onClose={() => setModalPuesto(null)}
         />
       , document.body)}
-      {confirmDelete && createPortal(<ModalConfirm zIndex={400} mensaje="¿Eliminar este voluntario? Esta acción no se puede deshacer." onConfirm={() => ejecutarEliminacion(confirmDelete)} onCancel={() => { setConfirmDelete(null); pendingDeleteRef.current = null; }} />, document.body)}
+      {confirmDelete && createPortal(<ModalConfirm zIndex={400} mensaje="¿Eliminar este voluntario? Esta acción no se puede deshacer." onConfirm={() => ejecutarEliminacion(pendingDeleteRef.current ?? confirmDelete)} onCancel={() => { setConfirmDelete(null); pendingDeleteRef.current = null; }} />, document.body)}
       {confirmDeletePuesto && createPortal(<ModalConfirm zIndex={400} mensaje="¿Eliminar este puesto? Los voluntarios asignados quedarán sin puesto." onConfirm={() => { deletePuesto(confirmDeletePuesto); setConfirmDeletePuesto(null); }} onCancel={() => setConfirmDeletePuesto(null)} />, document.body)}
       {modalMensaje && <ModalMensaje config={config} onClose={() => setModalMensaje(false)} />}
     </AppShell>

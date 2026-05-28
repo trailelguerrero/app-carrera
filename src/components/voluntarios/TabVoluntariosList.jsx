@@ -321,7 +321,9 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
                     background:`${grupo.color}18`,
                     border:`1px solid ${grupo.color}30`,
                   }}>
-                    {todosVols.filter(v => v.estado === grupo.id).length}
+                    {items.length !== todosVols.filter(v => v.estado === grupo.id).length
+                      ? `${items.length} / ${todosVols.filter(v => v.estado === grupo.id).length}`
+                      : items.length}
                   </span>
                   <span style={{
                     fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
