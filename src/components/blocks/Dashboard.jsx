@@ -80,10 +80,12 @@ export default function Dashboard() {
     () => sessionStorage.getItem(SK_UI_MODO_EVENTO_FORZADO) === "1"
   );
 
-  const { rawData, loading, isRefreshing, lastUpdated, loadData } = useDashboardData(ALL_KEYS);
+  const { rawData, loading, isRefreshing, lastUpdated, loadData, moduleStatus } = useDashboardData(ALL_KEYS);
   const data = useDashboardKpis(rawData);
 
   // ─── Loading ──────────────────────────────────────────────────────────────
+  // Muestra skeleton solo en la carga inicial (todas las queries pendientes).
+  // En recargas parciales (solo un módulo) el resto del dashboard permanece visible.
   if (loading) {
     return (
       <>
@@ -194,6 +196,7 @@ export default function Dashboard() {
         {/* ── MEJ-07: Semáforo de riesgo RAG ── */}
         <SemaforoRiesgos
           kpis={d}
+          moduleStatus={moduleStatus}
           onNavigate={(zona) => {
             const mapa = {
               "Permisos":   "documentos",
@@ -304,7 +307,7 @@ export default function Dashboard() {
         )}
 
         {/* ── CHARTS ── */}
-        <SeccionCharts d={d} fmtEur={fmtEur} TOOLTIP_STYLE={TOOLTIP_STYLE} navigate={navigate} />
+        <SeccionCharts d={d} fmtEur={fmtEur} TOOLTIP_STYLE={TOOLTIP_STYLE} navigate={navigate} moduleStatus={moduleStatus} />
 
         {/* ── PRÓXIMOS HITOS ── */}
         {d.hitosProximos.length > 0 && (

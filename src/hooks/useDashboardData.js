@@ -1,67 +1,32 @@
 /**
- * useDashboardData.js — Tarea 3.4
- * Encapsula el fetching de datos del Dashboard.
- * Extrae rawData, loading, isRefreshing, lastUpdated y loadData
- * del componente Dashboard para que solo renderice.
+ * useDashboardData.js — Mejora 5
+ *
+ * Wrapper de compatibilidad sobre useDashboardQueries.
+ * Mantiene la firma exacta que espera Dashboard.jsx:
+ *   { rawData, loading, isRefreshing, lastUpdated, loadData }
+ *
+ * `loadData` ahora invalida todas las queries del dashboard
+ * en lugar de hacer un fetch monolítico.
  */
-import { useState, useEffect, useCallback, useRef } from "react";
-import dataService from "@/lib/dataService";
+import { useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useDashboardQueries, dashboardKeys } from "./useDashboardQueries";
 
-export function useDashboardData(ALL_KEYS) {
-  const [rawData, setRawData]           = useState(null);
-  const [loading, setLoading]           = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastUpdated, setLastUpdated]   = useState(null);
-  const intervalRef                     = useRef(null);
+export function useDashboardData(/* ALL_KEYS — ignorado, mantenido por compatibilidad */) {
+  const queryClient = useQueryClient();
+  const { rawData, loading, isRefreshing, lastUpdated, moduleStatus } =
+    useDashboardQueries();
 
+  // Invalidar todo el dashboard (equivalente al loadData(silent) anterior)
   const loadData = useCallback(async (silent = false) => {
-    // Carga optimista: usar localStorage inmediatamente para mostrar algo al usuario
     if (!silent) {
-      try {
-        const localData = {};
-        let hasLocal = false;
-        for (const [key, def] of Object.entries(ALL_KEYS)) {
-          const raw = localStorage.getItem(key);
-          if (raw) { localData[key] = JSON.parse(raw); hasLocal = true; }
-          else localData[key] = def;
-        }
-        if (hasLocal) {
-          setRawData(localData);
-          setLoading(false);
-        }
-      } catch { /* localStorage no disponible — se continúa sin datos locales */ }
+      // Refetch inmediato y visible (refresco manual)
+      await queryClient.invalidateQueries({ queryKey: dashboardKeys.all() });
+    } else {
+      // Silencioso: invalida en background sin cambiar loading state
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.all() });
     }
-    if (!silent) setLoading(prev => prev);
-    else setIsRefreshing(true);
-    try {
-      const data = await dataService.getMultiple(ALL_KEYS);
-      setRawData(data);
-      setLastUpdated(new Date());
-    } catch (err) {
-      console.error("Dashboard: error cargando datos", err);
-    } finally {
-      setLoading(false);
-      setIsRefreshing(false);
-    }
-  }, [ALL_KEYS]);
+  }, [queryClient]);
 
-  useEffect(() => {
-    loadData();
-    const intervalId = intervalRef.current;
-    let lastSync = 0;
-    const handler = () => {
-      const now = Date.now();
-      if (now - lastSync > 10000) {
-        lastSync = now;
-        loadData(true);
-      }
-    };
-    window.addEventListener("teg-sync", handler);
-    return () => {
-      clearInterval(intervalId);
-      window.removeEventListener("teg-sync", handler);
-    };
-  }, [loadData]);
-
-  return { rawData, loading, isRefreshing, lastUpdated, loadData };
+  return { rawData, loading, isRefreshing, lastUpdated, loadData, moduleStatus };
 }

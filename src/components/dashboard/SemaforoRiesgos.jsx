@@ -23,7 +23,7 @@ const BORDER = {
 const LABEL = { verde: "BAJO", ambar: "MEDIO", rojo: "ALTO" };
 const DOT   = { verde: "🟢",   ambar: "🟡",    rojo:  "🔴"   };
 
-export function SemaforoRiesgos({ kpis, onNavigate }) {
+export function SemaforoRiesgos({ kpis, onNavigate, moduleStatus }) {
   const { zonas, estadoGlobal, scoreGlobal, razonGlobal } =
     useMemo(() => calcSemaforoRiesgos(kpis), [kpis]);
 
@@ -99,6 +99,19 @@ export function SemaforoRiesgos({ kpis, onNavigate }) {
               }}>
                 {z.area}
               </span>
+              {/* Indicador de refresco granular — aparece solo si ese módulo está cargando */}
+              {moduleStatus && (() => {
+                const mapaZona = {
+                  "Permisos":   "documentos",
+                  "Económico":  "presupuesto",
+                  "Logístico":  "logistica",
+                  "Operativo":  "proyecto",
+                };
+                const mod = mapaZona[z.area];
+                return mod && moduleStatus[mod]?.isLoading
+                  ? <span style={{ fontSize: "var(--fs-xs)", opacity: 0.5, animation: "pulse 1s infinite" }}>⟳</span>
+                  : null;
+              })()}
             </div>
 
             {/* Indicador RAG + score */}
