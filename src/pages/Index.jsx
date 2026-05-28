@@ -93,14 +93,31 @@ function ToastStack({ toasts, dismiss, navH }) {
 }
 
 // ── AUTOSAVE STATUS HOOK ───────────────────────────────────────────────────────
+// Mejora 6: también expone pendingCount para el badge de pendientes.
 function useGlobalSaveStatus() {
   const [status, setStatus] = useState(null);
+  const [pendingCount, setPendingCount] = useState(0);
   const timerRef = useRef(null);
 
+  const readPending = () => {
+    try {
+      return Object.keys(localStorage).filter(k => k.startsWith('__pending_sync_')).length;
+    } catch { return 0; }
+  };
+
   useEffect(() => {
+    // Leer contador inicial
+    setPendingCount(readPending());
+
     const handler = (e) => {
       const s = e.detail?.status;
       setStatus(s);
+      // Si el evento trae count, usarlo; si no, releer localStorage
+      if (e.detail?.count !== undefined) {
+        setPendingCount(e.detail.count);
+      } else if (s === 'saved' || s === 'error') {
+        setPendingCount(readPending());
+      }
       if (timerRef.current) clearTimeout(timerRef.current);
       if (s === "saved") {
         timerRef.current = setTimeout(() => setStatus(null), 3000);
@@ -110,7 +127,7 @@ function useGlobalSaveStatus() {
     return () => window.removeEventListener("teg-save-status", handler);
   }, []);
 
-  return status;
+  return { status, pendingCount };
 }
 
 // ── GLOBAL MOBILE FOCUS HELPER ────────────────────────────────────────────────
@@ -133,18 +150,30 @@ function useMobileKeyboardScroll() {
 }
 
 // ── AUTOSAVE INDICATOR ─────────────────────────────────────────────────────────
-function AutosaveIndicator({ status }) {
+// Mejora 6: muestra badge de escrituras pendientes cuando pendingCount > 0
+// y el estado de sincronización activo no está visible.
+function AutosaveIndicator({ status, pendingCount = 0 }) {
   const cfg = {
-    saving: { color: "var(--amber)", border: "var(--amber-border)", bg: "var(--amber-dim)", text: "Guardando…", pulse: true },
-    saved: { color: "var(--green)", border: "var(--teg-green-border)", bg: "var(--teg-green-dim)", text: "✓ Guardado", pulse: false },
-    error: { color: "var(--red)", border: "var(--teg-red-border)", bg: "var(--teg-red-dim)", text: "Error al guardar", pulse: false },
+    saving:  { color: "var(--amber)", border: "var(--amber-border)",          bg: "var(--amber-dim)",        text: "Guardando…",       pulse: true  },
+    saved:   { color: "var(--green)", border: "var(--teg-green-border)",      bg: "var(--teg-green-dim)",    text: "✓ Guardado",        pulse: false },
+    error:   { color: "var(--red)",   border: "var(--teg-red-border)",        bg: "var(--teg-red-dim)",      text: "Error al guardar",  pulse: false },
+    pending: { color: "var(--amber)", border: "var(--amber-border)",          bg: "var(--amber-dim)",        text: null,                pulse: true  },
   };
-  const c = cfg[status];
+
+  // Determinar qué mostrar: estado activo tiene prioridad sobre badge de pendientes
+  const showPending = !status && pendingCount > 0;
+  const effectiveStatus = showPending ? "pending" : status;
+  const c = cfg[effectiveStatus];
   if (!c) return null;
+
+  const label = effectiveStatus === "pending"
+    ? `${pendingCount} pendiente${pendingCount > 1 ? "s" : ""} sin sync`
+    : c.text;
 
   return (
     <div
-      key={status}
+      key={effectiveStatus + pendingCount}
+      title={effectiveStatus === "pending" ? "Cambios guardados localmente, pendientes de sincronizar con el servidor" : undefined}
       style={{
         display: "inline-flex", alignItems: "center", gap: "0.3rem",
         fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
@@ -152,13 +181,14 @@ function AutosaveIndicator({ status }) {
         border: `1px solid ${c.border}`,
         borderRadius: 6, padding: "0.2rem 0.5rem", whiteSpace: "nowrap",
         animation: "teg-fadein-scale 0.18s ease",
+        cursor: effectiveStatus === "pending" ? "default" : undefined,
       }}
     >
       <span style={{
         width: 5, height: 5, borderRadius: "50%", background: "currentColor", flexShrink: 0,
         animation: c.pulse ? "teg-pulse 1s ease-in-out infinite" : "none",
       }} />
-      {c.text}
+      {label}
     </div>
   );
 }
@@ -237,7 +267,7 @@ export default function Index() {
     return () => window.removeEventListener("resize", h);
   }, []);
 
-  const saveStatus = useGlobalSaveStatus();
+  const { status: saveStatus, pendingCount } = useGlobalSaveStatus();
   const { toasts, dismiss } = useToastSystem();
   const isOnline = useOnlineStatus();
   useMobileKeyboardScroll();
@@ -424,7 +454,7 @@ export default function Index() {
 
           {/* CENTER — Autosave + buscador */}
           <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
-            <AutosaveIndicator status={saveStatus} />
+            <AutosaveIndicator status={saveStatus} pendingCount={pendingCount} />
           </div>
 
           {/* RIGHT — Actions */}

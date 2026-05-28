@@ -49,8 +49,14 @@ export default function ConflictModal() {
   // Escuchar teg-conflict
   useEffect(() => {
     const handler = (e) => {
-      const { collection, localData, message } = e.detail || {};
-      setQueue(prev => [...prev, { collection, localData, message }]);
+      const { collection, localData, message, context } = e.detail || {};
+      setQueue(prev => [...prev, {
+        collection,
+        localData,
+        message,
+        context:   context ?? null,
+        detectedAt: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      }]);
     };
     window.addEventListener("teg-conflict", handler);
     return () => window.removeEventListener("teg-conflict", handler);
@@ -180,12 +186,36 @@ export default function ConflictModal() {
             fontSize: "var(--fs-sm)",
             color: "var(--text)",
             lineHeight: 1.6,
-            margin: "0 0 1.25rem",
+            margin: "0 0 0.6rem",
           }}
         >
           Otro dispositivo guardó cambios más recientes en <strong>{label}</strong>.
           ¿Qué versión quieres conservar?
         </p>
+
+        {/* Contexto de operación + timestamp — Mejora 6 */}
+        {(current.context || current.detectedAt) && (
+          <div style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "var(--fs-xs)",
+            color: "var(--text-dim)",
+            background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: 6,
+            padding: "0.35rem 0.6rem",
+            marginBottom: "1rem",
+            display: "flex",
+            gap: "0.75rem",
+            flexWrap: "wrap",
+          }}>
+            {current.context && (
+              <span>📋 {current.context}</span>
+            )}
+            {current.detectedAt && (
+              <span>🕐 Detectado a las {current.detectedAt}</span>
+            )}
+          </div>
+        )}
 
         {/* Botones de acción */}
         <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>

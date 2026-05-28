@@ -130,7 +130,13 @@ const apiAdapter = {
           if (res.status === 409) {
             const conflictData = await res.json().catch(() => ({}));
             window.dispatchEvent(new CustomEvent('teg-conflict', {
-              detail: { collection, localData: data, serverVersion: conflictData.serverVersion, message: conflictData.message }
+              detail: {
+                collection,
+                localData: data,
+                serverVersion: conflictData.serverVersion,
+                message: conflictData.message,
+                context: 'Guardado automático',
+              }
             }));
             resolve({ success: false, conflict: true, serverVersion: conflictData.serverVersion });
             return;
@@ -331,54 +337,108 @@ const dataService = {
 
 export default dataService;
 
-// ── T4.1 — Sincronización offline: cola de reintentos ─────────────────────────
+// ── Mejora 6 — Sincronización offline con backoff exponencial ────────────────
 // Cuando la conexión se recupera, reintenta sincronizar todas las colecciones
 // que fallaron y quedaron marcadas con __pending_sync_* en localStorage.
-// Implementa MISSING-01: el banner "sin conexión" ya no miente.
+// Cada colección que falla se reintenta hasta MAX_ATTEMPTS veces con delays
+// crecientes: 1s → 2s → 4s → 8s → 16s (backoff exponencial).
+// Si todos los intentos fallan, la marca se conserva para el próximo 'online'.
+
 if (typeof window !== 'undefined' && ADAPTER === 'api') {
+
+  /**
+   * Reintenta una función async con backoff exponencial.
+   * @param {Function} fn            — función async que lanza si falla
+   * @param {number}   maxAttempts   — número máximo de intentos (default 5)
+   * @param {number}   baseDelayMs   — delay base en ms (default 1000)
+   * @returns {Promise<boolean>}     — true si tuvo éxito, false si agotó intentos
+   */
+  const retryWithBackoff = async (fn, maxAttempts = 5, baseDelayMs = 1000) => {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        await fn();
+        return true;
+      } catch (err) {
+        if (attempt === maxAttempts) {
+          console.warn(`[dataService] Retry agotado tras ${maxAttempts} intentos:`, err?.message);
+          return false;
+        }
+        const delay = baseDelayMs * Math.pow(2, attempt - 1); // 1s, 2s, 4s, 8s, 16s
+        console.log(`[dataService] Reintento ${attempt}/${maxAttempts} en ${delay}ms…`);
+        await new Promise(r => setTimeout(r, delay));
+      }
+    }
+    return false;
+  };
+
   const syncPendingQueue = async () => {
-    // Paso 3 fix: solo reintentar pendientes — el mecanismo de retry ya está en cada
-    // módulo via useData + teg-sync. Aquí solo limpiamos marcas obsoletas y notificamos.
-    // NOTA: el reintento real con API key se hace cuando el módulo vuelve a guardar;
-    // intentar PUT con x-api-key vacío desde el cliente siempre daría 401.
     const pendingKeys = Object.keys(localStorage)
       .filter(k => k.startsWith('__pending_sync_'));
     if (pendingKeys.length === 0) return;
 
-    console.log(`[dataService] Conexión recuperada — ${pendingKeys.length} colección(es) pendiente(s) detectadas`);
-    window.dispatchEvent(new CustomEvent('teg-save-status', { detail: { status: 'saving' } }));
+    console.log(`[dataService] Conexión recuperada — ${pendingKeys.length} colección(es) pendiente(s)`);
+
+    // Emitir estado con conteo para usePendingSync
+    window.dispatchEvent(new CustomEvent('teg-save-status', {
+      detail: { status: 'saving', count: pendingKeys.length }
+    }));
 
     let synced = 0;
     for (const pendingKey of pendingKeys) {
       const collection = pendingKey.replace('__pending_sync_', '');
-      try {
-        const raw = localStorage.getItem(collection);
-        if (!raw) { localStorage.removeItem(pendingKey); continue; }
-        const data = JSON.parse(raw);
-        // SEC-01: el reintento va al proxy BFF — sin x-api-key en el cliente
-        // El proxy inyecta API_KEY server-side, nunca expuesto en el bundle
+
+      const raw = localStorage.getItem(collection);
+      if (!raw) {
+        localStorage.removeItem(pendingKey);
+        continue;
+      }
+
+      let data;
+      try { data = JSON.parse(raw); }
+      catch { localStorage.removeItem(pendingKey); continue; }
+
+      // SEC-01: el reintento va al proxy BFF — la API key la inyecta el proxy server-side
+      const success = await retryWithBackoff(async () => {
         const res = await fetch(`${API_BASE_URL}/data/${collection}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data),
         });
-        if (res.ok) {
-          localStorage.removeItem(pendingKey);
-          localStorage.setItem(`__last_save_${collection}`, Date.now().toString());
-          synced++;
-        }
-      } catch { /* seguir con la siguiente */ }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        // Actualizar versión local desde respuesta
+        try {
+          const resData = await res.json();
+          if (resData?.version !== undefined) {
+            localStorage.setItem(`__version_${collection}`, String(resData.version));
+          }
+        } catch { /* ignorar — datos ya guardados */ }
+      });
+
+      if (success) {
+        localStorage.removeItem(pendingKey);
+        localStorage.setItem(`__last_save_${collection}`, Date.now().toString());
+        synced++;
+      }
+      // Si falla, __pending_sync_ se conserva → próximo 'online' lo reintentará
     }
 
-    window.dispatchEvent(new CustomEvent('teg-save-status', { detail: { status: synced > 0 ? 'saved' : 'error' } }));
+    const remaining = Object.keys(localStorage).filter(k => k.startsWith('__pending_sync_')).length;
+    window.dispatchEvent(new CustomEvent('teg-save-status', {
+      detail: {
+        status: synced > 0 ? 'saved' : 'error',
+        count: remaining,
+      }
+    }));
+
     if (synced > 0) {
-      console.log(`[dataService] Sincronizadas ${synced} colección(es) pendiente(s)`);
+      console.log(`[dataService] Sincronizadas ${synced} colección(es). Pendientes restantes: ${remaining}`);
+      // dataService.notify() → emite teg-sync para que los módulos recarguen sus datos
       dataService.notify();
     }
   };
 
   window.addEventListener('online', () => {
-    // Pequeño delay para asegurar conectividad real
+    // Pequeño delay para asegurar conectividad real antes de reintentar
     setTimeout(syncPendingQueue, 1500);
   });
 }
