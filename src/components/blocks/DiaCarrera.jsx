@@ -7,11 +7,14 @@ import EmptyState from "@/components/EmptyState";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
 import { getEventDate } from "@/lib/eventUtils";
 import { LOCS_KEY, LOCS_DEFAULT } from "@/constants/localizaciones"; // CONN-01: mapa de puestos
-
-import { SK_LOG_ROOT, SK_VOL_ROOT } from "@/constants/storageKeys";
-
-const LS_LOG = SK_LOG_ROOT;
-const LS_VOL = SK_VOL_ROOT;
+// Mejora 4: usar contratos públicos en lugar de SK_LOG_ROOT / SK_VOL_ROOT directos
+import { useLogisticaPublic, useVoluntariosPublic } from "@/hooks/public";
+import {
+  SK_LOG_TL,
+  SK_LOG_CK,
+  SK_LOG_INC,
+  SK_VOL_VOLUNTARIOS,
+} from "@/constants/storageKeys";
 
 const CAT_ICON  = { logistica:"🚚", organizacion:"📋", voluntarios:"👥", carrera:"🏃", comunicacion:"📡" };
 const CAT_COLOR = { logistica:"#fbbf24", organizacion:"#a78bfa", voluntarios:"#34d399", carrera:"#22d3ee", comunicacion:"#fb923c" };
@@ -30,36 +33,39 @@ export default function DiaCarrera({ onClose }) {
     return () => clearInterval(t);
   }, []);
 
-  // INC-03: escuchar teg-sync para actualizar datos en tiempo real (colaboración multi-dispositivo)
+  // Mejora 4: los hooks públicos (useLogisticaPublic, useVoluntariosPublic) se actualizan
+  // automáticamente vía useData. El handler teg-sync legacy ya no necesita invocar
+  // funciones de carga manuales para esos módulos.
   useEffect(() => {
-    let debounce = null;
-    const handler = () => {
-      if (debounce) clearTimeout(debounce);
-      debounce = setTimeout(() => {
-        if (typeof loadVols  === "function") loadVols();
-        if (typeof loadInc   === "function") loadInc();
-        if (typeof loadTl    === "function") loadTl();
-        if (typeof loadCk    === "function") loadCk();
-      }, 300);
-    };
+    // Handler conservado para compatibilidad hasta Mejora 10 (PWA/SW)
+    const handler = () => { /* hooks públicos se sincronizan solos */ };
     window.addEventListener("teg-sync", handler);
-    return () => {
-      if (debounce) clearTimeout(debounce);
-      window.removeEventListener("teg-sync", handler);
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => window.removeEventListener("teg-sync", handler);
+  }, []);
 
   const [eventCfg, , loadCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
   const config     = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
-  const [rawTl,  setTl, loadTl]   = useData(LS_LOG + "_tl",  []);
-  const [rawCont, , loadCont]         = useData(LS_LOG + "_cont", []);
-  const [rawCk,  setCk, loadCk]   = useData(LS_LOG + "_ck",  []);
-  const [rawPuestos, , loadPuestos]      = useData(LS_VOL + "_puestos", []);
-  const [locs,    ,]             = useData(LOCS_KEY, LOCS_DEFAULT); // CONN-01: localizaciones GPS
-  const [rawVols, setVols, loadVols]= useData(LS_VOL + "_voluntarios", []);
-  const [rawInc,  setInc, loadInc] = useData(LS_LOG + "_inc", []);
+  // Mejora 4: datos de logística y voluntarios a través de contratos públicos.
+  // DiaCarrera ya no construye claves internas con SK_LOG_ROOT + "_xxx".
+  const logisticaPub   = useLogisticaPublic();
+  const voluntariosPub = useVoluntariosPublic();
 
-  const isLoading = loadCfg || loadTl || loadCont || loadCk || loadPuestos || loadVols || loadInc;
+  // Datos de solo lectura desde los contratos públicos
+  const rawCont    = logisticaPub.contenedores;
+  const rawPuestos = voluntariosPub.puestos;
+  const rawVols    = voluntariosPub.voluntarios;
+
+  // DiaCarrera necesita escritura para timeline, checklist, incidencias y presencia.
+  // Se mantiene useData pero con las claves canonicas desde storageKeys.
+  const [rawTl,  setTl]   = useData(SK_LOG_TL,           []);
+  const [rawCk,  setCk]   = useData(SK_LOG_CK,           []);
+  const [rawInc, setInc]  = useData(SK_LOG_INC,          []);
+  // toggleVol necesita escritura en voluntarios (campo enPuesto/horaLlegada)
+  const [,       setVols] = useData(SK_VOL_VOLUNTARIOS,  []);
+
+  const [locs, ,] = useData(LOCS_KEY, LOCS_DEFAULT); // CONN-01: localizaciones GPS
+
+  const isLoading = loadCfg || !logisticaPub.loaded || !voluntariosPub.loaded;
 
   // Derivaciones de arrays — siempre antes de cualquier retorno anticipado
   const tl       = useMemo(() =>
