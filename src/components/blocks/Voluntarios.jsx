@@ -300,7 +300,7 @@ export default function App() {
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const guardar = () => {
-    window.dispatchEvent(new CustomEvent("teg-sync"));
+    dataService.notify('voluntarios');
     setSaveStatus("saved");
     setTimeout(() => setSaveStatus("idle"), 2500);
   };

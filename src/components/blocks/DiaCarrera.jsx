@@ -103,7 +103,7 @@ export default function DiaCarrera({ onClose }) {
     );
   }
 
-  const toggleTl  = id => { const now = new Date().toTimeString().slice(0,5); setTl(prev => prev.map(t => t.id===id ? {...t, estado:(t.estado==="completado"||t.done)?"pendiente":"completado", done:false, completadoEn:(t.estado==="completado"||t.done)?undefined:now} : t)); dataService.notify(); };
+  const toggleTl  = id => { const now = new Date().toTimeString().slice(0,5); setTl(prev => prev.map(t => t.id===id ? {...t, estado:(t.estado==="completado"||t.done)?"pendiente":"completado", done:false, completadoEn:(t.estado==="completado"||t.done)?undefined:now} : t)); dataService.notify('diacarrera'); };
   // INC-01 fix: usar enPuesto+horaLlegada (campo canónico del VoluntarioPortal) en lugar de v.enPuesto
   const toggleVol = id => {
     setVols(prev => prev.map(v => {
@@ -111,9 +111,9 @@ export default function DiaCarrera({ onClose }) {
       const llegando = !v.enPuesto;
       return { ...v, enPuesto: llegando, horaLlegada: llegando ? new Date().toTimeString().slice(0,5) : null };
     }));
-    dataService.notify();
+    dataService.notify('diacarrera');
   };
-  const toggleCk  = id => { const now = new Date().toTimeString().slice(0,5); setCk(prev => prev.map(t => t.id===id ? {...t, estado: t.estado==="completado" ? "pendiente" : "completado", completadoEn: t.estado==="completado" ? undefined : now} : t)); dataService.notify(); };
+  const toggleCk  = id => { const now = new Date().toTimeString().slice(0,5); setCk(prev => prev.map(t => t.id===id ? {...t, estado: t.estado==="completado" ? "pendiente" : "completado", completadoEn: t.estado==="completado" ? undefined : now} : t)); dataService.notify('diacarrera'); };
 
   const guardarIncidencia = () => {
     if (!incForm.descripcion.trim()) return;
@@ -131,7 +131,7 @@ export default function DiaCarrera({ onClose }) {
       resueltaEn:  null,
     };
     setInc(prev => [...(Array.isArray(prev) ? prev : []), nueva]);
-    dataService.notify();
+    dataService.notify('diacarrera');
     toast.success("Incidencia registrada correctamente");
     setIncGuardado(true);
     setTimeout(() => {

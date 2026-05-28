@@ -282,10 +282,26 @@ const dataService = {
   setMultiple: (entries, batchKey) => adapter.setMultiple(entries, batchKey),
 
   /**
-   * Notificar a otros bloques que los datos han cambiado
+   * Notificar a otros bloques que los datos han cambiado.
+   * Mejora 3: emite evento tipado al store Zustand (que a su vez sigue
+   * disparando teg-sync en window para compatibilidad con código legacy).
+   *
+   * @param {string} [module] — módulo que notifica (ej: 'voluntarios')
    */
-  notify: () => {
-    window.dispatchEvent(new CustomEvent('teg-sync', { detail: {} })); // INC-06: CustomEvent uniforme con el resto de emisores
+  notify: (module) => {
+    // Importación dinámica para evitar circular dependency en tests
+    import('@/store/useAppStore').then(({ useAppStore }) => {
+      const { emitFromModule, emitEvent, EVENT_TYPES } = useAppStore.getState();
+      if (module) {
+        emitFromModule(module);
+      } else {
+        // Sin módulo: DATA_SYNC genérico (sigue emitiendo teg-sync via el slice)
+        emitEvent(EVENT_TYPES.DATA_SYNC, 'unknown');
+      }
+    }).catch(() => {
+      // Fallback si el store no está disponible (ej: tests sin Zustand)
+      window.dispatchEvent(new CustomEvent('teg-sync', { detail: {} }));
+    });
   },
 
   /**

@@ -175,11 +175,11 @@ export default function Documentos() {
   const save = useCallback((next) => {
     setDocs(next);
     dataService.set(LS_KEY, next);
-    dataService.notify();
+    dataService.notify('documentos');
   }, []);
   const saveGestiones = useCallback((next) => {
     setGestiones(next);
-    dataService.set(LS_KEY + "_gestiones", next).then(() => dataService.notify());
+    dataService.set(LS_KEY + "_gestiones", next).then(() => dataService.notify('documentos'));
   }, []);
 
   // ─── FILE HANDLING ────────────────────────────────────────────────────────

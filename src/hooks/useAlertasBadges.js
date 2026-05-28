@@ -9,6 +9,7 @@
  */
 import { useEffect, useRef, useState, useCallback } from "react";
 import dataService from "@/lib/dataService";
+import { useLastEvent } from "@/store/useAppStore";
 import {
   SK_PROY_TAREAS,
   SK_VOL_VOLUNTARIOS,
@@ -169,21 +170,18 @@ export function useAlertasBadges({ activeBlock, syncTick }) {
     calcModulos(TODOS_MODULOS);
   }, [activeBlock, syncTick, calcModulos]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // T7.2: escuchar teg-sync con granularidad por módulo
+  // Mejora 3: suscribirse al store Zustand con granularidad por módulo.
+  // lastEvent cambia solo cuando hay un evento nuevo → reacción precisa.
+  const lastEvent = useLastEvent();
   useEffect(() => {
-    const handler = (e) => {
-      const modulo = e?.detail?.module;
-      if (modulo && TODOS_MODULOS.includes(modulo)) {
-        // Solo recalcular el módulo que cambió
-        calcModulos([modulo]);
-      } else {
-        // Sin módulo específico: recalcular todos (conservador)
-        calcModulos(TODOS_MODULOS);
-      }
-    };
-    window.addEventListener("teg-sync", handler);
-    return () => window.removeEventListener("teg-sync", handler);
-  }, [calcModulos]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!lastEvent) return;
+    const modulo = lastEvent.module;
+    if (modulo && TODOS_MODULOS.includes(modulo)) {
+      calcModulos([modulo]);
+    } else {
+      calcModulos(TODOS_MODULOS);
+    }
+  }, [lastEvent, calcModulos]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return badges;
 }

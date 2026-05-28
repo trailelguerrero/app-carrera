@@ -14,6 +14,7 @@
  *   - "Recargar del servidor"  → elimina caché local e invalida TTL
  */
 import { useState, useEffect, useCallback } from "react";
+import { useAppStore, EVENT_TYPES } from "@/store/useAppStore";
 
 const API_BASE = "/api/proxy";
 
@@ -92,6 +93,8 @@ export default function ConflictModal() {
   }, [current, dismiss]);
 
   // "Recargar del servidor" — eliminar caché local para forzar refetch
+  const emitEvent = useAppStore((s) => s.emitEvent);
+
   const handleReload = useCallback(() => {
     if (!current) return;
     setLoading("reload");
@@ -99,10 +102,10 @@ export default function ConflictModal() {
       localStorage.removeItem(`__cache_${current.collection}`);
       localStorage.removeItem(`__cache_ts_${current.collection}`);
       localStorage.removeItem(`__version_${current.collection}`);
-      window.dispatchEvent(new CustomEvent("teg-sync", { detail: {} }));
+      emitEvent(EVENT_TYPES.DATA_SYNC, 'conflict-modal');
     } catch { /* ignorar */ }
     dismiss();
-  }, [current, dismiss]);
+  }, [current, dismiss, emitEvent]);
 
   if (!current) return null;
 

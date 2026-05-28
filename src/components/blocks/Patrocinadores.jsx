@@ -155,7 +155,7 @@ export default function App() {
     } else {
       setPats(prev => [...prev, { ...patConEspecie, id: genIdNum(pats), docs: [], especieItems: [] }]);
     }
-    dataService.notify(); // FIX BUG-ECO-02: sincronizar Dashboard tras crear/editar patrocinador
+    dataService.notify("presupuesto"); // FIX BUG-ECO-02: sincronizar Dashboard tras crear/editar patrocinador
     setModal(null);
     toast.success(pat.id ? "Patrocinador actualizado" : "Patrocinador creado");
   };
@@ -164,7 +164,7 @@ export default function App() {
     setPats(prev => prev.filter(p => p.id !== delId));
     setDelId(null);
     toast.success("Patrocinador eliminado");
-    dataService.notify(); // Sincronizar con Presupuesto tras eliminación
+    dataService.notify("presupuesto"); // Sincronizar con Presupuesto tras eliminación
   };
 
   const updateEstado = (id, estado, importeCobradoPanel = null) => {
@@ -204,7 +204,7 @@ export default function App() {
       }
       return { ...p, ...updates };
     }));
-    dataService.notify(); // FIX BUG-ECO-02: el estado afecta importes comprometido/cobrado en Dashboard
+    dataService.notify("presupuesto"); // FIX BUG-ECO-02: el estado afecta importes comprometido/cobrado en Dashboard
     if (estado === "cobrado") toast.success("Patrocinador marcado como cobrado ✓");
   };
 
@@ -223,7 +223,7 @@ export default function App() {
     // CON-04: sincronizar Dashboard y Presupuesto tras cambio en contraprestación
     // notify() es un dispatchEvent puro (O(1)); el debounce de escritura ya lo gestiona
     // apiAdapter internamente, por lo que no se necesita debounce adicional aquí
-    dataService.notify();
+    dataService.notify("presupuesto");
   };
 
   const addContraprestacion = (patId, item) => {
@@ -231,7 +231,7 @@ export default function App() {
       ...p,
       contraprestaciones: [...(p.contraprestaciones || []), { ...item, id: genIdNum(p.contraprestaciones || []) }]
     } : p));
-    dataService.notify(); // CON-04: sincronizar módulos tras añadir contraprestación
+    dataService.notify("presupuesto"); // CON-04: sincronizar módulos tras añadir contraprestación
   };
 
   const deleteContraprestacion = (patId, cId) => {
@@ -239,7 +239,7 @@ export default function App() {
       ...p,
       contraprestaciones: (p.contraprestaciones || []).filter(c => c.id !== cId)
     } : p));
-    dataService.notify(); // CON-04: sincronizar módulos tras eliminar contraprestación
+    dataService.notify("presupuesto"); // CON-04: sincronizar módulos tras eliminar contraprestación
   };
 
   // ── Gestión ítems en especie ─────────────────────────────────────────────────
@@ -254,7 +254,7 @@ export default function App() {
         : p.especie;
       return { ...p, especieItems: nuevosItems, especie: especieSync };
     }));
-    dataService.notify(); // CON-04: sincronizar módulos tras añadir ítem en especie
+    dataService.notify("presupuesto"); // CON-04: sincronizar módulos tras añadir ítem en especie
   };
   const updateEspecieItem = (patId, itemId, campo, valor) => {
     setPats(prev => prev.map(p => {
@@ -271,7 +271,7 @@ export default function App() {
         : p.especie;
       return { ...p, especieItems: updItems, especie: especieSync };
     }));
-    dataService.notify(); // CON-04: sincronizar módulos tras actualizar ítem en especie
+    dataService.notify("presupuesto"); // CON-04: sincronizar módulos tras actualizar ítem en especie
   };
   const deleteEspecieItem = (patId, itemId) => {
     setPats(prev => prev.map(p => {
@@ -284,7 +284,7 @@ export default function App() {
         : p.especie;
       return { ...p, especieItems: filteredItems, especie: especieSync };
     }));
-    dataService.notify(); // CON-04: sincronizar módulos tras eliminar ítem en especie
+    dataService.notify("presupuesto"); // CON-04: sincronizar módulos tras eliminar ítem en especie
   };
 
   // CON-02/MEJ-04: añadir entrada de contacto manual al historial del patrocinador.

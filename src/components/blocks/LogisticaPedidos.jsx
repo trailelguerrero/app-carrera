@@ -24,7 +24,7 @@ async function syncHitoPedido(pedido, action = "upsert") {
       if (idx === -1) return; // nada que eliminar
       const next = lista.filter((_, i) => i !== idx);
       await dataService.set(SK_PROY_HITOS, next);
-      dataService.notify();
+      dataService.notify('logistica');
       return;
     }
 
@@ -46,7 +46,7 @@ async function syncHitoPedido(pedido, action = "upsert") {
       next = lista.map((h, i) => i === idx ? { ...h, ...hitoData } : h);
     }
     await dataService.set(SK_PROY_HITOS, next);
-    dataService.notify();
+    dataService.notify('logistica');
   } catch (e) {
     console.error("[LogisticaPedidos] syncHitoPedido:", e.message);
   }

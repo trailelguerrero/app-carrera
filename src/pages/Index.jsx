@@ -9,6 +9,7 @@ import ConflictModal from "../components/blocks/ConflictModal";
 import { ThemeToggle } from "../components/ui/ThemeToggle";
 import { LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { useAppStore, EVENT_TYPES } from "@/store/useAppStore";
 import QuickNav from "../components/common/QuickNav";
 
 // Lazy-style imports for blocks
@@ -241,16 +242,13 @@ export default function Index() {
   const isOnline = useOnlineStatus();
   useMobileKeyboardScroll();
 
-  // Sync counter — increments on every teg-sync so badges recalculate
-  const [syncTick, setSyncTick] = useState(0);
-  useEffect(() => {
-    const h = () => setSyncTick(t => t + 1);
-    window.addEventListener("teg-sync", h);
-    return () => window.removeEventListener("teg-sync", h);
-  }, []);
+  // Mejora 3: syncTick via Zustand store (lastEvent.id incrementa en cada evento)
+  const lastEventId = useAppStore((s) => s.lastEvent?.id ?? 0);
+  const syncTick = lastEventId; // mismo rol que antes, pero source = store
+  const emitEvent = useAppStore((s) => s.emitEvent);
 
   const handleBlockChange = useCallback((id) => {
-    window.dispatchEvent(new CustomEvent("teg-sync", { detail: {} })); // INC-06: CustomEvent uniforme
+    emitEvent(EVENT_TYPES.DATA_SYNC, 'navigation');
     // INC-03: limpiar subtab pendiente si el destino cambia de bloque
     // (el subtab sólo es válido para el bloque al que iba destinado;
     //  si el usuario navega a otro lugar, lo descartamos para evitar
@@ -260,7 +258,7 @@ export default function Index() {
       return prev;
     });
     setActiveBlock(id);
-  }, []);
+  }, [emitEvent]);
 
   // Navegación desde cualquier bloque via evento custom (ej. alertas del Dashboard)
   useEffect(() => {
