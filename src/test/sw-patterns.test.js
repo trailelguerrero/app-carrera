@@ -12,6 +12,7 @@ import { describe, it, expect } from 'vitest';
 import {
   STALE_WHILE_REVALIDATE_PATTERNS,
   NETWORK_ONLY_PATTERNS,
+  NETWORK_FIRST_PATTERNS,
 } from '@/constants/swPatterns';
 import {
   SK_VOL_VOLUNTARIOS,
@@ -63,6 +64,23 @@ describe('TEST-01 — Service Worker patterns vs storageKeys', () => {
     });
     it('ninguna URL de logística está en NETWORK_ONLY', () => {
       expect(NETWORK_ONLY_PATTERNS.some(p => p.test(apiUrl(SK_LOG_MAT)))).toBe(false);
+    });
+  });
+
+  // Mejora 10: NETWORK_FIRST_PATTERNS cubre las mismas rutas operativas
+  describe('Mejora 10 — Network First cubre rutas operativas', () => {
+    it('SK_VOL_VOLUNTARIOS cubierta por NETWORK_FIRST', () => {
+      expect(NETWORK_FIRST_PATTERNS.some(p => p.test(apiUrl(SK_VOL_VOLUNTARIOS)))).toBe(true);
+    });
+    it('SK_LOG_MAT cubierta por NETWORK_FIRST', () => {
+      expect(NETWORK_FIRST_PATTERNS.some(p => p.test(apiUrl(SK_LOG_MAT)))).toBe(true);
+    });
+    it('SK_LOG_INC cubierta por NETWORK_FIRST', () => {
+      expect(NETWORK_FIRST_PATTERNS.some(p => p.test(apiUrl(SK_LOG_INC)))).toBe(true);
+    });
+    it('STALE alias = NETWORK_FIRST (backward compat)', () => {
+      // Los tests antiguos siguen pasando porque STALE ahora apunta a NETWORK_FIRST
+      expect(STALE_WHILE_REVALIDATE_PATTERNS).toBe(NETWORK_FIRST_PATTERNS);
     });
   });
 });

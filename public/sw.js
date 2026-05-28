@@ -7,12 +7,21 @@
  *                        Cambian solo en cada deploy (el hash del nombre los invalida).
  *                        Prioridad: velocidad > frescura.
  *
- *  Stale While Revalidate → datos de voluntarios, logística y portal
- *                        Se muestra la caché mientras se actualiza en background.
- *                        Prioridad: disponibilidad > frescura inmediata.
+ *  Network First       → datos operativos de la API (/api/proxy/data/*)
+ *                        Intenta la red primero; si falla, devuelve la caché.
+ *                        Prioridad: frescura > disponibilidad inmediata.
  *
  *  Network Only        → presupuesto, patrocinadores, autenticación
  *                        Datos sensibles o de escritura que NUNCA deben servirse desde caché.
+ *
+ *  Background Sync     → escrituras pendientes (PUT /api/proxy/data/*)
+ *                        Si el dispositivo está offline al guardar, el SW sincroniza
+ *                        automáticamente en background cuando vuelve la conexión,
+ *                        aunque la app esté cerrada.
+ *
+ *  Push Notifications  → incidencias DiaCarrera
+ *                        Notificación nativa cuando se registra una incidencia nueva,
+ *                        incluso con la app en segundo plano.
  *
  * Datos disponibles offline:
  *  ✅ Portal del voluntario (/voluntarios/mi-ficha)
@@ -30,7 +39,7 @@
 // ── Versión de caché ────────────────────────────────────────────────────────
 // Se inyecta en build por vite-plugin-pwa (injectManifest).
 // En desarrollo se usa un timestamp para invalidar siempre.
-const CACHE_VERSION = self.__WB_MANIFEST ? "pwa-v2" : `dev-${Date.now()}`;
+const CACHE_VERSION = self.__WB_MANIFEST ? "pwa-v3" : `dev-${Date.now()}`;
 
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 const CACHE_DATA    = `${CACHE_VERSION}-data`;
@@ -52,6 +61,7 @@ const PRECACHE_URLS = [
 import {
   STALE_WHILE_REVALIDATE_PATTERNS,
   NETWORK_ONLY_PATTERNS,
+  NETWORK_FIRST_PATTERNS,
 } from '../src/constants/swPatterns.js';
 
 // ── INSTALL — precargar assets críticos ────────────────────────────────────
@@ -87,7 +97,7 @@ self.addEventListener("fetch", (event) => {
   // Solo interceptamos peticiones al mismo origen
   if (url.origin !== self.location.origin) return;
 
-  // POST/PUT/DELETE → nunca cachear
+  // POST/PUT/DELETE → nunca cachear (las escrituras van por Background Sync)
   if (request.method !== "GET") return;
 
   // Network Only — datos sensibles
@@ -96,9 +106,9 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Stale While Revalidate — datos operativos de la API
-  if (STALE_WHILE_REVALIDATE_PATTERNS.some((p) => p.test(url.pathname + url.search))) {
-    event.respondWith(staleWhileRevalidate(request, CACHE_DATA));
+  // Network First — datos operativos de la API (offline: devuelve caché)
+  if (NETWORK_FIRST_PATTERNS.some((p) => p.test(url.pathname + url.search))) {
+    event.respondWith(networkFirst(request, CACHE_DATA));
     return;
   }
 
@@ -106,7 +116,86 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(cacheFirst(request, CACHE_STATIC));
 });
 
-// ── MENSAJE desde el cliente (ej: forzar actualización) ───────────────────
+// ── BACKGROUND SYNC — sincronizar escrituras pendientes ───────────────────
+// Se activa cuando el dispositivo recupera la conexión, aunque la app esté cerrada.
+// El cliente registra la tarea con: registration.sync.register('pending-sync')
+// dataService.js ya gestiona la cola en localStorage; el SW solo dispara el proceso.
+self.addEventListener("sync", (event) => {
+  if (event.tag === "pending-sync") {
+    event.waitUntil(
+      self.clients.matchAll({ type: "window" }).then((clients) => {
+        if (clients.length > 0) {
+          // Hay ventana abierta: notificar para que dataService procese la cola
+          clients[0].postMessage({ type: "SW_TRIGGER_SYNC" });
+        } else {
+          // App cerrada: intentar sincronizar directamente desde el SW
+          return syncFromSW();
+        }
+      })
+    );
+  }
+});
+
+// ── PUSH NOTIFICATIONS — incidencias DiaCarrera ───────────────────────────
+// Recibe notificaciones del servidor cuando se registra una incidencia nueva.
+// Payload esperado: { title, body, gravedad, tag }
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+
+  let payload;
+  try {
+    payload = event.data.json();
+  } catch {
+    payload = { title: "🚨 Nueva incidencia", body: event.data.text() };
+  }
+
+  const gravedad = payload.gravedad || "media";
+  const iconMap = { alta: "🔴", media: "🟠", baja: "🟡" };
+  const icon = iconMap[gravedad] || "🟠";
+
+  const options = {
+    body: payload.body || "Se ha registrado una incidencia nueva en el evento.",
+    icon: "/icon-192.webp",
+    badge: "/icon-192.webp",
+    tag: payload.tag || `incidencia-${Date.now()}`,
+    renotify: true,
+    data: { url: payload.url || "/" },
+    actions: [
+      { action: "open", title: "Ver incidencia" },
+      { action: "dismiss", title: "Cerrar" },
+    ],
+    vibrate: gravedad === "alta" ? [200, 100, 200, 100, 200] : [200, 100, 200],
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(`${icon} ${payload.title || "Nueva incidencia"}`, options)
+  );
+});
+
+// Manejar clic en la notificación
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  if (event.action === "dismiss") return;
+
+  const targetUrl = event.notification.data?.url || "/";
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      // Si la app ya está abierta, enfocarla y navegar
+      const existing = clients.find((c) => c.url.includes(self.location.origin));
+      if (existing) {
+        existing.focus();
+        existing.postMessage({ type: "SW_NAVIGATE", url: targetUrl });
+        return;
+      }
+      // Si no está abierta, abrirla
+      return self.clients.openWindow(targetUrl);
+    })
+  );
+});
+
+// ── MENSAJE desde el cliente ───────────────────────────────────────────────
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") {
     self.skipWaiting();
@@ -132,19 +221,65 @@ async function cacheFirst(request, cacheName) {
   }
 }
 
-// ── Estrategia: Stale While Revalidate ─────────────────────────────────────
-async function staleWhileRevalidate(request, cacheName) {
+// ── Estrategia: Network First ───────────────────────────────────────────────
+// Intenta la red primero. Si falla (offline), devuelve la caché.
+// Siempre actualiza la caché tras una respuesta exitosa.
+async function networkFirst(request, cacheName) {
   const cache = await caches.open(cacheName);
-  const cached = await cache.match(request);
 
-  // Revalidar en background independientemente de si hay caché
-  const fetchPromise = fetch(request)
-    .then((response) => {
-      if (response.ok) cache.put(request, response.clone());
-      return response;
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    // Sin red: devolver caché si existe
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    return new Response(
+      JSON.stringify({ error: "Sin conexión", offline: true }),
+      { status: 503, headers: { "Content-Type": "application/json" } }
+    );
+  }
+}
+
+// ── Background Sync desde SW (app cerrada) ─────────────────────────────────
+// Lee las claves __pending_sync_* de la caché del SW y reintenta el PUT.
+// Esta es una ruta de último recurso: normalmente dataService.js lo hace.
+async function syncFromSW() {
+  // No tenemos acceso a localStorage desde el SW; usamos Cache Storage como puente.
+  // El cliente escribe los datos pendientes en un cache especial antes de cerrar.
+  const pendingCache = await caches.open("pending-writes");
+  const keys = await pendingCache.keys();
+
+  if (keys.length === 0) return;
+
+  const results = await Promise.allSettled(
+    keys.map(async (request) => {
+      try {
+        const cachedResponse = await pendingCache.match(request);
+        if (!cachedResponse) return;
+
+        const body = await cachedResponse.text();
+        const response = await fetch(request.url, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body,
+        });
+
+        if (response.ok) {
+          await pendingCache.delete(request);
+        }
+      } catch {
+        // Dejamos la entrada en caché para el próximo intento
+      }
     })
-    .catch(() => null);
+  );
 
-  // Devolver caché inmediatamente si existe; si no, esperar la red
-  return cached || fetchPromise || new Response("Sin conexión", { status: 503 });
+  // Notificar a cualquier cliente que se abra después
+  const clients = await self.clients.matchAll({ type: "window" });
+  clients.forEach((c) => c.postMessage({ type: "SW_SYNC_COMPLETE" }));
+
+  return results;
 }

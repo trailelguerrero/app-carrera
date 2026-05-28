@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { createPortal } from "react-dom";
 import dataService from "@/lib/dataService";
 import { useData } from "@/hooks/useData";
@@ -27,6 +28,7 @@ export default function DiaCarrera({ onClose }) {
   const [busPresencia, setBusPresencia] = useState("");
   const [incForm, setIncForm] = useState({ tipo: "médica", gravedad: "media", descripcion: "", puestoNombre: "— Sin puesto específico" });
   const [incGuardado, setIncGuardado] = useState(false);
+  const { supported: pushSupported, enabled: pushEnabled, loading: pushLoading, toggle: pushToggle, notifyLocal } = usePushNotifications();
 
   useEffect(() => {
     const t = setInterval(() => setAhora(new Date()), 1000); // cada segundo para el reloj
@@ -139,6 +141,16 @@ export default function DiaCarrera({ onClose }) {
     setInc(prev => [...(Array.isArray(prev) ? prev : []), nueva]);
     dataService.notify('diacarrera');
     toast.success("Incidencia registrada correctamente");
+    // PWA-10: si el usuario tiene push activado, enviar notificación local
+    // Útil cuando el modal se cierra y el organizador necesita un aviso persistente
+    if (pushEnabled) {
+      const gravedadIcon = { alta: "🔴", media: "🟠", baja: "🟡" }[nueva.gravedad] || "🟠";
+      notifyLocal(`${gravedadIcon} Incidencia ${nueva.gravedad}`, {
+        body: `${nueva.tipo} · ${nueva.descripcion.slice(0, 80)}`,
+        tag: `incidencia-${nueva.id}`,
+        vibrate: nueva.gravedad === "alta" ? [200, 100, 200, 100, 200] : [200, 100, 200],
+      });
+    }
     setIncGuardado(true);
     setTimeout(() => {
       setShowInc(false);
@@ -181,12 +193,34 @@ export default function DiaCarrera({ onClose }) {
             {" "}· {hora} · <span style={{color:"var(--green)"}}>{presentes}/{confirmados.length} presentes</span>
           </div>
         </div>
-        <button onClick={onClose} aria-label="Cerrar vista Día de la Carrera" style={{
-          background:"var(--surface2)", border:"1px solid var(--border)",
-          borderRadius:8, color:"var(--text-muted)", cursor:"pointer",
-          padding:".35rem .7rem", fontFamily:"'DM Mono',monospace",
-          fontSize:"var(--fs-sm)", fontWeight:700,
-        }}>✕ Salir</button>
+        <div style={{ display:"flex", alignItems:"center", gap:".5rem" }}>
+          {/* PWA-10: botón de toggle push notifications — solo si el navegador lo soporta */}
+          {pushSupported && (
+            <button
+              onClick={pushToggle}
+              disabled={pushLoading}
+              title={pushEnabled ? "Desactivar notificaciones de incidencias" : "Activar notificaciones de incidencias"}
+              aria-label={pushEnabled ? "Notificaciones activadas" : "Activar notificaciones"}
+              style={{
+                background: pushEnabled ? "rgba(34,211,238,0.15)" : "var(--surface2)",
+                border: pushEnabled ? "1px solid var(--cyan)" : "1px solid var(--border)",
+                borderRadius:8, color: pushEnabled ? "var(--cyan)" : "var(--text-muted)",
+                cursor: pushLoading ? "default" : "pointer",
+                padding:".35rem .6rem", fontFamily:"'DM Mono',monospace",
+                fontSize:"var(--fs-sm)", fontWeight:700, opacity: pushLoading ? 0.6 : 1,
+                transition:"all .2s",
+              }}
+            >
+              {pushLoading ? "…" : pushEnabled ? "🔔 Push ON" : "🔕 Push"}
+            </button>
+          )}
+          <button onClick={onClose} aria-label="Cerrar vista Día de la Carrera" style={{
+            background:"var(--surface2)", border:"1px solid var(--border)",
+            borderRadius:8, color:"var(--text-muted)", cursor:"pointer",
+            padding:".35rem .7rem", fontFamily:"'DM Mono',monospace",
+            fontSize:"var(--fs-sm)", fontWeight:700,
+          }}>✕ Salir</button>
+        </div>
       </div>
 
       {/* Próxima tarea */}
