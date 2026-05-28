@@ -369,8 +369,8 @@ const Presupuesto = () => {
         {/* ── Insight Desviación Costes Reales ── */}
         {(() => {
           const pedidos   = Array.isArray(rawPedidosProv) ? rawPedidosProv : [];
-          const conceptos = Array.isArray(budgetLogic?.conceptos) ? budgetLogic.conceptos : [];
-          const { totales } = calcCostesRealesDesdePedidos(pedidos, conceptos);
+          const conceptosParaCalc = Array.isArray(conceptos) ? conceptos : [];
+          const { totales } = calcCostesRealesDesdePedidos(pedidos, conceptosParaCalc);
           if (totales.costeReal === 0) return null;
           const sobre = totales.desviacion > 0;
           const ahorro = totales.desviacion < 0;
@@ -561,8 +561,8 @@ const Presupuesto = () => {
 
           {tab === "costesreales" && (() => {
             const pedidos   = Array.isArray(rawPedidosProv) ? rawPedidosProv : [];
-            const conceptos = Array.isArray(budgetLogic?.conceptos) ? budgetLogic.conceptos : [];
-            const costesReales = calcCostesRealesDesdePedidos(pedidos, conceptos);
+            const conceptosParaCalc = Array.isArray(conceptos) ? conceptos : [];
+            const costesReales = calcCostesRealesDesdePedidos(pedidos, conceptosParaCalc);
             return (
               <TabCostesReales
                 costesReales={costesReales}
