@@ -232,21 +232,35 @@ export const TabPresupuesto = ({
             {c.modoUniforme ? "= Igual" : "≠ Dist."}
           </button>
         </td>
-        {DISTANCIAS.map(d => (
-          <td key={d} className="text-right" style={{ opacity: c.activo ? 1 : 0.35 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4 }}>
-              <Toggle
-                value={c.activoDistancias ? c.activoDistancias[d] !== false : true}
-                onChange={v => updateActivoDistancia(c.id, d, v)}
-              />
-              <NumInput
-                value={c.costePorDistancia[d] || 0}
-                onChange={v => updateCostePorDistancia(c.id, d, v)}
-                small step={0.01}
-              />
-            </div>
-          </td>
-        ))}
+        {DISTANCIAS.map(d => {
+          const activaDistancia = c.activoDistancias ? c.activoDistancias[d] !== false : true;
+          const totalDistancia  = c.activo && activaDistancia
+            ? (c.costePorDistancia[d] || 0) * (totalInscritos[d] || 0)
+            : null;
+          return (
+            <td key={d} className="text-right" style={{ opacity: c.activo ? 1 : 0.35 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4 }}>
+                <Toggle
+                  value={activaDistancia}
+                  onChange={v => updateActivoDistancia(c.id, d, v)}
+                />
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 1 }}>
+                  <NumInput
+                    value={c.costePorDistancia[d] || 0}
+                    onChange={v => updateCostePorDistancia(c.id, d, v)}
+                    small step={0.01}
+                  />
+                  <span className="mono text-xs" style={{
+                    opacity: 0.55, fontSize: "0.7em",
+                    color: activaDistancia ? DISTANCIA_COLORS[d] : "var(--text-muted)"
+                  }}>
+                    {totalDistancia !== null ? `${fmtN(totalDistancia)} €` : "—"}
+                  </span>
+                </div>
+              </div>
+            </td>
+          );
+        })}
         <td className="text-right mono text-xs" style={{ color: "var(--green)" }}>
           {c.activo ? total.toFixed(2) : "0,00"} €
         </td>
