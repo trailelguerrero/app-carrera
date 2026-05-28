@@ -141,8 +141,7 @@ export default function DiaCarrera({ onClose }) {
     setInc(prev => [...(Array.isArray(prev) ? prev : []), nueva]);
     dataService.notify('diacarrera');
     toast.success("Incidencia registrada correctamente");
-    // PWA-10: si el usuario tiene push activado, enviar notificación local
-    // Útil cuando el modal se cierra y el organizador necesita un aviso persistente
+    // PWA-10: notificación local para este dispositivo
     if (pushEnabled) {
       const gravedadIcon = { alta: "🔴", media: "🟠", baja: "🟡" }[nueva.gravedad] || "🟠";
       notifyLocal(`${gravedadIcon} Incidencia ${nueva.gravedad}`, {
@@ -150,6 +149,21 @@ export default function DiaCarrera({ onClose }) {
         tag: `incidencia-${nueva.id}`,
         vibrate: nueva.gravedad === "alta" ? [200, 100, 200, 100, 200] : [200, 100, 200],
       });
+    }
+    // PWA-10: push servidor — notifica a TODOS los dispositivos suscritos
+    // Solo incidencias altas y medias (las bajas no justifican interrumpir)
+    if (nueva.gravedad !== "baja") {
+      fetch("/api/push/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-api-key": import.meta.env.VITE_API_KEY || "" },
+        body: JSON.stringify({
+          title: `Incidencia ${nueva.gravedad} · ${nueva.tipo}`,
+          body: nueva.descripcion.slice(0, 100),
+          gravedad: nueva.gravedad,
+          url: "/dia-carrera",
+          tag: `incidencia-${nueva.id}`,
+        }),
+      }).catch(() => { /* push servidor es best-effort — no bloquear la UI */ });
     }
     setIncGuardado(true);
     setTimeout(() => {
