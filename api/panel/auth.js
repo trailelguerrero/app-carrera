@@ -109,6 +109,13 @@ async function verifyAndMaybeUpgrade(sql, pin) {
 }
 
 export default async function handler(req, res) {
+  // SEC-HTTP: Cabeceras de seguridad en todas las respuestas
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'");
+
   // CORS
   const corsOrigin = getCorsHeaders(req);
   if (corsOrigin) res.setHeader('Access-Control-Allow-Origin', corsOrigin);

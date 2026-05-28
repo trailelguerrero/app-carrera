@@ -161,14 +161,13 @@ export function clearFailedAttempts() {
 
 /**
  * Verifica el PIN contra el endpoint bcrypt server-side.
- * Si el servidor no responde en 3 s, hace fallback a la verificación local djb2.
+ * Si el servidor no responde, deniega el acceso en lugar de degradar a djb2.
  *
- * Modelo de amenaza del fallback:
- *   - El fallback djb2 es válido mientras el servidor no esté disponible.
- *   - La migración a bcrypt en Neon ocurre la primera vez que el servidor
- *     responde correctamente, de forma transparente.
- *   - El fallback no degrada la seguridad frente a ataques remotos: si el
- *     servidor no responde, tampoco hay sesión de Neon que comprometer.
+ * Modelo de amenaza:
+ *   - El fallback djb2 anterior permitía a un atacante que controlara la red
+ *     forzar un timeout y atacar el hash djb2 local (trivialmente reversible).
+ *   - SEC-FALLBACK: sin servidor disponible → acceso denegado. La seguridad
+ *     no se degrada cuando el servidor no está disponible.
  *
  * @param {string} pin
  * @returns {Promise<boolean>}
@@ -189,8 +188,10 @@ export async function verifyPinWithFallback(pin) {
     const { valid } = await res.json();
     return valid;
   } catch (err) {
-    console.warn('[auth] Fallback a verificación local:', err.message);
-    return verifyPin(pin);
+    // SEC-FALLBACK: sin fallback a djb2 — denegar acceso si el servidor no responde.
+    // Un atacante que controle la red no puede forzar degradación a hash débil.
+    console.warn('[auth] Servidor no disponible, acceso denegado:', err.message);
+    return false;
   }
 }
 

@@ -27,8 +27,24 @@ function setCors(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
 
+/**
+ * SEC-HTTP: Cabeceras de seguridad HTTP en todas las respuestas del proxy.
+ * Mitigan clickjacking, MIME sniffing, data leakage y ataques XSS básicos.
+ */
+function setSecurityHeaders(res) {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'none'; frame-ancestors 'none'"
+  );
+}
+
 export default async function handler(req, res) {
   setCors(req, res);
+  setSecurityHeaders(res);
   if (req.method === 'OPTIONS') return res.status(204).end();
 
   const proxyPath = req.query.path;
