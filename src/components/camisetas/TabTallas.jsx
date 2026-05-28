@@ -398,11 +398,14 @@ export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosAc
               </tr>
               {!vistaSimple && (
                 <tr>
-                  <td colSpan={3} style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: TC.corredor.color, paddingTop: '.35rem' }}>
-                    🏃 Total corredor: <strong>{grandTotalCor}</strong>
+                  <td colSpan={2} style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: TC.corredor.color, paddingTop: '.35rem' }}>
+                    🏃 Corredor: <strong>{grandTotalCor}</strong>
                   </td>
-                  <td colSpan={3} style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: TC.voluntario.color, paddingTop: '.35rem' }}>
-                    👥 Total voluntario: <strong>{grandTotalVol}</strong>
+                  <td colSpan={2} style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: TC.voluntario.color, paddingTop: '.35rem' }}>
+                    👥 Voluntario: <strong>{grandTotalVol}</strong>
+                  </td>
+                  <td style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--text-dim)', paddingTop: '.35rem', textAlign: 'right' }}>
+                    {grandTotalNino > 0 ? <>👶 <strong>{grandTotalNino}</strong></> : null}
                   </td>
                 </tr>
               )}
