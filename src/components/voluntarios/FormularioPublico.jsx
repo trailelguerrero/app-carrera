@@ -1,11 +1,19 @@
 /**
- * FormularioPublico.jsx — T2.2
+ * FormularioPublico.jsx — T2.2 / Mejora 9
  * Componente de registro público de voluntarios.
  * Extraído de Voluntarios.jsx para desacoplar el portal público del panel privado.
  * Las opciones del formulario y las imágenes se leen directamente de useData,
  * igual que en VoluntarioPortal — no dependen del orquestador padre.
+ *
+ * Mejora 9: validación con Zod + react-hook-form.
+ * - Esquema centralizado en src/lib/schemas/voluntarioSchema.js
+ * - Accesibilidad: aria-invalid + aria-describedby en cada campo
+ * - Gestión del duplicado (409) con mensaje accionable
  */
-import { useState } from "react";
+import { useState, useId } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { crearEsquemaFormulario } from "@/lib/schemas/voluntarioSchema";
 import { TALLAS, SHIRT_PLACEHOLDER_FRONT, SHIRT_PLACEHOLDER_BACK, GUIA_TALLAS } from "@/constants/camisetasConstants";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { DIST_COLORS } from "@/constants/voluntariosConstants";
@@ -33,41 +41,86 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
   const [opcionVehiculo]   = useData(SK_VOL_OPCION_VEHICULO, true);
   const [opcionEmail]      = useData(SK_VOL_OPCION_EMAIL,    false);
   const [opcionEmergencia] = useData(SK_VOL_OPCION_EMERGENCIA, false);
-  const [form, setForm] = useState({ nombre: "", apellidos: "", telefono: "", email: "", talla: "", puestoId: "", coche: false, telefonoEmergencia: "", contactoEmergencia: "", website: "" });
+
+  // Esquema Zod con opciones del evento
+  const schema = crearEsquemaFormulario({
+    emailRequerido: opcionEmail,
+    emergenciaRequerida: opcionEmergencia,
+  });
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      nombre: "", apellidos: "", telefono: "", email: "",
+      talla: "", puestoId: "", coche: false,
+      telefonoEmergencia: "", website: "",
+    },
+  });
+
+  const tallaActual = watch("talla");
+  const telefonoActual = watch("telefono");
+  const cocheActual = watch("coche");
+
   const [enviado, setEnviado] = useState(false);
-  const [errores, setErrores] = useState({});
+  const [formSnapshot, setFormSnapshot] = useState(null);
   const [telefonoDuplicado, setTelefonoDuplicado] = useState(false);
-  const [lightbox, setLightbox] = useState(null); // null | "front" | "back"
+  const [lightbox, setLightbox] = useState(null);
   const [guiaTallas, setGuiaTallas] = useState(false);
 
-  const update = (k, v) => setForm(p => ({ ...p, [k]: v }));
+  // IDs accesibles para aria-describedby
+  const uid = useId();
+  const errId = (campo) => `${uid}-err-${campo}`;
+  const hintId = (campo) => `${uid}-hint-${campo}`;
 
-  const validar = () => {
-    const e = {};
-    if (!form.nombre.trim()) e.nombre = "Requerido";
-    if (!form.apellidos.trim()) e.apellidos = "Requerido";
-    if (!form.telefono.trim() || !/^\d{9}$/.test(form.telefono.replace(/\s/g, ""))) e.telefono = "Teléfono de 9 dígitos";
-    if (opcionEmail && form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) e.email = "Email no válido";
-    if (!form.talla) e.talla = "Selecciona talla";
-    if (opcionEmergencia && !form.telefonoEmergencia?.trim()) e.telefonoEmergencia = "Requerido para la seguridad del evento";
-    setErrores(e);
-    return Object.keys(e).length === 0;
-  };
+  const handleSubmitForm = async (data) => {
+    // Honeypot check (ya en servidor también, defensa en profundidad)
+    if (data.website) return;
 
-  const handleSubmit = () => {
-    if (!validar()) return;
-    onRegistrar({
-      nombre:    form.nombre.trim(),
-      apellidos: form.apellidos.trim(),
-      telefono: form.telefono.trim(),
-      ...(opcionEmail ? { email: form.email.trim() } : {}),
-      talla: form.talla,
-      puestoId: form.puestoId ? parseInt(form.puestoId) : null,
-      rol: "apoyo", estado: "pendiente", coche: form.coche,
-      notas: "", fechaRegistro: new Date().toISOString().split("T")[0],
-      ...(opcionEmergencia ? { telefonoEmergencia: form.telefonoEmergencia?.trim(), contactoEmergencia: form.telefonoEmergencia?.trim() } : {}),
-    });
-    setEnviado(true);
+    // Verificar duplicado por teléfono antes de enviar
+    const tel = (data.telefono || "").replace(/[\s\-]/g, "");
+    if (vols.some(v => v.telefono && v.telefono.replace(/[\s\-]/g, "") === tel)) {
+      setError("telefono", {
+        type: "manual",
+        message: "Este teléfono ya está registrado. ¿Ya eres voluntario?",
+      });
+      setTelefonoDuplicado(true);
+      return;
+    }
+
+    try {
+      await onRegistrar({
+        nombre:    data.nombre,
+        apellidos: data.apellidos,
+        telefono:  data.telefono,
+        ...(opcionEmail ? { email: data.email || "" } : {}),
+        talla: data.talla,
+        puestoId: data.puestoId ? parseInt(data.puestoId) : null,
+        rol: "apoyo", estado: "pendiente", coche: data.coche,
+        notas: "", fechaRegistro: new Date().toISOString().split("T")[0],
+        ...(opcionEmergencia ? {
+          telefonoEmergencia: data.telefonoEmergencia || "",
+          contactoEmergencia: data.telefonoEmergencia || "",
+        } : {}),
+      });
+      setFormSnapshot(data);
+      setEnviado(true);
+    } catch (err) {
+      // onRegistrar puede lanzar error con status 409 (duplicado desde servidor)
+      if (err?.status === 409 || err?.message?.includes("409")) {
+        setError("telefono", {
+          type: "manual",
+          message: "Este teléfono ya está registrado. ¿Ya eres voluntario?",
+        });
+        setTelefonoDuplicado(true);
+      }
+    }
   };
 
   if (enviado) return (
@@ -83,7 +136,7 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "1rem 1.5rem", marginBottom: "1rem", textAlign: "left" }}>
           <div style={{ fontSize: "var(--fs-sm)", fontFamily: "var(--font-mono)", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.75rem" }}>Tu registro</div>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-            {[[`Nombre`, `${form.nombre} ${form.apellidos}`], [`Teléfono`, form.telefono], ...(opcionEmail ? [[`Email`, form.email || "—"]] : []), [`Talla camiseta`, form.talla], ...(opcionEmergencia ? [[`🚨 Tel. emergencia`, form.telefonoEmergencia || "—"]] : [])].map(([k, v]) => (
+            {[[`Nombre`, `${formSnapshot?.nombre} ${formSnapshot?.apellidos}`], [`Teléfono`, formSnapshot?.telefono], ...(opcionEmail ? [[`Email`, formSnapshot?.email || "—"]] : []), [`Talla camiseta`, formSnapshot?.talla], ...(opcionEmergencia ? [[`🚨 Tel. emergencia`, formSnapshot?.telefonoEmergencia || "—"]] : [])].map(([k, v]) => (
               <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--fs-base)" }}>
                 <span style={{ color: "var(--text-muted)" }}>{k}</span>
                 <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--text)" }}>{v}</span>
@@ -99,9 +152,9 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
           </div>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)", lineHeight: 1.9 }}>
             <div>1. Abre <strong style={{color:"var(--cyan)"}}>{typeof window !== "undefined" ? window.location.origin : ""}/voluntarios/mi-ficha</strong></div>
-            <div>2. Introduce tu teléfono: <strong style={{color:"var(--text)"}}>{form.telefono}</strong></div>
+            <div>2. Introduce tu teléfono: <strong style={{color:"var(--text)"}}>{formSnapshot?.telefono}</strong></div>
             <div>3. PIN inicial: <strong style={{color:"var(--cyan)",fontSize:"var(--fs-md)"}}>
-              {form.telefono.replace(/\D/g,"").slice(-4) || "últimos 4 dígitos"}
+              {(formSnapshot?.telefono || "").replace(/\D/g,"").slice(-4) || "últimos 4 dígitos"}
             </strong></div>
           </div>
           <button
@@ -287,35 +340,58 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
                 <label>No rellenar este campo</label>
                 <input
                   type="text"
-                  name="website"
-                  value={form.website}
-                  onChange={e => update("website", e.target.value)}
                   tabIndex={-1}
                   autoComplete="off"
+                  {...register("website")}
                 />
               </div>
 
-              <FormField label="Nombre *" error={errores.nombre}>
-                <input className="pub-input" placeholder="Ej: María" value={form.nombre} onChange={e => update("nombre", e.target.value)} />
+              <FormField label="Nombre *" error={errors.nombre?.message} errId={errId("nombre")}>
+                <input
+                  className="pub-input"
+                  placeholder="Ej: María"
+                  aria-invalid={!!errors.nombre}
+                  aria-describedby={errors.nombre ? errId("nombre") : undefined}
+                  {...register("nombre")}
+                />
               </FormField>
-              <FormField label="Apellidos *" error={errores.apellidos}>
-                <input className="pub-input" placeholder="Ej: García López" value={form.apellidos} onChange={e => update("apellidos", e.target.value)} />
+              <FormField label="Apellidos *" error={errors.apellidos?.message} errId={errId("apellidos")}>
+                <input
+                  className="pub-input"
+                  placeholder="Ej: García López"
+                  aria-invalid={!!errors.apellidos}
+                  aria-describedby={errors.apellidos ? errId("apellidos") : undefined}
+                  {...register("apellidos")}
+                />
               </FormField>
             </div>
 
-            <FormField label="Teléfono *" error={errores.telefono} hint="Se usará para coordinación el día de carrera">
+            <FormField
+              label="Teléfono *"
+              error={errors.telefono?.message}
+              hint="Se usará para coordinación el día de carrera"
+              errId={errId("telefono")}
+              hintId={hintId("telefono")}
+            >
               <input
                 className="pub-input"
                 placeholder="612 345 678"
-                value={form.telefono}
-                onChange={e => { update("telefono", e.target.value); setTelefonoDuplicado(false); }}
-                onBlur={() => {
-                  const tel = form.telefono.replace(/\s/g, "");
-                  if (tel.length >= 9 && vols.some(v => v.telefono && v.telefono.replace(/\s/g, "") === tel)) {
-                    setTelefonoDuplicado(true);
-                  }
-                }}
                 inputMode="tel"
+                aria-invalid={!!errors.telefono}
+                aria-describedby={[
+                  errors.telefono ? errId("telefono") : null,
+                  hintId("telefono"),
+                ].filter(Boolean).join(" ")}
+                {...register("telefono", {
+                  onBlur: (e) => {
+                    const tel = e.target.value.replace(/[\s\-]/g, "");
+                    if (tel.length >= 9 && vols.some(v => v.telefono && v.telefono.replace(/[\s\-]/g, "") === tel)) {
+                      setTelefonoDuplicado(true);
+                    } else {
+                      setTelefonoDuplicado(false);
+                    }
+                  }
+                })}
               />
               {telefonoDuplicado && (
                 <div style={{
@@ -332,15 +408,33 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
             </FormField>
 
             {opcionEmail && (
-              <FormField label="Email" error={errores.email} hint="Para comunicaciones previas a la carrera (instrucciones, cambios de horario)">
-                <input className="pub-input" type="email" placeholder="tu@email.com" value={form.email} onChange={e => update("email", e.target.value)} inputMode="email" autoCapitalize="none" />
+              <FormField
+                label="Email"
+                error={errors.email?.message}
+                hint="Para comunicaciones previas a la carrera (instrucciones, cambios de horario)"
+                errId={errId("email")}
+                hintId={hintId("email")}
+              >
+                <input
+                  className="pub-input"
+                  type="email"
+                  placeholder="tu@email.com"
+                  inputMode="email"
+                  autoCapitalize="none"
+                  aria-invalid={!!errors.email}
+                  aria-describedby={[
+                    errors.email ? errId("email") : null,
+                    hintId("email"),
+                  ].filter(Boolean).join(" ")}
+                  {...register("email")}
+                />
               </FormField>
             )}
 
             {/* Talla con guía */}
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.4rem" }}>
-                <label style={{ fontFamily: "var(--font-display)", fontSize: "var(--fs-base)", fontWeight: 600, color: errores.talla ? "var(--red)" : "var(--text)" }}>
+                <label style={{ fontFamily: "var(--font-display)", fontSize: "var(--fs-base)", fontWeight: 600, color: errors.talla ? "var(--red)" : "var(--text)" }}>
                   Talla de camiseta *
                 </label>
                 <button onClick={() => setGuiaTallas(true)}
@@ -351,20 +445,33 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
               <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginBottom: "0.5rem" }}>
                 Recibirás una camiseta técnica de voluntario · Consulta la guía si tienes dudas
               </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }} role="group" aria-label="Talla de camiseta">
                 {TALLAS.map(t => (
-                  <button key={t} onClick={() => update("talla", t)}
-                    style={{ padding: "0.45rem 0.7rem", borderRadius: 7, border: `1px solid ${form.talla === t ? "var(--cyan)" : "var(--border)"}`, background: form.talla === t ? "var(--cyan-dim)" : "var(--surface2)", color: form.talla === t ? "var(--cyan)" : "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 700, cursor: "pointer", transition: "all 0.15s", transform: form.talla === t ? "scale(1.08)" : "scale(1)" }}>
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setValue("talla", t, { shouldValidate: true })}
+                    aria-pressed={tallaActual === t}
+                    style={{ padding: "0.45rem 0.7rem", borderRadius: 7, border: `1px solid ${tallaActual === t ? "var(--cyan)" : "var(--border)"}`, background: tallaActual === t ? "var(--cyan-dim)" : "var(--surface2)", color: tallaActual === t ? "var(--cyan)" : "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 700, cursor: "pointer", transition: "all 0.15s", transform: tallaActual === t ? "scale(1.08)" : "scale(1)" }}>
                     {t}
                   </button>
                 ))}
               </div>
-              {errores.talla && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--red)", marginTop: "0.3rem" }}>⚠ {errores.talla}</div>}
+              {errors.talla && (
+                <div id={errId("talla")} role="alert" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--red)", marginTop: "0.3rem" }}>
+                  ⚠ {errors.talla.message}
+                </div>
+              )}
             </div>
 
             {opcionPuesto && (
-              <FormField label="Puesto preferido" hint="Opcional — el organizador hará la asignación final">
-                <select className="pub-input" value={form.puestoId} onChange={e => update("puestoId", e.target.value)} style={{ appearance: "none" }}>
+              <FormField label="Puesto preferido" hint="Opcional — el organizador hará la asignación final" hintId={hintId("puesto")}>
+                <select
+                  className="pub-input"
+                  style={{ appearance: "none" }}
+                  aria-describedby={hintId("puesto")}
+                  {...register("puestoId")}
+                >
                   <option value="">Sin preferencia</option>
                   {puestos.map(p => {
                     const confirmados = vols.filter(v => v.puestoId === p.id && v.estado === "confirmado").length;
@@ -391,30 +498,49 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
                   <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--fs-base)", fontWeight: 600 }}>¿Dispones de vehículo propio?</div>
                   <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: "0.15rem" }}>Puede facilitar el traslado a puestos remotos</div>
                 </div>
-                <button onClick={() => update("coche", !form.coche)}
-                  style={{ width: 48, height: 26, borderRadius: 13, background: form.coche ? "var(--green)" : "var(--surface3)", border: "none", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
-                  <span style={{ position: "absolute", top: 3, left: form.coche ? 25 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left 0.2s", boxShadow: "0 1px 4px rgba(0,0,0,0.3)" }} />
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={cocheActual}
+                  onClick={() => setValue("coche", !cocheActual)}
+                  style={{ width: 48, height: 26, borderRadius: 13, background: cocheActual ? "var(--green)" : "var(--surface3)", border: "none", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+                  <span style={{ position: "absolute", top: 3, left: cocheActual ? 25 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left 0.2s", boxShadow: "0 1px 4px rgba(0,0,0,0.3)" }} />
                 </button>
               </div>
             )}
 
             {opcionEmergencia && (
-              <FormField label="🚨 Teléfono de emergencia" error={errores.telefonoEmergencia}
-                hint="Persona a avisar en caso de incidente el día del evento">
-                <input className="pub-input" type="tel"
+              <FormField
+                label="🚨 Teléfono de emergencia"
+                error={errors.telefonoEmergencia?.message}
+                hint="Persona a avisar en caso de incidente el día del evento"
+                errId={errId("telefonoEmergencia")}
+                hintId={hintId("telefonoEmergencia")}
+              >
+                <input
+                  className="pub-input"
+                  type="tel"
                   placeholder="612 345 678"
-                  value={form.telefonoEmergencia || ""}
-                  onChange={e => update("telefonoEmergencia", e.target.value)}
                   inputMode="tel"
-                  style={{ borderColor: errores.telefonoEmergencia ? "var(--red)" : undefined }} />
+                  aria-invalid={!!errors.telefonoEmergencia}
+                  aria-describedby={[
+                    errors.telefonoEmergencia ? errId("telefonoEmergencia") : null,
+                    hintId("telefonoEmergencia"),
+                  ].filter(Boolean).join(" ")}
+                  style={{ borderColor: errors.telefonoEmergencia ? "var(--red)" : undefined }}
+                  {...register("telefonoEmergencia")}
+                />
               </FormField>
             )}
 
-            <button onClick={handleSubmit}
-              style={{ width: "100%", padding: "0.85rem", background: "linear-gradient(135deg, rgba(34,211,238,0.2), rgba(167,139,250,0.15))", border: "1px solid rgba(34,211,238,0.35)", borderRadius: 10, color: "var(--text)", fontFamily: "var(--font-display)", fontSize: "var(--fs-md)", fontWeight: 800, cursor: "pointer", letterSpacing: "0.03em", transition: "all 0.18s", marginTop: "0.25rem" }}
-              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(34,211,238,0.15)"; }}
+            <button
+              type="button"
+              onClick={handleSubmit(handleSubmitForm)}
+              disabled={isSubmitting}
+              style={{ width: "100%", padding: "0.85rem", background: isSubmitting ? "var(--surface2)" : "linear-gradient(135deg, rgba(34,211,238,0.2), rgba(167,139,250,0.15))", border: "1px solid rgba(34,211,238,0.35)", borderRadius: 10, color: isSubmitting ? "var(--text-muted)" : "var(--text)", fontFamily: "var(--font-display)", fontSize: "var(--fs-md)", fontWeight: 800, cursor: isSubmitting ? "not-allowed" : "pointer", letterSpacing: "0.03em", transition: "all 0.18s", marginTop: "0.25rem" }}
+              onMouseEnter={e => { if (!isSubmitting) { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(34,211,238,0.15)"; }}}
               onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}>
-              {formBoton}
+              {isSubmitting ? "Enviando…" : formBoton}
             </button>
           </div>
         </div>
@@ -427,6 +553,30 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
           ← Volver al panel de organización
         </button>
       </div>
+    </div>
+  );
+}
+
+// ─── HELPER: FormField ────────────────────────────────────────────────────────
+// Wrapper accesible para campos de formulario.
+// errId / hintId conectan el campo con el mensaje de error y el hint via aria-describedby.
+function FormField({ label, error, hint, children, errId, hintId }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+      <label style={{ fontFamily: "var(--font-display)", fontSize: "var(--fs-base)", fontWeight: 600, color: error ? "var(--red)" : "var(--text)" }}>
+        {label}
+      </label>
+      {hint && (
+        <div id={hintId} style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginBottom: "0.15rem" }}>
+          {hint}
+        </div>
+      )}
+      {children}
+      {error && (
+        <div id={errId} role="alert" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--red)", marginTop: "0.15rem" }}>
+          ⚠ {error}
+        </div>
+      )}
     </div>
   );
 }

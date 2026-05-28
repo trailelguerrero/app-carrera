@@ -19,6 +19,7 @@ import { neon } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 import { checkRateLimit } from '../lib/rateLimiter.js';
+import { validarVoluntario } from '../lib/voluntarioValidation.js';
 
 const BCRYPT_SALT_ROUNDS = 10;
 
@@ -118,31 +119,38 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, id: `bot_${Date.now()}` });
     }
 
-    // Validación mínima del voluntario
+    // Mejora 9: Validación robusta con Zod (reemplaza la validación mínima anterior)
     if (!newVoluntario || typeof newVoluntario !== 'object') {
       return res.status(400).json({ error: 'Datos de voluntario inválidos' });
     }
-    if (!newVoluntario.nombre || typeof newVoluntario.nombre !== 'string') {
-      return res.status(400).json({ error: 'El campo nombre es obligatorio' });
+
+    const validacion = validarVoluntario(newVoluntario);
+    if (!validacion.ok) {
+      return res.status(400).json({
+        error: 'Datos incorrectos. Revisa el formulario.',
+        campos: validacion.errors,
+      });
     }
+
+    const datosValidados = validacion.data;
 
     // Sanitizar — solo campos permitidos en el modelo público
     // PIN inicial = últimos 4 dígitos del teléfono (o '0000')
-    const pinRaw = pinInicial(String(newVoluntario.telefono || ''));
+    const pinRaw = pinInicial(String(datosValidados.telefono || ''));
     const pinHashValue = await bcrypt.hash(pinRaw, BCRYPT_SALT_ROUNDS);
 
     const sanitized = {
       id:                  newVoluntario.id              || `pub_${Date.now()}_${randomBytes(4).toString('hex')}`,
-      nombre:              String(newVoluntario.nombre   || '').slice(0, 100),
-      apellidos:           String(newVoluntario.apellidos|| '').slice(0, 100),
-      telefono:            String(newVoluntario.telefono || '').slice(0, 20),
-      email:               String(newVoluntario.email    || '').slice(0, 150),
-      talla:               String(newVoluntario.talla    || '').slice(0, 5),
-      puestoId:            newVoluntario.puestoId        || null,
-      coche:               Boolean(newVoluntario.coche),
+      nombre:              datosValidados.nombre,
+      apellidos:           datosValidados.apellidos,
+      telefono:            datosValidados.telefono,
+      email:               datosValidados.email,
+      talla:               datosValidados.talla,
+      puestoId:            datosValidados.puestoId        || null,
+      coche:               Boolean(datosValidados.coche),
       notas:               String(newVoluntario.notas    || '').slice(0, 500),
-      telefonoEmergencia:  String(newVoluntario.telefonoEmergencia || newVoluntario.contactoEmergencia || newVoluntario.telefono || '').slice(0, 200), // fallback: propio teléfono
-      contactoEmergencia:  String(newVoluntario.telefonoEmergencia || newVoluntario.contactoEmergencia || newVoluntario.telefono || '').slice(0, 200), // compat legacy
+      telefonoEmergencia:  String(datosValidados.telefonoEmergencia || datosValidados.telefono || '').slice(0, 200),
+      contactoEmergencia:  String(datosValidados.telefonoEmergencia || datosValidados.telefono || '').slice(0, 200),
       alergias:            String(newVoluntario.alergias   || '').slice(0, 200),
       medicacion:          String(newVoluntario.medicacion || '').slice(0, 200),
       estado:              'pendiente', // SIEMPRE pendiente desde registro público
