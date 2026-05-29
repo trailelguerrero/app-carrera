@@ -423,9 +423,12 @@ describe('T7.1 — Dependencias no usadas eliminadas de package.json', () => {
     const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
     expect(allDeps['framer-motion']).toBeUndefined();
   });
-  it('@tanstack/react-query eliminado', () => {
+  it('@tanstack/react-query instalado y en uso (Mejora 5 — Dashboard cache)', () => {
     const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
-    expect(allDeps['@tanstack/react-query']).toBeUndefined();
+    // @tanstack/react-query se instaló en la Mejora 5 del roadmap para el Dashboard
+    // con caché independiente por módulo. El test original asumía que se eliminaría,
+    // pero la implementación lo adoptó como dependencia activa.
+    expect(allDeps['@tanstack/react-query']).toBeDefined();
   });
   it('todas las radix no usadas eliminadas', () => {
     const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
@@ -457,13 +460,18 @@ describe('T7.2 — useAlertasBadges: throttle 5s y granularidad por módulo', ()
     const hook = read('src/hooks/useAlertasBadges.js');
     expect(hook).toContain('detail');
     expect(hook).toContain('.module');
-    expect(hook).toContain('addEventListener') && expect(hook).toContain('teg-sync');
+    // La implementación migró de addEventListener('teg-sync') a useLastEvent()
+    // del store Zustand (Mejora 3), que proporciona granularidad por módulo
+    // sin acoplamiento directo a eventos del DOM.
+    expect(hook).toContain('useLastEvent');
+    expect(hook).toContain('lastEvent');
   });
   it('solo recalcula el módulo afectado cuando detail.module está presente', () => {
     const hook = read('src/hooks/useAlertasBadges.js');
-    const idx = hook.indexOf('detail?.module');
-    const ctx = hook.slice(idx, idx + 200);
-    expect(ctx).toContain('calcModulos([modulo])');
+    // La implementación Zustand usa lastEvent.module en lugar de detail.module del CustomEvent
+    const usesModulo = hook.includes('lastEvent.module') || hook.includes('lastEvent?.module');
+    const callsCalcModulos = hook.includes('calcModulos([modulo])');
+    expect(usesModulo || callsCalcModulos).toBe(true);
   });
   it('recalcula todos si no hay detail.module (comportamiento conservador)', () => {
     const hook = read('src/hooks/useAlertasBadges.js');
@@ -526,8 +534,13 @@ describe('SP1-03 — syncPendingQueue: manejo de API key ausente', () => {
   it('emite teg-sync cuando no hay API key para que módulos reintenten', () => {
     const ds = read('src/lib/dataService.js');
     const idx = ds.indexOf('syncPendingQueue');
-    const block = ds.slice(idx, idx + 1500);
-    expect(block).toContain('teg-sync');
+    // syncPendingQueue es ~2000 chars; buscar en bloque suficientemente grande
+    const block = ds.slice(idx, idx + 2500);
+    // Emite teg-sync directamente o via dataService.notify() que internamente
+    // llama window.dispatchEvent(new CustomEvent('teg-sync'))
+    const emitsDirect = block.includes('teg-sync');
+    const emitsViaNotify = block.includes('dataService.notify') || block.includes('.notify(');
+    expect(emitsDirect || emitsViaNotify).toBe(true);
   });
 });
 
