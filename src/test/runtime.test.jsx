@@ -12,6 +12,14 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest';
 import { render, waitFor, act, cleanup } from '@testing-library/react';
 import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, staleTime: 0 } },
+  });
+  return ({ children }) => React.createElement(QueryClientProvider, { client: queryClient }, children);
+};
 
 afterEach(() => { cleanup(); });
 
@@ -79,7 +87,7 @@ describe('Runtime smoke — todos los bloques', () => {
 
       let container;
       await act(async () => {
-        ({ container } = render(React.createElement(Comp)));
+        ({ container } = render(React.createElement(Comp), { wrapper: createWrapper() }));
         // Drain microtask queue so useEffect/fetch mocks resolve
         await waitFor(() => expect(container).toBeDefined(), { timeout: 2000 });
       });
@@ -113,12 +121,14 @@ describe('Regression — bugs reported in production screenshots', () => {
 
   it('API function count stays under Vercel Hobby limit of 12', () => {
     const { execSync } = require('child_process');
+    // Excluir api/lib/ — son librerías compartidas, no endpoints Vercel
     const count = parseInt(
-      execSync('find api -name "*.js" | wc -l', { cwd: process.cwd() }).toString().trim()
+      execSync('find api -name "*.js" -not -path "api/lib/*" | wc -l', { cwd: process.cwd() }).toString().trim()
     );
-    // Límite actualizado a 13: api/lib/rateLimiter.js es librería (no endpoint Vercel)
-    // + api/images/index.js añadido en fix(STOR-CRIT-01). Endpoints reales = 12.
-    expect(count).toBeLessThanOrEqual(13);
+    // Vercel Free: máximo 12 Serverless Functions por proyecto
+    // Endpoints reales: budget-log, data/[collection], data/batch, data/public,
+    //   docs/[patId], documents, images, panel/auth, proxy, push, setup, voluntarios = 12
+    expect(count).toBeLessThanOrEqual(12);
   });
 
   it('budgetUtils.calculateResultadoFinanciero uses ie.activo as source of truth', () => {
