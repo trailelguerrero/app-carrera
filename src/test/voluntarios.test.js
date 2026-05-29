@@ -1479,3 +1479,106 @@ describe('VOL-28 — Dashboard: filtro solo puestos incompletos (<100%)', () => 
     expect(puestosIncompletos(todosCubiertos)).toHaveLength(0);
   });
 });
+
+// ── VOL-29: Kanban tarjeta — densidad compacta vs expandida ──────────────────
+describe('VOL-29 — Kanban tarjeta: lógica densidad compacta / expandida', () => {
+  // Simula qué campos muestra cada modo
+  function camposVisibles(v, densidad) {
+    const compactos = [];
+    const expandidos = [];
+
+    // Siempre visibles (compacto)
+    compactos.push("nombre");
+    if (v.talla)    compactos.push("talla");
+    if (v.coche)    compactos.push("icono_coche");
+    if (v.telefono) compactos.push("icono_telefono");
+
+    // Solo en expandido
+    if (densidad === "expandida") {
+      if (v.telefono) expandidos.push("telefono_completo");
+      if (v.notas)    expandidos.push("notas");
+      if (v.email)    expandidos.push("email");
+    }
+
+    return densidad === "expandida"
+      ? [...compactos, ...expandidos]
+      : compactos;
+  }
+
+  const volCompleto = {
+    nombre: "Ana", apellidos: "García",
+    talla: "M", coche: true,
+    telefono: "612345678", email: "ana@test.com", notas: "Veterana",
+  };
+
+  it('modo compacto: muestra nombre, talla, icono_coche, icono_telefono', () => {
+    const campos = camposVisibles(volCompleto, "compacta");
+    expect(campos).toContain("nombre");
+    expect(campos).toContain("talla");
+    expect(campos).toContain("icono_coche");
+    expect(campos).toContain("icono_telefono");
+  });
+
+  it('modo compacto: NO muestra teléfono completo ni notas ni email', () => {
+    const campos = camposVisibles(volCompleto, "compacta");
+    expect(campos).not.toContain("telefono_completo");
+    expect(campos).not.toContain("notas");
+    expect(campos).not.toContain("email");
+  });
+
+  it('modo expandido: muestra todo lo de compacto más detalles', () => {
+    const campos = camposVisibles(volCompleto, "expandida");
+    expect(campos).toContain("nombre");
+    expect(campos).toContain("talla");
+    expect(campos).toContain("icono_coche");
+    expect(campos).toContain("telefono_completo");
+    expect(campos).toContain("notas");
+    expect(campos).toContain("email");
+  });
+
+  it('voluntario sin talla ni coche: compacto solo muestra nombre e icono tel', () => {
+    const v = { nombre: "Luis", telefono: "600000000" };
+    const campos = camposVisibles(v, "compacta");
+    expect(campos).toContain("nombre");
+    expect(campos).toContain("icono_telefono");
+    expect(campos).not.toContain("talla");
+    expect(campos).not.toContain("icono_coche");
+  });
+
+  it('voluntario sin datos opcionales: expandido igual que compacto', () => {
+    const v = { nombre: "Sara" };
+    const compacto  = camposVisibles(v, "compacta");
+    const expandido = camposVisibles(v, "expandida");
+    expect(compacto).toEqual(expandido);
+  });
+
+  it('densidad por defecto es compacta (campo expandidos vacío)', () => {
+    // El default prop es "compacta" — sin campos de detalle
+    const campos = camposVisibles(volCompleto, "compacta");
+    expect(campos).not.toContain("telefono_completo");
+  });
+});
+
+// ── VOL-30: Kanban tarjeta — hora de incorporación en modo expandido ──────────
+describe('VOL-30 — Kanban tarjeta: hora de incorporación solo en expandido', () => {
+  function mostrarHoraIncorporacion(puesto, densidad) {
+    if (!puesto?.horaInicio) return false;
+    return densidad === "expandida";
+  }
+
+  it('expandida con puesto con hora → muestra hora', () => {
+    expect(mostrarHoraIncorporacion({ horaInicio: "08:00" }, "expandida")).toBe(true);
+  });
+
+  it('compacta con puesto con hora → no muestra hora en detalle (solo en meta si modoEstado)', () => {
+    expect(mostrarHoraIncorporacion({ horaInicio: "08:00" }, "compacta")).toBe(false);
+  });
+
+  it('expandida sin puesto → false', () => {
+    expect(mostrarHoraIncorporacion(null, "expandida")).toBe(false);
+  });
+
+  it('expandida con puesto sin hora → false', () => {
+    expect(mostrarHoraIncorporacion({ nombre: "Meta" }, "expandida")).toBe(false);
+  });
+});

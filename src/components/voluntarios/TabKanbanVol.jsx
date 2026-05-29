@@ -27,17 +27,22 @@ function colorCobertura(pct) {
 }
 
 // ── Tarjeta de voluntario (memo para evitar re-renders en DnD) ────────────────
+// densidad: "compacta" | "expandida"
+// Compacta (defecto): nombre + contexto (puesto/estado) + iconos inline
+// Expandida: + teléfono completo, hora de incorporación, notas
 const KanbanCard = memo(function KanbanCard({
   v, puesto, col, allColumnas, modoEstado,
   onDragStart, onDragEnd, onFicha, onMoverA,
   menuAbierto, setMenuAbierto,
+  densidad = "compacta",
 }) {
   const nombre = [v.nombre, v.apellidos].filter(Boolean).join(" ") || "Sin nombre";
   const isMenuOpen = menuAbierto === v.id;
+  const esExpandida = densidad === "expandida";
 
   return (
     <div
-      className="kanban-card"
+      className={`kanban-card${esExpandida ? " kanban-card-exp" : ""}`}
       draggable
       onDragStart={e => onDragStart(e, v.id)}
       onDragEnd={onDragEnd}
@@ -47,27 +52,80 @@ const KanbanCard = memo(function KanbanCard({
       }}
       style={{ borderLeft: `3px solid ${col.color}` }}
     >
-      <div className="kanban-card-name">{nombre}</div>
-      <div className="kanban-card-meta">
-        {/* En modo por puestos el puesto ya es el header — mostrar estado */}
+      {/* ── Fila principal: nombre + iconos compactos ── */}
+      <div style={{ display: "flex", alignItems: "center", gap: ".35rem", paddingRight: "1.4rem" }}>
+        <div className="kanban-card-name" style={{ flex: 1, paddingRight: 0 }}>{nombre}</div>
+        {/* Iconos siempre visibles en compacto */}
+        {v.talla && (
+          <span style={{
+            fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+            color: "var(--cyan)", background: "rgba(34,211,238,.1)",
+            border: "1px solid rgba(34,211,238,.2)", borderRadius: 4,
+            padding: "0 .3rem", flexShrink: 0,
+          }}>
+            {v.talla}
+          </span>
+        )}
+        {v.coche && <span title="Tiene vehículo" style={{ fontSize: ".75rem", flexShrink: 0 }}>🚗</span>}
+        {v.telefono && (
+          <a
+            href={`tel:${v.telefono}`}
+            onClick={e => e.stopPropagation()}
+            title={`Llamar: ${v.telefono}`}
+            style={{ color: "var(--cyan)", textDecoration: "none", fontSize: ".8rem", flexShrink: 0 }}
+          >
+            📞
+          </a>
+        )}
+      </div>
+
+      {/* ── Meta compacta: puesto/estado ── */}
+      <div className="kanban-card-meta" style={{ marginTop: ".18rem" }}>
         {modoEstado
           ? puesto
             ? <span>📍 {puesto.nombre}</span>
             : <span style={{ color: "var(--text-dim)" }}>Sin puesto</span>
           : <span style={{ color: col.color, fontWeight: 700 }}>{col.icon} {col.label}</span>
         }
-        {v.talla && <span>👕 {v.talla}</span>}
-        {v.coche && <span>🚗</span>}
-        {v.telefono && (
-          <a
-            href={`tel:${v.telefono}`}
-            onClick={e => e.stopPropagation()}
-            style={{ color: "var(--cyan)", textDecoration: "none" }}
-          >
-            📞 {v.telefono}
-          </a>
+        {puesto?.horaInicio && modoEstado && (
+          <span style={{ color: "var(--text-dim)" }}>· {puesto.horaInicio}</span>
         )}
       </div>
+
+      {/* ── Detalles expandidos ── */}
+      {esExpandida && (
+        <div style={{
+          marginTop: ".4rem", paddingTop: ".4rem",
+          borderTop: "1px solid var(--border)",
+          display: "flex", flexDirection: "column", gap: ".2rem",
+          fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)",
+        }}>
+          {v.telefono && (
+            <a
+              href={`tel:${v.telefono}`}
+              onClick={e => e.stopPropagation()}
+              style={{ color: "var(--cyan)", textDecoration: "none", display: "flex", alignItems: "center", gap: ".3rem" }}
+            >
+              📞 {v.telefono}
+            </a>
+          )}
+          {puesto?.horaInicio && (
+            <span>⏰ Incorporación: {puesto.horaInicio}{puesto.horaFin ? `–${puesto.horaFin}` : ""}</span>
+          )}
+          {v.notas && (
+            <span style={{ fontStyle: "italic", color: "var(--text-dim)" }}>💬 {v.notas}</span>
+          )}
+          {v.email && (
+            <a
+              href={`mailto:${v.email}`}
+              onClick={e => e.stopPropagation()}
+              style={{ color: "var(--text-muted)", textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+            >
+              ✉ {v.email}
+            </a>
+          )}
+        </div>
+      )}
 
       {/* Botón menú "Mover a" */}
       <button
@@ -116,6 +174,7 @@ const KanbanColumnaEstado = memo(function KanbanColumnaEstado({
   onDragStart, onDragEnd,
   onFicha, onMoverA,
   menuAbierto, setMenuAbierto,
+  densidad,
 }) {
   const isTarget = dropTarget === col.id;
   return (
@@ -147,6 +206,7 @@ const KanbanColumnaEstado = memo(function KanbanColumnaEstado({
               onDragStart={onDragStart} onDragEnd={onDragEnd}
               onFicha={onFicha} onMoverA={onMoverA}
               menuAbierto={menuAbierto} setMenuAbierto={setMenuAbierto}
+              densidad={densidad}
             />
           );
         })}
@@ -163,6 +223,7 @@ const KanbanColumnaPuesto = memo(function KanbanColumnaPuesto({
   onFicha, onMoverA,
   menuAbierto, setMenuAbierto,
   expandido, onToggle,
+  densidad,
 }) {
   const colId = puesto ? String(puesto.id) : "__sin_puesto__";
   const isTarget = dropTarget === colId;
@@ -259,6 +320,7 @@ const KanbanColumnaPuesto = memo(function KanbanColumnaPuesto({
                 onFicha={onFicha}
                 onMoverA={(volId, estadoId) => onMoverA(volId, estadoId)}
                 menuAbierto={menuAbierto} setMenuAbierto={setMenuAbierto}
+                densidad={densidad}
               />
             );
           })}
@@ -279,6 +341,9 @@ export function TabKanbanVol({ voluntarios, puestos, onUpdate, onFicha }) {
 
   // Menú abierto en móvil
   const [menuAbierto, setMenuAbierto] = useState(null);
+
+  // Densidad de tarjetas: "compacta" | "expandida"
+  const [densidad, setDensidad] = useState("compacta");
 
   // Puestos expandidos en modo puesto (todos expandidos por defecto si ≤8 puestos)
   const initExpandidos = useMemo(() => {
@@ -545,6 +610,9 @@ export function TabKanbanVol({ voluntarios, puestos, onUpdate, onFicha }) {
           border-color: var(--cyan);
           transform: translateY(-1px);
         }
+        .kanban-card-exp {
+          background: color-mix(in srgb, var(--surface2) 85%, var(--cyan) 15%);
+        }
         .kanban-card-name {
           font-weight: 700;
           font-size: .82rem;
@@ -656,11 +724,41 @@ export function TabKanbanVol({ voluntarios, puestos, onUpdate, onFicha }) {
 
         {/* Controles expandir/colapsar (solo modo puesto) */}
         {modo === "puesto" && (
-          <div style={{ marginLeft: "auto", display: "flex", gap: ".35rem" }}>
+          <div style={{ display: "flex", gap: ".35rem" }}>
             <button className="btn btn-ghost btn-sm" onClick={expandirTodos} title="Expandir todas las columnas">⊞</button>
             <button className="btn btn-ghost btn-sm" onClick={colapsarTodos} title="Colapsar todas las columnas">⊟</button>
           </div>
         )}
+
+        {/* Toggle densidad tarjetas */}
+        <div style={{ marginLeft: "auto", display: "inline-flex", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
+          <button
+            style={{
+              background: densidad === "compacta" ? "var(--cyan)" : "transparent",
+              color: densidad === "compacta" ? "#0f172a" : "var(--text-muted)",
+              border: "none", padding: ".3rem .6rem",
+              fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700,
+              cursor: "pointer", transition: "background .12s, color .12s",
+            }}
+            onClick={() => setDensidad("compacta")}
+            title="Tarjetas compactas — nombre + iconos"
+          >
+            ▤ Compact
+          </button>
+          <button
+            style={{
+              background: densidad === "expandida" ? "var(--cyan)" : "transparent",
+              color: densidad === "expandida" ? "#0f172a" : "var(--text-muted)",
+              border: "none", borderLeft: "1px solid var(--border)", padding: ".3rem .6rem",
+              fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700,
+              cursor: "pointer", transition: "background .12s, color .12s",
+            }}
+            onClick={() => setDensidad("expandida")}
+            title="Tarjetas expandidas — teléfono, horario, notas"
+          >
+            ▦ Detalle
+          </button>
+        </div>
       </div>
 
       {/* Leyenda */}
@@ -692,6 +790,7 @@ export function TabKanbanVol({ voluntarios, puestos, onUpdate, onFicha }) {
                 onMoverA={moverA}
                 menuAbierto={menuAbierto}
                 setMenuAbierto={setMenuAbierto}
+                densidad={densidad}
               />
             );
           })}
@@ -721,6 +820,7 @@ export function TabKanbanVol({ voluntarios, puestos, onUpdate, onFicha }) {
                 setMenuAbierto={setMenuAbierto}
                 expandido={!!expandidos[col.colId]}
                 onToggle={() => toggleExpandido(col.colId)}
+                densidad={densidad}
               />
             );
           })}
