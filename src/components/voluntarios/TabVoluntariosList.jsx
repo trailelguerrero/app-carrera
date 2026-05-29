@@ -48,16 +48,22 @@ function TabVoluntarios({
   const colapsarTodos   = () => setColapsados({ confirmado: true,  pendiente: true,  cancelado: true  });
   const descolapsarTodos = () => setColapsados({ confirmado: false, pendiente: false, cancelado: false });
 
-  const volsOrdenados = [...voluntarios].sort((a, b) => {
+  // js-index-maps: Map para el sort por puesto (evita n² .find() al ordenar)
+  const puestosMapSort = useMemo(
+    () => new Map(puestos.map(p => [p.id, p])),
+    [puestos]
+  );
+
+  const volsOrdenados = useMemo(() => [...voluntarios].sort((a, b) => {
     if (orden === "nombre") return (a.nombre || "").localeCompare(b.nombre || "", "es");
     if (orden === "puesto") {
-      const pa = puestos.find(p => p.id === a.puestoId)?.nombre || "zzz";
-      const pb = puestos.find(p => p.id === b.puestoId)?.nombre || "zzz";
+      const pa = puestosMapSort.get(a.puestoId)?.nombre || "zzz";
+      const pb = puestosMapSort.get(b.puestoId)?.nombre || "zzz";
       return pa.localeCompare(pb, "es");
     }
     if (orden === "fecha") return (b.fechaRegistro || "").localeCompare(a.fechaRegistro || "");
     return 0;
-  });
+  }), [voluntarios, orden, puestosMapSort]);
 
   // Paginación — se aplica al listado por nombre (no agrupado), mantenida para compatibilidad
   const { items: volsPaginados, total: totalVols, PaginadorUI, resetPage } = usePaginacion(volsOrdenados, 20);
@@ -71,6 +77,33 @@ function TabVoluntarios({
     { id:"pendiente",  label:"Pendientes",  color:"var(--amber)",  bg:"rgba(251,191,36,.08)"  },
     { id:"cancelado",  label:"Cancelados",  color:"var(--red)",    bg:"rgba(248,113,113,.06)" },
   ];
+
+  // js-index-maps: Map O(1) en vez de .find() O(n) por cada row render
+  const puestosMap = useMemo(
+    () => new Map(puestos.map(p => [p.id, p])),
+    [puestos]
+  );
+
+  // Paginación por grupo: cuántos items mostrar por cada grupo de estado
+  const ITEMS_INICIALES = 20;
+  const ITEMS_INCREMENTO = 20;
+  const [visiblePorGrupo, setVisiblePorGrupo] = useState({
+    confirmado: ITEMS_INICIALES,
+    pendiente:  ITEMS_INICIALES,
+    cancelado:  ITEMS_INICIALES,
+  });
+
+  // Resetear visibilidad cuando cambian los filtros
+  useEffect(() => {
+    setVisiblePorGrupo({ confirmado: ITEMS_INICIALES, pendiente: ITEMS_INICIALES, cancelado: ITEMS_INICIALES });
+  }, [busqueda, filtroEstado, filtroPuesto, filtroTallas, filtroCoche, filtroDistancias, filtroTipoPuesto]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const cargarMasGrupo = useCallback((grupoId, total) => {
+    setVisiblePorGrupo(prev => ({
+      ...prev,
+      [grupoId]: Math.min(prev[grupoId] + ITEMS_INCREMENTO, total),
+    }));
+  }, []);
 
   const volsFiltradosIds = volsOrdenados.map(v => v.id);
 
@@ -481,14 +514,18 @@ function TabVoluntarios({
                   }}>▼</span>
                 </button>
 
-                {/* Cards del grupo */}
-                {!collapsed && (
+                {/* Cards del grupo — paginadas: máximo visiblePorGrupo[grupo.id] en DOM */}
+                {!collapsed && (() => {
+                  const visible = visiblePorGrupo[grupo.id] ?? ITEMS_INICIALES;
+                  const itemsVisibles = items.slice(0, visible);
+                  const quedan = items.length - itemsVisibles.length;
+                  return (
                   <div style={{
                     display:"flex", flexDirection:"column", gap:"0",
                     background:"var(--surface)",
                   }}>
-                    {items.map((v, idx) => {
-                      const puesto = puestos.find(p => p.id === v.puestoId);
+                    {itemsVisibles.map((v, idx) => {
+                      const puesto = puestosMap.get(v.puestoId); // O(1) Map lookup
                       return (
                         <div key={v.id}
                           className="list-item-anim"
@@ -592,8 +629,28 @@ function TabVoluntarios({
                         </div>
                       );
                     })}
+                    {/* Botón "Ver más" si quedan items fuera del DOM */}
+                    {quedan > 0 && (
+                      <button
+                        onClick={() => cargarMasGrupo(grupo.id, items.length)}
+                        style={{
+                          width: "100%", padding: ".55rem",
+                          background: "transparent",
+                          border: "none", borderTop: `1px solid ${grupo.color}1a`,
+                          cursor: "pointer", textAlign: "center",
+                          fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+                          fontWeight: 700, color: grupo.color,
+                          transition: "background .12s",
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = `${grupo.color}08`}
+                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                      >
+                        Ver {Math.min(quedan, ITEMS_INCREMENTO)} más de {quedan} restantes ↓
+                      </button>
+                    )}
                   </div>
-                )}
+                  );
+                })()}
               </div>
             );
           })}

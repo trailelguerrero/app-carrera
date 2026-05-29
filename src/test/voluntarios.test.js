@@ -1582,3 +1582,134 @@ describe('VOL-30 — Kanban tarjeta: hora de incorporación solo en expandido', 
     expect(mostrarHoraIncorporacion({ nombre: "Meta" }, "expandida")).toBe(false);
   });
 });
+
+// ── VOL-31: Lista — paginación por grupo ─────────────────────────────────────
+describe('VOL-31 — Lista voluntarios: paginación por grupo', () => {
+  const ITEMS_INICIALES  = 20;
+  const ITEMS_INCREMENTO = 20;
+
+  function calcVisibles(items, visible) {
+    const itemsVisibles = items.slice(0, visible);
+    const quedan = items.length - itemsVisibles.length;
+    return { itemsVisibles, quedan };
+  }
+
+  function cargarMas(visiblePorGrupo, grupoId, totalItems) {
+    return {
+      ...visiblePorGrupo,
+      [grupoId]: Math.min(visiblePorGrupo[grupoId] + ITEMS_INCREMENTO, totalItems),
+    };
+  }
+
+  it('grupo con 10 items → muestra todos (< ITEMS_INICIALES)', () => {
+    const items = Array.from({ length: 10 }, (_, i) => ({ id: i }));
+    const { itemsVisibles, quedan } = calcVisibles(items, ITEMS_INICIALES);
+    expect(itemsVisibles).toHaveLength(10);
+    expect(quedan).toBe(0);
+  });
+
+  it('grupo con 20 items → muestra 20, quedan 0', () => {
+    const items = Array.from({ length: 20 }, (_, i) => ({ id: i }));
+    const { itemsVisibles, quedan } = calcVisibles(items, ITEMS_INICIALES);
+    expect(itemsVisibles).toHaveLength(20);
+    expect(quedan).toBe(0);
+  });
+
+  it('grupo con 50 items → muestra 20, quedan 30', () => {
+    const items = Array.from({ length: 50 }, (_, i) => ({ id: i }));
+    const { itemsVisibles, quedan } = calcVisibles(items, ITEMS_INICIALES);
+    expect(itemsVisibles).toHaveLength(20);
+    expect(quedan).toBe(30);
+  });
+
+  it('cargarMas añade 20 más al grupo', () => {
+    const estado = { confirmado: 20, pendiente: 20, cancelado: 20 };
+    const nuevo = cargarMas(estado, "confirmado", 50);
+    expect(nuevo.confirmado).toBe(40);
+    expect(nuevo.pendiente).toBe(20); // otros grupos sin cambios
+  });
+
+  it('cargarMas no supera el total de items del grupo', () => {
+    const estado = { confirmado: 40, pendiente: 20, cancelado: 20 };
+    const nuevo = cargarMas(estado, "confirmado", 45);
+    expect(nuevo.confirmado).toBe(45); // cap en total
+  });
+
+  it('cargarMas en el límite exacto → no supera total', () => {
+    const estado = { confirmado: 20, pendiente: 20, cancelado: 20 };
+    const nuevo = cargarMas(estado, "confirmado", 20);
+    // ya estamos en 20, incremento +20 = 40 pero total es 20 → cap en 20
+    expect(nuevo.confirmado).toBe(20);
+  });
+
+  it('quedan: botón "Ver más" no aparece si quedan === 0', () => {
+    const items = Array.from({ length: 15 }, (_, i) => ({ id: i }));
+    const { quedan } = calcVisibles(items, ITEMS_INICIALES);
+    expect(quedan).toBe(0); // no renderizar botón
+  });
+
+  it('quedan: texto del botón refleja items incremento correcto', () => {
+    const items = Array.from({ length: 100 }, (_, i) => ({ id: i }));
+    const { quedan } = calcVisibles(items, ITEMS_INICIALES);
+    const textoBoton = `Ver ${Math.min(quedan, ITEMS_INCREMENTO)} más de ${quedan} restantes`;
+    expect(textoBoton).toBe("Ver 20 más de 80 restantes");
+  });
+});
+
+// ── VOL-32: Lista — puestosMap O(1) lookup ────────────────────────────────────
+describe('VOL-32 — Lista voluntarios: Map O(1) lookup de puestos', () => {
+  const puestos = [
+    { id: 1,  nombre: "Avituallamiento KM4"  },
+    { id: 2,  nombre: "Control KM12"          },
+    { id: 10, nombre: "Meta"                  },
+  ];
+
+  it('Map construido con todos los puestos', () => {
+    const map = new Map(puestos.map(p => [p.id, p]));
+    expect(map.size).toBe(3);
+  });
+
+  it('lookup por id existente devuelve puesto correcto', () => {
+    const map = new Map(puestos.map(p => [p.id, p]));
+    expect(map.get(1)?.nombre).toBe("Avituallamiento KM4");
+    expect(map.get(10)?.nombre).toBe("Meta");
+  });
+
+  it('lookup por id inexistente devuelve undefined', () => {
+    const map = new Map(puestos.map(p => [p.id, p]));
+    expect(map.get(99)).toBeUndefined();
+  });
+
+  it('lookup por null devuelve undefined (voluntarios sin puesto)', () => {
+    const map = new Map(puestos.map(p => [p.id, p]));
+    expect(map.get(null)).toBeUndefined();
+    expect(map.get(undefined)).toBeUndefined();
+  });
+
+  it('Map vs .find(): mismo resultado para ids existentes', () => {
+    const map = new Map(puestos.map(p => [p.id, p]));
+    [1, 2, 10].forEach(id => {
+      const porFind = puestos.find(p => p.id === id);
+      const porMap  = map.get(id);
+      expect(porMap).toEqual(porFind);
+    });
+  });
+
+  it('sort por puesto usa Map: orden correcto', () => {
+    const vols = [
+      { id: 1, puestoId: 10, nombre: "Ana"  }, // Meta
+      { id: 2, puestoId: 1,  nombre: "Luis" }, // Avituallamiento
+      { id: 3, puestoId: 2,  nombre: "Sara" }, // Control
+    ];
+    const map = new Map(puestos.map(p => [p.id, p]));
+    const sorted = [...vols].sort((a, b) => {
+      const pa = map.get(a.puestoId)?.nombre || "zzz";
+      const pb = map.get(b.puestoId)?.nombre || "zzz";
+      return pa.localeCompare(pb, "es");
+    });
+    // Avituallamiento < Control < Meta
+    expect(sorted[0].id).toBe(2); // Avituallamiento
+    expect(sorted[1].id).toBe(3); // Control
+    expect(sorted[2].id).toBe(1); // Meta
+  });
+});
