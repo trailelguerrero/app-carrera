@@ -1163,3 +1163,172 @@ describe('VOL-20 — Filtros avanzados: combinación de filtros', () => {
     expect(result).toHaveLength(0);
   });
 });
+
+// ── VOL-21: Día D — lógica de volsBase ───────────────────────────────────────
+describe('VOL-21 — Día D: volsBase incluye confirmado/pendiente/ausente', () => {
+  function calcVolsBase(voluntarios) {
+    return voluntarios.filter(v =>
+      v.estado === "confirmado" || v.estado === "pendiente" || v.estado === "ausente"
+    );
+  }
+
+  it('excluye cancelados', () => {
+    const vols = [
+      { id: 1, estado: "confirmado" },
+      { id: 2, estado: "cancelado"  },
+      { id: 3, estado: "pendiente"  },
+    ];
+    expect(calcVolsBase(vols).map(v => v.id)).toEqual([1, 3]);
+  });
+
+  it('incluye ausentes', () => {
+    const vols = [
+      { id: 1, estado: "ausente"   },
+      { id: 2, estado: "cancelado" },
+    ];
+    expect(calcVolsBase(vols).map(v => v.id)).toEqual([1]);
+  });
+
+  it('lista vacía → resultado vacío', () => {
+    expect(calcVolsBase([])).toHaveLength(0);
+  });
+});
+
+// ── VOL-22: Día D — ordenación check-in ──────────────────────────────────────
+describe('VOL-22 — Día D check-in: orden pendientes → presentes → ausentes', () => {
+  const puestosConStats = [
+    { id: 1, horaInicio: "07:00" },
+    { id: 2, horaInicio: "09:00" },
+    { id: 3, horaInicio: "08:00" },
+  ];
+
+  function sortCheckin(volsBase, puestosConStats) {
+    return [...volsBase].sort((a, b) => {
+      const prioA = a.enPuesto ? 1 : a.estado === "ausente" ? 2 : 0;
+      const prioB = b.enPuesto ? 1 : b.estado === "ausente" ? 2 : 0;
+      if (prioA !== prioB) return prioA - prioB;
+      const pA = puestosConStats.find(p => String(p.id) === String(a.puestoId));
+      const pB = puestosConStats.find(p => String(p.id) === String(b.puestoId));
+      return (pA?.horaInicio || "99:99").localeCompare(pB?.horaInicio || "99:99");
+    });
+  }
+
+  it('pendientes antes que presentes, ausentes al final', () => {
+    const vols = [
+      { id: 1, estado: "confirmado", enPuesto: true,  puestoId: 1 },
+      { id: 2, estado: "confirmado", enPuesto: false, puestoId: 2 },
+      { id: 3, estado: "ausente",    enPuesto: false, puestoId: 1 },
+    ];
+    const sorted = sortCheckin(vols, puestosConStats);
+    expect(sorted[0].id).toBe(2); // pendiente primero
+    expect(sorted[1].id).toBe(1); // presente en medio
+    expect(sorted[2].id).toBe(3); // ausente al final
+  });
+
+  it('pendientes ordenados por hora de puesto ascendente', () => {
+    const vols = [
+      { id: 1, estado: "confirmado", enPuesto: false, puestoId: 2 }, // 09:00
+      { id: 2, estado: "confirmado", enPuesto: false, puestoId: 1 }, // 07:00
+      { id: 3, estado: "confirmado", enPuesto: false, puestoId: 3 }, // 08:00
+    ];
+    const sorted = sortCheckin(vols, puestosConStats);
+    expect(sorted.map(v => v.id)).toEqual([2, 3, 1]); // 07, 08, 09
+  });
+
+  it('voluntario sin puesto → va al final del grupo pendientes', () => {
+    const vols = [
+      { id: 1, estado: "confirmado", enPuesto: false, puestoId: 1 }, // 07:00
+      { id: 2, estado: "confirmado", enPuesto: false, puestoId: null }, // sin puesto → 99:99
+    ];
+    const sorted = sortCheckin(vols, puestosConStats);
+    expect(sorted[0].id).toBe(1);
+    expect(sorted[1].id).toBe(2);
+  });
+});
+
+// ── VOL-23: Día D — búsqueda por teléfono en check-in ────────────────────────
+describe('VOL-23 — Día D check-in: búsqueda por teléfono normalizado', () => {
+  const vols = [
+    { id: 1, nombre: "Ana",  apellidos: "García", telefono: "612 345 678", estado: "confirmado", enPuesto: false },
+    { id: 2, nombre: "Luis", apellidos: "Pérez",  telefono: "698-765-432", estado: "confirmado", enPuesto: false },
+    { id: 3, nombre: "Sara", apellidos: "",        telefono: null,          estado: "pendiente",  enPuesto: false },
+  ];
+
+  function buscar(vols, q) {
+    const qNorm = q.toLowerCase().replace(/\s/g, "");
+    return vols.filter(v =>
+      (v.nombre + " " + (v.apellidos || "")).toLowerCase().includes(q.toLowerCase().trim()) ||
+      (v.telefono || "").replace(/\s/g, "").includes(qNorm)
+    );
+  }
+
+  it('buscar por nombre parcial', () => {
+    expect(buscar(vols, "ana").map(v => v.id)).toEqual([1]);
+  });
+
+  it('buscar por apellido', () => {
+    expect(buscar(vols, "pérez").map(v => v.id)).toEqual([2]);
+  });
+
+  it('buscar por teléfono sin espacios', () => {
+    expect(buscar(vols, "612345678").map(v => v.id)).toEqual([1]);
+  });
+
+  it('buscar por teléfono con espacios en query → normaliza', () => {
+    expect(buscar(vols, "612 345").map(v => v.id)).toEqual([1]);
+  });
+
+  it('sin resultados → array vacío', () => {
+    expect(buscar(vols, "xxx999")).toHaveLength(0);
+  });
+
+  it('voluntario sin teléfono no rompe (telefono null)', () => {
+    expect(() => buscar(vols, "612")).not.toThrow();
+  });
+});
+
+// ── VOL-24: Día D — detección de retrasados ──────────────────────────────────
+describe('VOL-24 — Día D: detección voluntarios retrasados', () => {
+  function calcRetrasados(voluntarios, puestosConStats, minutosActual) {
+    return voluntarios.filter(v => {
+      if (v.estado !== "confirmado" || v.enPuesto) return false;
+      const puesto = puestosConStats.find(p => p.id === v.puestoId);
+      if (!puesto || !puesto.horaInicio) return false;
+      const [h, m] = puesto.horaInicio.split(":").map(Number);
+      const minutosInicio = h * 60 + m;
+      return minutosActual > minutosInicio + 30;
+    });
+  }
+
+  const puestos = [
+    { id: 1, horaInicio: "07:00" }, // 420 min
+    { id: 2, horaInicio: "09:00" }, // 540 min
+  ];
+
+  it('voluntario cuyo puesto empezó hace >30min → retrasado', () => {
+    const vols = [{ id: 1, estado: "confirmado", enPuesto: false, puestoId: 1 }];
+    // Ahora son las 08:00 = 480 min, inicio fue 420 → 60 min de retraso
+    expect(calcRetrasados(vols, puestos, 480)).toHaveLength(1);
+  });
+
+  it('voluntario con enPuesto=true → no retrasado', () => {
+    const vols = [{ id: 1, estado: "confirmado", enPuesto: true, puestoId: 1 }];
+    expect(calcRetrasados(vols, puestos, 480)).toHaveLength(0);
+  });
+
+  it('puesto no ha empezado todavía → no retrasado', () => {
+    const vols = [{ id: 1, estado: "confirmado", enPuesto: false, puestoId: 2 }];
+    // Ahora son las 09:15 = 555 min, puesto empieza a 540, diferencia = 15 < 30
+    expect(calcRetrasados(vols, puestos, 555)).toHaveLength(0);
+  });
+
+  it('voluntario pendiente (no confirmado) → no cuenta como retrasado', () => {
+    const vols = [{ id: 1, estado: "pendiente", enPuesto: false, puestoId: 1 }];
+    expect(calcRetrasados(vols, puestos, 480)).toHaveLength(0);
+  });
+
+  it('voluntario sin puesto → no retrasado', () => {
+    const vols = [{ id: 1, estado: "confirmado", enPuesto: false, puestoId: null }];
+    expect(calcRetrasados(vols, puestos, 480)).toHaveLength(0);
+  });
+});

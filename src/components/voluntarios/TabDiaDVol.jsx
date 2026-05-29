@@ -13,70 +13,114 @@ import { blockCls as cls } from "@/lib/blockStyles";
 
 // ─── TAB DÍA D ────────────────────────────────────────────────────────────────
 function TabDiaD({ puestosConStats, voluntarios, onUpdateVol, diasHastaEvento = 999 }) {
-  const [vista, setVista]                   = useState("puesto"); // "puesto" | "nombre"
+  const [vista, setVista]                   = useState("puesto"); // "puesto" | "nombre" | "checkin"
   const [puestoSeleccionado, setPuestoSeleccionado] = useState("todos");
   const [ultimoGuardado, setUltimoGuardado] = useState(null);
   const [busquedaDiaD, setBusquedaDiaD]     = useState("");
+  // Ref para enfocar el input de búsqueda en modo check-in
+  const busquedaRef = useRef(null);
 
-  const marcarPresencia = (id, presente) => {
+  // Enfocar búsqueda al entrar en modo check-in
+  useEffect(() => {
+    if (vista === "checkin" && busquedaRef.current) {
+      busquedaRef.current.focus();
+    }
+  }, [vista]);
+
+  const marcarPresencia = useCallback((id, presente) => {
     const horaLlegada = presente ? new Date().toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' }) : null;
     onUpdateVol(id, { enPuesto: presente, ...(presente && horaLlegada ? { horaLlegada } : { horaLlegada: null }) });
     setUltimoGuardado(id);
     setTimeout(() => setUltimoGuardado(null), 1200);
-  };
+  }, [onUpdateVol]);
 
-  const marcarAusente = (id) => {
+  const marcarAusente = useCallback((id) => {
     onUpdateVol(id, { estado: "ausente", enPuesto: false, horaLlegada: null });
     setUltimoGuardado(id);
     setTimeout(() => setUltimoGuardado(null), 1200);
-  };
+  }, [onUpdateVol]);
 
-  // Detectar voluntarios confirmados que deberían estar en su puesto pero no han llegado
-  const ahora = new Date();
-  const horaActual = `${String(ahora.getHours()).padStart(2,'0')}:${String(ahora.getMinutes()).padStart(2,'0')}`;
-  const volsRetrasados = voluntarios.filter(v => {
-    if (v.estado !== "confirmado" || v.enPuesto) return false;
-    const puesto = (puestosConStats || []).find(p => p.id === v.puestoId);
-    if (!puesto || !puesto.horaInicio) return false;
-    // Resaltar si han pasado más de 30 min desde el inicio del puesto
-    const [h, m] = puesto.horaInicio.split(":").map(Number);
-    const minutosInicio = h * 60 + m;
-    const minutosActual = ahora.getHours() * 60 + ahora.getMinutes();
-    return minutosActual > minutosInicio + 30;
-  });
+  // ── Detección de retrasados ────────────────────────────────────────────────
+  const volsRetrasados = useMemo(() => {
+    const ahora = new Date();
+    return voluntarios.filter(v => {
+      if (v.estado !== "confirmado" || v.enPuesto) return false;
+      const puesto = (puestosConStats || []).find(p => p.id === v.puestoId);
+      if (!puesto || !puesto.horaInicio) return false;
+      const [h, m] = puesto.horaInicio.split(":").map(Number);
+      const minutosInicio = h * 60 + m;
+      const minutosActual = ahora.getHours() * 60 + ahora.getMinutes();
+      return minutosActual > minutosInicio + 30;
+    });
+  }, [voluntarios, puestosConStats]);
 
-  const volsBase = voluntarios.filter(v => v.estado === "confirmado" || v.estado === "pendiente" || v.estado === "ausente");
+  const volsBase = useMemo(
+    () => voluntarios.filter(v => v.estado === "confirmado" || v.estado === "pendiente" || v.estado === "ausente"),
+    [voluntarios]
+  );
 
-  // Voluntarios filtrados por búsqueda y puesto (para vista por nombre)
-  const volsFiltrados = (() => {
+  // ── Filtrado común (vistas por nombre y check-in) ──────────────────────────
+  const volsFiltrados = useMemo(() => {
     const base = puestoSeleccionado === "todos"
       ? volsBase
       : volsBase.filter(v => String(v.puestoId) === puestoSeleccionado);
     if (!busquedaDiaD.trim()) return base;
-    const q = busquedaDiaD.toLowerCase();
+    const q = busquedaDiaD.toLowerCase().replace(/\s/g, "");
     return base.filter(v =>
-      (v.nombre + " " + (v.apellidos || "")).toLowerCase().includes(q) ||
-      (v.telefono || "").includes(q)
+      (v.nombre + " " + (v.apellidos || "")).toLowerCase().includes(busquedaDiaD.toLowerCase()) ||
+      (v.telefono || "").replace(/\s/g, "").includes(q)
     );
-  })();
+  }, [volsBase, busquedaDiaD, puestoSeleccionado]);
 
-  // Datos agrupados por puesto (para vista por puesto)
-  const puestosAgrupados = puestosConStats.map(p => {
-    const vols = volsBase.filter(v => String(v.puestoId) === String(p.id));
-    const presentes   = vols.filter(v => v.enPuesto).length;
-    const confirmados = vols.filter(v => v.estado === "confirmado").length;
-    return { puesto: p, vols, presentes, confirmados };
-  }).filter(g => g.vols.length > 0)
-    .sort((a, b) => (a.puesto.horaInicio || "").localeCompare(b.puesto.horaInicio || ""));
+  // ── Vista check-in: todos ordenados por hora de puesto ────────────────────
+  const volsCheckin = useMemo(() => {
+    const q = busquedaDiaD.trim().toLowerCase().replace(/\s/g, "");
+    const base = q
+      ? volsBase.filter(v =>
+          (v.nombre + " " + (v.apellidos || "")).toLowerCase().includes(busquedaDiaD.toLowerCase().trim()) ||
+          (v.telefono || "").replace(/\s/g, "").includes(q)
+        )
+      : volsBase;
 
-  // Sin puesto asignado
-  const sinPuesto = volsBase.filter(v => !v.puestoId ||
-    !puestosConStats.find(p => String(p.id) === String(v.puestoId)));
+    return [...base].sort((a, b) => {
+      // Primero los no marcados, luego los presentes, ausentes al final
+      const prioA = a.enPuesto ? 1 : a.estado === "ausente" ? 2 : 0;
+      const prioB = b.enPuesto ? 1 : b.estado === "ausente" ? 2 : 0;
+      if (prioA !== prioB) return prioA - prioB;
+      // Dentro del mismo grupo, ordenar por hora de puesto
+      const pA = (puestosConStats || []).find(p => String(p.id) === String(a.puestoId));
+      const pB = (puestosConStats || []).find(p => String(p.id) === String(b.puestoId));
+      return (pA?.horaInicio || "99:99").localeCompare(pB?.horaInicio || "99:99");
+    });
+  }, [volsBase, busquedaDiaD, puestosConStats]);
 
-  const presentes = voluntarios.filter(v => v.enPuesto && v.estado === "confirmado").length;
-  const totalConf = voluntarios.filter(v => v.estado === "confirmado").length;
+  // ── Vista por puesto ───────────────────────────────────────────────────────
+  const puestosAgrupados = useMemo(() =>
+    puestosConStats.map(p => {
+      const vols = volsBase.filter(v => String(v.puestoId) === String(p.id));
+      const presentes   = vols.filter(v => v.enPuesto).length;
+      const confirmados = vols.filter(v => v.estado === "confirmado").length;
+      return { puesto: p, vols, presentes, confirmados };
+    }).filter(g => g.vols.length > 0)
+      .sort((a, b) => (a.puesto.horaInicio || "").localeCompare(b.puesto.horaInicio || "")),
+    [puestosConStats, volsBase]
+  );
 
-  // Fila individual de voluntario reutilizable
+  const sinPuesto = useMemo(
+    () => volsBase.filter(v => !v.puestoId || !puestosConStats.find(p => String(p.id) === String(v.puestoId))),
+    [volsBase, puestosConStats]
+  );
+
+  const presentes = useMemo(
+    () => voluntarios.filter(v => v.enPuesto && v.estado === "confirmado").length,
+    [voluntarios]
+  );
+  const totalConf = useMemo(
+    () => voluntarios.filter(v => v.estado === "confirmado").length,
+    [voluntarios]
+  );
+
+  // ── Fila normal (vistas por puesto / por nombre) ───────────────────────────
   const FilaVol = ({ v, mostrarPuesto = false }) => {
     const puesto = puestosConStats.find(p => p.id === v.puestoId);
     return (
@@ -160,31 +204,181 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol, diasHastaEvento = 
     );
   };
 
+  // ── Fila check-in compacta (modo check-in) ─────────────────────────────────
+  const FilaCheckin = ({ v }) => {
+    const puesto = (puestosConStats || []).find(p => String(p.id) === String(v.puestoId));
+    const esRetrasado = volsRetrasados.some(r => r.id === v.id);
+    const guardando = ultimoGuardado === v.id;
+
+    return (
+      <div
+        style={{
+          display: "flex", alignItems: "center", gap: ".65rem",
+          padding: ".6rem .75rem",
+          borderRadius: 10, marginBottom: ".35rem",
+          border: `1px solid ${v.enPuesto ? "rgba(52,211,153,.35)" : v.estado === "ausente" ? "rgba(248,113,113,.3)" : esRetrasado ? "rgba(251,191,36,.35)" : "var(--border)"}`,
+          background: v.enPuesto
+            ? "rgba(52,211,153,.06)"
+            : v.estado === "ausente"
+              ? "rgba(248,113,113,.05)"
+              : "var(--surface2)",
+          transition: "all .15s",
+          opacity: v.estado === "ausente" ? .65 : 1,
+        }}
+      >
+        {/* Nombre + puesto */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontWeight: 700, fontSize: ".9rem",
+            color: v.enPuesto ? "var(--green)" : v.estado === "ausente" ? "var(--text-dim)" : "var(--text)",
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          }}>
+            {v.nombre}{v.apellidos ? " " + v.apellidos : ""}
+            {esRetrasado && !v.enPuesto && (
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--amber)", marginLeft: ".4rem" }}>⚠ tarde</span>
+            )}
+          </div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", display: "flex", gap: ".5rem", flexWrap: "wrap", marginTop: ".1rem" }}>
+            {puesto && <span>📍 {puesto.nombre}{puesto.horaInicio ? ` · ${puesto.horaInicio}` : ""}</span>}
+            {v.enPuesto && v.horaLlegada && <span style={{ color: "var(--green)", fontWeight: 700 }}>✓ {v.horaLlegada}</span>}
+            {v.estado === "ausente" && <span style={{ color: "var(--orange)" }}>Ausente</span>}
+          </div>
+        </div>
+
+        {/* Teléfono clickable */}
+        {v.telefono && (
+          <a
+            href={`tel:${v.telefono}`}
+            onClick={e => e.stopPropagation()}
+            style={{ color: "var(--text-dim)", fontSize: "1.1rem", textDecoration: "none", flexShrink: 0 }}
+            title={`Llamar: ${v.telefono}`}
+          >
+            📞
+          </a>
+        )}
+
+        {/* Botón ⚠ ausente — solo si no está presente ni ausente ya */}
+        {!v.enPuesto && v.estado !== "ausente" && (
+          <button
+            onClick={() => marcarAusente(v.id)}
+            title="Marcar ausente"
+            style={{
+              background: "none", border: "1px solid var(--orange-border)", borderRadius: 6,
+              color: "var(--orange)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+              padding: ".2rem .5rem", cursor: "pointer", flexShrink: 0,
+            }}
+          >
+            ✗
+          </button>
+        )}
+
+        {/* Botón principal: ✓ Llegó / Desmarcar */}
+        {v.estado !== "ausente" && (
+          <button
+            onClick={() => marcarPresencia(v.id, !v.enPuesto)}
+            style={{
+              padding: ".4rem .9rem",
+              borderRadius: 8, cursor: "pointer", flexShrink: 0,
+              fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 800,
+              border: "none",
+              background: v.enPuesto
+                ? "rgba(52,211,153,.15)"
+                : guardando
+                  ? "var(--cyan)"
+                  : "var(--green)",
+              color: v.enPuesto ? "var(--green)" : guardando ? "#0f172a" : "#0f172a",
+              transition: "all .15s",
+              minWidth: 72,
+              boxShadow: guardando ? "0 0 12px rgba(34,211,238,.5)" : v.enPuesto ? "none" : "0 2px 8px rgba(52,211,153,.3)",
+            }}
+          >
+            {v.enPuesto ? "✓ En puesto" : "✓ Llegó"}
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  // ── Contadores para el header de check-in ─────────────────────────────────
+  const pendientesCheckin = volsBase.filter(v => !v.enPuesto && v.estado !== "ausente").length;
+
   return (
     <>
+      <style>{`
+        .checkin-busqueda {
+          font-size: 1rem !important;
+          padding: .6rem .85rem !important;
+        }
+        .checkin-busqueda:focus {
+          border-color: var(--cyan) !important;
+          outline: none;
+          box-shadow: 0 0 0 2px rgba(34,211,238,.15);
+        }
+        .vista-toggle {
+          display: inline-flex;
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          overflow: hidden;
+          flex-shrink: 0;
+        }
+        .vista-toggle-btn {
+          background: transparent;
+          border: none;
+          padding: .3rem .65rem;
+          font-family: var(--font-mono);
+          font-size: var(--fs-xs);
+          font-weight: 700;
+          cursor: pointer;
+          color: var(--text-muted);
+          transition: background .12s, color .12s;
+          white-space: nowrap;
+        }
+        .vista-toggle-btn.active {
+          background: var(--cyan);
+          color: #0f172a;
+        }
+        .vista-toggle-btn + .vista-toggle-btn {
+          border-left: 1px solid var(--border);
+        }
+        .checkin-progress {
+          height: 4px;
+          background: var(--border);
+          border-radius: 4px;
+          overflow: hidden;
+          margin-bottom: .65rem;
+        }
+        .checkin-progress-fill {
+          height: 100%;
+          background: var(--green);
+          border-radius: 4px;
+          transition: width .4s ease;
+        }
+      `}</style>
+
       <div className="page-header">
         <div>
           <div className="page-title">🏁 Día de Carrera</div>
           <div className="page-desc">Checklist de asistencia · {diasHastaEvento >= 0 ? `${diasHastaEvento} días para el evento` : "¡Día de carrera!"}</div>
         </div>
-        <div style={{ display:"flex", gap:".5rem" }}>
+        <div style={{ display:"flex", gap:".5rem", flexWrap: "wrap", alignItems: "center" }}>
 
-      {/* Alerta voluntarios retrasados */}
-      {volsRetrasados.length > 0 && (
-        <div style={{ background:"var(--orange-dim)", border:"1px solid var(--orange-border)",
-          borderRadius:8, padding:".5rem .85rem", marginBottom:".65rem",
-          display:"flex", alignItems:"center", gap:".65rem" }}>
-          <span style={{ fontSize:"1.1rem" }}>⚠️</span>
-          <div>
-            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700, color:"var(--orange)" }}>
-              {volsRetrasados.length} voluntario{volsRetrasados.length > 1 ? "s" : ""} con más de 30 min de retraso
+          {/* Alerta voluntarios retrasados */}
+          {volsRetrasados.length > 0 && (
+            <div style={{ background:"var(--orange-dim)", border:"1px solid var(--orange-border)",
+              borderRadius:8, padding:".5rem .85rem", marginBottom:".65rem",
+              display:"flex", alignItems:"center", gap:".65rem" }}>
+              <span style={{ fontSize:"1.1rem" }}>⚠️</span>
+              <div>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700, color:"var(--orange)" }}>
+                  {volsRetrasados.length} voluntario{volsRetrasados.length > 1 ? "s" : ""} con más de 30 min de retraso
+                </div>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", lineHeight:1.5 }}>
+                  {volsRetrasados.map(v => v.nombre?.split(" ")[0] || "V").join(", ")}
+                </div>
+              </div>
             </div>
-            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", lineHeight:1.5 }}>
-              {volsRetrasados.map(v => v.nombre?.split(" ")[0] || "V").join(", ")}
-            </div>
-          </div>
-        </div>
-      )}
+          )}
+
           <div className="mono text-xs" style={{ color: "var(--green)", background: "var(--green-dim)",
             border: "1px solid rgba(52,211,153,0.2)", borderRadius: 6, padding: "0.4rem 0.75rem" }}>
             ✓ {presentes} / {totalConf} en su puesto
@@ -196,31 +390,93 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol, diasHastaEvento = 
         </div>
       </div>
 
-      {/* Toggle vista + búsqueda */}
-      <div style={{ display: "flex", gap: ".5rem", marginBottom: ".6rem", alignItems: "center" }}>
+      {/* Toggle vistas + búsqueda */}
+      <div style={{ display: "flex", gap: ".5rem", marginBottom: ".6rem", alignItems: "center", flexWrap: "wrap" }}>
         <input
+          ref={busquedaRef}
           value={busquedaDiaD}
           onChange={e => setBusquedaDiaD(e.target.value)}
-          placeholder="Buscar por nombre o teléfono…"
-          style={{ flex: 1, padding: ".45rem .75rem", borderRadius: 8,
-            border: "1px solid var(--border)", background: "var(--surface2)",
-            color: "var(--text)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", outline: "none" }}
+          placeholder={vista === "checkin" ? "🔍 Nombre o teléfono para marcar asistencia…" : "Buscar por nombre o teléfono…"}
+          className={vista === "checkin" ? "inp checkin-busqueda" : "inp"}
+          style={{ flex: 1, minWidth: 180,
+            fontSize: vista === "checkin" ? "1rem" : undefined,
+          }}
         />
-        <div style={{ display: "flex", gap: ".3rem", flexShrink: 0 }}>
+        {busquedaDiaD && (
           <button
+            onClick={() => setBusquedaDiaD("")}
+            style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "1rem", padding: ".3rem" }}
+            aria-label="Limpiar búsqueda"
+          >✕</button>
+        )}
+        <div className="vista-toggle">
+          <button
+            className={"vista-toggle-btn" + (vista === "checkin" ? " active" : "")}
+            onClick={() => setVista("checkin")}
+            title="Vista check-in — optimizada para marcar asistencia rápidamente"
+          >
+            ✓ Check-in
+          </button>
+          <button
+            className={"vista-toggle-btn" + (vista === "puesto" ? " active" : "")}
             onClick={() => setVista("puesto")}
-            className={"filter-pill" + (vista === "puesto" ? " active" : "")}
-            style={{ whiteSpace: "nowrap" }}>
+            title="Ver voluntarios agrupados por puesto"
+          >
             📍 Por puesto
           </button>
           <button
+            className={"vista-toggle-btn" + (vista === "nombre" ? " active" : "")}
             onClick={() => setVista("nombre")}
-            className={"filter-pill" + (vista === "nombre" ? " active" : "")}
-            style={{ whiteSpace: "nowrap" }}>
+            title="Ver todos los voluntarios por nombre"
+          >
             👤 Por nombre
           </button>
         </div>
       </div>
+
+      {/* ── VISTA CHECK-IN ────────────────────────────────────────────────── */}
+      {vista === "checkin" && (
+        <>
+          {/* Barra de progreso */}
+          {totalConf > 0 && (
+            <div className="checkin-progress">
+              <div className="checkin-progress-fill" style={{ width: `${Math.round(presentes / totalConf * 100)}%` }} />
+            </div>
+          )}
+
+          {/* Resumen rápido */}
+          <div style={{ display: "flex", gap: ".5rem", marginBottom: ".65rem", flexWrap: "wrap" }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700,
+              padding: ".2rem .6rem", borderRadius: 20,
+              background: "rgba(52,211,153,.1)", color: "var(--green)", border: "1px solid rgba(52,211,153,.25)" }}>
+              ✓ {presentes} llegaron
+            </span>
+            {pendientesCheckin > 0 && (
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700,
+                padding: ".2rem .6rem", borderRadius: 20,
+                background: "rgba(251,191,36,.1)", color: "var(--amber)", border: "1px solid rgba(251,191,36,.25)" }}>
+                ⏳ {pendientesCheckin} pendientes
+              </span>
+            )}
+            {voluntarios.filter(v => v.estado === "ausente").length > 0 && (
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700,
+                padding: ".2rem .6rem", borderRadius: 20,
+                background: "rgba(248,113,113,.08)", color: "var(--red)", border: "1px solid rgba(248,113,113,.2)" }}>
+                ✗ {voluntarios.filter(v => v.estado === "ausente").length} ausentes
+              </span>
+            )}
+          </div>
+
+          {/* Lista check-in */}
+          {volsCheckin.length === 0 && (
+            <div style={{ textAlign: "center", padding: "2rem", color: "var(--text-muted)",
+              fontFamily: "var(--font-mono)", fontSize: "var(--fs-base)" }}>
+              {busquedaDiaD ? "Sin resultados para esta búsqueda" : "Sin voluntarios confirmados ni pendientes"}
+            </div>
+          )}
+          {volsCheckin.map(v => <FilaCheckin key={v.id} v={v} />)}
+        </>
+      )}
 
       {/* ── VISTA POR PUESTO ──────────────────────────────────────────────── */}
       {vista === "puesto" && (
