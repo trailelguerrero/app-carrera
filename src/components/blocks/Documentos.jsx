@@ -19,24 +19,31 @@ const ALLOWED_TYPES = ["application/pdf", "image/png", "image/jpeg", "image/jpg"
 const ALLOWED_EXT   = ".pdf,.png,.jpg,.jpeg,.webp";
 
 const CATEGORIAS = [
-  { id: "presupuestos", icon: "💰", label: "Presupuestos de proveedores", color: "#34d399" },
-  { id: "contratos",    icon: "📝", label: "Contratos",    color: "#f97316" },
-  { id: "facturas",     icon: "🧾", label: "Facturas",     color: "#22d3ee" },
-  { id: "permisos",     icon: "📋", label: "Permisos",     color: "#a78bfa" },
-  { id: "seguros",      icon: "🛡️", label: "Seguros",      color: "#fbbf24" },
-  { id: "protocolos",   icon: "📑", label: "Protocolos",   color: "#fb923c" },
+  { id: "presupuestos",   icon: "💰", label: "Presupuestos proveedores", color: "#34d399" },
+  { id: "contratos",      icon: "📝", label: "Contratos",    color: "#f97316" },
+  { id: "facturas",       icon: "🧾", label: "Facturas",     color: "#22d3ee" },
+  { id: "permisos",       icon: "📋", label: "Permisos",     color: "#a78bfa" },
+  { id: "seguros",        icon: "🛡️", label: "Seguros",      color: "#fbbf24" },
+  { id: "protocolos",     icon: "📑", label: "Protocolos",   color: "#fb923c" },
+  { id: "comunicaciones", icon: "📢", label: "Comunicaciones", color: "#e879f9" },
+  { id: "certificados",   icon: "🏆", label: "Certificados", color: "#38bdf8" },
+  { id: "rrhh",           icon: "👥", label: "RR.HH.",       color: "#f472b6" },
 ];
 // Gestiones es una sección separada — no mezclar con categorías de archivo
 const CAT_GESTIONES = { id: "gestiones", icon: "🏛️", label: "Gestiones legales", color: "#38bdf8", esGestion: true };
 const TODAS_CATEGORIAS = [...CATEGORIAS, { ...CAT_GESTIONES }]; // solo para búsqueda global
 
 const SUBCATEGORIAS = {
-  permisos:     ["Ayuntamiento", "Diputación", "Medio Ambiente", "Otro"],
-  seguros:      ["Accidentes", "Responsabilidad Civil", "Otro"],
-  protocolos:   ["Actuación Accidentes", "Actuación RC", "Evacuación", "Otro"],
-  presupuestos: [],
-  facturas:     [],
-  gestiones:    ["Ayuntamiento", "Federación", "Medio Ambiente", "Diputación", "Cruz Roja", "Seguro RC", "Otro"],
+  permisos:       ["Ayuntamiento", "Diputación", "Medio Ambiente", "Otro"],
+  seguros:        ["Accidentes", "Responsabilidad Civil", "Otro"],
+  protocolos:     ["Actuación Accidentes", "Actuación RC", "Evacuación", "Otro"],
+  comunicaciones: ["Nota de prensa", "Acreditación prensa", "Comunicado oficial", "Redes sociales", "Otro"],
+  certificados:   ["Registro federativo", "Declaración responsable", "Certificado oficial", "Otro"],
+  rrhh:           ["Contrato colaborador", "Autorización menor", "NDA", "Otro"],
+  presupuestos:   [],
+  facturas:       [],
+  contratos:      [],
+  gestiones:      ["Ayuntamiento", "Federación", "Medio Ambiente", "Diputación", "Cruz Roja", "Seguro RC", "Protección Civil", "Otro"],
 };
 
 // Gestiones legales predefinidas (registro sin archivo)
@@ -51,6 +58,14 @@ const GESTIONES_DEFAULT = [
     estado:"pendiente", fechaVencimiento:"2026-06-30", nota:"Necesaria para uso de montes de utilidad pública.", url:"", fechaSubida: "", responsable: "" },
   { id:"g5", nombre:"Protocolo Servicio médico", subcategoria:"Servicio Médico",
     estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Ambulancia + 2 sanitarios titulados. Confirmar antes del 15 mayo.", url:"", fechaSubida: "", responsable: "" },
+  { id:"g6", nombre:"Plan de autoprotección", subcategoria:"Protección Civil",
+    estado:"pendiente", fechaVencimiento:"2026-07-31", nota:"Obligatorio cuando el aforo supera las 1.000 personas. Incluir plano de evacuación, puntos de concentración y protocolo de emergencias. Presentar ante Protección Civil con antelación.", url:"", fechaSubida: "", responsable: "" },
+  { id:"g7", nombre:"Notificación de recorrido a Guardia Civil", subcategoria:"Otro",
+    estado:"pendiente", fechaVencimiento:"2026-08-15", nota:"Comunicar el recorrido, horarios y número de participantes al puesto de la Guardia Civil correspondiente. Solicitar escolta si el recorrido cruza vías públicas de cierta densidad.", url:"", fechaSubida: "", responsable: "" },
+  { id:"g8", nombre:"Aviso a servicios de emergencia (112 / Cruz Roja)", subcategoria:"Cruz Roja",
+    estado:"pendiente", fechaVencimiento:"2026-08-22", nota:"Notificar fecha, recorrido y número de participantes a 112 y Cruz Roja. Confirmar disponibilidad de unidades móviles en zonas sin cobertura de ambulancia.", url:"", fechaSubida: "", responsable: "" },
+  { id:"g9", nombre:"Permiso de grabación / fotografía profesional", subcategoria:"Otro",
+    estado:"pendiente", fechaVencimiento:"2026-08-01", nota:"Necesario si hay cámaras o drones profesionales durante la carrera. Gestionar con la organización y, si el recorrido discurre por zonas protegidas, con Medio Ambiente.", url:"", fechaSubida: "", responsable: "" },
 ];
 
 // ─── MODELO SUBVENCIONES ───────────────────────────────────────────────────────
@@ -805,6 +820,92 @@ export default function Documentos() {
           );
         })()}
 
+        {/* ── Semáforo documental ── */}
+        {(() => {
+          const hoy = new Date();
+          const dias30 = (iso) => { const d = diasHasta(iso); return d != null && d >= 0 && d <= 30; };
+          // Permisos
+          const permDocs = docs.filter(d => d.categoria === "permisos");
+          const permOk   = permDocs.filter(d => ["aprobado","vigente"].includes(d.estado)).length;
+          const permWarn = permDocs.filter(d => d.fechaVencimiento && dias30(d.fechaVencimiento) && !["aprobado","vigente"].includes(d.estado)).length;
+          // Seguros
+          const segDocs = docs.filter(d => d.categoria === "seguros");
+          const segOk   = segDocs.filter(d => ["aprobado","vigente"].includes(d.estado)).length;
+          const segWarn = segDocs.filter(d => d.fechaVencimiento && dias30(d.fechaVencimiento) && !["aprobado","vigente"].includes(d.estado)).length;
+          // Gestiones
+          const gestVenc = gestiones.filter(g => g.estado === "denegado" || (g.fechaVencimiento && diasHasta(g.fechaVencimiento) != null && diasHasta(g.fechaVencimiento) < 0 && !["aprobado","vigente"].includes(g.estado))).length;
+          const gestCrit = gestiones.filter(g => g.fechaVencimiento && dias30(g.fechaVencimiento) && !["aprobado","vigente"].includes(g.estado)).length;
+          const gestOk   = gestiones.filter(g => ["aprobado","vigente"].includes(g.estado)).length;
+          // Subvenciones
+          const svConcedidas = subvenciones.filter(sv => ["concedida","justificada","cerrada"].includes(sv.estado));
+          const svTotal      = svConcedidas.reduce((s,sv) => s + (parseFloat(String(sv.importeConcedido||"").replace(",",".")) || 0), 0);
+          const hayAlgo = permDocs.length > 0 || segDocs.length > 0 || gestiones.length > 0 || subvenciones.length > 0;
+          if (!hayAlgo) return null;
+          const semItems = [
+            permDocs.length > 0 && {
+              icon: "📋", label: "Permisos",
+              color: permWarn > 0 ? "#fbbf24" : permOk > 0 ? "#34d399" : "#94a3b8",
+              dot:   permWarn > 0 ? "🟡" : permOk > 0 ? "🟢" : "⚪",
+              detail: permOk > 0 ? `${permOk}/${permDocs.length} aprobados` : `${permDocs.length} pendiente${permDocs.length>1?"s":""}`,
+              warn:  permWarn > 0 ? `⏰ ${permWarn} por vencer` : null,
+              onClick: () => setTab("permisos"),
+            },
+            segDocs.length > 0 && {
+              icon: "🛡️", label: "Seguros",
+              color: segWarn > 0 ? "#fbbf24" : segOk > 0 ? "#34d399" : "#94a3b8",
+              dot:   segWarn > 0 ? "🟡" : segOk > 0 ? "🟢" : "⚪",
+              detail: segOk > 0 ? `${segOk}/${segDocs.length} vigentes` : `${segDocs.length} pendiente${segDocs.length>1?"s":""}`,
+              warn:  segWarn > 0 ? `⏰ ${segWarn} por vencer` : null,
+              onClick: () => setTab("seguros"),
+            },
+            gestiones.length > 0 && {
+              icon: "🏛️", label: "Gestiones",
+              color: gestVenc > 0 ? "#f87171" : gestCrit > 0 ? "#fbbf24" : gestOk > 0 ? "#34d399" : "#94a3b8",
+              dot:   gestVenc > 0 ? "🔴" : gestCrit > 0 ? "🟡" : gestOk > 0 ? "🟢" : "⚪",
+              detail: `${gestOk}/${gestiones.length} aprobadas`,
+              warn:  gestVenc > 0 ? `⚠ ${gestVenc} vencida${gestVenc>1?"s":""}` : gestCrit > 0 ? `⏰ ${gestCrit} urgente${gestCrit>1?"s":""}` : null,
+              onClick: () => setTab("gestiones"),
+            },
+            subvenciones.length > 0 && {
+              icon: "🏅", label: "Subvenciones",
+              color: svConcedidas.length > 0 ? "#34d399" : "#94a3b8",
+              dot:   svConcedidas.length > 0 ? "🟢" : "⚪",
+              detail: svConcedidas.length > 0 ? `${svConcedidas.length} concedida${svConcedidas.length>1?"s":""}` : `${subvenciones.length} en seguimiento`,
+              warn:  svTotal > 0 ? `💶 ${formatImporte(svTotal)}` : null,
+              onClick: () => setTab("subvenciones"),
+            },
+          ].filter(Boolean);
+          return (
+            <div className="card mb" style={{padding:".75rem 1rem",borderLeft:"3px solid rgba(148,163,184,0.3)"}}>
+              <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginBottom:".5rem",fontWeight:700,letterSpacing:".05em",textTransform:"uppercase"}}>
+                Estado documental
+              </div>
+              <div style={{display:"flex",gap:".5rem",flexWrap:"wrap"}}>
+                {semItems.map(item => (
+                  <div key={item.label} onClick={item.onClick} style={{
+                    cursor:"pointer",display:"flex",flexDirection:"column",gap:".15rem",
+                    background:"var(--surface2)",border:`1px solid ${item.color}33`,
+                    borderLeft:`3px solid ${item.color}`,
+                    borderRadius:"var(--r-sm)",padding:".4rem .65rem",minWidth:120,flex:"1 1 120px",
+                  }}>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:item.color,fontWeight:700}}>
+                      {item.dot} {item.label}
+                    </div>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text)"}}>
+                      {item.detail}
+                    </div>
+                    {item.warn && (
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:item.color,fontWeight:700}}>
+                        {item.warn}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* ── KPIs por categoría — solo las que tienen archivos ── */}
         {(() => {
           const cats = CATEGORIAS.map(c => ({
@@ -946,11 +1047,11 @@ export default function Documentos() {
               placeholder="Notas / descripción (opcional: quién lo emite, qué cubre, observaciones…)" className="doc-input" style={{flexBasis:"100%"}} />
             <input value={emisorNuevo} onChange={e => setEmisorNuevo(e.target.value)}
               placeholder="Emisor / proveedor (ej: Mapfre, Cruz Roja…)" className="doc-input" />
-            {(tab === "presupuestos" || tab === "facturas") && (
+            {(["presupuestos","facturas","contratos","seguros"].includes(tab)) && (
               <input
                 value={importeNuevo}
                 onChange={e => setImporteNuevo(e.target.value)}
-                placeholder="Importe (ej: 1250.00)"
+                placeholder={tab === "seguros" ? "Prima anual (€)" : tab === "contratos" ? "Importe del contrato (€)" : "Importe (€)"}
                 className="doc-input"
                 type="number"
                 min="0"
@@ -1034,7 +1135,7 @@ export default function Documentos() {
                         <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:cat.color,marginTop:".1rem"}}>
                           {cat.icon} {cat.label}{doc.subcategoria ? ` · ${doc.subcategoria}` : ""}
                         </div>
-                        {(doc.categoria === "presupuestos" || doc.categoria === "facturas") && doc.importe != null && (
+                        {(["presupuestos","facturas","contratos","seguros"].includes(doc.categoria)) && doc.importe != null && (
                           <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",fontWeight:700,color:"#34d399",marginTop:".1rem"}}>
                             💶 {formatImporte(doc.importe)}
                           </div>
@@ -1119,7 +1220,7 @@ export default function Documentos() {
                         <input value={editForm.emisor}
                           onChange={e => setEditForm(p=>({...p,emisor:e.target.value}))}
                           placeholder="Emisor / proveedor" className="doc-input" style={{width:"100%",boxSizing:"border-box"}} />
-                        {((editForm.categoria ?? doc.categoria) === "presupuestos" || (editForm.categoria ?? doc.categoria) === "facturas") && (
+                        {(["presupuestos","facturas","contratos","seguros"].includes(editForm.categoria ?? doc.categoria)) && (
                           <input
                             value={editForm.importe ?? ""}
                             onChange={e => setEditForm(p=>({...p,importe:e.target.value}))}
@@ -1191,7 +1292,7 @@ export default function Documentos() {
                                 🏢 {doc.emisor}
                               </div>
                             )}
-                            {(doc.categoria === "presupuestos" || doc.categoria === "facturas") && doc.importe != null && (
+                            {(["presupuestos","facturas","contratos","seguros"].includes(doc.categoria)) && doc.importe != null && (
                               <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
                                 fontWeight:700,color:"#34d399",marginTop:".15rem",letterSpacing:"-.01em"}}>
                                 💶 {formatImporte(doc.importe)}

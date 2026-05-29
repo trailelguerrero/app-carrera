@@ -1222,3 +1222,82 @@ describe('SUBV-01 — Módulo Subvenciones', () => {
     expect(doc).toContain('esSubvencion');
   });
 });
+
+describe('DOCS-P1 — Nuevas categorías de documento', () => {
+  it('categoría comunicaciones definida', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('"comunicaciones"');
+    expect(doc).toContain('Comunicaciones');
+  });
+  it('categoría certificados definida', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('"certificados"');
+  });
+  it('categoría rrhh definida', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('"rrhh"');
+    expect(doc).toContain('RR.HH.');
+  });
+  it('subcategorías definidas para las nuevas categorías', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('Nota de prensa');
+    expect(doc).toContain('Acreditación prensa');
+    expect(doc).toContain('Autorización menor');
+  });
+});
+
+describe('DOCS-P3 — Semáforo documental', () => {
+  it('panel semáforo presente en el render', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('Estado documental');
+  });
+  it('semáforo evalúa permisos, seguros, gestiones y subvenciones', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    ['permOk','segOk','gestOk','svConcedidas'].forEach(v => expect(doc).toContain(v));
+  });
+});
+
+describe('DOCS-P4 — Nuevas gestiones predefinidas', () => {
+  it('9 gestiones predefinidas (5 originales + 4 nuevas)', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('"g6"');
+    expect(doc).toContain('"g7"');
+    expect(doc).toContain('"g8"');
+    expect(doc).toContain('"g9"');
+  });
+  it('Plan de autoprotección incluido', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('Plan de autoprotección');
+  });
+  it('Notificación Guardia Civil incluida', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('Guardia Civil');
+  });
+  it('Aviso servicios de emergencia incluido', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('112');
+  });
+  it('Permiso grabación/fotografía incluido', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('grabación');
+  });
+  it('Protección Civil en subcategorías de gestiones', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('Protección Civil');
+  });
+});
+
+describe('DOCS-P5 — Importe en contratos y seguros', () => {
+  it('contratos y seguros incluidos en condición de importe', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('"contratos","seguros"');
+  });
+  it('placeholder diferenciado para seguros', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('Prima anual');
+  });
+  it('placeholder diferenciado para contratos', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('Importe del contrato');
+  });
+});
