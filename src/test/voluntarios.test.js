@@ -754,3 +754,191 @@ describe('VOL-12 — FIX-BADGE-01: badge grupo muestra filtrados/total', () => {
     expect(badgeText(pendientes, todosVols, 'pendiente')).toBe('1');
   });
 });
+
+// ── VOL-13: Kanban por puestos — lógica de columnaDeVol ──────────────────────
+describe('VOL-13 — Kanban por puestos: columnaDeVol y distribución', () => {
+  // Replica la función del componente
+  function columnaDeVol(v) {
+    if (v.enPuesto) return "en-puesto";
+    return v.estado || "pendiente";
+  }
+
+  it('voluntario con enPuesto=true → columna en-puesto', () => {
+    expect(columnaDeVol({ estado: "confirmado", enPuesto: true })).toBe("en-puesto");
+  });
+
+  it('voluntario confirmado sin enPuesto → columna confirmado', () => {
+    expect(columnaDeVol({ estado: "confirmado", enPuesto: false })).toBe("confirmado");
+  });
+
+  it('voluntario sin estado → columna pendiente (fallback)', () => {
+    expect(columnaDeVol({})).toBe("pendiente");
+  });
+
+  it('voluntario cancelado → columna cancelado', () => {
+    expect(columnaDeVol({ estado: "cancelado" })).toBe("cancelado");
+  });
+
+  it('distribución por puestos: cada voluntario va a la columna de su puestoId', () => {
+    const voluntarios = [
+      { id: 1, puestoId: 10, estado: "confirmado" },
+      { id: 2, puestoId: 10, estado: "pendiente"  },
+      { id: 3, puestoId: 20, estado: "confirmado" },
+      { id: 4, puestoId: null, estado: "pendiente" }, // sin puesto
+    ];
+    const puestos = [{ id: 10 }, { id: 20 }];
+
+    // Simula columnasPuesto useMemo
+    const cols = puestos.map(p => ({
+      colId: String(p.id),
+      items: voluntarios.filter(v => String(v.puestoId) === String(p.id)),
+    }));
+    const sinPuesto = voluntarios.filter(v =>
+      !v.puestoId || !puestos.find(p => String(p.id) === String(v.puestoId))
+    );
+    cols.push({ colId: "__sin_puesto__", items: sinPuesto });
+
+    expect(cols.find(c => c.colId === "10").items).toHaveLength(2);
+    expect(cols.find(c => c.colId === "20").items).toHaveLength(1);
+    expect(cols.find(c => c.colId === "__sin_puesto__").items).toHaveLength(1);
+  });
+});
+
+// ── VOL-14: Kanban por puestos — cobertura y orden ───────────────────────────
+describe('VOL-14 — Kanban por puestos: cobertura semáforo y orden de criticidad', () => {
+  function colorCobertura(pct) {
+    if (pct >= 80) return "var(--green)";
+    if (pct >= 50) return "var(--amber)";
+    return "var(--red)";
+  }
+
+  it('cobertura 100% → verde', () => {
+    expect(colorCobertura(100)).toBe("var(--green)");
+  });
+
+  it('cobertura 80% → verde (límite inferior)', () => {
+    expect(colorCobertura(80)).toBe("var(--green)");
+  });
+
+  it('cobertura 79% → ámbar', () => {
+    expect(colorCobertura(79)).toBe("var(--amber)");
+  });
+
+  it('cobertura 50% → ámbar (límite inferior)', () => {
+    expect(colorCobertura(50)).toBe("var(--amber)");
+  });
+
+  it('cobertura 49% → rojo', () => {
+    expect(colorCobertura(49)).toBe("var(--red)");
+  });
+
+  it('cobertura 0% → rojo', () => {
+    expect(colorCobertura(0)).toBe("var(--red)");
+  });
+
+  it('columnas ordenadas: puestos más críticos primero', () => {
+    const voluntarios = [
+      { id: 1, puestoId: 1, estado: "confirmado" },
+      { id: 2, puestoId: 1, estado: "confirmado" },
+      { id: 3, puestoId: 1, estado: "confirmado" },
+      { id: 4, puestoId: 1, estado: "confirmado" }, // puesto 1: 4/4 = 100%
+      { id: 5, puestoId: 2, estado: "confirmado" }, // puesto 2: 1/4 = 25% (crítico)
+      { id: 6, puestoId: 3, estado: "confirmado" },
+      { id: 7, puestoId: 3, estado: "confirmado" }, // puesto 3: 2/4 = 50%
+    ];
+    const puestos = [
+      { id: 1, necesarios: 4 },
+      { id: 2, necesarios: 4 },
+      { id: 3, necesarios: 4 },
+    ];
+
+    const cols = puestos.map(p => ({
+      ...p,
+      colId: String(p.id),
+      items: voluntarios.filter(v => String(v.puestoId) === String(p.id)),
+    }));
+    cols.sort((a, b) => {
+      const pctA = a.necesarios > 0
+        ? (a.items.filter(v => v.estado === "confirmado").length / a.necesarios)
+        : 1;
+      const pctB = b.necesarios > 0
+        ? (b.items.filter(v => v.estado === "confirmado").length / b.necesarios)
+        : 1;
+      return pctA - pctB;
+    });
+
+    // El primero debe ser el más crítico (puesto 2, 25%)
+    expect(cols[0].id).toBe(2);
+    // El último el más cubierto (puesto 1, 100%)
+    expect(cols[cols.length - 1].id).toBe(1);
+  });
+
+  it('cards ordenadas dentro de columna: confirmados antes que pendientes', () => {
+    const items = [
+      { id: 1, estado: "pendiente"  },
+      { id: 2, estado: "confirmado" },
+      { id: 3, estado: "cancelado"  },
+      { id: 4, estado: "confirmado" },
+    ];
+    const ordenEstado = { "confirmado": 0, "en-puesto": 0, "pendiente": 1, "ausente": 2, "cancelado": 3 };
+    const sorted = [...items].sort((a, b) =>
+      (ordenEstado[a.estado] ?? 1) - (ordenEstado[b.estado] ?? 1)
+    );
+
+    expect(sorted[0].estado).toBe("confirmado");
+    expect(sorted[1].estado).toBe("confirmado");
+    expect(sorted[2].estado).toBe("pendiente");
+    expect(sorted[3].estado).toBe("cancelado");
+  });
+});
+
+// ── VOL-15: Kanban — stats resumen modo puesto ────────────────────────────────
+describe('VOL-15 — Kanban stats resumen modo puesto', () => {
+  const voluntarios = [
+    { id: 1, puestoId: 1, estado: "confirmado" },
+    { id: 2, puestoId: 1, estado: "confirmado" },
+    { id: 3, puestoId: 2, estado: "pendiente"  },
+    { id: 4, puestoId: null, estado: "pendiente" },
+    { id: 5, puestoId: 99,  estado: "confirmado" }, // puesto inexistente = sin asignar
+  ];
+  const puestos = [
+    { id: 1, necesarios: 2 },
+    { id: 2, necesarios: 3 },
+  ];
+
+  function calcStats(voluntarios, puestos) {
+    const total = voluntarios.length;
+    const confirmados = voluntarios.filter(v => v.estado === "confirmado").length;
+    const sinPuesto = voluntarios.filter(v =>
+      !v.puestoId || !puestos.find(p => String(p.id) === String(v.puestoId))
+    ).length;
+    const puestosOk = puestos.filter(p => {
+      const conf = voluntarios.filter(v => String(v.puestoId) === String(p.id) && v.estado === "confirmado").length;
+      return p.necesarios > 0 && conf >= p.necesarios;
+    }).length;
+    return { total, confirmados, sinPuesto, puestosOk, totalPuestos: puestos.length };
+  }
+
+  it('total correcto', () => {
+    expect(calcStats(voluntarios, puestos).total).toBe(5);
+  });
+
+  it('confirmados solo cuenta estado=confirmado', () => {
+    expect(calcStats(voluntarios, puestos).confirmados).toBe(3);
+  });
+
+  it('sinPuesto incluye puestoId null y puestoId inexistente', () => {
+    expect(calcStats(voluntarios, puestos).sinPuesto).toBe(2);
+  });
+
+  it('puestosOk: solo puestos con confirmados >= necesarios', () => {
+    // Puesto 1: 2 confirmados, necesarios 2 → OK
+    // Puesto 2: 0 confirmados, necesarios 3 → no OK
+    expect(calcStats(voluntarios, puestos).puestosOk).toBe(1);
+  });
+
+  it('puestosOk=0 si ningún puesto está cubierto', () => {
+    const vols = [{ id: 1, puestoId: 1, estado: "pendiente" }];
+    expect(calcStats(vols, puestos).puestosOk).toBe(0);
+  });
+});
