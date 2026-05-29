@@ -944,21 +944,33 @@
       min-height: 0;
     }
   }
-  /* Modales de edición en mobile: centrados con scroll interno.
-     align-items: safe center sube el modal al top si supera la pantalla,
-     evitando que quede cortado en la parte inferior.
-     El scroll es interno del .modal (overflow-y: auto ya definido),
-     lo que mantiene funcionando los sticky header/footer. */
+  /* Modales de edición en mobile: top-sheet anclado al top.
+     El backdrop se scrollea (overflow-y: auto + align-items: flex-start)
+     y el modal ocupa todo el ancho sin max-height fijo.
+     Así el header siempre es visible al abrir y el footer siempre
+     es alcanzable con scroll natural del backdrop. */
   @media (max-width: 640px) {
     .modal-backdrop:not(:has(.modal-ficha)) {
-      align-items: safe center;
-      padding: max(env(safe-area-inset-top, 0px), 0.75rem) 0.5rem max(env(safe-area-inset-bottom, 0px), 0.75rem);
+      align-items: flex-start;
+      overflow-y: auto;
+      padding: max(env(safe-area-inset-top, 0px), 0.5rem) 0 max(env(safe-area-inset-bottom, 0px), 0.5rem);
     }
     .modal-backdrop:not(:has(.modal-ficha)) .modal {
       border-radius: 16px;
-      /* Ocupa hasta casi toda la pantalla, con scroll interno */
-      max-height: calc(100dvh - max(env(safe-area-inset-top, 0px), 0.75rem) - max(env(safe-area-inset-bottom, 0px), 0.75rem));
-      width: 100%;
+      /* Sin max-height: el modal crece a su tamaño natural y el backdrop scrollea */
+      max-height: none;
+      overflow-y: visible;
+      width: calc(100% - 1rem);
+      /* Los sticky header/footer no aplican cuando el scroll es del backdrop */
+      position: relative;
+    }
+    .modal-backdrop:not(:has(.modal-ficha)) .modal-header {
+      position: relative;
+      top: auto;
+    }
+    .modal-backdrop:not(:has(.modal-ficha)) .modal-footer {
+      position: relative;
+      bottom: auto;
     }
   }
   .modal {
