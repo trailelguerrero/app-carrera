@@ -345,49 +345,41 @@ export function TabDashboard({ stats, pedidos, coste, setCoste, setTab, goToTab,
       })()}
 
       {/* ── INTEGRACIÓN CON PRESUPUESTO ── */}
-      <div className="card" style={{ marginTop: ".85rem", borderLeft: "3px solid var(--green)",
-        background: "linear-gradient(135deg, var(--surface) 0%, rgba(52,211,153,.04) 100%)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start",
-          gap: ".75rem", flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 700,
-              color: "var(--green)", marginBottom: ".35rem" }}>
-              💶 Integración con Presupuesto
-            </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)",
-              lineHeight: 1.6 }}>
-              El gasto de fabricación de camisetas se sincroniza <strong>automáticamente</strong> con el módulo de
-              Presupuesto. No necesitas introducirlo manualmente.
-            </div>
-            <div style={{ display: "flex", gap: ".6rem", flexWrap: "wrap", marginTop: ".5rem" }}>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700,
-                color: "var(--green)", background: "var(--green-dim)",
-                border: "1px solid rgba(52,211,153,.25)", borderRadius: 4, padding: ".15rem .5rem" }}>
-                ✅ Gasto fabricación: {fmtEur2(stats.totalGastos)}
-              </span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700,
-                color: "var(--cyan)", background: "var(--cyan-dim)",
-                border: "1px solid rgba(34,211,238,.25)", borderRadius: 4, padding: ".15rem .5rem" }}>
-                📈 Ingresos esperados: {fmtEur2(stats.totalIngresosProyectado)}
-              </span>
-              {stats.gRegalos > 0 && (
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700,
-                  color: "var(--violet)", background: "var(--violet-dim)",
-                  border: "1px solid rgba(167,139,250,.25)", borderRadius: 4, padding: ".15rem .5rem" }}>
-                  🎁 Coste regalos: {fmtEur2(stats.gRegalos)}
-                </span>
-              )}
-            </div>
-          </div>
+      <div style={{ marginTop: ".85rem", borderRadius: 10, border: "1px solid rgba(52,211,153,.2)",
+        background: "rgba(52,211,153,.04)", overflow: "hidden" }}>
+        {/* Cabecera */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: ".5rem .85rem", borderBottom: "1px solid rgba(52,211,153,.12)" }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700,
+            color: "var(--green)", display: "flex", alignItems: "center", gap: ".35rem" }}>
+            💶 Sincronizado con Presupuesto
+            <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>· automático</span>
+          </span>
           <button
             onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "presupuesto" } }))}
             style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700,
-              color: "var(--green)", background: "var(--green-dim)",
-              border: "1px solid rgba(52,211,153,.3)", borderRadius: 6,
-              padding: ".45rem .85rem", cursor: "pointer", flexShrink: 0,
-              display: "flex", alignItems: "center", gap: ".35rem", whiteSpace: "nowrap" }}>
-            💰 Ver en Presupuesto →
+              color: "var(--green)", background: "transparent", border: "none",
+              cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: ".2rem" }}>
+            Ver Presupuesto →
           </button>
+        </div>
+        {/* Métricas en grid */}
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${stats.gRegalos > 0 ? 3 : 2}, 1fr)`,
+          gap: 0 }}>
+          {[
+            { label: "Gasto fab.", value: fmtEur2(stats.totalGastos),           color: "var(--amber)" },
+            { label: "Ingresos",   value: fmtEur2(stats.totalIngresosProyectado), color: "var(--cyan)"  },
+            ...(stats.gRegalos > 0 ? [{ label: "Regalos", value: fmtEur2(stats.gRegalos), color: "var(--violet)" }] : []),
+          ].map((m, i, arr) => (
+            <div key={m.label} style={{ padding: ".55rem .75rem", textAlign: "center",
+              borderRight: i < arr.length - 1 ? "1px solid rgba(52,211,153,.1)" : "none" }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-2xs)",
+                color: "var(--text-muted)", marginBottom: ".15rem", textTransform: "uppercase",
+                letterSpacing: ".05em" }}>{m.label}</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)",
+                fontWeight: 800, color: m.color }}>{m.value}</div>
+            </div>
+          ))}
         </div>
       </div>
     </>
