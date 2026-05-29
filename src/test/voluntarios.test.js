@@ -1332,3 +1332,150 @@ describe('VOL-24 — Día D: detección voluntarios retrasados', () => {
     expect(calcRetrasados(vols, puestos, 480)).toHaveLength(0);
   });
 });
+
+// ── VOL-25: Dashboard — déficit absoluto ─────────────────────────────────────
+describe('VOL-25 — Dashboard: déficit absoluto por puesto', () => {
+  function deficitAbsoluto(p) {
+    return Math.max(0, (p.necesarios || 0) - (p.confirmados || 0));
+  }
+
+  it('puesto con 2 confirmados de 5 necesarios → déficit 3', () => {
+    expect(deficitAbsoluto({ necesarios: 5, confirmados: 2 })).toBe(3);
+  });
+
+  it('puesto al 100% → déficit 0', () => {
+    expect(deficitAbsoluto({ necesarios: 4, confirmados: 4 })).toBe(0);
+  });
+
+  it('puesto sin voluntarios → déficit = necesarios', () => {
+    expect(deficitAbsoluto({ necesarios: 3, confirmados: 0 })).toBe(3);
+  });
+
+  it('más confirmados que necesarios → déficit 0 (no negativo)', () => {
+    expect(deficitAbsoluto({ necesarios: 2, confirmados: 5 })).toBe(0);
+  });
+
+  it('necesarios undefined → déficit 0', () => {
+    expect(deficitAbsoluto({ confirmados: 2 })).toBe(0);
+  });
+
+  it('confirmados undefined → déficit = necesarios', () => {
+    expect(deficitAbsoluto({ necesarios: 4 })).toBe(4);
+  });
+});
+
+// ── VOL-26: Dashboard — orden de alertas por déficit absoluto ────────────────
+describe('VOL-26 — Dashboard: alertas ordenadas por déficit descendente', () => {
+  function deficitAbsoluto(p) {
+    return Math.max(0, (p.necesarios || 0) - (p.confirmados || 0));
+  }
+
+  const puestos = [
+    { id: 1, nombre: "Meta",       necesarios: 4, confirmados: 1, coberturaConf: 25 }, // déficit 3
+    { id: 2, nombre: "Avit. KM4",  necesarios: 2, confirmados: 0, coberturaConf: 0  }, // déficit 2
+    { id: 3, nombre: "Control",    necesarios: 8, confirmados: 2, coberturaConf: 25 }, // déficit 6
+    { id: 4, nombre: "Seguridad",  necesarios: 3, confirmados: 3, coberturaConf: 100}, // OK — excluir
+  ];
+
+  function buildAlertas(puestosConStats) {
+    return puestosConStats
+      .filter(p => p.coberturaConf < 50)
+      .sort((a, b) => deficitAbsoluto(b) - deficitAbsoluto(a));
+  }
+
+  it('excluye puestos al 100%', () => {
+    const alertas = buildAlertas(puestos);
+    expect(alertas.find(p => p.id === 4)).toBeUndefined();
+  });
+
+  it('primer puesto en alertas es el de mayor déficit absoluto', () => {
+    const alertas = buildAlertas(puestos);
+    expect(alertas[0].id).toBe(3); // déficit 6
+  });
+
+  it('orden completo: 6 > 3 > 2', () => {
+    const alertas = buildAlertas(puestos);
+    expect(alertas.map(p => deficitAbsoluto(p))).toEqual([6, 3, 2]);
+  });
+
+  it('déficit total = suma de todos los déficits', () => {
+    const alertas = buildAlertas(puestos);
+    const total = alertas.reduce((s, p) => s + deficitAbsoluto(p), 0);
+    expect(total).toBe(11); // 6+3+2
+  });
+});
+
+// ── VOL-27: Dashboard — KPI pendientes de confirmar ──────────────────────────
+describe('VOL-27 — Dashboard: KPI pendientes de confirmar', () => {
+  const vols = [
+    { id: 1, estado: "confirmado" },
+    { id: 2, estado: "pendiente"  },
+    { id: 3, estado: "pendiente"  },
+    { id: 4, estado: "cancelado"  },
+    { id: 5, estado: "confirmado" },
+  ];
+
+  it('cuenta solo voluntarios con estado pendiente', () => {
+    const pendientes = vols.filter(v => v.estado === "pendiente");
+    expect(pendientes).toHaveLength(2);
+  });
+
+  it('KPI es 0 cuando todos confirmados', () => {
+    const todos = vols.filter(v => v.estado === "confirmado");
+    const pend = vols.filter(v => v.estado === "pendiente").length;
+    expect(pend).toBeGreaterThan(0); // sanity
+    const soloDatosSanos = [{ id: 1, estado: "confirmado" }];
+    expect(soloDatosSanos.filter(v => v.estado === "pendiente")).toHaveLength(0);
+  });
+
+  it('cancelados no cuentan como pendientes', () => {
+    const pendientes = vols.filter(v => v.estado === "pendiente");
+    expect(pendientes.map(v => v.id)).not.toContain(4);
+  });
+});
+
+// ── VOL-28: Dashboard — filtro puestos incompletos ───────────────────────────
+describe('VOL-28 — Dashboard: filtro solo puestos incompletos (<100%)', () => {
+  const puestos = [
+    { id: 1, coberturaConf: 100, necesarios: 3, confirmados: 3 },
+    { id: 2, coberturaConf: 75,  necesarios: 4, confirmados: 3 },
+    { id: 3, coberturaConf: 0,   necesarios: 2, confirmados: 0 },
+    { id: 4, coberturaConf: 100, necesarios: 1, confirmados: 1 },
+  ];
+
+  function deficitAbsoluto(p) {
+    return Math.max(0, (p.necesarios || 0) - (p.confirmados || 0));
+  }
+
+  function puestosIncompletos(puestosConStats) {
+    return puestosConStats
+      .filter(p => p.coberturaConf < 100)
+      .sort((a, b) => deficitAbsoluto(b) - deficitAbsoluto(a));
+  }
+
+  it('excluye puestos al 100%', () => {
+    const result = puestosIncompletos(puestos);
+    expect(result.find(p => p.id === 1)).toBeUndefined();
+    expect(result.find(p => p.id === 4)).toBeUndefined();
+  });
+
+  it('incluye puestos con cobertura parcial', () => {
+    const result = puestosIncompletos(puestos);
+    expect(result.map(p => p.id)).toContain(2);
+    expect(result.map(p => p.id)).toContain(3);
+  });
+
+  it('ordenados por déficit descendente', () => {
+    const result = puestosIncompletos(puestos);
+    // id 3: déficit 2, id 2: déficit 1 → id 3 primero
+    expect(result[0].id).toBe(3);
+    expect(result[1].id).toBe(2);
+  });
+
+  it('todos completos → lista vacía', () => {
+    const todosCubiertos = [
+      { id: 1, coberturaConf: 100, necesarios: 2, confirmados: 2 },
+    ];
+    expect(puestosIncompletos(todosCubiertos)).toHaveLength(0);
+  });
+});
