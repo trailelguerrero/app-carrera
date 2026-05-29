@@ -488,10 +488,11 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
             )}
           </div>
         )}
-        <div className="modal-footer" style={{ justifyContent:"space-between" }}>
-          {onUpdate && (
+        {/* ── Toggles Coche / Camiseta — en body para scroll fluido en móvil ── */}
+        {onUpdate && (
+          <div style={{ borderTop:"1px solid var(--border)" }}>
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
-              padding:".65rem .85rem", borderTop:"1px solid var(--border)",
+              padding:".65rem 1.25rem",
               background: v.coche ? "rgba(34,211,238,.06)" : "var(--surface2)",
               transition:"background .2s" }}>
               <div>
@@ -512,11 +513,8 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
                 {v.coche ? "✓ Con coche" : "Sin coche"}
               </button>
             </div>
-          )}
-          {/* ── Entrega de camiseta (toggle organizador) ── */}
-          {onUpdate && (
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
-              padding:".65rem .85rem", borderTop:"1px solid var(--border)",
+              padding:".65rem 1.25rem", borderTop:"1px solid var(--border)",
               background: v.camisetaEntregada ? "rgba(52,211,153,.06)" : "var(--surface2)",
               transition:"background .2s" }}>
               <div>
@@ -537,11 +535,13 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
                 {v.camisetaEntregada ? "✓ Entregada" : "Marcar entregada"}
               </button>
             </div>
-          )}
+          </div>
+        )}
+        <div className="modal-footer" style={{ flexWrap:"wrap", gap:".4rem" }}>
           {!confirmando ? (
             <>
               <button className="btn btn-red" onClick={() => setConfirmando(true)}>🗑 Eliminar</button>
-              <div style={{ display:"flex", gap:"0.4rem", flexWrap:"wrap" }}>
+              <div style={{ display:"flex", gap:"0.4rem", flexWrap:"wrap", flex:1, justifyContent:"flex-end" }}>
                 {/* Botones del portal del voluntario */}
                 {v.telefono && (
                   <button className="btn btn-ghost btn-sm"

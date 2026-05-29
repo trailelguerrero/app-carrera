@@ -393,7 +393,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
                                 flexWrap:"wrap", marginBottom:"0.2rem" }}>
                                 <span style={{ fontWeight:700, fontSize:"0.84rem",
                                   overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                                  {v.nombre||"Sin nombre"}
+                                  {[v.nombre, v.apellidos].filter(Boolean).join(" ") || "Sin nombre"}
                                 </span>
                                 <span className={`badge ${v.rol==="responsable"?"badge-violet":"badge-cyan"}`}
                                   style={{ fontSize:"0.5rem" }}>

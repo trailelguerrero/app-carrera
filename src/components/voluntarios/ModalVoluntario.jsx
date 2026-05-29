@@ -122,7 +122,7 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose, onEliminar }) {
                   <select className="inp" value={form.puestoId ?? ""} onChange={e => upd("puestoId", e.target.value || null)}>
                     <option value="">Sin asignar</option>
                     {puestos.map(p => {
-                      const asig = p._totalAsignados ?? 0;
+                      const asig = p.totalAsignados ?? 0;
                       const nec  = p.necesarios ?? 0;
                       const pct  = nec > 0 ? Math.round(asig / nec * 100) : 0;
                       const ico  = pct >= 100 ? "🟢" : pct >= 50 ? "🟡" : "🔴";

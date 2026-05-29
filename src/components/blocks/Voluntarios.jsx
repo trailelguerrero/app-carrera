@@ -646,7 +646,7 @@ export default function App() {
         <ModalVoluntario
           key={modalVol==="nuevo" || modalVol?._nuevo ? "nuevo" : modalVol.id}
           voluntario={modalVol==="nuevo" || modalVol?._nuevo ? (modalVol?._nuevo ? { puestoId: modalVol.puestoId } : null) : modalVol}
-          puestos={puestos}
+          puestos={puestosConStats}
           onSave={(data) => { if (modalVol==="nuevo" || modalVol?._nuevo) addVoluntario(data); else updateVoluntario(modalVol.id, data); setModalVol(null); }}
           onClose={() => setModalVol(null)}
           onEliminar={modalVol!=="nuevo" && !modalVol?._nuevo ? () => { const id = modalVol?.id; if (!id) return; pendingDeleteRef.current = id; setModalVol(null); setConfirmDelete(id); } : undefined}
