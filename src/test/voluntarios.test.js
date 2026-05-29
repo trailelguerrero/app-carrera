@@ -942,3 +942,224 @@ describe('VOL-15 — Kanban stats resumen modo puesto', () => {
     expect(calcStats(vols, puestos).puestosOk).toBe(0);
   });
 });
+
+// ── VOL-16: Filtros avanzados — lógica matchTalla ────────────────────────────
+describe('VOL-16 — Filtros avanzados: matchTalla', () => {
+  const vols = [
+    { id: 1, talla: "S",   estado: "confirmado" },
+    { id: 2, talla: "M",   estado: "confirmado" },
+    { id: 3, talla: "XL",  estado: "pendiente"  },
+    { id: 4, talla: "",    estado: "pendiente"  },
+    { id: 5, talla: null,  estado: "confirmado" },
+  ];
+
+  function matchTalla(v, filtroTallas) {
+    return filtroTallas.length === 0 || filtroTallas.includes(v.talla || "");
+  }
+
+  it('filtroTallas vacío → todos pasan', () => {
+    expect(vols.filter(v => matchTalla(v, []))).toHaveLength(5);
+  });
+
+  it('filtroTallas=["S"] → solo talla S', () => {
+    expect(vols.filter(v => matchTalla(v, ["S"])).map(v => v.id)).toEqual([1]);
+  });
+
+  it('filtroTallas=["S","XL"] → tallas S y XL', () => {
+    const result = vols.filter(v => matchTalla(v, ["S", "XL"]));
+    expect(result).toHaveLength(2);
+    expect(result.map(v => v.id)).toContain(1);
+    expect(result.map(v => v.id)).toContain(3);
+  });
+
+  it('filtroTallas=[""] → voluntarios sin talla (null o vacío)', () => {
+    const result = vols.filter(v => matchTalla(v, [""]));
+    expect(result.map(v => v.id)).toContain(4);
+    expect(result.map(v => v.id)).toContain(5);
+  });
+
+  it('filtroTallas que no existe → 0 resultados', () => {
+    expect(vols.filter(v => matchTalla(v, ["3XL"]))).toHaveLength(0);
+  });
+});
+
+// ── VOL-17: Filtros avanzados — matchCoche ───────────────────────────────────
+describe('VOL-17 — Filtros avanzados: matchCoche', () => {
+  const vols = [
+    { id: 1, coche: true  },
+    { id: 2, coche: false },
+    { id: 3, coche: true  },
+    { id: 4             }, // sin campo coche → falsy
+  ];
+
+  function matchCoche(v, filtroCoche) {
+    return filtroCoche === "todos" || (filtroCoche === "si" ? Boolean(v.coche) : !v.coche);
+  }
+
+  it('"todos" → todos pasan', () => {
+    expect(vols.filter(v => matchCoche(v, "todos"))).toHaveLength(4);
+  });
+
+  it('"si" → solo con coche', () => {
+    const result = vols.filter(v => matchCoche(v, "si"));
+    expect(result).toHaveLength(2);
+    expect(result.map(v => v.id)).toEqual([1, 3]);
+  });
+
+  it('"no" → sin coche (incluye undefined)', () => {
+    const result = vols.filter(v => matchCoche(v, "no"));
+    expect(result).toHaveLength(2);
+    expect(result.map(v => v.id)).toContain(2);
+    expect(result.map(v => v.id)).toContain(4);
+  });
+});
+
+// ── VOL-18: Filtros avanzados — matchDistancia ───────────────────────────────
+describe('VOL-18 — Filtros avanzados: matchDistancia', () => {
+  const puestos = [
+    { id: 10, distancias: ["TG7", "TG13"] },
+    { id: 20, distancias: ["TG25"] },
+    { id: 30, distancias: ["Todas"] },
+    { id: 40, distancias: [] },
+  ];
+  const vols = [
+    { id: 1, puestoId: 10 },
+    { id: 2, puestoId: 20 },
+    { id: 3, puestoId: 30 },
+    { id: 4, puestoId: 40 },
+    { id: 5, puestoId: null },
+  ];
+
+  function matchDistancia(v, filtroDistancias, puestos) {
+    if (filtroDistancias.length === 0) return true;
+    const puesto = puestos.find(p => String(p.id) === String(v.puestoId));
+    if (!puesto) return false;
+    return (puesto.distancias || []).some(d => filtroDistancias.includes(d));
+  }
+
+  it('filtroDistancias vacío → todos pasan', () => {
+    expect(vols.filter(v => matchDistancia(v, [], puestos))).toHaveLength(5);
+  });
+
+  it('filtrar por TG7 → solo voluntario en puesto 10', () => {
+    const result = vols.filter(v => matchDistancia(v, ["TG7"], puestos));
+    expect(result.map(v => v.id)).toEqual([1]);
+  });
+
+  it('filtrar por TG25 → voluntario en puesto 20', () => {
+    const result = vols.filter(v => matchDistancia(v, ["TG25"], puestos));
+    expect(result.map(v => v.id)).toEqual([2]);
+  });
+
+  it('filtrar por TG7 + TG13 → solo puesto con alguna de esas distancias', () => {
+    const result = vols.filter(v => matchDistancia(v, ["TG7", "TG13"], puestos));
+    expect(result.map(v => v.id)).toEqual([1]);
+  });
+
+  it('voluntario sin puestoId → no pasa cuando hay filtro activo', () => {
+    const result = vols.filter(v => matchDistancia(v, ["TG7"], puestos));
+    expect(result.map(v => v.id)).not.toContain(5);
+  });
+
+  it('puesto con distancias vacías → no pasa cuando hay filtro activo', () => {
+    const result = vols.filter(v => matchDistancia(v, ["TG7"], puestos));
+    expect(result.map(v => v.id)).not.toContain(4);
+  });
+});
+
+// ── VOL-19: Filtros avanzados — matchTipoPuesto ──────────────────────────────
+describe('VOL-19 — Filtros avanzados: matchTipoPuesto', () => {
+  const puestos = [
+    { id: 1, tipo: "Avituallamiento" },
+    { id: 2, tipo: "Control" },
+    { id: 3, tipo: "Seguridad" },
+    { id: 4, tipo: "" },
+  ];
+  const vols = [
+    { id: 1, puestoId: 1 },
+    { id: 2, puestoId: 2 },
+    { id: 3, puestoId: 3 },
+    { id: 4, puestoId: 4 },
+    { id: 5, puestoId: null },
+  ];
+
+  function matchTipoPuesto(v, filtroTipoPuesto, puestos) {
+    if (filtroTipoPuesto.length === 0) return true;
+    const puesto = puestos.find(p => String(p.id) === String(v.puestoId));
+    return puesto ? filtroTipoPuesto.includes(puesto.tipo || "") : false;
+  }
+
+  it('filtroTipoPuesto vacío → todos pasan', () => {
+    expect(vols.filter(v => matchTipoPuesto(v, [], puestos))).toHaveLength(5);
+  });
+
+  it('filtrar por Avituallamiento → voluntario 1', () => {
+    const result = vols.filter(v => matchTipoPuesto(v, ["Avituallamiento"], puestos));
+    expect(result.map(v => v.id)).toEqual([1]);
+  });
+
+  it('filtrar por Control + Seguridad → voluntarios 2 y 3', () => {
+    const result = vols.filter(v => matchTipoPuesto(v, ["Control", "Seguridad"], puestos));
+    expect(result.map(v => v.id)).toEqual([2, 3]);
+  });
+
+  it('voluntario sin puesto → no pasa cuando hay filtro activo', () => {
+    const result = vols.filter(v => matchTipoPuesto(v, ["Control"], puestos));
+    expect(result.map(v => v.id)).not.toContain(5);
+  });
+});
+
+// ── VOL-20: Filtros avanzados — combinación de múltiples filtros ─────────────
+describe('VOL-20 — Filtros avanzados: combinación de filtros', () => {
+  const puestos = [
+    { id: 1, tipo: "Avituallamiento", distancias: ["TG7", "TG13"] },
+    { id: 2, tipo: "Control",         distancias: ["TG25"] },
+  ];
+  const vols = [
+    { id: 1, puestoId: 1, talla: "M",  coche: true,  estado: "confirmado" },
+    { id: 2, puestoId: 1, talla: "XL", coche: false, estado: "pendiente"  },
+    { id: 3, puestoId: 2, talla: "M",  coche: true,  estado: "confirmado" },
+    { id: 4, puestoId: null, talla: "S", coche: false, estado: "pendiente" },
+  ];
+
+  function applyFiltros(vols, puestos, { filtroTallas = [], filtroCoche = "todos", filtroDistancias = [], filtroTipoPuesto = [] }) {
+    return vols.filter(v => {
+      const matchTalla = filtroTallas.length === 0 || filtroTallas.includes(v.talla || "");
+      const matchCoche = filtroCoche === "todos" || (filtroCoche === "si" ? Boolean(v.coche) : !v.coche);
+      const matchDist = filtroDistancias.length === 0 || (() => {
+        const p = puestos.find(p => String(p.id) === String(v.puestoId));
+        return p ? (p.distancias || []).some(d => filtroDistancias.includes(d)) : false;
+      })();
+      const matchTipo = filtroTipoPuesto.length === 0 || (() => {
+        const p = puestos.find(p => String(p.id) === String(v.puestoId));
+        return p ? filtroTipoPuesto.includes(p.tipo || "") : false;
+      })();
+      return matchTalla && matchCoche && matchDist && matchTipo;
+    });
+  }
+
+  it('talla M + coche si → solo id 1 y 3', () => {
+    const result = applyFiltros(vols, puestos, { filtroTallas: ["M"], filtroCoche: "si" });
+    expect(result.map(v => v.id)).toEqual([1, 3]);
+  });
+
+  it('distancia TG7 + tipo Avituallamiento → ids 1 y 2', () => {
+    const result = applyFiltros(vols, puestos, { filtroDistancias: ["TG7"], filtroTipoPuesto: ["Avituallamiento"] });
+    expect(result.map(v => v.id)).toEqual([1, 2]);
+  });
+
+  it('talla M + distancia TG7 → solo id 1', () => {
+    const result = applyFiltros(vols, puestos, { filtroTallas: ["M"], filtroDistancias: ["TG7"] });
+    expect(result.map(v => v.id)).toEqual([1]);
+  });
+
+  it('ningún filtro activo → todos', () => {
+    const result = applyFiltros(vols, puestos, {});
+    expect(result).toHaveLength(4);
+  });
+
+  it('filtros imposibles → resultado vacío', () => {
+    const result = applyFiltros(vols, puestos, { filtroTallas: ["XXS"], filtroCoche: "si" });
+    expect(result).toHaveLength(0);
+  });
+});

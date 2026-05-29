@@ -205,6 +205,11 @@ export default function App() {
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [filtroPuesto, setFiltroPuesto] = useState("todos");
+  // Filtros avanzados
+  const [filtroTallas, setFiltroTallas]       = useState([]);       // [] = todos
+  const [filtroCoche, setFiltroCoche]         = useState("todos");  // "todos" | "si" | "no"
+  const [filtroDistancias, setFiltroDistancias] = useState([]);     // [] = todas
+  const [filtroTipoPuesto, setFiltroTipoPuesto] = useState([]);     // [] = todos
   const [modalVol, setModalVol] = useState(null); // null | "nuevo" | voluntario
   const [modalPuesto, setModalPuesto] = useState(null);
   const [modalMensaje, setModalMensaje] = useState(false);
@@ -438,9 +443,21 @@ export default function App() {
           ? Boolean(v.enPuesto)
           : v.estado === filtroEstado;
       const matchPuesto = filtroPuesto === "todos" || String(v.puestoId) === filtroPuesto || (filtroPuesto === "sin-asignar" && !v.puestoId);
-      return matchEstado && matchPuesto;
+      // Filtros avanzados
+      const matchTalla = filtroTallas.length === 0 || filtroTallas.includes(v.talla || "");
+      const matchCoche = filtroCoche === "todos" || (filtroCoche === "si" ? Boolean(v.coche) : !v.coche);
+      const matchDistancia = filtroDistancias.length === 0 || (() => {
+        const puesto = puestos.find(p => String(p.id) === String(v.puestoId));
+        if (!puesto) return false;
+        return (puesto.distancias || []).some(d => filtroDistancias.includes(d));
+      })();
+      const matchTipoPuesto = filtroTipoPuesto.length === 0 || (() => {
+        const puesto = puestos.find(p => String(p.id) === String(v.puestoId));
+        return puesto ? filtroTipoPuesto.includes(puesto.tipo || "") : false;
+      })();
+      return matchEstado && matchPuesto && matchTalla && matchCoche && matchDistancia && matchTipoPuesto;
     });
-  }, [voluntarios, puestos, busqueda, filtroEstado, filtroPuesto]);
+  }, [voluntarios, puestos, busqueda, filtroEstado, filtroPuesto, filtroTallas, filtroCoche, filtroDistancias, filtroTipoPuesto]);
 
   // ── Formulario público ────────────────────────────────────────────────────
   if (isLoading) return <SkeletonBlock variant="voluntarios" />;
@@ -583,6 +600,10 @@ export default function App() {
               busqueda={busqueda} setBusqueda={setBusqueda}
               filtroEstado={filtroEstado} setFiltroEstado={setFiltroEstado}
               filtroPuesto={filtroPuesto} setFiltroPuesto={setFiltroPuesto}
+              filtroTallas={filtroTallas} setFiltroTallas={setFiltroTallas}
+              filtroCoche={filtroCoche} setFiltroCoche={setFiltroCoche}
+              filtroDistancias={filtroDistancias} setFiltroDistancias={setFiltroDistancias}
+              filtroTipoPuesto={filtroTipoPuesto} setFiltroTipoPuesto={setFiltroTipoPuesto}
               onUpdate={updateVoluntario} onBulkUpdate={bulkUpdateVoluntarios} onDelete={(id) => setConfirmDelete(id)}
               onNuevo={() => setModalVol("nuevo")} onEditar={(v) => setModalVol(v)}
               onFicha={(v) => abrirFicha("vol", v)}

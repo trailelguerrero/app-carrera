@@ -10,12 +10,23 @@ import { usePaginacion } from "@/hooks/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { blockCls as cls } from "@/lib/blockStyles";
-import { ESTADOS, estadoColor, estadoBg } from "@/constants/voluntariosConstants";
+import { ESTADOS, TIPOS_PUESTO, DISTANCIAS_PUESTO, estadoColor, estadoBg } from "@/constants/voluntariosConstants";
 import { TabKanbanVol } from "@/components/voluntarios/TabKanbanVol";
 
 // ─── TAB VOLUNTARIOS ──────────────────────────────────────────────────────────
-function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda, filtroEstado, setFiltroEstado, filtroPuesto, setFiltroPuesto, onUpdate, onBulkUpdate, onDelete, onNuevo, onEditar, onFicha }) {
+function TabVoluntarios({
+  voluntarios, todosVols, puestos,
+  busqueda, setBusqueda,
+  filtroEstado, setFiltroEstado,
+  filtroPuesto, setFiltroPuesto,
+  filtroTallas = [], setFiltroTallas,
+  filtroCoche = "todos", setFiltroCoche,
+  filtroDistancias = [], setFiltroDistancias,
+  filtroTipoPuesto = [], setFiltroTipoPuesto,
+  onUpdate, onBulkUpdate, onDelete, onNuevo, onEditar, onFicha,
+}) {
   const [vistaKanban, setVistaKanban] = useState(false);
+  const [filtrosAvanzadosAbiertos, setFiltrosAvanzadosAbiertos] = useState(false);
   const [seleccionados, setSeleccionados] = useState([]);
   const [modoSeleccion, setModoSeleccion] = useState(false);
 
@@ -52,7 +63,7 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
   const { items: volsPaginados, total: totalVols, PaginadorUI, resetPage } = usePaginacion(volsOrdenados, 20);
 
   // T1.5: resetear página a 1 al cambiar cualquier filtro (evita página vacía)
-  useEffect(() => { resetPage(); }, [busqueda, filtroEstado, filtroPuesto]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { resetPage(); }, [busqueda, filtroEstado, filtroPuesto, filtroTallas, filtroCoche, filtroDistancias, filtroTipoPuesto]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Grupos para la vista agrupada por estado
   const GRUPOS_ESTADO = [
@@ -217,17 +228,154 @@ function TabVoluntarios({ voluntarios, todosVols, puestos, busqueda, setBusqueda
             onClick={() => setOrden("puesto")}>Por puesto</button>
           <button className={`filter-pill${orden === "fecha" ? " active" : ""}`}
             onClick={() => setOrden("fecha")}>Más recientes</button>
-          {(busqueda || filtroEstado !== "todos" || filtroPuesto !== "todos") && (
+          {/* Botón filtros avanzados */}
+          {(() => {
+            const avanzadosActivos = filtroTallas.length > 0 || filtroCoche !== "todos" || filtroDistancias.length > 0 || filtroTipoPuesto.length > 0;
+            return (
+              <button
+                className={`filter-pill${avanzadosActivos ? " active" : ""}`}
+                onClick={() => setFiltrosAvanzadosAbiertos(v => !v)}
+                style={avanzadosActivos ? { color:"var(--cyan)", borderColor:"rgba(34,211,238,.4)", background:"rgba(34,211,238,.1)" } : {}}
+              >
+                {filtrosAvanzadosAbiertos ? "▲" : "▼"} Filtros{avanzadosActivos ? ` (${filtroTallas.length + (filtroCoche !== "todos" ? 1 : 0) + filtroDistancias.length + filtroTipoPuesto.length})` : ""}
+              </button>
+            );
+          })()}
+          {(busqueda || filtroEstado !== "todos" || filtroPuesto !== "todos" || filtroTallas.length > 0 || filtroCoche !== "todos" || filtroDistancias.length > 0 || filtroTipoPuesto.length > 0) && (
             <button className="filter-pill"
-              onClick={() => { setBusqueda(""); setFiltroEstado("todos"); setFiltroPuesto("todos"); }}
+              onClick={() => {
+                setBusqueda(""); setFiltroEstado("todos"); setFiltroPuesto("todos");
+                setFiltroTallas([]); setFiltroCoche("todos"); setFiltroDistancias([]); setFiltroTipoPuesto([]);
+              }}
               style={{ color:"var(--red)", borderColor:"rgba(248,113,113,0.3)" }}>
-              ✕ Limpiar
+              ✕ Limpiar todo
             </button>
           )}
           <div className="filter-pill-sep" />
           <button className="filter-pill" onClick={colapsarTodos} title="Colapsar todos los grupos">⊟ Colapsar</button>
           <button className="filter-pill" onClick={descolapsarTodos} title="Expandir todos los grupos">⊞ Expandir</button>
         </div>
+
+        {/* ── Panel filtros avanzados ────────────────────────────────── */}
+        {filtrosAvanzadosAbiertos && (
+          <div style={{
+            padding: ".75rem .85rem", borderRadius: 8,
+            background: "var(--surface2)", border: "1px solid var(--border)",
+            marginTop: ".35rem", display: "flex", flexDirection: "column", gap: ".6rem",
+          }}>
+            {/* Talla */}
+            <div style={{ display: "flex", alignItems: "flex-start", gap: ".65rem", flexWrap: "wrap" }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", fontWeight: 700, minWidth: 80, paddingTop: ".2rem" }}>
+                👕 Talla
+              </span>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: ".3rem" }}>
+                {["XXS","XS","S","M","L","XL","XXL","3XL","4XL"].map(t => {
+                  const active = filtroTallas.includes(t);
+                  return (
+                    <button key={t}
+                      onClick={() => setFiltroTallas(prev => active ? prev.filter(x => x !== t) : [...prev, t])}
+                      style={{
+                        padding: ".2rem .55rem", borderRadius: 5, cursor: "pointer",
+                        fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700,
+                        border: `1px solid ${active ? "var(--cyan)" : "var(--border)"}`,
+                        background: active ? "var(--cyan-dim)" : "var(--surface)",
+                        color: active ? "var(--cyan)" : "var(--text-muted)",
+                        transition: "all .12s",
+                      }}>
+                      {t}
+                    </button>
+                  );
+                })}
+                {filtroTallas.length > 0 && (
+                  <button onClick={() => setFiltroTallas([])} style={{ padding: ".2rem .45rem", borderRadius: 5, cursor: "pointer", fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", border: "1px solid rgba(248,113,113,.3)", background: "transparent", color: "var(--red)" }}>✕</button>
+                )}
+              </div>
+            </div>
+
+            {/* Vehículo */}
+            <div style={{ display: "flex", alignItems: "center", gap: ".65rem", flexWrap: "wrap" }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", fontWeight: 700, minWidth: 80 }}>
+                🚗 Vehículo
+              </span>
+              <div style={{ display: "flex", gap: ".3rem" }}>
+                {[["todos","Todos"],["si","Con vehículo"],["no","Sin vehículo"]].map(([v, lbl]) => {
+                  const active = filtroCoche === v;
+                  return (
+                    <button key={v} onClick={() => setFiltroCoche(v)}
+                      style={{
+                        padding: ".2rem .55rem", borderRadius: 5, cursor: "pointer",
+                        fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700,
+                        border: `1px solid ${active ? "var(--cyan)" : "var(--border)"}`,
+                        background: active ? "var(--cyan-dim)" : "var(--surface)",
+                        color: active ? "var(--cyan)" : "var(--text-muted)",
+                        transition: "all .12s",
+                      }}>
+                      {lbl}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Distancia */}
+            <div style={{ display: "flex", alignItems: "flex-start", gap: ".65rem", flexWrap: "wrap" }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", fontWeight: 700, minWidth: 80, paddingTop: ".2rem" }}>
+                🏃 Distancia
+              </span>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: ".3rem" }}>
+                {DISTANCIAS_PUESTO.map(d => {
+                  const active = filtroDistancias.includes(d);
+                  return (
+                    <button key={d}
+                      onClick={() => setFiltroDistancias(prev => active ? prev.filter(x => x !== d) : [...prev, d])}
+                      style={{
+                        padding: ".2rem .55rem", borderRadius: 5, cursor: "pointer",
+                        fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700,
+                        border: `1px solid ${active ? "var(--cyan)" : "var(--border)"}`,
+                        background: active ? "var(--cyan-dim)" : "var(--surface)",
+                        color: active ? "var(--cyan)" : "var(--text-muted)",
+                        transition: "all .12s",
+                      }}>
+                      {d}
+                    </button>
+                  );
+                })}
+                {filtroDistancias.length > 0 && (
+                  <button onClick={() => setFiltroDistancias([])} style={{ padding: ".2rem .45rem", borderRadius: 5, cursor: "pointer", fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", border: "1px solid rgba(248,113,113,.3)", background: "transparent", color: "var(--red)" }}>✕</button>
+                )}
+              </div>
+            </div>
+
+            {/* Tipo de puesto */}
+            <div style={{ display: "flex", alignItems: "flex-start", gap: ".65rem", flexWrap: "wrap" }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", fontWeight: 700, minWidth: 80, paddingTop: ".2rem" }}>
+                📍 Tipo puesto
+              </span>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: ".3rem" }}>
+                {TIPOS_PUESTO.map(t => {
+                  const active = filtroTipoPuesto.includes(t);
+                  return (
+                    <button key={t}
+                      onClick={() => setFiltroTipoPuesto(prev => active ? prev.filter(x => x !== t) : [...prev, t])}
+                      style={{
+                        padding: ".2rem .55rem", borderRadius: 5, cursor: "pointer",
+                        fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700,
+                        border: `1px solid ${active ? "var(--cyan)" : "var(--border)"}`,
+                        background: active ? "var(--cyan-dim)" : "var(--surface)",
+                        color: active ? "var(--cyan)" : "var(--text-muted)",
+                        transition: "all .12s",
+                      }}>
+                      {t}
+                    </button>
+                  );
+                })}
+                {filtroTipoPuesto.length > 0 && (
+                  <button onClick={() => setFiltroTipoPuesto([])} style={{ padding: ".2rem .45rem", borderRadius: 5, cursor: "pointer", fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", border: "1px solid rgba(248,113,113,.3)", background: "transparent", color: "var(--red)" }}>✕</button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Acciones masivas — visible cuando hay filtro activo ── */}
