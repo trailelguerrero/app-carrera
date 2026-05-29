@@ -86,6 +86,12 @@ const formatDate = (iso) => {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("es-ES", { day:"2-digit", month:"short", year:"numeric" });
 };
+const formatImporte = (val) => {
+  if (val == null || val === "") return null;
+  const n = typeof val === "number" ? val : parseFloat(String(val).replace(",","."));
+  if (isNaN(n)) return null;
+  return new Intl.NumberFormat("es-ES", { style:"currency", currency:"EUR", minimumFractionDigits:2 }).format(n);
+};
 const diasHasta = (iso) => {
   if (!iso) return null;
   return Math.ceil((new Date(iso) - new Date()) / 86400000);
@@ -106,6 +112,7 @@ export default function Documentos() {
   const [estadoNuevo, setEstadoNuevo] = useState("pendiente");
   const [vencNuevo, setVencNuevo]     = useState("");
   const [emisorNuevo, setEmisorNuevo]   = useState("");
+  const [importeNuevo, setImporteNuevo] = useState("");
   const [busqueda, setBusqueda] = useState("");
   const [busqGlobal, setBusqGlobal] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false); // colapsado por defecto (mandato UX)
@@ -115,7 +122,7 @@ export default function Documentos() {
   const [editForm, setEditForm] = useState({});
   // Modal nueva gestión
   const [gModal, setGModal] = useState(false);
-  const [gForm, setGForm]   = useState({ nombre:"", subcategoria:"Ayuntamiento", estado:"pendiente", fechaVencimiento:"", nota:"", url:"", responsable:"" });
+  const [gForm, setGForm]   = useState({ nombre:"", subcategoria:"Ayuntamiento", estado:"pendiente", fechaVencimiento:"", fechaSolicitud:"", fechaConcesion:"", nota:"", url:"", responsable:"" });
   const [gEditId, setGEditId]     = useState(null);
   const [logGestionId, setLogGestionId] = useState(null); // ID de gestión con log abierto
   const [nuevoLog, setNuevoLog]         = useState("");    // texto del nuevo log entry
@@ -210,6 +217,7 @@ export default function Documentos() {
         nombre,
         nombreDisplay: nota ? nota.trim() : file.name.replace(/\.[^.]+$/, ""),
         emisor: emisorNuevo || null,
+        importe: importeNuevo ? parseFloat(importeNuevo.replace(",",".")) || null : null,
         categoria: tab,
         subcategoria: subcat || null,
         nota: null,
@@ -246,9 +254,9 @@ export default function Documentos() {
     }
     save([...docs, ...subidos]);
     if (subidos.length > 0) toast.success(subidos.length === 1 ? "Documento subido correctamente" : `${subidos.length} documentos subidos`);
-    setNota(""); setSubcat(""); setVencNuevo(""); setEstadoNuevo("pendiente"); setEmisorNuevo("");
+    setNota(""); setSubcat(""); setVencNuevo(""); setEstadoNuevo("pendiente"); setEmisorNuevo(""); setImporteNuevo("");
     setUploading(false);
-  }, [docs, tab, subcat, nota, estadoNuevo, vencNuevo, emisorNuevo, uploading, save]);
+  }, [docs, tab, subcat, nota, estadoNuevo, vencNuevo, emisorNuevo, importeNuevo, uploading, save]);
 
   // Comprime imágenes vía canvas antes de codificar (PDFs pasan sin cambio).
   // Reduce tamaño ~60-80% en imágenes grandes sin pérdida visible.
@@ -416,6 +424,7 @@ export default function Documentos() {
     setEditForm({
       nombreDisplay: doc.nombreDisplay || doc.nombre.replace(/\.[^.]+$/, ""),
       emisor: doc.emisor || "",
+      importe: doc.importe != null ? String(doc.importe) : "",
       nota: doc.nota || "",
       subcategoria: doc.subcategoria || "",
       estado: doc.estado || "pendiente",
@@ -424,16 +433,22 @@ export default function Documentos() {
   };
 
   const saveEdit = async () => {
+    const formToSave = {
+      ...editForm,
+      importe: editForm.importe !== "" && editForm.importe != null
+        ? parseFloat(String(editForm.importe).replace(",",".")) || null
+        : null,
+    };
     try {
       // SEC-01: proxy BFF — sin x-api-key en el cliente
       await fetch(`/api/proxy/documents?id=${editId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editForm),
+        body: JSON.stringify(formToSave),
       });
     } catch (e) { console.error("Error actualizando:", e); }
     save(docs.map(d => d.id === editId
-      ? { ...d, ...editForm, fechaModificacion: new Date().toISOString() }
+      ? { ...d, ...formToSave, fechaModificacion: new Date().toISOString() }
       : d
     ));
     const doc = docs.find(d => d.id === editId);
@@ -820,6 +835,18 @@ export default function Documentos() {
               placeholder="Notas / descripción (opcional: quién lo emite, qué cubre, observaciones…)" className="doc-input" style={{flexBasis:"100%"}} />
             <input value={emisorNuevo} onChange={e => setEmisorNuevo(e.target.value)}
               placeholder="Emisor / proveedor (ej: Mapfre, Cruz Roja…)" className="doc-input" />
+            {(tab === "presupuestos" || tab === "facturas") && (
+              <input
+                value={importeNuevo}
+                onChange={e => setImporteNuevo(e.target.value)}
+                placeholder="Importe (ej: 1250.00)"
+                className="doc-input"
+                type="number"
+                min="0"
+                step="0.01"
+                style={{maxWidth:160}}
+              />
+            )}
             {subcats.length > 0 && (
               <select value={subcat} onChange={e => setSubcat(e.target.value)} className="doc-select">
                 <option value="">— Subcategoría —</option>
@@ -896,6 +923,11 @@ export default function Documentos() {
                         <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:cat.color,marginTop:".1rem"}}>
                           {cat.icon} {cat.label}{doc.subcategoria ? ` · ${doc.subcategoria}` : ""}
                         </div>
+                        {(doc.categoria === "presupuestos" || doc.categoria === "facturas") && doc.importe != null && (
+                          <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",fontWeight:700,color:"#34d399",marginTop:".1rem"}}>
+                            💶 {formatImporte(doc.importe)}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div style={{display:"flex",gap:".4rem",flexWrap:"wrap",alignItems:"center"}}>
@@ -976,6 +1008,18 @@ export default function Documentos() {
                         <input value={editForm.emisor}
                           onChange={e => setEditForm(p=>({...p,emisor:e.target.value}))}
                           placeholder="Emisor / proveedor" className="doc-input" style={{width:"100%",boxSizing:"border-box"}} />
+                        {((editForm.categoria ?? doc.categoria) === "presupuestos" || (editForm.categoria ?? doc.categoria) === "facturas") && (
+                          <input
+                            value={editForm.importe ?? ""}
+                            onChange={e => setEditForm(p=>({...p,importe:e.target.value}))}
+                            placeholder="Importe (ej: 1250.00)"
+                            className="doc-input"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            style={{width:"100%",boxSizing:"border-box"}}
+                          />
+                        )}
                         <select value={editForm.categoria ?? doc.categoria}
                           onChange={e => setEditForm(p=>({...p,categoria:e.target.value}))}
                           className="doc-select" style={{width:"100%"}}>
@@ -1034,6 +1078,12 @@ export default function Documentos() {
                               <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                                 color:"var(--text-muted)",marginTop:".1rem"}}>
                                 🏢 {doc.emisor}
+                              </div>
+                            )}
+                            {(doc.categoria === "presupuestos" || doc.categoria === "facturas") && doc.importe != null && (
+                              <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
+                                fontWeight:700,color:"#34d399",marginTop:".15rem",letterSpacing:"-.01em"}}>
+                                💶 {formatImporte(doc.importe)}
                               </div>
                             )}
                           </div>
@@ -1199,7 +1249,7 @@ export default function Documentos() {
               </span>
             )}
             <button className="btn btn-primary btn-sm" onClick={()=>{
-              setGForm({nombre:"",subcategoria:"Ayuntamiento",estado:"pendiente",fechaVencimiento:"",nota:"",url:"",responsable:""});
+              setGForm({nombre:"",subcategoria:"Ayuntamiento",estado:"pendiente",fechaVencimiento:"",fechaSolicitud:"",fechaConcesion:"",nota:"",url:"",responsable:""});
               setGEditId(null); setGModal(true);
             }}>+ Nueva gestión</button>
           </div>
@@ -1232,10 +1282,16 @@ export default function Documentos() {
                       </select>
                     </div>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem"}}>
-                      <div><label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",display:"block",marginBottom:".2rem"}}>Fecha límite</label>
+                      <div><label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",display:"block",marginBottom:".2rem"}}>Fecha límite / vencimiento</label>
                         <input className="inp inp-sm" type="date" value={gForm.fechaVencimiento} onChange={e=>setGForm(p=>({...p,fechaVencimiento:e.target.value}))} /></div>
                       <div><label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",display:"block",marginBottom:".2rem"}}>URL / Referencia</label>
                         <input className="inp inp-sm" value={gForm.url||""} onChange={e=>setGForm(p=>({...p,url:e.target.value}))} placeholder="https://…" /></div>
+                    </div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem"}}>
+                      <div><label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--cyan)",display:"block",marginBottom:".2rem"}}>📅 Fecha de solicitud</label>
+                        <input className="inp inp-sm" type="date" value={gForm.fechaSolicitud||""} onChange={e=>setGForm(p=>({...p,fechaSolicitud:e.target.value}))} /></div>
+                      <div><label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#34d399",display:"block",marginBottom:".2rem"}}>✅ Fecha de concesión</label>
+                        <input className="inp inp-sm" type="date" value={gForm.fechaConcesion||""} onChange={e=>setGForm(p=>({...p,fechaConcesion:e.target.value}))} /></div>
                     </div>
                     <div><label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",display:"block",marginBottom:".2rem"}}>Responsable</label>
                         <input className="inp inp-sm" value={gForm.responsable||""} onChange={e=>setGForm(p=>({...p,responsable:e.target.value}))} placeholder="Nombre del responsable…" /></div>
@@ -1281,6 +1337,21 @@ export default function Documentos() {
                         )}
                         {g.url && <a href={g.url} target="_blank" rel="noreferrer" style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#38bdf8"}} onClick={e=>e.stopPropagation()}>🔗 Ver enlace</a>}
                       </div>
+                      {/* Fechas de solicitud y concesión */}
+                      {(g.fechaSolicitud || g.fechaConcesion) && (
+                        <div style={{display:"flex",gap:".75rem",flexWrap:"wrap",marginTop:".25rem"}}>
+                          {g.fechaSolicitud && (
+                            <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#38bdf8",display:"flex",alignItems:"center",gap:".25rem"}}>
+                              📅 Solicitado: <span style={{color:"var(--text)"}}>{formatDate(g.fechaSolicitud)}</span>
+                            </span>
+                          )}
+                          {g.fechaConcesion && (
+                            <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#34d399",display:"flex",alignItems:"center",gap:".25rem"}}>
+                              ✅ Concedido: <span style={{color:"var(--text)"}}>{formatDate(g.fechaConcesion)}</span>
+                            </span>
+                          )}
+                        </div>
+                      )}
                       {g.nota && <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginTop:".25rem",lineHeight:1.5}}>{g.nota}</div>}
                       {g.responsable && (
                         <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginTop:".2rem"}}>
@@ -1377,7 +1448,7 @@ export default function Documentos() {
                         ＋ Tarea
                       </button>
                       <button className="btn btn-ghost btn-sm" style={{flexShrink:0}} onClick={()=>{
-                        setGForm({nombre:g.nombre,subcategoria:g.subcategoria||"Ayuntamiento",estado:g.estado,fechaVencimiento:g.fechaVencimiento||"",nota:g.nota||"",url:g.url||"",responsable:g.responsable||""});
+                        setGForm({nombre:g.nombre,subcategoria:g.subcategoria||"Ayuntamiento",estado:g.estado,fechaVencimiento:g.fechaVencimiento||"",fechaSolicitud:g.fechaSolicitud||"",fechaConcesion:g.fechaConcesion||"",nota:g.nota||"",url:g.url||"",responsable:g.responsable||""});
                         setGEditId(g.id);
                       }}>✏️</button>
                     </div>
@@ -1470,12 +1541,22 @@ export default function Documentos() {
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
                 <div>
-                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Fecha límite</label>
+                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Fecha límite / vencimiento</label>
                   <input className="inp" type="date" value={gForm.fechaVencimiento} onChange={e=>setGForm(p=>({...p,fechaVencimiento:e.target.value}))} />
                 </div>
                 <div>
                   <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>URL / Referencia</label>
                   <input className="inp" value={gForm.url} onChange={e=>setGForm(p=>({...p,url:e.target.value}))} placeholder="https://…" />
+                </div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
+                <div>
+                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"#38bdf8",display:"block",marginBottom:".3rem"}}>📅 Fecha de solicitud</label>
+                  <input className="inp" type="date" value={gForm.fechaSolicitud||""} onChange={e=>setGForm(p=>({...p,fechaSolicitud:e.target.value}))} />
+                </div>
+                <div>
+                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"#34d399",display:"block",marginBottom:".3rem"}}>✅ Fecha de concesión</label>
+                  <input className="inp" type="date" value={gForm.fechaConcesion||""} onChange={e=>setGForm(p=>({...p,fechaConcesion:e.target.value}))} />
                 </div>
               </div>
               <div>
