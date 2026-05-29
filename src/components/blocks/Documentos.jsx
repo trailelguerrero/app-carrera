@@ -574,6 +574,8 @@ export default function Documentos() {
   const catInfo      = CATEGORIAS.find(c => c.id === tab);
   const isGestion    = tab === "gestiones";
   const isSubvencion = tab === "subvenciones";
+  // Fallback para pestañas especiales que no están en CATEGORIAS (gestiones, subvenciones)
+  const catInfoSafe  = catInfo || { id: tab, icon: "📄", label: tab, color: "#94a3b8" };
 
   const addLogEntry = (gestionId) => {
     const texto = nuevoLog.trim();
@@ -1024,8 +1026,8 @@ export default function Documentos() {
             style={{display:"flex",alignItems:"center",justifyContent:"space-between",
               width:"100%",background:"none",border:"none",cursor:"pointer",padding:0,
               marginBottom: uploadOpen ? ".65rem" : 0}}>
-            <span className="card-title" style={{color:catInfo.color,margin:0}}>
-              {catInfo.icon} Subir a {catInfo.label}
+            <span className="card-title" style={{color:catInfoSafe.color,margin:0}}>
+              {catInfoSafe.icon} Subir a {catInfoSafe.label}
             </span>
             <div style={{display:"flex",alignItems:"center",gap:".75rem"}}>
               <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-dim)"}}>
@@ -1174,14 +1176,14 @@ export default function Documentos() {
         )}
 
         {/* ── Document list ── */}
-        {isGestion ? null : (!busqGlobal && catDocs.length === 0) ? (
+        {(isGestion || isSubvencion) ? null : (!busqGlobal && catDocs.length === 0) ? (
           <EmptyState
             svg={busqueda ? "search" : "docs"}
-            color={catInfo.color}
+            color={catInfoSafe.color}
             title={busqueda ? `Sin resultados` : `Sin documentos`}
             sub={busqueda
-              ? `No se encontró "${busqueda}" en ${catInfo.label}`
-              : `Sube el primer documento a ${catInfo.label}`}
+              ? `No se encontró "${busqueda}" en ${catInfoSafe.label}`
+              : `Sube el primer documento a ${catInfoSafe.label}`}
             action={!busqueda && (
               <button className="btn btn-ghost btn-sm"
                 style={{ fontSize:"var(--fs-sm)" }}
@@ -1208,12 +1210,12 @@ export default function Documentos() {
                 return (
                   <div key={doc.id} className="doc-card">
                     {/* Accent line */}
-                    <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:catInfo.color,borderRadius:"12px 12px 0 0"}} />
+                    <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:catInfoSafe.color,borderRadius:"12px 12px 0 0"}} />
 
                     {editId === doc.id ? (
                       /* ── Edit mode ── */
                       <div className="doc-edit-card" style={{paddingTop:4}}>
-                        <div style={{fontSize:"var(--fs-sm)",fontWeight:700,color:catInfo.color,marginBottom:".25rem"}}>✏️ Editando documento</div>
+                        <div style={{fontSize:"var(--fs-sm)",fontWeight:700,color:catInfoSafe.color,marginBottom:".25rem"}}>✏️ Editando documento</div>
                         <input value={editForm.nombreDisplay}
                           onChange={e => setEditForm(p=>({...p,nombreDisplay:e.target.value}))}
                           placeholder="Nombre descriptivo *" className="doc-input" style={{width:"100%",boxSizing:"border-box"}} />
@@ -1327,8 +1329,8 @@ export default function Documentos() {
                           <span className="doc-card-meta-item">{formatDate(doc.fechaSubida)}</span>
                           {doc.subcategoria && (
                             <span className="doc-badge" style={{
-                              background:`${catInfo.color}18`,color:catInfo.color,
-                              border:`1px solid ${catInfo.color}44`
+                              background:`${catInfoSafe.color}18`,color:catInfoSafe.color,
+                              border:`1px solid ${catInfoSafe.color}44`
                             }}>{doc.subcategoria}</span>
                           )}
                         </div>
