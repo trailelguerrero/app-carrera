@@ -152,12 +152,12 @@ export function TabDashboard({ stats, pedidos, coste, setCoste, setTab, goToTab,
           <div className="kpi-value">{fmtEur2(stats.cPendCobro)}</div>
           <div className="kpi-sub">{stats.cPendCobro > 0 ? "por cobrar" : "todo cobrado ✓"}</div>
         </div>
-        <div className={`kpi ${stats.pendEnt > 0 ? "cyan" : "green"}`} style={{cursor:"pointer"}} onClick={() => setTab("checklist")}>
+        <div className={`kpi ${stats.pendEnt > 0 ? "cyan" : "green"}`} style={{cursor:"pointer"}} onClick={() => goToTab ? goToTab("checklist") : setTab("checklist")}>
           <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>📦 Por entregar<Tooltip text={"Cantidad de unidades correspondientes a pedidos extra que siguen pendientes de entrega."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value">{stats.pendEnt}</div>
           <div className="kpi-sub">{stats.pendEnt > 0 ? "unidades pendientes" : "todo entregado ✓"}</div>
         </div>
-        <div className="kpi cyan" style={{cursor:"pointer"}} onClick={() => setTab("tallas")}>
+        <div className="kpi cyan" style={{cursor:"pointer"}} onClick={() => goToTab ? goToTab("tallas") : setTab("tallas")}>
           <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>🔢 Total unidades<Tooltip text={"Suma total de unidades calculadas de todas las fuentes activas."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value">{stats.totalUnidades}</div>
           <div className="kpi-sub">🏃 {stats.uCorExt + stats.uExtrasCor} cor · 👥 {stats.uVolAuto + stats.uExtrasVol} vol</div>
@@ -343,6 +343,53 @@ export function TabDashboard({ stats, pedidos, coste, setCoste, setTab, goToTab,
           </div>
         );
       })()}
+
+      {/* ── INTEGRACIÓN CON PRESUPUESTO ── */}
+      <div className="card" style={{ marginTop: ".85rem", borderLeft: "3px solid var(--green)",
+        background: "linear-gradient(135deg, var(--surface) 0%, rgba(52,211,153,.04) 100%)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+          gap: ".75rem", flexWrap: "wrap" }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 700,
+              color: "var(--green)", marginBottom: ".35rem" }}>
+              💶 Integración con Presupuesto
+            </div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)",
+              lineHeight: 1.6 }}>
+              El gasto de fabricación de camisetas se sincroniza <strong>automáticamente</strong> con el módulo de
+              Presupuesto. No necesitas introducirlo manualmente.
+            </div>
+            <div style={{ display: "flex", gap: ".6rem", flexWrap: "wrap", marginTop: ".5rem" }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700,
+                color: "var(--green)", background: "var(--green-dim)",
+                border: "1px solid rgba(52,211,153,.25)", borderRadius: 4, padding: ".15rem .5rem" }}>
+                ✅ Gasto fabricación: {fmtEur2(stats.totalGastos)}
+              </span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700,
+                color: "var(--cyan)", background: "var(--cyan-dim)",
+                border: "1px solid rgba(34,211,238,.25)", borderRadius: 4, padding: ".15rem .5rem" }}>
+                📈 Ingresos esperados: {fmtEur2(stats.totalIngresosProyectado)}
+              </span>
+              {stats.gRegalos > 0 && (
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700,
+                  color: "var(--violet)", background: "var(--violet-dim)",
+                  border: "1px solid rgba(167,139,250,.25)", borderRadius: 4, padding: ".15rem .5rem" }}>
+                  🎁 Coste regalos: {fmtEur2(stats.gRegalos)}
+                </span>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "presupuesto" } }))}
+            style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700,
+              color: "var(--green)", background: "var(--green-dim)",
+              border: "1px solid rgba(52,211,153,.3)", borderRadius: 6,
+              padding: ".45rem .85rem", cursor: "pointer", flexShrink: 0,
+              display: "flex", alignItems: "center", gap: ".35rem", whiteSpace: "nowrap" }}>
+            💰 Ver en Presupuesto →
+          </button>
+        </div>
+      </div>
     </>
   );
 }

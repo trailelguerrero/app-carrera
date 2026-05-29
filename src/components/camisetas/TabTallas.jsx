@@ -316,6 +316,49 @@ export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosAc
         ))}
       </div>
 
+      {/* ── TOTAL POR FUENTE — barra resumen ── */}
+      {(() => {
+        const fuentesData = [
+          { key:"corredoresPlat",  icon:"🏃", label:"Corredor plat.",  color:TC.corredor.color,   dim:TC.corredor.dim,
+            total: fuentesActivas.corredoresPlat ? TALLAS.reduce((s,t)=>s+(corredoresExt[t]||0),0) : 0 },
+          { key:"extrasCorredor",  icon:"👕", label:"Extras cor.",     color:TC.corredor.color,   dim:TC.corredor.dim,
+            total: fuentesActivas.extrasCorredor
+              ? pedidos.filter(p=>p.lineas?.some(l=>l.tipo==="corredor")).reduce((s,p)=>s+p.lineas.filter(l=>l.tipo==="corredor").reduce((ss,l)=>ss+l.cantidad,0),0) : 0 },
+          { key:"voluntariosAuto", icon:"👥", label:"Voluntarios",     color:TC.voluntario.color, dim:TC.voluntario.dim,
+            total: fuentesActivas.voluntariosAuto ? voluntariosActivos.length : 0 },
+          { key:"extrasVoluntario",icon:"👥+",label:"Extras vol.",     color:TC.voluntario.color, dim:TC.voluntario.dim,
+            total: fuentesActivas.extrasVoluntario
+              ? pedidos.filter(p=>p.lineas?.some(l=>l.tipo==="voluntario")).reduce((s,p)=>s+p.lineas.filter(l=>l.tipo==="voluntario").reduce((ss,l)=>ss+l.cantidad,0),0) : 0 },
+          { key:"ninoManual",      icon:"👶", label:"Niño/a",          color:TC.nino.color,       dim:TC.nino.dim,
+            total: fuentesActivas.ninoManual ? TALLAS_NINO.reduce((s,t)=>s+(ninoExt[t]||0),0) : 0 },
+          { key:"extrasNino",      icon:"👶+",label:"Extras niño/a",  color:TC.nino.color,       dim:TC.nino.dim,
+            total: fuentesActivas.extrasNino
+              ? pedidos.filter(p=>p.lineas?.some(l=>l.tipo==="nino")).reduce((s,p)=>s+p.lineas.filter(l=>l.tipo==="nino").reduce((ss,l)=>ss+l.cantidad,0),0) : 0 },
+        ];
+        const totalActivo = fuentesData.reduce((s,f)=>s+f.total,0);
+        if (totalActivo === 0) return null;
+        return (
+          <div style={{ marginBottom:".85rem", padding:".6rem .9rem", borderRadius:8,
+            background:"var(--surface2)", border:"1px solid var(--border)",
+            display:"flex", alignItems:"center", gap:".5rem", flexWrap:"wrap" }}>
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+              color:"var(--text-dim)", marginRight:".25rem", flexShrink:0 }}>TOTAL FUENTES:</span>
+            {fuentesData.filter(f=>f.total>0).map(f=>(
+              <span key={f.key} style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                color:f.color, background:f.dim, border:`1px solid ${f.color}33`,
+                borderRadius:4, padding:".15rem .5rem", opacity: fuentesActivas[f.key] ? 1 : 0.45 }}>
+                {f.icon} {f.label}: {f.total}
+                {!fuentesActivas[f.key] && " 🚫"}
+              </span>
+            ))}
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", fontWeight:900,
+              color:"var(--text)", marginLeft:"auto", flexShrink:0 }}>
+              = {totalActivo} ud
+            </span>
+          </div>
+        );
+      })()}
+
       {/* ── TOGGLE vista simple / desglose ── */}
       <div style={{display:"flex",justifyContent:"flex-end",marginBottom:".4rem"}}>
         <div style={{display:"flex",background:"var(--surface2)",borderRadius:8,border:"1px solid var(--border)",overflow:"hidden"}}>

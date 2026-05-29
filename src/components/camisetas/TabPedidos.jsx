@@ -179,6 +179,77 @@ export function TabPedidos({ pedidos, coste, abrirFicha, abrirModal, filtroExter
           })}
         </div>
       )}
+
+      {/* ── RESUMEN DE REGALOS ── */}
+      {(() => {
+        const pedidosRegalo = pedidos.filter(p => p.lineas?.some(l => l.estadoPago === "regalo"));
+        if (!pedidosRegalo.length) return null;
+        const totalRegaladoGlobal = pedidosRegalo.reduce((s, p) => {
+          const { costeRegalos } = calcPedido(p, coste);
+          return s + costeRegalos;
+        }, 0);
+        const totalUnidadesRegalo = pedidosRegalo.reduce((s, p) =>
+          s + p.lineas.filter(l => l.estadoPago === "regalo").reduce((ss, l) => ss + l.cantidad, 0), 0);
+        return (
+          <div className="card" style={{ marginTop: ".85rem", borderLeft: "3px solid var(--violet)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ".75rem", flexWrap: "wrap", gap: ".5rem" }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 700, color: "var(--violet)" }}>
+                🎁 Regalos — desglose por persona
+              </div>
+              <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>{totalUnidadesRegalo} unidades regaladas</div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-md)", fontWeight: 800, color: "var(--violet)" }}>
+                    Coste total regalos: {fmtEur2(totalRegaladoGlobal)}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: ".35rem" }}>
+              {pedidosRegalo.map(p => {
+                const lineasRegalo = p.lineas.filter(l => l.estadoPago === "regalo");
+                const costePersona = lineasRegalo.reduce((s, l) => s + l.cantidad * (coste[l.tipo] || 0), 0);
+                const unidPersona  = lineasRegalo.reduce((s, l) => s + l.cantidad, 0);
+                return (
+                  <div key={p.id}
+                    onClick={() => abrirFicha(p)}
+                    style={{ display: "flex", alignItems: "center", gap: ".75rem",
+                      padding: ".5rem .75rem", borderRadius: 8,
+                      background: "var(--violet-dim)", border: "1px solid rgba(167,139,250,.2)",
+                      cursor: "pointer", transition: "border-color .12s" }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = "rgba(167,139,250,.5)"}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(167,139,250,.2)"}>
+                    <span style={{ fontSize: "var(--fs-md)", flexShrink: 0 }}>🎁</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: "var(--fs-sm)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nombre}</div>
+                      <div style={{ display: "flex", gap: ".25rem", flexWrap: "wrap", marginTop: ".15rem" }}>
+                        {lineasRegalo.map((l, i) => (
+                          <span key={i} style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+                            padding: ".06rem .3rem", borderRadius: 3,
+                            background: TC[l.tipo]?.dim, color: TC[l.tipo]?.color,
+                            border: `1px solid ${TC[l.tipo]?.color}33` }}>
+                            {TC[l.tipo]?.icon} {l.talla}×{l.cantidad}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>{unidPersona} ud</div>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 800, color: "var(--violet)" }}>
+                        {fmtEur2(costePersona)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ marginTop: ".6rem", paddingTop: ".6rem", borderTop: "1px solid rgba(167,139,250,.15)",
+              fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)" }}>
+              ⓘ El coste se calcula según el precio de fabricación configurado, no el precio de venta.
+            </div>
+          </div>
+        );
+      })()}
     </>
   );
 }
