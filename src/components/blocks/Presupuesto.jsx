@@ -44,6 +44,8 @@ const Presupuesto = () => {
   const [confirmReset, setConfirmReset] = useState(false);
   const [limpiarHistorial, setLimpiarHistorial] = useState(false);
   const [resettingData, setResettingData] = useState(false);
+  // FIX-RESET-2: el usuario debe escribir "RESTABLECER" para confirmar — previene resets accidentales
+  const [confirmResetText, setConfirmResetText] = useState('');
   const [delConceptoId, setDelConceptoId] = useState(null); // T5.2
 
   const [scenarioOverrides, setScenarioOverrides] = useState({
@@ -182,10 +184,13 @@ const Presupuesto = () => {
   // C2: async con spinner + borrado opcional de historial [F3-02/03]
   const handleReset = async () => {
     setResettingData(true);
+    // FIX-RESET-1: Guardar backup en Neon ANTES de resetear.
+    // Si el reset fue accidental, los datos se pueden recuperar de teg_auto_backup_presupuesto_v1.
+    await backupBeforeReset(tramos, conceptos, inscritos, ingresosExtra, merchandising, maximos);
     resetAllData();
     // Eliminar escenarios guardados — sus datos base ya no existen tras el reset
     deleteScenario && savedScenarios?.forEach(sc => deleteScenario(sc.id));
-    // Persistir inmediatamente sin esperar al autosave de 2s
+    // Persistir inmediatamente sin esperar al autosave
     await new Promise(resolve => setTimeout(resolve, 50));
     await saveData();
     if (limpiarHistorial) {
@@ -194,6 +199,7 @@ const Presupuesto = () => {
     setResettingData(false);
     setConfirmReset(false);
     setLimpiarHistorial(false);
+    setConfirmResetText('');
   };
 
   useEffect(() => {
@@ -256,7 +262,7 @@ const Presupuesto = () => {
             <button
               className="btn btn-ghost btn-sm"
               title="Restablecer todos los datos"
-              onClick={() => { const m = document.querySelector("main"); if (m) m.scrollTo({ top:0, behavior:"instant" }); setConfirmReset(true); }}
+              onClick={() => { const m = document.querySelector("main"); if (m) m.scrollTo({ top:0, behavior:"instant" }); setConfirmResetText(''); setConfirmReset(true); }}
               style={{ color: "var(--text-dim)", fontSize: "0.72rem" }}
             >↺</button>
             <button className={saveCls} onClick={saveData} disabled={saveStatus === "saving"}>
@@ -577,7 +583,7 @@ const Presupuesto = () => {
       </div>
 
       {confirmReset && (
-        <div className="reset-overlay" onClick={() => !resettingData && setConfirmReset(false)}>
+        <div className="reset-overlay" onClick={() => !resettingData && (setConfirmReset(false), setConfirmResetText(''))}>
           <div className="reset-modal" onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: "var(--fs-xl)", marginBottom: "0.75rem" }}>⚠️</div>
             <div style={{ fontWeight: 800, fontSize: "var(--fs-md)", marginBottom: "0.5rem", color: "var(--text)" }}>
@@ -585,7 +591,29 @@ const Presupuesto = () => {
             </div>
             <div className="mono" style={{ fontSize: "0.72rem", color: "var(--text-muted)", lineHeight: 1.6, marginBottom: "1rem" }}>
               Se eliminarán todos los tramos, inscritos, conceptos de coste e ingresos.
-              Esta acción no se puede deshacer.
+              Esta acción <strong style={{ color: "var(--red)" }}>no se puede deshacer</strong>.
+              Se guardará un backup automático antes de borrar.
+            </div>
+            {/* FIX-RESET-2: confirmación explícita escribiendo la palabra clave */}
+            <div style={{ marginBottom: "1rem" }}>
+              <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: "0.4rem" }}>
+                Escribe <strong style={{ color: "var(--text)", fontFamily: "var(--font-mono)" }}>RESTABLECER</strong> para confirmar:
+              </div>
+              <input
+                type="text"
+                value={confirmResetText}
+                onChange={e => setConfirmResetText(e.target.value)}
+                placeholder="RESTABLECER"
+                disabled={resettingData}
+                autoFocus
+                style={{
+                  width: "100%", padding: "0.4rem 0.6rem",
+                  fontFamily: "var(--font-mono)", fontSize: "0.8rem",
+                  background: "var(--bg-card)", border: "1px solid var(--border)",
+                  borderRadius: 6, color: "var(--text)", boxSizing: "border-box",
+                  borderColor: confirmResetText === "RESTABLECER" ? "var(--red)" : "var(--border)",
+                }}
+              />
             </div>
             <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "1.25rem", cursor: "pointer" }}>
               <input
@@ -598,14 +626,19 @@ const Presupuesto = () => {
             </label>
             {resettingData ? (
               <div style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "0.8rem" }}>
-                ⏳ Borrando datos...
+                ⏳ Guardando backup y borrando datos...
               </div>
             ) : (
               <div style={{ display: "flex", gap: "0.6rem", justifyContent: "center" }}>
-                <button className="btn btn-ghost" onClick={() => setConfirmReset(false)}>
+                <button className="btn btn-ghost" onClick={() => { setConfirmReset(false); setConfirmResetText(''); }}>
                   Cancelar
                 </button>
-                <button className="btn btn-red" onClick={handleReset}>
+                <button
+                  className="btn btn-red"
+                  onClick={handleReset}
+                  disabled={confirmResetText !== "RESTABLECER"}
+                  style={{ opacity: confirmResetText === "RESTABLECER" ? 1 : 0.4, cursor: confirmResetText === "RESTABLECER" ? "pointer" : "not-allowed" }}
+                >
                   Sí, restablecer todo
                 </button>
               </div>

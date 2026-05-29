@@ -280,8 +280,13 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
         }
         if (savedMerch) setMerchandising(savedMerch);
         if (savedMaximos) setMaximos(savedMaximos);
+
+        // FIX-RESET-3: Marcar carga completada — el autosave ya puede dispararse.
+        dataLoadedFromNeon.current = true;
       } catch (error) {
         console.error("Error loading budget data:", error);
+        // Aunque falle, permitir autosave para no bloquear la app.
+        dataLoadedFromNeon.current = true;
       }
     };
     loadData();
@@ -319,6 +324,29 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   }, [tramos, conceptos, inscritos, ingresosExtraConValores, merchandising, maximos]);
 
   // BUG-P4 fix: resetAllData ahora también limpia syncConfig y margenConfig
+  // FIX-RESET-1: Antes de resetear, guarda backup en Neon con timestamp.
+  // La colección teg_auto_backup_presupuesto_v1 puede recuperarse manualmente si el reset fue accidental.
+  const backupBeforeReset = useCallback(async (currentTramos, currentConceptos, currentInscritos, currentIngresosExtra, currentMerchandising, currentMaximos) => {
+    try {
+      const backupKey = 'teg_auto_backup_presupuesto_v1';
+      const backup = {
+        timestamp: new Date().toISOString(),
+        tramos: currentTramos,
+        conceptos: currentConceptos,
+        inscritos: currentInscritos,
+        ingresosExtra: currentIngresosExtra,
+        merchandising: currentMerchandising,
+        maximos: currentMaximos,
+      };
+      await dataService.set(backupKey, backup);
+      console.log('[useBudgetLogic] Backup pre-reset guardado en Neon ✓', backup.timestamp);
+      return true;
+    } catch (e) {
+      console.error('[useBudgetLogic] Error guardando backup pre-reset:', e);
+      return false;
+    }
+  }, []);
+
   const resetAllData = useCallback(() => {
     setTramos(TRAMOS_DEFAULT);
     setConceptos(CONCEPTOS_DEFAULT);
@@ -332,9 +360,16 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
 
   const autoSaveTimer = useRef(null);
   const isFirstRender = useRef(true);
+  // FIX-RESET-3: El autosave NO corre hasta que la carga inicial desde Neon complete.
+  // Previene que los defaults en memoria sobreescriban datos reales si Neon tarda.
+  const dataLoadedFromNeon = useRef(false);
 
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return; }
+    // FIX-RESET-4: No autosave hasta que la carga inicial desde Neon haya completado.
+    // Si dataLoadedFromNeon es false, los estados aún pueden tener defaults y guardarlos
+    // sobreescribiría datos reales en Neon (causa raíz de los resets accidentales).
+    if (!dataLoadedFromNeon.current) return;
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     // Capturar snapshot de ingresosExtraConValores en el momento del cambio (cierre léxico).
     // Esto garantiza que el autosave y el cleanup usan el mismo valor que disparó el efecto.
@@ -579,7 +614,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     setIngresosExtra,
     merchandising, setMerchandising,
     maximos, setMaximos,
-    saveStatus, saveData, resetAllData,
+    saveStatus, saveData, resetAllData, backupBeforeReset,
     updateConcepto, updateCostePorDistancia, updateActivoDistancia,
     addConcepto, removeConcepto, reorderConceptos,
     updateTramoPrecio, addTramo, updateInscritos,
