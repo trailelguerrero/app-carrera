@@ -106,6 +106,9 @@ const apiAdapter = {
   async set(collection, data) {
     // Escritura optimista inmediata en local (el usuario ve sus cambios sin esperar)
     await localAdapter.set(collection, data);
+    // FIX: Registrar timestamp de última escritura para que useData
+    // no sobreescriba con datos de Neon durante la ventana de sincronización.
+    localStorage.setItem(`__last_write_${collection}`, Date.now().toString());
 
     // Debounce del PUT a Neon (evita saturar la BD con cada keystroke)
     return new Promise((resolve) => {
@@ -333,6 +336,14 @@ const dataService = {
     type: ADAPTER,
     apiUrl: ADAPTER === 'api' ? API_BASE_URL : null,
   }),
+
+  /**
+   * Indica si hay una escritura pendiente (debounce activo) para una clave.
+   * Usado por useData para evitar sobreescribir estado optimista con datos de Neon.
+   * @param {string} key
+   * @returns {boolean}
+   */
+  hasPendingWrite: (key) => saveTimeouts.has(key),
 };
 
 export default dataService;

@@ -47,6 +47,15 @@ export function useData(key, defaultValue) {
       dataService.get(key, defaultValue).then(apiData => {
         if (mounted) {
           setState(prev => {
+            // FIX: No sobreescribir si hay escritura pendiente (debounce activo).
+            // El usuario acaba de guardar y el PUT a Neon aún no ha llegado —
+            // Neon devolvería datos sin ese cambio, causando pérdida aparente del dato.
+            if (dataService.hasPendingWrite(key)) return prev;
+            // FIX: Tampoco sobreescribir si hubo escritura en los últimos 5s.
+            // Protege el caso donde el debounce ya disparó pero Neon aún procesa
+            // y el componente se remontó (navegar fuera y volver al bloque).
+            const lastWrite = parseInt(localStorage.getItem(`__last_write_${key}`) || '0', 10);
+            if (Date.now() - lastWrite < 5000) return prev;
             const isDifferent = JSON.stringify(prev) !== JSON.stringify(apiData);
             if (isDifferent) {
               stateRef.current = apiData;
