@@ -197,9 +197,17 @@ export default function Documentos() {
     const newDocs = [];
     for (const file of validFiles) {
       const base64 = await fileToBase64(file);
+      // Calcular tamaño real del archivo comprimido (base64 → bytes)
+      const b64Data = base64.includes(",") ? base64.split(",")[1] : base64;
+      const realSize = Math.round(b64Data.length * 0.75); // aprox bytes desde base64
+      // Si la imagen fue comprimida a WebP, usar nombre con extensión .webp
+      const isCompressedImg = base64.startsWith("data:image/webp") && !file.name.match(/\.webp$/i);
+      const nombre = isCompressedImg ? file.name.replace(/\.[^.]+$/, "") + ".webp" : file.name;
+      const tipo   = isCompressedImg ? "image/webp"
+        : (file.type || (file.name.match(/\.pdf$/i) ? "application/pdf" : "image/jpeg"));
       newDocs.push({
         id: genIdStr(),
-        nombre: file.name,
+        nombre,
         nombreDisplay: nota ? nota.trim() : file.name.replace(/\.[^.]+$/, ""),
         emisor: emisorNuevo || null,
         categoria: tab,
@@ -207,8 +215,8 @@ export default function Documentos() {
         nota: null,
         estado: estadoNuevo,
         fechaVencimiento: vencNuevo || null,
-        size: file.size,
-        tipo: file.type || (file.name.match(/\.pdf$/i) ? "application/pdf" : "image/jpeg"),
+        size: realSize,
+        tipo,
         data: base64,
         fechaSubida: new Date().toISOString(),
         fechaModificacion: new Date().toISOString(),
@@ -242,11 +250,43 @@ export default function Documentos() {
     setUploading(false);
   }, [docs, tab, subcat, nota, estadoNuevo, vencNuevo, emisorNuevo, uploading, save]);
 
+  // Comprime imágenes vía canvas antes de codificar (PDFs pasan sin cambio).
+  // Reduce tamaño ~60-80% en imágenes grandes sin pérdida visible.
   const fileToBase64 = (file) => new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res(r.result);
-    r.onerror = rej;
-    r.readAsDataURL(file);
+    const isImage = file.type.startsWith("image/") || !!file.name.match(/\.(png|jpe?g|webp)$/i);
+    if (!isImage) {
+      const r = new FileReader();
+      r.onload = () => res(r.result);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+      return;
+    }
+    const MAX_DIM = 1920;
+    const QUALITY = 0.82;
+    const img = new Image();
+    const objUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objUrl);
+      let { width, height } = img;
+      if (width > MAX_DIM || height > MAX_DIM) {
+        const ratio = Math.min(MAX_DIM / width, MAX_DIM / height);
+        width  = Math.round(width  * ratio);
+        height = Math.round(height * ratio);
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width  = width;
+      canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      res(canvas.toDataURL("image/webp", QUALITY));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objUrl);
+      const r = new FileReader();
+      r.onload = () => res(r.result);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    };
+    img.src = objUrl;
   });
 
   const handleDrop      = (e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); };
@@ -310,14 +350,22 @@ export default function Documentos() {
       if (esImg) {
         setVisorDoc({ ...doc, _loading: false });
       } else if (isIOS) {
-        // iOS no soporta iframe embebido — descarga directa
-        const a = document.createElement("a");
-        a.href = doc.blobUrl;
-        a.download = doc.nombre || "documento.pdf";
-        a.click();
+        // iOS no soporta iframe embebido — abrir en nueva pestaña
+        window.open(doc.blobUrl, "_blank", "noopener");
       } else {
-        // Desktop y Android: mostrar en modal con iframe
-        setVisorDoc({ ...doc, _loading: false, _esPdf: true });
+        // Desktop y Android: fetch del blob → objectURL local para evitar
+        // problemas con Content-Disposition: attachment de Vercel Blob
+        setVisorDoc({ ...doc, _loading: true, _esPdf: true });
+        try {
+          const resp = await fetch(doc.blobUrl);
+          const blob = await resp.blob();
+          const objectUrl = URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
+          setVisorDoc({ ...doc, _loading: false, _esPdf: true, _objectUrl: objectUrl });
+        } catch {
+          // Fallback: abrir en nueva pestaña si el fetch falla (CORS, etc.)
+          setVisorDoc(null);
+          window.open(doc.blobUrl, "_blank", "noopener");
+        }
       }
       return;
     }
