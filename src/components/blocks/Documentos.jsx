@@ -10,7 +10,7 @@ import { toast } from "@/lib/toast";
 import { blockCls as cls } from "@/lib/blockStyles";
 import SkeletonBlock from "@/components/common/SkeletonBlock";
 
-import { SK_DOC_DOCS } from "@/constants/storageKeys";
+import { SK_DOC_DOCS, SK_DOC_SUBVENCIONES } from "@/constants/storageKeys";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const LS_KEY        = SK_DOC_DOCS;
@@ -53,7 +53,50 @@ const GESTIONES_DEFAULT = [
     estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Ambulancia + 2 sanitarios titulados. Confirmar antes del 15 mayo.", url:"", fechaSubida: "", responsable: "" },
 ];
 
-// Estados del documento con colores
+// ─── MODELO SUBVENCIONES ───────────────────────────────────────────────────────
+// Ciclo de vida: Detectada → Solicitada → En evaluación → Concedida → Justificada → Cerrada / Denegada
+const ESTADOS_SUBVENCION = [
+  { id: "detectada",     label: "Detectada",     color: "#94a3b8", bg: "rgba(148,163,184,0.12)", icon: "🔍" },
+  { id: "solicitada",    label: "Solicitada",     color: "#22d3ee", bg: "var(--cyan-dim)",        icon: "📤" },
+  { id: "en_evaluacion", label: "En evaluación",  color: "#60a5fa", bg: "rgba(96,165,250,0.12)",  icon: "⏳" },
+  { id: "concedida",     label: "Concedida",      color: "#34d399", bg: "var(--green-dim)",       icon: "✅" },
+  { id: "justificada",   label: "Justificada",    color: "#a78bfa", bg: "var(--violet-dim)",      icon: "📋" },
+  { id: "cerrada",       label: "Cerrada",        color: "#34d399", bg: "var(--green-dim)",       icon: "🔒" },
+  { id: "denegada",      label: "Denegada",       color: "#f87171", bg: "var(--red-dim)",         icon: "❌" },
+];
+const ORGANISMOS_SUBVENCION = [
+  "Ayuntamiento", "Diputación", "Comunidad Autónoma", "Ministerio",
+  "Federación", "Consejo Superior de Deportes", "Fundación privada", "Otro",
+];
+const getSvEstado = (id) => ESTADOS_SUBVENCION.find(e => e.id === id) || ESTADOS_SUBVENCION[0];
+
+const SUBVENCION_EMPTY = {
+  id: null, nombre: "", organismo: "Ayuntamiento", convocatoria: "",
+  importeSolicitado: "", importeConcedido: "",
+  fechaConvocatoria: "", fechaSolicitud: "", fechaResolucion: "", fechaJustificacion: "",
+  estado: "detectada", nota: "", url: "", responsable: "", docIds: [],
+};
+// Subvenciones predefinidas habituales en trail running
+const SUBVENCIONES_DEFAULT = [
+  {
+    id: "sv1", nombre: "Subvención Ayuntamiento", organismo: "Ayuntamiento",
+    convocatoria: "", importeSolicitado: "", importeConcedido: "",
+    fechaConvocatoria: "", fechaSolicitud: "", fechaResolucion: "", fechaJustificacion: "",
+    estado: "detectada", nota: "Solicitar partida presupuestaria para eventos deportivos municipales.", url: "", responsable: "", docIds: [],
+  },
+  {
+    id: "sv2", nombre: "Subvención Diputación Provincial", organismo: "Diputación",
+    convocatoria: "", importeSolicitado: "", importeConcedido: "",
+    fechaConvocatoria: "", fechaSolicitud: "", fechaResolucion: "", fechaJustificacion: "",
+    estado: "detectada", nota: "Convocatoria anual de promoción del deporte y turismo rural.", url: "", responsable: "", docIds: [],
+  },
+  {
+    id: "sv3", nombre: "Subvención Consejo Superior de Deportes", organismo: "Consejo Superior de Deportes",
+    convocatoria: "", importeSolicitado: "", importeConcedido: "",
+    fechaConvocatoria: "", fechaSolicitud: "", fechaResolucion: "", fechaJustificacion: "",
+    estado: "detectada", nota: "Programas de fomento de atletismo y deportes de montaña.", url: "", responsable: "", docIds: [],
+  },
+];
 const ESTADOS_DOC = [
   { id: "pendiente",  label: "Pendiente",  color: "#94a3b8", bg: "rgba(148,163,184,0.12)" },
   { id: "en_tramite", label: "En trámite", color: "#22d3ee", bg: "var(--cyan-dim)"  },
@@ -103,6 +146,7 @@ export default function Documentos() {
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
   const [docs, setDocs]         = useState([]);
   const [gestiones, setGestiones] = useState([]);
+  const [subvenciones, setSubvenciones] = useState([]);
   const [tab,  setTab]          = useState("presupuestos");
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -124,8 +168,12 @@ export default function Documentos() {
   const [gModal, setGModal] = useState(false);
   const [gForm, setGForm]   = useState({ nombre:"", subcategoria:"Ayuntamiento", estado:"pendiente", fechaVencimiento:"", fechaSolicitud:"", fechaConcesion:"", nota:"", url:"", responsable:"" });
   const [gEditId, setGEditId]     = useState(null);
-  const [logGestionId, setLogGestionId] = useState(null); // ID de gestión con log abierto
-  const [nuevoLog, setNuevoLog]         = useState("");    // texto del nuevo log entry
+  const [logGestionId, setLogGestionId] = useState(null);
+  const [nuevoLog, setNuevoLog]         = useState("");
+  // Modal subvención
+  const [svModal, setSvModal]   = useState(false);
+  const [svForm, setSvForm]     = useState({ ...SUBVENCION_EMPTY });
+  const [svEditId, setSvEditId] = useState(null);
   const fileRef = useRef(null);
   const [visorDoc, setVisorDoc] = useState(null); // doc a visualizar en modal
   const [isLoading, setIsLoading] = useState(true); // skeleton hasta que la carga inicial termine
@@ -168,9 +216,17 @@ export default function Documentos() {
         if (Array.isArray(v)) {
           setGestiones(v);
         } else {
-          // Primera vez: guardar defaults en Neon/localStorage para que el estado inicial sea persistible
           setGestiones(GESTIONES_DEFAULT);
           dataService.set(LS_KEY + "_gestiones", GESTIONES_DEFAULT);
+        }
+      });
+      // Subvenciones — misma estrategia que gestiones
+      dataService.get(SK_DOC_SUBVENCIONES, null).then(v => {
+        if (Array.isArray(v)) {
+          setSubvenciones(v);
+        } else {
+          setSubvenciones(SUBVENCIONES_DEFAULT);
+          dataService.set(SK_DOC_SUBVENCIONES, SUBVENCIONES_DEFAULT);
         }
       });
       setIsLoading(false);
@@ -187,6 +243,33 @@ export default function Documentos() {
   const saveGestiones = useCallback((next) => {
     setGestiones(next);
     dataService.set(LS_KEY + "_gestiones", next).then(() => dataService.notify('documentos'));
+  }, []);
+
+  // saveSubvenciones: guarda y sincroniza el total concedido a SK_PPTO_INGRESOS_EXTRA
+  // para que aparezca automáticamente en el Presupuesto como "Subvención entidad pública" (syncKey: subvencionPublica)
+  const saveSubvenciones = useCallback((next) => {
+    setSubvenciones(next);
+    dataService.set(SK_DOC_SUBVENCIONES, next).then(async () => {
+      // Calcular total concedido (solo subvenciones en estado concedida/justificada/cerrada)
+      const totalConcedido = next
+        .filter(sv => ["concedida", "justificada", "cerrada"].includes(sv.estado))
+        .reduce((sum, sv) => {
+          const v = parseFloat(String(sv.importeConcedido || "0").replace(",", ".")) || 0;
+          return sum + v;
+        }, 0);
+      // Actualizar la línea subvencionPublica en ingresosExtra
+      const ingresosExtra = await dataService.get("teg_presupuesto_v1_ingresosExtra", []);
+      if (Array.isArray(ingresosExtra)) {
+        const updated = ingresosExtra.map(ie =>
+          ie.syncKey === "subvencionPublica"
+            ? { ...ie, valor: totalConcedido, activo: totalConcedido > 0 }
+            : ie
+        );
+        await dataService.set("teg_presupuesto_v1_ingresosExtra", updated);
+      }
+      dataService.notify('documentos');
+      dataService.notify('presupuesto');
+    });
   }, []);
 
   // ─── FILE HANDLING ────────────────────────────────────────────────────────
@@ -307,12 +390,16 @@ export default function Documentos() {
 
   const confirmarDelete = async () => {
     if (!delConfirm) return;
-    const { id, esGestion } = delConfirm;
+    const { id, esGestion, esSubvencion } = delConfirm;
     setDelConfirm(null);
     if (esGestion) {
       saveGestiones(gestiones.filter(x => x.id !== id));
       setGEditId(null);
       toast.success("Gestión eliminada");
+    } else if (esSubvencion) {
+      saveSubvenciones(subvenciones.filter(sv => sv.id !== id));
+      setSvEditId(null);
+      toast.success("Subvención eliminada");
     } else {
       try {
         // SEC-01: proxy BFF — sin x-api-key en el cliente
@@ -469,8 +556,9 @@ export default function Documentos() {
   };
 
   // ─── DERIVED ─────────────────────────────────────────────────────────────
-  const catInfo   = CATEGORIAS.find(c => c.id === tab);
-  const isGestion = tab === "gestiones"; // gestiones es sección separada, no categoría
+  const catInfo      = CATEGORIAS.find(c => c.id === tab);
+  const isGestion    = tab === "gestiones";
+  const isSubvencion = tab === "subvenciones";
 
   const addLogEntry = (gestionId) => {
     const texto = nuevoLog.trim();
@@ -778,7 +866,7 @@ export default function Documentos() {
           </div>
         )}
 
-        {/* ── Category tabs — solo archivos ── */}
+        {/* ── Category tabs — archivos + secciones especiales ── */}
         <div className="tabs" style={{gap:".4rem",flexWrap:"wrap"}}>
           {CATEGORIAS.map(c => {
             const active = tab === c.id;
@@ -802,10 +890,33 @@ export default function Documentos() {
               </button>
             );
           })}
+          {/* Subvenciones */}
+          {(() => {
+            const active = tab === "subvenciones";
+            const concedidas = subvenciones.filter(sv => ["concedida","justificada","cerrada"].includes(sv.estado));
+            const totalConcedido = concedidas.reduce((s,sv) => s + (parseFloat(String(sv.importeConcedido||"0").replace(",",".")) || 0), 0);
+            return (
+              <button className={`tab-btn${active ? " active" : ""}`}
+                onClick={() => { setTab("subvenciones"); setBusqueda(""); }}
+                style={active ? { background:"#34d39918", color:"#34d399", borderColor:"#34d39955", boxShadow:"0 0 12px #34d39922" } : {}}>
+                🏅 Subvenciones
+                {subvenciones.length > 0 && (
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",background:"rgba(255,255,255,.07)",borderRadius:10,padding:".05rem .4rem",marginLeft:".1rem"}}>
+                    {subvenciones.length}
+                  </span>
+                )}
+                {totalConcedido > 0 && (
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#34d399",marginLeft:".25rem",fontWeight:700}}>
+                    {formatImporte(totalConcedido)}
+                  </span>
+                )}
+              </button>
+            );
+          })()}
         </div>
 
         {/* ── Upload zone — solo para categorías de archivo ── */}
-        {!isGestion && (
+        {!isGestion && !isSubvencion && (
         <div className="card mb" style={{padding: uploadOpen ? undefined : ".65rem 1rem"}}>
           <button
             onClick={() => setUploadOpen(v => !v)}
@@ -1492,7 +1603,7 @@ export default function Documentos() {
           }}>
             <div style={{ fontSize:"var(--fs-xl)", marginBottom:".6rem" }}>🗑</div>
             <div style={{ fontWeight:800, fontSize:"var(--fs-md)", marginBottom:".35rem" }}>
-              ¿Eliminar este {delConfirm.esGestion ? "trámite" : "documento"}?
+              ¿Eliminar este {delConfirm.esGestion ? "trámite" : delConfirm.esSubvencion ? "subvención" : "documento"}?
             </div>
             <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
               color:"var(--text-muted)", marginBottom:"1.25rem",
@@ -1511,6 +1622,114 @@ export default function Documentos() {
         </div>,
         document.body
       )}
+
+
+      {/* ── SECCIÓN SUBVENCIONES ── */}
+      {isSubvencion && (() => {
+        const totalSolicitado = subvenciones.reduce((s,sv) => s + (parseFloat(String(sv.importeSolicitado||"").replace(",",".")) || 0), 0);
+        const totalConcedido  = subvenciones.filter(sv => ["concedida","justificada","cerrada"].includes(sv.estado))
+          .reduce((s,sv) => s + (parseFloat(String(sv.importeConcedido||"").replace(",",".")) || 0), 0);
+        return (
+          <div style={{marginTop:"1rem"}}>
+            {/* Cabecera */}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".75rem",paddingBottom:".6rem",borderBottom:"2px solid rgba(52,211,153,0.2)"}}>
+              <div>
+                <div style={{fontFamily:"var(--font-display)",fontWeight:800,fontSize:"var(--fs-md)",color:"#34d399",display:"flex",alignItems:"center",gap:".5rem"}}>
+                  🏅 Subvenciones
+                </div>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginTop:".15rem"}}>
+                  Solicitudes y resoluciones · se sincroniza con Presupuesto
+                </div>
+              </div>
+              <div style={{display:"flex",gap:".5rem",alignItems:"center",flexWrap:"wrap"}}>
+                {totalConcedido > 0 && (
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,color:"#34d399",background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.25)",borderRadius:20,padding:".15rem .55rem"}}>
+                    ✅ {formatImporte(totalConcedido)} concedidos
+                  </span>
+                )}
+                {totalSolicitado > 0 && totalSolicitado !== totalConcedido && (
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#60a5fa",background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.25)",borderRadius:20,padding:".15rem .55rem"}}>
+                    📤 {formatImporte(totalSolicitado)} solicitados
+                  </span>
+                )}
+                <button className="btn btn-primary btn-sm" onClick={()=>{
+                  setSvForm({...SUBVENCION_EMPTY}); setSvEditId(null); setSvModal(true);
+                }}>+ Nueva subvención</button>
+              </div>
+            </div>
+
+            {/* Lista */}
+            {subvenciones.length === 0 ? (
+              <div style={{textAlign:"center",padding:"2rem",color:"var(--text-muted)",fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)"}}>
+                <div style={{fontSize:"2rem",marginBottom:".5rem"}}>🏅</div>
+                <div>Sin subvenciones registradas</div>
+                <div style={{fontSize:"var(--fs-xs)",marginTop:".25rem"}}>Añade subvenciones para hacer seguimiento y sincronizarlas con el Presupuesto</div>
+              </div>
+            ) : subvenciones.map(sv => {
+              const est = getSvEstado(sv.estado);
+              const impSol = parseFloat(String(sv.importeSolicitado||"").replace(",",".")) || 0;
+              const impConc = parseFloat(String(sv.importeConcedido||"").replace(",",".")) || 0;
+              const isConcedida = ["concedida","justificada","cerrada"].includes(sv.estado);
+              return (
+                <div key={sv.id} className="card mb" style={{padding:"1rem",border:isConcedida?"1px solid rgba(52,211,153,0.3)":undefined}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:".75rem",flexWrap:"wrap"}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:700,fontSize:"var(--fs-base)",display:"flex",alignItems:"center",gap:".5rem",flexWrap:"wrap"}}>
+                        <span>{sv.nombre}</span>
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:est.color,background:est.bg,border:`1px solid ${est.color}44`,borderRadius:20,padding:".1rem .45rem",whiteSpace:"nowrap"}}>
+                          {est.icon} {est.label}
+                        </span>
+                        {isConcedida && impConc > 0 && (
+                          <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",fontWeight:700,color:"#34d399"}}>
+                            💶 {formatImporte(impConc)}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginTop:".2rem",display:"flex",gap:".75rem",flexWrap:"wrap"}}>
+                        <span>🏢 {sv.organismo}</span>
+                        {sv.convocatoria && <span>📌 {sv.convocatoria}</span>}
+                        {sv.responsable && <span>👤 {sv.responsable}</span>}
+                      </div>
+                      {/* Importes */}
+                      <div style={{display:"flex",gap:".75rem",marginTop:".35rem",flexWrap:"wrap"}}>
+                        {impSol > 0 && !isConcedida && (
+                          <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#60a5fa"}}>📤 Solicitado: {formatImporte(impSol)}</span>
+                        )}
+                        {impSol > 0 && isConcedida && (
+                          <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>Solicitado: {formatImporte(impSol)}</span>
+                        )}
+                      </div>
+                      {/* Fechas */}
+                      <div style={{display:"flex",gap:".75rem",marginTop:".25rem",flexWrap:"wrap"}}>
+                        {sv.fechaConvocatoria && <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>📅 Conv: {formatDate(sv.fechaConvocatoria)}</span>}
+                        {sv.fechaSolicitud    && <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#38bdf8"}}>📤 Sol: {formatDate(sv.fechaSolicitud)}</span>}
+                        {sv.fechaResolucion   && <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#34d399"}}>✅ Res: {formatDate(sv.fechaResolucion)}</span>}
+                        {sv.fechaJustificacion && <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#a78bfa"}}>📋 Just: {formatDate(sv.fechaJustificacion)}</span>}
+                      </div>
+                      {sv.nota && <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginTop:".35rem",fontStyle:"italic"}}>{sv.nota}</div>}
+                      {sv.url && <a href={sv.url} target="_blank" rel="noreferrer" style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#38bdf8",display:"block",marginTop:".25rem"}}>🔗 Ver convocatoria</a>}
+                    </div>
+                    <div style={{display:"flex",gap:".4rem",flexShrink:0}}>
+                      <button className="btn btn-ghost btn-sm" title="Editar" onClick={()=>{
+                        setSvForm({
+                          id:sv.id, nombre:sv.nombre, organismo:sv.organismo||"Ayuntamiento",
+                          convocatoria:sv.convocatoria||"", importeSolicitado:sv.importeSolicitado||"",
+                          importeConcedido:sv.importeConcedido||"", fechaConvocatoria:sv.fechaConvocatoria||"",
+                          fechaSolicitud:sv.fechaSolicitud||"", fechaResolucion:sv.fechaResolucion||"",
+                          fechaJustificacion:sv.fechaJustificacion||"", estado:sv.estado,
+                          nota:sv.nota||"", url:sv.url||"", responsable:sv.responsable||"", docIds:sv.docIds||[],
+                        });
+                        setSvEditId(sv.id); setSvModal(true);
+                      }}>✏️</button>
+                      <button className="btn btn-ghost btn-sm" title="Eliminar" onClick={()=>setDelConfirm({id:sv.id,nombre:sv.nombre,esSubvencion:true})}>🗑</button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* ── Modal nueva gestión ── */}
       {gModal && createPortal(
@@ -1577,6 +1796,118 @@ export default function Documentos() {
                 setGModal(false);
               }} disabled={!gForm.nombre.trim()} style={{opacity:gForm.nombre.trim()?1:.5}}>
                 Crear gestión
+              </button>
+            </div>
+          </div>
+        </div>
+      , document.body)}
+
+      {/* ── Modal subvención ── */}
+      {svModal && createPortal(
+        <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setSvModal(false)}>
+          <div className="modal modal-ficha" style={{maxWidth:520}}>
+            <div className="modal-header">
+              <span className="modal-title">🏅 {svEditId ? "Editar subvención" : "Nueva subvención"}</span>
+              <button className="btn btn-ghost btn-sm" onClick={()=>setSvModal(false)} aria-label="Cerrar">✕</button>
+            </div>
+            <div className="modal-body" style={{gap:".65rem"}}>
+              {/* Nombre */}
+              <div>
+                <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Nombre *</label>
+                <input autoFocus className="inp" value={svForm.nombre} onChange={e=>setSvForm(p=>({...p,nombre:e.target.value}))} placeholder="Ej: Subvención Diputación Provincial 2026" />
+              </div>
+              {/* Organismo + Estado */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
+                <div>
+                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Organismo</label>
+                  <select className="inp" value={svForm.organismo} onChange={e=>setSvForm(p=>({...p,organismo:e.target.value}))}>
+                    {ORGANISMOS_SUBVENCION.map(o=><option key={o} value={o}>{o}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Estado</label>
+                  <select className="inp" value={svForm.estado} onChange={e=>setSvForm(p=>({...p,estado:e.target.value}))}
+                    style={{color:getSvEstado(svForm.estado).color}}>
+                    {ESTADOS_SUBVENCION.map(e=><option key={e.id} value={e.id}>{e.icon} {e.label}</option>)}
+                  </select>
+                </div>
+              </div>
+              {/* Convocatoria */}
+              <div>
+                <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Nombre de la convocatoria</label>
+                <input className="inp" value={svForm.convocatoria} onChange={e=>setSvForm(p=>({...p,convocatoria:e.target.value}))} placeholder="Ej: Plan de Fomento del Deporte 2026" />
+              </div>
+              {/* Importes */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
+                <div>
+                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"#60a5fa",display:"block",marginBottom:".3rem"}}>📤 Importe solicitado (€)</label>
+                  <input className="inp" type="number" min="0" step="0.01" value={svForm.importeSolicitado} onChange={e=>setSvForm(p=>({...p,importeSolicitado:e.target.value}))} placeholder="0.00" />
+                </div>
+                <div>
+                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"#34d399",display:"block",marginBottom:".3rem"}}>✅ Importe concedido (€)</label>
+                  <input className="inp" type="number" min="0" step="0.01" value={svForm.importeConcedido} onChange={e=>setSvForm(p=>({...p,importeConcedido:e.target.value}))} placeholder="0.00" />
+                </div>
+              </div>
+              {/* Fechas */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
+                <div>
+                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>📅 Fecha convocatoria</label>
+                  <input className="inp" type="date" value={svForm.fechaConvocatoria} onChange={e=>setSvForm(p=>({...p,fechaConvocatoria:e.target.value}))} />
+                </div>
+                <div>
+                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"#38bdf8",display:"block",marginBottom:".3rem"}}>📤 Fecha solicitud</label>
+                  <input className="inp" type="date" value={svForm.fechaSolicitud} onChange={e=>setSvForm(p=>({...p,fechaSolicitud:e.target.value}))} />
+                </div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
+                <div>
+                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"#34d399",display:"block",marginBottom:".3rem"}}>✅ Fecha resolución</label>
+                  <input className="inp" type="date" value={svForm.fechaResolucion} onChange={e=>setSvForm(p=>({...p,fechaResolucion:e.target.value}))} />
+                </div>
+                <div>
+                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"#a78bfa",display:"block",marginBottom:".3rem"}}>📋 Fecha justificación</label>
+                  <input className="inp" type="date" value={svForm.fechaJustificacion} onChange={e=>setSvForm(p=>({...p,fechaJustificacion:e.target.value}))} />
+                </div>
+              </div>
+              {/* Responsable + URL */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
+                <div>
+                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Responsable</label>
+                  <input className="inp" value={svForm.responsable} onChange={e=>setSvForm(p=>({...p,responsable:e.target.value}))} placeholder="Nombre del responsable…" />
+                </div>
+                <div>
+                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>URL convocatoria</label>
+                  <input className="inp" value={svForm.url} onChange={e=>setSvForm(p=>({...p,url:e.target.value}))} placeholder="https://…" />
+                </div>
+              </div>
+              {/* Notas */}
+              <div>
+                <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Notas</label>
+                <textarea className="inp" rows={3} value={svForm.nota} onChange={e=>setSvForm(p=>({...p,nota:e.target.value}))}
+                  placeholder="Requisitos, documentación necesaria, observaciones…" style={{resize:"vertical"}} />
+              </div>
+              {/* Aviso sincronización con Presupuesto */}
+              {(["concedida","justificada","cerrada"].includes(svForm.estado)) && (
+                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#34d399",background:"rgba(52,211,153,0.08)",border:"1px solid rgba(52,211,153,0.2)",borderRadius:8,padding:".5rem .75rem"}}>
+                  💡 Al guardar, el importe concedido se sincronizará automáticamente con <strong>Presupuesto → Ingresos extra → Subvención entidad pública</strong>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={()=>setSvModal(false)}>Cancelar</button>
+              <button className="btn btn-primary" disabled={!svForm.nombre.trim()} style={{opacity:svForm.nombre.trim()?1:.5}}
+                onClick={()=>{
+                  if (!svForm.nombre.trim()) return;
+                  if (svEditId) {
+                    saveSubvenciones(subvenciones.map(sv => sv.id === svEditId ? { ...svForm } : sv));
+                    toast.success("Subvención actualizada");
+                  } else {
+                    saveSubvenciones([...subvenciones, { ...svForm, id: "sv" + Date.now(), fechaSubida: new Date().toISOString() }]);
+                    toast.success("Subvención añadida");
+                  }
+                  setSvModal(false);
+                }}>
+                {svEditId ? "Guardar cambios" : "Crear subvención"}
               </button>
             </div>
           </div>

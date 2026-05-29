@@ -1164,3 +1164,61 @@ describe('SEC-07 · Content-Security-Policy en vercel.json', () => {
     expect(csp).toContain("form-action 'self'");
   });
 });
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SUBVENCIONES — Propuesta 2: sección con flujo de estado + sync Presupuesto
+// ══════════════════════════════════════════════════════════════════════════════
+describe('SUBV-01 — Módulo Subvenciones', () => {
+  it('SK_DOC_SUBVENCIONES definida en storageKeys.js', () => {
+    const sk = read('src/constants/storageKeys.js');
+    expect(sk).toContain('SK_DOC_SUBVENCIONES');
+    expect(sk).toContain('teg_documentos_v1_subvenciones');
+  });
+  it('SK_DOC_SUBVENCIONES exportada en mapa SK', () => {
+    const sk = read('src/constants/storageKeys.js');
+    expect(sk).toContain('DOC_SUBVENCIONES');
+  });
+  it('ESTADOS_SUBVENCION define ciclo completo de vida', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    ['detectada','solicitada','en_evaluacion','concedida','justificada','cerrada','denegada'].forEach(e => {
+      expect(doc).toContain(e);
+    });
+  });
+  it('SUBVENCIONES_DEFAULT incluye subvenciones predefinidas', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('SUBVENCIONES_DEFAULT');
+    expect(doc).toContain('sv1');
+    expect(doc).toContain('sv2');
+  });
+  it('saveSubvenciones sincroniza con Presupuesto (subvencionPublica)', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('saveSubvenciones');
+    expect(doc).toContain('subvencionPublica');
+    expect(doc).toContain('teg_presupuesto_v1_ingresosExtra');
+  });
+  it('sync solo activa subvenciones en estado concedida/justificada/cerrada', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('"concedida","justificada","cerrada"');
+  });
+  it('modal de subvención tiene campos de importe solicitado y concedido', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('importeSolicitado');
+    expect(doc).toContain('importeConcedido');
+  });
+  it('modal tiene las 4 fechas del ciclo documental', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('fechaConvocatoria');
+    expect(doc).toContain('fechaSolicitud');
+    expect(doc).toContain('fechaResolucion');
+    expect(doc).toContain('fechaJustificacion');
+  });
+  it('pestaña Subvenciones con total concedido visible en el tab', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('tab === "subvenciones"');
+    expect(doc).toContain('totalConcedido');
+  });
+  it('confirmarDelete maneja esSubvencion', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('esSubvencion');
+  });
+});

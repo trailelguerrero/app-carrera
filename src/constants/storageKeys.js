@@ -88,8 +88,9 @@ export const SK_CAM_FUENTES            = "teg_camisetas_v1_fuentes";
 export const SK_CAM_VENTA_PUBLICO     = "teg_camisetas_v1_venta_publico";
 
 // ── Documentos ────────────────────────────────────────────────────────────────
-export const SK_DOC_DOCS      = "teg_documentos_v1";
-export const SK_DOC_GESTIONES = "teg_documentos_v1_gestiones";
+export const SK_DOC_DOCS         = "teg_documentos_v1";
+export const SK_DOC_GESTIONES    = "teg_documentos_v1_gestiones";
+export const SK_DOC_SUBVENCIONES = "teg_documentos_v1_subvenciones";
 
 // ── Logística ─────────────────────────────────────────────────────────────────
 /** Colección raíz de logística */
@@ -205,8 +206,9 @@ export const SK = {
   CAM_FUENTES:            SK_CAM_FUENTES,
 
   // Documentos
-  DOC_DOCS:      SK_DOC_DOCS,
-  DOC_GESTIONES: SK_DOC_GESTIONES,
+  DOC_DOCS:         SK_DOC_DOCS,
+  DOC_GESTIONES:    SK_DOC_GESTIONES,
+  DOC_SUBVENCIONES: SK_DOC_SUBVENCIONES,
 
   // Logística
   LOG_ROOT:         SK_LOG_ROOT,
