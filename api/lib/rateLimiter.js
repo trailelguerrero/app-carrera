@@ -76,3 +76,26 @@ export async function checkRateLimit(sql, ip, scope, { max = 5, windowMs = 10 * 
   const current = rows[0]?.count ?? 1;
   return current > max;
 }
+
+/**
+ * Read-only check of a rate-limit counter WITHOUT incrementing it.
+ * Used as a pre-check (e.g. global lockout) before doing expensive work.
+ *
+ * @returns {Promise<boolean>} true if the (ip, scope) counter is already over `max`.
+ */
+export async function peekRateLimit(sql, ip, scope, { max = 5 } = {}) {
+  const rows = await sql`
+    SELECT count FROM rate_limit
+    WHERE ip = ${ip} AND scope = ${scope} AND window_end >= NOW()
+  `;
+  const current = rows[0]?.count ?? 0;
+  return current > max;
+}
+
+/**
+ * Clear a rate-limit counter for (ip, scope). Best-effort.
+ * Used to reset a global failure counter after a successful auth.
+ */
+export async function resetRateLimit(sql, ip, scope) {
+  await sql`DELETE FROM rate_limit WHERE ip = ${ip} AND scope = ${scope}`.catch(() => {});
+}

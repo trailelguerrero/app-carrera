@@ -22,10 +22,24 @@
 
 import { neon } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
-import { checkRateLimit } from '../lib/rateLimiter.js';
+import crypto from 'crypto';
+import { checkRateLimit, peekRateLimit, resetRateLimit } from '../lib/rateLimiter.js';
 
 // Clave en Neon donde se almacena el hash del PIN del panel
 const PANEL_PIN_KEY = 'teg_panel_pin_v1';
+
+// SEC-M2: contador GLOBAL de fallos (todas las IPs) como red de seguridad frente a
+// fuerza bruta distribuida. El PIN es de 4 dígitos (10 000 combinaciones), así que el
+// límite por-IP no basta contra un atacante con muchas IPs. 20 fallos / 15 min en total
+// → bloqueo temporal. Se resetea ante un acceso correcto.
+const GLOBAL_FAIL_KEY = '__global__';
+const GLOBAL_FAIL_SCOPE = 'panel-auth-fail';
+const GLOBAL_FAIL_OPTS = { max: 20, windowMs: 15 * 60 * 1000 };
+
+// SEC-M2: hash bcrypt "señuelo" calculado una vez por cold start. Se compara contra él
+// cuando NO hay PIN configurado, para que el tiempo de respuesta sea indistinguible del
+// caso en que sí hay hash bcrypt almacenado (evita enumerar el estado de configuración).
+const DUMMY_BCRYPT_HASH = bcrypt.hashSync('anti-timing-dummy', 10);
 
 // Hash djb2 legacy (solo para migración transparente de hashes anteriores a Fase 4)
 function hashPinLegacy(pin) {
@@ -46,7 +60,9 @@ function getCorsHeaders(req) {
     'http://localhost:5173',
     'http://localhost:4173',
   ].filter(Boolean);
-  return allowed.some(o => origin.startsWith(o)) ? origin : null;
+  // SEC-M1: igualdad EXACTA de origen. `startsWith` permitía bypass del tipo
+  // `https://miapp.com.attacker.com` cuando el permitido era `https://miapp.com`.
+  return allowed.includes(origin) ? origin : null;
 }
 
 /**
@@ -85,8 +101,11 @@ async function saveHash(sql, hash) {
 async function verifyAndMaybeUpgrade(sql, pin) {
   let stored = await getStoredHash(sql);
 
-  // Sin hash almacenado → PIN no establecido → acceso denegado. Usar flujo de primer uso.
+  // SEC-M2: sin hash → acceso denegado, pero comparamos contra un hash bcrypt señuelo
+  // para igualar el tiempo de respuesta con el caso "hash bcrypt presente". Así no se
+  // puede deducir por timing si el PIN está configurado o no.
   if (!stored) {
+    bcrypt.compareSync(String(pin), DUMMY_BCRYPT_HASH);
     return { valid: false, needsUpgrade: false };
   }
 
@@ -94,13 +113,18 @@ async function verifyAndMaybeUpgrade(sql, pin) {
   const hashStr = typeof stored === 'string' ? stored : String(stored);
 
   if (hashStr.startsWith('$2')) {
-    // Hash bcrypt — comparación segura
+    // Hash bcrypt — comparación segura (constant-time por diseño de bcrypt)
     const valid = bcrypt.compareSync(String(pin), hashStr);
     return { valid, needsUpgrade: false };
   }
 
-  // Hash djb2 legacy — migrar si el PIN es correcto
-  const valid = hashPinLegacy(String(pin)) === hashStr;
+  // Hash djb2 legacy — migrar si el PIN es correcto.
+  // SEC-M2: comparación en tiempo constante para no filtrar coincidencias parciales.
+  const candidate = Buffer.from(hashPinLegacy(String(pin)));
+  const expected = Buffer.from(hashStr);
+  const valid =
+    candidate.length === expected.length &&
+    crypto.timingSafeEqual(candidate, expected);
   if (valid) {
     const newHash = bcrypt.hashSync(String(pin), 10);
     await saveHash(sql, newHash).catch(() => {});
@@ -140,8 +164,15 @@ export default async function handler(req, res) {
 
   const sql = neon(process.env.DATABASE_URL);
 
-  // Rate limiting: 10 intentos por IP en 5 minutos
-  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
+  // Rate limiting per-IP: 10 intentos por IP en 5 minutos.
+  // SEC-H1: priorizar x-real-ip (poblada por Vercel) sobre x-forwarded-for. Vercel
+  // sobrescribe XFF para evitar spoofing, pero si en el futuro se antepone un proxy/CDN
+  // propio, XFF vuelve a ser falsificable; x-real-ip es la fuente más fiable.
+  const ip = (
+    req.headers['x-real-ip'] ||
+    req.headers['x-forwarded-for']?.split(',')[0] ||
+    ''
+  ).trim() || 'unknown';
   const limited = await checkRateLimit(sql, ip, 'panel-auth', {
     max: 10,
     windowMs: 5 * 60 * 1000,
@@ -154,12 +185,26 @@ export default async function handler(req, res) {
 
   // ── Acción: verify ────────────────────────────────────────────────────────
   if (action === 'verify') {
-    if (!pin || typeof pin !== 'string') {
+    // SEC-L1: acotar tamaño de entrada sin forzar formato (no bloquea PINs existentes).
+    if (typeof pin !== 'string' || pin.length < 1 || pin.length > 64) {
       return res.status(400).json({ error: 'Parámetro inválido' });
     }
 
     try {
+      // SEC-H2: bloqueo global por exceso de fallos (red de seguridad anti-brute distribuido)
+      if (await peekRateLimit(sql, GLOBAL_FAIL_KEY, GLOBAL_FAIL_SCOPE, GLOBAL_FAIL_OPTS)) {
+        return res.status(429).json({ error: 'Demasiados intentos. Espera unos minutos.' });
+      }
+
       const { valid } = await verifyAndMaybeUpgrade(sql, pin);
+
+      // SEC-H2: solo los fallos cuentan; un acceso correcto limpia el contador global.
+      if (valid) {
+        await resetRateLimit(sql, GLOBAL_FAIL_KEY, GLOBAL_FAIL_SCOPE);
+      } else {
+        await checkRateLimit(sql, GLOBAL_FAIL_KEY, GLOBAL_FAIL_SCOPE, GLOBAL_FAIL_OPTS);
+      }
+
       // Respuesta mínima — no revelar información adicional
       return res.json({ valid });
     } catch (err) {
@@ -179,11 +224,18 @@ export default async function handler(req, res) {
     }
 
     try {
+      // SEC-H2: un `change` con currentPin erróneo también es un intento de adivinanza.
+      if (await peekRateLimit(sql, GLOBAL_FAIL_KEY, GLOBAL_FAIL_SCOPE, GLOBAL_FAIL_OPTS)) {
+        return res.status(429).json({ error: 'Demasiados intentos. Espera unos minutos.' });
+      }
+
       const { valid } = await verifyAndMaybeUpgrade(sql, currentPin);
       if (!valid) {
+        await checkRateLimit(sql, GLOBAL_FAIL_KEY, GLOBAL_FAIL_SCOPE, GLOBAL_FAIL_OPTS);
         return res.json({ ok: false });
       }
 
+      await resetRateLimit(sql, GLOBAL_FAIL_KEY, GLOBAL_FAIL_SCOPE);
       const newHash = bcrypt.hashSync(String(newPin), 10);
       await saveHash(sql, newHash);
       return res.json({ ok: true });
