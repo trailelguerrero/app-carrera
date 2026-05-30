@@ -13,6 +13,7 @@
  */
 import { neon } from '@neondatabase/serverless';
 import { checkRateLimit } from '../lib/rateLimiter.js';
+import { logError, requestContext } from '../lib/logger.js';
 
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto'; // fix(SEC-CRIT-02): CSPRNG para sessionToken
@@ -380,7 +381,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method or action not allowed' });
 
   } catch (err) {
-    console.error('[voluntarios]', err.message);
+    logError('[voluntarios]', err, requestContext(req));
     return res.status(500).json({ error: 'Error interno del servidor' });
   }
 }

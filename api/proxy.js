@@ -9,6 +9,7 @@
  * Batch GET usa Promise.all para queries paralelas (~4-6× más rápido).
  */
 import { neon } from '@neondatabase/serverless';
+import { logError, logInfo, logWarn, requestContext } from './lib/logger.js';
 
 const ALLOWED_COLLECTIONS = /^teg_(voluntarios|logistica|presupuesto|camisetas|patrocinadores|pat_log|localizaciones|documentos|proyecto|event_config|scenarios|codigos_promo|panel_pin_hash|panel_pin_length|escenarios|dia_carrera|scenario_active_name|auto_backup)_?v?\d*(_[a-zA-Z0-9]+)*$/;
 
@@ -132,11 +133,11 @@ export default async function handler(req, res) {
       if (req.method === 'PUT') {
         const body = req.body;
         if (body === undefined || body === null) {
-          console.error(`[proxy/data] PUT ${collection}: body vacío o undefined`);
+          logWarn('[proxy/data]', 'PUT body vacío o undefined', { ...requestContext(req), collection });
           return res.status(400).json({ error: 'Body vacío' });
         }
         const jsonValue = JSON.stringify(body);
-        console.log(`[proxy/data] PUT ${collection}: ${jsonValue.length} bytes`);
+        logInfo('[proxy/data]', 'PUT recibido', { ...requestContext(req), collection, bytes: jsonValue.length });
         await sql`
           INSERT INTO collections (key, value, version)
           VALUES (${collection}, ${jsonValue}::jsonb, 1)
@@ -146,7 +147,7 @@ export default async function handler(req, res) {
               updated_at = CURRENT_TIMESTAMP
         `;
         const updated = await sql`SELECT version FROM collections WHERE key = ${collection}`;
-        console.log(`[proxy/data] PUT ${collection}: OK, version=${updated[0]?.version}`);
+        logInfo('[proxy/data]', 'PUT OK', { collection, version: updated[0]?.version });
         return res.status(200).json({ success: true, version: updated[0]?.version || 1 });
       }
 
@@ -155,7 +156,7 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true });
       }
     } catch (err) {
-      console.error('[proxy/data] Neon error:', err.message);
+      logError('[proxy/data]', err, { ...requestContext(req), collection });
       return res.status(500).json({ error: 'Database error' });
     }
   }
@@ -193,7 +194,7 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true });
       }
     } catch (err) {
-      console.error('[proxy/batch] Neon error:', err.message);
+      logError('[proxy/batch]', err, requestContext(req));
       return res.status(500).json({ error: 'Database error' });
     }
   }
@@ -243,7 +244,7 @@ export default async function handler(req, res) {
     if (ct.includes('application/json')) return res.json(await response.json());
     return res.send(await response.text());
   } catch (err) {
-    console.error('[proxy] HTTP forward error:', err.message);
+    logError('[proxy]', err, { ...requestContext(req), forward: true });
     return res.status(502).json({ error: 'Proxy error' });
   }
 }

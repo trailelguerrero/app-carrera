@@ -1,7 +1,31 @@
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import * as Sentry from "@sentry/react";
 import App from "./App.tsx";
 import "./index.css";
+
+// ── Sentry — solo en producción ────────────────────────────────────────────
+if (import.meta.env.PROD && import.meta.env.VITE_SENTRY_DSN) {
+  Sentry.init({
+    dsn: import.meta.env.VITE_SENTRY_DSN,
+    release: __APP_VERSION__,
+    environment: "production",
+    // Captura el 100% de errores, 10% de trazas de rendimiento
+    tracesSampleRate: 0.1,
+    // No enviar datos personales en breadcrumbs de UI
+    beforeBreadcrumb(breadcrumb) {
+      if (breadcrumb.category === "ui.input") return null;
+      return breadcrumb;
+    },
+    // Filtrar errores de red esperados (offline) y del SW
+    ignoreErrors: [
+      "NetworkError",
+      "Failed to fetch",
+      "Load failed",
+      /ServiceWorker/i,
+    ],
+  });
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
