@@ -7,7 +7,8 @@ import ErrorBoundary from "../components/ErrorBoundary";
 const DiaCarrera = lazy(() => import("../components/blocks/DiaCarrera"));
 import ConflictModal from "../components/blocks/ConflictModal";
 import { ThemeToggle } from "../components/ui/ThemeToggle";
-import { LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
+import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
+import { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys"; // FIX-DEP: migrado desde alias deprecated
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useAppStore, EVENT_TYPES } from "@/store/useAppStore";
 import QuickNav from "../components/common/QuickNav";

@@ -9,7 +9,8 @@ import EmptyState from "@/components/EmptyState";
 import { usePaginacion } from "@/hooks/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { useData } from "@/hooks/useData";
-import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
+import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
+import { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys"; // FIX-DEP: migrado desde alias deprecated
 import { blockCls as cls } from "@/lib/blockStyles";
 import SkeletonBlock from "@/components/common/SkeletonBlock";
 import ModalDetalle from "./patrocinadores/ModalDetalle";

@@ -27,11 +27,13 @@ import {
   calculateCosteCamisetasDesglosado,
   calculateMerchTotales,
   getImporteCobrado,
+  getImporteComprometido,
 } from "@/lib/budgetUtils";
 import { fmtEur } from "@/lib/utils";
 import { EVENT_DATE } from "@/constants/budgetConstants";
 import { COSTE_DEFAULT as CAM_COSTE_DEFAULT } from "@/components/camisetas/camisetasConstants";
-import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
+import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
+import { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys"; // FIX-DEP: migrado desde alias deprecated
 import {
   SK_PPTO_CONCEPTOS, SK_PPTO_TRAMOS, SK_PPTO_INSCRITOS, SK_PPTO_INGRESOS_EXTRA,
   SK_PPTO_MERCHANDISING, SK_PPTO_SYNC_CONFIG, SK_PPTO_MAXIMOS, SK_PPTO_SCENARIO_ACTIVE,
@@ -136,18 +138,19 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
     };
     const ocupacionGlobal = totalMaximos > 0 ? Math.round(totalInscritos / totalMaximos * 100) : null;
 
-    // Patrocinios live (mismo filtro que useBudgetLogic ECO-01)
+    // Patrocinios live — fuente canónica: getImporteComprometido / getImporteCobrado (budgetUtils)
+    // FIX-PAT-DUP: antes había 3 implementaciones inline del mismo cálculo.
     const _rawPatsSnap = Array.isArray(rawPats) ? rawPats : [];
     const _excluirPublicos = syncConfig?.subvencionPublica === true;
     const _totalPatLive = _rawPatsSnap
       .filter(p => !p.especie && (!_excluirPublicos || p.sector !== "Administración pública"))
-      .reduce((s, p) => (p.estado === "confirmado" || p.estado === "cobrado") ? s + (p.importe || 0) : s, 0);
+      .reduce((s, p) => s + getImporteComprometido(p), 0);
     const _totalPatCobradoLive = _rawPatsSnap
       .filter(p => !p.especie && p.estado === "cobrado")
-      .reduce((s, p) => s + (p.importeCobrado > 0 ? p.importeCobrado : (p.importe || 0)), 0);
+      .reduce((s, p) => s + getImporteCobrado(p), 0);
     const _totalSubvLive = _rawPatsSnap
       .filter(p => p.sector === "Administración pública" && !p.especie)
-      .reduce((s, p) => (p.estado === "confirmado" || p.estado === "cobrado") ? s + (p.importe || 0) : s, 0);
+      .reduce((s, p) => s + getImporteComprometido(p), 0);
 
     // FIX-DASH-01: balanceCamisetasTecnicas calculado en vivo (igual que useBudgetLogic)
     // Antes usaba ie.valor del snapshot de BD → divergencia con módulo Presupuesto

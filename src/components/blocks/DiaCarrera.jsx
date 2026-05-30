@@ -5,7 +5,8 @@ import dataService from "@/lib/dataService";
 import { useData } from "@/hooks/useData";
 import { toast } from "@/lib/toast";
 import EmptyState from "@/components/EmptyState";
-import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
+import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
+import { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys"; // FIX-DEP: migrado desde alias deprecated
 import { getEventDate } from "@/lib/eventUtils";
 import { LOCS_KEY, LOCS_DEFAULT } from "@/constants/localizaciones"; // CONN-01: mapa de puestos
 // Mejora 4: usar contratos públicos en lugar de SK_LOG_ROOT / SK_VOL_ROOT directos

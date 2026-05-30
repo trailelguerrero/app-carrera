@@ -3,7 +3,8 @@ import { createPortal } from "react-dom";
 // QRCode se importa dinámicamente para evitar crash si no está disponible
 import { blockCls as cls } from "@/lib/blockStyles";
 import { useData } from "@/hooks/useData";
-import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
+import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
+import { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys"; // FIX-DEP: migrado desde alias deprecated
 import {
   SK_UI_CODIGOS_PROMO,
   SK_UI_CODIGOS_INIT,

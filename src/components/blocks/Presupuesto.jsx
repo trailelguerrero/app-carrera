@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import ConfirmModal from "@/components/common/ConfirmModal";
 import { blockCls as cls } from "@/lib/blockStyles";
 import SkeletonBlock from "@/components/common/SkeletonBlock";
-import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
+import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
+import { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys"; // FIX-DEP: migrado desde alias deprecated
 import { useData } from "@/hooks/useData";
 import { SK_LOG_PEDIDOS_PROV } from "@/constants/storageKeys";
 import { calcCostesRealesDesdePedidos, fmt } from "@/lib/budgetUtils";

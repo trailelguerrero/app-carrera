@@ -27,5 +27,10 @@ export const EVENT_CONFIG_DEFAULT = {
   instruccionesGenerales: "",  // Ej: "Llega 15 min antes. Recoge tu peto en la carpa de organización."
 };
 
-/** @deprecated Usar SK_EVENT_CONFIG de @/constants/storageKeys */
+/**
+ * @deprecated LS_KEY_CONFIG — alias eliminado de todos los componentes (FIX-DEP).
+ * Todos los usos han sido migrados a SK_EVENT_CONFIG de @/constants/storageKeys.
+ * Esta re-exportación se mantiene solo por compatibilidad con tests externos.
+ * Eliminar en la próxima versión mayor.
+ */
 export { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys";

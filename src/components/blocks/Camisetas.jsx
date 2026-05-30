@@ -11,7 +11,8 @@ import { useData } from "@/hooks/useData";
 import dataService from "@/lib/dataService"; // FIX-DASH-03: notify al Dashboard cuando cambian datos financieros
 import { toast } from "@/lib/toast";
 import { genIdNum, fmtEur2, scrollMainToTop } from "@/lib/utils";
-import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
+import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
+import { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys"; // FIX-DEP: migrado desde alias deprecated
 import { blockCls as cls } from "@/lib/blockStyles";
 import { SK_VOL_VOLUNTARIOS, SK_CAM_VENTA_PUBLICO, SK_CAM_FECHA_PEDIDO, SK_CAM_ESTADO_PEDIDO, SK_CAM_INCLUIR_PENDIENTES, SK_CAM_MARGEN_SEGURIDAD, SK_CAM_FUENTES, SK_PPTO_INSCRITOS } from "@/constants/storageKeys";
 

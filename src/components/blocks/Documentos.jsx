@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import EmptyState from "@/components/EmptyState";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { createPortal } from "react-dom";
-import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
+import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
+import { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys"; // FIX-DEP: migrado desde alias deprecated
 import dataService from "@/lib/dataService";
 import { useData } from "@/hooks/useData";
 import { genIdStr } from "@/lib/utils";

@@ -12,7 +12,8 @@ import { useModalClose } from "@/hooks/useModalClose";
 import EmptyState from "@/components/EmptyState";
 import { usePaginacion } from "@/hooks/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
-import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
+import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
+import { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys"; // FIX-DEP: migrado desde alias deprecated
 import { getEventDate } from "@/lib/eventUtils";
 import { LOCS_DEFAULT, LOCS_KEY } from "@/constants/localizaciones";
 import { useData } from "@/hooks/useData";
@@ -229,6 +230,7 @@ export default function App() {
     setConfirmDelete(null);
     pendingDeleteRef.current = null;
     toast.success('Voluntario eliminado');
+    dataService.notify('voluntarios'); // FIX-VOL-01: invalidar Dashboard
   }, [setVoluntarios]);
   const [ficha, setFicha] = useState(null); // {tipo:'vol'|'puesto', data}
   const abrirFicha = (tipo, data) => { scrollMainToTop(); setFicha({ tipo, data }); };
@@ -326,6 +328,7 @@ export default function App() {
     const nuevo = { id: genIdNum(voluntarios), camisetaEntregada: false, enPuesto: false, horaLlegada: null, sessionToken: null, pinHash, ...data };
     setVoluntarios(prev => [...prev, nuevo]);
     toast.success("Voluntario añadido");
+    dataService.notify('voluntarios'); // FIX-VOL-01: invalidar Dashboard
     return true;
   };
 
@@ -374,6 +377,7 @@ export default function App() {
     }
     if (nuevos.length > 0) {
       setVoluntarios(prev => [...prev, ...nuevos], { force: true });
+      dataService.notify('voluntarios'); // FIX-VOL-01: invalidar Dashboard
     }
     toast.success(`Importados: ${added} voluntario${added !== 1 ? "s" : ""}${dupes > 0 ? ` · ${dupes} duplicado${dupes !== 1 ? "s" : ""} omitido${dupes !== 1 ? "s" : ""}` : ""}`);
   };
@@ -409,16 +413,18 @@ export default function App() {
     if(data.estado==="confirmado") toast.success("Voluntario confirmado ✓");
     else if(data.estado==="cancelado") toast.warning("Voluntario cancelado");
     else if(!Object.prototype.hasOwnProperty.call(data, "estado")) toast.success("Voluntario actualizado");
+    dataService.notify('voluntarios'); // FIX-VOL-01: invalidar Dashboard
   };
   const bulkUpdateVoluntarios = (ids, data) => {
     setVoluntarios(prev => prev.map(v => ids.includes(v.id) ? { ...v, ...data } : v));
     if (data.estado === "confirmado") toast.success(`${ids.length} voluntarios confirmados ✓`);
     else if (data.estado === "cancelado") toast.warning(`${ids.length} voluntarios cancelados`);
     else if (data.estado === "pendiente") toast.info(`${ids.length} voluntarios movidos a pendiente`);
+    dataService.notify('voluntarios'); // FIX-VOL-01: invalidar Dashboard
   };
-  const updatePuesto = (id, data) => { setPuestos(prev => prev.map(p => p.id === id ? { ...p, ...data } : p)); toast.success("Puesto actualizado"); };
-  const addPuesto = (data) => { setPuestos(prev => [...prev, { id: genIdNum(puestos), ...data }]); toast.success("Puesto creado"); };
-  const deletePuesto = (id) => { setPuestos(prev => prev.filter(p => p.id !== id)); setVoluntarios(prev => prev.map(v => v.puestoId === id ? { ...v, puestoId: null } : v)); toast.success("Puesto eliminado"); };
+  const updatePuesto = (id, data) => { setPuestos(prev => prev.map(p => p.id === id ? { ...p, ...data } : p)); toast.success("Puesto actualizado"); dataService.notify('voluntarios'); };
+  const addPuesto = (data) => { setPuestos(prev => [...prev, { id: genIdNum(puestos), ...data }]); toast.success("Puesto creado"); dataService.notify('voluntarios'); };
+  const deletePuesto = (id) => { setPuestos(prev => prev.filter(p => p.id !== id)); setVoluntarios(prev => prev.map(v => v.puestoId === id ? { ...v, puestoId: null } : v)); toast.success("Puesto eliminado"); dataService.notify('voluntarios'); };
 
   const volsFiltrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
