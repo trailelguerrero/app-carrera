@@ -52,6 +52,7 @@ const PRECACHE_URLS = [
   "/icon-192.webp",
   "/icon-512.webp",
   "/logo.webp",
+  "/offline.html",
 ];
 
 // ── Patrones de caché importados desde módulo compartido ──────────────────
@@ -215,9 +216,12 @@ async function cacheFirst(request, cacheName) {
     }
     return response;
   } catch {
-    // Sin red y sin caché: devolver página de fallback si existe
-    const fallback = await caches.match("/");
-    return fallback || new Response("Sin conexión", { status: 503 });
+    // Sin red y sin caché: devolver offline.html para navegación, 503 para assets
+    if (request.headers.get("Accept")?.includes("text/html")) {
+      const offline = await caches.match("/offline.html");
+      if (offline) return offline;
+    }
+    return new Response("Sin conexión", { status: 503 });
   }
 }
 
@@ -237,6 +241,11 @@ async function networkFirst(request, cacheName) {
     // Sin red: devolver caché si existe
     const cached = await cache.match(request);
     if (cached) return cached;
+    // Navegación sin caché → mostrar página offline
+    if (request.headers.get("Accept")?.includes("text/html")) {
+      const offline = await caches.match("/offline.html");
+      if (offline) return offline;
+    }
     return new Response(
       JSON.stringify({ error: "Sin conexión", offline: true }),
       { status: 503, headers: { "Content-Type": "application/json" } }
