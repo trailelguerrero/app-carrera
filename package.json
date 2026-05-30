@@ -11,7 +11,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "analyze": "npm run build && node scripts/check-bundle.js",
+    "analyze:ci": "node scripts/check-bundle.js --json"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
