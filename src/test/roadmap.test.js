@@ -956,9 +956,12 @@ describe('SP7-01 — SEC-05: Rate limiting persistente en PostgreSQL', () => {
     expect(rl).toContain('export async function checkRateLimit');
   });
 
-  it('rateLimiter usa tabla rate_limit en PostgreSQL (CREATE TABLE IF NOT EXISTS)', () => {
+  it('rateLimiter usa tabla rate_limit en PostgreSQL (DDL centralizado en setup.js)', () => {
+    // C3: el DDL se movió a api/setup.js para evitar ejecutarlo en cada request.
+    const setup = read('api/setup.js');
+    expect(setup).toContain('CREATE TABLE IF NOT EXISTS rate_limit');
     const rl = read('api/lib/rateLimiter.js');
-    expect(rl).toContain('CREATE TABLE IF NOT EXISTS rate_limit');
+    expect(rl).toContain('rate_limit');
     expect(rl).toContain('ip');
     expect(rl).toContain('scope');
     expect(rl).toContain('window_end');
