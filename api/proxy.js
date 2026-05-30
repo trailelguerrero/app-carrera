@@ -58,6 +58,11 @@ export default async function handler(req, res) {
 
   // ── Ruta de diagnóstico: /api/proxy/health ───────────────────────────────
   if (pathStr === 'health') {
+    const apiKey = process.env.API_KEY;
+    const providedKey = req.headers['x-api-key'];
+    if (!apiKey || providedKey !== apiKey) {
+      return res.status(200).json({ status: 'ok' });
+    }
     const out = {};
     out.env_DATABASE_URL    = process.env.DATABASE_URL    ? '✓ configurada' : '✗ NO CONFIGURADA — ESTE ES EL PROBLEMA';
     out.env_DIRECT_URL      = process.env.DIRECT_URL      ? '✓ configurada (DDL usará conexión directa)' : '✗ no configurada (DDL usa DATABASE_URL pooled — recomendado configurar)';
