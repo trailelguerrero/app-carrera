@@ -50,6 +50,7 @@ const EVENT_TO_KEYS = {
     dashboardKeys.presupuesto(),
     dashboardKeys.camisetas(),
     dashboardKeys.config(),
+    dashboardKeys.patrocinadores(), // FIX-DASH-02: patrocinios afectan resultado presupuesto
   ],
   [EVENT_TYPES.VOLUNTARIO_ACTUALIZADO]: [
     dashboardKeys.voluntarios(),

@@ -149,12 +149,28 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
       .filter(p => p.sector === "Administración pública" && !p.especie)
       .reduce((s, p) => (p.estado === "confirmado" || p.estado === "cobrado") ? s + (p.importe || 0) : s, 0);
 
+    // FIX-DASH-01: balanceCamisetasTecnicas calculado en vivo (igual que useBudgetLogic)
+    // Antes usaba ie.valor del snapshot de BD → divergencia con módulo Presupuesto
+    const _camPedidosSnap = Array.isArray(rawCamPedidos) ? rawCamPedidos : [];
+    const _camCosteSnap   = rawCamCoste || CAM_COSTE_DEFAULT;
+    const _merch          = Array.isArray(rawMerchandising) ? rawMerchandising : [];
+    const _lineasCorredor = _camPedidosSnap.flatMap(p => p.lineas || []).filter(l => l.tipo === "corredor");
+    const _ingCorredor    = _lineasCorredor.filter(l => l.estadoPago === "pagado")
+      .reduce((s, l) => s + (l.cantidad * (l.precioVenta || 0)), 0);
+    const _costeCorredor  = _lineasCorredor.filter(l => l.estadoPago === "pagado" || l.estadoPago === "pendiente")
+      .reduce((s, l) => s + (l.cantidad * (_camCosteSnap.corredor || CAM_COSTE_DEFAULT.corredor)), 0);
+    const _camisetasMerch = _merch.filter(m => m.activo && m.nombre?.toLowerCase().includes("camiseta"));
+    const _ingCamMerch    = _camisetasMerch.reduce((s, m) => s + m.unidades * (m.precioVenta || 0), 0);
+    const _costeCamMerch  = _camisetasMerch.reduce((s, m) => s + m.unidades * (m.costeUnitario || 0), 0);
+    const _totalBalanceCamisetasTecnicasLive = (_ingCorredor - _costeCorredor) + (_ingCamMerch - _costeCamMerch);
+
     const totalIngresosExtra = ingresosExtra
       .filter(ie => ie.activo && ie.syncKey !== "camisetas")
       .reduce((s, ie) => {
-        if (ie.syncKey === "patrocinios")       return s + _totalPatLive;
-        if (ie.syncKey === "patrociniosCobrado") return s + _totalPatCobradoLive;
-        if (ie.syncKey === "subvencionPublica") return s + _totalSubvLive;
+        if (ie.syncKey === "patrocinios")               return s + _totalPatLive;
+        if (ie.syncKey === "patrociniosCobrado")        return s + _totalPatCobradoLive;
+        if (ie.syncKey === "subvencionPublica")         return s + _totalSubvLive;
+        if (ie.syncKey === "balanceCamisetasTecnicas")  return s + _totalBalanceCamisetasTecnicasLive;
         return s + (ie.valor || 0);
       }, 0);
 

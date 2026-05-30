@@ -8,6 +8,7 @@
 import { createPortal } from "react-dom";
 import { useState, useMemo } from "react";
 import { useData } from "@/hooks/useData";
+import dataService from "@/lib/dataService"; // FIX-DASH-03: notify al Dashboard cuando cambian datos financieros
 import { toast } from "@/lib/toast";
 import { genIdNum, fmtEur2, scrollMainToTop } from "@/lib/utils";
 import { EVENT_CONFIG_DEFAULT, LS_KEY_CONFIG } from "@/constants/eventConfig";
@@ -457,6 +458,7 @@ export default function App() {
     }));
     setPedidos(prev => [...prev, ...nuevos]);
     toast.success(`${nuevos.length} pedidos generados desde voluntarios`);
+    dataService.notify("presupuesto"); // FIX-DASH-03
   };
 
   const voluntariosConfirmados = Array.isArray(rawVols) ? rawVols.filter(v => v?.estado === "confirmado" && v?.talla) : [];
@@ -541,8 +543,15 @@ export default function App() {
     if (p.id) { setPedidos(prev => prev.map(x => x.id === p.id ? p : x)); toast.success("Pedido actualizado"); }
     else       { setPedidos(prev => [...prev, { ...p, id: genIdNum(pedidos) }]); toast.success("Pedido creado"); }
     setModal(null);
+    // FIX-DASH-03: notificar al Dashboard para que recalcule KPIs de camisetas/presupuesto
+    dataService.notify("presupuesto");
   };
-  const deletePedido = () => { setPedidos(prev => prev.filter(x => x.id !== delId)); setDelId(null); setFicha(null); toast.success("Pedido eliminado"); };
+  const deletePedido = () => {
+    setPedidos(prev => prev.filter(x => x.id !== delId));
+    setDelId(null); setFicha(null); toast.success("Pedido eliminado");
+    // FIX-DASH-03: notificar al Dashboard
+    dataService.notify("presupuesto");
+  };
 
   const [, setRawVoluntarios] = useData(SK_VOL_VOLUNTARIOS, []);
   const updateLinea = (pedidoId, lineaIdOrObj, campo, valor) => {
@@ -590,6 +599,8 @@ export default function App() {
           }), { force: true });
         }
       }
+      // FIX-DASH-03: estadoPago afecta ingresos de camisetas → invalidar Dashboard
+      if (campo === "estadoPago") dataService.notify("presupuesto");
     }
   };
 
@@ -703,11 +714,11 @@ export default function App() {
         </div>
 
         <div key={tab}>
-          {tab === "dashboard" && <TabDashboard stats={stats} pedidos={pedidos} coste={coste} setCoste={setCoste} setTab={setTab} goToTab={goToTab} abrirFicha={abrirFicha}
+          {tab === "dashboard" && <TabDashboard stats={stats} pedidos={pedidos} coste={coste} setCoste={(v) => { setCoste(v); dataService.notify("presupuesto"); }} setTab={setTab} goToTab={goToTab} abrirFicha={abrirFicha}
             fechaPedido={fechaPedido} setFechaPedido={setFechaPedido}
             estadoPedido={estadoPedido} setEstadoPedido={setEstadoPedido}
-            precioCorrExt={precioCorrExt} setPrecioCorrExt={(v) => setPrecioPlatExt({ precio: v })}
-            ventaPublico={ventaPublico} setVentaPublico={setVentaPublico}
+            precioCorrExt={precioCorrExt} setPrecioCorrExt={(v) => { setPrecioPlatExt({ precio: v }); dataService.notify("presupuesto"); }}
+            ventaPublico={ventaPublico} setVentaPublico={(v) => { setVentaPublico(v); dataService.notify("presupuesto"); }}
             fuentesActivas={fuentesActivas} setFuentesActivas={setFuentesActivas}
             corredoresExt={corredoresExt} voluntariosActivos={voluntariosActivos}
             voluntariosConfirmados={voluntariosConfirmados} voluntariosPendientes={voluntariosPendientes}
