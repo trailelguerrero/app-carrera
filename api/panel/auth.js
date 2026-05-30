@@ -115,6 +115,8 @@ export default async function handler(req, res) {
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   res.setHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'");
+  // SEC-HSTS: fuerza HTTPS en visitas futuras (1 año). Previene downgrade a HTTP.
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
 
   // CORS
   const corsOrigin = getCorsHeaders(req);

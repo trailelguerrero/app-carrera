@@ -72,13 +72,34 @@ export function createSession() {
   localStorage.setItem(SESSION_VER, CURRENT_VER);
 }
 
+/**
+ * Comparación de strings en tiempo constante.
+ * Previene timing attacks: la operación tarda lo mismo independientemente
+ * de cuántos caracteres coincidan. Usa XOR acumulado para no cortocircuitar.
+ * SEC-TIMING: reemplaza la comparación === que terminaba en el primer mismatch.
+ */
+function safeEqual(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  // Normalizar longitud para evitar leak por diferencia de longitud
+  const len = Math.max(a.length, b.length);
+  const pa  = a.padEnd(len, '\0');
+  const pb  = b.padEnd(len, '\0');
+  let diff = a.length === b.length ? 0 : 1;
+  for (let i = 0; i < len; i++) {
+    diff |= pa.charCodeAt(i) ^ pb.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
 /** Verifica el PIN introducido contra el hash almacenado */
 export function verifyPin(pin) {
   // fix(SEC-CRIT-03): sin DEFAULT_PIN — si no hay hash guardado el onboarding
   // no se ha completado y no debe haber acceso al panel.
   const stored = localStorage.getItem(PIN_KEY);
   if (!stored) return false;
-  return hashPin(pin) === stored;
+  // SEC-TIMING: comparación en tiempo constante (safeEqual) en lugar de ===
+  // para prevenir timing attacks en dispositivos con acceso físico.
+  return safeEqual(hashPin(pin), stored);
 }
 
 /** Guarda un nuevo hash de PIN */

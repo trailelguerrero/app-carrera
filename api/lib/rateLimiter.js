@@ -19,12 +19,13 @@
  */
 
 /**
- * Ensure the rate_limit table exists. Called once per handler invocation.
- * Uses IF NOT EXISTS — no-op if the table already exists.
+ * Ensure the rate_limit table exists. Called on every handler invocation.
+ * CREATE TABLE IF NOT EXISTS is idempotent and cheap (~1ms when table exists).
+ * SEC-SERVERLESS: tableEnsured eliminado — en Vercel cada cold start crea una
+ * nueva instancia de módulo, por lo que la variable nunca sobrevivía entre
+ * requests reales. La operación IF NOT EXISTS es la garantía real.
  */
-let tableEnsured = false;
 async function ensureTable(sql) {
-  if (tableEnsured) return;
   await sql`
     CREATE TABLE IF NOT EXISTS rate_limit (
       ip         TEXT        NOT NULL,
@@ -34,7 +35,6 @@ async function ensureTable(sql) {
       PRIMARY KEY (ip, scope)
     )
   `;
-  tableEnsured = true;
 }
 
 /**
