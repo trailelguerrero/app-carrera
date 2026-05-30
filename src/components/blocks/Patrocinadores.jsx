@@ -34,6 +34,7 @@ export default function App() {
   // useMemo ensures pats is a stable reference — avoids exhaustive-deps re-computation on every render
   const pats = useMemo(() => (Array.isArray(rawPats) ? rawPats : []), [rawPats]);
   const [saved, setSaved] = useState(false);
+  const [isExportingExcel, setIsExportingExcel] = useState(false); // C6
   const [modal, setModal] = useState(null);
   const [delId, setDelId] = useState(null);
   const [search, setSearch] = useState("");
@@ -328,9 +329,15 @@ export default function App() {
             <span className="badge badge-amber">{fmtEur(stats.comprometido)} / {fmtEur(objetivo)}</span>
             <span className={`badge ${stats.pctObj>=80?"badge-green":stats.pctObj>=50?"badge-amber":"badge-red"}`}>{stats.pctObj}%</span>
             <button className="btn btn-ghost btn-sm"
-              onClick={() => exportarPatrocinadores(pats)}
+              onClick={async () => {
+                if (isExportingExcel) return;
+                setIsExportingExcel(true);
+                try { await exportarPatrocinadores(pats); }
+                finally { setIsExportingExcel(false); }
+              }}
+              disabled={isExportingExcel}
               title="Exportar patrocinadores a Excel">
-              📊 Excel
+              {isExportingExcel ? "⏳ Generando…" : "📊 Excel"}
             </button>
             <label className="btn btn-ghost" title="Importar prospectos desde CSV (columnas: nombre, contacto, email, telefono, importe, sector)"
               style={{ cursor:"pointer", margin:0 }}>

@@ -171,6 +171,7 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
   }, [asigs, material]);
 
   const [saved, setSaved] = useState(false);
+  const [isExportingExcel, setIsExportingExcel] = useState(null); // C6: null | 'completo' | 'alertas'
   const [modal, setModal] = useState(null);
   const [del, setDel] = useState(null);
   const [ficha, setFicha] = useState(null); // {tipo, data}
@@ -264,14 +265,26 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
               ✅ {stats.ckDone}/{stats.ckTotal}
             </span>
             <button className="btn btn-ghost btn-sm"
-              onClick={() => exportarMaterial(material, asigs, locs, 'completo')}
+              onClick={async () => {
+                if (isExportingExcel) return;
+                setIsExportingExcel('completo');
+                try { await exportarMaterial(material, asigs, locs, 'completo'); }
+                finally { setIsExportingExcel(null); }
+              }}
+              disabled={!!isExportingExcel}
               title="Exportar todo el inventario a Excel">
-              📊 Excel
+              {isExportingExcel === 'completo' ? "⏳ Generando…" : "📊 Excel"}
             </button>
             <button className="btn btn-ghost btn-sm"
-              onClick={() => exportarMaterial(material, asigs, locs, 'alertas')}
+              onClick={async () => {
+                if (isExportingExcel) return;
+                setIsExportingExcel('alertas');
+                try { await exportarMaterial(material, asigs, locs, 'alertas'); }
+                finally { setIsExportingExcel(null); }
+              }}
+              disabled={!!isExportingExcel}
               title="Exportar solo materiales con alertas (déficit o bajo mínimo)">
-              ⚠️ Alertas
+              {isExportingExcel === 'alertas' ? "⏳ Generando…" : "⚠️ Alertas"}
             </button>
           </div>
         </div>

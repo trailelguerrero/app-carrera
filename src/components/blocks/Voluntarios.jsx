@@ -203,6 +203,7 @@ export default function App() {
   }, [tab, rawVoluntarios]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [saveStatus, setSaveStatus] = useState("idle");
+  const [isExportingExcel, setIsExportingExcel] = useState(false); // C6
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [filtroPuesto, setFiltroPuesto] = useState("todos");
@@ -533,9 +534,15 @@ export default function App() {
               📨 Instrucciones
             </button>
             <button className="btn btn-ghost btn-sm"
-              onClick={() => exportarVoluntarios(voluntarios, puestos)}
+              onClick={async () => {
+                if (isExportingExcel) return;
+                setIsExportingExcel(true);
+                try { await exportarVoluntarios(voluntarios, puestos); }
+                finally { setIsExportingExcel(false); }
+              }}
+              disabled={isExportingExcel}
               title="Exportar lista de voluntarios a Excel">
-              📊 Excel
+              {isExportingExcel ? "⏳ Generando…" : "📊 Excel"}
             </button>
             <label className="btn btn-ghost btn-sm"
               title="Importar voluntarios desde un archivo CSV (columnas: nombre, apellidos, telefono, talla, email)"
