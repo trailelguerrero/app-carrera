@@ -9,7 +9,8 @@
  * Batch GET usa Promise.all para queries paralelas (~4-6× más rápido).
  */
 import { neon } from '@neondatabase/serverless';
-import { logError, logInfo, logWarn, requestContext } from './lib/logger.js';
+import { logError, requestContext } from './lib/logger.js';
+import { verifySessionToken, readSessionCookie, createSessionToken, buildSessionCookie } from './lib/session.js';
 
 const ALLOWED_COLLECTIONS = /^teg_(voluntarios|logistica|presupuesto|camisetas|patrocinadores|pat_log|localizaciones|documentos|proyecto|event_config|scenarios|codigos_promo|panel_pin_hash|panel_pin_length|escenarios|dia_carrera|scenario_active_name|auto_backup)_?v?\d*(_[a-zA-Z0-9]+)*$/;
 
@@ -23,7 +24,8 @@ function setCors(req, res) {
     'http://localhost:5173',
     'http://localhost:4173',
   ].filter(Boolean);
-  if (origin && allowed.some(o => origin.startsWith(o))) {
+  // SEC-M1: igualdad EXACTA de origen (startsWith permitía bypass por prefijo/subdominio).
+  if (origin && allowed.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
   }
@@ -45,6 +47,68 @@ function setSecurityHeaders(res) {
   );
   // SEC-HSTS: fuerza HTTPS en visitas futuras (1 año). Previene downgrade a HTTP.
   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+}
+
+/**
+ * Reenvía la petición al endpoint /api/<pathStr> inyectando x-api-key server-side.
+ * Relayea Set-Cookie del downstream (p.ej. la cookie de sesión que emite panel/auth)
+ * salvo que ya se haya fijado una cookie (sesión deslizante de las rutas data/*).
+ */
+async function forwardWithApiKey(req, res, pathStr) {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    return res.status(503).json({ error: 'Service misconfigured: API_KEY not set' });
+  }
+
+  const baseUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : req.headers.host
+        ? `https://${req.headers.host}`
+        : null;
+
+  if (!baseUrl) {
+    return res.status(503).json({ error: 'Cannot determine server base URL' });
+  }
+
+  const searchParams = new URLSearchParams();
+  for (const [k, v] of Object.entries(req.query || {})) {
+    if (k !== 'path') searchParams.set(k, v);
+  }
+  const queryStr = searchParams.toString() ? `?${searchParams.toString()}` : '';
+  const targetUrl = `${baseUrl}/api/${pathStr}${queryStr}`;
+
+  try {
+    const fetchOptions = {
+      method: req.method,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'x-forwarded-for': req.headers['x-forwarded-for'] || '',
+      },
+    };
+    if (['PUT', 'POST'].includes(req.method) && req.body) {
+      fetchOptions.body = JSON.stringify(req.body);
+    }
+    const response = await fetch(targetUrl, fetchOptions);
+
+    // Relay de la cookie de sesión emitida por el downstream (panel/auth).
+    const setCookies = typeof response.headers.getSetCookie === 'function'
+      ? response.headers.getSetCookie()
+      : (response.headers.get('set-cookie') ? [response.headers.get('set-cookie')] : []);
+    if (setCookies.length && !res.getHeader('Set-Cookie')) {
+      res.setHeader('Set-Cookie', setCookies);
+    }
+
+    const ct = response.headers.get('content-type') || '';
+    res.status(response.status);
+    if (ct.includes('application/json')) return res.json(await response.json());
+    return res.send(await response.text());
+  } catch (err) {
+    logError('[proxy]', err, { ...requestContext(req), forward: true });
+    return res.status(502).json({ error: 'Proxy error' });
+  }
 }
 
 export default async function handler(req, res) {
@@ -79,22 +143,10 @@ export default async function handler(req, res) {
         out.columns = cols.map(c => c.column_name).join(', ');
         const count = await sql`SELECT COUNT(*) as n FROM collections`;
         out.total_collections = parseInt(count[0]?.n || 0);
-        const vols = await sql`SELECT jsonb_array_length(value) as n, value as data FROM collections WHERE key='teg_voluntarios_v1_voluntarios'`;
+        const vols = await sql`SELECT jsonb_array_length(value) as n FROM collections WHERE key='teg_voluntarios_v1_voluntarios'`;
         if (vols.length > 0) {
-          const arr = vols[0].data;
+          // SEC-M2: solo conteos — sin nombres, teléfonos ni mensajes (PII fuera de diagnóstico).
           out.voluntarios_en_neon = `${vols[0].n} voluntarios`;
-          out.muestra_voluntarios = arr.slice(0, 5).map(v => ({
-            id: v.id,
-            nombre: `${v.nombre || ''} ${v.apellidos || ''}`.trim(),
-            estado: v.estado,
-            puestoId: v.puestoId ?? 'null',
-            puestoId_tipo: typeof v.puestoId,
-            tieneSessionToken: !!v.sessionToken,
-            mensajeOrganizador: v.mensajeOrganizador ? v.mensajeOrganizador.substring(0,30)+'...' : null,
-            mensajeParaOrg: v.mensajeParaOrganizador ? v.mensajeParaOrganizador.substring(0,30)+'...' : null,
-          }));
-          out.con_puesto = arr.filter(v => v.puestoId != null).length;
-          out.sin_puesto = arr.filter(v => v.puestoId == null).length;
         } else {
           out.voluntarios_en_neon = '✗ colección no existe aún';
         }
@@ -113,90 +165,26 @@ export default async function handler(req, res) {
     return res.status(200).json(out);
   }
 
-  // ── Ruta directa: /api/proxy/data/:collection → Neon sin HTTP interno ──────
-  const dataMatch = pathStr.match(/^data\/([^/?]+)$/);
-  if (dataMatch) {
-    const collection = dataMatch[1];
-    if (!ALLOWED_COLLECTIONS.test(collection)) {
+  // ── Datos de negocio: data/:collection y data/batch ───────────────────────
+  // SEC-AUTHZ (Mejora 2): antes el proxy hablaba con Neon SIN autenticar (cualquiera
+  // con curl/Postman leía/escribía/borraba todo; CORS no protege fuera del navegador).
+  // Ahora exige una sesión de panel válida y REENVÍA a los endpoints /api/data/*
+  // autenticados (única implementación: x-api-key + allowlist + optimistic locking),
+  // eliminando la lógica Neon duplicada y divergente.
+  const isBatch = pathStr === 'data/batch';
+  const collMatch = !isBatch && pathStr.match(/^data\/([^/?]+)$/);
+  if (isBatch || collMatch) {
+    if (!verifySessionToken(readSessionCookie(req))) {
+      return res.status(401).json({ error: 'Unauthorized: sesión de panel requerida' });
+    }
+    // Defensa en profundidad: validar allowlist también aquí (el downstream repite).
+    if (collMatch && !ALLOWED_COLLECTIONS.test(collMatch[1])) {
       return res.status(403).json({ error: 'Collection not allowed' });
     }
-    if (!['GET','PUT','DELETE'].includes(req.method)) {
-      return res.status(405).json({ error: 'Method Not Allowed' });
-    }
-    try {
-      if (req.method === 'GET') {
-        const result = await sql`SELECT value, version FROM collections WHERE key = ${collection}`;
-        if (!result.length) return res.status(404).json({ error: 'Not found' });
-        return res.status(200).json({ data: result[0].value, version: result[0].version || 1 });
-      }
-
-      if (req.method === 'PUT') {
-        const body = req.body;
-        if (body === undefined || body === null) {
-          logWarn('[proxy/data]', 'PUT body vacío o undefined', { ...requestContext(req), collection });
-          return res.status(400).json({ error: 'Body vacío' });
-        }
-        const jsonValue = JSON.stringify(body);
-        logInfo('[proxy/data]', 'PUT recibido', { ...requestContext(req), collection, bytes: jsonValue.length });
-        await sql`
-          INSERT INTO collections (key, value, version)
-          VALUES (${collection}, ${jsonValue}::jsonb, 1)
-          ON CONFLICT (key) DO UPDATE
-          SET value = EXCLUDED.value,
-              version = collections.version + 1,
-              updated_at = CURRENT_TIMESTAMP
-        `;
-        const updated = await sql`SELECT version FROM collections WHERE key = ${collection}`;
-        logInfo('[proxy/data]', 'PUT OK', { collection, version: updated[0]?.version });
-        return res.status(200).json({ success: true, version: updated[0]?.version || 1 });
-      }
-
-      if (req.method === 'DELETE') {
-        await sql`DELETE FROM collections WHERE key = ${collection}`;
-        return res.status(200).json({ success: true });
-      }
-    } catch (err) {
-      logError('[proxy/data]', err, { ...requestContext(req), collection });
-      return res.status(500).json({ error: 'Database error' });
-    }
-  }
-
-  // ── Ruta directa: /api/proxy/data/batch → Neon sin HTTP interno ─────────────
-  if (pathStr === 'data/batch') {
-    try {
-      if (req.method === 'GET') {
-        const keys = (req.query.keys || '').split(',').filter(Boolean);
-        // MEJORA-02: queries paralelas con Promise.all en lugar de bucle serie
-        const validKeys = keys.filter(k => ALLOWED_COLLECTIONS.test(k));
-        const rows = await Promise.all(
-          validKeys.map(key => sql`SELECT value, version FROM collections WHERE key = ${key}`)
-        );
-        const result = {};
-        validKeys.forEach((key, i) => {
-          if (rows[i].length) result[key] = { data: rows[i][0].value, version: rows[i][0].version || 1 };
-        });
-        return res.status(200).json(result);
-      }
-      if (req.method === 'PUT') {
-        const entries = req.body || {};
-        await Promise.all(
-          Object.entries(entries)
-            .filter(([key]) => ALLOWED_COLLECTIONS.test(key))
-            .map(([key, value]) => {
-              const jsonValue = JSON.stringify(value);
-              return sql`
-                INSERT INTO collections (key, value, version) VALUES (${key}, ${jsonValue}::jsonb, 1)
-                ON CONFLICT (key) DO UPDATE
-                SET value = EXCLUDED.value, version = collections.version + 1, updated_at = CURRENT_TIMESTAMP
-              `;
-            })
-        );
-        return res.status(200).json({ success: true });
-      }
-    } catch (err) {
-      logError('[proxy/batch]', err, requestContext(req));
-      return res.status(500).json({ error: 'Database error' });
-    }
+    // Sesión deslizante: renovar 8 h en cada acceso autenticado.
+    const fresh = createSessionToken();
+    if (fresh) res.setHeader('Set-Cookie', buildSessionCookie(fresh));
+    return forwardWithApiKey(req, res, pathStr);
   }
 
   // ── Resto de rutas: forward HTTP con x-api-key ──────────────────────────────
@@ -204,47 +192,5 @@ export default async function handler(req, res) {
   if (!ALLOWED_FORWARD.test(pathStr)) {
     return res.status(400).json({ error: 'Invalid path' });
   }
-
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    return res.status(503).json({ error: 'Service misconfigured: API_KEY not set' });
-  }
-
-  const baseUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
-    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : req.headers.host
-        ? `https://${req.headers.host}`
-        : null;
-
-  if (!baseUrl) {
-    return res.status(503).json({ error: 'Cannot determine server base URL' });
-  }
-
-  const searchParams = new URLSearchParams();
-  for (const [k, v] of Object.entries(req.query || {})) {
-    if (k !== 'path') searchParams.set(k, v);
-  }
-  const queryStr = searchParams.toString() ? `?${searchParams.toString()}` : '';
-  const targetUrl = `${baseUrl}/api/${pathStr}${queryStr}`;
-
-  try {
-    const fetchOptions = {
-      method: req.method,
-      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey,
-        'x-forwarded-for': req.headers['x-forwarded-for'] || '' },
-    };
-    if (['PUT','POST'].includes(req.method) && req.body) {
-      fetchOptions.body = JSON.stringify(req.body);
-    }
-    const response = await fetch(targetUrl, fetchOptions);
-    const ct = response.headers.get('content-type') || '';
-    res.status(response.status);
-    if (ct.includes('application/json')) return res.json(await response.json());
-    return res.send(await response.text());
-  } catch (err) {
-    logError('[proxy]', err, { ...requestContext(req), forward: true });
-    return res.status(502).json({ error: 'Proxy error' });
-  }
+  return forwardWithApiKey(req, res, pathStr);
 }

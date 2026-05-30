@@ -24,6 +24,14 @@ import { neon } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { checkRateLimit, peekRateLimit, resetRateLimit } from '../lib/rateLimiter.js';
+import { createSessionToken, buildSessionCookie } from '../lib/session.js';
+
+// SEC-AUTHZ (Mejora 2): tras un PIN correcto se emite una cookie de sesión firmada.
+// El proxy exige esa cookie para tocar las colecciones de negocio (data/*).
+function issuePanelSession(res) {
+  const token = createSessionToken();
+  if (token) res.setHeader('Set-Cookie', buildSessionCookie(token));
+}
 
 // Clave en Neon donde se almacena el hash del PIN del panel
 const PANEL_PIN_KEY = 'teg_panel_pin_v1';
@@ -201,6 +209,7 @@ export default async function handler(req, res) {
       // SEC-H2: solo los fallos cuentan; un acceso correcto limpia el contador global.
       if (valid) {
         await resetRateLimit(sql, GLOBAL_FAIL_KEY, GLOBAL_FAIL_SCOPE);
+        issuePanelSession(res); // SEC-AUTHZ: emite cookie de sesión del panel
       } else {
         await checkRateLimit(sql, GLOBAL_FAIL_KEY, GLOBAL_FAIL_SCOPE, GLOBAL_FAIL_OPTS);
       }
@@ -238,6 +247,7 @@ export default async function handler(req, res) {
       await resetRateLimit(sql, GLOBAL_FAIL_KEY, GLOBAL_FAIL_SCOPE);
       const newHash = bcrypt.hashSync(String(newPin), 10);
       await saveHash(sql, newHash);
+      issuePanelSession(res); // SEC-AUTHZ: renueva sesión tras cambiar el PIN
       return res.json({ ok: true });
     } catch (err) {
       console.error('[panel/auth] change error:', err.message);
