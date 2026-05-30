@@ -19,13 +19,23 @@
  */
 
 /**
+ * C2: Guard de módulo — en Vercel, el módulo puede sobrevivir entre requests
+ * dentro de la misma instancia caliente. Si setup.js ya creó la tabla,
+ * ensureTable es un no-op hasta el próximo cold start.
+ * En cold start siempre ejecuta (garantía de seguridad).
+ */
+let _tableReady = false;
+
+/**
  * Ensure the rate_limit table exists. Called on every handler invocation.
  * CREATE TABLE IF NOT EXISTS is idempotent and cheap (~1ms when table exists).
  * SEC-SERVERLESS: tableEnsured eliminado — en Vercel cada cold start crea una
  * nueva instancia de módulo, por lo que la variable nunca sobrevivía entre
  * requests reales. La operación IF NOT EXISTS es la garantía real.
+ * C2: _tableReady evita el DDL en requests subsiguientes dentro de la misma instancia.
  */
 async function ensureTable(sql) {
+  if (_tableReady) return;
   await sql`
     CREATE TABLE IF NOT EXISTS rate_limit (
       ip         TEXT        NOT NULL,
@@ -35,6 +45,7 @@ async function ensureTable(sql) {
       PRIMARY KEY (ip, scope)
     )
   `;
+  _tableReady = true;
 }
 
 /**

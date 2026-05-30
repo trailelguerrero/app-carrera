@@ -47,9 +47,27 @@ export default async function handler(req, res) {
       ON collections (updated_at DESC)
     `;
 
+    // C2: tabla rate_limit y su índice, centralizados aquí para evitar DDL en cada request
+    await sqlDDL`
+      CREATE TABLE IF NOT EXISTS rate_limit (
+        ip         TEXT        NOT NULL,
+        scope      TEXT        NOT NULL,
+        window_end TIMESTAMPTZ NOT NULL,
+        count      INTEGER     NOT NULL DEFAULT 1,
+        PRIMARY KEY (ip, scope)
+      )
+    `;
+
+    // C2: índice en window_end para acelerar el housekeeping DELETE expired rows
+    await sqlDDL`
+      CREATE INDEX IF NOT EXISTS idx_rate_limit_window_end
+      ON rate_limit (window_end)
+    `;
+
     return res.status(200).json({
       message: 'Database setup successful!',
-      indexes: ['idx_collections_value_gin (GIN)', 'idx_collections_updated_at'],
+      indexes: ['idx_collections_value_gin (GIN)', 'idx_collections_updated_at', 'idx_rate_limit_window_end'],
+      tables: ['collections', 'rate_limit'],
       direct_url_configured: usingDirectUrl,
       connection_used: usingDirectUrl
         ? 'DIRECT_URL (non-pooled)'
