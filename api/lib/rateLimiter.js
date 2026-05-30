@@ -19,33 +19,18 @@
  */
 
 /**
- * C2: Guard de módulo — en Vercel, el módulo puede sobrevivir entre requests
- * dentro de la misma instancia caliente. Si setup.js ya creó la tabla,
- * ensureTable es un no-op hasta el próximo cold start.
- * En cold start siempre ejecuta (garantía de seguridad).
+ * C3: ensureTable es ahora un no-op.
+ * La tabla rate_limit y el índice idx_rate_limit_window_end se crean en
+ * /api/setup (ejecutado una sola vez en el setup inicial del entorno).
+ * Mantener la firma por compatibilidad con las llamadas existentes en checkRateLimit.
+ *
+ * Historial:
+ *   SEC-SERVERLESS → C2: guard _tableReady para evitar DDL en instancias calientes
+ *   C3: DDL movido completamente a setup.js, esta función ya no hace nada
  */
-let _tableReady = false;
-
-/**
- * Ensure the rate_limit table exists. Called on every handler invocation.
- * CREATE TABLE IF NOT EXISTS is idempotent and cheap (~1ms when table exists).
- * SEC-SERVERLESS: tableEnsured eliminado — en Vercel cada cold start crea una
- * nueva instancia de módulo, por lo que la variable nunca sobrevivía entre
- * requests reales. La operación IF NOT EXISTS es la garantía real.
- * C2: _tableReady evita el DDL en requests subsiguientes dentro de la misma instancia.
- */
-async function ensureTable(sql) {
-  if (_tableReady) return;
-  await sql`
-    CREATE TABLE IF NOT EXISTS rate_limit (
-      ip         TEXT        NOT NULL,
-      scope      TEXT        NOT NULL,
-      window_end TIMESTAMPTZ NOT NULL,
-      count      INTEGER     NOT NULL DEFAULT 1,
-      PRIMARY KEY (ip, scope)
-    )
-  `;
-  _tableReady = true;
+// eslint-disable-next-line no-unused-vars
+async function ensureTable(_sql) {
+  // no-op: tabla gestionada por /api/setup
 }
 
 /**
