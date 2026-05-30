@@ -27,6 +27,7 @@ const App = () => (
       <Routes>
         <Route path="/"                       element={<Landing />} />
         <Route path="/panel"                  element={<Index />} />
+        <Route path="/voluntarios"            element={<Navigate to="/voluntarios/mi-ficha" replace />} />
         <Route path="/voluntarios/registro"   element={<Navigate to="/voluntarios/mi-ficha" replace />} />
         <Route path="/voluntarios/mi-ficha"   element={<VoluntarioPortal />} />
         <Route path="/dia-carrera"            element={<DiaCarreraPage />} />
