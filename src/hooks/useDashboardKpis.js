@@ -178,8 +178,10 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
       }, 0);
 
     // Camisetas
-    const camisetasIe = ingresosExtra.find(ie => ie.syncKey === "camisetas");
-    const camisetasActiva = camisetasIe ? camisetasIe.activo : (syncConfig?.camisetas ?? true);
+    // FIX-DASH-02: syncConfig.camisetas es la fuente canónica (igual que useBudgetLogic).
+    // Antes se leía ie.activo del raw de BD, que puede no estar sincronizado con syncConfig
+    // cuando el usuario activa/desactiva el toggle → divergencia de resultado con Presupuesto.
+    const camisetasActiva = syncConfig?.camisetas ?? true;
     const camPedidos    = Array.isArray(rawCamPedidos) ? rawCamPedidos : [];
     const camCoste      = rawCamCoste || CAM_COSTE_DEFAULT;
     const camCorredores = rawCamCorredores || {};
