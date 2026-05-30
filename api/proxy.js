@@ -60,6 +60,7 @@ export default async function handler(req, res) {
   if (pathStr === 'health') {
     const out = {};
     out.env_DATABASE_URL    = process.env.DATABASE_URL    ? '✓ configurada' : '✗ NO CONFIGURADA — ESTE ES EL PROBLEMA';
+    out.env_DIRECT_URL      = process.env.DIRECT_URL      ? '✓ configurada (DDL usará conexión directa)' : '✗ no configurada (DDL usa DATABASE_URL pooled — recomendado configurar)';
     out.env_API_KEY         = process.env.API_KEY         ? '✓ configurada' : '✗ no configurada (solo necesaria para auth de panel)';
     out.env_ALLOWED_ORIGIN  = process.env.ALLOWED_ORIGIN  || '(no configurada — OK si mismo dominio)';
     out.env_VERCEL_URL      = process.env.VERCEL_URL      || '(no configurada)';
