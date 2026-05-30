@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import EmptyState from "@/components/EmptyState";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { createPortal } from "react-dom";
@@ -599,19 +599,26 @@ export default function Documentos() {
   const storagePct = Math.min((totalSize / (100*1024*1024)) * 100, 100);
   const storageColor = storagePct > 80 ? "#f87171" : storagePct > 50 ? "#fbbf24" : "#34d399";
 
+  // C4: useMemo en todos los filtros/cálculos costosos para evitar recálculo
+  // en renders causados por cambios de estado no relacionados (modales, editId, etc.)
+
   // Gestiones con vencimiento próximo o vencidas
-  const gestionesProxVencer = gestiones.filter(gst => {
+  const gestionesProxVencer = useMemo(() => gestiones.filter(gst => {
     const ndias = diasHasta(gst.fechaVencimiento);
     return ndias !== null && ndias >= 0 && ndias <= 30 && gst.estado !== "aprobado";
-  });
-  const gestionesVencidas = gestiones.filter(gst => {
+  }), [gestiones]);
+
+  const gestionesVencidas = useMemo(() => gestiones.filter(gst => {
     const ndias = diasHasta(gst.fechaVencimiento);
     return ndias !== null && ndias < 0 && gst.estado !== "aprobado" && gst.estado !== "denegado";
-  });
-  const gestionesCriticas = gestiones.filter(g => g.estado === "denegado");
+  }), [gestiones]);
+
+  const gestionesCriticas = useMemo(() =>
+    gestiones.filter(g => g.estado === "denegado"),
+  [gestiones]);
 
   // Semáforo de riesgo legal global
-  const semaforoRiesgo = (() => {
+  const semaforoRiesgo = useMemo(() => {
     const GESTIONES_CRITICAS_IDS = ["g1","g2","g3"]; // Ayuntamiento, RFEA, Seguro RC
     const criticas = gestiones.filter(g => GESTIONES_CRITICAS_IDS.includes(g.id));
     if (criticas.some(g => g.estado === "denegado")) return "rojo";
@@ -625,21 +632,22 @@ export default function Documentos() {
     })) return "ambar";
     if (criticas.every(g => g.estado === "aprobado")) return "verde";
     return "ambar";
-  })();
+  }, [gestiones]);
 
   // Documentos por vencer en <30 días (para alertas)
-  const proxVencer = docs.filter(doc => {
+  const proxVencer = useMemo(() => docs.filter(doc => {
     const ndias = diasHasta(doc.fechaVencimiento);
     return ndias !== null && ndias >= 0 && ndias <= 30 && doc.estado !== "aprobado";
-  }).sort((sa,sb) => new Date(sa.fechaVencimiento) - new Date(sb.fechaVencimiento));
+  }).sort((sa,sb) => new Date(sa.fechaVencimiento) - new Date(sb.fechaVencimiento)),
+  [docs]);
 
-  const vencidos = docs.filter(doc => {
+  const vencidos = useMemo(() => docs.filter(doc => {
     const ndias = diasHasta(doc.fechaVencimiento);
     return ndias !== null && ndias < 0 && doc.estado !== "aprobado";
-  });
+  }), [docs]);
 
   // Búsqueda global (todas las categorías)
-  const resultadosGlobales = busqueda && busqGlobal
+  const resultadosGlobales = useMemo(() => busqueda && busqGlobal
     ? docs.filter(d => {
         const q = busqueda.toLowerCase();
         return (d.nombreDisplay||d.nombre).toLowerCase().includes(q)
@@ -647,10 +655,11 @@ export default function Documentos() {
           || (d.nota||"").toLowerCase().includes(q)
           || (d.subcategoria||"").toLowerCase().includes(q);
       }).sort((sa,sb) => new Date(sb.fechaSubida) - new Date(sa.fechaSubida))
-    : null;
+    : null,
+  [docs, busqueda, busqGlobal]);
 
   // Filtrado: categoría + búsqueda
-  const catDocs = docs
+  const catDocs = useMemo(() => docs
     .filter(d => d.categoria === tab)
     .filter(d => {
       if (!busqueda || busqGlobal) return true;
@@ -661,7 +670,8 @@ export default function Documentos() {
         || (d.subcategoria||"").toLowerCase().includes(q)
         || (d.estado||"").toLowerCase().includes(q);
     })
-    .sort((sa, sb) => new Date(sb.fechaSubida) - new Date(sa.fechaSubida));
+    .sort((sa, sb) => new Date(sb.fechaSubida) - new Date(sa.fechaSubida)),
+  [docs, tab, busqueda, busqGlobal]);
 
   if (isLoading) return <SkeletonBlock variant="documentos" />;
 
