@@ -618,8 +618,9 @@ export const calculateResultadoFinanciero = ({
     .reduce((s, ie) => s + getSyncedValor(ie), 0);
 
   // ── Camisetas — cálculo completo con desglose (corredor+regalo+niño) ─────
-  const camisetasIe = ingresosExtra.find(ie => ie.syncKey === "camisetas");
-  const camisetasActivo = camisetasIe ? camisetasIe.activo : (syncConfig.camisetas ?? true);
+  // FIX-DASH-02b: syncConfig.camisetas es la fuente canónica (igual que useBudgetLogic y useDashboardKpis).
+  // ie.activo puede estar desfasado respecto al toggle → usar syncConfig directamente.
+  const camisetasActivo = syncConfig.camisetas ?? true;
   let totalMerchBeneficio = 0;
   let camisetasDesglose = null;
   if (camisetasActivo) {
