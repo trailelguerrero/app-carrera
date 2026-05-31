@@ -38,7 +38,10 @@ export default tseslint.config(
     ignores: ["src/test/**"],
     languageOptions: {
       ecmaVersion: 2020,
-      globals: globals.browser,
+      globals: {
+        ...globals.browser,
+        __APP_VERSION__: "readonly",
+      },
       parserOptions: {
         ecmaFeatures: { jsx: true },
       },

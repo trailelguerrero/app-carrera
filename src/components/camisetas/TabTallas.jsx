@@ -4,6 +4,7 @@
  */
 import { useState, useMemo } from "react";
 import { fmtEur2 } from "@/lib/utils";
+import { toast } from "@/lib/toast";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { TALLAS, TALLAS_NINO, TC, TIPOS, FUENTES_DEFAULT, CORREDORES_DEFAULT, NINO_DEFAULT, exportarPedidoProveedor } from "./camisetasConstants";

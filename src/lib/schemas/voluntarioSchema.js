@@ -15,7 +15,7 @@ export const TALLAS_VALIDAS = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '
 
 /** Normaliza el teléfono quitando espacios y guiones */
 const normalizarTelefono = (val) =>
-  typeof val === 'string' ? val.replace(/[\s\-]/g, '') : val;
+  typeof val === 'string' ? val.replace(/[\s-]/g, '') : val;
 
 /**
  * Esquema base — siempre requerido.

@@ -194,7 +194,7 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
     <div class="meta">${fechaStr}</div>
     <div class="firma">Firma de la organización ___________________________</div>
   </div>
-  <script>window.onload = () => { window.print(); }<\/script>
+  <script>window.onload = () => { window.print(); }</script>
 </body>
 </html>`);
     win.document.close();

@@ -247,7 +247,7 @@ export async function exportarMaterial(material = [], asigs = [], locs = [], mod
         .map((a) => String(a.materialId))
     );
     filasFiltradas = filas.filter((f) => {
-      const mat = material.find((m) => String(m.id) !== undefined &&
+      const mat = material.find((m) => m.id != null &&
         idConPendiente.has(String(m.id)) &&
         filas.find((ff) => ff.Nombre === m.nombre) === f
       );

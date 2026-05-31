@@ -67,6 +67,7 @@ const Presupuesto = () => {
     saveStatus,
     saveData,
     resetAllData,
+    backupBeforeReset,
     updateConcepto,
     updateCostePorDistancia,
     updateActivoDistancia,

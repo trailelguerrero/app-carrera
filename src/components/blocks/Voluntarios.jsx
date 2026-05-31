@@ -12,6 +12,7 @@ import { useModalClose } from "@/hooks/useModalClose";
 import EmptyState from "@/components/EmptyState";
 import { usePaginacion } from "@/hooks/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
+import { estadoColor, estadoBg } from "@/constants/voluntariosConstants";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys"; // FIX-DEP: migrado desde alias deprecated
 import { getEventDate } from "@/lib/eventUtils";
@@ -20,7 +21,6 @@ import { useData } from "@/hooks/useData";
 import dataService from "@/lib/dataService";
 import { ImagenUploader } from "@/components/common/ImagenUploader";
 import { PanelCompartir } from "@/components/voluntarios/PanelCompartir";
-
 
 // Sprint 2: sub-components extracted to src/components/voluntarios/
 import { TabDashboard } from "@/components/voluntarios/TabDashboardVol";
@@ -38,12 +38,8 @@ import { ModalMensaje } from "@/components/voluntarios/ModalMensaje";
 
 import { blockCls as cls } from "@/lib/blockStyles";
 import SkeletonBlock from "@/components/common/SkeletonBlock";
-// ─── CONSTANTS ────────────────────────────────────────────────────────────────
 // SK_VOL_ROOT y demás claves importadas de @/constants/storageKeys
-
-// ─── IMÁGENES CAMISETA (base64 placeholders — reemplazar con URLs reales) ──────
-// Para producción: sustituir por URLs de tus imágenes reales
-
+// Para producción: sustituir por URLs de tus imágenes reales (SHIRT_PLACEHOLDER_FRONT/BACK)
 
 const PUESTOS_DEFAULT = [
   { id: 1,  nombre: "Zona de Salida / Meta",    tipo: "Salida/Meta",      distancias: ["Todas"],           horaInicio: "06:30", horaFin: "18:00", necesarios: 8,  responsableId: null, localizacionId: 1,  notas: "Control de dorsales, gestión de salidas escalonadas" },
@@ -68,10 +64,8 @@ const VOLUNTARIOS_DEFAULT = [
 
 // useData maneja la persistencia automáticamente
 
-// ─── MEJ-06: triángulo voluntario ↔ puesto ↔ localización ────────────────────
-
 /**
- * Resuelve la localización de un voluntario a través de su puesto.
+ * MEJ-06: Resuelve la localización de un voluntario a través de su puesto.
  * Cadena: voluntario.puestoId → puesto.localizacionId → localización (lat/lng/descripcion)
  *
  * Estrategia de resolución con retrocompatibilidad:
@@ -101,19 +95,6 @@ export function resolverLocalizacionDeVoluntario(voluntario, puestos = [], locs 
   const locPorNombre = lsArr.find(l => l.nombre === puesto.nombre) ?? null;
   return { puesto, localizacion: locPorNombre };
 }
-
-// ─── HELPERS ──────────────────────────────────────────────────────────────────
-
-// ── Helper: nombre completo ─────────────────────────────────────────────────
-const nombreCompleto = (v) => v ? [v.nombre, v.apellidos].filter(Boolean).join(" ") : "—";
-
-function estadoColor(e) {
-  return e === "confirmado" ? "var(--green)" : e === "cancelado" ? "var(--red)" : e === "ausente" ? "var(--orange)" : "var(--amber)";
-}
-function estadoBg(e) {
-  return e === "confirmado" ? "var(--green-dim)" : e === "cancelado" ? "var(--red-dim)" : e === "ausente" ? "var(--orange-dim)" : "var(--amber-dim)";
-}
-
 
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 export default function App() {
@@ -556,10 +537,7 @@ export default function App() {
           </div>
         </div>
 
-
-
-
-
+        {/* OPCIONES FORMULARIO — ir a Configuración */}
         {/* OPCIONES FORMULARIO — ir a Configuración */}
         <div className="card mb" style={{ padding: "0.65rem 1rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
@@ -579,7 +557,6 @@ export default function App() {
             Configurar formulario →
           </button>
         </div>
-
 
         {/* Buscador global con spotlight — resultados inline sin cambiar de tab */}
         <BuscadorSpotlight
@@ -701,8 +678,6 @@ export default function App() {
     </AppShell>
   );
 }
-
-// ─── APP SHELL (CSS + fonts) ──────────────────────────────────────────────────
 
 // ─── BUSCADOR SPOTLIGHT ───────────────────────────────────────────────────────
 function BuscadorSpotlight({ busqueda, setBusqueda, voluntarios, puestos, onAbrirFicha, onVerTodos, onFiltroPuesto }) {

@@ -309,7 +309,7 @@ export default function OnboardingModal({ onClose, onComplete }) {
 
     // Leer config existente para no pisarla
     let cfgExistente = {};
-    try { cfgExistente = JSON.parse(localStorage.getItem(SK_EVENT_CONFIG) || "{}"); } catch {}
+    try { cfgExistente = JSON.parse(localStorage.getItem(SK_EVENT_CONFIG) || "{}"); } catch (_e) { /* ignore parse error */ }
 
     const distanciasActivas = DISTANCIAS_OPCIONES.filter(x => datos.distancias[x.id]).map(x => x.id);
     const maxInscritosMapa = {};
@@ -332,7 +332,7 @@ export default function OnboardingModal({ onClose, onComplete }) {
     // Cargar puestos por defecto solo si no hay ninguno ya
     if (datos.cargarPuestos) {
       let puestosActuales = [];
-      try { puestosActuales = JSON.parse(localStorage.getItem(SK_VOL_PUESTOS) || "[]"); } catch {}
+      try { puestosActuales = JSON.parse(localStorage.getItem(SK_VOL_PUESTOS) || "[]"); } catch (_e) { /* ignore parse error */ }
       if (puestosActuales.length === 0) {
         localStorage.setItem(SK_VOL_PUESTOS, JSON.stringify(PUESTOS_DEFAULT));
       }
