@@ -196,12 +196,6 @@ All colors MUST be HSL.
   overflow-x: hidden;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--teg-scrollbar); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: var(--teg-scrollbar-hover); }
-
 /* ═══════════════════════════════════════════════════════════════════
    ESTILOS DE IMPRESIÓN / PDF
    Se aplican cuando el usuario pulsa Ctrl+P o el botón 🖨️ PDF

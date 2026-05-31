@@ -4,10 +4,7 @@
  * Importado globalmente desde main.tsx.
  */
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html { -webkit-text-size-adjust: 100%; }
-  body { background: #08091a; color: #f0f4ff;
-    font-family: 'Syne', 'Inter', system-ui, sans-serif; min-height: 100dvh; }
   button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
     outline: 2px solid var(--cyan); outline-offset: 2px;
   }
@@ -50,7 +47,7 @@
   .vp-btn-done    { background: var(--green-dim); color: var(--green);
     border: 1px solid var(--green-border); cursor: default; }
   .vp-btn-ghost   { background: transparent; color: var(--text-muted);
-    border: 1px solid var(--border2); }
+    border: 1px solid var(--border-light); }
   .vp-btn-ghost:not(:disabled):hover { border-color: var(--cyan); color: var(--cyan); }
   .vp-btn-outline { background: transparent; color: var(--cyan);
     border: 2px solid var(--cyan-border); }
@@ -77,7 +74,7 @@
   /* ── PIN numpad ── */
   .vp-pin-display { display: flex; gap: .6rem; justify-content: center; margin-bottom: 1.5rem; }
   .vp-pin-dot { width: 20px; height: 20px; border-radius: 50%;
-    border: 2px solid var(--border2); background: transparent; transition: all .15s; }
+    border: 2px solid var(--border-light); background: transparent; transition: all .15s; }
   .vp-pin-dot.filled { background: var(--cyan); border-color: var(--cyan);
     box-shadow: 0 0 8px rgba(34,211,238,.4); }
   .vp-numpad { display: grid; grid-template-columns: repeat(3,1fr); gap: .5rem; }
@@ -159,7 +156,7 @@
   .pub-btn-ghost { display:flex; align-items:center; justify-content:center; gap:.5rem;
     width:100%; padding:.85rem 1rem; border-radius:var(--r);
     font-family:var(--font-display); font-size:var(--fs-base); font-weight:700;
-    cursor:pointer; border:1.5px solid var(--border2); transition:all .15s; min-height:54px;
+    cursor:pointer; border:1.5px solid var(--border-light); transition:all .15s; min-height:54px;
     background:transparent; color:var(--text-muted); }
   .pub-btn-ghost:hover { border-color:var(--cyan); color:var(--cyan); }
   .summary-row { display:flex; justify-content:space-between; align-items:center;

@@ -3,10 +3,6 @@
  * Importado globalmente desde main.tsx.
  */
 
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--text);font-family:var(--font-display);min-height:100vh;
-    background-image:radial-gradient(ellipse 80% 35% at 15% -5%,var(--cyan-dim) 0%,transparent 55%),
-      radial-gradient(ellipse 60% 25% at 85% 5%,var(--violet-dim) 0%,transparent 50%)}
   .layout{display:flex;min-height:100vh}
   /* SIDEBAR */
   .sidebar{width:220px;min-height:100vh;height:100vh;position:sticky;top:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
@@ -115,16 +111,17 @@
   /* UTILS */
   .inp:focus{border-color:var(--violet);box-shadow:0 0 0 2px rgba(167,139,250,.1)}
   .btn:hover{transform:translateY(-1px)}
+  /* Aliases locales de Proyecto — mapean a tokens canónicos de blocks.css */
   .btn.primary{background:var(--violet-dim);color:var(--violet);border:1px solid rgba(167,139,250,.3)} .btn.primary:hover{background:rgba(167,139,250,.25)}
   .btn.ghost{background:transparent;color:var(--text-muted);border:1px solid var(--border)} .btn.ghost:hover{color:var(--text);border-color:var(--border-light)}
-  .btn.red{background:var(--red-dim);color:#f87171;border:1px solid rgba(248,113,113,.2)}
+  .btn.red{background:var(--red-dim);color:var(--red);border:1px solid rgba(248,113,113,.2)}
   .btn.xs{padding:.2rem .4rem;font-size: var(--fs-2xs)}
   .mt1{margin-top:.5rem} .w100{width:100%;justify-content:center}
   .empty{text-align:center;padding:2rem;color:var(--text-muted);font-family:var(--font-mono);font-size: var(--fs-xs);background:var(--surface);border:1px solid var(--border);border-radius:var(--r)}
-  /* MODAL */
+  /* MODAL — específico de Proyecto (no global) */
   .overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:100;padding:1rem;animation:fi .15s ease}
   @keyframes fi{from{opacity:0}to{opacity:1}}
-  .modal{background:var(--surface);border:1px solid var(--border-light);border-radius:16px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;animation:su .2s ease;box-shadow:0 24px 64px rgba(0,0,0,.6)}
+  .proy-modal{background:var(--surface);border:1px solid var(--border-light);border-radius:16px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;animation:su .2s ease;box-shadow:0 24px 64px rgba(0,0,0,.6)}
   @keyframes su{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
   .mhdr{padding:1.1rem 1.4rem .9rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
   .mtit{font-size: var(--fs-md);font-weight:700}
@@ -133,7 +130,6 @@
   .fl{font-size: var(--fs-xs);font-weight:600;margin-bottom:.3rem;display:block;color:var(--text-muted)}
   .sidebar-toggle-open{display:none;position:sticky;top:0;z-index:9;width:100%;padding:.75rem;background:var(--surface2);border:none;border-bottom:1px solid var(--border);color:var(--violet);font-family:inherit;font-weight:700;font-size: var(--fs-xs);cursor:pointer;text-align:left}
   .sidebar-toggle-close{display:none;position:absolute;top:1rem;right:1rem;background:none;border:none;color:var(--text-muted);font-size: var(--fs-lg);cursor:pointer}
-  ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:var(--surface)}::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:2px}
 
   @media(max-width:850px){
     .layout{flex-direction:column}

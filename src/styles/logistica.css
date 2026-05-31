@@ -3,17 +3,13 @@
  * Importado globalmente desde main.tsx.
  */
 
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;
-    background-image:radial-gradient(ellipse 80% 40% at 50% -5%,var(--cyan-dim) 0%,transparent 55%)}
   .layout{display:flex;min-height:100vh}
   .sidebar{width:200px;min-height:100vh;height:100vh;position:sticky;top:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;z-index:10}
   .sidebar-logo{padding:1.2rem 1rem;border-bottom:1px solid var(--border)}
   .logo-eyebrow{font-family:var(--font-mono);font-size: var(--fs-2xs);color:var(--cyan);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:0.3rem;opacity:.8}
-  .logo-title{font-size: var(--fs-lg);font-weight:800;background:linear-gradient(135deg,#fff 0%,var(--cyan) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
-  .logo-sub{font-family:var(--font-mono);font-size: var(--fs-2xs);color:var(--text-muted);margin-top:.25rem}
+  .logo-title{font-size: var(--fs-lg);font-weight:800;background:linear-gradient(135deg,#fff 0%,var(--cyan) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}  .logo-sub{font-family:var(--font-mono);font-size: var(--fs-2xs);color:var(--text-muted);margin-top:.25rem}
   .sidebar-nav{flex:1;padding:.5rem .4rem;display:flex;flex-direction:column;gap:.1rem;overflow-y:auto}
-  .nav-item{display:flex;align-items:center;gap:.5rem;padding:.5rem .6rem;border-radius:var(--r-sm);border:1px solid transparent;cursor:pointer;background:none;color:var(--text-muted);font-family:'Syne',sans-serif;font-size: var(--fs-xs);font-weight:600;text-align:left;width:100%;transition:all .15s;position:relative}
+  .nav-item{display:flex;align-items:center;gap:.5rem;padding:.5rem .6rem;border-radius:var(--r-sm);border:1px solid transparent;cursor:pointer;background:none;color:var(--text-muted);font-family:var(--font-display);font-size: var(--fs-xs);font-weight:600;text-align:left;width:100%;transition:all .15s;position:relative}
   .nav-item::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:0 2px 2px 0;background:transparent;transition:background .15s}
   .nav-item:hover{color:var(--text);background:var(--surface2)}
   .nav-item.active{color:var(--text);background:var(--surface2);border-color:var(--border-light)}
@@ -128,7 +124,6 @@
   .tlt{font-size: var(--fs-xs);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .tlr{font-family:var(--font-mono);font-size: var(--fs-2xs);color:var(--text-muted)} .tls{font-family:var(--font-mono);font-size: var(--fs-2xs);white-space:nowrap}
   .empty{text-align:center;padding:1.5rem;color:var(--text-muted);font-family:var(--font-mono);font-size: var(--fs-xs);background:var(--surface);border:1px solid var(--border);border-radius:var(--r)}
-  ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:var(--surface)}::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:2px}
   /* ── Dashboard clases del sistema ─────────────────────────────── */
   .log-kpi-link { cursor: pointer; }
   .log-kpi-link:hover { transform: translateY(-2px); border-color: var(--border-light); box-shadow: 0 4px 16px rgba(0,0,0,.3); }

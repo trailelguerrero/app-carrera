@@ -3,22 +3,22 @@
  * Importado globalmente desde main.tsx.
  */
 
-.dc{position:fixed;inset:0;background:var(--bg);z-index:9000;display:flex;flex-direction:column;overflow:hidden;font-family:'Syne',sans-serif;}
+.dc{position:fixed;inset:0;background:var(--bg);z-index:9000;display:flex;flex-direction:column;overflow:hidden;font-family:var(--font-display);}
 .dc-hdr{display:flex;align-items:center;justify-content:space-between;padding:.6rem 1rem;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;}
 .dc-title{font-weight:800;font-size: var(--fs-md);}
 .dc-sub{font-family:'DM Mono',monospace;font-size: var(--fs-2xs);color:var(--text-muted);margin-top:.1rem;}
 .dc-next{padding:.45rem 1rem;background:rgba(34,211,238,.06);border-bottom:1px solid rgba(34,211,238,.15);display:flex;align-items:center;gap:.6rem;flex-shrink:0;}
 .dc-tabs{display:flex;gap:.3rem;overflow-x:auto;padding:.45rem 1rem;border-bottom:1px solid var(--border);flex-shrink:0;scrollbar-width:none;}
 .dc-tabs::-webkit-scrollbar{display:none;}
-.dc-tab{padding:.38rem .8rem;border-radius:20px;font-family:'DM Mono',monospace;font-size: var(--fs-2xs);font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:none;color:var(--text-muted);white-space:nowrap;transition:all .15s;}
+.dc-tab{padding:.38rem .8rem;border-radius:20px;font-family:var(--font-mono);font-size: var(--fs-2xs);font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:none;color:var(--text-muted);white-space:nowrap;transition:all .15s;}
 .dc-tab.on{background:rgba(34,211,238,.1);color:#22d3ee;border-color:rgba(34,211,238,.35);}
 .dc-body{flex:1;overflow-y:auto;padding:.75rem 1rem 5rem;}
 .dc-row{display:flex;gap:.6rem;padding:.55rem .7rem;border-radius:10px;background:var(--surface);border:1px solid var(--border);margin-bottom:.4rem;}
 .dc-row.done{opacity:.5;}
-.dc-hora{font-family:'DM Mono',monospace;font-weight:800;font-size: var(--fs-sm);color:#22d3ee;width:42px;flex-shrink:0;padding-top:.1rem;}
+.dc-hora{font-family:var(--font-mono);font-weight:800;font-size: var(--fs-sm);color:#22d3ee;width:42px;flex-shrink:0;padding-top:.1rem;}
 .dc-chk{width:26px;height:26px;border-radius:7px;border:2px solid var(--border);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;}
 .dc-chk.on{background:var(--green);border-color:var(--green);}
-.dc-sect{font-family:'DM Mono',monospace;font-size: var(--fs-2xs);font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin:.75rem 0 .35rem;}
+.dc-sect{font-family:var(--font-mono);font-size: var(--fs-2xs);font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin:.75rem 0 .35rem;}
 .dc-tel{display:inline-flex;align-items:center;gap:.3rem;padding:.3rem .6rem;border-radius:8px;font-family:'DM Mono',monospace;font-size: var(--fs-xs);font-weight:800;text-decoration:none;transition:all .15s;}
 .dc-fab{position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));right:20px;width:52px;height:52px;border-radius:50%;background:rgba(248,113,113,0.92);border:2px solid rgba(248,113,113,0.5);font-size: var(--fs-lg);cursor:pointer;box-shadow:0 4px 24px rgba(248,113,113,0.45);z-index:9100;display:flex;align-items:center;justify-content:center;transition:transform .15s;}
 .dc-fab:active{transform:scale(0.92);}
@@ -27,5 +27,5 @@
 .dc-prog-fill{height:100%;background:var(--cyan);border-radius:2px;transition:width .5s;}
 .dc-inc-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);z-index:9200;display:flex;align-items:flex-end;justify-content:center;padding:0;}
 @media(min-width:641px){.dc-inc-backdrop{align-items:center;padding:1rem;}}
-.dc-inc-modal{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:440px;padding:1rem 1.25rem 1.5rem;border-top:3px solid rgba(248,113,113,0.5);}
+.dc-inc-modal{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:440px;padding:1rem 1.25rem 1.5rem;border-top:3px solid rgba(248,113,113,0.5);font-family:var(--font-display);}
 @media(min-width:641px){.dc-inc-modal{border-radius:16px;}}

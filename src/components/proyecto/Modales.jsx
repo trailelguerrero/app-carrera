@@ -35,7 +35,7 @@ function QuickCreateTarea({ onSave, onClose, areas=AREAS, prefillArea="" }) {
 
   return (
     <div className="modal-backdrop" onClick={e => e.target===e.currentTarget && onClose()}>
-      <div className="modal" role="dialog" aria-modal="true" style={{maxWidth:420}}>
+      <div className="proy-modal" role="dialog" aria-modal="true" style={{maxWidth:420}}>
         <div className="modal-header">
           <span className="modal-title">⚡ Nueva tarea rápida</span>
           <button className="btn btn-ghost btn-icon" onClick={onClose}>✕</button>
@@ -92,7 +92,7 @@ function ModalTarea({
 
   return (
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="modal" role="dialog" aria-modal="true">
+      <div className="proy-modal" role="dialog" aria-modal="true">
         <div className="modal-header">
           <span className="mtit">{data?"✏️ Editar tarea":"➕ Nueva tarea"}</span>
           <button className="btn btn-sm btn-ghost" aria-label="Cerrar formulario de tarea" onClick={onClose}><span aria-hidden="true">✕</span></button>
@@ -194,7 +194,7 @@ function ModalHito({
   };
   return (
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="modal" role="dialog" aria-modal="true" style={{maxWidth:420}}>
+      <div className="proy-modal" role="dialog" aria-modal="true" style={{maxWidth:420}}>
         <div className="modal-header"><span className="mtit">{data?"✏️ Editar hito":"🏁 Nuevo hito"}</span><button className="btn btn-sm btn-ghost" aria-label="Cerrar formulario de tarea" onClick={onClose}><span aria-hidden="true">✕</span></button></div>
         <div className="modal-body">
           <div>
@@ -241,7 +241,7 @@ function ModalPersona({ data, onSave, onClose }) {
   };
   return (
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="modal" role="dialog" aria-modal="true">
+      <div className="proy-modal" role="dialog" aria-modal="true">
         <div className="modal-header"><span className="mtit">{data?"✏️ Editar persona":"👤 Nueva persona"}</span><button className="btn btn-sm btn-ghost" aria-label="Cerrar formulario de tarea" onClick={onClose}><span aria-hidden="true">✕</span></button></div>
         <div className="modal-body">
           <div style={{display:"flex",alignItems:"center",gap:"1rem",padding:".75rem",background:"var(--surface2)",borderRadius:10}}>

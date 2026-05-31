@@ -37,10 +37,9 @@
     --fs-md:  1.00rem;  /* títulos de sección secundaria, botones (antes 0.95) */
     --fs-lg:  1.25rem;  /* títulos de módulo, KPI labels                   */
     --fs-xl:  2.20rem;  /* KPI values grandes, métricas destacadas         */
-    /* ── Aliases --teg-* → tokens canónicos (Tarea 2.2) ──────────────────
-     * Permiten migrar Index.jsx, PinScreen, ChangePinModal, ConflictModal
-     * y ThemeToggle de --teg-* a los tokens sin prefijo de forma incremental.
-     * Estos aliases se eliminan en Fase 3 una vez todos los usos migrados. */
+    /* ── Aliases --teg-* → tokens canónicos (compatibilidad con Index.jsx y componentes legacy)
+     * Nota: los tokens --teg-* completos (glow, border-xs, etc.) se definen en index.css.
+     * Estos aliases cubren solo los básicos usados fuera de Index.jsx / QuickNav.jsx. */
     --teg-bg:             var(--bg);
     --teg-surface:        var(--surface);
     --teg-surface-2:      var(--surface2);
