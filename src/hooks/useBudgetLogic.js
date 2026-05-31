@@ -158,25 +158,29 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   // Balance de camisetas técnicas: unidades corredor del bloque Camisetas
   // + unidades de items "Camiseta técnica" del merchandising local
   const totalBalanceCamisetasTecnicas = useMemo(() => {
-    // Beneficio neto de camisetas técnicas (tipo corredor) del bloque Camisetas
-    const pedidos = Array.isArray(rawCamPedidos) ? rawCamPedidos : [];
-    const coste = rawCamCoste || CAM_COSTE_DEFAULT;
-    const lineasCorredor = pedidos.flatMap(p => p.lineas || []).filter(l => l.tipo === "corredor");
-    const ingCorredor = lineasCorredor.filter(l => l.estadoPago === "pagado")
-      .reduce((s, l) => s + (l.cantidad * (l.precioVenta || 0)), 0);
-    const costeCorredor = lineasCorredor.filter(l => l.estadoPago === "pagado" || l.estadoPago === "pendiente")
-      .reduce((s, l) => s + (l.cantidad * (coste.corredor || CAM_COSTE_DEFAULT.corredor)), 0);
-    const beneficioPedidosCor = ingCorredor - costeCorredor;
+    // FIX-BAL-01: usar calculateCosteCamisetasDesglosado como fuente única de verdad,
+    // igual que totalMerchBeneficio. La implementación manual anterior ignoraba
+    // corredoresExt (plataforma externa), voluntarios, niños y venta al público,
+    // provocando divergencia respecto a "Merchandising total" sin otros productos.
+    const desglose = calculateCosteCamisetasDesglosado({
+      camCoste: rawCamCoste || CAM_COSTE_DEFAULT,
+      camPedidos: Array.isArray(rawCamPedidos) ? rawCamPedidos : [],
+      corredoresExt: rawCamCorredores || {},
+      precioCorrExt: rawCamPrecioPlatObj?.precio ?? 0,
+      ninoExt: rawCamNino || {},
+      voluntariosActivos: _camVoluntariosActivos,
+      ventaPublico: rawCamVentaPublico || { precio: 0, cantidad: 0 },
+    });
 
-    // Beneficio neto de "Camiseta técnica" del merchandising local (nombre contiene "camiseta")
+    // Solo ítems de merchandising con nombre "camiseta" (no todos los productos)
     const merch = Array.isArray(merchandising) ? merchandising.filter(m => m.activo) : [];
     const camisetasMerch = merch.filter(m => m.nombre?.toLowerCase().includes("camiseta"));
-    const ingCamisetasMerch = camisetasMerch.reduce((s, m) => s + m.unidades * (m.precioVenta || 0), 0);
+    const ingCamisetasMerch  = camisetasMerch.reduce((s, m) => s + m.unidades * (m.precioVenta   || 0), 0);
     const costeCamisetasMerch = camisetasMerch.reduce((s, m) => s + m.unidades * (m.costeUnitario || 0), 0);
-    const beneficioCamisetasMerch = ingCamisetasMerch - costeCamisetasMerch;
 
-    return beneficioPedidosCor + beneficioCamisetasMerch;
-  }, [rawCamPedidos, rawCamCoste, merchandising]);
+    return desglose.beneficioNeto + (ingCamisetasMerch - costeCamisetasMerch);
+  }, [rawCamPedidos, rawCamCoste, rawCamCorredores, rawCamPrecioPlatObj, rawCamNino,
+      _camVoluntariosActivos, merchandising, rawCamVentaPublico]);
 
   // ── Función que devuelve el valor actualizado de una línea sincronizada ──
   // Esta función es la ÚNICA fuente de verdad para los valores de las líneas
