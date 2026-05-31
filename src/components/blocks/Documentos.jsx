@@ -319,7 +319,7 @@ export default function Documentos() {
         importe: importeNuevo ? parseFloat(importeNuevo.replace(",",".")) || null : null,
         categoria: tab,
         subcategoria: subcat || null,
-        nota: null,
+        nota: descripcionDoc ? descripcionDoc.trim() : null,
         estado: estadoNuevo,
         fechaVencimiento: vencNuevo || null,
         size: realSize,
@@ -331,6 +331,7 @@ export default function Documentos() {
     }
     // SEC-01: subida al proxy BFF — sin x-api-key en el cliente
     const subidos = [];
+    const errores = [];
     for (const doc of newDocs) {
       try {
         const res = await fetch("/api/proxy/documents", {
@@ -345,17 +346,19 @@ export default function Documentos() {
         } else {
           const err = await res.json().catch(() => ({}));
           console.error("Error subiendo documento:", err);
-          setUploadError(`Error al subir "${doc.nombre}": ${err.error || res.status}`);
+          errores.push(`"${doc.nombre}": ${err.error || res.status}`);
         }
       } catch (e) {
         console.error("Error subiendo documento:", e);
+        errores.push(`"${doc.nombre}": error de red`);
       }
     }
-    save([...docs, ...subidos]);
+    if (subidos.length > 0) save([...docs, ...subidos]);
     if (subidos.length > 0) toast.success(subidos.length === 1 ? "Documento subido correctamente" : `${subidos.length} documentos subidos`);
-    setNota(""); setSubcat(""); setVencNuevo(""); setEstadoNuevo("pendiente"); setEmisorNuevo(""); setImporteNuevo("");
+    if (errores.length > 0) setUploadError(`Error al subir: ${errores.join(" · ")}`);
+    setNota(""); setSubcat(""); setVencNuevo(""); setEstadoNuevo("pendiente"); setEmisorNuevo(""); setImporteNuevo(""); setDescripcionDoc("");
     setUploading(false);
-  }, [docs, tab, subcat, nota, estadoNuevo, vencNuevo, emisorNuevo, importeNuevo, uploading, save]);
+  }, [docs, tab, subcat, nota, descripcionDoc, estadoNuevo, vencNuevo, emisorNuevo, importeNuevo, uploading, save]);
 
   // Comprime imágenes vía canvas antes de codificar (PDFs pasan sin cambio).
   // Reduce tamaño ~60-80% en imágenes grandes sin pérdida visible.

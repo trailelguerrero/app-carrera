@@ -44,6 +44,20 @@ export default async function handler(req, res) {
 
     if (!data) return res.status(400).json({ error: 'Falta data' });
 
+    // Validar MIME permitido (igual que api/images/index.js)
+    const ALLOWED_MIME = [
+      'application/pdf',
+      'image/jpeg', 'image/png', 'image/webp',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/msword',
+      'application/vnd.ms-excel',
+    ];
+    const mimeToCheck = mime || 'application/octet-stream';
+    if (!ALLOWED_MIME.includes(mimeToCheck)) {
+      return res.status(415).json({ error: `Tipo de archivo no permitido: ${mimeToCheck}` });
+    }
+
     // C6: límite 10MB antes de crear el buffer [F6-02]
     const base64   = data.includes(',') ? data.split(',')[1] : data;
     const sizeBytes = Buffer.byteLength(Buffer.from(base64, 'base64'));

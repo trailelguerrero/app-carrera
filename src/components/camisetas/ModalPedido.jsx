@@ -26,11 +26,14 @@ export function ModalPedido({
   const {totalVenta,totalCoste,beneficio,benRealizado,benPotencial,costeRegalos} = calcPedido(form,coste);
   const [intentoGuardar, setIntentoGuardar] = useState(false);
   const [verAvanzado, setVerAvanzado] = useState(!!data?.id); // edición: mostrar todo
-  const valido = form.nombre.trim()&&form.lineas.length>0;
+  const valido = form.nombre.trim()&&form.lineas.length>0&&form.lineas.every(l=>l.cantidad>=1);
   // fix(FUNC-02): validación de formato de teléfono español (9 dígitos, empieza por 6-9)
   const telefonoVacio  = !form.telefono || !form.telefono.trim();
   const telefonoValido = telefonoVacio || /^[6-9]\d{8}$/.test(form.telefono.replace(/\s/g,''));
-  const puedeGuardar   = valido && telefonoValido;
+  // Validación de email: solo si se ha rellenado
+  const emailVacio  = !form.email || !form.email.trim();
+  const emailValido = emailVacio || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim());
+  const puedeGuardar   = valido && telefonoValido && emailValido;
   return (
     <div className={`modal-backdrop${mpedClosing ? " modal-backdrop-closing" : ""}`} onClick={e=>e.target===e.currentTarget&&mpedHandleClose()}>
       <div className={`modal modal-ficha${mpedClosing ? " modal-closing" : ""}`} style={{maxWidth:540}}>
@@ -38,8 +41,8 @@ export function ModalPedido({
         <div className="modal-body" style={{gap:".75rem"}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
             <div style={{gridColumn:"1/-1"}}>
-              <label className="fl" style={{color:intentoGuardar&&!form.nombre.trim()?"var(--red)":undefined}}>Nombre *</label>
-              <input ref={firstInputRef} className="inp" value={form.nombre}
+              <label className="fl" htmlFor="modal-pedido-nombre" style={{color:intentoGuardar&&!form.nombre.trim()?"var(--red)":undefined}}>Nombre *</label>
+              <input ref={firstInputRef} id="modal-pedido-nombre" className="inp" value={form.nombre}
                 onChange={e=>{upd("nombre",e.target.value);setIntentoGuardar(false);}}
                 placeholder="Nombre completo"
                 style={{borderColor:intentoGuardar&&!form.nombre.trim()?"var(--red)":undefined}}/>
@@ -49,8 +52,8 @@ export function ModalPedido({
             </div>
             {verAvanzado && <>
               <div>
-                <label className="fl" style={{color:intentoGuardar&&!telefonoValido?"var(--red)":undefined}}>Teléfono</label>
-                <input className="inp" value={form.telefono}
+                <label className="fl" htmlFor="modal-pedido-tel" style={{color:intentoGuardar&&!telefonoValido?"var(--red)":undefined}}>Teléfono</label>
+                <input id="modal-pedido-tel" className="inp" value={form.telefono}
                   onChange={e=>upd("telefono",e.target.value)}
                   placeholder="6XX XXX XXX"
                   inputMode="tel"
@@ -59,7 +62,7 @@ export function ModalPedido({
                   <div className="xs mono" style={{color:"var(--red)",marginTop:".2rem"}}>⚠ 9 dígitos, empieza por 6-9</div>
                 )}
               </div>
-              <div><label className="fl">Email</label><input className="inp" value={form.email} onChange={e=>upd("email",e.target.value)} placeholder="email@ejemplo.com" /></div>
+              <div><label className="fl" htmlFor="modal-pedido-email" style={{color:intentoGuardar&&!emailValido?"var(--red)":undefined}}>Email</label><input id="modal-pedido-email" className="inp" value={form.email} onChange={e=>upd("email",e.target.value)} placeholder="email@ejemplo.com" inputMode="email" style={{borderColor:intentoGuardar&&!emailValido?"var(--red)":undefined}} />{intentoGuardar&&!emailValido&&(<div className="xs mono" style={{color:"var(--red)",marginTop:".2rem"}}>⚠ Formato de email inválido</div>)}</div>
             </>}
           </div>
           <div>

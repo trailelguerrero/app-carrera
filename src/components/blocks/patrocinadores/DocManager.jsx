@@ -25,11 +25,30 @@ export default function DocManager({ pat, addDoc, deleteDoc, cfg }) {
       .catch(() => setLoading(false));
   }, [pat.id]);
 
+  const ALLOWED_MIME = [
+    'application/pdf',
+    'image/png', 'image/jpeg', 'image/webp',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // docx
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',       // xlsx
+    'application/msword',   // doc
+    'application/vnd.ms-excel', // xls
+  ];
+  const ALLOWED_EXT_RE = /\.(pdf|doc|docx|xls|xlsx|png|jpe?g|webp)$/i;
+  const MAX_MB = 5;
+
   const processFile = async (file) => {
     if (!file) return;
-    const maxMB = 5;
-    if (file.size > maxMB * 1024 * 1024) {
-      setUploadError(`El archivo supera ${maxMB} MB.`); return;
+    if (uploading) return; // C2: guard contra doble subida
+    setUploadError(null);  // M1: limpiar error previo
+
+    // C1: validar tipo de archivo
+    const typeOk = ALLOWED_MIME.includes(file.type) || ALLOWED_EXT_RE.test(file.name);
+    if (!typeOk) {
+      setUploadError(`Tipo no permitido: "${file.name}". Usa PDF, Word, Excel o imagen.`);
+      return;
+    }
+    if (file.size > MAX_MB * 1024 * 1024) {
+      setUploadError(`El archivo supera ${MAX_MB} MB.`); return;
     }
     setUploading(true);
     const reader = new FileReader();
@@ -113,7 +132,7 @@ export default function DocManager({ pat, addDoc, deleteDoc, cfg }) {
       )}
       {!loading && docs.length > 0 && (<>
         <div className="mono xs muted" style={{ marginBottom:".4rem" }}>
-          ☁️ {docs.length} documento{docs.length!==1?"s":""} · {totalKB} KB en Neon Cloud
+          ☁️ {docs.length} documento{docs.length!==1?"s":""} · {totalKB} KB en Vercel Blob
         </div>
         {docs.map(d => (
           <div key={d.id} style={{ display:"flex", alignItems:"center", gap:".6rem", padding:".45rem .6rem",
