@@ -296,6 +296,22 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     loadData();
   }, []);
 
+  // PERF-D: helper privado que centraliza los 6 dataService.set.
+  // saveData (manual) y el autosave lo llaman con el mismo snapshot,
+  // eliminando el riesgo de race condition y la duplicación de código.
+  // FIX DIVERGENCIA DASHBOARD: siempre recibe ingresosExtraConValores (valores en tiempo real)
+  // para que el snapshot de localStorage tenga ie.valor correcto (no 0).
+  const _persistAll = useCallback(async (snapshot) => {
+    await Promise.all([
+      dataService.set(SK_PPTO_TRAMOS,         snapshot.tramos),
+      dataService.set(SK_PPTO_CONCEPTOS,      snapshot.conceptos),
+      dataService.set(SK_PPTO_INSCRITOS,      snapshot.inscritos),
+      dataService.set(SK_PPTO_INGRESOS_EXTRA, snapshot.ingresosExtra),
+      dataService.set(SK_PPTO_MERCHANDISING,  snapshot.merchandising),
+      dataService.set(SK_PPTO_MAXIMOS,        snapshot.maximos),
+    ]);
+  }, []);
+
   const emitSaveStatus = (status) => {
     window.dispatchEvent(new CustomEvent("teg-save-status", { detail: { status } }));
   };
@@ -305,18 +321,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     setSaveStatus("saving");
     emitSaveStatus("saving");
     try {
-      // FIX DIVERGENCIA DASHBOARD: se guardan ingresosExtraConValores (valores calculados en tiempo real)
-      // en lugar del estado base ingresosExtra (que tiene valor:0 para líneas sincronizadas).
-      // El Dashboard lee este snapshot y suma ie.valor directamente → necesita los valores reales.
-      // ingresosExtraConValores tiene los mismos campos estructurales + valor actualizado (patrocinios, camisetas…).
-      await Promise.all([
-        dataService.set(SK_PPTO_TRAMOS, tramos),
-        dataService.set(SK_PPTO_CONCEPTOS, conceptos),
-        dataService.set(SK_PPTO_INSCRITOS, inscritos),
-        dataService.set(SK_PPTO_INGRESOS_EXTRA, ingresosExtraConValores),
-        dataService.set(SK_PPTO_MERCHANDISING, merchandising),
-        dataService.set(SK_PPTO_MAXIMOS, maximos),
-      ]);
+      await _persistAll({ tramos, conceptos, inscritos, ingresosExtra: ingresosExtraConValores, merchandising, maximos });
       setSaveStatus("saved");
       emitSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2000);
@@ -325,7 +330,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       setSaveStatus("error");
       emitSaveStatus("error");
     }
-  }, [tramos, conceptos, inscritos, ingresosExtraConValores, merchandising, maximos]);
+  }, [_persistAll, tramos, conceptos, inscritos, ingresosExtraConValores, merchandising, maximos]);
 
   // BUG-P4 fix: resetAllData ahora también limpia syncConfig y margenConfig
   // FIX-RESET-1: Antes de resetear, guarda backup en Neon con timestamp.
@@ -375,23 +380,14 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     // sobreescribiría datos reales en Neon (causa raíz de los resets accidentales).
     if (!dataLoadedFromNeon.current) return;
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-    // Capturar snapshot de ingresosExtraConValores en el momento del cambio (cierre léxico).
+    // Capturar snapshot en el momento del cambio (cierre léxico).
     // Esto garantiza que el autosave y el cleanup usan el mismo valor que disparó el efecto.
-    const ingresosExtraSnapshot = ingresosExtraConValores;
+    const snapshot = { tramos, conceptos, inscritos, ingresosExtra: ingresosExtraConValores, merchandising, maximos };
     autoSaveTimer.current = setTimeout(async () => {
       autoSaveTimer.current = null;
       emitSaveStatus("saving");
       try {
-        // FIX DIVERGENCIA DASHBOARD: guardar ingresosExtraConValores (valores en tiempo real)
-        // para que el snapshot de localStorage tenga ie.valor correcto (no 0).
-        await Promise.all([
-          dataService.set(SK_PPTO_TRAMOS, tramos),
-          dataService.set(SK_PPTO_CONCEPTOS, conceptos),
-          dataService.set(SK_PPTO_INSCRITOS, inscritos),
-          dataService.set(SK_PPTO_INGRESOS_EXTRA, ingresosExtraSnapshot),
-          dataService.set(SK_PPTO_MERCHANDISING, merchandising),
-          dataService.set(SK_PPTO_MAXIMOS, maximos)
-        ]);
+        await _persistAll(snapshot);
         emitSaveStatus("saved");
       } catch { emitSaveStatus("error"); }
     }, 800);
@@ -402,19 +398,14 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
         clearTimeout(autoSaveTimer.current);
         autoSaveTimer.current = null;
         // Guardado síncrono al desmontar — no esperamos promesa para no bloquear
-        Promise.all([
-          dataService.set(SK_PPTO_TRAMOS, tramos),
-          dataService.set(SK_PPTO_CONCEPTOS, conceptos),
-          dataService.set(SK_PPTO_INSCRITOS, inscritos),
-          dataService.set(SK_PPTO_INGRESOS_EXTRA, ingresosExtraSnapshot),
-          dataService.set(SK_PPTO_MERCHANDISING, merchandising),
-          dataService.set(SK_PPTO_MAXIMOS, maximos),
-        ]).catch(() => { /* ignorar errores al desmontar */ });
+        _persistAll(snapshot).catch(() => { /* ignorar errores al desmontar */ });
       }
     };
-  }, [tramos, conceptos, inscritos, ingresosExtraConValores, merchandising, maximos]);
+  }, [_persistAll, tramos, conceptos, inscritos, ingresosExtraConValores, merchandising, maximos]);
 
-  const logCambio = (concepto, campo, valorAntes, valorNuevo) => {
+  // PERF-B: logCambio estabilizado con useCallback — no tiene dependencias de estado
+  // (usa sólo fetch global y valores pasados como parámetros).
+  const logCambio = useCallback((concepto, campo, valorAntes, valorNuevo) => {
     // SEC-01: el proxy BFF inyecta la x-api-key server-side
     fetch("/api/proxy/budget-log", {
       method: "POST",
@@ -426,9 +417,13 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
         tipo: concepto.tipo ?? null,
       }),
     }).catch(() => { });
-  };
+  }, []);
 
-  const updateConcepto = (id, field, value) => {
+  // PERF-B: handlers de conceptos/tramos/inscritos estabilizados con useCallback.
+  // Dependencia mínima: sólo los setters (estables) y logCambio (estable arriba).
+  // Esto permite que TabPresupuesto y sus filas memoizadas no se re-rendericen
+  // cuando cambia otro estado del hook (p.ej. inscritos, syncConfig...).
+  const updateConcepto = useCallback((id, field, value) => {
     setConceptos(prev => prev.map(c => {
       if (c.id !== id) return c;
       const camposLog = ["nombre", "activo", "costeTotal", "modoUniforme",
@@ -437,9 +432,9 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       if (camposLog.includes(field) && c[field] !== value) logCambio(c, field, c[field], value);
       return { ...c, [field]: value };
     }));
-  };
+  }, [logCambio]);
 
-  const updateCostePorDistancia = (id, dist, value) => {
+  const updateCostePorDistancia = useCallback((id, dist, value) => {
     setConceptos(prev => prev.map(c => {
       if (c.id !== id) return c;
       if (c.modoUniforme) {
@@ -451,29 +446,33 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       if (antes !== value) logCambio(c, `precio ${dist}`, antes, value);
       return { ...c, costePorDistancia: { ...c.costePorDistancia, [dist]: value } };
     }));
-  };
+  }, [logCambio]);
 
-  const updateActivoDistancia = (id, dist, value) => {
+  const updateActivoDistancia = useCallback((id, dist, value) => {
     setConceptos(prev => prev.map(c => {
       if (c.id !== id) return c;
       if (c.activoDistancias[dist] !== value) logCambio(c, `${dist} activo`, c.activoDistancias[dist], value);
       return { ...c, activoDistancias: { ...c.activoDistancias, [dist]: value } };
     }));
-  };
+  }, [logCambio]);
 
-  const addConcepto = (tipo) => {
-    const id = conceptos.length > 0 ? Math.max(...conceptos.map(c => c.id)) + 1 : 1;
-    setConceptos(prev => [...prev, {
-      id, tipo, nombre: `Nuevo concepto ${tipo}`,
-      costeTotal: 0, costePorDistancia: { TG7: 0, TG13: 0, TG25: 0 },
-      activoDistancias: { TG7: true, TG13: true, TG25: true },
-      activo: true, modoUniforme: tipo === "variable" ? true : undefined, orden: conceptos.length
-    }]);
-  };
+  // addConcepto necesita conceptos.length para generar id — usar setter funcional
+  // leyendo el array prev evita la dependencia en el array completo.
+  const addConcepto = useCallback((tipo) => {
+    setConceptos(prev => {
+      const id = prev.length > 0 ? Math.max(...prev.map(c => c.id)) + 1 : 1;
+      return [...prev, {
+        id, tipo, nombre: `Nuevo concepto ${tipo}`,
+        costeTotal: 0, costePorDistancia: { TG7: 0, TG13: 0, TG25: 0 },
+        activoDistancias: { TG7: true, TG13: true, TG25: true },
+        activo: true, modoUniforme: tipo === "variable" ? true : undefined, orden: prev.length,
+      }];
+    });
+  }, []);
 
-  const removeConcepto = (id) => setConceptos(prev => prev.filter(c => c.id !== id));
+  const removeConcepto = useCallback((id) => setConceptos(prev => prev.filter(c => c.id !== id)), []);
 
-  const reorderConceptos = (tipo, fromId, toId) => {
+  const reorderConceptos = useCallback((tipo, fromId, toId) => {
     if (fromId === toId) return;
     setConceptos(prev => {
       const arr = [...prev];
@@ -483,24 +482,27 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       arr.splice(ti, 0, moved);
       return arr;
     });
-  };
+  }, []);
 
-  const updateTramoPrecio = (tramoId, dist, value) => {
+  const updateTramoPrecio = useCallback((tramoId, dist, value) => {
     setTramos(prev => prev.map(t => t.id === tramoId ? { ...t, precios: { ...t.precios, [dist]: value } } : t));
-  };
+  }, []);
 
-  const addTramo = () => {
-    const id = tramos.length > 0 ? Math.max(...tramos.map(t => t.id)) + 1 : 1;
+  // addTramo: id calculado desde prev para evitar dependencia en tramos
+  const addTramo = useCallback(() => {
     const today = new Date().toISOString().split("T")[0];
-    // MEJ-01: nuevos tramos incluyen fechaInicio (hoy por defecto → abierto desde ya).
-    // El campo es opcional: tramos guardados sin fechaInicio siguen funcionando
-    // (getTramoStatus los trata como si fechaInicio ≤ hoy, es decir, ya abiertos).
-    setTramos(prev => [...prev, { id, nombre: `Nuevo Tramo ${id}`, fechaInicio: today, fechaFin: today, precios: { TG7: 30, TG13: 45, TG25: 65 } }]);
-  };
+    setTramos(prev => {
+      const id = prev.length > 0 ? Math.max(...prev.map(t => t.id)) + 1 : 1;
+      // MEJ-01: nuevos tramos incluyen fechaInicio (hoy por defecto → abierto desde ya).
+      // El campo es opcional: tramos guardados sin fechaInicio siguen funcionando
+      // (getTramoStatus los trata como si fechaInicio ≤ hoy, es decir, ya abiertos).
+      return [...prev, { id, nombre: `Nuevo Tramo ${id}`, fechaInicio: today, fechaFin: today, precios: { TG7: 30, TG13: 45, TG25: 65 } }];
+    });
+  }, []);
 
-  const updateInscritos = (tramoId, dist, value) => {
+  const updateInscritos = useCallback((tramoId, dist, value) => {
     setInscritos(prev => ({ ...prev, tramos: { ...prev.tramos, [tramoId]: { ...prev.tramos[tramoId], [dist]: value } } }));
-  };
+  }, []);
 
   // ── Valores base (con soporte de escenarios) ────────────────────────────
   const _inscritos = scenarioInscritos ?? inscritos;
@@ -542,10 +544,27 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     calculatePEGlobal(totalInscritos, precioMedioDistancia, costesVarPorCorredor, costesFijos, totalIngresosConMerch, maximos, margenConfig),
     [totalInscritos, precioMedioDistancia, costesVarPorCorredor, costesFijos, totalIngresosConMerch, maximos, margenConfig]);
 
-  const realTotalInscritos = useMemo(() => calculateTotalInscritos(tramos, inscritos), [tramos, inscritos]);
-  const realIngresosPorDistancia = useMemo(() => calculateIngresosPorDistancia(tramos, inscritos), [tramos, inscritos]);
-  const realCostesFijos = useMemo(() => calculateCostesFijos(conceptos, realTotalInscritos), [conceptos, realTotalInscritos]);
-  const realCostesVariables = useMemo(() => calculateCostesVariables(conceptos, realTotalInscritos), [conceptos, realTotalInscritos]);
+  // PERF-E: cuando no hay escenario activo, _inscritos === inscritos y _conceptos === conceptos,
+  // por lo que totalInscritos, costesFijos y costesVariables ya son los valores "reales".
+  // Reusar evita ejecutar las mismas funciones puras dos veces con los mismos argumentos.
+  const hayEscenario = scenarioInscritos != null || scenarioConceptos != null;
+
+  const realTotalInscritos = useMemo(
+    () => hayEscenario ? calculateTotalInscritos(tramos, inscritos) : totalInscritos,
+    [hayEscenario, tramos, inscritos, totalInscritos]
+  );
+  const realIngresosPorDistancia = useMemo(
+    () => hayEscenario ? calculateIngresosPorDistancia(tramos, inscritos) : ingresosPorDistancia,
+    [hayEscenario, tramos, inscritos, ingresosPorDistancia]
+  );
+  const realCostesFijos = useMemo(
+    () => hayEscenario ? calculateCostesFijos(conceptos, realTotalInscritos) : costesFijos,
+    [hayEscenario, conceptos, realTotalInscritos, costesFijos]
+  );
+  const realCostesVariables = useMemo(
+    () => hayEscenario ? calculateCostesVariables(conceptos, realTotalInscritos) : costesVariables,
+    [hayEscenario, conceptos, realTotalInscritos, costesVariables]
+  );
 
   // BUG-P3 fix: calcular ingresos extra "reales" independientemente del escenario activo
   // Así realResultado no se contamina con los valores del escenario hipotético

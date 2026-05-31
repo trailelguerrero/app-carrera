@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, memo } from "react";
 import { ModalEditarConcepto } from "./FichaConcepto";
 import { Tooltip, TooltipIcon } from "../common/Tooltip";
 import { DISTANCIAS, DISTANCIA_COLORS, DISTANCIA_LABELS } from "../../constants/budgetConstants";
@@ -57,6 +57,174 @@ const TAB_CSS = `
   .reorder-btn span:active { transform: scale(0.9); }
 `;
 
+// PERF-A: RowFijo y RowVariable como componentes memoizados.
+// React.memo evita el re-render de las filas que NO han cambiado cuando el
+// padre re-renderiza (p.ej. al cambiar el nombre de otro concepto, o al
+// modificar inscritos en otra tab). El coste de comparación shallow es mínimo
+// comparado con el de re-renderizar docenas de filas con NumInput y Toggle.
+//
+// Prerequisito: updateConcepto, updateCostePorDistancia, updateActivoDistancia,
+// removeConcepto deben ser estables (useCallback en useBudgetLogic — PERF-B).
+
+const RowFijo = memo(function RowFijo({
+  c, idx, arrLen,
+  ordenAlfa, totalInscritos,
+  onMover, onEditar,
+  updateConcepto, updateActivoDistancia, removeConcepto,
+}) {
+  const distActivas  = DISTANCIAS.filter(d => c.activoDistancias[d] && c.activo);
+  const totalActivos = distActivas.reduce((s, d) => s + (totalInscritos[d] || 0), 0);
+
+  const distData = DISTANCIAS.map(d => {
+    if (!c.activo || !c.activoDistancias[d]) return { d, prorrata: null, porCorredor: null };
+    const prorrata = totalActivos > 0
+      ? c.costeTotal * ((totalInscritos[d] || 0) / totalActivos)
+      : c.costeTotal / Math.max(distActivas.length, 1);
+    const porCorredor = totalActivos > 0 ? c.costeTotal / totalActivos : null;
+    return { d, prorrata, porCorredor };
+  });
+
+  return (
+    <tr>
+      <td style={{ width: 22, padding: "0.3rem 0.2rem" }}>
+        {!ordenAlfa && (
+          <button className="reorder-btn" title="Mover arriba / abajo">
+            <span onClick={() => onMover(c.id, -1)} style={{ opacity: idx === 0 ? 0.2 : 1 }}>▲</span>
+            <span onClick={() => onMover(c.id, +1)} style={{ opacity: idx === arrLen - 1 ? 0.2 : 1 }}>▼</span>
+          </button>
+        )}
+      </td>
+      <td><Toggle value={c.activo} onChange={v => updateConcepto(c.id, "activo", v)} /></td>
+      <td>
+        <button
+          onClick={() => onEditar(c)}
+          style={{ background:"none", border:"none", cursor:"pointer",
+            padding:"0.3rem 0.4rem", textAlign:"left", width:"100%",
+            borderRadius:6, display:"block" }}>
+          <span style={{
+            fontFamily:"var(--font-display)", fontSize:"0.85rem",
+            fontWeight:600, color: c.activo ? "var(--text)" : "var(--text-muted)",
+            display:"block", whiteSpace:"nowrap",
+            overflow:"hidden", textOverflow:"ellipsis", maxWidth:"120px"
+          }}>
+            {c.nombre}
+          </span>
+          {(c.proveedor || c.notas || c.estadoPago || c.estadoPedido) && (
+            <span style={{ fontSize:"var(--fs-xs)", opacity:0.6 }}>📋</span>
+          )}
+        </button>
+      </td>
+      <td className="text-right">
+        <NumInput value={c.costeTotal} onChange={v => updateConcepto(c.id, "costeTotal", v)} step={1} />
+      </td>
+      {distData.map(({ d, prorrata, porCorredor }) => (
+        <td key={d} className="text-right" style={{ opacity: c.activo ? 1 : 0.35 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
+            <Toggle value={c.activoDistancias[d]} onChange={v => updateActivoDistancia(c.id, d, v)} />
+            <span className="mono text-xs" style={{ color: c.activoDistancias[d] ? DISTANCIA_COLORS[d] : "var(--text-muted)" }}>
+              {prorrata !== null
+                ? <>{porCorredor !== null ? `${fmtN(porCorredor)} €/cte` : "—"}<br/><span style={{opacity:0.55,fontSize:"0.7em"}}>{fmtN(prorrata)} €</span></>
+                : "—"}
+            </span>
+          </div>
+        </td>
+      ))}
+      <td>
+        <button className="btn btn-red" onClick={() => removeConcepto(c.id)}>✕</button>
+      </td>
+    </tr>
+  );
+});
+
+const RowVariable = memo(function RowVariable({
+  c, idx, arrLen,
+  ordenAlfa, totalInscritos,
+  onMover, onEditar,
+  updateConcepto, updateCostePorDistancia, updateActivoDistancia, removeConcepto,
+}) {
+  const total = !c.activo ? 0 : DISTANCIAS.reduce((s, d) => {
+    if (c.activoDistancias && c.activoDistancias[d] === false) return s;
+    return s + (c.costePorDistancia[d] || 0) * totalInscritos[d];
+  }, 0);
+
+  return (
+    <tr>
+      <td style={{ width: 22, padding: "0.3rem 0.2rem" }}>
+        {!ordenAlfa && (
+          <button className="reorder-btn" title="Mover arriba / abajo">
+            <span onClick={() => onMover(c.id, -1)} style={{ opacity: idx === 0 ? 0.2 : 1 }}>▲</span>
+            <span onClick={() => onMover(c.id, +1)} style={{ opacity: idx === arrLen - 1 ? 0.2 : 1 }}>▼</span>
+          </button>
+        )}
+      </td>
+      <td><Toggle value={c.activo} onChange={v => updateConcepto(c.id, "activo", v)} /></td>
+      <td>
+        <button
+          onClick={() => onEditar(c)}
+          style={{ background:"none", border:"none", cursor:"pointer",
+            padding:"0.3rem 0.4rem", textAlign:"left", width:"100%",
+            borderRadius:6, display:"block" }}>
+          <span style={{
+            fontFamily:"var(--font-display)", fontSize:"0.85rem",
+            fontWeight:600, color: c.activo ? "var(--text)" : "var(--text-muted)",
+            display:"block", whiteSpace:"nowrap",
+            overflow:"hidden", textOverflow:"ellipsis", maxWidth:"120px"
+          }}>
+            {c.nombre}
+          </span>
+          {(c.proveedor || c.notas || c.estadoPago || c.estadoPedido) && (
+            <span style={{ fontSize:"var(--fs-xs)", opacity:0.6 }}>📋</span>
+          )}
+        </button>
+      </td>
+      <td>
+        <button
+          className={cls("modo-toggle", c.modoUniforme && "uniforme")}
+          onClick={() => updateConcepto(c.id, "modoUniforme", !c.modoUniforme)}
+          title={c.modoUniforme ? "Mismo precio en todas" : "Precio distinto por distancia"}
+        >
+          {c.modoUniforme ? "= Igual" : "≠ Dist."}
+        </button>
+      </td>
+      {DISTANCIAS.map(d => {
+        const activaDistancia = c.activoDistancias ? c.activoDistancias[d] !== false : true;
+        const totalDistancia  = c.activo && activaDistancia
+          ? (c.costePorDistancia[d] || 0) * (totalInscritos[d] || 0)
+          : null;
+        return (
+          <td key={d} className="text-right" style={{ opacity: c.activo ? 1 : 0.35 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4 }}>
+              <Toggle
+                value={activaDistancia}
+                onChange={v => updateActivoDistancia(c.id, d, v)}
+              />
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 1 }}>
+                <NumInput
+                  value={c.costePorDistancia[d] || 0}
+                  onChange={v => updateCostePorDistancia(c.id, d, v)}
+                  small step={0.01}
+                />
+                <span className="mono text-xs" style={{
+                  opacity: 0.55, fontSize: "0.7em",
+                  color: activaDistancia ? DISTANCIA_COLORS[d] : "var(--text-muted)"
+                }}>
+                  {totalDistancia !== null ? `${fmtN(totalDistancia)} €` : "—"}
+                </span>
+              </div>
+            </div>
+          </td>
+        );
+      })}
+      <td className="text-right mono text-xs" style={{ color: "var(--green)" }}>
+        {c.activo ? total.toFixed(2) : "0,00"} €
+      </td>
+      <td>
+        <button className="btn btn-red" onClick={() => removeConcepto(c.id)}>✕</button>
+      </td>
+    </tr>
+  );
+});
+
 export const TabPresupuesto = ({
   conceptos,
   totalInscritos,
@@ -78,18 +246,20 @@ export const TabPresupuesto = ({
   const [editando, setEditando] = useState(null);
   const [vistaResumen, setVistaResumen]   = useState(false);
 
-  const abrirEditar = (c) => {
+  // PERF-A: abrirEditar y handleSave estabilizados para que no rompan la memoización
+  // de RowFijo/RowVariable. onEditar = abrirEditar se pasa como prop estable.
+  const abrirEditar = useCallback((c) => {
     const m = document.querySelector("main");
     if (m) m.scrollTo({ top: 0, behavior: "instant" });
     setEditando(c);
-  };
+  }, []);
 
-  const handleSave = (updated) => {
+  const handleSave = useCallback((updated) => {
     Object.entries(updated).forEach(([k, v]) => {
       if (k !== "id" && k !== "tipo") updateConcepto(updated.id, k, v);
     });
     setEditando(null);
-  };
+  }, [updateConcepto]);
 
   const sort = (arr, alfa) => alfa
     ? [...arr].sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es"))
@@ -98,178 +268,28 @@ export const TabPresupuesto = ({
   const conceptosFijos = sort(conceptos.filter(c => c.tipo === "fijo"),     ordenAlfaFijo);
   const conceptosVar   = sort(conceptos.filter(c => c.tipo === "variable"), ordenAlfaVar);
 
-  const moverFijo = (id, dir) => {
-    const arr = conceptosFijos;
+  // PERF-A: moverFijo/moverVar estabilizados con useCallback.
+  // Dependen de conceptosFijos/conceptosVar (arrays derivados), no del array completo.
+  const fijoRef = React.useRef(conceptosFijos);
+  fijoRef.current = conceptosFijos;
+  const varRef = React.useRef(conceptosVar);
+  varRef.current = conceptosVar;
+
+  const moverFijoStable = useCallback((id, dir) => {
+    const arr = fijoRef.current;
     const idx = arr.findIndex(c => c.id === id);
     const nuevoIdx = idx + dir;
     if (nuevoIdx < 0 || nuevoIdx >= arr.length) return;
     reorderConceptos("fijo", arr[idx].id, arr[nuevoIdx].id);
-  };
+  }, [reorderConceptos]);
 
-  const moverVar = (id, dir) => {
-    const arr = conceptosVar;
+  const moverVarStable = useCallback((id, dir) => {
+    const arr = varRef.current;
     const idx = arr.findIndex(c => c.id === id);
     const nuevoIdx = idx + dir;
     if (nuevoIdx < 0 || nuevoIdx >= arr.length) return;
     reorderConceptos("variable", arr[idx].id, arr[nuevoIdx].id);
-  };
-
-  const renderFilaFija = (c, idx, arr) => {
-    // Muestra la prorrata bruta (€ asignados a cada distancia) usando la misma lógica
-    // que calculateCostesFijos en budgetUtils.js:
-    //   prorrata[d] = costeTotal × (inscritos[d] / totalActivos)
-    // Este valor SÍ varía entre distancias según sus inscritos reales.
-    // Nota: el €/cte (costeTotal/totalActivos) es matemáticamente igual en todas
-    // las distancias — la prorrata proporcional lo garantiza por diseño.
-    // INVARIANTE: suma(prorrata[d] para distancias activas) == costeTotal.
-
-    const distActivas  = DISTANCIAS.filter(d => c.activoDistancias[d] && c.activo);
-    const totalActivos = distActivas.reduce((s, d) => s + (totalInscritos[d] || 0), 0);
-
-    const distData = DISTANCIAS.map(d => {
-      if (!c.activo || !c.activoDistancias[d]) return { d, prorrata: null, porCorredor: null };
-      const prorrata = totalActivos > 0
-        ? c.costeTotal * ((totalInscritos[d] || 0) / totalActivos)
-        : c.costeTotal / Math.max(distActivas.length, 1);
-      const porCorredor = totalActivos > 0 ? c.costeTotal / totalActivos : null;
-      return { d, prorrata, porCorredor };
-    });
-
-    return (
-      <tr key={c.id}>
-        <td style={{ width: 22, padding: "0.3rem 0.2rem" }}>
-          {!ordenAlfaFijo && (
-            <button className="reorder-btn" title="Mover arriba / abajo">
-              <span onClick={() => moverFijo(c.id, -1)} style={{ opacity: idx === 0 ? 0.2 : 1 }}>▲</span>
-              <span onClick={() => moverFijo(c.id, +1)} style={{ opacity: idx === arr.length - 1 ? 0.2 : 1 }}>▼</span>
-            </button>
-          )}
-        </td>
-        <td><Toggle value={c.activo} onChange={v => updateConcepto(c.id, "activo", v)} /></td>
-        <td>
-          <button
-            onClick={() => abrirEditar(c)}
-            style={{ background:"none", border:"none", cursor:"pointer",
-              padding:"0.3rem 0.4rem", textAlign:"left", width:"100%",
-              borderRadius:6, display:"block" }}>
-            <span style={{
-              fontFamily:"var(--font-display)", fontSize:"0.85rem",
-              fontWeight:600, color: c.activo ? "var(--text)" : "var(--text-muted)",
-              display:"block", whiteSpace:"nowrap",
-              overflow:"hidden", textOverflow:"ellipsis", maxWidth:"120px"
-            }}>
-              {c.nombre}
-            </span>
-            {(c.proveedor || c.notas || c.estadoPago || c.estadoPedido) && (
-              <span style={{ fontSize:"var(--fs-xs)", opacity:0.6 }}>📋</span>
-            )}
-          </button>
-        </td>
-        <td className="text-right">
-          <NumInput value={c.costeTotal} onChange={v => updateConcepto(c.id, "costeTotal", v)} step={1} />
-        </td>
-        {distData.map(({ d, prorrata, porCorredor }) => (
-          <td key={d} className="text-right" style={{ opacity: c.activo ? 1 : 0.35 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
-              <Toggle value={c.activoDistancias[d]} onChange={v => updateActivoDistancia(c.id, d, v)} />
-              <span className="mono text-xs" style={{ color: c.activoDistancias[d] ? DISTANCIA_COLORS[d] : "var(--text-muted)" }}>
-                {prorrata !== null
-                  ? <>{porCorredor !== null ? `${fmtN(porCorredor)} €/cte` : "—"}<br/><span style={{opacity:0.55,fontSize:"0.7em"}}>{fmtN(prorrata)} €</span></>
-                  : "—"}
-              </span>
-            </div>
-          </td>
-        ))}
-        <td>
-          <button className="btn btn-red" onClick={() => removeConcepto(c.id)}>✕</button>
-        </td>
-      </tr>
-    );
-  };
-
-  const renderFilaVariable = (c, idx, arr) => {
-    const total = !c.activo ? 0 : DISTANCIAS.reduce((s, d) => {
-      if (c.activoDistancias && c.activoDistancias[d] === false) return s;
-      return s + (c.costePorDistancia[d] || 0) * totalInscritos[d];
-    }, 0);
-
-    return (
-      <tr key={c.id}>
-        <td style={{ width: 22, padding: "0.3rem 0.2rem" }}>
-          {!ordenAlfaVar && (
-            <button className="reorder-btn" title="Mover arriba / abajo">
-              <span onClick={() => moverVar(c.id, -1)} style={{ opacity: idx === 0 ? 0.2 : 1 }}>▲</span>
-              <span onClick={() => moverVar(c.id, +1)} style={{ opacity: idx === arr.length - 1 ? 0.2 : 1 }}>▼</span>
-            </button>
-          )}
-        </td>
-        <td><Toggle value={c.activo} onChange={v => updateConcepto(c.id, "activo", v)} /></td>
-        <td>
-          <button
-            onClick={() => abrirEditar(c)}
-            style={{ background:"none", border:"none", cursor:"pointer",
-              padding:"0.3rem 0.4rem", textAlign:"left", width:"100%",
-              borderRadius:6, display:"block" }}>
-            <span style={{
-              fontFamily:"var(--font-display)", fontSize:"0.85rem",
-              fontWeight:600, color: c.activo ? "var(--text)" : "var(--text-muted)",
-              display:"block", whiteSpace:"nowrap",
-              overflow:"hidden", textOverflow:"ellipsis", maxWidth:"120px"
-            }}>
-              {c.nombre}
-            </span>
-            {(c.proveedor || c.notas || c.estadoPago || c.estadoPedido) && (
-              <span style={{ fontSize:"var(--fs-xs)", opacity:0.6 }}>📋</span>
-            )}
-          </button>
-        </td>
-        <td>
-          <button
-            className={cls("modo-toggle", c.modoUniforme && "uniforme")}
-            onClick={() => updateConcepto(c.id, "modoUniforme", !c.modoUniforme)}
-            title={c.modoUniforme ? "Mismo precio en todas" : "Precio distinto por distancia"}
-          >
-            {c.modoUniforme ? "= Igual" : "≠ Dist."}
-          </button>
-        </td>
-        {DISTANCIAS.map(d => {
-          const activaDistancia = c.activoDistancias ? c.activoDistancias[d] !== false : true;
-          const totalDistancia  = c.activo && activaDistancia
-            ? (c.costePorDistancia[d] || 0) * (totalInscritos[d] || 0)
-            : null;
-          return (
-            <td key={d} className="text-right" style={{ opacity: c.activo ? 1 : 0.35 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4 }}>
-                <Toggle
-                  value={activaDistancia}
-                  onChange={v => updateActivoDistancia(c.id, d, v)}
-                />
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 1 }}>
-                  <NumInput
-                    value={c.costePorDistancia[d] || 0}
-                    onChange={v => updateCostePorDistancia(c.id, d, v)}
-                    small step={0.01}
-                  />
-                  <span className="mono text-xs" style={{
-                    opacity: 0.55, fontSize: "0.7em",
-                    color: activaDistancia ? DISTANCIA_COLORS[d] : "var(--text-muted)"
-                  }}>
-                    {totalDistancia !== null ? `${fmtN(totalDistancia)} €` : "—"}
-                  </span>
-                </div>
-              </div>
-            </td>
-          );
-        })}
-        <td className="text-right mono text-xs" style={{ color: "var(--green)" }}>
-          {c.activo ? total.toFixed(2) : "0,00"} €
-        </td>
-        <td>
-          <button className="btn btn-red" onClick={() => removeConcepto(c.id)}>✕</button>
-        </td>
-      </tr>
-    );
-  };
+  }, [reorderConceptos]);
 
   return (
     <>
@@ -429,7 +449,17 @@ export const TabPresupuesto = ({
               </tr>
             </thead>
             <tbody>
-              {conceptosFijos.map((c, i, arr) => renderFilaFija(c, i, arr))}
+              {conceptosFijos.map((c, i) => (
+                <RowFijo
+                  key={c.id}
+                  c={c} idx={i} arrLen={conceptosFijos.length}
+                  ordenAlfa={ordenAlfaFijo} totalInscritos={totalInscritos}
+                  onMover={moverFijoStable} onEditar={abrirEditar}
+                  updateConcepto={updateConcepto}
+                  updateActivoDistancia={updateActivoDistancia}
+                  removeConcepto={removeConcepto}
+                />
+              ))}
               <tr className="total-row">
                 <td colSpan={3}>Subtotal Fijos</td>
                 <td className="text-right mono">{costesFijos.total.toFixed(2)} €</td>
@@ -515,7 +545,18 @@ export const TabPresupuesto = ({
               </tr>
             </thead>
             <tbody>
-              {conceptosVar.map((c, i, arr) => renderFilaVariable(c, i, arr))}
+              {conceptosVar.map((c, i) => (
+                <RowVariable
+                  key={c.id}
+                  c={c} idx={i} arrLen={conceptosVar.length}
+                  ordenAlfa={ordenAlfaVar} totalInscritos={totalInscritos}
+                  onMover={moverVarStable} onEditar={abrirEditar}
+                  updateConcepto={updateConcepto}
+                  updateCostePorDistancia={updateCostePorDistancia}
+                  updateActivoDistancia={updateActivoDistancia}
+                  removeConcepto={removeConcepto}
+                />
+              ))}
               <tr className="total-row">
                 <td colSpan={4}>Subtotal Variables</td>
                 {DISTANCIAS.map(d => (
