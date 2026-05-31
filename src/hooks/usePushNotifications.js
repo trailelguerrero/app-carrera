@@ -43,7 +43,12 @@ export function usePushNotifications() {
   const [error, setError] = useState(null);
 
   // ¿El navegador soporta push?
+  // PWA-11: en producción (PROD=true) requerir VAPID configurado — sin clave las
+  // suscripciones se crean sin applicationServerKey y Chrome ≥127 las rechaza.
+  // En desarrollo se permite sin VAPID para pruebas locales.
+  const vapidReady = !!VAPID_PUBLIC_KEY || !import.meta.env.PROD;
   const supported =
+    vapidReady &&
     typeof window !== 'undefined' &&
     'serviceWorker' in navigator &&
     'PushManager' in window &&

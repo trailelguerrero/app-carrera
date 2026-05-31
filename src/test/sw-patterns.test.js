@@ -13,6 +13,7 @@ import {
   STALE_WHILE_REVALIDATE_PATTERNS,
   NETWORK_ONLY_PATTERNS,
   NETWORK_FIRST_PATTERNS,
+  PRECACHE_URLS,
 } from '@/constants/swPatterns';
 import {
   SK_VOL_VOLUNTARIOS,
@@ -81,6 +82,22 @@ describe('TEST-01 — Service Worker patterns vs storageKeys', () => {
     it('STALE alias = NETWORK_FIRST (backward compat)', () => {
       // Los tests antiguos siguen pasando porque STALE ahora apunta a NETWORK_FIRST
       expect(STALE_WHILE_REVALIDATE_PATTERNS).toBe(NETWORK_FIRST_PATTERNS);
+    });
+  });
+
+  // PWA-11: PRECACHE_URLS contiene los recursos críticos para offline
+  describe('PWA-11 — PRECACHE_URLS contiene recursos críticos', () => {
+    it('offline.html está en PRECACHE_URLS', () => {
+      expect(PRECACHE_URLS).toContain('/offline.html');
+    });
+    it('/ (index) está en PRECACHE_URLS', () => {
+      expect(PRECACHE_URLS).toContain('/');
+    });
+    it('/voluntarios/mi-ficha está en PRECACHE_URLS', () => {
+      expect(PRECACHE_URLS).toContain('/voluntarios/mi-ficha');
+    });
+    it('manifest.json está en PRECACHE_URLS', () => {
+      expect(PRECACHE_URLS).toContain('/manifest.json');
     });
   });
 });

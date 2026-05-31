@@ -15,6 +15,7 @@
  */
 import { neon } from '@neondatabase/serverless';
 import { createSign } from 'crypto';
+import { verifySessionToken, readSessionCookie } from '../lib/session.js';
 
 const sql = neon(process.env.DATABASE_URL);
 
@@ -26,13 +27,15 @@ const setCors = (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-api-key');
 };
 
-const requireApiKey = (req, res) => {
+// PWA-11: push/send requiere sesión del panel (cookie firmada) en lugar de
+// x-api-key en el cliente. La API key era VITE_* → expuesta en el bundle JS.
+const requirePanelSession = (req, res) => {
+  if (verifySessionToken(readSessionCookie(req))) return true;
+  // Fallback para llamadas server-side legítimas (webhooks, scripts de admin)
   const apiKey = req.headers['x-api-key'];
-  if (!apiKey || apiKey !== process.env.API_KEY) {
-    res.status(401).json({ error: 'No autorizado' });
-    return false;
-  }
-  return true;
+  if (apiKey && apiKey === process.env.API_KEY) return true;
+  res.status(401).json({ error: 'No autorizado — se requiere sesión del panel' });
+  return false;
 };
 
 // ── VAPID helpers ─────────────────────────────────────────────────────────
@@ -103,7 +106,7 @@ async function handleUnsubscribe(req, res) {
 }
 
 async function handleSend(req, res) {
-  if (!requireApiKey(req, res)) return;
+  if (!requirePanelSession(req, res)) return;
 
   const { title, body, gravedad = 'media', url = '/', tag } = req.body || {};
   if (!title || !body) return res.status(400).json({ error: 'Faltan title y body' });

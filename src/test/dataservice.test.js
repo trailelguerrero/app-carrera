@@ -89,7 +89,7 @@ describe('DS-03 — syncPendingQueue: limpia __pending_sync_ correctamente', () 
     const { resolve } = await import('path');
     const ds = readFileSync(resolve(process.cwd(), 'src/lib/dataService.js'), 'utf-8');
     const idx = ds.indexOf('syncPendingQueue');
-    const block = ds.slice(idx, idx + 2500);
+    const block = ds.slice(idx, idx + 5000);
     expect(block).toContain('teg-sync');
   });
 });

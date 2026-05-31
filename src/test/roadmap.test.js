@@ -317,7 +317,7 @@ describe('T4.1 — Sincronización offline: cola de reintentos', () => {
     const ds = read('src/lib/dataService.js');
     // syncPendingQueue y notify() están en el mismo bloque de código (IIFE)
     const syncIdx = ds.indexOf('syncPendingQueue');
-    const syncBlock = ds.slice(syncIdx, syncIdx + 2500); // bloque más largo después del fix
+    const syncBlock = ds.slice(syncIdx, syncIdx + 5000); // bloque cubre toda la IIFE (notify() a ~4300 chars)
     expect(syncBlock).toContain('notify()');
   });
 });
@@ -540,7 +540,7 @@ describe('SP1-03 — syncPendingQueue: manejo de API key ausente', () => {
     const ds = read('src/lib/dataService.js');
     const idx = ds.indexOf('syncPendingQueue');
     // syncPendingQueue es ~2000 chars; buscar en bloque suficientemente grande
-    const block = ds.slice(idx, idx + 2500);
+    const block = ds.slice(idx, idx + 5000);
     // Emite teg-sync directamente o via dataService.notify() que internamente
     // llama window.dispatchEvent(new CustomEvent('teg-sync'))
     const emitsDirect = block.includes('teg-sync');

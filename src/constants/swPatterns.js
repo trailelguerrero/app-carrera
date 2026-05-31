@@ -39,3 +39,18 @@ export const NETWORK_ONLY_PATTERNS = [
   /\/api\/proxy\/docs/,                    // docs por patrocinador
   /\/api\/setup/,                          // inicialización de BD
 ];
+
+/**
+ * PWA-11: URLs precacheadas durante el install del SW (app shell crítico).
+ * Exportado aquí para que los tests puedan verificar que offline.html está incluido.
+ * Fuente de verdad: este array. public/sw.js lo importa desde aquí.
+ */
+export const PRECACHE_URLS = [
+  '/',
+  '/voluntarios/mi-ficha',
+  '/manifest.json',
+  '/icon-192.webp',
+  '/icon-512.webp',
+  '/logo.webp',
+  '/offline.html',
+];

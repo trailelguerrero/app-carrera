@@ -156,7 +156,9 @@ export default function DiaCarrera({ onClose }) {
     if (nueva.gravedad !== "baja") {
       fetch("/api/push?action=send", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-api-key": import.meta.env.VITE_API_KEY || "" },
+        headers: { "Content-Type": "application/json" },
+        // PWA-11: autenticación por cookie de sesión (httpOnly, enviada automáticamente).
+        // x-api-key eliminado del cliente — era VITE_* y quedaba expuesto en el bundle.
         body: JSON.stringify({
           title: `Incidencia ${nueva.gravedad} · ${nueva.tipo}`,
           body: nueva.descripcion.slice(0, 100),

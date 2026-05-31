@@ -18,6 +18,31 @@ const ADAPTER = import.meta.env.VITE_ADAPTER ?? 'api'; // 'localStorage' | 'api'
 // server-side. Nunca se expone la key en el bundle del cliente.
 const API_BASE_URL = '/api/proxy';
 
+// ── PWA-11: Bridge localStorage → CacheStorage ──────────────────────────────
+// El SW no tiene acceso a localStorage. Al guardar offline, escribimos también en
+// CacheStorage ("pending-writes") para que syncFromSW() funcione con la app cerrada.
+// La URL de la request tiene que coincidir con lo que sw.js intenta hacer PUT.
+const PENDING_CACHE = 'pending-writes';
+
+function writePendingToCache(collection, data) {
+  if (typeof caches === 'undefined') return; // SSR / entornos sin CacheStorage
+  try {
+    const url = `${API_BASE_URL}/data/${collection}`;
+    const response = new Response(JSON.stringify(data), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    caches.open(PENDING_CACHE).then(cache => cache.put(url, response)).catch(() => {});
+  } catch { /* ignorar — localStorage es el mecanismo primario */ }
+}
+
+function clearPendingFromCache(collection) {
+  if (typeof caches === 'undefined') return;
+  try {
+    const url = `${API_BASE_URL}/data/${collection}`;
+    caches.open(PENDING_CACHE).then(cache => cache.delete(url)).catch(() => {});
+  } catch (_e) { /* ignorar — localStorage es el mecanismo primario */ }
+}
+
 // SEC-AUTHZ (Mejora 2): cuando el proxy devuelve 401 (sesión expirada o cookie
 // borrada), notificamos una sola vez al UI para que re-muestre el PinScreen.
 // El debounce de 800ms absorbe ráfagas de fetches concurrentes que fallen al mismo tiempo.
@@ -196,6 +221,9 @@ const apiAdapter = {
           window.dispatchEvent(new CustomEvent('teg-save-status', { detail: { status: 'error' } }));
           // Marcar como pendiente para reintento cuando vuelva la conexión
           await localAdapter.set(`__pending_sync_${collection}`, Date.now());
+          // PWA-11: escribir también en CacheStorage para que syncFromSW funcione
+          // cuando la app está cerrada (el SW no tiene acceso a localStorage).
+          writePendingToCache(collection, data);
           resolve({ success: true, offline: true });
         }
       }, 300); // debounce 300ms — reducido de 2s para persistencia más rápida
@@ -381,6 +409,22 @@ const dataService = {
    * @returns {boolean}
    */
   hasPendingWrite: (key) => saveTimeouts.has(key),
+
+  /**
+   * PWA-11: disparar sincronización de pendientes explícitamente.
+   * Usado por useBackgroundSync cuando el SW envía SW_TRIGGER_SYNC,
+   * evitando el fake `dispatchEvent('online')` que activaba otros listeners.
+   */
+  triggerSync: () => {
+    if (typeof window !== 'undefined') {
+      // Delay de 1.5s para asegurar conectividad real — igual que el listener 'online'
+      setTimeout(() => {
+        // syncPendingQueue se define más abajo en el módulo; accedemos vía la función
+        // enlazada en el bloque de inicialización que sigue a este export.
+        window.dispatchEvent(new CustomEvent('teg-force-sync'));
+      }, 1500);
+    }
+  },
 };
 
 export default dataService;
@@ -468,6 +512,7 @@ if (typeof window !== 'undefined' && ADAPTER === 'api') {
       if (success) {
         localStorage.removeItem(pendingKey);
         localStorage.setItem(`__last_save_${collection}`, Date.now().toString());
+        clearPendingFromCache(collection); // PWA-11: limpiar también CacheStorage
         synced++;
       }
       // Si falla, __pending_sync_ se conserva → próximo 'online' lo reintentará
@@ -492,6 +537,10 @@ if (typeof window !== 'undefined' && ADAPTER === 'api') {
     // Pequeño delay para asegurar conectividad real antes de reintentar
     setTimeout(syncPendingQueue, 1500);
   });
+
+  // PWA-11: trigger explícito desde useBackgroundSync (vía dataService.triggerSync).
+  // Evita el fake dispatchEvent('online') que activaba otros listeners no deseados.
+  window.addEventListener('teg-force-sync', syncPendingQueue);
 }
 export { dataService };
 

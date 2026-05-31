@@ -11,10 +11,14 @@
  *
  * También escucha mensajes del SW ('SW_TRIGGER_SYNC') para disparar la
  * cola de dataService cuando el SW detecta conexión recuperada en background.
+ *
+ * PWA-11: SW_TRIGGER_SYNC ahora llama dataService.triggerSync() en lugar de
+ * despachar un fake 'online' event que activaba listeners no relacionados.
  */
 
 import { useEffect, useCallback } from 'react';
 import { useAppStore, EVENT_TYPES } from '@/store/useAppStore';
+import dataService from '@/lib/dataService';
 
 const SYNC_TAG = 'pending-sync';
 
@@ -61,8 +65,9 @@ export function useBackgroundSync() {
 
     const onSwMessage = (event) => {
       if (event.data?.type === 'SW_TRIGGER_SYNC') {
-        // El SW ha detectado conexión recuperada — disparar sincronización
-        window.dispatchEvent(new CustomEvent('online'));
+        // PWA-11: trigger directo de syncPendingQueue — evita el fake 'online' event
+        // que activaba useOnlineStatus y otros listeners no relacionados.
+        dataService.triggerSync();
       }
       if (event.data?.type === 'SW_SYNC_COMPLETE') {
         // Sincronización completada desde SW (app estaba cerrada) — Mejora 5: via store

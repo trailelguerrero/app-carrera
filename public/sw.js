@@ -37,23 +37,16 @@
  */
 
 // ── Versión de caché ────────────────────────────────────────────────────────
-// Se inyecta en build por vite-plugin-pwa (injectManifest).
+// PWA-11: en producción, derivar la versión del hash del primer asset inyectado por
+// vite-plugin-pwa (self.__WB_MANIFEST). Así cada deploy genera una versión única
+// sin necesidad de incrementar el número manualmente.
 // En desarrollo se usa un timestamp para invalidar siempre.
-const CACHE_VERSION = self.__WB_MANIFEST ? "pwa-v4" : `dev-${Date.now()}`;
+const CACHE_VERSION = self.__WB_MANIFEST && self.__WB_MANIFEST.length > 0
+  ? `pwa-${self.__WB_MANIFEST[0].revision ?? self.__WB_MANIFEST[0].url.slice(-8)}`
+  : `dev-${Date.now()}`;
 
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 const CACHE_DATA    = `${CACHE_VERSION}-data`;
-
-// Assets que se precargan en la instalación del SW
-const PRECACHE_URLS = [
-  "/",
-  "/voluntarios/mi-ficha",
-  "/manifest.json",
-  "/icon-192.webp",
-  "/icon-512.webp",
-  "/logo.webp",
-  "/offline.html",
-];
 
 // ── Patrones de caché importados desde módulo compartido ──────────────────
 // TEST-01: src/constants/swPatterns.js es la fuente única de verdad.
@@ -63,6 +56,7 @@ import {
   STALE_WHILE_REVALIDATE_PATTERNS,
   NETWORK_ONLY_PATTERNS,
   NETWORK_FIRST_PATTERNS,
+  PRECACHE_URLS,    // PWA-11: fuente única — sw.js ya no define su propio array
 } from '../src/constants/swPatterns.js';
 
 // ── INSTALL — precargar assets críticos ────────────────────────────────────
