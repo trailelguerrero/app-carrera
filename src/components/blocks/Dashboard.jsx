@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { fmtEur } from "@/lib/utils";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys"; // FIX-DEP: migrado desde alias deprecated
@@ -186,7 +186,12 @@ export default function Dashboard() {
         </div>
 
         {/* ── Banners condicionales (escenario activo + día carrera inminente) ── */}
-        <SeccionBanners d={d} />
+        <SeccionBanners
+          scenarioActivo={d.scenarioActivo}
+          diasHasta={d.diasHasta}
+          esSemana={d.esSemana}
+          yaFue={d.yaFue}
+        />
 
         {/* ── Hero: countdown + salud del evento ── */}
         <SeccionHero d={d} saludExpandida={saludExpandida} setSaludExpandida={setSaludExpandida} />

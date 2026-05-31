@@ -1,7 +1,12 @@
 /**
- * SeccionHero.jsx — Fase 3, Tarea 3.4
+ * SeccionHero.jsx — Fase 3, Tarea 3.4 · MEJ-06
  * Hero del Dashboard: countdown de días + barra de salud del evento.
+ *
+ * MEJ-06: React.memo con props narrowed — el hero solo re-renderiza cuando
+ * cambian los datos del evento o el estado saludExpandida, no cuando el
+ * usuario interactúa con alertas u otros widgets del dashboard.
  */
+import { memo } from "react";
 
 /**
  * @param {{
@@ -10,7 +15,7 @@
  *   setSaludExpandida: function
  * }} props
  */
-export default function SeccionHero({ d, saludExpandida, setSaludExpandida }) {
+const SeccionHero = memo(function SeccionHero({ d, saludExpandida, setSaludExpandida }) {
   const saludColor = d.saludGlobal >= 80 ? "var(--green)" : d.saludGlobal >= 55 ? "var(--amber)" : "var(--red)";
   const saludLabel = d.saludGlobal >= 80 ? "Evento en buen estado" : d.saludGlobal >= 55 ? "Atención requerida" : "Acción urgente necesaria";
 
@@ -122,4 +127,6 @@ export default function SeccionHero({ d, saludExpandida, setSaludExpandida }) {
       </div>
     </div>
   );
-}
+});
+
+export default SeccionHero;

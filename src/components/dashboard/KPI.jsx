@@ -1,10 +1,15 @@
 /**
- * KPI.jsx — extraído de Dashboard.jsx (Tarea 3.4)
+ * KPI.jsx — extraído de Dashboard.jsx (Tarea 3.4) · MEJ-06
  * Tarjeta de indicador clave de rendimiento.
+ *
+ * MEJ-06: React.memo — hay 6 KPIs en el grid. Con memo, solo re-renderizan
+ * las tarjetas cuyas props cambian. El resto queda intacto al interactuar
+ * con la barra de salud, alertas u otros widgets del dashboard.
  */
+import { memo } from "react";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 
-export function KPI({ icon, label, value, sub, color, colorClass, onClick, tooltip, progress }) {
+export const KPI = memo(function KPI({ icon, label, value, sub, color, colorClass, onClick, tooltip, progress }) {
   return (
     <div
       className={`kpi ${colorClass || ""}`}
@@ -40,6 +45,6 @@ export function KPI({ icon, label, value, sub, color, colorClass, onClick, toolt
       )}
     </div>
   );
-}
+});
 
 // ─── MiniTimeline — arco temporal del evento ─────────────────────────────────

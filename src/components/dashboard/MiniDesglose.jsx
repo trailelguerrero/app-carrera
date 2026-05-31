@@ -1,11 +1,15 @@
 /**
- * MiniDesglose.jsx — extraído de Dashboard.jsx (Tarea 3.4)
+ * MiniDesglose.jsx — extraído de Dashboard.jsx (Tarea 3.4) · MEJ-06
  * Panel expandible con desglose financiero resumido.
+ *
+ * MEJ-06: React.memo — evita re-render cuando cambian saludExpandida,
+ * avisosExpandidos u otros estados locales de Dashboard sin relación
+ * con los datos financieros.
  */
-import { useState } from "react";
+import { useState, memo } from "react";
 import { fmtEur } from "@/lib/utils";
 
-export function MiniDesglose({ totalIngresos, totalIngresosExtra, camisetasDesglose, totalCostesFijos, totalCostesVars, resultado, roiGlobal, navigate }) {
+export const MiniDesglose = memo(function MiniDesglose({ totalIngresos, totalIngresosExtra, camisetasDesglose, totalCostesFijos, totalCostesVars, resultado, roiGlobal, navigate }) {
   const [open, setOpen] = useState(false);
   const cam = camisetasDesglose || {};
   // BUG-DASH-04 fix: el resumen del header debe coincidir con el resultado.
@@ -87,6 +91,6 @@ export function MiniDesglose({ totalIngresos, totalIngresosExtra, camisetasDesgl
       )}
     </div>
   );
-}
+});
 
 // ─── Sub-componentes ──────────────────────────────────────────────────────────

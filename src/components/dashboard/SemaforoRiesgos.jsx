@@ -1,8 +1,11 @@
 /**
- * SemaforoRiesgos.jsx — MEJ-07
+ * SemaforoRiesgos.jsx — MEJ-07 · MEJ-06
  * Panel ejecutivo de riesgo RAG (Rojo/Ámbar/Verde) con 4 dimensiones.
+ *
+ * MEJ-06: React.memo — calcSemaforoRiesgos es costoso (score de 4 áreas).
+ * No debe re-ejecutarse cuando el usuario expande la barra de salud.
  */
-import { useMemo } from "react";
+import { useMemo, memo } from "react";
 import { calcSemaforoRiesgos } from "@/lib/semaforoRiesgos";
 
 const COLOR = {
@@ -23,7 +26,7 @@ const BORDER = {
 const LABEL = { verde: "BAJO", ambar: "MEDIO", rojo: "ALTO" };
 const DOT   = { verde: "🟢",   ambar: "🟡",    rojo:  "🔴"   };
 
-export function SemaforoRiesgos({ kpis, onNavigate, moduleStatus }) {
+export const SemaforoRiesgos = memo(function SemaforoRiesgos({ kpis, onNavigate, moduleStatus }) {
   const { zonas, estadoGlobal, scoreGlobal, razonGlobal } =
     useMemo(() => calcSemaforoRiesgos(kpis), [kpis]);
 
@@ -176,4 +179,4 @@ export function SemaforoRiesgos({ kpis, onNavigate, moduleStatus }) {
       </div>
     </div>
   );
-}
+});

@@ -1,9 +1,13 @@
 /**
- * SeccionBanners.jsx — Fase 3, Tarea 3.4
+ * SeccionBanners.jsx — Fase 3, Tarea 3.4 · MEJ-06
  * Banners condicionales del Dashboard:
  *   - Escenario activo en Presupuesto
  *   - Contador urgente cuando faltan ≤7 días para el evento
+ *
+ * MEJ-06: React.memo — evita re-render cuando cambia saludExpandida u otros
+ * estados locales de Dashboard que no afectan a estos banners.
  */
+import { memo } from "react";
 
 /** Banner: hay un escenario de presupuesto activo */
 function BannerEscenario({ scenarioActivo }) {
@@ -83,13 +87,16 @@ function BannerDiaCarrera({ diasHasta, esSemana, yaFue }) {
 }
 
 /**
- * @param {{ d: object }} props  — d es el objeto de datos calculados por useDashboardKpis
+ * Props narrowed to only what's needed — memo comparison stays cheap.
+ * @param {{ scenarioActivo: string|null, diasHasta: number, esSemana: boolean, yaFue: boolean }} props
  */
-export default function SeccionBanners({ d }) {
+const SeccionBanners = memo(function SeccionBanners({ scenarioActivo, diasHasta, esSemana, yaFue }) {
   return (
     <>
-      <BannerEscenario scenarioActivo={d.scenarioActivo} />
-      <BannerDiaCarrera diasHasta={d.diasHasta} esSemana={d.esSemana} yaFue={d.yaFue} />
+      <BannerEscenario scenarioActivo={scenarioActivo} />
+      <BannerDiaCarrera diasHasta={diasHasta} esSemana={esSemana} yaFue={yaFue} />
     </>
   );
-}
+});
+
+export default SeccionBanners;

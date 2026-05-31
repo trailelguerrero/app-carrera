@@ -1,5 +1,5 @@
 /**
- * SeccionCentroControl.jsx — Fase 7, Tarea DASH-01
+ * SeccionCentroControl.jsx — Fase 7, Tarea DASH-01 · MEJ-06
  * Fusiona "Haz esto ahora" (SeccionAcciones) y "Alertas críticas / Avisos"
  * (SeccionAlertas) en una única sección unificada "Centro de control".
  *
@@ -9,7 +9,12 @@
  *   🔵 Informativo — alertasAvisos + acciones con prioridad "media"
  *
  * Los avisos informativos son colapsables y persisten en localStorage.
+ *
+ * MEJ-06: memo + useMemo para buildAcciones — la función recorre voluntarios,
+ * tramos, patrocinadores y tareas en cada render. Con useMemo solo recalcula
+ * cuando cambian los datos que usa (no al expandir/colapsar la barra de salud).
  */
+import { useMemo, memo } from "react";
 import { fmtEur } from "@/lib/utils";
 import { SK_UI_DASH_ALERTAS_OPEN } from "@/constants/storageKeys";
 
@@ -121,8 +126,16 @@ function itemKey(modulo, texto) {
  *   setAvisosExpandidos: function
  * }} props
  */
-export default function SeccionCentroControl({ d, avisosExpandidos, setAvisosExpandidos }) {
-  const acciones = buildAcciones(d);
+export default memo(function SeccionCentroControl({ d, avisosExpandidos, setAvisosExpandidos }) {
+  // MEJ-06: memoizar buildAcciones — solo recalcula cuando cambian los datos
+  // que usa la función (voluntarios, tramos, patrocinadores, tareas, días hasta evento).
+  const acciones = useMemo(
+    () => buildAcciones(d),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [d.volPendientes, d.puestosAlerta, d.patComprometido, d.objetivo,
+     d.contPendientes, d.tareasVencidas, d.tareasBloqueadas, d.hitosProximos,
+     d.diasHasta, d.tramos, d.alertasCriticas]
+  );
 
   // ── Nivel CRÍTICO ─────────────────────────────────────────────────────────
   // Fuente 1: alertasCriticas del hook
@@ -361,4 +374,4 @@ export default function SeccionCentroControl({ d, avisosExpandidos, setAvisosExp
       )}
     </div>
   );
-}
+});

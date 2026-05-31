@@ -1,9 +1,12 @@
 /**
- * SeccionCharts.jsx — extraído de Dashboard.jsx (CORE-12)
+ * SeccionCharts.jsx — extraído de Dashboard.jsx (CORE-12) · MEJ-06
  * Gráfico de inscritos por distancia, barras de ingresos vs costes, y MiniTimeline.
  * Props: d (datos KPIs), fmtEur (formateador), TOOLTIP_STYLE, navigate (fn)
+ *
+ * MEJ-06: React.memo — el PieChart de recharts es caro de re-renderizar.
+ * Se evita cuando el usuario expande/colapsa saludExpandida o avisosExpandidos.
  */
-import { useState } from "react";
+import { useState, memo } from "react";
 import {
   ResponsiveContainer,
   PieChart, Pie, Cell,
@@ -14,7 +17,7 @@ import { MiniTimeline } from "@/components/dashboard/MiniTimeline";
 const DIST_COLORS = ["#22d3ee", "#a78bfa", "#34d399"];
 const DIST_NAMES  = ["TG7", "TG13", "TG25"];
 
-export function SeccionCharts({ d, fmtEur, TOOLTIP_STYLE, navigate, moduleStatus }) {
+export const SeccionCharts = memo(function SeccionCharts({ d, fmtEur, TOOLTIP_STYLE, navigate, moduleStatus }) {
   const resColor = d.resultado >= 0 ? "var(--green)" : "var(--red)";
   const [hoveredDist, setHoveredDist] = useState(null); // "TG7" | "TG13" | "TG25" | null
 
@@ -165,4 +168,4 @@ export function SeccionCharts({ d, fmtEur, TOOLTIP_STYLE, navigate, moduleStatus
 
     </div>
   );
-}
+});
