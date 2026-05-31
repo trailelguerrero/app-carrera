@@ -10,7 +10,7 @@
  * sin necesidad de modificar el código fuente.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+// React hooks eliminados: useData y saveAll viven en hooks/useData.js (fuente canónica).
 
 // ENV-02 fix: adapter configurable via variable de entorno — sin hardcode
 const ADAPTER = import.meta.env.VITE_ADAPTER ?? 'api'; // 'localStorage' | 'api'
@@ -495,76 +495,13 @@ if (typeof window !== 'undefined' && ADAPTER === 'api') {
 }
 export { dataService };
 
-// ── Compatibilidad ARQ-04: shims locales (sin re-export circular) ──────────────
-// IMPORTANTE: NO importar '@/hooks/useData' aquí — crearía un ciclo:
-//   dataService → useData → dataService
-// En su lugar definimos versiones mínimas que delegan en la instancia local.
-// La fuente canónica con lógica completa sigue siendo hooks/useData.js.
-
-const _ADAPTER = dataService.getAdapterInfo().type;
-
-/** Shim de compatibilidad — idéntico en comportamiento a hooks/useData#useData */
-export function useData(key, defaultValue) {
-  const [state, setState] = useState(() => {
-    try {
-      const raw = localStorage.getItem(key);
-      const parsed = raw ? JSON.parse(raw) : null;
-      return parsed !== null ? parsed : defaultValue;
-    } catch { return defaultValue; }
-  });
-
-  const stateRef = useRef(state);
-  stateRef.current = state;
-  const [isLoading, setIsLoading] = useState(_ADAPTER === 'api');
-
-  useEffect(() => {
-    let mounted = true;
-    if (_ADAPTER === 'api') {
-      dataService.get(key, defaultValue)
-        .then(apiData => {
-          if (mounted) {
-            setState(prev => JSON.stringify(prev) !== JSON.stringify(apiData) ? apiData : prev);
-            setIsLoading(false);
-          }
-        })
-        .catch(() => { if (mounted) setIsLoading(false); });
-    } else {
-      setIsLoading(false);
-    }
-    const unsubscribe = dataService.onChange(() => {
-      try {
-        const raw = localStorage.getItem(key);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          setState(prev => JSON.stringify(prev) !== raw ? parsed : prev);
-        }
-      } catch { /* ignore parse errors */ }
-    });
-    return () => { mounted = false; unsubscribe(); };
-  // `defaultValue` se omite intencionalmente del array de dependencias.
-  // Si el caller pasa un literal objeto/array, sería una nueva referencia
-  // en cada render y provocaría un bucle infinito. Se usa [key] como única dep.
-  // Para la versión canónica con useRef ver hooks/useData.js.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
-
-  const setValue = useCallback((value, opts = {}) => {
-    try {
-      const v = value instanceof Function ? value(stateRef.current) : value;
-      if (opts.force || JSON.stringify(stateRef.current) !== JSON.stringify(v)) {
-        stateRef.current = v;
-        setState(v);
-        dataService.set(key, v);
-      }
-    } catch (e) { console.error(e); }
-  }, [key]);
-
-  return [state, setValue, isLoading];
-}
-
-/** Shim de compatibilidad — idéntico en comportamiento a hooks/useData#saveAll */
-export async function saveAll(entries) {
-  const result = await dataService.setMultiple(entries);
-  dataService.notify();
-  return result;
-}
+// ── Compatibilidad ARQ-04: re-exports desde la fuente canónica ────────────────
+// hooks/useData.js es la única implementación de useData y saveAll.
+// Se re-exportan aquí para que imports legacy (import { useData } from '@/lib/dataService')
+// sigan funcionando sin duplicar lógica.
+//
+// El ciclo aparente (dataService → useData → dataService) no existe en runtime
+// porque useData.js importa el objeto `dataService` ya construido, no el módulo
+// en proceso de inicialización. ESM evalúa ambos módulos completamente antes de
+// resolver imports cruzados gracias al live binding de ESM.
+export { useData, saveAll } from '@/hooks/useData';
