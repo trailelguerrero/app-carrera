@@ -1,8 +1,6 @@
-import { neon } from '@neondatabase/serverless';
+// MEJORA-03: instancia compartida — evita múltiples conexiones por módulo
+import { sql } from '../lib/db.js';
 import { checkRateLimit } from '../lib/rateLimiter.js';
-
-// MEJORA-02: instancia única a nivel de módulo — reutilizada entre requests
-const sql = neon(process.env.DATABASE_URL);
 
 // fix(SEC-CRIT-01): allowlist de colecciones — misma regex que [collection].js
 const ALLOWED_COLLECTIONS = /^teg_(voluntarios|logistica|presupuesto|camisetas|patrocinadores|pat_log|localizaciones|documentos|proyecto|event_config|scenarios|codigos_promo|panel_pin_hash|panel_pin_length|escenarios|dia_carrera|scenario_active_name|auto_backup)_?v?\d*(_[a-zA-Z0-9]+)*$/;
@@ -35,10 +33,14 @@ export default async function handler(req, res) {
       if (!keysParam) return res.status(400).json({ error: 'Missing keys' });
 
       const keys = keysParam.split(',').map(k => k.trim());
+
+      // MEJORA-03: límite de 10 claves por batch — evita saturar el pool de Neon
+      if (keys.length > 10) return res.status(400).json({ error: 'Batch GET limitado a 10 claves por petición' });
+
       const invalidKey = keys.find(k => !ALLOWED_COLLECTIONS.test(k));
       if (invalidKey) return res.status(403).json({ error: 'Collection not allowed', key: invalidKey });
 
-      // MEJORA-02: queries paralelas con Promise.all (ya estaba en PUT, ahora también en GET)
+      // Queries paralelas con Promise.all
       const rows = await Promise.all(
         keys.map(key => sql`SELECT key, value FROM collections WHERE key = ${key}`)
       );
@@ -53,10 +55,18 @@ export default async function handler(req, res) {
 
     if (req.method === 'PUT') {
       const entries = req.body;
+
+      // MEJORA-03: límite de 10 claves por batch
+      if (Object.keys(entries).length > 10) {
+        return res.status(400).json({ error: 'Batch PUT limitado a 10 claves por petición' });
+      }
+
       const invalidPutKey = Object.keys(entries).find(k => !ALLOWED_COLLECTIONS.test(k));
       if (invalidPutKey) return res.status(403).json({ error: 'Collection not allowed', key: invalidPutKey });
 
-      await Promise.all(
+      // MEJORA-03: Promise.allSettled — errores parciales no abortan el batch completo
+      const keys = Object.keys(entries);
+      const results = await Promise.allSettled(
         Object.entries(entries).map(([key, value]) => {
           const jsonValue = JSON.stringify(value);
           return sql`
@@ -66,6 +76,16 @@ export default async function handler(req, res) {
           `;
         })
       );
+
+      const failed = keys.filter((_, i) => results[i].status === 'rejected');
+      if (failed.length > 0) {
+        console.error('[batch PUT] Claves fallidas:', failed);
+        return res.status(207).json({
+          success: false,
+          failed,
+          saved: keys.filter((_, i) => results[i].status === 'fulfilled'),
+        });
+      }
 
       return res.status(200).json({ success: true });
     }

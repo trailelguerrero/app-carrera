@@ -1,10 +1,5 @@
-import { neon } from '@neondatabase/serverless';
-
-// A3: DDL operations (CREATE TABLE, ALTER TABLE, CREATE INDEX) must run over
-// DIRECT_URL (non-pooled) to avoid PgBouncer limitations with serverless Neon.
-// Falls back to DATABASE_URL if DIRECT_URL is not configured.
-const ddlConnectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
-const sqlDDL = neon(ddlConnectionString);
+// MEJORA-03: usar sqlDirect del módulo compartido — conexión no pooled para DDL
+import { sqlDirect as sqlDDL } from './lib/db.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {

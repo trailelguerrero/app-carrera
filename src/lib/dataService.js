@@ -138,12 +138,28 @@ const apiAdapter = {
       const timeoutId = setTimeout(async () => {
         saveTimeouts.delete(collection);
         savePromises.delete(collection);
+        // MEJORA-03: 2 reintentos rápidos (300ms, 600ms) antes de marcar offline.
+        // Absorbe fallos de red transitorios sin esperar al próximo evento 'online'.
+        let lastFetchErr = null;
+        let res = null;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          if (attempt > 0) await new Promise(r => setTimeout(r, 300 * attempt));
+          try {
+            res = await fetch(`${API_BASE_URL}/data/${collection}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(data),
+            });
+            lastFetchErr = null;
+            break;
+          } catch (fetchErr) {
+            lastFetchErr = fetchErr;
+          }
+        }
+
         try {
-          const res = await fetch(`${API_BASE_URL}/data/${collection}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
-          });
+          if (lastFetchErr) throw lastFetchErr;
+
           // MISSING-02: detección de conflictos entre dispositivos — emite teg-conflict con datos del servidor
           if (res.status === 409) {
             const conflictData = await res.json().catch(() => ({}));
