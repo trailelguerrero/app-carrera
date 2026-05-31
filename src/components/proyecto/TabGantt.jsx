@@ -2,7 +2,7 @@
  * TabGantt.jsx — Tarea 3.3
  * Tab de vista por áreas (gantt) del módulo Proyecto.
  */
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { diasHasta, fmt, AREAS, EST_CFG, PRI_CFG, getArea } from "./proyectoConstants";
@@ -11,43 +11,56 @@ export function TabGantt({ tareas, hitos, equipo, setModal, setFicha, setFiltroA
   const [filtroGantt, setFiltroGantt] = useState("todas");
   const [ganttPopup, setGanttPopup]   = useState(null); // {area, tareas, x, y}
 
-  // Rango del Gantt: desde 6 meses antes del evento hasta 1 mes después
-  // Derivado de eventFecha (eventConfig) — no hardcodeado
-  const eventoDate  = eventFecha ? new Date(eventFecha) : new Date("2026-08-29");
-  const ganttStart  = new Date(eventoDate); ganttStart.setMonth(ganttStart.getMonth() - 6); ganttStart.setDate(1);
-  const ganttEnd    = new Date(eventoDate); ganttEnd.setMonth(ganttEnd.getMonth() + 1);   ganttEnd.setDate(28);
+  // ── Rango del Gantt: memoizado — solo recalcula si cambia eventFecha ──────────
+  const { ganttStart, ganttEnd, months, totalDays, pct, todayPct } = useMemo(() => {
+    const eventoDate = eventFecha ? new Date(eventFecha) : new Date("2026-08-29");
+    const start = new Date(eventoDate); start.setMonth(start.getMonth() - 6); start.setDate(1);
+    const end   = new Date(eventoDate); end.setMonth(end.getMonth() + 1);     end.setDate(28);
 
-  const months = [];
-  let d = new Date(ganttStart);
-  d.setDate(1);
-  while (d <= ganttEnd) {
-    months.push(new Date(d));
-    d.setMonth(d.getMonth()+1);
-  }
-  const totalDays = Math.ceil((ganttEnd - ganttStart) / 86400000);
-  const pct = (date) => Math.max(0, Math.min(100, (new Date(date) - ganttStart) / 86400000 / totalDays * 100));
+    const ms = [];
+    let d = new Date(start); d.setDate(1);
+    while (d <= end) { ms.push(new Date(d)); d.setMonth(d.getMonth() + 1); }
 
-  // Group tasks by area, take earliest fechaLimite and latest fechaLimite per area
-  const TODAY_g = new Date();
-  const areaRanges_all = AREAS.map(a => {
-    const at = tareas.filter(t => t.area===a.id && t.fechaLimite);
-    if (!at.length) return null;
-    const sorted = [...at].sort((x,y) => x.fechaLimite.localeCompare(y.fechaLimite));
-    const tieneVencidas = at.some(t => t.estado !== "completado" && new Date(t.fechaLimite) < TODAY_g);
-    const tienePendientes = at.some(t => t.estado === "pendiente" || t.estado === "en curso");
-    const todasCompletadas = at.every(t => t.estado === "completado");
-    const start = sorted[0].fechaLimite;
-    const end = sorted[sorted.length-1].fechaLimite;
-    const done = at.filter(t => t.estado==="completado").length;
-    return { ...a, start, end, total:at.length, done, pctDone: Math.round(done/at.length*100) };
-  }).filter(Boolean);
-  const areaRanges = filtroGantt === "todas" ? areaRanges_all
-    : filtroGantt === "vencidas" ? areaRanges_all.filter(a => a.tieneVencidas)
-    : filtroGantt === "pendientes" ? areaRanges_all.filter(a => a.tienePendientes)
-    : filtroGantt === "completadas" ? areaRanges_all.filter(a => a.todasCompletadas)
-    : areaRanges_all;
+    const days = Math.ceil((end - start) / 86400000);
+    const pctFn = (date) => Math.max(0, Math.min(100, (new Date(date) - start) / 86400000 / days * 100));
+    const today = new Date();
+    return {
+      ganttStart: start, ganttEnd: end, months: ms, totalDays: days,
+      pct: pctFn,
+      todayPct: pctFn(today.toISOString().split("T")[0]),
+    };
+  }, [eventFecha]);
 
-  const todayPct = pct(TODAY_g.toISOString().split("T")[0]);
+  // ── Rangos por área: memoizado — solo recalcula si cambian tareas ─────────────
+  // BUG FIX: tieneVencidas/tienePendientes/todasCompletadas ahora se incluyen en
+  // el objeto retornado para que los filtros funcionen correctamente.
+  const areaRanges_all = useMemo(() => {
+    const TODAY_g = new Date();
+    return AREAS.map(a => {
+      const at = tareas.filter(t => t.area === a.id && t.fechaLimite);
+      if (!at.length) return null;
+      const sorted = [...at].sort((x, y) => x.fechaLimite.localeCompare(y.fechaLimite));
+      const tieneVencidas    = at.some(t => t.estado !== "completado" && new Date(t.fechaLimite) < TODAY_g);
+      const tienePendientes  = at.some(t => t.estado === "pendiente" || t.estado === "en curso");
+      const todasCompletadas = at.every(t => t.estado === "completado");
+      const start = sorted[0].fechaLimite;
+      const end   = sorted[sorted.length - 1].fechaLimite;
+      const done  = at.filter(t => t.estado === "completado").length;
+      return {
+        ...a, start, end, total: at.length, done,
+        pctDone: Math.round(done / at.length * 100),
+        tieneVencidas, tienePendientes, todasCompletadas, // ← fix: incluidos ahora
+      };
+    }).filter(Boolean);
+  }, [tareas]);
+
+  const areaRanges = useMemo(() =>
+    filtroGantt === "todas"       ? areaRanges_all
+    : filtroGantt === "vencidas"  ? areaRanges_all.filter(a => a.tieneVencidas)
+    : filtroGantt === "pendientes"? areaRanges_all.filter(a => a.tienePendientes)
+    : filtroGantt === "completadas"? areaRanges_all.filter(a => a.todasCompletadas)
+    : areaRanges_all
+  , [areaRanges_all, filtroGantt]);
 
   return (
     <>

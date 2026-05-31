@@ -1,5 +1,6 @@
 // Auto-extracted from Logistica.jsx — Sprint 2 refactor
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { ListaKanbanToggle } from "@/components/common/ListaKanbanToggle";
 import { FASES_CHECKLIST, ESTADO_ENTREGA, ESTADO_TAREA, ESTADO_COLORES, PUESTOS_REF, TIPOS_LOC, LOC_ICONS, LOC_COLORS, CATS_MATERIAL, CAT_COLORS, CAT_ICONS, ESCALA_CON_INSCRITOS } from "./logisticaConstants.js";
 import { createPortal } from "react-dom";
 import { toast } from "@/lib/toast";
@@ -61,12 +62,7 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
           <button className={cls("btn",!vistaAsig?"btn-cyan":"btn-ghost")} onClick={()=>setVistaAsig(false)}>Catálogo<span style={{marginLeft:"0.3rem",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",background:!vistaAsig?"rgba(0,0,0,0.15)":"var(--surface3)",padding:"0.05rem 0.35rem",borderRadius:3}}>{material.length}</span></button>
           <button className={cls("btn",vistaAsig?"btn-cyan":"btn-ghost")} onClick={()=>setVistaAsig(true)}>Asignaciones<span style={{marginLeft:"0.3rem",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",background:vistaAsig?"rgba(0,0,0,0.15)":"var(--surface3)",padding:"0.05rem 0.35rem",borderRadius:3}}>{asigs.length}</span></button>
           {!vistaAsig && (<>
-            <div className="filter-pill-group">
-              <button className={`filter-pill${!vistaKanban ? " active" : ""}`}
-                onClick={() => setVistaKanban(false)}>☰ Lista</button>
-              <button className={`filter-pill${vistaKanban ? " active" : ""}`}
-                onClick={() => setVistaKanban(true)}>⬛ Kanban</button>
-            </div>
+            <ListaKanbanToggle vistaKanban={vistaKanban} setVistaKanban={setVistaKanban} />
             <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
           </>)}
           <input type="search" className="inp inp-sm"

@@ -1,5 +1,6 @@
 // Auto-extracted from Logistica.jsx — Sprint 2 refactor
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { ListaKanbanToggle } from "@/components/common/ListaKanbanToggle";
 import { createPortal } from "react-dom";
 import { toast } from "@/lib/toast";
 import { genIdNum } from "@/lib/utils";
@@ -45,12 +46,7 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
       <div className="ph">
         <div><div className="pt">🚗 Vehículos y Rutas</div><div className="pd">{veh.length} vehículos · {rutas.length} rutas</div></div>
         <div className="fr g1">
-          <div className="filter-pill-group">
-              <button className={`filter-pill${!vistaKanban ? " active" : ""}`}
-                onClick={() => setVistaKanban(false)}>☰ Lista</button>
-              <button className={`filter-pill${vistaKanban ? " active" : ""}`}
-                onClick={() => setVistaKanban(true)}>⬛ Kanban</button>
-            </div>
+          <ListaKanbanToggle vistaKanban={vistaKanban} setVistaKanban={setVistaKanban} />
           <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
           <input type="search" className="inp inp-sm"
             placeholder="Buscar vehículo…"

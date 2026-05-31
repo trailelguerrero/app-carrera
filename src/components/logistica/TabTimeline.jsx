@@ -1,5 +1,6 @@
 // Auto-extracted from Logistica.jsx — Sprint 2 refactor
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { ListaKanbanToggle } from "@/components/common/ListaKanbanToggle";
 import { FASES_CHECKLIST, ESTADO_ENTREGA, ESTADO_TAREA, ESTADO_COLORES, PUESTOS_REF, TIPOS_LOC, LOC_ICONS, LOC_COLORS, TLC, TLI } from "./logisticaConstants.js";
 import { eventDateStr } from "@/lib/eventUtils";
 import { createPortal } from "react-dom";
@@ -78,12 +79,7 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
         <div><div className="pt">⏱️ Runbook del Evento</div>
           <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--cyan-dim)", marginTop:".15rem", opacity:.8 }}>Secuencia de acciones cronológicas para el día D · marcar al ejecutar</div><div className="pd" style={{display:"flex",alignItems:"center",gap:".5rem",flexWrap:"wrap"}}><span style={{background:"rgba(251,191,36,.12)",color:"var(--amber)",border:"1px solid rgba(251,191,36,.25)",borderRadius:99,padding:".1rem .5rem",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700}}>📅 Día del evento</span>{tl.filter(t=>t.estado==="completado").length}/{tl.length} completadas · {config?.fecha ? new Date(config.fecha).toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"}) : eventDateStr(config)}</div></div>
         <div className="fr g1">
-          <div className="filter-pill-group">
-              <button className={`filter-pill${!vistaKanban ? " active" : ""}`}
-                onClick={() => setVistaKanban(false)}>☰ Lista</button>
-              <button className={`filter-pill${vistaKanban ? " active" : ""}`}
-                onClick={() => setVistaKanban(true)}>⬛ Kanban</button>
-            </div>
+          <ListaKanbanToggle vistaKanban={vistaKanban} setVistaKanban={setVistaKanban} />
           {responsables.length > 0 && (
             <select
               value={filtroResp}

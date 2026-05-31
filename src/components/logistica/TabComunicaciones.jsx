@@ -1,5 +1,6 @@
 // Auto-extracted from Logistica.jsx — Sprint 2 refactor
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { ListaKanbanToggle } from "@/components/common/ListaKanbanToggle";
 import { FASES_CHECKLIST, ESTADO_ENTREGA, ESTADO_TAREA, ESTADO_COLORES, PUESTOS_REF, TIPOS_LOC, LOC_ICONS, LOC_COLORS } from "./logisticaConstants.js";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { createPortal } from "react-dom";
@@ -21,6 +22,16 @@ const PROTO_PASOS=[
   {id:4,titulo:"Problema en avituallamiento",icon:"🍎",pasos:["Identificar qué falta (agua, isotónico, otro)","Contactar con furgoneta de reparto","Si urgente: enviar voluntario con coche propio","Alternativa: reducir raciones hasta reponer","Registrar en incidencias para próxima edición"]},
 ];
 
+// TIPOS_BASE fuera del componente — es constante, no necesita recrearse en cada render
+const TIPOS_BASE = [
+  {id:"emergencia",  nombre:"Emergencia",   icono:"🚨", color:"var(--red)"},
+  {id:"proveedor",   nombre:"Proveedor",    icono:"🏭", color:"var(--amber)"},
+  {id:"staff",       nombre:"Staff",        icono:"👤", color:"var(--cyan)"},
+  {id:"institucional",nombre:"Institucional",icono:"🏛️",color:"var(--violet)"},
+  {id:"medico",      nombre:"Médico",       icono:"🏥", color:"var(--green)"},
+  {id:"media",       nombre:"Media/Prensa", icono:"📸", color:"var(--orange)"},
+];
+
 function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,tiposContacto=[],setTiposContacto}) {
   const [sub,setSub]           = useState("directorio");
   const [proto,setProto]       = useState(null);
@@ -29,30 +40,29 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
   const [nuevoTipo,setNuevoTipo]   = useState({nombre:"",icono:"🏷️",color:"var(--text-muted)"});
   const [busqCont,setBusqCont] = useState("");
 
-  // Tipos base (siempre presentes) + personalizados del usuario
-  const TIPOS_BASE = [
-    {id:"emergencia",  nombre:"Emergencia",   icono:"🚨", color:"var(--red)"},
-    {id:"proveedor",   nombre:"Proveedor",    icono:"🏭", color:"var(--amber)"},
-    {id:"staff",       nombre:"Staff",        icono:"👤", color:"var(--cyan)"},
-    {id:"institucional",nombre:"Institucional",icono:"🏛️",color:"var(--violet)"},
-    {id:"medico",      nombre:"Médico",       icono:"🏥", color:"var(--green)"},
-    {id:"media",       nombre:"Media/Prensa", icono:"📸", color:"var(--orange)"},
-  ];
-  const tiposCustom  = Array.isArray(tiposContacto) ? tiposContacto : [];
-  const todosLosTipos = [...TIPOS_BASE, ...tiposCustom];
-  const getTipo = (tkid) => todosLosTipos.find(tt=>tt.id===tkid) || {nombre:tkid,icono:"🏷️",color:"var(--text-muted)"};
+  // ── Tipos: memoizado — recalcula solo si cambia tiposContacto ────────────────
+  const tiposCustom   = useMemo(() => Array.isArray(tiposContacto) ? tiposContacto : [], [tiposContacto]);
+  const todosLosTipos = useMemo(() => [...TIPOS_BASE, ...tiposCustom], [tiposCustom]);
+  const getTipo       = useCallback((tkid) => todosLosTipos.find(tt=>tt.id===tkid) || {nombre:tkid,icono:"🏷️",color:"var(--text-muted)"}, [todosLosTipos]);
 
-  const contOrdenado = ordenAlfa
-    ? [...cont].sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es"))
-    : cont;
-  const contFiltradoTipo = filtroTipo==="todos"
-    ? contOrdenado
-    : contOrdenado.filter(c=>c.tipo===filtroTipo);
-  const contFiltrado = busqCont.trim()
-    ? contFiltradoTipo.filter(c=>(c.nombre||"").toLowerCase().includes(busqCont.toLowerCase()))
-    : contFiltradoTipo;
+  // ── Lista filtrada: memoizado — recalcula solo cuando cambia lo que usa ──────
+  const contFiltrado = useMemo(() => {
+    let list = ordenAlfa
+      ? [...cont].sort((a,b) => (a.nombre||"").localeCompare(b.nombre||"","es"))
+      : cont;
+    if (filtroTipo !== "todos") list = list.filter(c => c.tipo === filtroTipo);
+    if (busqCont.trim()) {
+      const q = busqCont.toLowerCase();
+      list = list.filter(c => (c.nombre||"").toLowerCase().includes(q));
+    }
+    return list;
+  }, [cont, ordenAlfa, filtroTipo, busqCont]);
 
-  const guardarTipo = () => {
+  const contOrdenado = useMemo(() =>
+    ordenAlfa ? [...cont].sort((a,b) => (a.nombre||"").localeCompare(b.nombre||"","es")) : cont
+  , [cont, ordenAlfa]);
+
+  const guardarTipo = useCallback(() => {
     if (!nuevoTipo.nombre.trim()) return;
     const id = nuevoTipo.nombre.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
     if (todosLosTipos.find(t=>t.id===id)) return;
@@ -60,13 +70,14 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
     setNuevoTipo({nombre:"",icono:"🏷️",color:"var(--text-muted)"});
     setModalTipo(false);
     toast.success("Tipo de contacto creado");
-  };
-  const eliminarTipo = (id) => {
+  }, [nuevoTipo, todosLosTipos, setTiposContacto]);
+
+  const eliminarTipo = useCallback((id) => {
     setTiposContacto(function(tcPrev){return(Array.isArray(tcPrev)?tcPrev:[]).filter(function(tcItm){return tcItm.id!==id;});});
     toast.success("Tipo de contacto eliminado");
-  };
+  }, [setTiposContacto]);
 
-  const incAbiertas = inc.filter(i=>i.estado==="abierta").length;
+  const incAbiertas = useMemo(() => inc.filter(i=>i.estado==="abierta").length, [inc]);
 
   return(
     <>
@@ -398,16 +409,7 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
         <div><div className="pt">✅ Pre-operativo</div>
           <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--violet-dim)", marginTop:".15rem", opacity:.8 }}>Checklist de preparación previa al evento · verificar antes de la salida</div><div className="pd" style={{display:"flex",alignItems:"center",gap:".5rem",flexWrap:"wrap"}}><span style={{background:"rgba(167,139,250,.12)",color:"var(--violet)",border:"1px solid rgba(167,139,250,.25)",borderRadius:99,padding:".1rem .5rem",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700}}>📋 Semanas/días antes</span>{ck.filter(c=>c.estado==="completado").length}/{ck.length} completados</div></div>
         <div className="fr g1">
-          <div style={{display:"flex",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:"var(--r-sm)",overflow:"hidden"}}>
-            {[["lista","☰"],["kanban","⬛"]].map(([v,ic])=>(
-              <button key={v} onClick={()=>setVistaKanban(v==="kanban")}
-                style={{padding:".3rem .55rem",border:"none",cursor:"pointer",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
-                  background:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"rgba(34,211,238,.2)":"transparent",
-                  color:(vistaKanban&&v==="kanban")||(!vistaKanban&&v==="lista")?"var(--cyan)":"var(--text-muted)"}}>
-                {ic}
-              </button>
-            ))}
-          </div>
+          <ListaKanbanToggle vistaKanban={vistaKanban} setVistaKanban={setVistaKanban} />
           <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
           <button className="btn btn-primary" onClick={()=>abrirModal({tipo:"ck",fase:fase,tareasProyecto:tareasProyecto})}>+ Tarea</button>
         </div>
