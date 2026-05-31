@@ -47,8 +47,8 @@ beforeEach(() => {
 
 // S1-08: dataService force:true
 describe('S1-08 — dataService.setValue force:true bypassa hasChanged', () => {
-  it('acepta opts.force como segundo argumento', async () => {
-    const { useData } = await import('@/lib/dataService');
+  it('useData es una función exportada desde hooks/useData', async () => {
+    const { useData } = await import('@/hooks/useData');
     expect(typeof useData).toBe('function');
   });
 

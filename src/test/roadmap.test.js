@@ -332,10 +332,15 @@ describe('T4.2 — useData: separado en hooks/useData.js', () => {
     expect(hook).toContain('useData');
     expect(hook).toContain('saveAll');
   });
-  it('los imports desde @/lib/dataService siguen funcionando (compat)', async () => {
-    const { useData, saveAll } = await import('../lib/dataService.js');
+  it('useData y saveAll se importan desde @/hooks/useData (fuente canónica, sin ciclo)', async () => {
+    const { useData, saveAll } = await import('../hooks/useData.js');
     expect(typeof useData).toBe('function');
     expect(typeof saveAll).toBe('function');
+    // dataService NO debe re-exportarlos: el re-export creaba un ciclo de runtime
+    // que rompía el bundle de producción (TDZ "Cannot access 'G' before initialization").
+    const ds = await import('../lib/dataService.js');
+    expect(ds.useData).toBeUndefined();
+    expect(ds.saveAll).toBeUndefined();
   });
 });
 

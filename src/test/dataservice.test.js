@@ -117,9 +117,9 @@ describe('DS-04 — dataService.notify() dispara teg-sync', () => {
 
 // ── DS-05: saveAll llama a setMultiple y notify ───────────────────────────────
 describe('DS-05 — saveAll: setMultiple + notify', () => {
-  it('saveAll está exportado de dataService', async () => {
-    const { saveAll } = await import('../lib/dataService.js');
-    expect(typeof saveAll).toBe('function');
+  it('saveAll NO se re-exporta desde dataService (evita ciclo de runtime → TDZ)', async () => {
+    const mod = await import('../lib/dataService.js');
+    expect(mod.saveAll).toBeUndefined();
   });
 
   it('saveAll está re-exportado desde hooks/useData', async () => {
@@ -159,9 +159,9 @@ describe('DS-06 — dataService.onChange escucha storage y teg-sync', () => {
 
 // ── DS-07: useData retorna [value, setValue, reload] ─────────────────────────
 describe('DS-07 — useData: forma del retorno', () => {
-  it('useData es una función exportada', async () => {
-    const { useData } = await import('../lib/dataService.js');
-    expect(typeof useData).toBe('function');
+  it('useData NO se re-exporta desde dataService (evita ciclo de runtime → TDZ)', async () => {
+    const mod = await import('../lib/dataService.js');
+    expect(mod.useData).toBeUndefined();
   });
   it('hooks/useData re-exporta useData', async () => {
     const { useData } = await import('../hooks/useData.js');

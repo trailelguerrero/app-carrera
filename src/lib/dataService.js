@@ -495,13 +495,8 @@ if (typeof window !== 'undefined' && ADAPTER === 'api') {
 }
 export { dataService };
 
-// ── Compatibilidad ARQ-04: re-exports desde la fuente canónica ────────────────
-// hooks/useData.js es la única implementación de useData y saveAll.
-// Se re-exportan aquí para que imports legacy (import { useData } from '@/lib/dataService')
-// sigan funcionando sin duplicar lógica.
-//
-// El ciclo aparente (dataService → useData → dataService) no existe en runtime
-// porque useData.js importa el objeto `dataService` ya construido, no el módulo
-// en proceso de inicialización. ESM evalúa ambos módulos completamente antes de
-// resolver imports cruzados gracias al live binding de ESM.
-export { useData, saveAll } from '@/hooks/useData';
+// NOTA: useData y saveAll viven en @/hooks/useData. NO se re-exportan aquí.
+// El re-export creaba un ciclo de runtime dataService.js → useData.js → dataService.js
+// que, en el bundle minificado de producción, lanzaba
+// "Uncaught ReferenceError: Cannot access 'G' before initialization" (TDZ) y dejaba
+// la app en pantalla negra. Importa estos hooks directamente desde @/hooks/useData.
