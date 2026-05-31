@@ -238,6 +238,15 @@ function ScrollToTop() {
 export default function Index() {
   const [authed, setAuthed] = useState(() => checkSession());
 
+  // SEC-AUTHZ (Mejora 2): si el proxy devuelve 401 (sesión de panel expirada o cookie
+  // borrada), re-mostrar el PinScreen. El usuario vuelve a introducir el PIN, que refresca
+  // la cookie del servidor y la sesión de localStorage.
+  useEffect(() => {
+    const handler = () => setAuthed(false);
+    window.addEventListener('teg-session-expired', handler);
+    return () => window.removeEventListener('teg-session-expired', handler);
+  }, []);
+
   // Leer config completo para header Kinetik Ops
   const headerCfg = (() => {
     try {

@@ -18,6 +18,18 @@ const ADAPTER = import.meta.env.VITE_ADAPTER ?? 'api'; // 'localStorage' | 'api'
 // server-side. Nunca se expone la key en el bundle del cliente.
 const API_BASE_URL = '/api/proxy';
 
+// SEC-AUTHZ (Mejora 2): cuando el proxy devuelve 401 (sesión expirada o cookie
+// borrada), notificamos una sola vez al UI para que re-muestre el PinScreen.
+// El debounce de 800ms absorbe ráfagas de fetches concurrentes que fallen al mismo tiempo.
+let _sessionExpiredTimer = null;
+function notifySessionExpired() {
+  if (_sessionExpiredTimer) return; // ya avisado, esperar al handler de UI
+  _sessionExpiredTimer = setTimeout(() => {
+    _sessionExpiredTimer = null;
+    window.dispatchEvent(new CustomEvent('teg-session-expired'));
+  }, 800);
+}
+
 // ─── LOCAL STORAGE ADAPTER ──────────────────────────────────────────────────
 const localAdapter = {
   async get(collection, defaultValue = null) {
@@ -84,7 +96,10 @@ const apiAdapter = {
       const res = await fetch(`${API_BASE_URL}/data/${collection}`, {
         headers: { 'Content-Type': 'application/json' }
       });
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      if (!res.ok) {
+        if (res.status === 401) notifySessionExpired();
+        throw new Error(`API error: ${res.status}`);
+      }
       const response = await res.json();
       // Unwrap versioned response { data, version } o raw data (legado)
       const data = response?.data !== undefined ? response.data : response;
@@ -144,7 +159,10 @@ const apiAdapter = {
             resolve({ success: false, conflict: true, serverVersion: conflictData.serverVersion });
             return;
           }
-          if (!res.ok) throw new Error(`API error: ${res.status}`);
+          if (!res.ok) {
+            if (res.status === 401) notifySessionExpired();
+            throw new Error(`API error: ${res.status}`);
+          }
           
           // Actualizar versión local desde respuesta del servidor
           try {
@@ -193,7 +211,10 @@ const apiAdapter = {
     try {
       const params = new URLSearchParams({ keys: Object.keys(keys).join(',') });
       const res = await fetch(`${API_BASE_URL}/data/batch?${params}`);
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        if (res.status === 401) notifySessionExpired();
+        throw new Error();
+      }
       const data = await res.json();
       const now = Date.now().toString();
       const result = {};
@@ -415,7 +436,10 @@ if (typeof window !== 'undefined' && ADAPTER === 'api') {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data),
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+          if (res.status === 401) { notifySessionExpired(); throw new Error('session_expired'); }
+          throw new Error(`HTTP ${res.status}`);
+        }
         // Actualizar versión local desde respuesta
         try {
           const resData = await res.json();

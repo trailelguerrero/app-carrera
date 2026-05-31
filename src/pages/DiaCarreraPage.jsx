@@ -6,7 +6,7 @@
  * Autenticación: mismo PIN que el panel (PinScreen + checkSession).
  * Contenido: DiaCarrera.jsx montado directamente, sin overlay.
  */
-import { useState, lazy, Suspense } from "react";
+import { useState, lazy, Suspense, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PinScreen from "@/components/auth/PinScreen";
 import { checkSession } from "@/components/auth/pinAuth.js";
@@ -16,6 +16,13 @@ const DiaCarrera = lazy(() => import("../components/blocks/DiaCarrera"));
 
 export default function DiaCarreraPage() {
   const [authed, setAuthed] = useState(() => checkSession());
+
+  // SEC-AUTHZ (Mejora 2): re-lock si la sesión de panel expira
+  useEffect(() => {
+    const handler = () => setAuthed(false);
+    window.addEventListener('teg-session-expired', handler);
+    return () => window.removeEventListener('teg-session-expired', handler);
+  }, []);
   const navigate = useNavigate();
 
   // ── Pantalla de PIN ───────────────────────────────────────────────────────

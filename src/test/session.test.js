@@ -52,6 +52,27 @@ describe('SEC-AUTHZ — módulo de sesión (api/lib/session.js)', () => {
   });
 });
 
+describe('SEC-AUTHZ — manejo de 401 en dataService y páginas', () => {
+  it('dataService dispara teg-session-expired ante 401', () => {
+    const ds = read('src/lib/dataService.js');
+    expect(ds).toContain('notifySessionExpired');
+    expect(ds).toContain('teg-session-expired');
+    expect(ds).toContain("res.status === 401");
+  });
+
+  it('Index.jsx escucha teg-session-expired y re-muestra PinScreen', () => {
+    const idx = read('src/pages/Index.jsx');
+    expect(idx).toContain('teg-session-expired');
+    expect(idx).toContain('setAuthed(false)');
+  });
+
+  it('DiaCarreraPage.jsx escucha teg-session-expired', () => {
+    const dia = read('src/pages/DiaCarreraPage.jsx');
+    expect(dia).toContain('teg-session-expired');
+    expect(dia).toContain('setAuthed(false)');
+  });
+});
+
 describe('SEC-AUTHZ — proxy exige sesión en data/* y deduplica', () => {
   const proxy = read('api/proxy.js');
 
