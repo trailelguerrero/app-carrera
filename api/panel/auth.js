@@ -24,6 +24,7 @@ import { neon } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { checkRateLimit, peekRateLimit, resetRateLimit } from '../lib/rateLimiter.js';
+import { logError, logWarn } from '../lib/logger.js';
 import { createSessionToken, buildSessionCookie } from '../lib/session.js';
 
 // SEC-AUTHZ (Mejora 2): tras un PIN correcto se emite una cookie de sesión firmada.
@@ -166,7 +167,7 @@ export default async function handler(req, res) {
   }
 
   if (!process.env.DATABASE_URL) {
-    console.error('[panel/auth] DATABASE_URL no configurada');
+    logWarn('[panel/auth]', 'DATABASE_URL no configurada');
     return res.status(503).json({ error: 'Servicio no disponible' });
   }
 
@@ -217,7 +218,7 @@ export default async function handler(req, res) {
       // Respuesta mínima — no revelar información adicional
       return res.json({ valid });
     } catch (err) {
-      console.error('[panel/auth] verify error:', err.message);
+      logError('[panel/auth]', err, { action: 'verify' });
       return res.status(500).json({ error: 'Error interno' });
     }
   }
@@ -250,7 +251,7 @@ export default async function handler(req, res) {
       issuePanelSession(res); // SEC-AUTHZ: renueva sesión tras cambiar el PIN
       return res.json({ ok: true });
     } catch (err) {
-      console.error('[panel/auth] change error:', err.message);
+      logError('[panel/auth]', err, { action: 'change' });
       return res.status(500).json({ error: 'Error interno' });
     }
   }

@@ -1,6 +1,13 @@
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as Sentry from "@sentry/react";
+import { useEffect } from "react";
+import {
+  createRoutesFromChildren,
+  matchRoutes,
+  useLocation,
+  useNavigationType,
+} from "react-router-dom";
 import App from "./App.tsx";
 import "./index.css";
 
@@ -10,9 +17,21 @@ if (import.meta.env.PROD && import.meta.env.VITE_SENTRY_DSN) {
     dsn: import.meta.env.VITE_SENTRY_DSN,
     release: __APP_VERSION__,
     environment: "production",
-    // Captura el 100% de errores, 10% de trazas de rendimiento
+    integrations: [
+      // Tracing de React Router v6: cada ruta aparece como transacción en Sentry
+      Sentry.reactRouterV6BrowserTracingIntegration({
+        useEffect,
+        useLocation,
+        useNavigationType,
+        createRoutesFromChildren,
+        matchRoutes,
+      }),
+    ],
+    // 10% de trazas de rendimiento — suficiente para detectar regresiones
     tracesSampleRate: 0.1,
-    // No enviar datos personales en breadcrumbs de UI
+    // Propagación de trazas solo a nuestro propio dominio
+    tracePropagationTargets: [/^\/api\//],
+    // No enviar datos personales en breadcrumbs de UI (inputs de formularios)
     beforeBreadcrumb(breadcrumb) {
       if (breadcrumb.category === "ui.input") return null;
       return breadcrumb;

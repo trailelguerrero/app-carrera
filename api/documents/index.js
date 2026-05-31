@@ -1,5 +1,6 @@
 import { neon }     from '@neondatabase/serverless';
 import { put, del } from '@vercel/blob';
+import { logError, logWarn, requestContext } from '../lib/logger.js';
 
 const auth = (req, res) => {
   const key = req.headers['x-api-key'];
@@ -167,7 +168,7 @@ export default async function handler(req, res) {
         try {
           await del(rows[0].blob_url, { token: process.env.BLOB_READ_WRITE_TOKEN });
         } catch (e) {
-          console.warn('[documents] Error borrando blob:', e.message);
+          logWarn('[documents]', 'Error borrando blob', { message: e.message });
         }
       }
 
@@ -178,7 +179,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
 
   } catch (error) {
-    console.error('[documents]', error);
-    return res.status(500).json({ error: error.message });
+    logError('[documents]', error, requestContext(req));
+    return res.status(500).json({ error: 'Error interno del servidor' });
   }
 }

@@ -1,4 +1,5 @@
 import { Component } from "react";
+import * as Sentry from "@sentry/react";
 
 /**
  * Error Boundary — atrapa errores en cualquier bloque hijo.
@@ -29,6 +30,13 @@ export default class ErrorBoundary extends Component {
   componentDidCatch(error, info) {
     this.setState({ info });
     console.error("[ErrorBoundary]", error, info?.componentStack);
+    // Reportar a Sentry si está inicializado (producción)
+    Sentry.captureException(error, {
+      contexts: {
+        react: { componentStack: info?.componentStack },
+      },
+      tags: { blockName: this.props.blockName || "unknown" },
+    });
   }
 
   reset() {

@@ -1,6 +1,7 @@
 // MEJORA-03: instancia compartida — evita múltiples conexiones por módulo
 import { sql } from '../lib/db.js';
 import { checkRateLimit } from '../lib/rateLimiter.js';
+import { logError, requestContext } from '../lib/logger.js';
 
 // fix(SEC-CRIT-01): allowlist de colecciones — previene acceso no autorizado entre módulos
 const ALLOWED_COLLECTIONS = /^teg_(voluntarios|logistica|presupuesto|camisetas|patrocinadores|pat_log|localizaciones|documentos|proyecto|event_config|scenarios|codigos_promo|panel_pin_hash|panel_pin_length|escenarios|dia_carrera|scenario_active_name|auto_backup)_?v?\d*(_[a-zA-Z0-9]+)*$/;
@@ -74,7 +75,7 @@ export default async function handler(req, res) {
 
     return res.status(405).json({ error: 'Method Not Allowed' });
   } catch (error) {
-    console.error(`Collection ${collection} error:`, error);
-    return res.status(500).json({ error: error.message });
+    logError('[data/collection]', error, { ...requestContext(req), collection });
+    return res.status(500).json({ error: 'Error interno del servidor' });
   }
 }

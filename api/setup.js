@@ -1,5 +1,6 @@
 // MEJORA-03: usar sqlDirect del módulo compartido — conexión no pooled para DDL
 import { sqlDirect as sqlDDL } from './lib/db.js';
+import { logError, requestContext } from './lib/logger.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
@@ -69,7 +70,7 @@ export default async function handler(req, res) {
         : 'DATABASE_URL (pooled — set DIRECT_URL for reliable DDL)',
     });
   } catch (error) {
-    console.error('Setup error:', error);
-    return res.status(500).json({ error: error.message });
+    logError('[setup]', error, requestContext(req));
+    return res.status(500).json({ error: 'Error interno del servidor' });
   }
 }

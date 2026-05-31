@@ -16,6 +16,7 @@
 import { neon } from '@neondatabase/serverless';
 import { createSign } from 'crypto';
 import { verifySessionToken, readSessionCookie } from '../lib/session.js';
+import { logError, logWarn, logInfo } from '../lib/logger.js';
 
 const sql = neon(process.env.DATABASE_URL);
 
@@ -87,7 +88,7 @@ async function handleSubscribe(req, res) {
     `;
     return res.status(201).json({ ok: true });
   } catch (err) {
-    console.error('[push/subscribe] Error:', err.message);
+    logError('[push/subscribe]', err);
     return res.status(500).json({ error: 'Error al guardar suscripción' });
   }
 }
@@ -100,7 +101,7 @@ async function handleUnsubscribe(req, res) {
     await sql`DELETE FROM push_subscriptions WHERE endpoint = ${endpoint}`;
     return res.status(200).json({ ok: true });
   } catch (err) {
-    console.error('[push/unsubscribe] Error:', err.message);
+    logError('[push/unsubscribe]', err);
     return res.status(500).json({ error: 'Error al eliminar suscripción' });
   }
 }
@@ -115,7 +116,7 @@ async function handleSend(req, res) {
   try {
     subscriptions = await sql`SELECT endpoint, p256dh, auth FROM push_subscriptions`;
   } catch (err) {
-    console.error('[push/send] Error al leer suscriptores:', err.message);
+    logError('[push/send]', err, { step: 'leer_suscriptores' });
     return res.status(500).json({ error: 'Error al leer suscriptores' });
   }
 
@@ -151,7 +152,7 @@ async function handleSend(req, res) {
         if (err?.statusCode === 410 || err?.statusCode === 404) {
           expiredEndpoints.push(sub.endpoint);
         } else {
-          console.warn('[push/send] Error enviando a', sub.endpoint.slice(0, 40), err?.message);
+          logWarn('[push/send]', 'Error enviando notificación', { endpoint: sub.endpoint.slice(0, 40), message: err?.message });
         }
       }
     })
@@ -159,7 +160,7 @@ async function handleSend(req, res) {
 
   if (expiredEndpoints.length > 0) {
     await sql`DELETE FROM push_subscriptions WHERE endpoint = ANY(${expiredEndpoints})`;
-    console.log(`[push/send] Eliminadas ${expiredEndpoints.length} suscripciones expiradas`);
+    logInfo('[push/send]', 'Suscripciones expiradas eliminadas', { count: expiredEndpoints.length });
   }
 
   return res.status(200).json({ ok: true, sent, expired: expiredEndpoints.length });

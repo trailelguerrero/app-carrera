@@ -1,4 +1,5 @@
 import { neon } from '@neondatabase/serverless';
+import { logError, requestContext } from '../lib/logger.js';
 
 const auth = (req, res) => {
   const key = req.headers['x-api-key'];
@@ -60,7 +61,7 @@ export default async function handler(req, res) {
 
     return res.status(405).json({ error: 'Method Not Allowed' });
   } catch (error) {
-    console.error('[budget-log]', error);
-    return res.status(500).json({ error: error.message });
+    logError('[budget-log]', error, requestContext(req));
+    return res.status(500).json({ error: 'Error interno del servidor' });
   }
 }
