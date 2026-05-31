@@ -152,20 +152,25 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
       .filter(p => p.sector === "Administración pública" && !p.especie)
       .reduce((s, p) => s + getImporteComprometido(p), 0);
 
-    // FIX-DASH-01: balanceCamisetasTecnicas calculado en vivo (igual que useBudgetLogic)
-    // Antes usaba ie.valor del snapshot de BD → divergencia con módulo Presupuesto
-    const _camPedidosSnap = Array.isArray(rawCamPedidos) ? rawCamPedidos : [];
-    const _camCosteSnap   = rawCamCoste || CAM_COSTE_DEFAULT;
+    // FIX-BAL-02: usar calculateCosteCamisetasDesglosado como fuente única de verdad,
+    // igual que useBudgetLogic tras FIX-BAL-01. La implementación manual anterior
+    // ignoraba corredoresExt, voluntarios, niños y venta al público → divergencia
+    // de resultado entre Dashboard y Presupuesto cuando balanceCamisetasTecnicas activo.
     const _merch          = Array.isArray(rawMerchandising) ? rawMerchandising : [];
-    const _lineasCorredor = _camPedidosSnap.flatMap(p => p.lineas || []).filter(l => l.tipo === "corredor");
-    const _ingCorredor    = _lineasCorredor.filter(l => l.estadoPago === "pagado")
-      .reduce((s, l) => s + (l.cantidad * (l.precioVenta || 0)), 0);
-    const _costeCorredor  = _lineasCorredor.filter(l => l.estadoPago === "pagado" || l.estadoPago === "pendiente")
-      .reduce((s, l) => s + (l.cantidad * (_camCosteSnap.corredor || CAM_COSTE_DEFAULT.corredor)), 0);
+    const _desgloseBalance = calculateCosteCamisetasDesglosado({
+      camCoste:    rawCamCoste || CAM_COSTE_DEFAULT,
+      camPedidos:  Array.isArray(rawCamPedidos) ? rawCamPedidos : [],
+      corredoresExt: rawCamCorredores || {},
+      precioCorrExt: rawCamPrecioPlat?.precio ?? 0,
+      ninoExt:     rawCamNino || {},
+      voluntariosActivos: (Array.isArray(rawVoluntarios) ? rawVoluntarios : [])
+        .filter(v => (v.estado === "confirmado" || v.estado === "pendiente") && v.talla),
+      ventaPublico: rawCamVentaPub || { precio: 0, cantidad: 0 },
+    });
     const _camisetasMerch = _merch.filter(m => m.activo && m.nombre?.toLowerCase().includes("camiseta"));
     const _ingCamMerch    = _camisetasMerch.reduce((s, m) => s + m.unidades * (m.precioVenta || 0), 0);
     const _costeCamMerch  = _camisetasMerch.reduce((s, m) => s + m.unidades * (m.costeUnitario || 0), 0);
-    const _totalBalanceCamisetasTecnicasLive = (_ingCorredor - _costeCorredor) + (_ingCamMerch - _costeCamMerch);
+    const _totalBalanceCamisetasTecnicasLive = _desgloseBalance.beneficioNeto + (_ingCamMerch - _costeCamMerch);
 
     const totalIngresosExtra = ingresosExtra
       .filter(ie => ie.activo && ie.syncKey !== "camisetas")
