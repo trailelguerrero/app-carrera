@@ -298,7 +298,7 @@ export default function App() {
           const cambio = ckNext.some((c, i) => c.estado !== ckActual[i].estado);
           if (cambio) {
             m.default.set(SK_LOG_CK, ckNext);
-            m.default.notify(); // notifica a Logística.jsx del cambio externo
+            m.default.notify('logistica'); // notifica a Logística.jsx del cambio externo
           }
         }).catch(() => {/* CK no disponible — ignorar */});
       });

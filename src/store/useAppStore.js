@@ -19,7 +19,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { createEventBusSlice } from './slices/eventBusSlice';
 
-export { EVENT_TYPES } from './slices/eventBusSlice';
+export { EVENT_TYPES, EVENT_ACTIONS } from './slices/eventBusSlice';
 
 export const useAppStore = create(
   devtools(

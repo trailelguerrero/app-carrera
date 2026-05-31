@@ -356,7 +356,7 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
               if (ckCambio) setCk(ckNext);
             }} />}
           {tab==="emergencias" && <TabEmergencias cont={cont} inc={inc} setInc={setInc} abrirModal={abrirModal} abrirFicha={abrirFicha} tiposContacto={tiposContacto} />}
-          {tab==="checklist" && <TabCK ck={ck} setCk={setCk} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCK} setOrdenAlfa={setOrdenCK} config={config} tareasProyecto={tareasProyecto} setTareasProyecto={(fn)=>{ const next=typeof fn==="function"?fn(tareasProyecto):fn; import("@/lib/dataService").then(m=>{ m.default.set(SK_PROY_TAREAS, next); m.default.notify(); /* INC-05: notificar a Proyecto.jsx del cambio externo */ }); }}
+          {tab==="checklist" && <TabCK ck={ck} setCk={setCk} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCK} setOrdenAlfa={setOrdenCK} config={config} tareasProyecto={tareasProyecto} setTareasProyecto={(fn)=>{ const next=typeof fn==="function"?fn(tareasProyecto):fn; import("@/lib/dataService").then(m=>{ m.default.set(SK_PROY_TAREAS, next); m.default.notify('proyecto'); /* INC-05: notificar a Proyecto.jsx del cambio externo */ }); }}
             onToggleSync={(id, estadoNuevo, hora) => {
               const { tlNext, tlCambio } = syncCkTl("ck", id, estadoNuevo, ck, tl, hora);
               if (tlCambio) setTl(tlNext);

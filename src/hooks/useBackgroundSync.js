@@ -14,6 +14,7 @@
  */
 
 import { useEffect, useCallback } from 'react';
+import { useAppStore, EVENT_TYPES } from '@/store/useAppStore';
 
 const SYNC_TAG = 'pending-sync';
 
@@ -22,6 +23,9 @@ export function useBackgroundSync() {
     typeof window !== 'undefined' &&
     'serviceWorker' in navigator &&
     'SyncManager' in window;
+
+  // Mejora 5: emitir via store en lugar de dispatchEvent directo
+  const emitEvent = useAppStore((s) => s.emitEvent);
 
   /**
    * Registra una tarea de Background Sync en el SW.
@@ -61,8 +65,8 @@ export function useBackgroundSync() {
         window.dispatchEvent(new CustomEvent('online'));
       }
       if (event.data?.type === 'SW_SYNC_COMPLETE') {
-        // Sincronización completada desde SW (app estaba cerrada)
-        window.dispatchEvent(new CustomEvent('teg-sync'));
+        // Sincronización completada desde SW (app estaba cerrada) — Mejora 5: via store
+        emitEvent(EVENT_TYPES.DATA_SYNC, 'sw-background-sync');
       }
       if (event.data?.type === 'SW_NAVIGATE') {
         // Notificación push: navegar a la URL indicada
@@ -75,7 +79,7 @@ export function useBackgroundSync() {
 
     navigator.serviceWorker.addEventListener('message', onSwMessage);
     return () => navigator.serviceWorker.removeEventListener('message', onSwMessage);
-  }, []);
+  }, [emitEvent]);
 
   return { supported, registerSync };
 }

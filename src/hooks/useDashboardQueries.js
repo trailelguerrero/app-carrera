@@ -73,6 +73,11 @@ const EVENT_TO_KEYS = {
     dashboardKeys.logistica(),
     dashboardKeys.proyecto(),
   ],
+  // Mejora 5: CAMISETAS_ACTUALIZADO tiene evento propio (antes emitía como presupuesto)
+  [EVENT_TYPES.CAMISETAS_ACTUALIZADO]: [
+    dashboardKeys.camisetas(),
+    dashboardKeys.presupuesto(), // estado_pago afecta importes en presupuesto
+  ],
   // DATA_SYNC (fallback anónimo) → invalida todo el dashboard
   [EVENT_TYPES.DATA_SYNC]: [dashboardKeys.all()],
 };

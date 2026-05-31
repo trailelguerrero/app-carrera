@@ -349,7 +349,7 @@ export default function Dashboard() {
           onSave={async (tramoId, newVals) => {
             const next = { ...d.rawInscritos, tramos: { ...(d.rawInscritos?.tramos || {}), [tramoId]: newVals } };
             await dataService.set(SK_PPTO_INSCRITOS, next);
-            window.dispatchEvent(new CustomEvent("teg-sync"));
+            dataService.notify('presupuesto'); // Mejora 5: via store, no directo al DOM
           }}
         />
 
