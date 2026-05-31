@@ -10,7 +10,7 @@
  * - Accesibilidad: aria-invalid + aria-describedby en cada campo
  * - Gestión del duplicado (409) con mensaje accionable
  */
-import { useState, useId } from "react";
+import { useState, useId, useRef, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { crearEsquemaFormulario } from "@/lib/schemas/voluntarioSchema";
@@ -74,6 +74,41 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
   const [lightbox, setLightbox] = useState(null);
   const [guiaTallas, setGuiaTallas] = useState(false);
 
+  // ── Refs para gestión de foco en modales (a11y HAL-04, HAL-06) ──────────
+  const lightboxCloseRef   = useRef(null);
+  const guiaTallasCloseRef = useRef(null);
+  const lightboxTriggerRef = useRef(null);
+  const guiaTallasTriggerRef = useRef(null);
+
+  // Mover foco al botón de cierre al abrir cada modal
+  useEffect(() => {
+    if (lightbox && lightboxCloseRef.current) {
+      lightboxCloseRef.current.focus();
+    }
+  }, [lightbox]);
+
+  useEffect(() => {
+    if (guiaTallas && guiaTallasCloseRef.current) {
+      guiaTallasCloseRef.current.focus();
+    }
+  }, [guiaTallas]);
+
+  // Cerrar modales con Escape y restaurar foco al trigger
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key !== "Escape") return;
+      if (lightbox) {
+        setLightbox(null);
+        lightboxTriggerRef.current?.focus();
+      } else if (guiaTallas) {
+        setGuiaTallas(false);
+        guiaTallasTriggerRef.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [lightbox, guiaTallas]);
+
   // IDs accesibles para aria-describedby
   const uid = useId();
   const errId = (campo) => `${uid}-err-${campo}`;
@@ -84,8 +119,8 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
     if (data.website) return;
 
     // Verificar duplicado por teléfono antes de enviar
-    const tel = (data.telefono || "").replace(/[\s\-]/g, "");
-    if (vols.some(v => v.telefono && v.telefono.replace(/[\s\-]/g, "") === tel)) {
+    const tel = (data.telefono || "").replace(/[\s-]/g, "");
+    if (vols.some(v => v.telefono && v.telefono.replace(/[\s-]/g, "") === tel)) {
       setError("telefono", {
         type: "manual",
         message: "Este teléfono ya está registrado. ¿Ya eres voluntario?",
@@ -186,11 +221,18 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
     <div style={{ minHeight: "100vh", background: "var(--bg)", backgroundImage: "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(34,211,238,0.07) 0%, transparent 60%)" }}>
       {/* LIGHTBOX */}
       {lightbox && (
-        <div onClick={() => setLightbox(null)}
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Vista de camiseta"
+          onClick={() => { setLightbox(null); lightboxTriggerRef.current?.focus(); }}
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", backdropFilter: "blur(8px)", animation: "fadeUp 0.15s ease" }}>
           <div onClick={e => e.stopPropagation()} style={{ position: "relative", maxWidth: 480, width: "100%", animation: "slideUp 0.2s ease" }}>
             <div style={{ position: "absolute", top: -14, right: -14, zIndex: 10 }}>
-              <button onClick={() => setLightbox(null)}
+              <button
+                ref={lightboxCloseRef}
+                onClick={() => { setLightbox(null); lightboxTriggerRef.current?.focus(); }}
+                aria-label="Cerrar vista de camiseta"
                 style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", cursor: "pointer", fontSize: "var(--fs-md)", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
             </div>
             <div style={{ background: "var(--surface)", border: "1px solid var(--border-light)", borderRadius: 16, overflow: "hidden" }}>
@@ -209,7 +251,11 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
 
       {/* GUÍA DE TALLAS MODAL */}
       {guiaTallas && (
-        <div onClick={() => setGuiaTallas(false)}
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Guía de tallas"
+          onClick={() => { setGuiaTallas(false); guiaTallasTriggerRef.current?.focus(); }}
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.88)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", backdropFilter: "blur(6px)", animation: "fadeUp 0.15s ease" }}>
           <div onClick={e => e.stopPropagation()}
             style={{ background: "var(--surface)", border: "1px solid var(--border-light)", borderRadius: 16, maxWidth: 480, width: "100%", maxHeight: "85vh", overflow: "hidden", display: "flex", flexDirection: "column", animation: "slideUp 0.2s ease" }}>
@@ -218,7 +264,11 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
                 <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "var(--fs-md)" }}>📐 Guía de tallas</div>
                 <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: "0.2rem" }}>Medidas en centímetros — mide sobre la camiseta plana</div>
               </div>
-              <button onClick={() => setGuiaTallas(false)} aria-label="Cerrar guía de tallas" style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "var(--fs-lg)" }}>✕</button>
+              <button
+                ref={guiaTallasCloseRef}
+                onClick={() => { setGuiaTallas(false); guiaTallasTriggerRef.current?.focus(); }}
+                aria-label="Cerrar guía de tallas"
+                style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "var(--fs-lg)" }}>✕</button>
             </div>
             {/* If custom guía image uploaded, show it prominently */}
             {imgGuiaTallas && (
@@ -266,10 +316,25 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
                 </thead>
                 <tbody>
                   {GUIA_TALLAS.map((row, i) => (
-                    <tr key={row.talla} style={{ background: i % 2 === 0 ? "transparent" : "rgba(30,45,80,0.2)", cursor: "pointer" }}
-                      onClick={() => { update("talla", row.talla); setGuiaTallas(false); }}>
-                      <td style={{ padding: "0.5rem 1rem", fontFamily: "var(--font-mono)", fontWeight: 700, color: form.talla === row.talla ? "var(--cyan)" : "var(--text)", borderBottom: "1px solid rgba(30,45,80,0.3)" }}>
-                        {row.talla} {form.talla === row.talla && <span style={{ color: "var(--green)", fontSize: "var(--fs-sm)" }}>✓</span>}
+                    <tr
+                      key={row.talla}
+                      tabIndex={0}
+                      role="row"
+                      aria-label={`Seleccionar talla ${row.talla}: pecho ${row.pecho} cm, largo ${row.largo} cm, hombro ${row.hombro} cm${tallaActual === row.talla ? " (seleccionada)" : ""}`}
+                      style={{ background: i % 2 === 0 ? "transparent" : "rgba(30,45,80,0.2)", cursor: "pointer", outline: "none" }}
+                      onClick={() => { setValue("talla", row.talla, { shouldValidate: true }); setGuiaTallas(false); guiaTallasTriggerRef.current?.focus(); }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setValue("talla", row.talla, { shouldValidate: true });
+                          setGuiaTallas(false);
+                          guiaTallasTriggerRef.current?.focus();
+                        }
+                      }}
+                      onFocus={e => { e.currentTarget.style.boxShadow = "inset 0 0 0 2px var(--cyan)"; }}
+                      onBlur={e => { e.currentTarget.style.boxShadow = ""; }}>
+                      <td style={{ padding: "0.5rem 1rem", fontFamily: "var(--font-mono)", fontWeight: 700, color: tallaActual === row.talla ? "var(--cyan)" : "var(--text)", borderBottom: "1px solid rgba(30,45,80,0.3)" }}>
+                        {row.talla} {tallaActual === row.talla && <span style={{ color: "var(--green)", fontSize: "var(--fs-sm)" }}>✓</span>}
                       </td>
                       <td style={{ padding: "0.5rem", textAlign: "center", fontFamily: "var(--font-mono)", color: "var(--text)", borderBottom: "1px solid rgba(30,45,80,0.3)" }}>{row.pecho}</td>
                       <td style={{ padding: "0.5rem", textAlign: "center", fontFamily: "var(--font-mono)", color: "var(--text)", borderBottom: "1px solid rgba(30,45,80,0.3)" }}>{row.largo}</td>
@@ -312,8 +377,13 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
               { key: "front", label: "Vista delantera", src: imgF || SHIRT_PLACEHOLDER_FRONT, accent: "var(--cyan)" },
               { key: "back",  label: "Vista trasera",   src: imgB || SHIRT_PLACEHOLDER_BACK,  accent: "var(--violet)" },
             ].map(({ key, label, src, accent }) => (
-              <div key={key} onClick={() => setLightbox(key)}
-                style={{ cursor: "pointer", borderRadius: 12, overflow: "hidden", border: `1px solid ${accent}33`, background: "var(--surface)", position: "relative", transition: "all 0.18s" }}
+              <button
+                key={key}
+                type="button"
+                ref={key === "front" ? lightboxTriggerRef : null}
+                onClick={() => setLightbox(key)}
+                aria-label={`Ver ${label} a tamaño completo`}
+                style={{ cursor: "pointer", borderRadius: 12, overflow: "hidden", border: `1px solid ${accent}33`, background: "var(--surface)", position: "relative", transition: "all 0.18s", padding: 0, textAlign: "left", display: "block", width: "100%" }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = accent; e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 8px 24px ${accent}18`; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = `${accent}33`; e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}>
                 <img src={src} alt={label} style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} />
@@ -321,7 +391,7 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>{label}</span>
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: accent }}>🔍 Ver</span>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -384,8 +454,8 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
                 ].filter(Boolean).join(" ")}
                 {...register("telefono", {
                   onBlur: (e) => {
-                    const tel = e.target.value.replace(/[\s\-]/g, "");
-                    if (tel.length >= 9 && vols.some(v => v.telefono && v.telefono.replace(/[\s\-]/g, "") === tel)) {
+                    const tel = e.target.value.replace(/[\s-]/g, "");
+                    if (tel.length >= 9 && vols.some(v => v.telefono && v.telefono.replace(/[\s-]/g, "") === tel)) {
                       setTelefonoDuplicado(true);
                     } else {
                       setTelefonoDuplicado(false);
@@ -437,7 +507,10 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
                 <label style={{ fontFamily: "var(--font-display)", fontSize: "var(--fs-base)", fontWeight: 600, color: errors.talla ? "var(--red)" : "var(--text)" }}>
                   Talla de camiseta *
                 </label>
-                <button onClick={() => setGuiaTallas(true)}
+                <button
+                  ref={guiaTallasTriggerRef}
+                  type="button"
+                  onClick={() => setGuiaTallas(true)}
                   style={{ background: "var(--cyan-dim)", color: "var(--cyan)", border: "1px solid rgba(34,211,238,0.2)", borderRadius: 5, padding: "0.18rem 0.55rem", fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700, cursor: "pointer", transition: "all 0.15s" }}>
                   📐 Guía de tallas
                 </button>

@@ -1,11 +1,12 @@
 /**
- * api/lib/voluntarioValidation.js — Mejora 9
+ * api/lib/voluntarioValidation.js — Mejora 9 (actualizado Mejora 7)
  *
  * Validación server-side del registro de voluntarios.
  * Usa Zod directamente (no depende de src/ que es solo frontend).
- * 
- * La lógica espeja src/lib/schemas/voluntarioSchema.js.
- * Fuente de verdad semántica: ambos archivos deben mantenerse sincronizados.
+ *
+ * IMPORTANTE: Este esquema debe mantenerse sincronizado con
+ * src/lib/schemas/voluntarioSchema.js (voluntarioBaseSchema).
+ * Regla de oro: si un campo es requerido en cliente, es requerido aquí también.
  */
 import { z } from 'zod';
 
@@ -16,8 +17,7 @@ const normalizarTelefono = (val) =>
 
 /**
  * Esquema server-side para el registro público de voluntarios.
- * Valida los campos mínimos garantizados independientemente de
- * las opciones de configuración del evento.
+ * Sincronizado con voluntarioBaseSchema (src/lib/schemas/voluntarioSchema.js).
  */
 export const voluntarioServerSchema = z.object({
   nombre: z
@@ -26,12 +26,12 @@ export const voluntarioServerSchema = z.object({
     .max(100, 'El nombre es demasiado largo')
     .trim(),
 
+  // SINCRONIZADO con cliente: apellidos es requerido (min 1)
   apellidos: z
-    .string()
+    .string({ required_error: 'Los apellidos son obligatorios' })
+    .min(1, 'Los apellidos son obligatorios')
     .max(100, 'Los apellidos son demasiado largos')
-    .trim()
-    .optional()
-    .default(''),
+    .trim(),
 
   telefono: z
     .string({ required_error: 'El campo teléfono es obligatorio' })
@@ -99,3 +99,4 @@ export function validarVoluntario(data) {
 
   return { ok: false, errors };
 }
+
