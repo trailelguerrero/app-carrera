@@ -213,9 +213,9 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
   // RECURSOS: inventario y planificación
   const TABS_RECURSOS = [
     {id:"dashboard",     icon:"📊", label:"Dashboard"},
-    {id:"vehiculos",     icon:"🚗", label:"Vehículos"},
-    {id:"localizaciones",icon:"📍", label:"Ubicaciones"},
     {id:"recorridos",    icon:"🗺️", label:"Recorridos"},
+    {id:"localizaciones",icon:"📍", label:"Ubicaciones"},
+    {id:"vehiculos",     icon:"🚗", label:"Vehículos"},
     {id:"material",      icon:"📦", label:"Material"},
   ];
   // OPERACIONES: ejecución, día de la carrera

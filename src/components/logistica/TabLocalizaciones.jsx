@@ -224,11 +224,18 @@ function MapaLocalizaciones({ locs, matPorLoc = {}, recorridos = [] }) {
         </div>
       )}
 
-      {tracksActivos.length === 0 && (
-        <div style={{ marginTop:".5rem", fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>
-          💡 Sube los archivos .gpx en la pestaña "Recorridos" para ver los trazados sobre el mapa
-        </div>
-      )}
+      <div style={{ marginTop:".5rem", display:"flex", gap:"1rem", flexWrap:"wrap" }}>
+        {tracksActivos.length === 0 && (
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>
+            🗺️ Sin recorridos — ve a la pestaña <strong style={{color:"var(--cyan)"}}>🗺️ Recorridos</strong> y sube los archivos .gpx
+          </div>
+        )}
+        {locsConCoords.length === 0 && locs.length === 0 && (
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>
+            📍 Sin ubicaciones — pulsa <strong style={{color:"var(--cyan)"}}>+ Nueva</strong> para añadir localizaciones maestras con coordenadas GPS
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -347,9 +354,7 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {}, rec
       </div>
 
       {/* ── MAPA INTERACTIVO con recorridos GPX ── */}
-      {locs.length > 0 && (
-        <MapaLocalizaciones locs={locs} matPorLoc={matPorLoc} recorridos={recorridos} />
-      )}
+      <MapaLocalizaciones locs={locs} matPorLoc={matPorLoc} recorridos={recorridos} />
 
       {/* ── CARDS DE LOCALIZACIONES ── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: ".65rem" }}>
