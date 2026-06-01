@@ -386,111 +386,94 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {}, rec
       {/* ── MAPA INTERACTIVO con recorridos GPX ── */}
       <MapaLocalizaciones locs={locs} matPorLoc={matPorLoc} recorridos={recorridos} />
 
-      {/* ── P3: CARDS DE LOCALIZACIONES — estilo PuestoCard ── */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+      {/* ── CARDS DE LOCALIZACIONES ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: ".65rem" }}>
         {locsF.map(l => {
-          const color  = LOC_COLORS[l.tipo] || "var(--text-muted)";
-          const icon   = LOC_ICONS[l.tipo]  || "📌";
-          const asig   = volsPorLoc[l.id] || [];
-          const conf   = asig.filter(a => a.vol.estado === "confirmado").length;
-          const total  = asig.length;
-          const matItems = matPorLoc[l.id] || [];
-          const tieneMat = matItems.length > 0;
-          const tieneVol = total > 0;
-          const cob    = calcularCobertura(tieneMat, tieneVol);
-          const cobPct = Math.min(100, total > 0 ? Math.round((conf / total) * 100) : 0);
-          const cobColor = cobPct >= 80 ? "var(--green)" : cobPct >= 50 ? "var(--amber)" : "var(--red)";
+          const color = LOC_COLORS[l.tipo] || "var(--text-muted)";
+          const icon  = LOC_ICONS[l.tipo]  || "📌";
           return (
-            <div key={l.id} className="card" style={{ padding: "1rem", cursor: "pointer" }}
-              onClick={() => openEditar(l)}
-              title="Click para editar esta ubicación">
-              <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start" }}>
-                {/* Pill de tipo — igual al item-icon-pill de PuestoCard */}
-                <div className="item-icon-pill" style={{ "--pill-color": color, marginTop: ".1rem" }}>
-                  <span style={{ fontSize: "var(--fs-md)" }}>{icon}</span>
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  {/* Fila título + badges */}
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.3rem", flexWrap: "wrap" }}>
-                    <span style={{ fontWeight: 700, fontSize: "var(--fs-md)" }}>{l.nombre}</span>
-                    <span className="badge badge-cyan"
-                      style={{ textTransform: "capitalize" }}>{l.tipo}</span>
-                    {cob && (() => {
-                      const cfgCob = {
-                        completa:       { label: "✅ Completa",       bg: "rgba(34,197,94,.12)",  clr: "var(--green)", brd: "rgba(34,197,94,.3)" },
-                        sin_voluntario: { label: "⚠️ Sin voluntario", bg: "rgba(251,191,36,.12)", clr: "var(--amber)", brd: "rgba(251,191,36,.3)" },
-                        sin_material:   { label: "📦 Sin material",   bg: "rgba(251,191,36,.12)", clr: "var(--amber)", brd: "rgba(251,191,36,.3)" },
-                      }[cob];
-                      return (
-                        <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", padding: ".1rem .4rem", borderRadius: 20, background: cfgCob.bg, color: cfgCob.clr, border: `1px solid ${cfgCob.brd}`, whiteSpace: "nowrap" }}>
-                          {cfgCob.label}
-                        </span>
-                      );
-                    })()}
-                    {tieneMat && (
-                      <span
-                        onClick={e => { e.stopPropagation(); window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "logistica", subtab: "material" } })); }}
-                        title="Ver material en Logística"
-                        style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--cyan)", background: "var(--cyan-dim)", padding: ".1rem .4rem", borderRadius: 4, whiteSpace: "nowrap", cursor: "pointer", border: "1px solid rgba(34,211,238,.2)" }}>
-                        📦 {matItems.length} mat. →
-                      </span>
-                    )}
+            <div key={l.id} className="card" style={{ borderLeft: `3px solid ${color}`, cursor: "pointer" }} onClick={() => openEditar(l)}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: ".4rem" }}>
+                <div style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
+                  <span style={{ fontSize: "var(--fs-lg)" }}>{icon}</span>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: "var(--fs-base)" }}>{l.nombre}</div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color, textTransform: "uppercase", letterSpacing: ".06em" }}>{l.tipo}</div>
                   </div>
-                  {/* Fila meta: GPS + voluntarios */}
-                  <div style={{ display: "flex", gap: "1.25rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
-                    {l.lat != null && l.lng != null ? (
-                      <span className="mono text-xs text-muted">📌 {Number(l.lat).toFixed(4)}, {Number(l.lng).toFixed(4)}</span>
-                    ) : (
-                      <span className="mono text-xs" style={{ color: "var(--amber)" }}>⚠️ Sin coordenadas GPS</span>
-                    )}
-                    {total > 0 && (
-                      <span className="mono text-xs" style={{ color: cobColor }}>
-                        👤 {conf}/{total} confirmados
-                      </span>
-                    )}
-                  </div>
-                  {/* Barra de cobertura de voluntarios */}
-                  {total > 0 && (
-                    <div className="prog-bar" style={{ marginBottom: "0.4rem" }}>
-                      <div className="prog-fill" style={{ width: `${cobPct}%`, background: cobColor }} />
-                    </div>
-                  )}
-                  {/* Descripción */}
-                  {l.descripcion && (
-                    <div style={{ fontSize: "var(--fs-sm)", color: "var(--text-muted)", fontStyle: "italic", marginBottom: ".35rem" }}>
-                      {l.descripcion}
-                    </div>
-                  )}
-                  {/* Voluntarios asignados */}
-                  {total > 0 && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", marginTop: "0.4rem" }}>
-                      {asig.slice(0, 5).map((a, i) => (
-                        <span key={i}
-                          onClick={e => { e.stopPropagation(); window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "voluntarios" } })); }}
-                          style={{ fontSize: "var(--fs-sm)", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 4, padding: "0.15rem 0.45rem", color: a.vol.estado === "confirmado" ? "var(--green)" : "var(--text-muted)", cursor: "pointer" }}>
-                          {(a.vol.nombre || "V").split(" ")[0]}
-                          {a.puesto ? <span style={{ color: "var(--text-dim)", marginLeft: ".25rem", fontSize: "var(--fs-xs)" }}>— {a.puesto.nombre}</span> : null}
-                        </span>
-                      ))}
-                      {total > 5 && (
-                        <span style={{ fontSize: "var(--fs-sm)", color: "var(--text-dim)", padding: "0.15rem 0.45rem" }}>+{total - 5} más…</span>
-                      )}
-                    </div>
-                  )}
-                  {total === 0 && (
-                    <div style={{ marginTop: ".35rem", fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)" }}>
-                      👥 Sin voluntarios asignados
-                    </div>
-                  )}
                 </div>
-                {/* Botones acción */}
-                <div style={{ display: "flex", gap: "0.3rem", flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-                  <button className="btn btn-ghost" style={{ padding: "0.28rem 0.45rem", fontSize: "var(--fs-sm)" }}
-                    onClick={() => openEditar(l)} aria-label="Editar">✏️</button>
-                  <button className="btn btn-red" style={{ padding: "0.28rem 0.45rem", fontSize: "var(--fs-sm)" }}
-                    onClick={() => setDel(l.id)} aria-label="Eliminar">✕</button>
+                <div style={{ display: "flex", gap: ".35rem", alignItems: "center", flexShrink: 0 }}>
+                  {(() => {
+                    const tieneMat = (matPorLoc[l.id] || []).length > 0;
+                    const tieneVol = (volsPorLoc[l.id] || []).length > 0;
+                    const cob = calcularCobertura(tieneMat, tieneVol);
+                    if (!cob) return null;
+                    const cfg = {
+                      completa:       { label: "✅ Completa",       bg: "rgba(34,197,94,.12)",  color: "var(--green)", border: "rgba(34,197,94,.3)" },
+                      sin_voluntario: { label: "⚠️ Sin voluntario", bg: "rgba(251,191,36,.12)", color: "var(--amber)", border: "rgba(251,191,36,.3)" },
+                      sin_material:   { label: "📦 Sin material",   bg: "rgba(251,191,36,.12)", color: "var(--amber)", border: "rgba(251,191,36,.3)" },
+                    }[cob];
+                    return (
+                      <span style={{
+                        fontFamily: "var(--font-mono)", fontSize: "var(--fs-2xs)",
+                        padding: ".1rem .4rem", borderRadius: 20,
+                        background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`,
+                        whiteSpace: "nowrap",
+                      }}>{cfg.label}</span>
+                    );
+                  })()}
+                  <button className="btn btn-sm btn-red" onClick={e => { e.stopPropagation(); setDel(l.id); }}
+                    style={{ flexShrink: 0, padding: ".15rem .4rem", fontSize: "var(--fs-sm)" }}>✕</button>
                 </div>
               </div>
+              {l.descripcion && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)", fontStyle: "italic", marginTop: ".2rem" }}>{l.descripcion}</div>}
+              {l.lat != null && l.lng != null && (
+                <div style={{ marginTop:".2rem", fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>
+                  📌 {l.lat.toFixed(4)}, {l.lng.toFixed(4)}
+                </div>
+              )}
+              {(() => {
+                const asig = volsPorLoc[l.id] || [];
+                if (!asig.length) return (
+                  <div style={{ marginTop: ".45rem", fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)", borderTop: "1px solid var(--border)", paddingTop: ".4rem" }}>
+                    👥 Sin voluntarios asignados
+                  </div>
+                );
+                const conf = asig.filter(a0 => a0.vol.estado === "confirmado");
+                const pend = asig.filter(a0 => a0.vol.estado === "pendiente");
+                return (
+                  <div style={{ marginTop: ".45rem", borderTop: "1px solid var(--border)", paddingTop: ".4rem" }}>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginBottom: ".3rem", display: "flex", alignItems: "center", gap: ".4rem", flexWrap:"wrap" }}>
+                      👥 <span style={{ fontWeight: 700 }}>{asig.length} voluntario{asig.length!==1?"s":""}</span>
+                      {conf.length > 0 && <span style={{ color: "var(--green)", fontWeight: 700 }}>· {conf.length} ✓</span>}
+                      {pend.length > 0 && <span style={{ color: "var(--amber)" }}>· {pend.length} pend.</span>}
+                      <button
+                        onClick={e => { e.stopPropagation(); window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"voluntarios"}})); }}
+                        style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", padding:".06rem .3rem",
+                          borderRadius:3, border:"1px solid rgba(34,211,238,.3)",
+                          background:"rgba(34,211,238,.1)", color:"var(--cyan)", cursor:"pointer",
+                          marginLeft:"auto", flexShrink:0 }}>
+                        Ver →
+                      </button>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: ".18rem" }}>
+                      {asig.slice(0,4).map((a, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: ".4rem", fontSize: "var(--fs-xs)", fontFamily: "var(--font-mono)" }}>
+                          <span style={{ width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
+                            background: a.vol.estado === "confirmado" ? "var(--green)" :
+                              a.vol.estado === "pendiente" ? "var(--amber)" : "var(--text-dim)" }} />
+                          <span style={{ color: "var(--text)", fontWeight: 600 }}>{a.vol.nombre}</span>
+                          <span style={{ color: "var(--text-dim)", fontSize: "var(--fs-xs)" }}>— {a.puesto.nombre}</span>
+                        </div>
+                      ))}
+                      {asig.length > 4 && (
+                        <div style={{ fontSize: "var(--fs-xs)", color: "var(--text-dim)", fontFamily: "var(--font-mono)", paddingLeft: ".6rem" }}>
+                          +{asig.length-4} más…
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           );
         })}
