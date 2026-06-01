@@ -3,6 +3,7 @@ import {
   SK_LOG_ROOT, SK_LOG_TIPOS_CONT, SK_LOG_PEDIDOS_PROV,
   SK_LOG_MAT, SK_LOG_ASIG, SK_LOG_VEH, SK_LOG_RUT,
   SK_LOG_TL, SK_LOG_CONT, SK_LOG_INC, SK_LOG_CK,
+  SK_LOG_RECORRIDOS,
   SK_PPTO_TRAMOS, SK_PPTO_INSCRITOS, SK_PPTO_MAXIMOS, SK_PPTO_CONCEPTOS,
   SK_PROY_TAREAS,
   SK_PAT_PATS,
@@ -33,6 +34,7 @@ import { TabDirectorio } from "@/components/logistica/TabDirectorio";
 import { TabEmergencias } from "@/components/logistica/TabEmergencias";
 import { TabCont, TabCK } from "@/components/logistica/TabComunicaciones";
 import { TabLocalizaciones } from "@/components/logistica/TabLocalizaciones";
+import { TabRecorridos } from "@/components/logistica/TabRecorridos";
 import { FichaLogistica, ModalRouter } from "@/components/logistica/FichaLogistica";
 
 // ─── CONSTANTS & DEFAULT DATA — Single Source of Truth: logisticaConstants.js ──
@@ -136,7 +138,8 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
 
   // Voluntarios (solo lectura para el pool de vehículos)
   const [rawVols] = useData(SK_VOL_VOLUNTARIOS, []);
-  const [rawPuestos] = useData(SK_VOL_PUESTOS, []);
+  // LOC-SYNC-01: rawPuestos necesita escritura para propagar coords desde TabLocalizaciones
+  const [rawPuestos, setRawPuestos] = useData(SK_VOL_PUESTOS, []);
   const voluntariosConCoche = useMemo(() => {
     const v = Array.isArray(rawVols) ? rawVols : [];
     return v.filter(vol => vol && vol.coche && vol.estado === "confirmado");
@@ -156,6 +159,10 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
     });
     return map;
   }, [rawVols, rawPuestos]);
+
+  // TRACK-01: Recorridos GPX simplificados
+  const [rawRecorridos, setRecorridos] = useData(SK_LOG_RECORRIDOS, []);
+  const recorridos = Array.isArray(rawRecorridos) ? rawRecorridos : [];
 
   // Material agrupado por localización: localizacionId → [{nombre, cantidad, unidad}]
   const matPorLoc = useMemo(() => {
@@ -208,6 +215,7 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
     {id:"dashboard",     icon:"📊", label:"Dashboard"},
     {id:"vehiculos",     icon:"🚗", label:"Vehículos"},
     {id:"localizaciones",icon:"📍", label:"Ubicaciones"},
+    {id:"recorridos",    icon:"🗺️", label:"Recorridos"},
     {id:"material",      icon:"📦", label:"Material"},
   ];
   // OPERACIONES: ejecución, día de la carrera
@@ -361,7 +369,8 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
               const { tlNext, tlCambio } = syncCkTl("ck", id, estadoNuevo, ck, tl, hora);
               if (tlCambio) setTl(tlNext);
             }} />}
-          {tab==="localizaciones" && <TabLocalizaciones locs={locs} setLocs={setLocs} volsPorLoc={volsPorLoc} matPorLoc={matPorLoc} />}
+          {tab==="localizaciones" && <TabLocalizaciones locs={locs} setLocs={setLocs} volsPorLoc={volsPorLoc} matPorLoc={matPorLoc} recorridos={recorridos} puestos={Array.isArray(rawPuestos) ? rawPuestos : []} setPuestos={setRawPuestos} />}
+          {tab==="recorridos" && <TabRecorridos recorridos={recorridos} setRecorridos={setRecorridos} />}
           {tab==="proveedores" && (
             <div style={{ display:"flex", flexDirection:"column", gap:"1.5rem" }}>
               {/* ── Directorio de contactos ── */}

@@ -73,6 +73,23 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
               <span style={{ fontSize:"var(--fs-base)", fontWeight:600 }}>{val}</span>
             </div>
           ))}
+          {/* LOC-SYNC-01: coordenadas GPS del puesto (sincronizadas desde loc maestra) */}
+          {(p.lat != null && p.lng != null) && (
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
+              padding:"0.4rem 0", borderBottom:"1px solid rgba(30,45,80,0.3)" }}>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>
+                📌 GPS
+              </span>
+              <a
+                href={`https://maps.google.com/?q=${p.lat},${p.lng}`}
+                target="_blank" rel="noopener noreferrer"
+                style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--cyan)",
+                  textDecoration:"none", fontWeight:600 }}
+              >
+                {Number(p.lat).toFixed(4)}, {Number(p.lng).toFixed(4)} ↗
+              </a>
+            </div>
+          )}
           {p.tiempoLimite && (
             <div style={{ display:"flex", justifyContent:"space-between", padding:"0.5rem 0.75rem",
               margin:"0.3rem 0", borderRadius:8,

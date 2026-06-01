@@ -1,4 +1,6 @@
 // Auto-extracted from Logistica.jsx — Sprint 2 refactor
+// LOC-SYNC-01: sincronización bidireccional loc ↔ puesto
+// TRACK-01: mapa con recorridos GPX superpuestos
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { FASES_CHECKLIST, ESTADO_ENTREGA, ESTADO_TAREA, ESTADO_COLORES, PUESTOS_REF, TIPOS_LOC, LOC_ICONS, LOC_COLORS } from "./logisticaConstants.js";
 import { createPortal } from "react-dom";
@@ -11,59 +13,94 @@ import { blockCls as cls } from "@/lib/blockStyles";
 import { useData } from "@/hooks/useData";
 
 // ─── MAPA LEAFLET ─────────────────────────────────────────────────────────────
-// Leaflet manipula el DOM directamente, por eso se integra con useRef + useEffect,
-// NO con imports directos en el render. El CSS se carga desde CDN en index.html.
+// LOC-SYNC-01 + TRACK-01: mapa con tracks GPX + marcadores de localizaciones.
+// Recibe `recorridos` (array de tracks simplificados) para dibujar polylines.
 
-function MapaLocalizaciones({ locs, matPorLoc = {} }) {
+function MapaLocalizaciones({ locs, matPorLoc = {}, recorridos = [] }) {
   const containerRef = useRef(null);
-  const mapRef       = useRef(null); // instancia L.map
-  const markersRef   = useRef([]);   // array de L.marker activos
+  const mapRef       = useRef(null);
+  const markersRef   = useRef([]);
+  const linesRef     = useRef([]);   // polylines de recorridos
 
-  // Inicializar el mapa UNA sola vez
+  // Estado de visibilidad de cada recorrido en el mapa (por id)
+  const [visibilidad, setVisibilidad] = useState(() =>
+    Object.fromEntries((recorridos || []).map(r => [r.id, r.activo !== false]))
+  );
+
+  // Sincronizar estado inicial si cambian los recorridos disponibles
+  useEffect(() => {
+    setVisibilidad(prev => {
+      const next = { ...prev };
+      (recorridos || []).forEach(r => {
+        if (!(r.id in next)) next[r.id] = r.activo !== false;
+      });
+      return next;
+    });
+  }, [recorridos]);
+
+  // Montar mapa UNA sola vez
   useEffect(() => {
     if (!containerRef.current) return;
-    if (typeof window.L === "undefined") return; // Leaflet no cargado aún (CDN lento)
-
+    if (typeof window.L === "undefined") return;
     const L = window.L;
-
-    // Fix para el icono por defecto roto en Webpack/Vite
     delete L.Icon.Default.prototype._getIconUrl;
     L.Icon.Default.mergeOptions({ iconRetinaUrl: "", iconUrl: "", shadowUrl: "" });
-
     const map = L.map(containerRef.current, {
-      center: [40.175, -5.190],
+      center: [40.175, -5.215],
       zoom: 12,
       zoomControl: true,
       scrollWheelZoom: true,
-      tap: true, // touch en iOS Safari
+      tap: true,
     });
-
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       maxZoom: 19,
     }).addTo(map);
-
     mapRef.current = map;
-
     return () => {
       map.remove();
-      mapRef.current   = null;
+      mapRef.current = null;
       markersRef.current = [];
+      linesRef.current = [];
     };
-  }, []); // solo al montar
+  }, []);
+
+  // Actualizar polylines de tracks cuando cambian recorridos o visibilidad
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || typeof window.L === "undefined") return;
+    const L = window.L;
+
+    linesRef.current.forEach(l => l.remove());
+    linesRef.current = [];
+
+    (recorridos || []).forEach(r => {
+      if (!visibilidad[r.id]) return;
+      if (!r.puntos?.length) return;
+      const latLngs = r.puntos.map(p => [p[0], p[1]]);
+      const line = L.polyline(latLngs, {
+        color:       r.color || "#22d3ee",
+        weight:      3,
+        opacity:     0.8,
+        smoothFactor: 1,
+        dashArray:   null,
+      }).addTo(map);
+      line.bindTooltip(r.nombre + (r.distanciaKm ? ` (${r.distanciaKm} km)` : ""), {
+        permanent: false, sticky: true,
+      });
+      linesRef.current.push(line);
+    });
+  }, [recorridos, visibilidad]);
 
   // Actualizar marcadores cuando cambian las localizaciones
   useEffect(() => {
     const map = mapRef.current;
     if (!map || typeof window.L === "undefined") return;
-
     const L = window.L;
 
-    // Limpiar marcadores anteriores
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
 
-    // Solo las localizaciones con coordenadas válidas
     const locsConCoords = locs.filter(l => l.lat != null && l.lng != null);
     if (!locsConCoords.length) return;
 
@@ -73,7 +110,6 @@ function MapaLocalizaciones({ locs, matPorLoc = {} }) {
       const emoji = LOC_ICONS[loc.tipo] || "📌";
       const color = LOC_COLORS[loc.tipo] || "var(--text-muted)";
 
-      // DivIcon con el emoji del tipo — tamaño táctil mínimo 44x44px para móvil
       const icon = L.divIcon({
         html: `<div style="
           width:36px;height:36px;
@@ -90,7 +126,6 @@ function MapaLocalizaciones({ locs, matPorLoc = {} }) {
         popupAnchor:[0, -36],
       });
 
-      // Construir contenido del popup
       const matItems = (matPorLoc[loc.id] || []);
       const matHtml = matItems.length
         ? `<div style="margin-top:6px;font-size:11px;color:#555;max-height:80px;overflow-y:auto">
@@ -122,7 +157,6 @@ function MapaLocalizaciones({ locs, matPorLoc = {} }) {
       bounds.push([loc.lat, loc.lng]);
     });
 
-    // fitBounds — ajustar la vista a todos los marcadores
     if (bounds.length === 1) {
       map.setView(bounds[0], 14);
     } else if (bounds.length > 1) {
@@ -130,12 +164,14 @@ function MapaLocalizaciones({ locs, matPorLoc = {} }) {
     }
   }, [locs, matPorLoc]);
 
-  const locsConCoords    = locs.filter(l => l.lat != null && l.lng != null);
-  const locsSinCoords    = locs.filter(l => l.lat == null || l.lng == null);
+  const locsConCoords = locs.filter(l => l.lat != null && l.lng != null);
+  const locsSinCoords = locs.filter(l => l.lat == null || l.lng == null);
+  const tracksActivos = (recorridos || []).filter(r => r.puntos?.length > 1);
 
   return (
     <div className="card" style={{ marginBottom: ".85rem" }}>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:".5rem", flexWrap:"wrap", gap:".4rem" }}>
+      {/* Cabecera del mapa */}
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:".5rem", flexWrap:"wrap", gap:".5rem" }}>
         <div className="ct">🗺️ Mapa del recorrido</div>
         <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>
           {locsConCoords.length} ubicaciones
@@ -143,15 +179,51 @@ function MapaLocalizaciones({ locs, matPorLoc = {} }) {
         </div>
       </div>
 
-      {/* Contenedor del mapa — Leaflet monta aquí directamente */}
+      {/* Toggles de visibilidad de recorridos */}
+      {tracksActivos.length > 0 && (
+        <div style={{ display:"flex", gap:".4rem", flexWrap:"wrap", marginBottom:".55rem" }}>
+          {tracksActivos.map(r => {
+            const visible = visibilidad[r.id] !== false;
+            return (
+              <button
+                key={r.id}
+                onClick={() => setVisibilidad(prev => ({ ...prev, [r.id]: !visible }))}
+                style={{
+                  display:"inline-flex", alignItems:"center", gap:".35rem",
+                  padding:".2rem .55rem", borderRadius:20, cursor:"pointer",
+                  fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                  background: visible ? `${r.color}18` : "rgba(100,100,120,.08)",
+                  color:      visible ? r.color : "var(--text-dim)",
+                  border:     `1px solid ${visible ? r.color + "50" : "var(--border)"}`,
+                  transition: "all .15s",
+                }}
+              >
+                <span style={{
+                  width:8, height:8, borderRadius:"50%", flexShrink:0,
+                  background: visible ? r.color : "var(--border)",
+                  boxShadow: visible ? `0 0 5px ${r.color}` : "none",
+                }} />
+                {r.nombre}
+                {r.distanciaKm && <span style={{ opacity:.7, fontWeight:400 }}>{r.distanciaKm} km</span>}
+              </button>
+            );
+          })}
+          {tracksActivos.length === 0 && (
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>
+              Sin tracks — ve a la pestaña "Recorridos" para subir GPX
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Contenedor del mapa */}
       <div
         ref={containerRef}
         style={{
-          height: "380px",
+          height: "420px",
           borderRadius: "var(--r-md)",
           border: "1px solid var(--border)",
           overflow: "hidden",
-          // Aislar el z-index de los controles de Leaflet del resto de la app
           isolation: "isolate",
         }}
       />
@@ -161,16 +233,17 @@ function MapaLocalizaciones({ locs, matPorLoc = {} }) {
           ⚠️ {locsSinCoords.map(l=>l.nombre).join(", ")} — edítalas para añadir coordenadas GPS
         </div>
       )}
+
+      {tracksActivos.length === 0 && (
+        <div style={{ marginTop:".5rem", fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>
+          💡 Sube los archivos .gpx en la pestaña "Recorridos" para ver los trazados sobre el mapa
+        </div>
+      )}
     </div>
   );
 }
 
 // ─── UTILIDAD DE COBERTURA ───────────────────────────────────────────────────
-// Calcula el estado de cobertura de un puesto dado su material y voluntarios.
-// "completa"      → tiene material Y voluntario
-// "sin_voluntario"→ tiene material pero NO voluntario
-// "sin_material"  → tiene voluntario pero NO material
-// null            → sin material ni voluntario (puesto vacío — no se evalúa)
 export function calcularCobertura(tieneMaterial, tieneVoluntario) {
   if (!tieneMaterial && !tieneVoluntario) return null;
   if (tieneMaterial && tieneVoluntario)  return "completa";
@@ -179,20 +252,30 @@ export function calcularCobertura(tieneMaterial, tieneVoluntario) {
 }
 
 // ─── LOCALIZACIONES MAESTRAS ─────────────────────────────────────────────────
-function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {} }) {
-    const [modal, setModal] = useState(null); // null | {data: loc|null}
+// LOC-SYNC-01: recibe `puestos` + `setPuestos` para propagar coords loc→puestos.
+
+function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {}, recorridos = [], puestos = [], setPuestos = null }) {
+  const [modal, setModal] = useState(null);
   const [del, setDel] = useState(null);
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [form, setForm] = useState({ nombre: "", tipo: "otro", descripcion: "", lat: "", lng: "" });
+  // Cuántos puestos serían actualizados al guardar la loc (se muestra en modal)
+  const [puestosAfectados, setPuestosAfectados] = useState([]);
 
   const locsF = filtroTipo === "todos" ? locs : locs.filter(l0 => l0.tipo === filtroTipo);
 
-  // ── Resumen de cobertura ──────────────────────────────────────────────────
+  // Calcular puestos vinculados a la loc en edición (para mostrar aviso)
+  useEffect(() => {
+    if (!modal?.data) { setPuestosAfectados([]); return; }
+    const vinculados = puestos.filter(p => p.localizacionId === modal.data.id);
+    setPuestosAfectados(vinculados);
+  }, [modal, puestos]);
+
   const resumenCobertura = useMemo(() => {
     const evaluables = locs.filter(l => {
       const tieneMat = (matPorLoc[l.id] || []).length > 0;
       const tieneVol = (volsPorLoc[l.id] || []).length > 0;
-      return tieneMat || tieneVol; // al menos uno de los dos
+      return tieneMat || tieneVol;
     });
     const completos = evaluables.filter(l => {
       const tieneMat = (matPorLoc[l.id] || []).length > 0;
@@ -202,21 +285,38 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {} }) {
     return { completos: completos.length, total: evaluables.length };
   }, [locs, matPorLoc, volsPorLoc]);
 
-  const openNueva = () => { setForm({ nombre: "", tipo: "otro", descripcion: "", lat: "", lng: "" }); setModal({ data: null }); };
+  const openNueva = () => {
+    setForm({ nombre: "", tipo: "otro", descripcion: "", lat: "", lng: "" });
+    setModal({ data: null });
+  };
   const openEditar = (l) => {
     setForm({ nombre: l.nombre, tipo: l.tipo, descripcion: l.descripcion || "", lat: l.lat ?? "", lng: l.lng ?? "" });
     setModal({ data: l });
   };
+
   const save = () => {
     if (!form.nombre.trim()) return;
     const latNum = form.lat !== "" ? parseFloat(form.lat) : undefined;
     const lngNum = form.lng !== "" ? parseFloat(form.lng) : undefined;
-    const coordenadas = (!isNaN(latNum) && !isNaN(lngNum)) ? { lat: latNum, lng: lngNum } : {};
+    const tieneCoordsValidas = !isNaN(latNum) && !isNaN(lngNum);
+    const coordenadas = tieneCoordsValidas ? { lat: latNum, lng: lngNum } : {};
+
     if (modal.data) {
-      setLocs(function(locsPrev){return locsPrev.map(function(locItm){return locItm.id===modal.data.id?{...locItm,...form,...coordenadas}:locItm;});});
-      toast.success("Localización actualizada");
+      // ── LOC-SYNC-01: propagar nuevas coords a puestos vinculados ──────────
+      if (tieneCoordsValidas && setPuestos) {
+        const locId = modal.data.id;
+        setPuestos(prev =>
+          prev.map(p =>
+            p.localizacionId === locId
+              ? { ...p, lat: latNum, lng: lngNum }
+              : p
+          )
+        );
+      }
+      setLocs(prev => prev.map(l => l.id === modal.data.id ? { ...l, ...form, ...coordenadas } : l));
+      toast.success("Localización actualizada" + (tieneCoordsValidas && puestosAfectados.length > 0 ? ` · ${puestosAfectados.length} puesto${puestosAfectados.length !== 1 ? "s" : ""} sincronizado${puestosAfectados.length !== 1 ? "s" : ""}` : ""));
     } else {
-      setLocs(function(locsPrev){return [...locsPrev,{id:genIdNum(locsPrev),...form,...coordenadas}];});
+      setLocs(prev => [...prev, { id: genIdNum(prev), ...form, ...coordenadas }]);
       toast.success("Localización creada");
     }
     setModal(null);
@@ -225,9 +325,14 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {} }) {
   return (
     <>
       <div className="ph">
-        <div><div className="pt">📍 Localizaciones Maestras</div><div className="pd">{locs.length} ubicaciones · Compartidas con Voluntarios · <span style={{cursor:"pointer",color:"var(--text-dim)"}} onClick={()=>window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"configuracion"}}))} title="Abrir Configuración">⚙️ Configuración</span></div></div>
+        <div>
+          <div className="pt">📍 Localizaciones Maestras</div>
+          <div className="pd">
+            {locs.length} ubicaciones · Compartidas con Voluntarios ·{" "}
+            <span style={{cursor:"pointer",color:"var(--text-dim)"}} onClick={()=>window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"configuracion"}}))} title="Abrir Configuración">⚙️ Configuración</span>
+          </div>
+        </div>
         <div style={{ display: "flex", gap: ".5rem", alignItems: "center", flexWrap: "wrap" }}>
-          {/* Resumen cobertura */}
           {resumenCobertura.total > 0 && (
             <span style={{
               fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
@@ -240,8 +345,10 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {} }) {
               {resumenCobertura.completos === resumenCobertura.total ? "✅" : "⚠️"} {resumenCobertura.completos}/{resumenCobertura.total} cobertura completa
             </span>
           )}
-          <select style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text)", borderRadius: "var(--r-sm)", padding: ".3rem .5rem" }}
-            value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
+          <select
+            style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text)", borderRadius: "var(--r-sm)", padding: ".3rem .5rem" }}
+            value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}
+          >
             <option value="todos">Todos los tipos</option>
             {TIPOS_LOC.map(t0 => <option key={t0} value={t0}>{LOC_ICONS[t0]} {t0}</option>)}
           </select>
@@ -249,9 +356,12 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {} }) {
         </div>
       </div>
 
-      {/* ── MAPA INTERACTIVO ── solo cuando hay localizaciones */}
-      {locs.length > 0 && <MapaLocalizaciones locs={locs} matPorLoc={matPorLoc} />}
+      {/* ── MAPA INTERACTIVO con recorridos GPX ── */}
+      {locs.length > 0 && (
+        <MapaLocalizaciones locs={locs} matPorLoc={matPorLoc} recorridos={recorridos} />
+      )}
 
+      {/* ── CARDS DE LOCALIZACIONES ── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: ".65rem" }}>
         {locsF.map(l => {
           const color = LOC_COLORS[l.tipo] || "var(--text-muted)";
@@ -267,7 +377,6 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {} }) {
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: ".35rem", alignItems: "center", flexShrink: 0 }}>
-                  {/* Badge de cobertura */}
                   {(() => {
                     const tieneMat = (matPorLoc[l.id] || []).length > 0;
                     const tieneVol = (volsPorLoc[l.id] || []).length > 0;
@@ -292,7 +401,6 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {} }) {
                 </div>
               </div>
               {l.descripcion && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)", fontStyle: "italic", marginTop: ".2rem" }}>{l.descripcion}</div>}
-              {/* Coordenadas GPS si existen */}
               {l.lat != null && l.lng != null && (
                 <div style={{ marginTop:".2rem", fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>
                   📌 {l.lat.toFixed(4)}, {l.lng.toFixed(4)}
@@ -301,8 +409,7 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {} }) {
               {(() => {
                 const asig = volsPorLoc[l.id] || [];
                 if (!asig.length) return (
-                  <div style={{ marginTop: ".45rem", fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
-                    color: "var(--text-dim)", borderTop: "1px solid var(--border)", paddingTop: ".4rem" }}>
+                  <div style={{ marginTop: ".45rem", fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)", borderTop: "1px solid var(--border)", paddingTop: ".4rem" }}>
                     👥 Sin voluntarios asignados
                   </div>
                 );
@@ -310,8 +417,7 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {} }) {
                 const pend = asig.filter(a0 => a0.vol.estado === "pendiente");
                 return (
                   <div style={{ marginTop: ".45rem", borderTop: "1px solid var(--border)", paddingTop: ".4rem" }}>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)",
-                      marginBottom: ".3rem", display: "flex", alignItems: "center", gap: ".4rem", flexWrap:"wrap" }}>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginBottom: ".3rem", display: "flex", alignItems: "center", gap: ".4rem", flexWrap:"wrap" }}>
                       👥 <span style={{ fontWeight: 700 }}>{asig.length} voluntario{asig.length!==1?"s":""}</span>
                       {conf.length > 0 && <span style={{ color: "var(--green)", fontWeight: 700 }}>· {conf.length} ✓</span>}
                       {pend.length > 0 && <span style={{ color: "var(--amber)" }}>· {pend.length} pend.</span>}
@@ -326,8 +432,7 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {} }) {
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: ".18rem" }}>
                       {asig.slice(0,4).map((a, i) => (
-                        <div key={i} style={{ display: "flex", alignItems: "center", gap: ".4rem",
-                          fontSize: "var(--fs-xs)", fontFamily: "var(--font-mono)" }}>
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: ".4rem", fontSize: "var(--fs-xs)", fontFamily: "var(--font-mono)" }}>
                           <span style={{ width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
                             background: a.vol.estado === "confirmado" ? "var(--green)" :
                               a.vol.estado === "pendiente" ? "var(--amber)" : "var(--text-dim)" }} />
@@ -355,15 +460,11 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {} }) {
         {locs.length === 0 && (
           <div className="card" style={{ textAlign: "center", padding: "2rem" }}>
             <div style={{ fontSize: "var(--fs-lg)", marginBottom: ".5rem" }}>📍</div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-base)", fontWeight: 700, marginBottom: ".4rem" }}>
-              Sin localizaciones maestras
-            </div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-base)", fontWeight: 700, marginBottom: ".4rem" }}>Sin localizaciones maestras</div>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-dim)", lineHeight: 1.6, marginBottom: ".75rem" }}>
-              Las localizaciones definen dónde están los puestos de voluntarios
-              y el material asignado. Puedes crearlas aquí o desde Configuración.
+              Las localizaciones definen dónde están los puestos de voluntarios y el material asignado.
             </div>
-            <button className="btn btn-ghost btn-sm"
-              onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "configuracion" } }))}>
+            <button className="btn btn-ghost btn-sm" onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "configuracion" } }))}>
               ⚙️ Ir a Configuración
             </button>
           </div>
@@ -389,7 +490,7 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {} }) {
         </div>
       </div>
 
-      {/* Modal edición */}
+      {/* Modal edición/creación */}
       {modal && (
         <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && setModal(null)}>
           <div className="modal" role="dialog" aria-modal="true" style={{ maxWidth: 420 }}>
@@ -412,7 +513,6 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {} }) {
                 <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)" }}>Descripción</span>
                 <textarea className="inp" rows={2} placeholder="Descripción opcional" value={form.descripcion} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} />
               </label>
-              {/* Coordenadas GPS */}
               <div style={{ display: "flex", gap: ".5rem" }}>
                 <label style={{ flex: 1, display: "flex", flexDirection: "column", gap: ".2rem" }}>
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)" }}>Latitud</span>
@@ -426,8 +526,21 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {} }) {
                 </label>
               </div>
               <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>
-                💡 Consejo: abre Google Maps, haz click derecho en el punto y copia las coordenadas
+                💡 Google Maps → click derecho sobre el punto → copiar coordenadas
               </div>
+              {/* LOC-SYNC-01: aviso de puestos vinculados */}
+              {modal.data && puestosAfectados.length > 0 && (form.lat !== "" || form.lng !== "") && (
+                <div style={{
+                  padding: ".55rem .75rem", borderRadius: "var(--r-sm)",
+                  background: "rgba(34,211,238,.08)", border: "1px solid rgba(34,211,238,.2)",
+                  fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--cyan)",
+                }}>
+                  🔗 Al guardar, las coordenadas se propagarán a {puestosAfectados.length} puesto{puestosAfectados.length !== 1 ? "s" : ""} vinculado{puestosAfectados.length !== 1 ? "s" : ""}:
+                  <span style={{ color: "var(--text-muted)", marginLeft: ".3rem" }}>
+                    {puestosAfectados.map(p => p.nombre).join(", ")}
+                  </span>
+                </div>
+              )}
             </div>
             <div className="modal-footer">
               <button className="btn btn-ghost" onClick={() => setModal(null)}>Cancelar</button>
@@ -448,7 +561,7 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {} }) {
             </div>
             <div className="modal-footer">
               <button className="btn btn-ghost" onClick={() => setDel(null)}>Cancelar</button>
-              <button className="btn btn-red" onClick={() => { setLocs(function(locsPrev){return locsPrev.filter(function(locItm){return locItm.id!==del;});}); setDel(null); }}>Eliminar</button>
+              <button className="btn btn-red" onClick={() => { setLocs(prev => prev.filter(l => l.id !== del)); setDel(null); }}>Eliminar</button>
             </div>
           </div>
         </div>

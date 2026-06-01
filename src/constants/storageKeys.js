@@ -43,6 +43,8 @@ export const SK_EVENT_CONFIG = "teg_event_config_v1";
 // ── Localización / Mapa ───────────────────────────────────────────────────────
 /** Puntos de localización del recorrido */
 export const SK_LOC_LOCALIZACIONES = "teg_localizaciones_v1";
+/** Recorridos GPX de la carrera (array de tracks simplificados) */
+export const SK_LOG_RECORRIDOS = "teg_logistica_v1_recorridos";
 
 // ── Presupuesto ───────────────────────────────────────────────────────────────
 /** Colección raíz de presupuesto */
@@ -176,6 +178,7 @@ export const SK = {
 
   // Localización
   LOC_LOCALIZACIONES: SK_LOC_LOCALIZACIONES,
+  LOG_RECORRIDOS:     SK_LOG_RECORRIDOS,
 
   // Presupuesto
   PPTO_ROOT:            SK_PPTO_ROOT,
