@@ -12,6 +12,7 @@ import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { useData } from "@/hooks/useData";
 import { useLeafletReady } from "@/hooks/useLeafletReady";
+import { useMapFullscreen } from "@/hooks/useMapFullscreen";
 
 // ─── MAPA LEAFLET ─────────────────────────────────────────────────────────────
 // LOC-SYNC-01 + TRACK-01: mapa con tracks GPX + marcadores de localizaciones.
@@ -19,12 +20,13 @@ import { useLeafletReady } from "@/hooks/useLeafletReady";
 
 function MapaLocalizaciones({ locs, matPorLoc = {}, recorridos = [] }) {
   const containerRef = useRef(null);
+  const wrapperRef   = useRef(null);
   const mapRef       = useRef(null);
   const markersRef   = useRef([]);
   const linesRef     = useRef([]);
 
-  // Esperar a que Leaflet CDN haya cargado (polling cada 100 ms)
   const leafletReady = useLeafletReady();
+  const { isFullscreen, toggleFullscreen } = useMapFullscreen(wrapperRef, mapRef);
 
   // Estado de visibilidad de cada recorrido en el mapa (por id)
   const [visibilidad, setVisibilidad] = useState(() =>
@@ -149,13 +151,43 @@ function MapaLocalizaciones({ locs, matPorLoc = {}, recorridos = [] }) {
   const tracksActivos = (recorridos || []).filter(r => r.puntos?.length > 1);
 
   return (
-    <div className="card" style={{ marginBottom: ".85rem" }}>
+    <div
+      ref={wrapperRef}
+      className="card"
+      style={{
+        marginBottom: ".85rem",
+        // Fullscreen CSS fallback (iOS Safari)
+        ...(isFullscreen && !document.fullscreenElement ? {
+          position: "fixed", inset: 0, zIndex: 9999,
+          borderRadius: 0, margin: 0,
+          display: "flex", flexDirection: "column",
+        } : {}),
+      }}
+    >
       {/* Cabecera del mapa */}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:".5rem", flexWrap:"wrap", gap:".5rem" }}>
         <div className="ct">🗺️ Mapa del recorrido</div>
-        <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>
-          {locsConCoords.length} ubicaciones
-          {locsSinCoords.length > 0 && <span style={{ color:"var(--amber)", marginLeft:".4rem" }}>· {locsSinCoords.length} sin coordenadas</span>}
+        <div style={{ display:"flex", alignItems:"center", gap:".5rem", flexWrap:"wrap" }}>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>
+            {locsConCoords.length} ubicaciones
+            {locsSinCoords.length > 0 && <span style={{ color:"var(--amber)", marginLeft:".4rem" }}>· {locsSinCoords.length} sin coordenadas</span>}
+          </div>
+          <button
+            onClick={toggleFullscreen}
+            title={isFullscreen ? "Minimizar mapa" : "Maximizar mapa"}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              width: 30, height: 30, flexShrink: 0,
+              background: "var(--surface2)", border: "1px solid var(--border)",
+              borderRadius: "var(--r-sm)", cursor: "pointer",
+              color: "var(--text-muted)", fontSize: "var(--fs-sm)",
+              transition: "all .15s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = "var(--surface3)"; e.currentTarget.style.color = "var(--text)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "var(--surface2)"; e.currentTarget.style.color = "var(--text-muted)"; }}
+          >
+            {isFullscreen ? "⊠" : "⊞"}
+          </button>
         </div>
       </div>
 
@@ -190,7 +222,7 @@ function MapaLocalizaciones({ locs, matPorLoc = {}, recorridos = [] }) {
           })}
           {tracksActivos.length === 0 && (
             <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>
-              Sin tracks — ve a la pestaña "Recorridos" para subir GPX
+              Sin tracks — sube los archivos .gpx en Configuración
             </span>
           )}
         </div>
@@ -200,7 +232,8 @@ function MapaLocalizaciones({ locs, matPorLoc = {}, recorridos = [] }) {
       <div
         ref={containerRef}
         style={{
-          height: "420px",
+          height: isFullscreen ? "calc(100vh - 110px)" : "420px",
+          flex: isFullscreen ? "1" : undefined,
           borderRadius: "var(--r-md)",
           border: "1px solid var(--border)",
           overflow: "hidden",
@@ -209,6 +242,7 @@ function MapaLocalizaciones({ locs, matPorLoc = {}, recorridos = [] }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          transition: "height .2s ease",
         }}
       >
         {!leafletReady && (
@@ -227,7 +261,7 @@ function MapaLocalizaciones({ locs, matPorLoc = {}, recorridos = [] }) {
       <div style={{ marginTop:".5rem", display:"flex", gap:"1rem", flexWrap:"wrap" }}>
         {tracksActivos.length === 0 && (
           <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>
-            🗺️ Sin recorridos — ve a la pestaña <strong style={{color:"var(--cyan)"}}>🗺️ Recorridos</strong> y sube los archivos .gpx
+            🗺️ Sin recorridos — ve a <strong style={{color:"var(--cyan)"}}>⚙️ Configuración → Recorridos del evento</strong> para subir los .gpx
           </div>
         )}
         {locsConCoords.length === 0 && locs.length === 0 && (

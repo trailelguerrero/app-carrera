@@ -19,17 +19,19 @@ import { toast } from "@/lib/toast";
 import { genIdNum } from "@/lib/utils";
 import { gpxFileToTrack, defaultTrackColor, TRACK_COLORS_DEFAULT } from "@/lib/gpxUtils";
 import { useLeafletReady } from "@/hooks/useLeafletReady";
+import { useMapFullscreen } from "@/hooks/useMapFullscreen";
 
 // ─── COMPONENTE MAPA INLINE ───────────────────────────────────────────────────
 // Muestra sólo los tracks (sin marcadores) para la vista de gestión de recorridos.
 
 function MapaRecorridos({ recorridos }) {
   const containerRef = useRef(null);
+  const wrapperRef   = useRef(null);
   const mapRef       = useRef(null);
   const linesRef     = useRef([]);
 
-  // Esperar a que Leaflet CDN haya cargado
   const leafletReady = useLeafletReady();
+  const { isFullscreen, toggleFullscreen } = useMapFullscreen(wrapperRef, mapRef);
 
   // Montar mapa cuando Leaflet esté listo
   useEffect(() => {
@@ -89,17 +91,46 @@ function MapaRecorridos({ recorridos }) {
   const activos = recorridos.filter(r => r.activo !== false && r.puntos?.length > 1).length;
 
   return (
-    <div className="card" style={{ marginBottom: ".85rem" }}>
+    <div
+      ref={wrapperRef}
+      className="card"
+      style={{
+        marginBottom: ".85rem",
+        ...(isFullscreen && !document.fullscreenElement ? {
+          position: "fixed", inset: 0, zIndex: 9999,
+          borderRadius: 0, margin: 0,
+          display: "flex", flexDirection: "column",
+        } : {}),
+      }}
+    >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ".5rem", flexWrap: "wrap", gap: ".4rem" }}>
         <div className="ct">🗺️ Vista de recorridos</div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)" }}>
-          {activos} track{activos !== 1 ? "s" : ""} visible{activos !== 1 ? "s" : ""}
+        <div style={{ display: "flex", alignItems: "center", gap: ".5rem" }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)" }}>
+            {activos} track{activos !== 1 ? "s" : ""} visible{activos !== 1 ? "s" : ""}
+          </span>
+          <button
+            onClick={toggleFullscreen}
+            title={isFullscreen ? "Minimizar mapa" : "Maximizar mapa"}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              width: 30, height: 30, flexShrink: 0,
+              background: "var(--surface2)", border: "1px solid var(--border)",
+              borderRadius: "var(--r-sm)", cursor: "pointer",
+              color: "var(--text-muted)", fontSize: "var(--fs-sm)",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = "var(--surface3)"; e.currentTarget.style.color = "var(--text)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "var(--surface2)"; e.currentTarget.style.color = "var(--text-muted)"; }}
+          >
+            {isFullscreen ? "⊠" : "⊞"}
+          </button>
         </div>
       </div>
       <div
         ref={containerRef}
         style={{
-          height: "320px",
+          height: isFullscreen ? "calc(100vh - 70px)" : "320px",
+          flex: isFullscreen ? "1" : undefined,
           borderRadius: "var(--r-md)",
           border: "1px solid var(--border)",
           overflow: "hidden",
@@ -108,6 +139,7 @@ function MapaRecorridos({ recorridos }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          transition: "height .2s ease",
         }}
       >
         {!leafletReady && (

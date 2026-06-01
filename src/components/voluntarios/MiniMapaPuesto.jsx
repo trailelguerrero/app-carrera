@@ -17,11 +17,14 @@
 
 import { useEffect, useRef } from "react";
 import { useLeafletReady } from "@/hooks/useLeafletReady";
+import { useMapFullscreen } from "@/hooks/useMapFullscreen";
 
 export function MiniMapaPuesto({ puesto, recorridos = [] }) {
   const containerRef = useRef(null);
+  const wrapperRef   = useRef(null);
   const mapRef       = useRef(null);
   const leafletReady = useLeafletReady();
+  const { isFullscreen, toggleFullscreen } = useMapFullscreen(wrapperRef, mapRef);
 
   // Montar mapa cuando Leaflet esté disponible
   useEffect(() => {
@@ -116,12 +119,52 @@ export function MiniMapaPuesto({ puesto, recorridos = [] }) {
   const wazeUrl  = `https://waze.com/ul?ll=${puesto.lat},${puesto.lng}&navigate=yes`;
 
   return (
-    <div style={{ marginTop: ".75rem" }}>
+    <div
+      ref={wrapperRef}
+      style={{
+        marginTop: ".75rem",
+        ...(isFullscreen && !document.fullscreenElement ? {
+          position: "fixed", inset: 0, zIndex: 9999,
+          background: "var(--bg, #0d1b2e)",
+          display: "flex", flexDirection: "column",
+          padding: ".75rem",
+        } : {}),
+      }}
+    >
+      {/* Cabecera con botón fullscreen */}
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        marginBottom: ".4rem",
+      }}>
+        <span style={{
+          fontFamily: "var(--font-mono, monospace)",
+          fontSize: ".7rem", fontWeight: 700,
+          color: "var(--text-muted, #94a3b8)",
+        }}>
+          📍 Ubicación del puesto
+        </span>
+        <button
+          onClick={toggleFullscreen}
+          title={isFullscreen ? "Minimizar mapa" : "Maximizar mapa"}
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center",
+            width: 28, height: 28, flexShrink: 0,
+            background: "rgba(30,50,80,.4)",
+            border: "1px solid rgba(30,50,80,.6)",
+            borderRadius: "6px", cursor: "pointer",
+            color: "var(--text-muted, #94a3b8)", fontSize: ".8rem",
+          }}
+        >
+          {isFullscreen ? "⊠" : "⊞"}
+        </button>
+      </div>
+
       {/* Mini-mapa */}
       <div
         ref={containerRef}
         style={{
-          height:       "240px",
+          height:       isFullscreen ? "calc(100vh - 160px)" : "240px",
+          flex:         isFullscreen ? "1" : undefined,
           borderRadius: "10px",
           overflow:     "hidden",
           border:       "1px solid var(--border, rgba(30,50,80,.3))",
@@ -130,6 +173,7 @@ export function MiniMapaPuesto({ puesto, recorridos = [] }) {
           display:      "flex",
           alignItems:   "center",
           justifyContent: "center",
+          transition:   "height .2s ease",
         }}
       >
         {!leafletReady && (
