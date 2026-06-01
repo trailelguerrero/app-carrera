@@ -745,6 +745,20 @@
   .uppercase   { text-transform: uppercase; letter-spacing: .09em; }
   .ellipsis    { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+  /* ── Labels de formulario — fuente única de verdad ──────────────────────── */
+  /* .field-label es la clase canónica; .fl es un alias de compatibilidad.    */
+  /* Usar .field-label en código nuevo; .fl se mantendrá como alias.          */
+  .field-label,
+  .fl {
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: .3rem;
+    display: block;
+    line-height: 1.4;
+  }
+
   /* ── Secciones de formulario ─────────────────────────────────────────────── */
   .form-section {
     padding-top: .85rem;
@@ -1186,11 +1200,11 @@
 @media (max-width: 600px) { .cfg-grid { grid-template-columns: 1fr; } }
 .cfg-field { display: flex; flex-direction: column; gap: .3rem; }
 .cfg-field-full { grid-column: 1 / -1; }
-.cfg-label { font-family: var(--font-mono); font-size: .62rem; color: var(--text-muted); font-weight: 600; }
+.cfg-label { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-muted); font-weight: 600; }
 .cfg-input {
   background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 8px; color: var(--text); padding: .45rem .65rem;
-  font-family: var(--font-display); font-size: .85rem;
+  border-radius: var(--r-sm); color: var(--text); padding: .45rem .65rem;
+  font-family: var(--font-display); font-size: var(--fs-base);
   outline: none; transition: border-color .15s; width: 100%; box-sizing: border-box;
 }
 .cfg-input:focus { border-color: var(--cyan); }
@@ -1247,17 +1261,17 @@
 .card-title.ingresos { color: var(--violet); }
 .card-title.resumen  { color: var(--amber);  }
 .card-title.tramos   { color: var(--amber);  }
-.eq-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.eq-table { width: 100%; border-collapse: collapse; font-size: var(--fs-base); }
 .eq-table th { text-align: left; padding: 0.75rem; border-bottom: 2px solid var(--border); color: var(--text-muted); font-weight: 600; white-space: nowrap; }
 .eq-table td { padding: 0.65rem 0.75rem; border-bottom: 1px solid var(--border); }
 .resumen-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; }
 @media (max-width: 768px) { .resumen-grid { grid-template-columns: 1fr; } }
-.num-input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 0.3rem 0.5rem; width: 80px; text-align: right; font-family: var(--font-mono); font-size: 0.85rem; outline: none; }
-.num-input:focus { border-color: var(--cyan); }
-.num-input-sm { font-size: 0.75rem; padding: 0.2rem 0.4rem; width: 65px; }
-.text-input { background: transparent; border: 1px solid transparent; color: var(--text); padding: 0.3rem; width: 100%; border-radius: 4px; font-family: var(--font-display); font-size: 0.85rem; outline: none; }
+.num-input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: var(--r-sm); padding: 0.3rem 0.5rem; width: 80px; text-align: right; font-family: var(--font-mono); font-size: var(--fs-base); outline: none; }
+.num-input:focus { border-color: var(--cyan); box-shadow: 0 0 0 2px var(--cyan-dim); }
+.num-input-sm { font-size: var(--fs-sm); padding: 0.2rem 0.4rem; width: 65px; }
+.text-input { background: transparent; border: 1px solid transparent; color: var(--text); padding: 0.3rem; width: 100%; border-radius: var(--r-sm); font-family: var(--font-display); font-size: var(--fs-base); outline: none; }
 .text-input:focus { background: var(--surface2); border-color: var(--border); }
-.date-input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 0.25rem 0.45rem; font-size: 0.72rem; font-family: var(--font-mono); cursor: pointer; outline: none; }
+.date-input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: var(--r-sm); padding: 0.25rem 0.45rem; font-size: var(--fs-xs); font-family: var(--font-mono); cursor: pointer; outline: none; }
 .date-input:focus { border-color: var(--cyan); }
 .dist-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
 .badge-fijo     { background: var(--cyan-dim);  color: var(--cyan);  border: 1px solid rgba(34,211,238,0.2); }

@@ -7,25 +7,7 @@ import { Toggle } from "./common/Toggle";
 import { cls, fmtN } from "../../lib/budgetUtils";
 
 const TAB_CSS = `
-  .text-right  { text-align: right; }
-  .overflow-x  { overflow-x: auto; }
-  .total-row   { background: var(--surface2); font-weight: 700; }
-  .total-row td { border-top: 2px solid var(--border); padding: 0.75rem 0.6rem; }
-  .card-title.fijo     { color: var(--cyan);   }
-  .card-title.variable { color: var(--green);  }
-
-  .num-input    { background: var(--surface2); border: 1px solid var(--border); color: var(--text);
-    border-radius: 6px; padding: 0.3rem 0.5rem; width: 80px; text-align: right;
-    font-family: var(--font-mono); font-size: 0.85rem; outline: none; }
-  .num-input:focus { border-color: var(--cyan); }
-  .num-input-sm { font-size: 0.75rem; padding: 0.2rem 0.4rem; width: 65px; }
-
-  .text-input   { background: transparent; border: 1px solid transparent; color: var(--text);
-    padding: 0.3rem; width: 100%; border-radius: 4px; font-family: var(--font-display);
-    font-size: 0.85rem; outline: none; }
-  .text-input:focus { background: var(--surface2); border-color: var(--border); }
-
-  .modo-toggle  { padding: 0.2rem 0.5rem; border-radius: 5px; font-size: 0.7rem; font-weight: 700;
+  .modo-toggle  { padding: 0.2rem 0.5rem; border-radius: var(--r-sm); font-size: var(--fs-xs); font-weight: 700;
     cursor: pointer; border: 1px solid var(--border); background: var(--surface3);
     color: var(--text-muted); font-family: var(--font-mono); transition: all 0.15s;
     white-space: nowrap; }
@@ -35,9 +17,7 @@ const TAB_CSS = `
   .dist-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
     margin-right: 4px; vertical-align: middle; }
 
-  .mono { font-family: var(--font-mono); }
-  .text-xs    { font-size: 0.72rem; }
-  .text-muted { color: var(--text-muted); }
+  .text-xs    { font-size: var(--fs-xs); }
   .mb-2 { margin-bottom: 1rem; }
 
   /* Botones de reorden ▲▼ */
@@ -49,7 +29,7 @@ const TAB_CSS = `
   .reorder-btn:hover { opacity: 1; }
   .reorder-btn span {
     display: block; width: 18px; height: 14px; line-height: 14px; text-align: center;
-    font-size: 0.6rem; background: var(--surface3); border: 1px solid var(--border);
+    font-size: var(--fs-2xs); background: var(--surface3); border: 1px solid var(--border);
     border-radius: 3px; color: var(--text-muted); transition: all 0.1s;
   }
   .reorder-btn span:hover { background: var(--cyan-dim); border-color: var(--cyan);

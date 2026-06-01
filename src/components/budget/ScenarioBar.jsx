@@ -41,7 +41,7 @@ const SCENARIO_CSS = `
     padding: 0.2rem 0.55rem;
     border-radius: 20px;
     font-family: var(--font-mono);
-    font-size: 0.6rem;
+    font-size: var(--fs-2xs);
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -65,7 +65,7 @@ const SCENARIO_CSS = `
 
   .sc-name {
     font-family: var(--font-display);
-    font-size: 0.82rem;
+    font-size: var(--fs-base);
     font-weight: 700;
     color: var(--text);
     flex: 1;
@@ -109,14 +109,14 @@ const SCENARIO_CSS = `
   }
   .sc-delta-label {
     font-family: var(--font-mono);
-    font-size: 0.56rem;
+    font-size: var(--fs-2xs);
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
   .sc-delta-val {
     font-family: var(--font-mono);
-    font-size: 0.78rem;
+    font-size: var(--fs-sm);
     font-weight: 700;
   }
   .sc-delta-val.pos { color: var(--green); }
@@ -167,8 +167,8 @@ const SCENARIO_CSS = `
   .sc-list-item:hover { border-color: var(--border-light); background: var(--surface3); }
   .sc-list-item.is-active { border-color: rgba(99,102,241,0.5); background: var(--primary-dim); }
   .sc-list-item-info { flex: 1; min-width: 0; }
-  .sc-list-item-name { font-weight: 700; font-size: 0.85rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sc-list-item-meta { font-family: var(--font-mono); font-size: 0.6rem; color: var(--text-muted); margin-top: 0.15rem; }
+  .sc-list-item-name { font-weight: 700; font-size: var(--fs-base); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sc-list-item-meta { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-muted); margin-top: 0.15rem; }
   .sc-list-actions { display: flex; gap: 0.3rem; flex-shrink: 0; }
 
   /* ── modal nuevo escenario ── */

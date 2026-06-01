@@ -30,7 +30,8 @@
   .card:hover{border-color:var(--border-light)} .card.p0{padding:0}
   .ct{font-size: var(--fs-2xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.85rem;color:var(--text-muted)}
   .tbl{width:100%;border-collapse:collapse;font-size: var(--fs-xs)}
-  .tbl th{text-align:left;padding:.5rem .6rem;font-size: var(--fs-2xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);background:var(--surface2);border-bottom:1px solid var(--border);white-space:nowrap}
+  /* .tbl th alineado con blocks.css (font-size --fs-sm, fw 600, border 2px) */
+  .tbl th{text-align:left;padding:.5rem .6rem;font-size: var(--fs-sm);font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);background:var(--surface2);border-bottom:2px solid var(--border);white-space:nowrap}
   .tbl td{padding:.5rem .6rem;border-bottom:1px solid rgba(30,45,80,.35);vertical-align:middle}
   .tbl tr:last-child td{border-bottom:none} .tbl tr:hover td{background:rgba(34,211,238,.02)}
   .tbl .ra td{background:rgba(248,113,113,.04)}

@@ -101,7 +101,7 @@ export default function DiaCarrera({ onClose }) {
           <button onClick={onClose} aria-label="Cerrar vista Día de la Carrera" style={{
             background:"var(--surface2)", border:"1px solid var(--border)",
             borderRadius:8, color:"var(--text-muted)", cursor:"pointer",
-            padding:".35rem .7rem", fontFamily:"'DM Mono',monospace",
+            padding:".35rem .7rem", fontFamily:"var(--font-mono)",
             fontSize:"var(--fs-sm)", fontWeight:700,
           }}>✕ Salir</button>
         </div>
@@ -223,7 +223,7 @@ export default function DiaCarrera({ onClose }) {
                 border: pushEnabled ? "1px solid var(--cyan)" : "1px solid var(--border)",
                 borderRadius:8, color: pushEnabled ? "var(--cyan)" : "var(--text-muted)",
                 cursor: pushLoading ? "default" : "pointer",
-                padding:".35rem .6rem", fontFamily:"'DM Mono',monospace",
+                padding:".35rem .6rem", fontFamily:"var(--font-mono)",
                 fontSize:"var(--fs-sm)", fontWeight:700, opacity: pushLoading ? 0.6 : 1,
                 transition:"all .2s",
               }}
@@ -234,7 +234,7 @@ export default function DiaCarrera({ onClose }) {
           <button onClick={onClose} aria-label="Cerrar vista Día de la Carrera" style={{
             background:"var(--surface2)", border:"1px solid var(--border)",
             borderRadius:8, color:"var(--text-muted)", cursor:"pointer",
-            padding:".35rem .7rem", fontFamily:"'DM Mono',monospace",
+            padding:".35rem .7rem", fontFamily:"var(--font-mono)",
             fontSize:"var(--fs-sm)", fontWeight:700,
           }}>✕ Salir</button>
         </div>
@@ -243,8 +243,8 @@ export default function DiaCarrera({ onClose }) {
       {/* Próxima tarea */}
       {proxima && (
         <div className="dc-next">
-          <span style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",color:"#22d3ee",fontWeight:700}}>PRÓXIMO</span>
-          <span style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-sm)",fontWeight:800,color:"#22d3ee"}}>{proxima.hora}</span>
+          <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--cyan)",fontWeight:700}}>PRÓXIMO</span>
+          <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",fontWeight:800,color:"var(--cyan)"}}>{proxima.hora}</span>
           <span style={{fontSize:"var(--fs-base)",fontWeight:600,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
             {proxima.titulo}
           </span>
@@ -260,13 +260,13 @@ export default function DiaCarrera({ onClose }) {
               {tlCompletadas}/{tl.length} tareas
             </span>
             {proximaSig ? (
-              <span style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",
+              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                 color:"var(--cyan)",overflow:"hidden",textOverflow:"ellipsis",
                 whiteSpace:"nowrap",maxWidth:"60%",textAlign:"right"}}>
                 ▶ {proximaSig.hora} {proximaSig.titulo}
               </span>
             ) : (
-              <span style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",color:"var(--green)",fontWeight:700}}>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--green)",fontWeight:700}}>
                 ✓ Completado
               </span>
             )}
@@ -404,11 +404,11 @@ export default function DiaCarrera({ onClose }) {
             {/* ── Reloj prominente en el Runbook ── */}
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
               marginBottom:".75rem" }}>
-              <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"var(--fs-xs)",
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                 color:"var(--text-muted)" }}>
                 {tl.filter(tlDone).length}/{tl.length} completados
               </div>
-              <div style={{ fontFamily:"'DM Mono',monospace", fontWeight:800,
+              <div style={{ fontFamily:"var(--font-mono)", fontWeight:800,
                 fontSize:"var(--fs-lg)", color:"var(--cyan)",
                 letterSpacing:".08em",
                 background:"rgba(34,211,238,.07)", border:"1px solid rgba(34,211,238,.2)",
@@ -421,11 +421,11 @@ export default function DiaCarrera({ onClose }) {
               <div style={{ marginBottom:".65rem", padding:".5rem .75rem", borderRadius:8,
                 background:"rgba(251,191,36,.08)", border:"1px solid rgba(251,191,36,.25)",
                 display:"flex", alignItems:"center", gap:".6rem" }}>
-                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:"var(--fs-xs)",
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                   color:"var(--amber)", fontWeight:700, flexShrink:0 }}>
                   ⏭ {proxima.hora}
                 </span>
-                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:"var(--fs-xs)",
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                   color:"var(--text)", flex:1, overflow:"hidden",
                   textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                   {proxima.accion || proxima.titulo || proxima.label || "Próxima acción"}
@@ -450,12 +450,12 @@ export default function DiaCarrera({ onClose }) {
                   <div style={{fontWeight:700,fontSize:"var(--fs-base)",textDecoration:tlDone(item)?"line-through":"none",
                     color:tlDone(item)?"var(--text-dim)":"var(--text)"}}>{item.titulo}</div>
                   {item.descripcion && (
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginTop:".15rem",lineHeight:1.5}}>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginTop:".15rem",lineHeight:1.5}}>
                       {item.descripcion}
                     </div>
                   )}
                   {item.responsable && (
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",color:"var(--text-dim)",marginTop:".15rem"}}>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-dim)",marginTop:".15rem"}}>
                       👤 {item.responsable}
                     </div>
                   )}
@@ -469,7 +469,7 @@ export default function DiaCarrera({ onClose }) {
 
         {tab === "voluntarios" && (
           <>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginBottom:".5rem"}}>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginBottom:".5rem"}}>
               {presentes} presentes · {confirmados.length - presentes} pendientes
             </div>
             {/* ── Búsqueda rápida de voluntario ── */}
@@ -479,7 +479,7 @@ export default function DiaCarrera({ onClose }) {
               placeholder="🔍 Buscar voluntario…"
               value={busPresencia}
               onChange={e => setBusPresencia(e.target.value)}
-              style={{ marginBottom:".5rem", fontFamily:"'DM Mono',monospace",
+              style={{ marginBottom:".5rem", fontFamily:"var(--font-mono)",
                 fontSize:"var(--fs-sm)", width:"100%" }}
             />
             {confirmados
@@ -502,7 +502,7 @@ export default function DiaCarrera({ onClose }) {
                       {puesto?.nombre || "Sin puesto"} · {v.telefono || "—"}
                     </div>
                   </div>
-                  {v.talla && <span style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",
+                  {v.talla && <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                     background:"var(--surface2)",border:"1px solid var(--border)",
                     borderRadius:4,padding:".1rem .35rem",color:"var(--text-muted)"}}>{v.talla}</span>}
                   {v.coche && <span title="Tiene coche">🚗</span>}
@@ -539,7 +539,7 @@ export default function DiaCarrera({ onClose }) {
                         </div>
                       )}
                     </div>
-                    <span style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-base)",fontWeight:800,color,flexShrink:0}}>
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-base)",fontWeight:800,color,flexShrink:0}}>
                       {pres}/{asig.length}
                     </span>
                   </div>
@@ -559,7 +559,7 @@ export default function DiaCarrera({ onClose }) {
                     </div>
                   ))}
                   {asig.length===0 && (
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",color:"var(--red)",marginTop:".25rem"}}>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--red)",marginTop:".25rem"}}>
                       ⚠ Sin voluntarios asignados
                     </div>
                   )}
@@ -574,7 +574,7 @@ export default function DiaCarrera({ onClose }) {
           <>
             <div style={{padding:".5rem .75rem",borderRadius:8,marginBottom:".65rem",
               background:"rgba(248,113,113,.08)",border:"1px solid rgba(248,113,113,.2)",
-              fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-sm)",color:"var(--red)",fontWeight:700}}>
+              fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--red)",fontWeight:700}}>
               🚨 Emergencia grave → llama al 112 primero
             </div>
             {[...contactos]
@@ -628,7 +628,7 @@ export default function DiaCarrera({ onClose }) {
               const esActiva = fase === faseActiva;
               return (
                 <div key={fase}>
-                  <div className="dc-sect" style={{color: esActiva ? "#22d3ee" : undefined}}>
+                  <div className="dc-sect" style={{color: esActiva ? "var(--cyan)" : undefined}}>
                     {esActiva ? "● " : ""}{fase} · {comp}/{items.length}
                   </div>
                   {items.map(item => {
@@ -651,14 +651,14 @@ export default function DiaCarrera({ onClose }) {
                             {item.tarea}
                           </div>
                           {item.responsable && (
-                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                               color:"var(--text-dim)",marginTop:".1rem"}}>
                               👤 {item.responsable}
                             </div>
                           )}
                         </div>
                         {item.prioridad==="alta" && !hecho && (
-                          <span style={{fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-xs)",
+                          <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                             color:"var(--red)",fontWeight:700,flexShrink:0}}>ALTA</span>
                         )}
                       </div>
@@ -788,7 +788,7 @@ export default function DiaCarrera({ onClose }) {
 function Empty({ msg }) {
   return (
     <div style={{textAlign:"center",padding:"3rem 1rem",color:"var(--text-muted)",
-      fontFamily:"'DM Mono',monospace",fontSize:"var(--fs-base)"}}>
+      fontFamily:"var(--font-mono)",fontSize:"var(--fs-base)"}}>
       {msg}
     </div>
   );

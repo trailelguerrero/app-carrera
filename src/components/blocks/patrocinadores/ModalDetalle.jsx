@@ -343,7 +343,7 @@ export default function ModalDetalle({ pat, onClose, onEditar, onDelete, updateC
           <div style={{ display: "flex", gap: "0", padding: "0 1.4rem" }}>
             {[["info","ℹ️ Info"],["cont","🎁 Compromisos"],["especie","📦 En especie"],["docs","📁 Documentos"],["historial","🕐 Historial"],["informe","📄 Informe"]].map(([id,label]) => (
               <button key={id} onClick={() => setSubTab(id)}
-                style={{ background:"none", border:"none", borderBottom: subTab===id ? `2px solid ${cfg.color}` : "2px solid transparent", color: subTab===id ? cfg.color : "var(--text-muted)", fontFamily:"Syne,sans-serif", fontSize:"var(--fs-sm)", fontWeight: subTab===id?700:500, padding:".4rem .75rem .5rem", cursor:"pointer", transition:"all .15s" }}>
+                style={{ background:"none", border:"none", borderBottom: subTab===id ? `2px solid ${cfg.color}` : "2px solid transparent", color: subTab===id ? cfg.color : "var(--text-muted)", fontFamily:"var(--font-display)", fontSize:"var(--fs-sm)", fontWeight: subTab===id?700:500, padding:".4rem .75rem .5rem", cursor:"pointer", transition:"all .15s" }}>
                 {label}
                 {id==="docs" && (() => {
                   const nDocs = (pat.docs||[]).length;

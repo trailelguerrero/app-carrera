@@ -189,7 +189,7 @@ export default function PinScreen({ onUnlock }) {
     <div style={{
       minHeight: "100dvh", background: "var(--bg)",
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      padding: "2rem", fontFamily: "'Syne', sans-serif",
+      padding: "2rem", fontFamily: "var(--font-display)",
       backgroundImage: "radial-gradient(ellipse 60% 40% at 50% 0%, var(--cyan-dim) 0%, transparent 60%)",
     }}>
       <div style={{ width: "100%", maxWidth: 300, textAlign: "center", animation: "teg-fadein 0.45s ease-out" }}>

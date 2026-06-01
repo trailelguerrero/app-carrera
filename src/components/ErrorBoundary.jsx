@@ -63,7 +63,7 @@ export default class ErrorBoundary extends Component {
 
         {/* Título */}
         <div style={{
-          fontFamily: "'Syne', sans-serif", fontWeight: 800,
+          fontFamily: "var(--font-display)", fontWeight: 800,
           fontSize: "1rem", color: "var(--text)",
         }}>
           {blockName ? `Error en ${blockName}` : "Algo ha fallado"}
@@ -71,7 +71,7 @@ export default class ErrorBoundary extends Component {
 
         {/* Mensaje técnico */}
         <div style={{
-          fontFamily: "'DM Mono', monospace", fontSize: "0.7rem",
+          fontFamily: "var(--font-mono)", fontSize: "0.7rem",
           color: "var(--text-muted)", maxWidth: 400, lineHeight: 1.6,
           background: "var(--surface2)", borderRadius: 8,
           padding: "0.65rem 1rem", border: "1px solid var(--border)",
@@ -87,7 +87,7 @@ export default class ErrorBoundary extends Component {
             style={{
               background: "rgba(34,211,238,0.12)", color: "var(--cyan)",
               border: "1px solid rgba(34,211,238,0.3)", borderRadius: 8,
-              padding: "0.5rem 1.2rem", fontFamily: "'Syne', sans-serif",
+              padding: "0.5rem 1.2rem", fontFamily: "var(--font-display)",
               fontWeight: 700, fontSize: "0.8rem", cursor: "pointer",
             }}>
             🔄 Reintentar
@@ -98,7 +98,7 @@ export default class ErrorBoundary extends Component {
               style={{
                 background: "var(--surface2)", color: "var(--text-muted)",
                 border: "1px solid var(--border)", borderRadius: 8,
-                padding: "0.5rem 1.2rem", fontFamily: "'Syne', sans-serif",
+                padding: "0.5rem 1.2rem", fontFamily: "var(--font-display)",
                 fontWeight: 700, fontSize: "0.8rem", cursor: "pointer",
               }}>
               📊 Ir al Dashboard
@@ -110,13 +110,13 @@ export default class ErrorBoundary extends Component {
         {import.meta.env.DEV && stack && (
           <details style={{ maxWidth: 500, textAlign: "left", marginTop: "0.5rem" }}>
             <summary style={{
-              fontFamily: "'DM Mono', monospace", fontSize: "0.62rem",
+              fontFamily: "var(--font-mono)", fontSize: "0.62rem",
               color: "var(--text-dim)", cursor: "pointer",
             }}>
               Ver stack trace
             </summary>
             <pre style={{
-              fontFamily: "'DM Mono', monospace", fontSize: "0.58rem",
+              fontFamily: "var(--font-mono)", fontSize: "0.58rem",
               color: "var(--text-dim)", marginTop: "0.5rem",
               overflow: "auto", maxHeight: 200,
             }}>{stack}</pre>

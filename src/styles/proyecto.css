@@ -127,7 +127,7 @@
   .mtit{font-size: var(--fs-md);font-weight:700}
   .mbody{padding:1.1rem 1.4rem;display:flex;flex-direction:column;gap:.8rem}
   .mfoot{padding:.9rem 1.4rem;border-top:1px solid var(--border);display:flex;gap:.5rem;justify-content:flex-end}
-  .fl{font-size: var(--fs-xs);font-weight:600;margin-bottom:.3rem;display:block;color:var(--text-muted)}
+  /* .fl — definida en blocks.css como alias de .field-label */
   .sidebar-toggle-open{display:none;position:sticky;top:0;z-index:9;width:100%;padding:.75rem;background:var(--surface2);border:none;border-bottom:1px solid var(--border);color:var(--violet);font-family:inherit;font-weight:700;font-size: var(--fs-xs);cursor:pointer;text-align:left}
   .sidebar-toggle-close{display:none;position:absolute;top:1rem;right:1rem;background:none;border:none;color:var(--text-muted);font-size: var(--fs-lg);cursor:pointer}
 

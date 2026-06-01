@@ -99,9 +99,9 @@ function ModalTarea({
         </div>
         <div className="modal-body">
           <div>
-            <label className="fl" style={{color:err.titulo?"#f87171":undefined}}>Título de la tarea *</label>
+            <label className="fl" style={{color:err.titulo?"var(--red)":undefined}}>Título de la tarea *</label>
             <input className="inp" autoFocus value={form.titulo} onChange={e=>upd("titulo",e.target.value)} placeholder="Describe la tarea..." />
-            {err.titulo && <div className="mono xs" style={{color:"#f87171",marginTop:".2rem"}}>⚠ {err.titulo}</div>}
+            {err.titulo && <div className="mono xs" style={{color:"var(--red)",marginTop:".2rem"}}>⚠ {err.titulo}</div>}
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".75rem"}}>
             <div>
@@ -198,14 +198,14 @@ function ModalHito({
         <div className="modal-header"><span className="mtit">{data?"✏️ Editar hito":"🏁 Nuevo hito"}</span><button className="btn btn-sm btn-ghost" aria-label="Cerrar formulario de tarea" onClick={onClose}><span aria-hidden="true">✕</span></button></div>
         <div className="modal-body">
           <div>
-            <label className="fl" style={{color:err.nombre?"#f87171":undefined}}>Nombre del hito *</label>
+            <label className="fl" style={{color:err.nombre?"var(--red)":undefined}}>Nombre del hito *</label>
             <input ref={firstInputRef} className="inp" autoFocus value={form.nombre} onChange={e=>upd("nombre",e.target.value)} placeholder="Ej: Apertura de inscripciones"/>
-            {err.nombre && <div className="mono xs" style={{color:"#f87171",marginTop:".2rem"}}>⚠ {err.nombre}</div>}
+            {err.nombre && <div className="mono xs" style={{color:"var(--red)",marginTop:".2rem"}}>⚠ {err.nombre}</div>}
           </div>
           <div>
-            <label className="fl" style={{color:err.fecha?"#f87171":undefined}}>Fecha *</label>
+            <label className="fl" style={{color:err.fecha?"var(--red)":undefined}}>Fecha *</label>
             <input className="inp" type="date" value={form.fecha} onChange={e=>upd("fecha",e.target.value)}/>
-            {err.fecha && <div className="mono xs" style={{color:"#f87171",marginTop:".2rem"}}>⚠ {err.fecha}</div>}
+            {err.fecha && <div className="mono xs" style={{color:"var(--red)",marginTop:".2rem"}}>⚠ {err.fecha}</div>}
           </div>
           <div style={{display:"flex",gap:"1rem"}}>
             {[["critico","🔴 Hito crítico"],["completado","✅ Completado"]].map(([k,l])=>(
@@ -257,14 +257,14 @@ function ModalPersona({ data, onSave, onClose }) {
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".75rem"}}>
             <div>
-              <label className="fl" style={{color:err.nombre?"#f87171":undefined}}>Nombre completo *</label>
+              <label className="fl" style={{color:err.nombre?"var(--red)":undefined}}>Nombre completo *</label>
               <input className="inp" autoFocus value={form.nombre} onChange={e=>upd("nombre",e.target.value)} placeholder="Nombre Apellido"/>
-              {err.nombre&&<div className="mono xs" style={{color:"#f87171",marginTop:".2rem"}}>⚠ {err.nombre}</div>}
+              {err.nombre&&<div className="mono xs" style={{color:"var(--red)",marginTop:".2rem"}}>⚠ {err.nombre}</div>}
             </div>
             <div>
-              <label className="fl" style={{color:err.rol?"#f87171":undefined}}>Rol en el equipo *</label>
+              <label className="fl" style={{color:err.rol?"var(--red)":undefined}}>Rol en el equipo *</label>
               <input className="inp" value={form.rol} onChange={e=>upd("rol",e.target.value)} placeholder="Director, Coordinador..."/>
-              {err.rol&&<div className="mono xs" style={{color:"#f87171",marginTop:".2rem"}}>⚠ {err.rol}</div>}
+              {err.rol&&<div className="mono xs" style={{color:"var(--red)",marginTop:".2rem"}}>⚠ {err.rol}</div>}
             </div>
           </div>
           <div>
