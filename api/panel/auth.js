@@ -45,10 +45,11 @@ const GLOBAL_FAIL_KEY = '__global__';
 const GLOBAL_FAIL_SCOPE = 'panel-auth-fail';
 const GLOBAL_FAIL_OPTS = { max: 20, windowMs: 15 * 60 * 1000 };
 
-// SEC-M2: hash bcrypt "señuelo" calculado una vez por cold start. Se compara contra él
-// cuando NO hay PIN configurado, para que el tiempo de respuesta sea indistinguible del
-// caso en que sí hay hash bcrypt almacenado (evita enumerar el estado de configuración).
-const DUMMY_BCRYPT_HASH = bcrypt.hashSync('anti-timing-dummy', 10);
+// SEC-M2: hash bcrypt "señuelo" precomputado (bcrypt 10 rondas de 'anti-timing-dummy').
+// Se compara contra él cuando NO hay PIN configurado, para que el tiempo de respuesta
+// sea indistinguible del caso en que sí hay hash almacenado (evita enumerar el estado).
+// Precomputado como constante para evitar ~100 ms de coste en cada cold start.
+const DUMMY_BCRYPT_HASH = '$2a$10$kUqRAyTrnduN0Ha2tjPLAu1pIrEqPc4HWL.wX3Bgv7O20Kaf.ED/6';
 
 // Hash djb2 legacy (solo para migración transparente de hashes anteriores a Fase 4)
 function hashPinLegacy(pin) {
