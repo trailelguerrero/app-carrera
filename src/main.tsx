@@ -8,6 +8,8 @@ import {
   useLocation,
   useNavigationType,
 } from "react-router-dom";
+// Leaflet bundleado (no CDN) — funciona en Tor Browser, offline y sin unpkg.com
+import "@/lib/leafletLoader";
 import App from "./App.tsx";
 import "./index.css";
 

@@ -81,6 +81,9 @@ export default defineConfig(({ mode }) => ({
           // PDF — consumido solo por módulos de exportación
           if (id.includes("jspdf") || id.includes("jspdf-autotable")) return "vendor-pdf";
 
+          // Leaflet — mapa interactivo, bundleado (no CDN)
+          if (id.includes("node_modules/leaflet")) return "vendor-leaflet";
+
           // QR — pequeño pero puntual
           if (id.includes("qrcode")) return "vendor-qr";
 
