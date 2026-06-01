@@ -386,100 +386,117 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {}, rec
       {/* ── MAPA INTERACTIVO con recorridos GPX ── */}
       <MapaLocalizaciones locs={locs} matPorLoc={matPorLoc} recorridos={recorridos} />
 
-      {/* ── CARDS DE LOCALIZACIONES ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: ".65rem" }}>
+      {/* ── P3: CARDS DE LOCALIZACIONES — estilo PuestoCard ── */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
         {locsF.map(l => {
-          const color = LOC_COLORS[l.tipo] || "var(--text-muted)";
-          const icon  = LOC_ICONS[l.tipo]  || "📌";
+          const color  = LOC_COLORS[l.tipo] || "var(--text-muted)";
+          const icon   = LOC_ICONS[l.tipo]  || "📌";
+          const asig   = volsPorLoc[l.id] || [];
+          const conf   = asig.filter(a => a.vol.estado === "confirmado").length;
+          const total  = asig.length;
+          const matItems = matPorLoc[l.id] || [];
+          const tieneMat = matItems.length > 0;
+          const tieneVol = total > 0;
+          const cob    = calcularCobertura(tieneMat, tieneVol);
+          const cobPct = Math.min(100, total > 0 ? Math.round((conf / total) * 100) : 0);
+          const cobColor = cobPct >= 80 ? "var(--green)" : cobPct >= 50 ? "var(--amber)" : "var(--red)";
           return (
-            <div key={l.id} className="card" style={{ borderLeft: `3px solid ${color}`, cursor: "pointer" }} onClick={() => openEditar(l)}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: ".4rem" }}>
-                <div style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
-                  <span style={{ fontSize: "var(--fs-lg)" }}>{icon}</span>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: "var(--fs-base)" }}>{l.nombre}</div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color, textTransform: "uppercase", letterSpacing: ".06em" }}>{l.tipo}</div>
+            <div key={l.id} className="card" style={{ padding: "1rem", cursor: "pointer" }}
+              onClick={() => openEditar(l)}
+              title="Click para editar esta ubicación">
+              <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start" }}>
+                {/* Pill de tipo — igual al item-icon-pill de PuestoCard */}
+                <div className="item-icon-pill" style={{ "--pill-color": color, marginTop: ".1rem" }}>
+                  <span style={{ fontSize: "var(--fs-md)" }}>{icon}</span>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {/* Fila título + badges */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.3rem", flexWrap: "wrap" }}>
+                    <span style={{ fontWeight: 700, fontSize: "var(--fs-md)" }}>{l.nombre}</span>
+                    <span className="badge badge-cyan"
+                      style={{ textTransform: "capitalize" }}>{l.tipo}</span>
+                    {cob && (() => {
+                      const cfgCob = {
+                        completa:       { label: "✅ Completa",       bg: "rgba(34,197,94,.12)",  clr: "var(--green)", brd: "rgba(34,197,94,.3)" },
+                        sin_voluntario: { label: "⚠️ Sin voluntario", bg: "rgba(251,191,36,.12)", clr: "var(--amber)", brd: "rgba(251,191,36,.3)" },
+                        sin_material:   { label: "📦 Sin material",   bg: "rgba(251,191,36,.12)", clr: "var(--amber)", brd: "rgba(251,191,36,.3)" },
+                      }[cob];
+                      return (
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", padding: ".1rem .4rem", borderRadius: 20, background: cfgCob.bg, color: cfgCob.clr, border: `1px solid ${cfgCob.brd}`, whiteSpace: "nowrap" }}>
+                          {cfgCob.label}
+                        </span>
+                      );
+                    })()}
+                    {tieneMat && (
+                      <span
+                        onClick={e => { e.stopPropagation(); window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "logistica", subtab: "material" } })); }}
+                        title="Ver material en Logística"
+                        style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--cyan)", background: "var(--cyan-dim)", padding: ".1rem .4rem", borderRadius: 4, whiteSpace: "nowrap", cursor: "pointer", border: "1px solid rgba(34,211,238,.2)" }}>
+                        📦 {matItems.length} mat. →
+                      </span>
+                    )}
                   </div>
-                </div>
-                <div style={{ display: "flex", gap: ".35rem", alignItems: "center", flexShrink: 0 }}>
-                  {(() => {
-                    const tieneMat = (matPorLoc[l.id] || []).length > 0;
-                    const tieneVol = (volsPorLoc[l.id] || []).length > 0;
-                    const cob = calcularCobertura(tieneMat, tieneVol);
-                    if (!cob) return null;
-                    const cfg = {
-                      completa:       { label: "✅ Completa",       bg: "rgba(34,197,94,.12)",  color: "var(--green)", border: "rgba(34,197,94,.3)" },
-                      sin_voluntario: { label: "⚠️ Sin voluntario", bg: "rgba(251,191,36,.12)", color: "var(--amber)", border: "rgba(251,191,36,.3)" },
-                      sin_material:   { label: "📦 Sin material",   bg: "rgba(251,191,36,.12)", color: "var(--amber)", border: "rgba(251,191,36,.3)" },
-                    }[cob];
-                    return (
-                      <span style={{
-                        fontFamily: "var(--font-mono)", fontSize: "var(--fs-2xs)",
-                        padding: ".1rem .4rem", borderRadius: 20,
-                        background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`,
-                        whiteSpace: "nowrap",
-                      }}>{cfg.label}</span>
-                    );
-                  })()}
-                  <button className="btn btn-sm btn-red" onClick={e => { e.stopPropagation(); setDel(l.id); }}
-                    style={{ flexShrink: 0, padding: ".15rem .4rem", fontSize: "var(--fs-sm)" }}>✕</button>
-                </div>
-              </div>
-              {l.descripcion && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)", fontStyle: "italic", marginTop: ".2rem" }}>{l.descripcion}</div>}
-              {l.lat != null && l.lng != null && (
-                <div style={{ marginTop:".2rem", fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>
-                  📌 {l.lat.toFixed(4)}, {l.lng.toFixed(4)}
-                </div>
-              )}
-              {(() => {
-                const asig = volsPorLoc[l.id] || [];
-                if (!asig.length) return (
-                  <div style={{ marginTop: ".45rem", fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)", borderTop: "1px solid var(--border)", paddingTop: ".4rem" }}>
-                    👥 Sin voluntarios asignados
+                  {/* Fila meta: GPS + voluntarios */}
+                  <div style={{ display: "flex", gap: "1.25rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
+                    {l.lat != null && l.lng != null ? (
+                      <span className="mono text-xs text-muted">📌 {Number(l.lat).toFixed(4)}, {Number(l.lng).toFixed(4)}</span>
+                    ) : (
+                      <span className="mono text-xs" style={{ color: "var(--amber)" }}>⚠️ Sin coordenadas GPS</span>
+                    )}
+                    {total > 0 && (
+                      <span className="mono text-xs" style={{ color: cobColor }}>
+                        👤 {conf}/{total} confirmados
+                      </span>
+                    )}
                   </div>
-                );
-                const conf = asig.filter(a0 => a0.vol.estado === "confirmado");
-                const pend = asig.filter(a0 => a0.vol.estado === "pendiente");
-                return (
-                  <div style={{ marginTop: ".45rem", borderTop: "1px solid var(--border)", paddingTop: ".4rem" }}>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginBottom: ".3rem", display: "flex", alignItems: "center", gap: ".4rem", flexWrap:"wrap" }}>
-                      👥 <span style={{ fontWeight: 700 }}>{asig.length} voluntario{asig.length!==1?"s":""}</span>
-                      {conf.length > 0 && <span style={{ color: "var(--green)", fontWeight: 700 }}>· {conf.length} ✓</span>}
-                      {pend.length > 0 && <span style={{ color: "var(--amber)" }}>· {pend.length} pend.</span>}
-                      <button
-                        onClick={e => { e.stopPropagation(); window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"voluntarios"}})); }}
-                        style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", padding:".06rem .3rem",
-                          borderRadius:3, border:"1px solid rgba(34,211,238,.3)",
-                          background:"rgba(34,211,238,.1)", color:"var(--cyan)", cursor:"pointer",
-                          marginLeft:"auto", flexShrink:0 }}>
-                        Ver →
-                      </button>
+                  {/* Barra de cobertura de voluntarios */}
+                  {total > 0 && (
+                    <div className="prog-bar" style={{ marginBottom: "0.4rem" }}>
+                      <div className="prog-fill" style={{ width: `${cobPct}%`, background: cobColor }} />
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: ".18rem" }}>
-                      {asig.slice(0,4).map((a, i) => (
-                        <div key={i} style={{ display: "flex", alignItems: "center", gap: ".4rem", fontSize: "var(--fs-xs)", fontFamily: "var(--font-mono)" }}>
-                          <span style={{ width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
-                            background: a.vol.estado === "confirmado" ? "var(--green)" :
-                              a.vol.estado === "pendiente" ? "var(--amber)" : "var(--text-dim)" }} />
-                          <span style={{ color: "var(--text)", fontWeight: 600 }}>{a.vol.nombre}</span>
-                          <span style={{ color: "var(--text-dim)", fontSize: "var(--fs-xs)" }}>— {a.puesto.nombre}</span>
-                        </div>
+                  )}
+                  {/* Descripción */}
+                  {l.descripcion && (
+                    <div style={{ fontSize: "var(--fs-sm)", color: "var(--text-muted)", fontStyle: "italic", marginBottom: ".35rem" }}>
+                      {l.descripcion}
+                    </div>
+                  )}
+                  {/* Voluntarios asignados */}
+                  {total > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", marginTop: "0.4rem" }}>
+                      {asig.slice(0, 5).map((a, i) => (
+                        <span key={i}
+                          onClick={e => { e.stopPropagation(); window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "voluntarios" } })); }}
+                          style={{ fontSize: "var(--fs-sm)", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 4, padding: "0.15rem 0.45rem", color: a.vol.estado === "confirmado" ? "var(--green)" : "var(--text-muted)", cursor: "pointer" }}>
+                          {(a.vol.nombre || "V").split(" ")[0]}
+                          {a.puesto ? <span style={{ color: "var(--text-dim)", marginLeft: ".25rem", fontSize: "var(--fs-xs)" }}>— {a.puesto.nombre}</span> : null}
+                        </span>
                       ))}
-                      {asig.length > 4 && (
-                        <div style={{ fontSize: "var(--fs-xs)", color: "var(--text-dim)", fontFamily: "var(--font-mono)", paddingLeft: ".6rem" }}>
-                          +{asig.length-4} más…
-                        </div>
+                      {total > 5 && (
+                        <span style={{ fontSize: "var(--fs-sm)", color: "var(--text-dim)", padding: "0.15rem 0.45rem" }}>+{total - 5} más…</span>
                       )}
                     </div>
-                  </div>
-                );
-              })()}
+                  )}
+                  {total === 0 && (
+                    <div style={{ marginTop: ".35rem", fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)" }}>
+                      👥 Sin voluntarios asignados
+                    </div>
+                  )}
+                </div>
+                {/* Botones acción */}
+                <div style={{ display: "flex", gap: "0.3rem", flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                  <button className="btn btn-ghost" style={{ padding: "0.28rem 0.45rem", fontSize: "var(--fs-sm)" }}
+                    onClick={() => openEditar(l)} aria-label="Editar">✏️</button>
+                  <button className="btn btn-red" style={{ padding: "0.28rem 0.45rem", fontSize: "var(--fs-sm)" }}
+                    onClick={() => setDel(l.id)} aria-label="Eliminar">✕</button>
+                </div>
+              </div>
             </div>
           );
         })}
         {locsF.length === 0 && locs.length > 0 && (
           <div className="card" style={{ textAlign: "center", color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", padding: "2rem" }}>
-            Sin localizaciones con ese filtro
+            Sin ubicaciones con ese filtro
           </div>
         )}
         {locs.length === 0 && (
@@ -515,64 +532,18 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {}, rec
         </div>
       </div>
 
-      {/* Modal edición/creación */}
-      {modal && (
-        <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && setModal(null)}>
-          <div className="modal" role="dialog" aria-modal="true" style={{ maxWidth: 420 }}>
-            <div className="modal-header">
-              <div style={{ fontWeight: 700 }}>{modal.data ? "✏️ Editar localización" : "📍 Nueva localización"}</div>
-              <button className="btn btn-ghost btn-sm" onClick={() => setModal(null)} aria-label="Cerrar">✕</button>
-            </div>
-            <div className="modal-body" style={{ display: "flex", flexDirection: "column", gap: ".6rem" }}>
-              <label style={{ display: "flex", flexDirection: "column", gap: ".2rem" }}>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)" }}>Nombre *</span>
-                <input className="inp" placeholder="ej. Avituallamiento KM 4" value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} />
-              </label>
-              <label style={{ display: "flex", flexDirection: "column", gap: ".2rem" }}>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)" }}>Tipo</span>
-                <select className="inp" value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}>
-                  {TIPOS_LOC.map(t0 => <option key={t0} value={t0}>{LOC_ICONS[t0]} {t0}</option>)}
-                </select>
-              </label>
-              <label style={{ display: "flex", flexDirection: "column", gap: ".2rem" }}>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)" }}>Descripción</span>
-                <textarea className="inp" rows={2} placeholder="Descripción opcional" value={form.descripcion} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} />
-              </label>
-              <div style={{ display: "flex", gap: ".5rem" }}>
-                <label style={{ flex: 1, display: "flex", flexDirection: "column", gap: ".2rem" }}>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)" }}>Latitud</span>
-                  <input className="inp" type="number" step="0.0001" placeholder="ej. 40.1562"
-                    value={form.lat} onChange={e => setForm(f => ({ ...f, lat: e.target.value }))} />
-                </label>
-                <label style={{ flex: 1, display: "flex", flexDirection: "column", gap: ".2rem" }}>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)" }}>Longitud</span>
-                  <input className="inp" type="number" step="0.0001" placeholder="ej. -5.2041"
-                    value={form.lng} onChange={e => setForm(f => ({ ...f, lng: e.target.value }))} />
-                </label>
-              </div>
-              <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>
-                💡 Google Maps → click derecho sobre el punto → copiar coordenadas
-              </div>
-              {/* LOC-SYNC-01: aviso de puestos vinculados */}
-              {modal.data && puestosAfectados.length > 0 && (form.lat !== "" || form.lng !== "") && (
-                <div style={{
-                  padding: ".55rem .75rem", borderRadius: "var(--r-sm)",
-                  background: "rgba(34,211,238,.08)", border: "1px solid rgba(34,211,238,.2)",
-                  fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--cyan)",
-                }}>
-                  🔗 Al guardar, las coordenadas se propagarán a {puestosAfectados.length} puesto{puestosAfectados.length !== 1 ? "s" : ""} vinculado{puestosAfectados.length !== 1 ? "s" : ""}:
-                  <span style={{ color: "var(--text-muted)", marginLeft: ".3rem" }}>
-                    {puestosAfectados.map(p => p.nombre).join(", ")}
-                  </span>
-                </div>
-              )}
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={() => setModal(null)}>Cancelar</button>
-              <button className="btn btn-primary" onClick={save}>{modal.data ? "Guardar" : "Crear"}</button>
-            </div>
-          </div>
-        </div>
+      {/* P4: Modal edición/creación — estilo ModalPuesto */}
+      {modal && createPortal(
+        <ModalLocalizacion
+          key={modal.data ? modal.data.id : "nueva"}
+          loc={modal.data}
+          puestosAfectados={puestosAfectados}
+          onSave={save}
+          onClose={() => setModal(null)}
+          form={form}
+          setForm={setForm}
+        />,
+        document.body
       )}
 
       {/* Confirm delete */}
@@ -581,7 +552,7 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {}, rec
           <div className="modal" role="dialog" aria-modal="true" style={{ maxWidth: 320, textAlign: "center" }}>
             <div className="modal-body" style={{ paddingTop: "1.5rem" }}>
               <div style={{ fontSize: "var(--fs-xl)", marginBottom: ".5rem" }}>⚠️</div>
-              <div style={{ fontWeight: 700 }}>¿Eliminar localización?</div>
+              <div style={{ fontWeight: 700 }}>¿Eliminar ubicación?</div>
               <div className="mono xs muted">Los puestos de voluntarios que la referenciaban quedarán sin localización maestra.</div>
             </div>
             <div className="modal-footer">
@@ -592,6 +563,115 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {}, rec
         </div>
       )}
     </>
+  );
+}
+
+
+// ─── P4: MODAL LOCALIZACIÓN — estilo ModalPuesto ─────────────────────────────
+function ModalLocalizacion({ loc, puestosAfectados, onSave, onClose, form, setForm }) {
+  const firstInputRef = useRef(null);
+  useEffect(() => { const t = setTimeout(() => firstInputRef.current?.focus(), 60); return () => clearTimeout(t); }, []);
+  const { closing, handleClose } = useModalClose(onClose);
+  const [err, setErr] = useState({});
+
+  const upd = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const validar = () => {
+    const e = {};
+    if (!form.nombre.trim()) e.nombre = "El nombre de la ubicación es obligatorio";
+    setErr(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const tieneCoordsValidas = form.lat !== "" && form.lng !== "" &&
+    !isNaN(parseFloat(form.lat)) && !isNaN(parseFloat(form.lng));
+
+  return (
+    <div className={`modal-backdrop${closing ? " modal-backdrop-closing" : ""}`}
+      onClick={e => e.target === e.currentTarget && handleClose()}>
+      <div className={`modal modal-ficha${closing ? " modal-closing" : ""}`}>
+        <div style={{ borderTop: "3px solid var(--primary)", borderRadius: "16px 16px 0 0" }}>
+          <div className="modal-header">
+            <span className="modal-title">{loc ? "✏️ Editar ubicación" : "📍 Nueva ubicación"}</span>
+            <button className="btn btn-ghost" style={{ padding: "0.2rem 0.5rem" }} onClick={handleClose} aria-label="Cerrar">✕</button>
+          </div>
+        </div>
+        <div className="modal-body">
+          {/* Nombre */}
+          <div>
+            <label className="field-label" style={{ color: err.nombre ? "var(--red)" : undefined }}>
+              Nombre de la ubicación *
+            </label>
+            <input ref={firstInputRef} className="inp"
+              value={form.nombre}
+              onChange={e => { upd("nombre", e.target.value); if (e.target.value.trim()) setErr(p => ({ ...p, nombre: undefined })); }}
+              placeholder="Ej: Avituallamiento KM 7"
+              style={{ borderColor: err.nombre ? "var(--red)" : undefined }} />
+            {err.nombre && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--red)", marginTop: ".2rem" }}>⚠ {err.nombre}</div>}
+          </div>
+          {/* Tipo */}
+          <div className="field-row">
+            <div>
+              <label className="field-label">Tipo</label>
+              <select className="inp" value={form.tipo} onChange={e => upd("tipo", e.target.value)}>
+                {TIPOS_LOC.map(t => <option key={t} value={t}>{LOC_ICONS[t]} {t}</option>)}
+              </select>
+            </div>
+          </div>
+          {/* Descripción */}
+          <div>
+            <label className="field-label">Descripción</label>
+            <textarea className="inp" rows={2}
+              value={form.descripcion}
+              onChange={e => upd("descripcion", e.target.value)}
+              placeholder="Descripción opcional (visible en el panel de logística)"
+              style={{ resize: "vertical" }} />
+          </div>
+          {/* GPS — sección destacada igual que en ModalPuesto */}
+          <div style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 8, padding: "0.65rem 0.85rem" }}>
+            <label className="field-label" style={{ marginBottom: "0.35rem" }}>
+              📌 Coordenadas GPS
+              <span style={{ fontWeight: 400, color: "var(--text-muted)" }}> (opcional — aparece en el mapa de Logística)</span>
+            </label>
+            <div className="field-row">
+              <div>
+                <label className="field-label" style={{ fontSize: "var(--fs-xs)" }}>Latitud</label>
+                <input className="inp" type="number" step="0.0001" placeholder="Ej: 40.1562"
+                  value={form.lat}
+                  onChange={e => upd("lat", e.target.value)} />
+              </div>
+              <div>
+                <label className="field-label" style={{ fontSize: "var(--fs-xs)" }}>Longitud</label>
+                <input className="inp" type="number" step="0.0001" placeholder="Ej: -5.2041"
+                  value={form.lng}
+                  onChange={e => upd("lng", e.target.value)} />
+              </div>
+            </div>
+            <div style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: "0.25rem", fontFamily: "var(--font-mono)" }}>
+              💡 Google Maps → click derecho sobre el punto → copiar coordenadas
+            </div>
+            {/* LOC-SYNC-01: aviso de propagación a puestos vinculados */}
+            {loc && puestosAfectados.length > 0 && tieneCoordsValidas && (
+              <div style={{ marginTop: "0.4rem", padding: "0.4rem 0.6rem", borderRadius: 6, background: "rgba(34,211,238,0.08)", border: "1px solid rgba(34,211,238,0.2)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--cyan)" }}>
+                🔗 Al guardar, las coordenadas se propagarán a {puestosAfectados.length} puesto{puestosAfectados.length !== 1 ? "s" : ""} vinculado{puestosAfectados.length !== 1 ? "s" : ""}:
+                <span style={{ color: "var(--text-muted)", marginLeft: ".3rem" }}>
+                  {puestosAfectados.map(p => p.nombre).join(", ")}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="modal-footer" style={{ justifyContent: "space-between" }}>
+          <div />
+          <div style={{ display: "flex", gap: "0.4rem" }}>
+            <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+            <button className="btn btn-primary" onClick={() => { if (validar()) onSave(); }}>
+              {loc ? "Guardar cambios" : "Crear ubicación"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 

@@ -22,6 +22,12 @@ function ModalPuesto({ puesto, locs, onSave, onClose }) {
     horaInicio: "08:00", horaFin: "15:00", necesarios: 3, responsableId: null, tiempoLimite: "", notas: ""
   });
   const [errMP, setErrMP] = useState({});
+  // P1: modo vinculación — "existente" | "nueva" | "ninguna"
+  const [modoVinculo, setModoVinculo] = useState(() => {
+    if (puesto?.localizacionId) return "existente";
+    return "ninguna";
+  });
+
   const upd = (k, v) => setForm(p => ({ ...p, [k]: v }));
   const toggleDist = (d) => setForm(p => ({
     ...p, distancias: p.distancias.includes(d) ? p.distancias.filter(x => x !== d) : [...p.distancias, d]
@@ -35,6 +41,27 @@ function ModalPuesto({ puesto, locs, onSave, onClose }) {
     return Object.keys(e).length === 0;
   };
 
+  // P2: aviso de puestos que serían afectados al propagar coords
+  const locVinculada = (modoVinculo === "existente" && form.localizacionId)
+    ? locs.find(l => l.id === form.localizacionId)
+    : null;
+  const tieneCoords = form.lat != null && form.lng != null && form.lat !== "" && form.lng !== "";
+  const coordsCambiadas = locVinculada && tieneCoords &&
+    (locVinculada.lat !== form.lat || locVinculada.lng !== form.lng);
+
+  const handleSave = () => {
+    if (!validarPuesto()) return;
+    const payload = { ...form };
+    if (modoVinculo === "nueva") {
+      // P1: señal para que addPuesto cree la loc
+      payload._crearLoc = true;
+      payload.localizacionId = null;
+    } else if (modoVinculo === "ninguna") {
+      payload.localizacionId = null;
+    }
+    onSave(payload);
+  };
+
   return (
     <div className={`modal-backdrop${mpuClosing ? " modal-backdrop-closing" : ""}`} onClick={e => e.target === e.currentTarget && mpuHandleClose()}>
       <div className={`modal modal-ficha${mpuClosing ? " modal-closing" : ""}`}>
@@ -43,28 +70,63 @@ function ModalPuesto({ puesto, locs, onSave, onClose }) {
           <button className="btn btn-ghost" style={{ padding: "0.2rem 0.5rem" }} onClick={mpuHandleClose} aria-label="Cerrar">✕</button>
         </div>
         <div className="modal-body">
+          {/* ── P1: Vinculación a ubicación ── */}
           <div style={{ marginBottom: "0.5rem" }}>
-            <label className="field-label">📍 Localización Maestra (opcional)</label>
-            <select className="inp" value={form.localizacionId || ""} 
-              onChange={e => {
-                const locId = e.target.value ? parseInt(e.target.value) : null;
-                const loc = locs.find(l => l.id === locId);
-                const newData = { localizacionId: locId };
-                if (loc && !form.nombre) newData.nombre = loc.nombre;
-                if (loc) newData.tipo = loc.tipo;
-                // Copiar coordenadas de la localización maestra (el usuario puede sobrescribirlas manualmente)
-                if (loc && loc.lat != null) newData.lat = loc.lat;
-                if (loc && loc.lng != null) newData.lng = loc.lng;
-                if (!loc) { newData.lat = null; newData.lng = null; }
-                setForm(p => ({ ...p, ...newData }));
-              }}>
-              <option value="">-- Sin vincular --</option>
-              {locs.map(l => <option key={l.id} value={l.id}>{l.nombre} ({l.tipo})</option>)}
-            </select>
-            <div style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: "0.25rem", fontFamily: "var(--font-mono)" }}>
-              Vincular a una localización maestra sincroniza el tipo y facilita la logística.
+            <label className="field-label">📍 Ubicación en Logística</label>
+            <div style={{ display: "flex", gap: "0.4rem", marginBottom: "0.45rem", flexWrap: "wrap" }}>
+              {[
+                { k: "existente", label: "🔗 Vincular existente" },
+                { k: "nueva",     label: "➕ Crear nueva" },
+                { k: "ninguna",   label: "— Sin vincular" },
+              ].map(({ k, label }) => (
+                <button key={k} onClick={() => {
+                  setModoVinculo(k);
+                  if (k !== "existente") {
+                    setForm(p => ({ ...p, localizacionId: null }));
+                  }
+                }}
+                  style={{
+                    padding: "0.25rem 0.65rem", borderRadius: 6, cursor: "pointer",
+                    fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700,
+                    border: `1px solid ${modoVinculo === k ? "var(--cyan)" : "var(--border)"}`,
+                    background: modoVinculo === k ? "rgba(34,211,238,0.12)" : "var(--surface2)",
+                    color: modoVinculo === k ? "var(--cyan)" : "var(--text-muted)",
+                    transition: "all 0.15s",
+                  }}>
+                  {label}
+                </button>
+              ))}
             </div>
+
+            {modoVinculo === "existente" && (
+              <>
+                <select className="inp" value={form.localizacionId || ""}
+                  onChange={e => {
+                    const locId = e.target.value ? parseInt(e.target.value) : null;
+                    const loc = locs.find(l => l.id === locId);
+                    const newData = { localizacionId: locId };
+                    if (loc && !form.nombre) newData.nombre = loc.nombre;
+                    if (loc) newData.tipo = loc.tipo;
+                    if (loc && loc.lat != null) newData.lat = loc.lat;
+                    if (loc && loc.lng != null) newData.lng = loc.lng;
+                    if (!loc) { newData.lat = null; newData.lng = null; }
+                    setForm(p => ({ ...p, ...newData }));
+                  }}>
+                  <option value="">-- Selecciona ubicación --</option>
+                  {locs.map(l => <option key={l.id} value={l.id}>{l.nombre} ({l.tipo})</option>)}
+                </select>
+                <div style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: "0.25rem", fontFamily: "var(--font-mono)" }}>
+                  Vincular a una ubicación maestra sincroniza el tipo y las coordenadas.
+                </div>
+              </>
+            )}
+            {modoVinculo === "nueva" && (
+              <div style={{ padding: "0.5rem 0.75rem", borderRadius: 8, background: "rgba(34,211,238,0.07)", border: "1px solid rgba(34,211,238,0.2)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--cyan)" }}>
+                ✨ Se creará automáticamente una nueva ubicación en Logística con el mismo nombre que este puesto.
+              </div>
+            )}
           </div>
+
           <div>
             <label className="field-label" style={{ color: errMP.nombre ? "var(--red)" : undefined }}>Nombre del puesto *</label>
             <input ref={firstInputRef} className="inp" autoFocus value={form.nombre}
@@ -114,7 +176,7 @@ function ModalPuesto({ puesto, locs, onSave, onClose }) {
           <div><label className="field-label">Notas / Instrucciones</label>
             <textarea className="inp" rows={2} value={form.notas} onChange={e => upd("notas", e.target.value)} placeholder="Material necesario, instrucciones específicas..." style={{ resize: "vertical" }} /></div>
           <div style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 8, padding: "0.65rem 0.85rem" }}>
-            <label className="field-label" style={{ marginBottom: "0.35rem" }}>📍 Coordenadas GPS <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>(opcional — habilita "Cómo llegar" en el portal)</span></label>
+            <label className="field-label" style={{ marginBottom: "0.35rem" }}>📌 Coordenadas GPS <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>(opcional — habilita "Cómo llegar" en el portal)</span></label>
             <div className="field-row">
               <div>
                 <label className="field-label" style={{ fontSize: "var(--fs-xs)" }}>Latitud</label>
@@ -127,14 +189,22 @@ function ModalPuesto({ puesto, locs, onSave, onClose }) {
                   value={form.lng ?? ""} onChange={e => upd("lng", e.target.value !== "" ? parseFloat(e.target.value) : null)} />
               </div>
             </div>
-            <div style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: "0.25rem", fontFamily: "var(--font-mono)" }}>
-              Al vincular una localización maestra las coordenadas se rellenan automáticamente.
-            </div>
+            {/* P2: aviso de propagación cuando coords difieren de la loc maestra */}
+            {coordsCambiadas && (
+              <div style={{ marginTop: "0.4rem", padding: "0.4rem 0.6rem", borderRadius: 6, background: "rgba(34,211,238,0.08)", border: "1px solid rgba(34,211,238,0.2)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--cyan)" }}>
+                🔗 Al guardar, estas coordenadas se propagarán a la ubicación <strong>{locVinculada.nombre}</strong> y a todos los puestos vinculados a ella.
+              </div>
+            )}
+            {!coordsCambiadas && modoVinculo === "existente" && locVinculada && (
+              <div style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: "0.25rem", fontFamily: "var(--font-mono)" }}>
+                Al vincular una ubicación maestra las coordenadas se rellenan automáticamente.
+              </div>
+            )}
           </div>
         </div>
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
-          <button className="btn btn-cyan" onClick={() => { if (validarPuesto()) onSave(form); }}>
+          <button className="btn btn-cyan" onClick={handleSave}>
             {puesto ? "Guardar cambios" : "Crear puesto"}
           </button>
         </div>

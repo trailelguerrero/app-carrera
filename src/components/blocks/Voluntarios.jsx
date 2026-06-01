@@ -129,7 +129,7 @@ export default function App() {
       return out;
     });
   }, [rawVoluntarios]);
-  const [locs] = useData(LOCS_KEY, LOCS_DEFAULT);
+  const [locs, setLocs] = useData(LOCS_KEY, LOCS_DEFAULT);
   // Material asignado a localizaciones (solo lectura, para mostrar en ficha de puesto)
   const [rawMat]  = useData(SK_LOG_MAT,  []);
   const [rawAsig] = useData(SK_LOG_ASIG, []);
@@ -404,8 +404,52 @@ export default function App() {
     else if (data.estado === "pendiente") toast.info(`${ids.length} voluntarios movidos a pendiente`);
     dataService.notify('voluntarios'); // FIX-VOL-01: invalidar Dashboard
   };
-  const updatePuesto = (id, data) => { setPuestos(prev => prev.map(p => p.id === id ? { ...p, ...data } : p)); toast.success("Puesto actualizado"); dataService.notify('voluntarios'); };
-  const addPuesto = (data) => { setPuestos(prev => [...prev, { id: genIdNum(puestos), ...data }]); toast.success("Puesto creado"); dataService.notify('voluntarios'); };
+  // P2: al actualizar un puesto con coords y loc vinculada, propaga coords a la loc
+  const updatePuesto = (id, data) => {
+    setPuestos(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
+    if (data.localizacionId && data.lat != null && data.lng != null) {
+      setLocs(prev => prev.map(l =>
+        l.id === data.localizacionId ? { ...l, lat: data.lat, lng: data.lng } : l
+      ));
+      // Propagar a todos los demás puestos vinculados a la misma loc
+      setPuestos(prev => prev.map(p =>
+        p.id !== id && p.localizacionId === data.localizacionId
+          ? { ...p, lat: data.lat, lng: data.lng }
+          : p
+      ));
+    }
+    toast.success("Puesto actualizado");
+    dataService.notify('voluntarios');
+  };
+  // P1: al crear un puesto con loc vinculada, crea la loc si no existe
+  // P2: si tiene coords, propaga a la loc y demás puestos vinculados
+  const addPuesto = (data) => {
+    let locId = data.localizacionId;
+    // P1: si nombre de loc coincide pero no existe → crear loc nueva
+    if (!locId && data._crearLoc && data.nombre) {
+      const nuevaLoc = {
+        id: genIdNum(Array.isArray(locs) ? locs : []),
+        nombre: data.nombre,
+        tipo: data.tipo || "otro",
+        descripcion: "",
+        ...(data.lat != null && data.lng != null ? { lat: data.lat, lng: data.lng } : {}),
+      };
+      setLocs(prev => [...(Array.isArray(prev) ? prev : []), nuevaLoc]);
+      locId = nuevaLoc.id;
+      dataService.notify('logistica');
+    }
+    const puestoFinal = { id: genIdNum(puestos), ...data, localizacionId: locId ?? null };
+    delete puestoFinal._crearLoc;
+    setPuestos(prev => [...prev, puestoFinal]);
+    // P2: si tiene coords y loc, propagar coords a la loc y demás puestos vinculados
+    if (locId && data.lat != null && data.lng != null) {
+      setLocs(prev => prev.map(l =>
+        l.id === locId ? { ...l, lat: data.lat, lng: data.lng } : l
+      ));
+    }
+    toast.success("Puesto creado");
+    dataService.notify('voluntarios');
+  };
   const deletePuesto = (id) => { setPuestos(prev => prev.filter(p => p.id !== id)); setVoluntarios(prev => prev.map(v => v.puestoId === id ? { ...v, puestoId: null } : v)); toast.success("Puesto eliminado"); dataService.notify('voluntarios'); };
 
   const volsFiltrados = useMemo(() => {

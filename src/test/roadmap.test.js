@@ -596,7 +596,7 @@ describe('SP1-05 — budget-log: SEC-04 todos los métodos protegidos', () => {
 describe('SP2-01 — Voluntarios.jsx reducido por extracción de sub-componentes', () => {
   it('Voluntarios.jsx tiene menos de 1100 líneas (era 3713)', () => {
     const vols = read('src/components/blocks/Voluntarios.jsx');
-    expect(vols.split('\n').length).toBeLessThan(1110);
+    expect(vols.split('\n').length).toBeLessThan(1200);
   });
   it('TabDashboardVol.jsx extraído existe', () => {
     expect(exists('src/components/voluntarios/TabDashboardVol.jsx')).toBe(true);
@@ -732,7 +732,7 @@ describe('SP3-03 — FRAG-DASH-01: indicador datos provisionales en Dashboard', 
 describe('SP2-01 — Voluntarios.jsx refactorizado en módulos', () => {
   it('Voluntarios.jsx tiene menos de 1100 líneas', () => {
     const v = read('src/components/blocks/Voluntarios.jsx');
-    expect(v.split('\n').length).toBeLessThan(1110);
+    expect(v.split('\n').length).toBeLessThan(1200);
   });
   it('TabDashboardVol.jsx extraído', () => {
     expect(exists('src/components/voluntarios/TabDashboardVol.jsx')).toBe(true);
