@@ -62,9 +62,9 @@ export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosAc
 
   // Al abrir edición, sincronizar el estado temporal
   const abrirEdicion     = () => { setTmpCor({ ...corredoresExt }); setEditCorredores(true); };
-  const guardarCorredores = () => { setCorredores({ ...tmpCor }); setEditCorredores(false); };
+  const guardarCorredores = () => { setCorredores({ ...tmpCor }); setEditCorredores(false); toast.success("Tallas de corredores guardadas"); };
   const abrirEdicionNino  = () => { setTmpNino({ ...ninoExt }); setEditNino(true); };
-  const guardarNino       = () => { setNino && setNino({ ...tmpNino }); setEditNino(false); };
+  const guardarNino       = () => { setNino && setNino({ ...tmpNino }); setEditNino(false); toast.success("Tallas de niños guardadas"); };
 
   // Tallas de EXTRAS (pedidos manuales) agrupadas por tipo/modelo de camiseta
   const tallasExtras = useMemo(() => {

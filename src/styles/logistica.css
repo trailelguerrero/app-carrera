@@ -125,10 +125,6 @@
   .tlr{font-family:var(--font-mono);font-size: var(--fs-2xs);color:var(--text-muted)} .tls{font-family:var(--font-mono);font-size: var(--fs-2xs);white-space:nowrap}
   .empty{text-align:center;padding:1.5rem;color:var(--text-muted);font-family:var(--font-mono);font-size: var(--fs-xs);background:var(--surface);border:1px solid var(--border);border-radius:var(--r)}
   /* ── Dashboard clases del sistema ─────────────────────────────── */
-  .log-kpi-link { cursor: pointer; }
-  .log-kpi-link:hover { transform: translateY(-2px); border-color: var(--border-light); box-shadow: 0 4px 16px rgba(0,0,0,.3); }
-  .log-kpi-arrow { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-dim); margin-top: 0.35rem; }
-  .log-kpi-link:hover .log-kpi-arrow { color: var(--cyan); }
   .log-hero { padding: 1rem 1.1rem; }
 
   @media(max-width:850px){

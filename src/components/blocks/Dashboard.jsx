@@ -14,6 +14,7 @@ import {
   SK_CAM_PEDIDOS, SK_CAM_COSTE, SK_CAM_CORREDORES, SK_CAM_PRECIO_PLATAFORMA, SK_CAM_NINO,
   SK_CAM_VENTA_PUBLICO,
 } from "@/constants/storageKeys";
+import { coverageColor, coverageClass, sponsorshipColor, sponsorshipClass } from "@/constants/thresholds";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useDashboardKpis } from "@/hooks/useDashboardKpis";
 import SkeletonBlock from "@/components/common/SkeletonBlock";
@@ -255,8 +256,8 @@ export default function Dashboard() {
               const faltan = d.totalNecesarios - d.volConfirmados;
               return `Faltan ${faltan} voluntario${faltan !== 1 ? "s" : ""} para el 100%`;
             })()}
-            color={d.totalNecesarios === 0 ? "var(--text-muted)" : d.coberturaVol >= 80 ? "var(--green)" : d.coberturaVol >= 50 ? "var(--amber)" : "var(--red)"}
-            colorClass={d.totalNecesarios === 0 ? "muted" : d.coberturaVol >= 80 ? "green" : d.coberturaVol >= 50 ? "amber" : "red"}
+            color={d.totalNecesarios === 0 ? "var(--text-muted)" : coverageColor(d.coberturaVol)}
+            colorClass={d.totalNecesarios === 0 ? "muted" : coverageClass(d.coberturaVol)}
             progress={d.totalNecesarios > 0 ? d.coberturaVol : undefined}
             onClick={() => navigate("voluntarios")} />
           <KPI icon="🤝" label="Patrocinio"
@@ -268,8 +269,8 @@ export default function Dashboard() {
               const faltan = d.objetivo - d.patComprometido;
               return `Faltan ${fmtEur(faltan)} para el objetivo · ${fmtEur(d.patCobrado)} cobrado`;
             })()}
-            color={d.patComprometido >= d.objetivo * 0.8 ? "var(--green)" : d.patComprometido >= d.objetivo * 0.5 ? "var(--amber)" : "var(--red)"}
-            colorClass={d.patComprometido >= d.objetivo * 0.8 ? "green" : d.patComprometido >= d.objetivo * 0.5 ? "amber" : "red"}
+            color={sponsorshipColor(d.objetivo > 0 ? Math.round(d.patComprometido / d.objetivo * 100) : 0)}
+            colorClass={sponsorshipClass(d.objetivo > 0 ? Math.round(d.patComprometido / d.objetivo * 100) : 0)}
             progress={d.objetivo > 0 ? Math.min(100, Math.round(d.patComprometido / d.objetivo * 100)) : undefined}
             onClick={() => navigate("patrocinadores")} />
           <KPI icon="📋" label="Tareas"
@@ -293,7 +294,8 @@ export default function Dashboard() {
               const pendientes = d.ckTotal - d.ckDone;
               return `${pendientes} ítem${pendientes !== 1 ? "s" : ""} pendiente${pendientes !== 1 ? "s" : ""} · Timeline: ${d.tlDone}/${d.tlTotal}`;
             })()}
-            color={d.ckTotal === 0 ? "var(--text-muted)" : "var(--cyan)"} colorClass={d.ckTotal === 0 ? "muted" : "cyan"}
+            color={d.ckTotal === 0 ? "var(--text-muted)" : d.ckDone >= d.ckTotal && d.ckTotal > 0 ? "var(--green)" : "var(--cyan)"}
+            colorClass={d.ckTotal === 0 ? "muted" : d.ckDone >= d.ckTotal && d.ckTotal > 0 ? "green" : "cyan"}
             progress={d.ckTotal > 0 ? Math.round(d.ckDone / d.ckTotal * 100) : undefined}
             onClick={() => navigate("logistica")} />
         </div>

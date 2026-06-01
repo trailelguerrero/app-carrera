@@ -49,6 +49,7 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
     { l:"✅ Checklist",  v:`${Math.round(stats.ckDone/Math.max(stats.ckTotal,1)*100)}%`,
       s:`${stats.ckDone} de ${stats.ckTotal} ítems`,
       color: stats.ckDone===stats.ckTotal && stats.ckTotal>0 ? "green" : "cyan",
+      progress: stats.ckTotal > 0 ? Math.round(stats.ckDone/stats.ckTotal*100) : undefined,
       tab:"checklist",
       tip:"Porcentaje de ítems completados del checklist pre-carrera.\nEl checklist se organiza por fases temporales: 3 meses antes, 1 mes antes, semana antes, etc." },
     { l:"📦 Stock",      v:stats.stockErr > 0 ? stats.stockErr : stats.stockBajoMinimo > 0 ? `${stats.stockBajoMinimo}⚠` : 0,
@@ -69,7 +70,7 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
       <div className="kpi-grid mb">
         {KPIS.map(function(kpiItem) { return (
           <div key={kpiItem.l}
-            className={`kpi ${kpiItem.color} log-kpi-link`}
+            className={`kpi ${kpiItem.color} cursor-ptr`}
             onClick={()=>setTab(kpiItem.tab)}
             title={`Ir a ${kpiItem.l}`}>
             <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>
@@ -77,7 +78,15 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
             </div>
             <div className="kpi-value">{kpiItem.v}</div>
             <div className="kpi-sub">{kpiItem.s}</div>
-            <div className="log-kpi-arrow">→ ver detalle</div>
+            {kpiItem.progress !== undefined && (
+              <div className="kpi-progress">
+                <div className="kpi-progress-fill" style={{
+                  width: `${kpiItem.progress}%`,
+                  background: kpiItem.progress === 100 ? "var(--green)" : "var(--cyan)",
+                  boxShadow: `0 0 6px ${kpiItem.progress === 100 ? "rgba(52,211,153,.5)" : "rgba(34,211,238,.5)"}`,
+                }}/>
+              </div>
+            )}
           </div>
         );})}
       </div>

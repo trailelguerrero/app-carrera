@@ -1,19 +1,11 @@
 // Auto-extracted from Voluntarios.jsx — Sprint 2 refactor
 import { useState, useMemo } from "react";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
+import { coverageColor, coverageClass } from "@/constants/thresholds";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function colorCobertura(pct) {
-  if (pct >= 80) return "var(--green)";
-  if (pct >= 50) return "var(--amber)";
-  return "var(--red)";
-}
-
-function badgeCobertura(pct) {
-  if (pct >= 80) return "green";
-  if (pct >= 50) return "amber";
-  return "red";
-}
+// Aliases locales para retrocompatibilidad con el código existente del componente
+const colorCobertura = coverageColor;
+const badgeCobertura = coverageClass;
 
 // Déficit absoluto: cuántas personas faltan para alcanzar el mínimo necesario
 function deficitAbsoluto(p) {
@@ -90,16 +82,15 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
           <div className="kpi-value" style={{ color: colorCobertura(stats.coberturaGlobal) }}>
             {stats.coberturaGlobal}%
           </div>
-          {/* Barra de progreso bajo el valor */}
-          <div style={{ height: 4, background: "var(--border)", borderRadius: 4, overflow: "hidden", margin: ".25rem 0 .2rem" }}>
-            <div style={{
-              height: "100%",
+          <div className="kpi-sub">{stats.confirmados}/{stats.totalNecesarios} confirmados</div>
+          {/* C1.3: barra de progreso usando el sistema kpi-progress de blocks.css */}
+          <div className="kpi-progress">
+            <div className="kpi-progress-fill" style={{
               width: `${Math.min(stats.coberturaGlobal, 100)}%`,
               background: colorCobertura(stats.coberturaGlobal),
-              borderRadius: 4, transition: "width .4s ease",
+              boxShadow: `0 0 6px ${colorCobertura(stats.coberturaGlobal)}80`,
             }}/>
           </div>
-          <div className="kpi-sub">{stats.confirmados}/{stats.totalNecesarios} confirmados</div>
         </div>
 
         {/* Total voluntarios */}

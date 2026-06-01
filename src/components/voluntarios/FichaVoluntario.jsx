@@ -65,9 +65,10 @@ function MensajeOrganizadorEdit({ valor, onChange }) {
 
   const guardar = async () => {
     setSaving(true);
-    onChange(draft.trim());
+    await onChange(draft.trim());
     setSaving(false);
     setEditando(false);
+    toast.success("Mensaje guardado");
   };
 
   return (
@@ -99,7 +100,7 @@ function MensajeOrganizadorEdit({ valor, onChange }) {
             <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>
               {draft.length}/300 · Visible en el portal del voluntario
             </span>
-            <button className="btn btn-ghost btn-sm" onClick={guardar} disabled={saving}>
+            <button className="btn btn-primary btn-sm" onClick={guardar} disabled={saving}>
               {saving ? "…" : "💾 Guardar"}
             </button>
           </div>

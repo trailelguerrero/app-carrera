@@ -3,6 +3,7 @@ import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { fmtEur } from "@/lib/utils";
 import { NIVELES, NIVEL_CFG, getCfg } from "./constants";
 import { getEspecieValue } from "@/lib/budgetUtils";
+import { sponsorshipClass } from "@/constants/thresholds";
 
 export default function TabDashboard({ stats, pats, objetivo, setObjetivo, setTab, openNuevo, openDetalle, config }) {
   const [editObj, setEditObj] = useState(false);
@@ -54,25 +55,41 @@ export default function TabDashboard({ stats, pats, objetivo, setObjetivo, setTa
 
       {/* KPIs */}
       <div className="kpi-grid mb">
-        <div className="kpi amber" style={{cursor:"pointer"}} onClick={()=>setTab("patrocinadores")}>
+        <div className={`kpi ${sponsorshipClass(stats.pctObj)} cursor-ptr`} onClick={()=>setTab("patrocinadores")}>
           <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>🤝 Captado
             <Tooltip text={"Total comprometido: confirmado + cobrado. Incluye importe monetario y valor en especie. No modifica el módulo Presupuesto (que opera solo con ingresos monetarios)."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value" style={{color:"#f59e0b"}}>{fmtEur(stats.comprometido)}</div>
           <div className="kpi-sub">{stats.pctObj}% del objetivo · {stats.confirmados} patrocinadores · incl. especie</div>
+          {/* C6.1: barra de progreso hacia el objetivo */}
+          <div className="kpi-progress">
+            <div className="kpi-progress-fill" style={{
+              width: `${Math.min(100, stats.pctObj)}%`,
+              background: stats.pctObj >= 80 ? "var(--green)" : stats.pctObj >= 50 ? "var(--amber)" : "var(--red)",
+              boxShadow: "0 0 6px rgba(251,191,36,.5)",
+            }}/>
+          </div>
         </div>
-        <div className="kpi green" style={{cursor:"pointer"}} onClick={()=>setTab("patrocinadores")}>
+        <div className="kpi green cursor-ptr" onClick={()=>setTab("patrocinadores")}>
           <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>💰 Cobrado
             <Tooltip text={"Dinero ya en cuenta: solo patrocinadores en estado cobrado. Tesorería real efectiva."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value" style={{color:"var(--green)"}}>{fmtEur(stats.cobrado)}</div>
           <div className="kpi-sub">{stats.pctCobrado}% del objetivo</div>
+          {/* C6.1: barra de progreso dinero cobrado */}
+          <div className="kpi-progress">
+            <div className="kpi-progress-fill" style={{
+              width: `${Math.min(100, stats.pctCobrado)}%`,
+              background: "var(--green)",
+              boxShadow: "0 0 6px rgba(52,211,153,.5)",
+            }}/>
+          </div>
         </div>
-        <div className="kpi cyan" style={{cursor:"pointer"}} onClick={()=>setTab("patrocinadores")}>
+        <div className="kpi cyan cursor-ptr" onClick={()=>setTab("patrocinadores")}>
           <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>⏳ Pendiente cobro
             <Tooltip text={"Importe captado (comprometido) que aún no ha sido ingresado. Captado - Cobrado."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value" style={{color:"var(--cyan)"}}>{fmtEur(stats.pendienteCobro)}</div>
           <div className="kpi-sub">por ingresar en cuenta</div>
         </div>
-        <div className="kpi violet" style={{cursor:"pointer"}} onClick={()=>setTab("patrocinadores")}>
+        <div className="kpi violet cursor-ptr" onClick={()=>setTab("patrocinadores")}>
           <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>📦 En especie
             <Tooltip text={"Valor estimado de aportaciones no monetarias: material, servicios, productos."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value" style={{color:"var(--violet)"}}>{fmtEur(stats.especie)}</div>
