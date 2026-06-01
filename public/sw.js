@@ -37,12 +37,11 @@
  */
 
 // ── Versión de caché ────────────────────────────────────────────────────────
-// PWA-11: en producción, derivar la versión del hash del primer asset inyectado por
-// vite-plugin-pwa (self.__WB_MANIFEST). Así cada deploy genera una versión única
-// sin necesidad de incrementar el número manualmente.
-// En desarrollo se usa un timestamp para invalidar siempre.
-const CACHE_VERSION = self.__WB_MANIFEST && self.__WB_MANIFEST.length > 0
-  ? `pwa-${self.__WB_MANIFEST[0].revision ?? self.__WB_MANIFEST[0].url.slice(-8)}`
+// PWA-11: workbox-build exige exactamente UNA ocurrencia del token de manifest.
+// Lo asignamos a una constante local; el resto del archivo usa esa constante.
+const WB_MANIFEST = self.__WB_MANIFEST;
+const CACHE_VERSION = Array.isArray(WB_MANIFEST) && WB_MANIFEST.length > 0
+  ? `pwa-${WB_MANIFEST[0].revision ?? WB_MANIFEST[0].url.slice(-8)}`
   : `dev-${Date.now()}`;
 
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
