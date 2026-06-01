@@ -5,6 +5,7 @@ import { blockCls as cls } from "@/lib/blockStyles";
 import { useData } from "@/hooks/useData";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys"; // FIX-DEP: migrado desde alias deprecated
+import { TabRecorridos } from "@/components/logistica/TabRecorridos";
 import {
   SK_UI_CODIGOS_PROMO,
   SK_UI_CODIGOS_INIT,
@@ -88,6 +89,9 @@ export default function Configuracion() {
   const [rawCodigos, setCodigos, codigosLoading] = useData(SK_UI_CODIGOS_PROMO, []);
   const [rawCodigosInit, setCodigosInit] = useData(SK_UI_CODIGOS_INIT, null);
   const codigos = Array.isArray(rawCodigos) ? rawCodigos : [];
+
+  // ── Recorridos GPX ─────────────────────────────────────────────────────────
+  const [rawRecorridos, setRecorridos] = useData(SK_LOG_RECORRIDOS, []);
   const [codigosTab, setCodigosTab] = useState("todos");
   const [importText, setImportText] = useState("");
   const [importDist, setImportDist] = useState("TG7");
@@ -1074,6 +1078,18 @@ export default function Configuracion() {
               );
             })}
           </div>
+        </div>
+
+        {/* ── Recorridos GPX ── */}
+        <div className="card cfg-section">
+          <div className="cfg-section-title">🗺️ Recorridos del evento</div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)", marginBottom: "1rem", lineHeight: 1.6 }}>
+            Sube los archivos .gpx de cada modalidad. Se simplifican automáticamente y se muestran sobre el mapa de Logística y en el portal del voluntario.
+          </div>
+          <TabRecorridos
+            recorridos={Array.isArray(rawRecorridos) ? rawRecorridos : []}
+            setRecorridos={setRecorridos}
+          />
         </div>
 
         {/* ── Seguridad de acceso ── */}

@@ -34,7 +34,6 @@ import { TabDirectorio } from "@/components/logistica/TabDirectorio";
 import { TabEmergencias } from "@/components/logistica/TabEmergencias";
 import { TabCont, TabCK } from "@/components/logistica/TabComunicaciones";
 import { TabLocalizaciones } from "@/components/logistica/TabLocalizaciones";
-import { TabRecorridos } from "@/components/logistica/TabRecorridos";
 import { FichaLogistica, ModalRouter } from "@/components/logistica/FichaLogistica";
 
 // ─── CONSTANTS & DEFAULT DATA — Single Source of Truth: logisticaConstants.js ──
@@ -213,7 +212,6 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
   // RECURSOS: inventario y planificación
   const TABS_RECURSOS = [
     {id:"dashboard",     icon:"📊", label:"Dashboard"},
-    {id:"recorridos",    icon:"🗺️", label:"Recorridos"},
     {id:"localizaciones",icon:"📍", label:"Ubicaciones"},
     {id:"vehiculos",     icon:"🚗", label:"Vehículos"},
     {id:"material",      icon:"📦", label:"Material"},
@@ -370,7 +368,6 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
               if (tlCambio) setTl(tlNext);
             }} />}
           {tab==="localizaciones" && <TabLocalizaciones locs={locs} setLocs={setLocs} volsPorLoc={volsPorLoc} matPorLoc={matPorLoc} recorridos={recorridos} puestos={Array.isArray(rawPuestos) ? rawPuestos : []} setPuestos={setRawPuestos} />}
-          {tab==="recorridos" && <TabRecorridos recorridos={recorridos} setRecorridos={setRecorridos} />}
           {tab==="proveedores" && (
             <div style={{ display:"flex", flexDirection:"column", gap:"1.5rem" }}>
               {/* ── Directorio de contactos ── */}

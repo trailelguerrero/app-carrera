@@ -14,8 +14,10 @@ import {
   SK_VOL_PUESTOS, SK_VOL_IMG_FRONT, SK_VOL_IMG_BACK, SK_VOL_IMG_GUIA_TALLAS,
   SK_VOL_OPCION_PUESTO, SK_VOL_OPCION_VEHICULO, SK_VOL_OPCION_EMAIL,
   SK_VOL_OPCION_EMERGENCIA, SK_VOL_VOLUNTARIOS,
+  SK_LOG_RECORRIDOS,
 } from "@/constants/storageKeys";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { MiniMapaPuesto } from "@/components/voluntarios/MiniMapaPuesto";
 
 const API_BASE   = "/api/voluntarios";
 const PUBLIC_API = "/api/data/public";
@@ -575,7 +577,7 @@ function LoginScreen({ onLogin, onVolver, telefonoInicial, config }) {
 // SCREEN: PORTAL (ficha del voluntario autenticado)
 // ─────────────────────────────────────────────────────────────────────────────
 // ── Componente PuestoDetalle (solo lectura) ──────────────────────────────────
-function PuestoDetalle({ puesto }) {
+function PuestoDetalle({ puesto, recorridos = [] }) {
   const [expandido, setExpandido] = useState(true); // abierto por defecto
   if (!puesto) return (
     <div id="sec-puesto" className="vp-card" style={{ borderLeft:"3px solid var(--border)", textAlign:"center", padding:"1.5rem 1rem", marginBottom:".75rem" }}>
@@ -667,17 +669,9 @@ function PuestoDetalle({ puesto }) {
               </div>
             )}
           </div>
-          {/* PORTAL-02: enlace a Google Maps si el puesto tiene coordenadas */}
+          {/* PORTAL-02: mini-mapa con tracks GPX + botones de navegación */}
           {puesto.lat && puesto.lng && (
-            <a
-              href={`https://maps.google.com/?q=${puesto.lat},${puesto.lng}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="vp-btn vp-btn-ghost"
-              style={{ display:"block", textAlign:"center", marginTop:".75rem", textDecoration:"none" }}
-            >
-              📍 Cómo llegar
-            </a>
+            <MiniMapaPuesto puesto={puesto} recorridos={recorridos} />
           )}
           <div className="vp-mono" style={{ fontSize:"var(--fs-xs)", color:"var(--text-muted)",
             marginTop:".75rem", textAlign:"center",
@@ -774,6 +768,8 @@ function PortalMain({ token, onLogout }) {
   const [editForm,   setEditForm]   = useState({ talla:"", email:"", telefonoEmergencia:"", mensajeParaOrganizador:"" });
   const [editOrig,   setEditOrig]   = useState({ talla:"", email:"", telefonoEmergencia:"", mensajeParaOrganizador:"" });
   const [editError,  setEditError]  = useState("");
+  // PORTAL-MAP: recorridos GPX para el mini-mapa del puesto
+  const [recorridos, setRecorridosState] = useState([]);
 
   const showMsg = (m, ms=3500) => { setMsg(m); setTimeout(() => setMsg(""), ms); };
 
@@ -823,6 +819,13 @@ function PortalMain({ token, onLogout }) {
 
   // Carga inicial
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // PORTAL-MAP: cargar recorridos GPX una sola vez al montar (datos estáticos del evento)
+  useEffect(() => {
+    fetchPublic(SK_LOG_RECORRIDOS).then(data => {
+      if (Array.isArray(data)) setRecorridosState(data);
+    }).catch(() => {}); // silencioso — el mapa funciona sin tracks
+  }, []);
 
   // Auto-refresh cada 5 minutos (silencioso — no muestra spinner)
   // Auto-refresh cada 30 segundos para ver cambios del organizador sin recargar manualmente
@@ -1225,7 +1228,7 @@ function PortalMain({ token, onLogout }) {
         )}
 
         {/* Puesto */}
-        <PuestoDetalle puesto={puesto} />
+        <PuestoDetalle puesto={puesto} recorridos={recorridos} />
 
         {/* Material */}
         {materialPuesto.length > 0 && (

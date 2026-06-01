@@ -39,6 +39,7 @@ const READ_WHITELIST = new Set([
   'teg_voluntarios_v1_opcionEmail',
   'teg_voluntarios_v1_opcionEmergencia',
   'teg_event_config_v1', // para landing y login: fecha, lugar, telefonoContacto
+  'teg_logistica_v1_recorridos', // para el mini-mapa del puesto en la ficha del voluntario
 ]);
 
 const WRITE_WHITELIST = new Set([
