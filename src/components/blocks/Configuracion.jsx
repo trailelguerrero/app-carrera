@@ -53,6 +53,7 @@ import {
   // Documentos
   SK_DOC_DOCS,
   SK_DOC_GESTIONES,
+  SK_DOC_SUBVENCIONES,
   // Camisetas
   SK_CAM_ROOT,
   SK_CAM_PEDIDOS,
@@ -69,7 +70,10 @@ import {
   // Presupuesto extra
   SK_PPTO_SYNC_CONFIG,
   SK_PPTO_MARGEN_CONFIG,
+  SK_PPTO_SCENARIO_ACTIVE,
   SK_SCENARIOS,
+  // Recorridos GPX
+  SK_LOG_RECORRIDOS,
 } from "@/constants/storageKeys";
 import dataService from "@/lib/dataService";
 
@@ -336,6 +340,7 @@ export default function Configuracion() {
     // Documentos
     SK_DOC_DOCS,
     SK_DOC_GESTIONES,
+    SK_DOC_SUBVENCIONES,
     // Camisetas
     SK_CAM_ROOT,
     SK_CAM_PEDIDOS,
@@ -352,10 +357,15 @@ export default function Configuracion() {
     // Presupuesto extra
     SK_PPTO_SYNC_CONFIG,
     SK_PPTO_MARGEN_CONFIG,
+    SK_PPTO_SCENARIO_ACTIVE,
     SK_SCENARIOS,
     // Voluntarios opciones formulario
     SK_VOL_OPCION_EMAIL,
     SK_VOL_OPCION_EMERGENCIA,
+    // Códigos promo
+    SK_UI_CODIGOS_PROMO,
+    // Recorridos GPX
+    SK_LOG_RECORRIDOS,
   ];
 
   // ── Exportar todos los datos como JSON ───────────────────────────────────
@@ -1278,6 +1288,8 @@ export default function Configuracion() {
                 onClick={() => {
                   for (const key of ALL_DATA_KEYS) {
                     localStorage.removeItem(key);
+                    // RESET-01: borrar también de Neon para que no vuelvan al recargar
+                    dataService.remove(key).catch(() => {});
                   }
                   // Limpiar también logs dinámicos de patrocinadores
                   const keysToRemove = [];
@@ -1285,7 +1297,7 @@ export default function Configuracion() {
                     const k = localStorage.key(i);
                     if (k && k.startsWith(SK_PAT_LOG_PREFIX)) keysToRemove.push(k);
                   }
-                  keysToRemove.forEach(k => localStorage.removeItem(k));
+                  keysToRemove.forEach(k => { localStorage.removeItem(k); dataService.remove(k).catch(() => {}); });
                   setResetModal(false);
                   setResetInput('');
                   window.location.reload();
