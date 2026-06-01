@@ -11,6 +11,7 @@ import EmptyState from "@/components/EmptyState";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { useData } from "@/hooks/useData";
+import { useLeafletReady } from "@/hooks/useLeafletReady";
 
 // ─── MAPA LEAFLET ─────────────────────────────────────────────────────────────
 // LOC-SYNC-01 + TRACK-01: mapa con tracks GPX + marcadores de localizaciones.
@@ -20,7 +21,10 @@ function MapaLocalizaciones({ locs, matPorLoc = {}, recorridos = [] }) {
   const containerRef = useRef(null);
   const mapRef       = useRef(null);
   const markersRef   = useRef([]);
-  const linesRef     = useRef([]);   // polylines de recorridos
+  const linesRef     = useRef([]);
+
+  // Esperar a que Leaflet CDN haya cargado (polling cada 100 ms)
+  const leafletReady = useLeafletReady();
 
   // Estado de visibilidad de cada recorrido en el mapa (por id)
   const [visibilidad, setVisibilidad] = useState(() =>
@@ -38,10 +42,11 @@ function MapaLocalizaciones({ locs, matPorLoc = {}, recorridos = [] }) {
     });
   }, [recorridos]);
 
-  // Montar mapa UNA sola vez
+  // Montar mapa — se ejecuta cuando Leaflet ya está listo
   useEffect(() => {
+    if (!leafletReady) return;
     if (!containerRef.current) return;
-    if (typeof window.L === "undefined") return;
+    if (mapRef.current) return; // ya montado
     const L = window.L;
     delete L.Icon.Default.prototype._getIconUrl;
     L.Icon.Default.mergeOptions({ iconRetinaUrl: "", iconUrl: "", shadowUrl: "" });
@@ -63,53 +68,43 @@ function MapaLocalizaciones({ locs, matPorLoc = {}, recorridos = [] }) {
       markersRef.current = [];
       linesRef.current = [];
     };
-  }, []);
+  }, [leafletReady]);
 
-  // Actualizar polylines de tracks cuando cambian recorridos o visibilidad
+  // Actualizar polylines cuando cambian recorridos o visibilidad
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || typeof window.L === "undefined") return;
+    if (!map || !leafletReady) return;
     const L = window.L;
-
     linesRef.current.forEach(l => l.remove());
     linesRef.current = [];
-
     (recorridos || []).forEach(r => {
       if (!visibilidad[r.id]) return;
       if (!r.puntos?.length) return;
       const latLngs = r.puntos.map(p => [p[0], p[1]]);
       const line = L.polyline(latLngs, {
-        color:       r.color || "#22d3ee",
-        weight:      3,
-        opacity:     0.8,
+        color: r.color || "#22d3ee",
+        weight: 3,
+        opacity: 0.8,
         smoothFactor: 1,
-        dashArray:   null,
       }).addTo(map);
-      line.bindTooltip(r.nombre + (r.distanciaKm ? ` (${r.distanciaKm} km)` : ""), {
-        permanent: false, sticky: true,
-      });
+      line.bindTooltip(r.nombre + (r.distanciaKm ? ` (${r.distanciaKm} km)` : ""), { permanent: false, sticky: true });
       linesRef.current.push(line);
     });
-  }, [recorridos, visibilidad]);
+  }, [recorridos, visibilidad, leafletReady]);
 
   // Actualizar marcadores cuando cambian las localizaciones
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || typeof window.L === "undefined") return;
+    if (!map || !leafletReady) return;
     const L = window.L;
-
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
-
     const locsConCoords = locs.filter(l => l.lat != null && l.lng != null);
     if (!locsConCoords.length) return;
-
     const bounds = [];
-
     locsConCoords.forEach(loc => {
       const emoji = LOC_ICONS[loc.tipo] || "📌";
       const color = LOC_COLORS[loc.tipo] || "var(--text-muted)";
-
       const icon = L.divIcon({
         html: `<div style="
           width:36px;height:36px;
@@ -125,44 +120,29 @@ function MapaLocalizaciones({ locs, matPorLoc = {}, recorridos = [] }) {
         iconAnchor: [18, 36],
         popupAnchor:[0, -36],
       });
-
       const matItems = (matPorLoc[loc.id] || []);
       const matHtml = matItems.length
-        ? `<div style="margin-top:6px;font-size:11px;color:#555;max-height:80px;overflow-y:auto">
-            <strong>📦 Material:</strong><br>
-            ${matItems.map(m => `${m.nombre} × ${m.cantidad} ${m.unidad}`).join("<br>")}
-           </div>`
+        ? `<div style="margin-top:6px;font-size:11px;color:#555;max-height:80px;overflow-y:auto"><strong>📦 Material:</strong><br>${matItems.map(m => `${m.nombre} × ${m.cantidad} ${m.unidad}`).join("<br>")}</div>`
         : `<div style="margin-top:6px;font-size:11px;color:#888">Sin material asignado</div>`;
-
       const popupHtml = `
         <div style="font-family:system-ui,sans-serif;min-width:180px">
           <div style="font-weight:700;font-size:13px;margin-bottom:2px">${emoji} ${loc.nombre}</div>
           <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:${color};font-weight:600">${loc.tipo}</div>
           ${loc.descripcion ? `<div style="font-size:11px;color:#666;margin-top:4px;font-style:italic">${loc.descripcion}</div>` : ""}
           ${matHtml}
-          <a href="https://maps.google.com/?q=${loc.lat},${loc.lng}"
-             target="_blank" rel="noopener noreferrer"
-             style="
-               display:inline-block;margin-top:8px;padding:4px 10px;
-               background:#4285F4;color:#fff;border-radius:4px;
-               font-size:11px;text-decoration:none;font-weight:600;
-             ">📍 Abrir en Google Maps</a>
+          <a href="https://maps.google.com/?q=${loc.lat},${loc.lng}" target="_blank" rel="noopener noreferrer"
+             style="display:inline-block;margin-top:8px;padding:4px 10px;background:#4285F4;color:#fff;border-radius:4px;font-size:11px;text-decoration:none;font-weight:600;">📍 Abrir en Google Maps</a>
         </div>`;
-
-      const marker = L.marker([loc.lat, loc.lng], { icon })
-        .addTo(map)
-        .bindPopup(popupHtml, { maxWidth: 260 });
-
+      const marker = L.marker([loc.lat, loc.lng], { icon }).addTo(map).bindPopup(popupHtml, { maxWidth: 260 });
       markersRef.current.push(marker);
       bounds.push([loc.lat, loc.lng]);
     });
-
     if (bounds.length === 1) {
       map.setView(bounds[0], 14);
     } else if (bounds.length > 1) {
       map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
     }
-  }, [locs, matPorLoc]);
+  }, [locs, matPorLoc, leafletReady]);
 
   const locsConCoords = locs.filter(l => l.lat != null && l.lng != null);
   const locsSinCoords = locs.filter(l => l.lat == null || l.lng == null);
@@ -225,8 +205,18 @@ function MapaLocalizaciones({ locs, matPorLoc = {}, recorridos = [] }) {
           border: "1px solid var(--border)",
           overflow: "hidden",
           isolation: "isolate",
+          background: leafletReady ? undefined : "var(--surface2)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
-      />
+      >
+        {!leafletReady && (
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-dim)" }}>
+            ⏳ Cargando mapa…
+          </span>
+        )}
+      </div>
 
       {locsSinCoords.length > 0 && (
         <div style={{ marginTop:".5rem", fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--amber)" }}>

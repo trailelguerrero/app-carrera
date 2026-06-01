@@ -18,6 +18,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { toast } from "@/lib/toast";
 import { genIdNum } from "@/lib/utils";
 import { gpxFileToTrack, defaultTrackColor, TRACK_COLORS_DEFAULT } from "@/lib/gpxUtils";
+import { useLeafletReady } from "@/hooks/useLeafletReady";
 
 // ─── COMPONENTE MAPA INLINE ───────────────────────────────────────────────────
 // Muestra sólo los tracks (sin marcadores) para la vista de gestión de recorridos.
@@ -27,10 +28,14 @@ function MapaRecorridos({ recorridos }) {
   const mapRef       = useRef(null);
   const linesRef     = useRef([]);
 
-  // Montar mapa
+  // Esperar a que Leaflet CDN haya cargado
+  const leafletReady = useLeafletReady();
+
+  // Montar mapa cuando Leaflet esté listo
   useEffect(() => {
+    if (!leafletReady) return;
     if (!containerRef.current) return;
-    if (typeof window.L === "undefined") return;
+    if (mapRef.current) return; // ya montado
     const L = window.L;
 
     delete L.Icon.Default.prototype._getIconUrl;
@@ -51,12 +56,12 @@ function MapaRecorridos({ recorridos }) {
 
     mapRef.current = map;
     return () => { map.remove(); mapRef.current = null; linesRef.current = []; };
-  }, []);
+  }, [leafletReady]);
 
   // Actualizar polylines cuando cambian los recorridos
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || typeof window.L === "undefined") return;
+    if (!map || !leafletReady) return;
     const L = window.L;
 
     linesRef.current.forEach(l => l.remove());
@@ -79,7 +84,7 @@ function MapaRecorridos({ recorridos }) {
     if (bounds.length > 0) {
       map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
     }
-  }, [recorridos]);
+  }, [recorridos, leafletReady]);
 
   const activos = recorridos.filter(r => r.activo !== false && r.puntos?.length > 1).length;
 
@@ -99,8 +104,18 @@ function MapaRecorridos({ recorridos }) {
           border: "1px solid var(--border)",
           overflow: "hidden",
           isolation: "isolate",
+          background: leafletReady ? undefined : "var(--surface2)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
-      />
+      >
+        {!leafletReady && (
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-dim)" }}>
+            ⏳ Cargando mapa…
+          </span>
+        )}
+      </div>
     </div>
   );
 }
