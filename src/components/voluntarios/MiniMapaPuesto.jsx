@@ -18,6 +18,8 @@
 import { useEffect, useRef } from "react";
 import { useLeafletReady } from "@/hooks/useLeafletReady";
 import { useMapFullscreen } from "@/hooks/useMapFullscreen";
+import { useMapTiles } from "@/hooks/useMapTiles";
+import { MapControles } from "@/components/common/MapControles";
 
 export function MiniMapaPuesto({ puesto, recorridos = [] }) {
   const containerRef = useRef(null);
@@ -25,6 +27,7 @@ export function MiniMapaPuesto({ puesto, recorridos = [] }) {
   const mapRef       = useRef(null);
   const leafletReady = useLeafletReady();
   const { isFullscreen, toggleFullscreen } = useMapFullscreen(wrapperRef, mapRef);
+  const { tileMode, toggleTile, initTileLayer, TILE_LAYERS } = useMapTiles(mapRef);
 
   // Montar mapa cuando Leaflet esté disponible
   useEffect(() => {
@@ -69,10 +72,12 @@ export function MiniMapaPuesto({ puesto, recorridos = [] }) {
       dragging:         true,
     });
 
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a>',
-      maxZoom: 19,
+    const cfg = TILE_LAYERS["map"];
+    const tileLayer = L.tileLayer(cfg.url, {
+      attribution: cfg.attribution,
+      maxZoom: cfg.maxZoom,
     }).addTo(map);
+    initTileLayer(tileLayer);
 
     // Marcador del puesto
     L.marker([puesto.lat, puesto.lng], { icon: pinIcon })
@@ -131,7 +136,7 @@ export function MiniMapaPuesto({ puesto, recorridos = [] }) {
         } : {}),
       }}
     >
-      {/* Cabecera con botón fullscreen */}
+      {/* Cabecera */}
       <div style={{
         display: "flex", justifyContent: "space-between", alignItems: "center",
         marginBottom: ".4rem",
@@ -143,48 +148,41 @@ export function MiniMapaPuesto({ puesto, recorridos = [] }) {
         }}>
           📍 Ubicación del puesto
         </span>
-        <button
-          onClick={toggleFullscreen}
-          title={isFullscreen ? "Minimizar mapa" : "Maximizar mapa"}
-          style={{
-            display: "flex", alignItems: "center", justifyContent: "center",
-            width: 28, height: 28, flexShrink: 0,
-            background: "rgba(30,50,80,.4)",
-            border: "1px solid rgba(30,50,80,.6)",
-            borderRadius: "6px", cursor: "pointer",
-            color: "var(--text-muted, #94a3b8)", fontSize: ".8rem",
-          }}
-        >
-          {isFullscreen ? "⊠" : "⊞"}
-        </button>
       </div>
 
-      {/* Mini-mapa */}
-      <div
-        ref={containerRef}
-        style={{
-          height:       isFullscreen ? "calc(100vh - 160px)" : "240px",
-          flex:         isFullscreen ? "1" : undefined,
-          borderRadius: "10px",
-          overflow:     "hidden",
-          border:       "1px solid var(--border, rgba(30,50,80,.3))",
-          isolation:    "isolate",
-          background:   leafletReady ? undefined : "var(--surface2, #1a2540)",
-          display:      "flex",
-          alignItems:   "center",
-          justifyContent: "center",
-          transition:   "height .2s ease",
-        }}
-      >
-        {!leafletReady && (
-          <span style={{
-            fontFamily: "var(--font-mono, monospace)",
-            fontSize:   ".72rem",
-            color:      "var(--text-dim, #64748b)",
-          }}>
-            ⏳ Cargando mapa…
-          </span>
-        )}
+      {/* Mini-mapa con controles superpuestos */}
+      <div style={{ position: "relative", flex: isFullscreen ? "1" : undefined }}>
+        <MapControles
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={toggleFullscreen}
+          tileMode={tileMode}
+          onToggleTile={toggleTile}
+        />
+        <div
+          ref={containerRef}
+          style={{
+            height:       isFullscreen ? "calc(100vh - 160px)" : "240px",
+            borderRadius: "10px",
+            overflow:     "hidden",
+            border:       "1px solid var(--border, rgba(30,50,80,.3))",
+            isolation:    "isolate",
+            background:   leafletReady ? undefined : "var(--surface2, #1a2540)",
+            display:      "flex",
+            alignItems:   "center",
+            justifyContent: "center",
+            transition:   "height .2s ease",
+          }}
+        >
+          {!leafletReady && (
+            <span style={{
+              fontFamily: "var(--font-mono, monospace)",
+              fontSize:   ".72rem",
+              color:      "var(--text-dim, #64748b)",
+            }}>
+              ⏳ Cargando mapa…
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Botones de navegación */}

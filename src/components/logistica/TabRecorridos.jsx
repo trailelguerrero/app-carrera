@@ -20,6 +20,8 @@ import { genIdNum } from "@/lib/utils";
 import { gpxFileToTrack, defaultTrackColor, TRACK_COLORS_DEFAULT } from "@/lib/gpxUtils";
 import { useLeafletReady } from "@/hooks/useLeafletReady";
 import { useMapFullscreen } from "@/hooks/useMapFullscreen";
+import { useMapTiles } from "@/hooks/useMapTiles";
+import { MapControles } from "@/components/common/MapControles";
 
 // ─── COMPONENTE MAPA INLINE ───────────────────────────────────────────────────
 // Muestra sólo los tracks (sin marcadores) para la vista de gestión de recorridos.
@@ -32,6 +34,7 @@ function MapaRecorridos({ recorridos }) {
 
   const leafletReady = useLeafletReady();
   const { isFullscreen, toggleFullscreen } = useMapFullscreen(wrapperRef, mapRef);
+  const { tileMode, toggleTile, initTileLayer, TILE_LAYERS } = useMapTiles(mapRef);
 
   // Montar mapa cuando Leaflet esté listo
   useEffect(() => {
@@ -51,10 +54,12 @@ function MapaRecorridos({ recorridos }) {
       tap: true,
     });
 
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 19,
+    const cfg = TILE_LAYERS["map"];
+    const tileLayer = L.tileLayer(cfg.url, {
+      attribution: cfg.attribution,
+      maxZoom: cfg.maxZoom,
     }).addTo(map);
+    initTileLayer(tileLayer);
 
     mapRef.current = map;
     return () => { map.remove(); mapRef.current = null; linesRef.current = []; };
@@ -105,48 +110,38 @@ function MapaRecorridos({ recorridos }) {
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ".5rem", flexWrap: "wrap", gap: ".4rem" }}>
         <div className="ct">🗺️ Vista de recorridos</div>
-        <div style={{ display: "flex", alignItems: "center", gap: ".5rem" }}>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)" }}>
-            {activos} track{activos !== 1 ? "s" : ""} visible{activos !== 1 ? "s" : ""}
-          </span>
-          <button
-            onClick={toggleFullscreen}
-            title={isFullscreen ? "Minimizar mapa" : "Maximizar mapa"}
-            style={{
-              display: "flex", alignItems: "center", justifyContent: "center",
-              width: 30, height: 30, flexShrink: 0,
-              background: "var(--surface2)", border: "1px solid var(--border)",
-              borderRadius: "var(--r-sm)", cursor: "pointer",
-              color: "var(--text-muted)", fontSize: "var(--fs-sm)",
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = "var(--surface3)"; e.currentTarget.style.color = "var(--text)"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "var(--surface2)"; e.currentTarget.style.color = "var(--text-muted)"; }}
-          >
-            {isFullscreen ? "⊠" : "⊞"}
-          </button>
-        </div>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)" }}>
+          {activos} track{activos !== 1 ? "s" : ""} visible{activos !== 1 ? "s" : ""}
+        </span>
       </div>
-      <div
-        ref={containerRef}
-        style={{
-          height: isFullscreen ? "calc(100vh - 70px)" : "320px",
-          flex: isFullscreen ? "1" : undefined,
-          borderRadius: "var(--r-md)",
-          border: "1px solid var(--border)",
-          overflow: "hidden",
-          isolation: "isolate",
-          background: leafletReady ? undefined : "var(--surface2)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          transition: "height .2s ease",
-        }}
-      >
-        {!leafletReady && (
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-dim)" }}>
-            ⏳ Cargando mapa…
-          </span>
-        )}
+      <div style={{ position: "relative", flex: isFullscreen ? "1" : undefined }}>
+        <MapControles
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={toggleFullscreen}
+          tileMode={tileMode}
+          onToggleTile={toggleTile}
+        />
+        <div
+          ref={containerRef}
+          style={{
+            height: isFullscreen ? "calc(100vh - 70px)" : "320px",
+            borderRadius: "var(--r-md)",
+            border: "1px solid var(--border)",
+            overflow: "hidden",
+            isolation: "isolate",
+            background: leafletReady ? undefined : "var(--surface2)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            transition: "height .2s ease",
+          }}
+        >
+          {!leafletReady && (
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-dim)" }}>
+              ⏳ Cargando mapa…
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

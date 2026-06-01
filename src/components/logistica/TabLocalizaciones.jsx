@@ -13,6 +13,8 @@ import { blockCls as cls } from "@/lib/blockStyles";
 import { useData } from "@/hooks/useData";
 import { useLeafletReady } from "@/hooks/useLeafletReady";
 import { useMapFullscreen } from "@/hooks/useMapFullscreen";
+import { useMapTiles } from "@/hooks/useMapTiles";
+import { MapControles } from "@/components/common/MapControles";
 
 // ─── MAPA LEAFLET ─────────────────────────────────────────────────────────────
 // LOC-SYNC-01 + TRACK-01: mapa con tracks GPX + marcadores de localizaciones.
@@ -27,6 +29,7 @@ function MapaLocalizaciones({ locs, matPorLoc = {}, recorridos = [] }) {
 
   const leafletReady = useLeafletReady();
   const { isFullscreen, toggleFullscreen } = useMapFullscreen(wrapperRef, mapRef);
+  const { tileMode, toggleTile, initTileLayer, TILE_LAYERS } = useMapTiles(mapRef);
 
   // Estado de visibilidad de cada recorrido en el mapa (por id)
   const [visibilidad, setVisibilidad] = useState(() =>
@@ -59,10 +62,12 @@ function MapaLocalizaciones({ locs, matPorLoc = {}, recorridos = [] }) {
       scrollWheelZoom: true,
       tap: true,
     });
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 19,
+    const cfg = TILE_LAYERS["map"];
+    const tileLayer = L.tileLayer(cfg.url, {
+      attribution: cfg.attribution,
+      maxZoom: cfg.maxZoom,
     }).addTo(map);
+    initTileLayer(tileLayer);
     mapRef.current = map;
     return () => {
       map.remove();
@@ -172,22 +177,6 @@ function MapaLocalizaciones({ locs, matPorLoc = {}, recorridos = [] }) {
             {locsConCoords.length} ubicaciones
             {locsSinCoords.length > 0 && <span style={{ color:"var(--amber)", marginLeft:".4rem" }}>· {locsSinCoords.length} sin coordenadas</span>}
           </div>
-          <button
-            onClick={toggleFullscreen}
-            title={isFullscreen ? "Minimizar mapa" : "Maximizar mapa"}
-            style={{
-              display: "flex", alignItems: "center", justifyContent: "center",
-              width: 30, height: 30, flexShrink: 0,
-              background: "var(--surface2)", border: "1px solid var(--border)",
-              borderRadius: "var(--r-sm)", cursor: "pointer",
-              color: "var(--text-muted)", fontSize: "var(--fs-sm)",
-              transition: "all .15s",
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = "var(--surface3)"; e.currentTarget.style.color = "var(--text)"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "var(--surface2)"; e.currentTarget.style.color = "var(--text-muted)"; }}
-          >
-            {isFullscreen ? "⊠" : "⊞"}
-          </button>
         </div>
       </div>
 
@@ -228,28 +217,35 @@ function MapaLocalizaciones({ locs, matPorLoc = {}, recorridos = [] }) {
         </div>
       )}
 
-      {/* Contenedor del mapa */}
-      <div
-        ref={containerRef}
-        style={{
-          height: isFullscreen ? "calc(100vh - 110px)" : "420px",
-          flex: isFullscreen ? "1" : undefined,
-          borderRadius: "var(--r-md)",
-          border: "1px solid var(--border)",
-          overflow: "hidden",
-          isolation: "isolate",
-          background: leafletReady ? undefined : "var(--surface2)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          transition: "height .2s ease",
-        }}
-      >
-        {!leafletReady && (
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-dim)" }}>
-            ⏳ Cargando mapa…
-          </span>
-        )}
+      {/* Contenedor del mapa — position:relative para que MapControles se posicione sobre él */}
+      <div style={{ position: "relative", flex: isFullscreen ? "1" : undefined }}>
+        <MapControles
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={toggleFullscreen}
+          tileMode={tileMode}
+          onToggleTile={toggleTile}
+        />
+        <div
+          ref={containerRef}
+          style={{
+            height: isFullscreen ? "calc(100vh - 110px)" : "420px",
+            borderRadius: "var(--r-md)",
+            border: "1px solid var(--border)",
+            overflow: "hidden",
+            isolation: "isolate",
+            background: leafletReady ? undefined : "var(--surface2)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            transition: "height .2s ease",
+          }}
+        >
+          {!leafletReady && (
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-dim)" }}>
+              ⏳ Cargando mapa…
+            </span>
+          )}
+        </div>
       </div>
 
       {locsSinCoords.length > 0 && (
