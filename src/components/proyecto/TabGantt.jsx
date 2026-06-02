@@ -6,6 +6,7 @@ import { useState, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { diasHasta, fmt, AREAS, EST_CFG, PRI_CFG, getArea } from "./proyectoConstants";
+import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 
 export function TabGantt({ tareas, hitos, equipo, setModal, setFicha, setFiltroArea, setTabParent, eventFecha }) {
   const [filtroGantt, setFiltroGantt] = useState("todas");
@@ -13,7 +14,8 @@ export function TabGantt({ tareas, hitos, equipo, setModal, setFicha, setFiltroA
 
   // ── Rango del Gantt: memoizado — solo recalcula si cambia eventFecha ──────────
   const { ganttStart, ganttEnd, months, totalDays, pct, todayPct } = useMemo(() => {
-    const eventoDate = eventFecha ? new Date(eventFecha) : new Date("2026-08-29");
+    // MEJ-21: fallback via EVENT_CONFIG_DEFAULT — sin fechas hardcodeadas
+    const eventoDate = eventFecha ? new Date(eventFecha) : new Date(EVENT_CONFIG_DEFAULT.fecha);
     const start = new Date(eventoDate); start.setMonth(start.getMonth() - 6); start.setDate(1);
     const end   = new Date(eventoDate); end.setMonth(end.getMonth() + 1);     end.setDate(28);
 

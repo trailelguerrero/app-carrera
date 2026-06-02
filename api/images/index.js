@@ -8,6 +8,8 @@
  * fix: STOR-CRIT-01 — Migrar imágenes de camisetas de base64/localStorage a Vercel Blob
  */
 import { put, del } from '@vercel/blob';
+import { neon } from '@neondatabase/serverless'; // MEJ-22
+import { checkRateLimit } from '../lib/rateLimiter.js'; // MEJ-22
 
 const auth = (req, res) => {
   const key = req.headers['x-api-key'];
@@ -23,6 +25,12 @@ export default async function handler(req, res) {
 
   // POST — subir imagen
   if (req.method === 'POST') {
+    // MEJ-22: rate limit — 10 uploads/min por IP
+    const sql = neon(process.env.DATABASE_URL);
+    const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+    if (await checkRateLimit(sql, ip, 'images-upload', { max: 10, windowMs: 60 * 1000 })) {
+      return res.status(429).json({ error: 'Demasiados uploads. Inténtalo en un momento.' });
+    }
     const { base64, filename, mimeType = 'image/jpeg' } = req.body || {};
     if (!base64 || !filename) {
       return res.status(400).json({ error: 'Faltan base64 o filename' });

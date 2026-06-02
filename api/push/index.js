@@ -17,16 +17,27 @@ import { neon } from '@neondatabase/serverless';
 import { createSign } from 'crypto';
 import { verifySessionToken, readSessionCookie } from '../lib/session.js';
 import { logError, logWarn, logInfo } from '../lib/logger.js';
+import { checkRateLimit } from '../lib/rateLimiter.js'; // MEJ-22
 
 const sql = neon(process.env.DATABASE_URL);
 
 // ── Auth helpers ──────────────────────────────────────────────────────────
 
-const setCors = (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+// MEJ-20 SEC-M1: igualdad EXACTA de origen (wildcard eliminado)
+function setCors(req, res) {
+  const origin = req.headers.origin || '';
+  const allowed = [
+    process.env.ALLOWED_ORIGIN || '',
+    'http://localhost:5173',
+    'http://localhost:4173',
+  ].filter(Boolean);
+  if (origin && allowed.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+  }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-api-key');
-};
+}
 
 // PWA-11: push/send requiere sesión del panel (cookie firmada) en lugar de
 // x-api-key en el cliente. La API key era VITE_* → expuesta en el bundle JS.
@@ -63,6 +74,12 @@ async function encryptPayload() {
 // ── Handlers ──────────────────────────────────────────────────────────────
 
 async function handleSubscribe(req, res) {
+  // MEJ-22: rate limit — 5 suscripciones/min por IP
+  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+  if (await checkRateLimit(sql, ip, 'push-subscribe', { max: 5, windowMs: 60 * 1000 })) {
+    return res.status(429).json({ error: 'Demasiadas suscripciones. Inténtalo en un momento.' });
+  }
+
   const { endpoint, keys } = req.body || {};
   if (!endpoint || !keys?.p256dh || !keys?.auth) {
     return res.status(400).json({ error: 'Suscripción inválida — faltan campos obligatorios' });

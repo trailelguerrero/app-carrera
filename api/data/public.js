@@ -54,7 +54,8 @@ function setCorsHeaders(req, res) {
     'http://localhost:5173',
     'http://localhost:4173',
   ].filter(Boolean);
-  if (origin && allowed.some(o => origin.startsWith(o))) {
+  // MEJ-20 SEC-M1: igualdad EXACTA — startsWith permitía bypass por prefijo/subdominio
+  if (origin && allowed.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
   }
@@ -187,8 +188,17 @@ export default async function handler(req, res) {
         }
       }
 
-      // Comprobar duplicado por email o teléfono
-      const isDuplicate = current.some(v =>
+      // MEJ-22: operación atómica — elimina race condition en check de duplicados
+      // Usamos FOR UPDATE para bloquear la fila durante la verificación + escritura
+      const lockResult = await sql`
+        SELECT value FROM collections WHERE key = ${collection} FOR UPDATE
+      `;
+      const lockedCurrent = lockResult.length > 0 && Array.isArray(lockResult[0].value)
+        ? lockResult[0].value
+        : current; // fallback al valor leído antes si no hay fila aún
+
+      // Comprobar duplicado por email o teléfono (sobre datos bloqueados)
+      const isDuplicate = lockedCurrent.some(v =>
         (sanitized.email    && v.email    === sanitized.email)    ||
         (sanitized.telefono && v.telefono === sanitized.telefono)
       );
@@ -196,7 +206,7 @@ export default async function handler(req, res) {
         return res.status(409).json({ error: 'Ya existe un registro con ese email o teléfono' });
       }
 
-      const updated = [...current, sanitized];
+      const updated = [...lockedCurrent, sanitized];
       const jsonValue = JSON.stringify(updated);
 
       await sql`

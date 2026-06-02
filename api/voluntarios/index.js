@@ -80,7 +80,8 @@ function setCorsHeaders(req, res) {
     'http://localhost:5173',
     'http://localhost:4173',
   ].filter(Boolean);
-  if (origin && allowed.some(o => origin.startsWith(o))) {
+  // MEJ-20 SEC-M1: igualdad EXACTA — startsWith permitía bypass por prefijo/subdominio
+  if (origin && allowed.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
   }

@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { logError, requestContext } from '../lib/logger.js';
+import { checkRateLimit } from '../lib/rateLimiter.js'; // MEJ-22
 
 const auth = (req, res) => {
   const key = req.headers['x-api-key'];
@@ -44,6 +45,11 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
+      // MEJ-22: rate limit — 30 req/min por IP
+      const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+      if (await checkRateLimit(sql, ip, 'budget-log-write', { max: 30, windowMs: 60 * 1000 })) {
+        return res.status(429).json({ error: 'Demasiadas peticiones. Inténtalo en un momento.' });
+      }
       const { conceptoId, concepto, campo, valorAntes, valorNuevo, tipo } = req.body;
       if (!concepto || !campo) return res.status(400).json({ error: 'Faltan campos' });
       await sql`
@@ -55,6 +61,11 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'DELETE') {
+      // MEJ-22: rate limit — 30 req/min por IP (mismo scope que POST)
+      const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+      if (await checkRateLimit(sql, ip, 'budget-log-write', { max: 30, windowMs: 60 * 1000 })) {
+        return res.status(429).json({ error: 'Demasiadas peticiones. Inténtalo en un momento.' });
+      }
       await sql`DELETE FROM budget_log`;
       return res.status(200).json({ success: true });
     }

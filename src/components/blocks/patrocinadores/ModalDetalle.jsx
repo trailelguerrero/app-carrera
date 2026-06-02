@@ -5,6 +5,7 @@ import { fmtEur } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { CONTRAPRESTACIONES_TIPO, ESTADOS, ESTADO_CFG } from "./constants";
+import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import DocManager from "./DocManager";
 import LogContactos from "./LogContactos";
 
@@ -20,7 +21,8 @@ const getCfg = (nivel) => NIVEL_CFG[nivel] || NIVEL_CFG.Colaborador;
 
 function generarInformePDF(pat, config = {}) {
   const evento = config.nombre || "Trail El Guerrero 2026";
-  const fecha  = config.fecha  || "2026-08-29";
+  // MEJ-21: fallback via EVENT_CONFIG_DEFAULT
+  const fecha  = config.fecha  || EVENT_CONFIG_DEFAULT.fecha;
   const lugar  = config.lugar  || "Candeleda, Ávila";
   const org    = config.organizador || "Organización Trail El Guerrero";
 
@@ -182,7 +184,8 @@ function InformePatrocinador({ pat, cfg, config = {} }) {
   const contEntregadas = (pat.contraprestaciones || []).filter(c => c.estado === "entregado");
   const contPendientes = (pat.contraprestaciones || []).filter(c => c.estado === "pendiente");
   const evento = config.nombre || "Trail El Guerrero 2026";
-  const fecha  = config.fecha  || "2026-08-29";
+  // MEJ-21: fallback via EVENT_CONFIG_DEFAULT
+  const fecha  = config.fecha  || EVENT_CONFIG_DEFAULT.fecha;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: ".75rem" }}>

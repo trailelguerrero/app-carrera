@@ -1,6 +1,7 @@
 import { neon }     from '@neondatabase/serverless';
 import { put, del } from '@vercel/blob';
 import { logError, logWarn, requestContext } from '../lib/logger.js';
+import { checkRateLimit } from '../lib/rateLimiter.js'; // MEJ-22
 
 const auth = (req, res) => {
   const key = req.headers['x-api-key'];
@@ -86,6 +87,11 @@ export default async function handler(req, res) {
 
     // ── POST — subir archivo a Vercel Blob, guardar URL en Neon ────────────
     if (req.method === 'POST') {
+      // MEJ-22: rate limit — 20 uploads/min por IP
+      const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+      if (await checkRateLimit(sql, ip, 'documents-upload', { max: 20, windowMs: 60 * 1000 })) {
+        return res.status(429).json({ error: 'Demasiados uploads. Inténtalo en un momento.' });
+      }
       const { id, nombre, nombreDisplay, emisor, categoria,
               subcategoria, nota, estado, fechaVencimiento,
               size, tipo, data } = req.body;

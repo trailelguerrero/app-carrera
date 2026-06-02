@@ -84,6 +84,9 @@ export default function DiaCarrera({ onClose }) {
   const confirmados = vols.filter(v => v.estado === "confirmado");
   const presentes   = vols.filter(v => v.enPuesto).length; // INC-01: campo canónico enPuesto
 
+  // MEJ-20: tlDone definida ANTES del useMemo que la usa — evita TDZ con const
+  const tlDone = t => t.estado === "completado" || t.done;
+
   // useMemo DEBE estar antes del retorno condicional (reglas de Hooks)
   const proxima = useMemo(() =>
     tl.find(t => !tlDone(t) && t.hora >= hora) || null
@@ -176,7 +179,6 @@ export default function DiaCarrera({ onClose }) {
     }, 1000);
   };
 
-  const tlDone = t => t.estado==="completado" || t.done;
   const tlCompletadas = tl.filter(tlDone).length;
   const progresoDia   = tl.length > 0 ? Math.round(tlCompletadas / tl.length * 100) : 0;
   const proximaSig    = tl.find(t => !tlDone(t));
