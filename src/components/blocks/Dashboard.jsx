@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { fmtEur } from "@/lib/utils";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys"; // FIX-DEP: migrado desde alias deprecated
@@ -77,6 +77,8 @@ export default function Dashboard() {
     () => localStorage.getItem(SK_UI_DASH_ALERTAS_OPEN) === "1"
   ); // avisos informativos: colapsados por defecto, persiste si el usuario los abre
   const [saludExpandida, setSaludExpandida] = useState(false); // colapsada por defecto
+  // MEJ-16: selector de periodo para Próximos Hitos
+  const [periodoHitos, setPeriodoHitos] = useState("30d");
   // Modo Evento forzado para pruebas — se resetea al cerrar la pestaña
   const [modoEventoForzado, setModoEventoForzado] = useState(
     () => sessionStorage.getItem(SK_UI_MODO_EVENTO_FORZADO) === "1"
@@ -300,6 +302,17 @@ export default function Dashboard() {
             onClick={() => navigate("logistica")} />
         </div>
 
+        {/* MEJ-16: timestamp de lastUpdated debajo del grid de KPIs */}
+        {lastUpdated && (
+          <div style={{
+            fontFamily: "var(--font-mono)", fontSize: "var(--fs-2xs)",
+            color: "var(--text-dim)", textAlign: "right",
+            marginTop: "-.4rem", marginBottom: ".75rem",
+          }}>
+            Datos actualizados a las {lastUpdated.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+          </div>
+        )}
+
         {/* ── SPRINT 2.2: Mini-desglose económico ── */}
         {(d.totalIngresos > 0 || d.totalCostesFijos > 0) && (
           <MiniDesglose
@@ -318,38 +331,88 @@ export default function Dashboard() {
         <SeccionCharts d={d} fmtEur={fmtEur} TOOLTIP_STYLE={TOOLTIP_STYLE} navigate={navigate} moduleStatus={moduleStatus} />
 
         {/* ── PRÓXIMOS HITOS ── */}
-        {d.hitosProximos.length > 0 && (
-          <div className="card mb">
-            <div className="flex-between mb-sm">
-              <div className="card-title" style={{ marginBottom: 0 }}>📅 Próximos Hitos</div>
-              <button className="btn btn-ghost btn-sm" onClick={() => navigate("proyecto")}>Ver todos →</button>
-            </div>
-            {d.hitosProximos.map(h => {
-              const dias = Math.ceil((new Date(h.fecha) - new Date()) / 86400000);
-              const c = dias < 0 ? "#ff4444" : dias === 0 ? "var(--red)" : dias <= 7 ? "var(--orange)" : dias <= 30 ? "var(--amber)" : "var(--green)";
-              const label = dias < 0 ? `Vencido (${Math.abs(dias)}d)` : dias === 0 ? "HOY" : `${dias}d`;
-              return (
-                <div key={h.id} className="dash-hito dash-hito-clickable"
-                  onClick={() => navigate("proyecto")}>
-                  <div className="flex-center gap-sm" style={{ flex: 1, minWidth: 0 }}>
-                    <div className="dash-hito-gem" style={{ background: h.completado ? "#34d399" : h.critico ? "#f87171" : "#22d3ee" }} />
-                    {h.critico && !h.completado && <span className="xs">⚡</span>}
-                    <span className="sm bold" style={{
-                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                      textDecoration: h.completado ? "line-through" : "none", opacity: h.completado ? 0.5 : 1
-                    }}>
-                      {h.nombre}
-                    </span>
+        {(() => {
+          // MEJ-16: filtrado por periodo — useMemo no aplica aquí (es un IIFE en render),
+          // pero el array d.hitosProximos ya viene memoizado desde useDashboardKpis.
+          const ahora = new Date();
+          const hitosFiltrados = d.hitosProximos.filter(h => {
+            const dias = Math.ceil((new Date(h.fecha) - ahora) / 86400000);
+            if (periodoHitos === "hoy")  return dias === 0;
+            if (periodoHitos === "7d")   return dias >= 0 && dias <= 7;
+            if (periodoHitos === "30d")  return dias >= 0 && dias <= 30;
+            return true; // "todo"
+          });
+          if (d.hitosProximos.length === 0) return null;
+          return (
+            <div className="card mb">
+              <div className="flex-between mb-sm">
+                <div className="card-title" style={{ marginBottom: 0 }}>📅 Próximos Hitos</div>
+                <div style={{ display: "flex", alignItems: "center", gap: ".5rem" }}>
+                  {/* Selector de periodo MEJ-16 */}
+                  <div style={{ display: "flex", gap: ".2rem" }}>
+                    {[
+                      { key: "hoy",  label: "Hoy"  },
+                      { key: "7d",   label: "7d"   },
+                      { key: "30d",  label: "30d"  },
+                      { key: "todo", label: "Todo" },
+                    ].map(({ key, label }) => (
+                      <button
+                        key={key}
+                        onClick={() => setPeriodoHitos(key)}
+                        style={{
+                          fontFamily:  "var(--font-mono)",
+                          fontSize:    "var(--fs-xs)",
+                          padding:     ".15rem .45rem",
+                          borderRadius: 4,
+                          border:      periodoHitos === key ? "1px solid var(--cyan)" : "1px solid var(--border)",
+                          background:  periodoHitos === key ? "rgba(34,211,238,.12)" : "transparent",
+                          color:       periodoHitos === key ? "var(--cyan)" : "var(--text-dim)",
+                          cursor:      "pointer",
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
                   </div>
-                  <div className="flex-center gap-sm" style={{ flexShrink: 0 }}>
-                    <span className="mono xs muted">{fmtD(h.fecha)}</span>
-                    <span className="mono xs bold" style={{ color: c, minWidth: 40, textAlign: "right" }}>{label}</span>
-                  </div>
+                  <button className="btn btn-ghost btn-sm" onClick={() => navigate("proyecto")}>Ver todos →</button>
                 </div>
-              );
-            })}
-          </div>
-        )}
+              </div>
+              {hitosFiltrados.length === 0 ? (
+                <div style={{
+                  fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+                  color: "var(--text-dim)", padding: ".5rem 0",
+                }}>
+                  Sin hitos en este periodo.
+                </div>
+              ) : (
+                hitosFiltrados.map(h => {
+                  const dias = Math.ceil((new Date(h.fecha) - ahora) / 86400000);
+                  const c = dias < 0 ? "#ff4444" : dias === 0 ? "var(--red)" : dias <= 7 ? "var(--orange)" : dias <= 30 ? "var(--amber)" : "var(--green)";
+                  const label = dias < 0 ? `Vencido (${Math.abs(dias)}d)` : dias === 0 ? "HOY" : `${dias}d`;
+                  return (
+                    <div key={h.id} className="dash-hito dash-hito-clickable"
+                      onClick={() => navigate("proyecto")}>
+                      <div className="flex-center gap-sm" style={{ flex: 1, minWidth: 0 }}>
+                        <div className="dash-hito-gem" style={{ background: h.completado ? "#34d399" : h.critico ? "#f87171" : "#22d3ee" }} />
+                        {h.critico && !h.completado && <span className="xs">⚡</span>}
+                        <span className="sm bold" style={{
+                          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                          textDecoration: h.completado ? "line-through" : "none", opacity: h.completado ? 0.5 : 1
+                        }}>
+                          {h.nombre}
+                        </span>
+                      </div>
+                      <div className="flex-center gap-sm" style={{ flexShrink: 0 }}>
+                        <span className="mono xs muted">{fmtD(h.fecha)}</span>
+                        <span className="mono xs bold" style={{ color: c, minWidth: 40, textAlign: "right" }}>{label}</span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          );
+        })()}
 
         {/* ── WIDGET INSCRITOS — al final, contexto correcto ── */}
         <WidgetInscritos tramos={d.tramos} inscritos={d.rawInscritos}

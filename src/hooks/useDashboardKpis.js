@@ -294,7 +294,7 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
     const tareasBloqueadas  = tareas.filter(t => t.estado === "bloqueado").length;
     const tareasVencidas    = tareas.filter(t => t.estado !== "completado" && t.fechaLimite && new Date(t.fechaLimite) < TODAY).length;
     const progresoGlobal    = tareasTotal > 0 ? Math.round(tareasCompletadas / tareasTotal * 100) : 0;
-    const hitosProximos     = hitos.filter(h => !h.completado && h.fecha).sort((a, b) => a.fecha.localeCompare(b.fecha)).slice(0, 5);
+    const hitosProximos     = hitos.filter(h => !h.completado && h.fecha).sort((a, b) => a.fecha.localeCompare(b.fecha)).slice(0, 20);
     return { tareas, tareasTotal, tareasCompletadas, tareasBloqueadas, tareasVencidas, progresoGlobal, hitosProximos };
   }, [rawTareas, rawHitos]);
 
