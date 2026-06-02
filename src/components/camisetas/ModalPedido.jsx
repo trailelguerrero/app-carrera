@@ -3,6 +3,7 @@
  * Modal crear/editar pedido de camisetas.
  */
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useModalClose } from "@/hooks/useModalClose";
 import { genIdNum, fmtEur2 } from "@/lib/utils";
 import { blockCls as cls } from "@/lib/blockStyles";
@@ -35,7 +36,7 @@ export function ModalPedido({
   const emailVacio  = !form.email || !form.email.trim();
   const emailValido = emailVacio || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim());
   const puedeGuardar   = valido && telefonoValido && emailValido;
-  return (
+  return createPortal(
     <div className={`modal-backdrop${mpedClosing ? " modal-backdrop-closing" : ""}`} onClick={e=>e.target===e.currentTarget&&mpedHandleClose()}>
       <div className={`modal modal-ficha${mpedClosing ? " modal-closing" : ""}`} style={{maxWidth:540}}>
         <div className="modal-header"><span className="modal-title">{esEdit?"✏️ Editar pedido":"👕 Nuevo pedido de camiseta"}</span><button className="btn btn-ghost btn-sm" onClick={mpedHandleClose} aria-label="Cerrar">✕</button></div>
@@ -127,7 +128,8 @@ export function ModalPedido({
         </div>
         <div className="modal-footer"><button className="btn btn-ghost" onClick={mpedHandleClose}>Cancelar</button><button className="btn btn-primary" onClick={()=>{ if(puedeGuardar) onSave(form); else setIntentoGuardar(true); }} style={{opacity:puedeGuardar?1:.65}}>{esEdit?"Guardar cambios":"Crear pedido"}</button></div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

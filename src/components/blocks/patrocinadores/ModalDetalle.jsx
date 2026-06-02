@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useModalClose } from "@/hooks/useModalClose";
 import { fmtEur } from "@/lib/utils";
 import { toast } from "@/lib/toast";
@@ -280,7 +281,7 @@ export default function ModalDetalle({ pat, onClose, onEditar, onDelete, updateC
   const especieItems = pat.especieItems || [];
   const esPatEspecie = pat.nivel === "Especie" || pat.especie > 0;
 
-  return (
+  return createPortal(
     <div className={`modal-backdrop${detClosing ? " modal-backdrop-closing" : ""}`} onClick={e => e.target === e.currentTarget && detHandleClose()}>
       <div className={`modal modal-ficha${detClosing ? " modal-closing" : ""}`} style={{ maxWidth: 560 }}>
         <div style={{ borderBottom: `2px solid ${cfg.color}33` }}>
@@ -609,6 +610,7 @@ export default function ModalDetalle({ pat, onClose, onEditar, onDelete, updateC
           <button className="btn btn-ghost" onClick={onClose}>Cerrar</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

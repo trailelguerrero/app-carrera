@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useData } from "@/hooks/useData";
 import { Tooltip, TooltipIcon } from "../common/Tooltip";
 import { DISTANCIAS, DISTANCIA_COLORS, DISTANCIA_LABELS } from "../../constants/budgetConstants";
@@ -1011,7 +1012,7 @@ export const TabInscripciones = ({
 
 
         {/* Modal editar/crear código */}
-        {editCodigo && (
+        {editCodigo && createPortal(
           <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setEditCodigo(null)}>
             <div className="modal" style={{maxWidth:420}}>
               <div className="modal-header">
@@ -1091,11 +1092,10 @@ export const TabInscripciones = ({
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
-
-        {/* Confirmar borrado de código */}
-        {delCodigo && (
+        {delCodigo && createPortal(
           <div className="modal-backdrop" style={{zIndex:200}}
             onClick={e=>e.target===e.currentTarget&&setDelCodigo(null)}>
             <div className="modal" style={{maxWidth:320,textAlign:"center"}}>
@@ -1116,7 +1116,8 @@ export const TabInscripciones = ({
                 }}>Eliminar</button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
 

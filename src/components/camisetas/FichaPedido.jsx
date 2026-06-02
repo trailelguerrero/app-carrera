@@ -3,6 +3,7 @@
  * Modal de detalle/ficha de un pedido de camisetas.
  */
 import { useModalClose } from "@/hooks/useModalClose";
+import { createPortal } from "react-dom";
 import { fmtEur2 } from "@/lib/utils";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { TC, EP, EE, ESTADOS_PAGO, ESTADOS_ENTREGA, estadoCombinado, calcPedido } from "./camisetasConstants";
@@ -15,7 +16,7 @@ export function FichaPedido({ pedido:p, coste, onClose, onEditar, onEliminar, up
       <span style={{fontSize:"var(--fs-base)",fontWeight:600,textAlign:"right",color:color||"var(--text)"}}>{value}</span>
     </div>
   );
-  return (
+  return createPortal(
     <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal modal-ficha" style={{maxWidth:500}}>
         <div style={{borderTop:"3px solid var(--primary)",borderRadius:"16px 16px 0 0"}}>
@@ -82,8 +83,8 @@ export function FichaPedido({ pedido:p, coste, onClose, onEditar, onEliminar, up
           <div style={{display:"flex",gap:".4rem"}}><button className="btn btn-ghost" onClick={onClose}>Cerrar</button><button className="btn btn-primary" onClick={onEditar}>✏️ Editar</button></div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
-
 // ─── MODAL CREAR/EDITAR ───────────────────────────────────────────────────────

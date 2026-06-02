@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { DISTANCIAS, DISTANCIA_COLORS, DISTANCIA_LABELS } from "../../constants/budgetConstants";
 import { NumInput } from "./common/NumInput";
 import { Toggle }   from "./common/Toggle";
@@ -71,7 +72,7 @@ export function ModalEditarConcepto({ concepto: c, totalInscritos, onSave, onClo
     </label>
   );
 
-  return (
+  return createPortal(
     <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal" style={{ maxWidth:500 }}>
         <div className="modal-header">
@@ -262,6 +263,7 @@ export function ModalEditarConcepto({ concepto: c, totalInscritos, onSave, onClo
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

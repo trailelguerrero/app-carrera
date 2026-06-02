@@ -58,10 +58,8 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar })
   const matNombre = tipo==="asig" ? (material.find(m=>m.id===data.materialId)?.nombre || data.materialNombre) : null;
   const vehNombre = tipo==="ruta" ? (veh.find(v=>v.id===data.vehiculoId)?.nombre || "—") : null;
 
-  return (
-    <>
-      <style>{``}</style>
-      <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose()}>
+  return createPortal(
+    <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose()}>
         <div className="modal modal-ficha">
           <div style={{borderTop:`3px solid ${accent}`,borderRadius:"16px 16px 0 0"}}>
             <div style={{padding:"1.1rem 1.4rem .9rem",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -161,9 +159,9 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar })
             </div>
           </div>
         </div>
-      </div>
-    </>
-  );
+      </div>,
+      document.body
+    );
 }
 
 
@@ -341,7 +339,7 @@ function MF({title,fields,init,onSave,onClose}) {
     if (m) m.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
-  return(
+  return createPortal(
     <div className={`modal-backdrop${mfClosing ? " modal-backdrop-closing" : ""}`} onClick={e=>e.target===e.currentTarget&&mfHandleClose()}>
       <div className={`modal modal-ficha${mfClosing ? " modal-closing" : ""}`}>
         <div className="modal-header"><span className="mtit">{title}</span><button className="btn btn-sm btn-ghost" aria-label="Cerrar formulario" onClick={mfHandleClose}><span aria-hidden="true">✕</span></button></div>
@@ -371,7 +369,8 @@ function MF({title,fields,init,onSave,onClose}) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -401,7 +400,7 @@ function ModalRuta({data,veh,rutas,setRutas,onClose,locs}) {
     onClose();
   };
   // sin scroll-lock — causa freeze en Android
-  return(
+  return createPortal(
     <div className={`modal-backdrop${rutaClosing ? " modal-backdrop-closing" : ""}`} onClick={e=>e.target===e.currentTarget&&rutaHandleClose()}>
       <div className={`modal modal-ficha${rutaClosing ? " modal-closing" : ""}`} style={{maxWidth:560}}>
         <div className="modal-header"><span className="mtit">{data?"✏️ Editar ruta":"🗺️ Nueva ruta"}</span><button className="btn btn-sm btn-ghost" onClick={rutaHandleClose}><span aria-hidden="true">✕</span></button></div>
@@ -445,7 +444,8 @@ function ModalRuta({data,veh,rutas,setRutas,onClose,locs}) {
         </div>
         <div className="modal-footer"><button className="btn btn-ghost" onClick={onClose}>Cancelar</button><button className="btn btn-cyan" onClick={save}>{data?"💾 Guardar":"➕ Crear ruta"}</button></div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

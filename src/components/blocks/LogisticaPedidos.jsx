@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useModalClose } from "@/hooks/useModalClose";
 import { toast } from "@/lib/toast";
 import { genIdNum, fmtEur2 as fmtEur } from "@/lib/utils";
@@ -707,7 +708,7 @@ export function TabPedidosProv({ pedidos, setPedidos, cont, material=[], setMate
       )}
 
       {/* Confirmar eliminar */}
-      {delId && (
+      {delId && createPortal(
         <div className="modal-backdrop" style={{zIndex:200}}
           onClick={e=>e.target===e.currentTarget&&setDelId(null)}>
           <div className="modal" role="dialog" aria-modal="true" style={{maxWidth:320,textAlign:"center"}}>
@@ -721,7 +722,8 @@ export function TabPedidosProv({ pedidos, setPedidos, cont, material=[], setMate
               <button className="btn btn-red" onClick={eliminar}>Eliminar</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
@@ -1141,7 +1143,7 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
 
   const updFactura = (k,v) => upd("factura", {...(form.factura||{}), [k]:v });
 
-  return (
+  return createPortal(
     <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal modal-ficha" style={{maxWidth:520}}>
         <div className="modal-header">
@@ -1426,7 +1428,8 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

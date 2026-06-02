@@ -15,6 +15,7 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "@/lib/toast";
 import { genIdNum } from "@/lib/utils";
 import { gpxFileToTrack, defaultTrackColor, TRACK_COLORS_DEFAULT } from "@/lib/gpxUtils";
@@ -232,7 +233,7 @@ function ModalEditarRecorrido({ recorrido, onSave, onClose }) {
     color: recorrido.color || "#22d3ee",
   });
 
-  return (
+  return createPortal(
     <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal" role="dialog" aria-modal="true" style={{ maxWidth: 380 }}>
         <div className="modal-header">
@@ -297,7 +298,8 @@ function ModalEditarRecorrido({ recorrido, onSave, onClose }) {
           >Guardar</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -462,7 +464,7 @@ export function TabRecorridos({ recorridos, setRecorridos }) {
       )}
 
       {/* ── Confirm delete ── */}
-      {deleting && (
+      {deleting && createPortal(
         <div className="modal-backdrop" style={{ zIndex: 200 }} onClick={e => e.target === e.currentTarget && setDeleting(null)}>
           <div className="modal" role="dialog" aria-modal="true" style={{ maxWidth: 320, textAlign: "center" }}>
             <div className="modal-body" style={{ paddingTop: "1.5rem" }}>
@@ -475,7 +477,8 @@ export function TabRecorridos({ recorridos, setRecorridos }) {
               <button className="btn btn-red" onClick={confirmDelete}>Eliminar</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

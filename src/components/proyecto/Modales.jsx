@@ -3,6 +3,7 @@
  * Modales de tarea, hito y persona del módulo Proyecto.
  */
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useModalClose } from "@/hooks/useModalClose";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { genIdNum } from "@/lib/utils";
@@ -34,7 +35,7 @@ function QuickCreateTarea({ onSave, onClose, areas=AREAS, prefillArea="" }) {
     });
   };
 
-  return (
+  return createPortal(
     <div className="modal-backdrop" onClick={e => e.target===e.currentTarget && onClose()}>
       <div className="proy-modal" role="dialog" aria-modal="true" style={{maxWidth:420}}>
         <div className="modal-header">
@@ -66,7 +67,8 @@ function QuickCreateTarea({ onSave, onClose, areas=AREAS, prefillArea="" }) {
           <button className="btn btn-cyan" onClick={handleSave}>⚡ Crear tarea</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -91,7 +93,7 @@ function ModalTarea({
     if (!Object.keys(validation).length) onSave({...form, responsableId:parseInt(form.responsableId), dependeDe:form.dependeDe?parseInt(form.dependeDe):null, documentoId:form.documentoId||null});
   };
 
-  return (
+  return createPortal(
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="proy-modal" role="dialog" aria-modal="true">
         <div className="modal-header">
@@ -174,7 +176,8 @@ function ModalTarea({
           <button className="btn btn-primary" onClick={submit}>{data?"💾 Guardar":"➕ Crear tarea"}</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -193,7 +196,7 @@ function ModalHito({
     setErr(errs);
     if (!Object.keys(errs).length) onSave(form);
   };
-  return (
+  return createPortal(
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="proy-modal" role="dialog" aria-modal="true" style={{maxWidth:420}}>
         <div className="modal-header"><span className="mtit">{data?"✏️ Editar hito":"🏁 Nuevo hito"}</span><button className="btn btn-sm btn-ghost" aria-label="Cerrar formulario de tarea" onClick={onClose}><span aria-hidden="true">✕</span></button></div>
@@ -222,7 +225,8 @@ function ModalHito({
         </div>
         <div className="modal-footer"><button className="btn btn-ghost" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={submit}>{data?"💾 Guardar":"➕ Crear"}</button></div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -240,7 +244,7 @@ function ModalPersona({ data, onSave, onClose }) {
     setErr(errs);
     if (!Object.keys(errs).length) onSave(form);
   };
-  return (
+  return createPortal(
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="proy-modal" role="dialog" aria-modal="true">
         <div className="modal-header"><span className="mtit">{data?"✏️ Editar persona":"👤 Nueva persona"}</span><button className="btn btn-sm btn-ghost" aria-label="Cerrar formulario de tarea" onClick={onClose}><span aria-hidden="true">✕</span></button></div>
@@ -287,7 +291,8 @@ function ModalPersona({ data, onSave, onClose }) {
         </div>
         <div className="modal-footer"><button className="btn btn-ghost" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={submit}>{data?"💾 Guardar":"➕ Añadir"}</button></div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

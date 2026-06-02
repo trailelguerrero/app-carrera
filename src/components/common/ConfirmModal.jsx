@@ -53,7 +53,7 @@ export default function ConfirmModal({
       aria-modal="true"
       aria-labelledby="confirm-modal-title"
     >
-      <div className="modal-box" style={{ maxWidth: 380, textAlign: "center" }}>
+      <div className="modal" style={{ maxWidth: 380, textAlign: "center" }}>
         {/* Icono */}
         <div style={{ fontSize: "2.5rem", marginBottom: ".65rem" }}>{v.icon}</div>
 
