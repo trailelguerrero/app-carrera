@@ -1,5 +1,5 @@
 // Auto-extracted from Voluntarios.jsx — Sprint 2 refactor
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { coverageColor, coverageClass } from "@/constants/thresholds";
 
@@ -25,6 +25,11 @@ function TabDashboard({ stats, puestosConStats, voluntarios, setTab, onEditarVol
       .sort((a, b) => deficitAbsoluto(b) - deficitAbsoluto(a)),
     [puestosConStats]
   );
+
+  // MEJ-15: auto-expandir panel de alertas si hay puestos con cobertura < 50%
+  useEffect(() => {
+    if (alertas.length > 0) setAlertasColapsadas(false);
+  }, [alertas.length]);
 
   // Puestos incompletos (<100%) para la card de cobertura
   const puestosIncompletos = useMemo(() =>

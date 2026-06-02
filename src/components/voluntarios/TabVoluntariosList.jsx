@@ -26,7 +26,7 @@ function TabVoluntarios({
   onUpdate, onBulkUpdate, onDelete, onNuevo, onEditar, onFicha,
 }) {
   const [vistaKanban, setVistaKanban] = useState(false);
-  const [filtrosAvanzadosAbiertos, setFiltrosAvanzadosAbiertos] = useState(false);
+  const [filtrosAvanzadosAbiertos, setFiltrosAvanzadosAbiertos] = useState(true);
   const [seleccionados, setSeleccionados] = useState([]);
   const [modoSeleccion, setModoSeleccion] = useState(false);
 
