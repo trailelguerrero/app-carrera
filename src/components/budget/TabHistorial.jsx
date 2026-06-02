@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 
 const CAMPO_LABELS = {
   nombre:       "Nombre",
@@ -42,6 +42,13 @@ const fmtTs = (ts) => {
 
 const TIPO_COLOR = { fijo: "var(--cyan)", variable: "var(--green)" };
 
+const CATEGORIA_CAMPO = (campo) => {
+  if (campo.startsWith("precio") || campo === "costeTotal" || campo === "costeUnitarioReal") return "precio";
+  if (campo === "estadoPago" || campo === "estadoPedido") return "estado";
+  if (campo === "activo" || campo === "modoUniforme") return "activacion";
+  return "otros";
+};
+
 // ─── Helper: calcular delta por período ──────────────────────────────────────
 function calcularDeltaPorDia(entries) {
   // Agrupar entries de campos numéricos por día
@@ -72,6 +79,18 @@ export function TabHistorial() {
   const [error,   setError]   = useState(null);
   const [confirm, setConfirm] = useState(false);
   const [mostrarDelta, setMostrarDelta] = useState(true);
+  const [filtroTipo, setFiltroTipo]   = useState("todos");
+  const [busqueda,   setBusqueda]     = useState("");
+
+  const logFiltrado = useMemo(() => {
+    let r = log;
+    if (filtroTipo !== "todos") r = r.filter(e => CATEGORIA_CAMPO(e.campo) === filtroTipo);
+    if (busqueda.trim()) {
+      const q = busqueda.trim().toLowerCase();
+      r = r.filter(e => (e.concepto || "").toLowerCase().includes(q));
+    }
+    return r;
+  }, [log, filtroTipo, busqueda]);
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -116,16 +135,18 @@ export function TabHistorial() {
     <>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between",
-        alignItems: "center", marginBottom: ".85rem" }}>
+        alignItems: "center", marginBottom: ".6rem", flexWrap: "wrap", gap: ".5rem" }}>
         <div>
           <div style={{ fontFamily: "var(--font-display)", fontWeight: 800,
             fontSize: "var(--fs-md)" }}>🕐 Historial de cambios</div>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
             color: "var(--text-muted)", marginTop: ".1rem" }}>
-            Últimos {log.length} cambios en costes e ingresos
+            {logFiltrado.length !== log.length
+              ? `${logFiltrado.length} de ${log.length} cambios`
+              : `Últimos ${log.length} cambios en costes e ingresos`}
           </div>
         </div>
-        <div style={{ display: "flex", gap: ".5rem" }}>
+        <div style={{ display: "flex", gap: ".5rem", flexWrap: "wrap", alignItems: "center" }}>
           <button onClick={load} className="btn btn-ghost btn-sm">↺ Actualizar</button>
           {log.length > 0 && (
             <button onClick={() => setConfirm(true)} className="btn btn-red btn-sm">
@@ -135,9 +156,53 @@ export function TabHistorial() {
         </div>
       </div>
 
+      {/* ── Filtros ── */}
+      {log.length > 0 && (
+        <div style={{ display: "flex", gap: ".5rem", marginBottom: ".85rem",
+          flexWrap: "wrap", alignItems: "center" }}>
+          <input
+            type="search"
+            value={busqueda}
+            onChange={e => setBusqueda(e.target.value)}
+            placeholder="Buscar por concepto…"
+            style={{
+              flex: "1 1 160px", minWidth: 140, padding: ".3rem .6rem",
+              fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+              background: "var(--surface)", border: "1px solid var(--border)",
+              borderRadius: 6, color: "var(--text)",
+            }}
+          />
+          <select
+            value={filtroTipo}
+            onChange={e => setFiltroTipo(e.target.value)}
+            style={{
+              padding: ".3rem .6rem",
+              fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+              background: "var(--surface)", border: "1px solid var(--border)",
+              borderRadius: 6, color: "var(--text)", cursor: "pointer",
+            }}
+          >
+            <option value="todos">Todos los campos</option>
+            <option value="precio">Precio / coste</option>
+            <option value="estado">Estado</option>
+            <option value="activacion">Activación</option>
+            <option value="otros">Otros</option>
+          </select>
+          {(filtroTipo !== "todos" || busqueda.trim()) && (
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => { setFiltroTipo("todos"); setBusqueda(""); }}
+              style={{ fontSize: "var(--fs-xs)", color: "var(--text-dim)" }}
+            >
+              ✕ Limpiar filtros
+            </button>
+          )}
+        </div>
+      )}
+
       {/* ── Panel de delta por período ──────────────────────────────────── */}
-      {log.length > 0 && (() => {
-        const deltas = calcularDeltaPorDia(log).filter(d => d.count > 0);
+      {logFiltrado.length > 0 && (() => {
+        const deltas = calcularDeltaPorDia(logFiltrado).filter(d => d.count > 0);
         if (deltas.length === 0) return null;
         const totalDelta = deltas.reduce((s, d) => s + d.delta, 0);
         const fmtEur = (n) => {
@@ -200,15 +265,18 @@ export function TabHistorial() {
       })()}
 
       {/* Lista de cambios */}
-      {log.length === 0 ? (
+      {logFiltrado.length === 0 ? (
         <div style={{ textAlign: "center", padding: "3rem",
           color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-base)" }}>
-          Sin cambios registrados.<br/>
-          Los cambios en costes e ingresos aparecerán aquí.
+          {log.length === 0 ? (
+            <>Sin cambios registrados.<br/>Los cambios en costes e ingresos aparecerán aquí.</>
+          ) : (
+            <>Sin resultados para esta búsqueda.</>
+          )}
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: ".35rem" }}>
-          {log.map((entry, i) => {
+          {logFiltrado.map((entry, i) => {
             const campoLabel = CAMPO_LABELS[entry.campo] || entry.campo;
             const color = TIPO_COLOR[entry.tipo] || "var(--text-muted)";
             const isPrice = entry.campo.startsWith("precio") ||

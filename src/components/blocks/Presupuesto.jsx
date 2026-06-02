@@ -322,17 +322,26 @@ const Presupuesto = () => {
         )}
 
         {tab !== "equilibrio" && tab !== "historial" && (
-          <KpiGlobal
-            totalInscritos={totalInscritos}
-            ingresosPorDistancia={ingresosPorDistancia}
-            costesFijos={costesFijos}
-            costesVariables={costesVariables}
-            totalIngresosExtra={totalIngresosExtra}
-            merchTotales={merchTotales}
-            totalIngresosConMerch={totalIngresosConMerch}
-            resultado={resultado}
-            maximos={maximos}
-          />
+          <div style={{
+            position: "sticky",
+            top: 0,
+            zIndex: 10,
+            background: "var(--bg)",
+            paddingBottom: ".4rem",
+          }}>
+            <KpiGlobal
+              totalInscritos={totalInscritos}
+              ingresosPorDistancia={ingresosPorDistancia}
+              costesFijos={costesFijos}
+              costesVariables={costesVariables}
+              totalIngresosExtra={totalIngresosExtra}
+              merchTotales={merchTotales}
+              totalIngresosConMerch={totalIngresosConMerch}
+              resultado={resultado}
+              maximos={maximos}
+              margenConfig={margenConfig}
+            />
+          </div>
         )}
 
         {/* ── Insight Punto de Equilibrio ── */}

@@ -43,6 +43,39 @@ export const KpiGlobal = ({
 
   return (
     <div className="kpi-grid mb">
+      {/* ── Resultado neto — posición prioritaria (top-left) ── */}
+      <div className={`kpi ${resColorClass}`}>
+        <div className="kpi-label" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          ⚖️ Resultado neto
+          <Tooltip text={"Ingresos inscripciones + Patrocinios + Beneficio merch − Costes fijos − Costes variables.\nPositivo = superávit. Negativo = déficit."}><TooltipIcon size={11}/></Tooltip>
+        </div>
+        <div className="kpi-value" style={{ color: resColor }}>{res >= 0 ? "+" : ""}{fmt(res)}</div>
+        <div className="kpi-sub">{resPositivo ? "✓ Superávit" : "✗ Déficit"} · Ingresos totales: {fmt(ingresosTotal)}</div>
+      </div>
+
+      {/* ── Margen sobre objetivo — segunda posición prioritaria ── */}
+      <div className={`kpi ${estadoClase}`}>
+        <div className="kpi-label" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          🎯 Margen sobre objetivo
+          <Tooltip text={`Margen actual sobre los costes de carrera (fijos + variables, sin merch) (${pctMargen}%).\nObjetivo: ${mc.tipo === "porcentaje" ? mc.valor + "%" : fmt(mc.valor)} sobre costes.\nVerde ≥ objetivo · Ámbar ≥ 50% objetivo · Rojo < 50% objetivo.`}><TooltipIcon size={11}/></Tooltip>
+        </div>
+        <div className="kpi-value" style={{ color: colorMargen }}>
+          {pctMargen >= 0 ? "+" : ""}{pctMargen}%
+        </div>
+        <div className="kpi-sub">
+          {estadoMargen === "verde" ? "✓ Objetivo alcanzado" : estadoMargen === "ambar" ? "⚠ Margen justo" : "✗ Por debajo del objetivo"}
+          {costePorCorredor !== null && ` · ${fmt(costePorCorredor)}/corredor`}
+        </div>
+        {/* C2.2: barra de progreso hacia el objetivo */}
+        <div className="kpi-progress">
+          <div className="kpi-progress-fill" style={{
+            width: `${Math.min(100, Math.max(0, pctMargen))}%`,
+            background: colorMargen,
+            boxShadow: `0 0 6px ${colorMargen}80`,
+          }}/>
+        </div>
+      </div>
+
       {/* ── Inscritos totales ── */}
       <div className="kpi cyan">
         <div className="kpi-label" style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -102,39 +135,6 @@ export const KpiGlobal = ({
         </div>
         <div className="kpi-value" style={{ color: "var(--amber)" }}>{fmt(costesCarrera)}</div>
         <div className="kpi-sub">Fijos {fmt(costesFijos?.total)} · Var {fmt(costesVariables?.total)}</div>
-      </div>
-
-      {/* ── Resultado neto ── */}
-      <div className={`kpi ${resColorClass}`}>
-        <div className="kpi-label" style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          ⚖️ Resultado neto
-          <Tooltip text={"Ingresos inscripciones + Patrocinios + Beneficio merch − Costes fijos − Costes variables.\nPositivo = superávit. Negativo = déficit."}><TooltipIcon size={11}/></Tooltip>
-        </div>
-        <div className="kpi-value" style={{ color: resColor }}>{res >= 0 ? "+" : ""}{fmt(res)}</div>
-        <div className="kpi-sub">{resPositivo ? "✓ Superávit" : "✗ Déficit"} · Ingresos totales: {fmt(ingresosTotal)}</div>
-      </div>
-
-      {/* ── Margen sobre objetivo — C2.1: usa clase del sistema en vez de inline style ── */}
-      <div className={`kpi ${estadoClase}`}>
-        <div className="kpi-label" style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          🎯 Margen sobre objetivo
-          <Tooltip text={`Margen actual sobre los costes de carrera (fijos + variables, sin merch) (${pctMargen}%).\nObjetivo: ${mc.tipo === "porcentaje" ? mc.valor + "%" : fmt(mc.valor)} sobre costes.\nVerde ≥ objetivo · Ámbar ≥ 50% objetivo · Rojo < 50% objetivo.`}><TooltipIcon size={11}/></Tooltip>
-        </div>
-        <div className="kpi-value" style={{ color: colorMargen }}>
-          {pctMargen >= 0 ? "+" : ""}{pctMargen}%
-        </div>
-        <div className="kpi-sub">
-          {estadoMargen === "verde" ? "✓ Objetivo alcanzado" : estadoMargen === "ambar" ? "⚠ Margen justo" : "✗ Por debajo del objetivo"}
-          {costePorCorredor !== null && ` · ${fmt(costePorCorredor)}/corredor`}
-        </div>
-        {/* C2.2: barra de progreso hacia el objetivo */}
-        <div className="kpi-progress">
-          <div className="kpi-progress-fill" style={{
-            width: `${Math.min(100, Math.max(0, pctMargen))}%`,
-            background: colorMargen,
-            boxShadow: `0 0 6px ${colorMargen}80`,
-          }}/>
-        </div>
       </div>
     </div>
   );
