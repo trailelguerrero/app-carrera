@@ -40,6 +40,7 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [filtroNivel, setFiltroNivel] = useState("todos");
   const [filtroEstado, setFiltroEstado] = useState("todos");
+  const [filtroSector, setFiltroSector] = useState("todos"); // MEJ-17
   const [showSidebar, setShowSidebar] = useState(false);
   const [ordenPats, setOrdenPats] = useState(false);  // A-Z patrocinadores
   const [ordenCont, setOrdenCont] = useState(false);  // A-Z compromisos
@@ -76,9 +77,16 @@ export default function App() {
       const matchQ = !query || pat.nombre.toLowerCase().includes(query) || pat.contacto.toLowerCase().includes(query) || pat.sector.toLowerCase().includes(query);
       const matchN = filtroNivel === "todos" || pat.nivel === filtroNivel;
       const matchE = filtroEstado === "todos" || pat.estado === filtroEstado;
-      return matchQ && matchN && matchE;
+      const matchS = filtroSector === "todos" || pat.sector === filtroSector; // MEJ-17
+      return matchQ && matchN && matchE && matchS;
     });
-  }, [pats, search, filtroNivel, filtroEstado]);
+  }, [pats, search, filtroNivel, filtroEstado, filtroSector]);
+
+  // MEJ-17: sectores presentes en los datos (dinámico, sin sectores vacíos)
+  const sectoresActivos = useMemo(() => {
+    const set = new Set(pats.map(p => p.sector).filter(Boolean));
+    return [...set].sort((a,b) => a.localeCompare(b,"es"));
+  }, [pats]);
 
   const TABS = [
     { id: "dashboard", icon: "📊", label: "Dashboard" },
@@ -370,6 +378,8 @@ export default function App() {
               search={search} setSearch={setSearch}
               filtroNivel={filtroNivel} setFiltroNivel={setFiltroNivel}
               filtroEstado={filtroEstado} setFiltroEstado={setFiltroEstado}
+              filtroSector={filtroSector} setFiltroSector={setFiltroSector}
+              sectoresActivos={sectoresActivos}
               onEditar={openEditar} onDetalle={openDetalle}
               onDelete={(id) => setDelId(id)} onNuevo={openNuevo}
               updateEstado={updateEstado}

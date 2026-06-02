@@ -10,6 +10,8 @@ export default function TabPatrocinadores({
   pats, todosLen, search, setSearch,
   filtroNivel, setFiltroNivel,
   filtroEstado, setFiltroEstado,
+  filtroSector = "todos", setFiltroSector,
+  sectoresActivos = [],
   onEditar, onDetalle, onDelete, onNuevo,
   updateEstado, ordenAlfa, setOrdenAlfa, onAddContra,
 }) {
@@ -66,17 +68,34 @@ export default function TabPatrocinadores({
               {NIVEL_CFG[n].icon} {n}
             </button>
           ))}
-          {(search || filtroNivel !== "todos" || filtroEstado !== "todos") && (
+          {(search || filtroNivel !== "todos" || filtroEstado !== "todos" || filtroSector !== "todos") && (
             <>
               <div className="filter-pill-sep" />
               <button className="filter-pill"
-                onClick={() => { setSearch(""); setFiltroNivel("todos"); setFiltroEstado("todos"); }}
+                onClick={() => { setSearch(""); setFiltroNivel("todos"); setFiltroEstado("todos"); setFiltroSector?.("todos"); }}
                 style={{ color:"var(--red)", borderColor:"rgba(248,113,113,0.3)" }}>
                 ✕ Limpiar
               </button>
             </>
           )}
         </div>
+        {/* MEJ-17: fila de pills por sector — solo si hay 2+ sectores en los datos */}
+        {sectoresActivos.length >= 2 && (
+          <div className="filter-pill-group" style={{ flexWrap:"wrap" }}>
+            <button
+              className={`filter-pill${filtroSector === "todos" ? " active" : ""}`}
+              onClick={() => setFiltroSector?.("todos")}>
+              Todos los sectores
+            </button>
+            {sectoresActivos.map(s => (
+              <button key={s}
+                className={`filter-pill${filtroSector === s ? " active" : ""}`}
+                onClick={() => setFiltroSector?.(filtroSector === s ? "todos" : s)}>
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── KANBAN por nivel ── */}
