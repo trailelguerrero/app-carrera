@@ -40,6 +40,24 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
   const yaFue = diasHasta < 0;
   const esSemana = diasHasta >= 0 && diasHasta <= 7;
 
+  // M18: fase activa según diasHasta (misma lógica que TabCK)
+  const faseActiva = (() => {
+    if (diasHasta < 0)   return "Post-carrera";
+    if (diasHasta <= 1)  return "Mañana carrera";
+    if (diasHasta <= 2)  return "Día antes";
+    if (diasHasta <= 7)  return "Semana antes";
+    if (diasHasta <= 30) return "1 mes antes";
+    if (diasHasta <= 60) return "2 meses antes";
+    return "3 meses antes";
+  })();
+  const [faseSeleccionada, setFaseSeleccionada] = useState(null); // null = Todas
+
+  // Filtrado del mini-checklist por fase seleccionada
+  const porFaseFiltrado = useMemo(() => {
+    if (!faseSeleccionada) return porFase;
+    return porFase.filter(f => f.f === faseSeleccionada);
+  }, [porFase, faseSeleccionada]);
+
   const KPIS = [
     { l:"⏱️ Timeline",   v:`${stats.tlDone}/${stats.tlTotal}`,
       s:"tareas completadas",
@@ -53,8 +71,8 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
       tab:"checklist",
       tip:"Porcentaje de ítems completados del checklist pre-carrera.\nEl checklist se organiza por fases temporales: 3 meses antes, 1 mes antes, semana antes, etc." },
     { l:"📦 Stock",      v:stats.stockErr > 0 ? stats.stockErr : stats.stockBajoMinimo > 0 ? `${stats.stockBajoMinimo}⚠` : 0,
-      s:"materiales en déficit",
-      color: stats.stockErr>0 ? "red" : "green",
+      s: stats.stockErr > 0 ? "materiales en déficit" : stats.stockBajoMinimo > 0 ? "bajo mínimo configurado" : "sin alertas",
+      color: stats.stockErr>0 ? "red" : stats.stockBajoMinimo>0 ? "amber" : "green",
       tab:"material",
       tip:"Número de materiales cuya cantidad asignada supera el stock disponible.\nUn déficit significa que hay más asignaciones que unidades en almacén." },
     { l:"⚠️ Incidencias", v:stats.incOpen,
@@ -153,7 +171,9 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
       {/* El umbral genérico (UMBRAL_GENERICO = 0.5 ud/corredor) fue eliminado porque   */}
       {/* generaba falsos positivos: 60 bidones de 8L / 250 corredores = 0.24 < 0.5    */}
       {/* disparaba alerta aunque 480L de agua sea más que suficiente para la carrera.   */}
-      {totalInscritos > 0 && (() => {
+      {/* M18: condición ampliada — mostrar siempre que haya stockMinimo configurado,   */}
+      {/* independientemente de totalInscritos. El panel es preventivo, no reactivo.    */}
+      {(() => {
         const insuficientes = material
           .filter(m => m.categoria === "Avituallamiento" && m.stockMinimo > 0)
           .map(m => {
@@ -362,11 +382,47 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
           <button className="btn btn-ghost mt1" style={{width:"100%"}} onClick={()=>setTab("timeline")}>Ver timeline completo →</button>
         </div>
         <div className="card">
-          <div className="ct">✅ Progreso checklist por fase</div>
-          {porFase.map(f=>(
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".5rem"}}>
+            <div className="ct" style={{marginBottom:0}}>✅ Progreso checklist por fase</div>
+            {faseActiva && (
+              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-2xs)",fontWeight:700,
+                background:"var(--cyan-dim)",color:"var(--cyan)",
+                border:"1px solid rgba(34,211,238,0.3)",borderRadius:3,
+                padding:"0.05rem 0.3rem",lineHeight:1.4,flexShrink:0}}>
+                AHORA: {faseActiva}
+              </span>
+            )}
+          </div>
+          {/* Selector de fase */}
+          <div style={{display:"flex",gap:".3rem",flexWrap:"wrap",marginBottom:".65rem"}}>
+            <button
+              onClick={()=>setFaseSeleccionada(null)}
+              style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-2xs)",padding:".15rem .45rem",
+                borderRadius:99,border:`1px solid ${!faseSeleccionada?"var(--cyan)":"var(--border)"}`,
+                background:!faseSeleccionada?"var(--cyan-dim)":"transparent",
+                color:!faseSeleccionada?"var(--cyan)":"var(--text-muted)",cursor:"pointer",
+                transition:"all .15s"}}>
+              Todas
+            </button>
+            {FASES_CHECKLIST.map(f=>(
+              <button key={f}
+                onClick={()=>setFaseSeleccionada(faseSeleccionada===f?null:f)}
+                style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-2xs)",padding:".15rem .45rem",
+                  borderRadius:99,cursor:"pointer",transition:"all .15s",
+                  border:`1px solid ${faseSeleccionada===f?"var(--cyan)":f===faseActiva?"rgba(34,211,238,0.3)":"var(--border)"}`,
+                  background:faseSeleccionada===f?"var(--cyan-dim)":f===faseActiva?"rgba(34,211,238,0.06)":"transparent",
+                  color:faseSeleccionada===f?"var(--cyan)":f===faseActiva?"var(--cyan)":"var(--text-muted)"}}>
+                {f}
+              </button>
+            ))}
+          </div>
+          {porFaseFiltrado.map(f=>(
             <div key={f.f} style={{marginBottom:"0.6rem"}}>
               <div style={{display:"flex",justifyContent:"space-between",fontSize:"var(--fs-sm)",marginBottom:"0.2rem"}}>
-                <span style={{color: f.pct===100?"var(--text-muted)":"var(--text)"}}>{f.f}</span>
+                <span style={{color: f.pct===100?"var(--text-muted)":"var(--text)",
+                  fontWeight: f.f===faseActiva?700:400}}>
+                  {f.f}{f.f===faseActiva&&" ★"}
+                </span>
                 <span className="mono" style={{color:f.pct===100?"var(--green)":"var(--text-muted)",fontSize:"var(--fs-xs)"}}>{f.d}/{f.t}</span>
               </div>
               <div className="pbar">
