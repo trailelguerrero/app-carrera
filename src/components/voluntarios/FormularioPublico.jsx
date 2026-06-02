@@ -163,7 +163,7 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
       <div style={{ maxWidth: 500, textAlign: "center", animation: "fadeUp 0.5s ease both" }}>
         <div style={{ fontSize: "4rem", marginBottom: "1rem" }}>🎉</div>
         <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.8rem", fontWeight: 800, color: "var(--green)", marginBottom: "0.75rem" }}>¡Registro completado!</h2>
-        <p style={{ color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: "0.85rem", lineHeight: 1.7, marginBottom: "1.25rem" }}>
+        <p style={{ color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-base)", lineHeight: 1.7, marginBottom: "1.25rem" }}>
           {formConfirmacion}
         </p>
 
@@ -209,7 +209,7 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
             onClick={() => { try { window.close(); } catch(e) { /* window.close() puede bloquearse en contextos sin opener */ } window.location.href = "/"; }}
             style={{ background: "var(--green-dim)", color: "var(--green)", border: "1px solid rgba(52,211,153,0.3)",
               borderRadius: 8, padding: "0.65rem 1.5rem", fontFamily: "var(--font-display)",
-              fontWeight: 700, fontSize: "0.9rem", cursor: "pointer" }}>
+              fontWeight: 700, fontSize: "var(--fs-md)", cursor: "pointer" }}>
             ✓ Cerrar
           </button>
         </div>
@@ -358,7 +358,7 @@ export function FormularioPublico({ onVolver, puestos, onRegistrar, config: cfgP
           <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.8rem, 5vw, 2.6rem)", fontWeight: 800, background: "linear-gradient(135deg, #fff 0%, var(--cyan) 60%, var(--violet) 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", lineHeight: 1, marginBottom: "0.5rem" }}>
             Trail El Guerrero
           </h1>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "1.25rem" }}>{formSubtitulo}</div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-base)", color: "var(--text-muted)", marginBottom: "1.25rem" }}>{formSubtitulo}</div>
           <div style={{ display: "inline-flex", gap: "1.5rem", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "0.6rem 1.25rem" }}>
             {[["TG7","7 km"],["TG13","13 km"],["TG25","25 km"]].map(([k,v]) => (
               <div key={k} style={{ textAlign: "center" }}>

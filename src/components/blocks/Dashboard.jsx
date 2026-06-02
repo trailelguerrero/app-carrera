@@ -149,7 +149,7 @@ export default function Dashboard() {
               <span className={`dash-sync-dot ${isRefreshing ? "dash-sync-pulsing" : ""}`}
                 title={lastUpdated ? `Actualizado a las ${lastUpdated.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}` : "Sin datos"} />
               {lastUpdated && (
-                <span className="mono" style={{ fontSize: "0.52rem", color: "var(--text-dim)" }}>
+                <span className="mono" style={{ fontSize: "var(--fs-2xs)", color: "var(--text-dim)" }}>
                   {lastUpdated.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
                 </span>
               )}

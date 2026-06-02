@@ -124,7 +124,7 @@ export const TabResumen = ({
                 {DISTANCIAS.map(d => <td key={d} className="mono text-muted">—</td>)}
               </tr>
               <tr style={{ borderTop: "2px solid var(--border)", background: "var(--surface2)" }}>
-                <td style={{ fontWeight: 800, fontSize: "0.9rem" }}>🏁 RESULTADO NETO</td>
+                <td style={{ fontWeight: 800, fontSize: "var(--fs-md)" }}>🏁 RESULTADO NETO</td>
                 <td className="mono" style={{ fontWeight: 800, fontSize: "var(--fs-md)", color: resultado.total >= 0 ? "var(--green)" : "var(--red)" }}>
                   {resultado.total >= 0 ? "+" : ""}{resultado.total.toFixed(2)} €
                 </td>

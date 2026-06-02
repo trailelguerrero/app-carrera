@@ -7,6 +7,7 @@ import { useModalClose } from "@/hooks/useModalClose";
 import { genIdNum, fmtEur2 } from "@/lib/utils";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { TC, EP, EE, TALLAS, TALLAS_NINO, TIPOS, ESTADOS_PAGO, ESTADOS_ENTREGA, calcPedido } from "./camisetasConstants";
+import { FormError } from "@/components/common/FormError";
 
 export function ModalPedido({
  data, coste, onSave, onClose }) {
@@ -47,7 +48,7 @@ export function ModalPedido({
                 placeholder="Nombre completo"
                 style={{borderColor:intentoGuardar&&!form.nombre.trim()?"var(--red)":undefined}}/>
               {intentoGuardar&&!form.nombre.trim()&&(
-                <div className="xs mono" style={{color:"var(--red)",marginTop:".2rem"}}>⚠ El nombre es obligatorio</div>
+                <FormError msg="El nombre es obligatorio" />
               )}
             </div>
             {verAvanzado && <>
@@ -59,10 +60,10 @@ export function ModalPedido({
                   inputMode="tel"
                   style={{borderColor:intentoGuardar&&!telefonoValido?"var(--red)":undefined}} />
                 {intentoGuardar&&!telefonoValido&&(
-                  <div className="xs mono" style={{color:"var(--red)",marginTop:".2rem"}}>⚠ 9 dígitos, empieza por 6-9</div>
+                  <FormError msg="9 dígitos, empieza por 6-9" />
                 )}
               </div>
-              <div><label className="fl" htmlFor="modal-pedido-email" style={{color:intentoGuardar&&!emailValido?"var(--red)":undefined}}>Email</label><input id="modal-pedido-email" className="inp" value={form.email} onChange={e=>upd("email",e.target.value)} placeholder="email@ejemplo.com" inputMode="email" style={{borderColor:intentoGuardar&&!emailValido?"var(--red)":undefined}} />{intentoGuardar&&!emailValido&&(<div className="xs mono" style={{color:"var(--red)",marginTop:".2rem"}}>⚠ Formato de email inválido</div>)}</div>
+              <div><label className="fl" htmlFor="modal-pedido-email" style={{color:intentoGuardar&&!emailValido?"var(--red)":undefined}}>Email</label><input id="modal-pedido-email" className="inp" value={form.email} onChange={e=>upd("email",e.target.value)} placeholder="email@ejemplo.com" inputMode="email" style={{borderColor:intentoGuardar&&!emailValido?"var(--red)":undefined}} />{intentoGuardar&&!emailValido&&(<FormError msg="Formato de email inválido" />)}</div>
             </>}
           </div>
           <div>

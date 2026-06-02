@@ -7,6 +7,7 @@ import { useModalClose } from "@/hooks/useModalClose";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { genIdNum } from "@/lib/utils";
 import { fmt, diasHasta, AREAS, ESTADOS, PRIORIDADES, EST_CFG, PRI_CFG, getArea, iniciales } from "./proyectoConstants";
+import { FormError } from "@/components/common/FormError";
 
 function validarTarea(formData) {
   const validation = {};
@@ -46,7 +47,7 @@ function QuickCreateTarea({ onSave, onClose, areas=AREAS, prefillArea="" }) {
             <input ref={inputRef} className={"inp"+(err?" inp-error":"")}
               placeholder="¿Qué hay que hacer?"
               value={titulo} onChange={e=>{setTitulo(e.target.value);setErr("");}} />
-            {err && <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--red)",marginTop:".2rem"}}>⚠ {err}</div>}
+            {err && <FormError msg={err} />}
           </div>
           <div>
             <label className="fl">Área</label>
@@ -101,7 +102,7 @@ function ModalTarea({
           <div>
             <label className="fl" style={{color:err.titulo?"var(--red)":undefined}}>Título de la tarea *</label>
             <input className="inp" autoFocus value={form.titulo} onChange={e=>upd("titulo",e.target.value)} placeholder="Describe la tarea..." />
-            {err.titulo && <div className="mono xs" style={{color:"var(--red)",marginTop:".2rem"}}>⚠ {err.titulo}</div>}
+            {err.titulo && <FormError msg={err.titulo} />}
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".75rem"}}>
             <div>
@@ -200,12 +201,12 @@ function ModalHito({
           <div>
             <label className="fl" style={{color:err.nombre?"var(--red)":undefined}}>Nombre del hito *</label>
             <input ref={firstInputRef} className="inp" autoFocus value={form.nombre} onChange={e=>upd("nombre",e.target.value)} placeholder="Ej: Apertura de inscripciones"/>
-            {err.nombre && <div className="mono xs" style={{color:"var(--red)",marginTop:".2rem"}}>⚠ {err.nombre}</div>}
+            {err.nombre && <FormError msg={err.nombre} />}
           </div>
           <div>
             <label className="fl" style={{color:err.fecha?"var(--red)":undefined}}>Fecha *</label>
             <input className="inp" type="date" value={form.fecha} onChange={e=>upd("fecha",e.target.value)}/>
-            {err.fecha && <div className="mono xs" style={{color:"var(--red)",marginTop:".2rem"}}>⚠ {err.fecha}</div>}
+            {err.fecha && <FormError msg={err.fecha} />}
           </div>
           <div style={{display:"flex",gap:"1rem"}}>
             {[["critico","🔴 Hito crítico"],["completado","✅ Completado"]].map(([k,l])=>(
@@ -259,12 +260,12 @@ function ModalPersona({ data, onSave, onClose }) {
             <div>
               <label className="fl" style={{color:err.nombre?"var(--red)":undefined}}>Nombre completo *</label>
               <input className="inp" autoFocus value={form.nombre} onChange={e=>upd("nombre",e.target.value)} placeholder="Nombre Apellido"/>
-              {err.nombre&&<div className="mono xs" style={{color:"var(--red)",marginTop:".2rem"}}>⚠ {err.nombre}</div>}
+              {err.nombre && <FormError msg={err.nombre} />}
             </div>
             <div>
               <label className="fl" style={{color:err.rol?"var(--red)":undefined}}>Rol en el equipo *</label>
               <input className="inp" value={form.rol} onChange={e=>upd("rol",e.target.value)} placeholder="Director, Coordinador..."/>
-              {err.rol&&<div className="mono xs" style={{color:"var(--red)",marginTop:".2rem"}}>⚠ {err.rol}</div>}
+              {err.rol && <FormError msg={err.rol} />}
             </div>
           </div>
           <div>

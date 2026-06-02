@@ -58,7 +58,7 @@ export function WidgetInscritos({ tramos, inscritos, onSave }) {
               <select
                 value={tramoSel}
                 onChange={e => setTramoSel(parseInt(e.target.value))}
-                style={{ width: "100%", padding: "0.4rem 0.5rem", borderRadius: "6px", background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text)", outline: "none", fontFamily: "var(--font-display)", fontSize: "0.85rem" }}
+                style={{ width: "100%", padding: "0.4rem 0.5rem", borderRadius: "var(--r-sm)", background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text)", outline: "none", fontFamily: "var(--font-display)", fontSize: "var(--fs-base)" }}
               >
                 {tramos.map(t => (
                   <option key={t.id} value={t.id}>{t.nombre}</option>
@@ -74,7 +74,7 @@ export function WidgetInscritos({ tramos, inscritos, onSave }) {
                     type="number" min="0"
                     value={vals[dist]}
                     onChange={e => setVals(prev => ({ ...prev, [dist]: Math.max(0, parseInt(e.target.value) || 0) }))}
-                    style={{ width: "100%", padding: "0.4rem 0.5rem", borderRadius: "6px", background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text)", outline: "none", fontFamily: "var(--font-mono)", fontSize: "0.85rem", textAlign: "right" }}
+                    style={{ width: "100%", padding: "0.4rem 0.5rem", borderRadius: "var(--r-sm)", background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text)", outline: "none", fontFamily: "var(--font-mono)", fontSize: "var(--fs-base)", textAlign: "right" }}
                   />
                 </div>
               ))}

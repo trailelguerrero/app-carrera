@@ -357,7 +357,7 @@ export const TabInscripciones = ({
             return (
               <div key={d} style={{ minWidth: 200, flex: 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-                  <span style={{ color: DISTANCIA_COLORS[d], fontWeight: 700, fontSize: "0.85rem" }}>{DISTANCIA_LABELS[d]}</span>
+                  <span style={{ color: DISTANCIA_COLORS[d], fontWeight: 700, fontSize: "var(--fs-base)" }}>{DISTANCIA_LABELS[d]}</span>
                   {pct >= 90 && maximos[d] > 0 && (
                     <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
                       padding:".1rem .45rem", borderRadius:10,
@@ -430,7 +430,7 @@ export const TabInscripciones = ({
                   }}>
                     {t.nombre}
                   </div>
-                  <div style={{ fontSize: "0.52rem", color: "var(--text-muted)" }}>
+                  <div style={{ fontSize: "var(--fs-2xs)", color: "var(--text-muted)" }}>
                     {t.fechaInicio ? `${formatDate(t.fechaInicio)} → ` : ""}{formatDate(t.fechaFin)}
                   </div>
                 </div>
@@ -458,7 +458,7 @@ export const TabInscripciones = ({
               📥 Importar CSV
             </button>
             <button className="btn btn-amber" onClick={addTramo} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ fontSize: 16, fontWeight: 400 }}>+</span> Añadir Tramo
+              <span style={{ fontSize: "var(--fs-md)", fontWeight: 400 }}>+</span> Añadir Tramo
             </button>
           </div>
         </div>
@@ -472,7 +472,7 @@ export const TabInscripciones = ({
                   <th key={d} className="text-right" style={{ width: 140, paddingRight: 8 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
                       <span style={{ width: 8, height: 8, borderRadius: "50%", background: DISTANCIA_COLORS[d], display: "inline-block" }} />
-                      <span style={{ color: DISTANCIA_COLORS[d], fontSize: "0.85rem", fontWeight: 700 }}>{DISTANCIA_LABELS[d]}</span>
+                      <span style={{ color: DISTANCIA_COLORS[d], fontSize: "var(--fs-base)", fontWeight: 700 }}>{DISTANCIA_LABELS[d]}</span>
                     </div>
                   </th>
                 ))}
@@ -601,7 +601,7 @@ export const TabInscripciones = ({
               })}
 
               <tr className="total-row">
-                <td style={{ fontSize: "0.9rem", color: "var(--text)", paddingLeft: 8 }}>
+                <td style={{ fontSize: "var(--fs-md)", color: "var(--text)", paddingLeft: 8 }}>
                   TOTALES ACUMULADOS
                 </td>
                 {DISTANCIAS.map(d => {

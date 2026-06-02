@@ -11,6 +11,7 @@ import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { ESTADOS, estadoColor, estadoBg } from "@/constants/voluntariosConstants";
+import { FormError } from "@/components/common/FormError";
 
 // ─── MODAL VOLUNTARIO ─────────────────────────────────────────────────────────
 function ModalVoluntario({ voluntario, puestos, onSave, onClose, onEliminar }) {
@@ -84,13 +85,13 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose, onEliminar }) {
               <div>
                 <label className="field-label">Apellidos</label>
                 <input className="inp" value={form.apellidos || ""} onChange={e => upd("apellidos", e.target.value)} placeholder="Apellidos" />
-                {errores.nombre && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--red)", marginTop: "0.2rem" }}>⚠ {errores.nombre}</div>}
+                <FormError msg={errores.nombre} />
               </div>
               <div className="field-row">
                 <div>
                   <label className="field-label" style={{ color: errores.telefono ? "var(--red)" : undefined }}>Teléfono *</label>
                   <input className="inp" value={form.telefono} onChange={e => upd("telefono", e.target.value)} placeholder="612345678" inputMode="tel" />
-                  {errores.telefono && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--red)", marginTop: "0.2rem" }}>⚠ {errores.telefono}</div>}
+                  <FormError msg={errores.telefono} />
                 </div>
                 <div>
                   <label className="field-label">Email</label>
@@ -114,7 +115,7 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose, onEliminar }) {
                     </button>
                   ))}
                 </div>
-                {errores.talla && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--red)", marginTop: "0.2rem" }}>⚠ {errores.talla}</div>}
+                <FormError msg={errores.talla} />
               </div>
               <div className="field-row">
                 <div>
@@ -215,11 +216,7 @@ function ModalVoluntario({ voluntario, puestos, onSave, onClose, onEliminar }) {
                       {esMenor ? `⚠️ ${años} años — menor de edad` : `${años} años`}
                     </div>;
                   })()}
-                  {errores.fechaNacimiento && (
-                    <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--red)", marginTop:".2rem" }}>
-                      ⚠ {errores.fechaNacimiento}
-                    </div>
-                  )}
+                  <FormError msg={errores.fechaNacimiento} />
                 </div>
                 <div>
                   <label className="field-label" style={{ color: errores.telefonoEmergencia ? "var(--red)" : undefined }}>

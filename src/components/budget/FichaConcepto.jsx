@@ -65,7 +65,7 @@ export function ModalEditarConcepto({ concepto: c, totalInscritos, onSave, onClo
   };
 
   const FL = ({ children }) => (
-    <label style={{ fontFamily:"var(--font-mono)", fontSize:"0.62rem",
+    <label style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
       color:"var(--text-muted)", display:"block", marginBottom:"0.25rem" }}>
       {children}
     </label>
@@ -132,7 +132,7 @@ export function ModalEditarConcepto({ concepto: c, totalInscritos, onSave, onClo
                   {ESTADOS_PAGO.map(e => (
                     <button key={e.id} onClick={() => upd("estadoPago", e.id)}
                       style={{ padding:"0.25rem 0.65rem", borderRadius:20, cursor:"pointer",
-                        fontFamily:"var(--font-mono)", fontSize:"0.62rem", fontWeight:700,
+                        fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
                         background: form.estadoPago===e.id ? `${e.color}22` : "var(--surface3)",
                         color: form.estadoPago===e.id ? e.color : "var(--text-muted)",
                         border: `1px solid ${form.estadoPago===e.id ? `${e.color}55` : "var(--border)"}`,
@@ -149,7 +149,7 @@ export function ModalEditarConcepto({ concepto: c, totalInscritos, onSave, onClo
                     <label key={d} style={{ display:"flex", alignItems:"center", gap:"0.4rem", cursor:"pointer" }}>
                       <Toggle value={form.activoDistancias[d]}
                         onChange={v => updDist("activoDistancias", d, v)} />
-                      <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.65rem",
+                      <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                         color: form.activoDistancias[d] ? DISTANCIA_COLORS[d] : "var(--text-muted)",
                         fontWeight:700 }}>{DISTANCIA_LABELS[d]}</span>
                     </label>
@@ -163,7 +163,7 @@ export function ModalEditarConcepto({ concepto: c, totalInscritos, onSave, onClo
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"0.4rem" }}>
                   <FL>€/corredor por distancia</FL>
                   <button onClick={() => upd("modoUniforme", !form.modoUniforme)}
-                    style={{ padding:"0.2rem 0.55rem", borderRadius:5, fontSize:"0.65rem",
+                    style={{ padding:"0.2rem 0.55rem", borderRadius:"var(--r-sm)", fontSize:"var(--fs-xs)",
                       fontWeight:700, cursor:"pointer", fontFamily:"var(--font-mono)",
                       background: form.modoUniforme ? "var(--violet-dim)" : "var(--surface3)",
                       color: form.modoUniforme ? "var(--violet)" : "var(--text-muted)",
@@ -179,7 +179,7 @@ export function ModalEditarConcepto({ concepto: c, totalInscritos, onSave, onClo
                     opacity: form.activoDistancias[d] ? 1 : 0.4 }}>
                     <Toggle value={form.activoDistancias[d]}
                       onChange={v => updDist("activoDistancias", d, v)} />
-                    <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.72rem",
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                       fontWeight:700, color:DISTANCIA_COLORS[d], width:80 }}>
                       {DISTANCIA_LABELS[d]}
                     </span>
@@ -203,7 +203,7 @@ export function ModalEditarConcepto({ concepto: c, totalInscritos, onSave, onClo
                         disabled={form.modoUniforme && i > 0}
                       />
                     </div>
-                    <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.6rem",
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                       color: form.activoDistancias[d] ? "var(--text-muted)" : "var(--text-dim)",
                       width:60, textAlign:"right" }}>
                       {form.activoDistancias[d]

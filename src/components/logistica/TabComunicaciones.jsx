@@ -420,7 +420,7 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
             <div style={{display:"flex",alignItems:"center",gap:"0.3rem",marginBottom:"0.15rem"}}>
               <span style={{fontSize:"var(--fs-sm)",fontWeight:600}}>{f.f}</span>
               {f.f===faseActiva && (
-                <span style={{fontFamily:"var(--font-mono)",fontSize:"0.5rem",fontWeight:700,
+                <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-2xs)",fontWeight:700,
                   background:"var(--cyan-dim)",color:"var(--cyan)",
                   border:"1px solid rgba(34,211,238,0.3)",borderRadius:3,
                   padding:"0.05rem 0.3rem",lineHeight:1.2,flexShrink:0}}>AHORA</span>

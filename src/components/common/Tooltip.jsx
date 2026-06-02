@@ -106,7 +106,7 @@ export function Tooltip({ text, children, position = "top", maxWidth = 260 }) {
         padding: "0.55rem 0.75rem",
         boxShadow: "0 8px 24px rgba(0,0,0,0.55)",
         fontFamily: "var(--font-mono)",
-        fontSize: "0.68rem",
+        fontSize: "var(--fs-xs)",
         color: "var(--text-muted)",
         lineHeight: 1.55,
         whiteSpace: "pre-wrap",

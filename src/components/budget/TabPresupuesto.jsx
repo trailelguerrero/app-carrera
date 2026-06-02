@@ -133,7 +133,7 @@ export const TabPresupuesto = ({
               padding:"0.3rem 0.4rem", textAlign:"left", width:"100%",
               borderRadius:6, display:"block" }}>
             <span style={{
-              fontFamily:"var(--font-display)", fontSize:"0.85rem",
+              fontFamily:"var(--font-display)", fontSize:"var(--fs-base)",
               fontWeight:600, color: c.activo ? "var(--text)" : "var(--text-muted)",
               display:"block", whiteSpace:"nowrap",
               overflow:"hidden", textOverflow:"ellipsis", maxWidth:"120px"
@@ -154,7 +154,7 @@ export const TabPresupuesto = ({
               <Toggle value={c.activoDistancias[d]} onChange={v => updateActivoDistancia(c.id, d, v)} />
               <span className="mono text-xs" style={{ color: c.activoDistancias[d] ? DISTANCIA_COLORS[d] : "var(--text-muted)" }}>
                 {prorrata !== null
-                  ? <>{porCorredor !== null ? `${fmtN(porCorredor)} €/cte` : "—"}<br/><span style={{opacity:0.55,fontSize:"0.7em"}}>{fmtN(prorrata)} €</span></>
+                  ? <>{porCorredor !== null ? `${fmtN(porCorredor)} €/cte` : "—"}<br/><span style={{opacity:0.55,fontSize:"var(--fs-xs)"}}>{fmtN(prorrata)} €</span></>
                   : "—"}
               </span>
             </div>
@@ -191,7 +191,7 @@ export const TabPresupuesto = ({
               padding:"0.3rem 0.4rem", textAlign:"left", width:"100%",
               borderRadius:6, display:"block" }}>
             <span style={{
-              fontFamily:"var(--font-display)", fontSize:"0.85rem",
+              fontFamily:"var(--font-display)", fontSize:"var(--fs-base)",
               fontWeight:600, color: c.activo ? "var(--text)" : "var(--text-muted)",
               display:"block", whiteSpace:"nowrap",
               overflow:"hidden", textOverflow:"ellipsis", maxWidth:"120px"

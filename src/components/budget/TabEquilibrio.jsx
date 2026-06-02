@@ -201,7 +201,7 @@ export const TabEquilibrio = ({
               marginLeft: dif >= 0 ? -28 : 2,
               background:"var(--surface)", borderRadius:20, padding:"0.1rem 0.45rem",
               border:`2px solid ${dif >= 0 ? "var(--green)" : "var(--amber)"}`,
-              fontFamily:"var(--font-mono)", fontSize:"0.52rem", fontWeight:800,
+              fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", fontWeight:800,
               color: dif >= 0 ? "var(--green)" : "var(--amber)",
               whiteSpace:"nowrap", zIndex:2, boxShadow:"0 2px 8px rgba(0,0,0,0.4)",
             }}>
@@ -212,7 +212,7 @@ export const TabEquilibrio = ({
                 left:"100%", width:2, background:"rgba(251,191,36,0.6)", borderRadius:1 }}>
                 <div style={{ position:"absolute", top:"50%", left:4,
                   transform:"translateY(-50%)", fontFamily:"var(--font-mono)",
-                  fontSize:"0.5rem", color:"var(--amber)", fontWeight:700, whiteSpace:"nowrap" }}>
+                  fontSize:"var(--fs-2xs)", color:"var(--amber)", fontWeight:700, whiteSpace:"nowrap" }}>
                   PE: {peG}
                 </div>
               </div>
@@ -229,7 +229,7 @@ export const TabEquilibrio = ({
                   backgroundImage:"repeating-linear-gradient(to bottom, rgba(167,139,250,0.9) 0px, rgba(167,139,250,0.9) 4px, transparent 4px, transparent 8px)",
                 }}>
                   <div style={{ position:"absolute", bottom:-16, left:4,
-                    fontFamily:"var(--font-mono)", fontSize:"0.5rem",
+                    fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)",
                     color:"var(--violet)", fontWeight:700, whiteSpace:"nowrap" }}>
                     +colchón: {peConMargen}
                   </div>
@@ -299,7 +299,7 @@ export const TabEquilibrio = ({
                       {(100 - pctPE) > 12 && (
                         <div style={{ position:"absolute", top:"50%", left:"50%",
                           transform:"translate(-50%,-50%)",
-                          fontFamily:"var(--font-mono)", fontSize:"0.52rem",
+                          fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)",
                           color:"var(--green)", fontWeight:700, whiteSpace:"nowrap" }}>
                           +{p.aforoTotal - peG} margen
                         </div>
@@ -314,7 +314,7 @@ export const TabEquilibrio = ({
                       transform:"translateX(-50%)" }}>
                       <div style={{ position:"absolute", top:-18, left:"50%",
                         transform:"translateX(-50%)",
-                        fontFamily:"var(--font-mono)", fontSize:"0.5rem",
+                        fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)",
                         color:"var(--amber)", fontWeight:800, whiteSpace:"nowrap" }}>
                         PE: {peG}
                       </div>

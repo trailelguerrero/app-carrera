@@ -265,7 +265,7 @@ const Presupuesto = () => {
               className="btn btn-ghost btn-sm"
               title="Restablecer todos los datos"
               onClick={() => { const m = document.querySelector("main"); if (m) m.scrollTo({ top:0, behavior:"instant" }); setConfirmResetText(''); setConfirmReset(true); }}
-              style={{ color: "var(--text-dim)", fontSize: "0.72rem" }}
+              style={{ color: "var(--text-dim)", fontSize: "var(--fs-xs)" }}
             >↺</button>
             <button className={saveCls} onClick={saveData} disabled={saveStatus === "saving"}>
               {saveLabel}
@@ -591,14 +591,14 @@ const Presupuesto = () => {
             <div style={{ fontWeight: 800, fontSize: "var(--fs-md)", marginBottom: "0.5rem", color: "var(--text)" }}>
               ¿Restablecer todos los datos?
             </div>
-            <div className="mono" style={{ fontSize: "0.72rem", color: "var(--text-muted)", lineHeight: 1.6, marginBottom: "1rem" }}>
+            <div className="mono" style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)", lineHeight: 1.6, marginBottom: "1rem" }}>
               Se eliminarán todos los tramos, inscritos, conceptos de coste e ingresos.
               Esta acción <strong style={{ color: "var(--red)" }}>no se puede deshacer</strong>.
               Se guardará un backup automático antes de borrar.
             </div>
             {/* FIX-RESET-2: confirmación explícita escribiendo la palabra clave */}
             <div style={{ marginBottom: "1rem" }}>
-              <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: "0.4rem" }}>
+              <div style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginBottom: "0.4rem" }}>
                 Escribe <strong style={{ color: "var(--text)", fontFamily: "var(--font-mono)" }}>RESTABLECER</strong> para confirmar:
               </div>
               <input
@@ -610,14 +610,14 @@ const Presupuesto = () => {
                 autoFocus
                 style={{
                   width: "100%", padding: "0.4rem 0.6rem",
-                  fontFamily: "var(--font-mono)", fontSize: "0.8rem",
+                  fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)",
                   background: "var(--bg-card)", border: "1px solid var(--border)",
                   borderRadius: 6, color: "var(--text)", boxSizing: "border-box",
                   borderColor: confirmResetText === "RESTABLECER" ? "var(--red)" : "var(--border)",
                 }}
               />
             </div>
-            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "1.25rem", cursor: "pointer" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginBottom: "1.25rem", cursor: "pointer" }}>
               <input
                 type="checkbox"
                 checked={limpiarHistorial}
@@ -627,7 +627,7 @@ const Presupuesto = () => {
               Limpiar también el historial de cambios
             </label>
             {resettingData ? (
-              <div style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "0.8rem" }}>
+              <div style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "var(--fs-sm)" }}>
                 ⏳ Guardando backup y borrando datos...
               </div>
             ) : (

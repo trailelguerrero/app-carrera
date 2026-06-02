@@ -728,7 +728,7 @@ export const ScenarioBar = ({
                   }}>
                     <div style={{ fontSize: "var(--fs-lg)", flexShrink: 0, opacity: 0.8 }}>{d.icon}</div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text)" }}>{d.ref}</div>
+                      <div style={{ fontWeight: 700, fontSize: "var(--fs-base)", color: "var(--text)" }}>{d.ref}</div>
                       <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)", marginTop: 2 }}>{d.msg}</div>
                     </div>
                   </div>

@@ -551,7 +551,7 @@ function TabVoluntarios({
                                   transition:"all .12s"
                                 }}>
                                 {seleccionados.includes(v.id) && (
-                                  <span style={{ color:"#0f172a", fontSize:"0.6rem", fontWeight:900 }}>✓</span>
+                                  <span style={{ color:"#0f172a", fontSize:"var(--fs-2xs)", fontWeight:900 }}>✓</span>
                                 )}
                               </div>
                             )}
@@ -576,16 +576,16 @@ function TabVoluntarios({
                             <div style={{ flex:1, minWidth:0 }}>
                               <div style={{ display:"flex", alignItems:"center", gap:"0.45rem",
                                 flexWrap:"wrap", marginBottom:"0.2rem" }}>
-                                <span style={{ fontWeight:700, fontSize:"0.84rem",
+                                <span style={{ fontWeight:700, fontSize:"var(--fs-sm)",
                                   overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                                   {[v.nombre, v.apellidos].filter(Boolean).join(" ") || "Sin nombre"}
                                 </span>
                                 <span className={`badge ${v.rol==="responsable"?"badge-violet":"badge-cyan"}`}
-                                  style={{ fontSize:"0.5rem" }}>
+                                  style={{ fontSize:"var(--fs-2xs)" }}>
                                   {v.rol||"apoyo"}
                                 </span>
                                 {v.coche && <span style={{ fontSize:"var(--fs-sm)" }} title="Tiene vehículo">🚗</span>}
-                                {v.enPuesto && <span style={{ fontFamily:"var(--font-mono)", fontSize:"0.5rem", fontWeight:700, color:"var(--green)", background:"rgba(52,211,153,.12)", border:"1px solid rgba(52,211,153,.25)", borderRadius:3, padding:"0 .3rem" }} title={`En puesto${v.horaLlegada ? " desde las "+v.horaLlegada : ""}`}>📍 EN PUESTO</span>}
+                                {v.enPuesto && <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", fontWeight:700, color:"var(--green)", background:"rgba(52,211,153,.12)", border:"1px solid rgba(52,211,153,.25)", borderRadius:3, padding:"0 .3rem" }} title={`En puesto${v.horaLlegada ? " desde las "+v.horaLlegada : ""}`}>📍 EN PUESTO</span>}
                                 {v.notaVoluntario && <span style={{ fontSize:"var(--fs-sm)" }} title={"Nota: "+v.notaVoluntario}>📝</span>}
                                 {v.mensajeParaOrganizador && <span style={{ fontSize:"var(--fs-sm)" }} title={"Mensaje: "+v.mensajeParaOrganizador}>💬</span>}
                               </div>

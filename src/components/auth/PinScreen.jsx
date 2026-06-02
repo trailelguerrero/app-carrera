@@ -244,13 +244,13 @@ export default function PinScreen({ onUnlock }) {
         <Numpad onDigit={handleDigit} onBackspace={handleBackspace} disabled={isLocked} />
 
         <div style={{ marginTop: "2rem", fontFamily: "var(--font-mono)",
-          fontSize: "0.54rem", color: "var(--text-dim)", lineHeight: 1.7 }}>
+          fontSize: "var(--fs-2xs)", color: "var(--text-dim)", lineHeight: 1.7 }}>
           Contacta con el organizador si no tienes el PIN<br />
           Cámbialo desde el icono 🔐 en el panel
         </div>
 
         <div style={{ marginTop: "1.5rem", fontFamily: "var(--font-mono)",
-          fontSize: "0.5rem", color: "var(--text-dim)", opacity: 0.5, letterSpacing: "0.04em" }}>
+          fontSize: "var(--fs-2xs)", color: "var(--text-dim)", opacity: 0.5, letterSpacing: "0.04em" }}>
           v{__APP_VERSION__} · Trail El Guerrero
         </div>
       </div>
