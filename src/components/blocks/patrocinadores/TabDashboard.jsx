@@ -156,7 +156,14 @@ export default function TabDashboard({ stats, pats, objetivo, setObjetivo, setTa
                 <div className="pbar">
                   <div className="pfill" style={{ width: x.cfg.objetivo > 0 ? `${Math.min(x.total / x.cfg.objetivo * 100, 100)}%` : "0%", background: x.cfg.color }} />
                 </div>
-                <div style={{ marginTop: ".15rem", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: x.cfg.color }}>{fmtEur(x.total)}</div>
+                <div style={{ marginTop: ".15rem", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: x.cfg.color }}>
+                  {fmtEur(x.total)}
+                  {x.cfg.objetivo > 0 && (
+                    <span style={{ color: "var(--text-dim)", fontSize: "var(--fs-xs)", fontWeight: 400, marginLeft: ".35rem" }}>
+                      / {fmtEur(x.cfg.objetivo)} obj.
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           ))}
