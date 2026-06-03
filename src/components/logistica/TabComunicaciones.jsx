@@ -361,7 +361,7 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
 }
 
 
-function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,config,tareasProyecto=[],setTareasProyecto,onToggleSync}) {
+function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,config,tareasProyecto=[],setTareasProyecto,onToggleSync,filtroTareaId=null,onClearFiltroTarea}) {
   const eventFecha = config?.fecha ? new Date(config.fecha) : new Date(EVENT_CONFIG_DEFAULT.fecha);
   const diasHasta = Math.ceil((eventFecha - new Date()) / 86400000);
   const faseActiva = (() => {
@@ -375,6 +375,12 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
   })();
   const [fase,setFase]=useState(faseActiva);
   const [vistaKanban,setVistaKanban]=useState(false);
+  // GAP-A: auto-cambiar a la fase que contiene el ítem vinculado a filtroTareaId
+  React.useEffect(() => {
+    if (filtroTareaId == null) return;
+    const item = ck.find(c => c.proyectoTareaId === filtroTareaId);
+    if (item?.fase) setFase(item.fase);
+  }, [filtroTareaId]); // eslint-disable-line react-hooks/exhaustive-deps
   function toggle(ckId) {
     var ckNow = new Date().toTimeString().slice(0,5);
     setCk(function(ckPrev) {
@@ -414,6 +420,26 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
           <button className="btn btn-primary" onClick={()=>abrirModal({tipo:"ck",fase:fase,tareasProyecto:tareasProyecto})}>+ Tarea</button>
         </div>
       </div>
+      {/* GAP-A: Banner de filtro cuando se navega desde Ficha de tarea en Proyecto */}
+      {filtroTareaId != null && (() => {
+        const tareaRef = tareasProyecto.find(t => t.id === filtroTareaId);
+        const ckVinculados = ck.filter(c => c.proyectoTareaId === filtroTareaId);
+        return (
+          <div style={{margin:".5rem 0",padding:".6rem .75rem",borderRadius:8,
+            background:"rgba(34,211,238,.08)",border:"1px solid rgba(34,211,238,.3)",
+            display:"flex",alignItems:"center",justifyContent:"space-between",gap:".5rem"}}>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--cyan)"}}>
+              🔗 Filtrado por tarea: <strong>{tareaRef?.titulo || `#${filtroTareaId}`}</strong>
+              {ckVinculados.length > 0
+                ? ` · ${ckVinculados.filter(c=>c.estado==="completado").length}/${ckVinculados.length} completados`
+                : " · sin ítems vinculados"}
+            </div>
+            <button className="btn btn-ghost btn-sm"
+              style={{fontSize:"var(--fs-xs)",padding:".15rem .4rem",flexShrink:0}}
+              onClick={onClearFiltroTarea}>✕ Quitar filtro</button>
+          </div>
+        );
+      })()}
       <div className="ftabs">
         {pf.map(f=>(
           <button key={f.f} className={cls("ftab",fase===f.f&&"fa",f.f===faseActiva&&"ftab-activa")} onClick={()=>setFase(f.f)}>
@@ -460,7 +486,7 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
                       return(
                         <div key={item.id} style={{background:"var(--surface2)",border:"1px solid var(--border)",borderLeft:`3px solid ${ec}`,borderRadius:7,padding:".5rem .6rem",cursor:"pointer",opacity:item.estado==="completado"?.55:1}}
                           onClick={()=>abrirFicha("ck",item)}>
-                          <div style={{fontSize:"var(--fs-sm)",fontWeight:600,marginBottom:".2rem",textDecoration:item.estado==="completado"?"line-through":"none",color:item.estado==="completado"?"var(--text-muted)":"var(--text)"}}>{item.tarea}{item.proyectoTareaId && <span title="Vinculada a tarea de Planificación" style={{marginLeft:".35rem",fontSize:"var(--fs-xs)",color:"var(--green)",fontFamily:"var(--font-mono)",verticalAlign:"middle"}}>↗ Proyecto</span>}{item._tlId && <span title="Vinculada a entrada del runbook del día D" style={{marginLeft:".35rem",fontSize:"var(--fs-xs)",color:"var(--violet)",fontFamily:"var(--font-mono)",verticalAlign:"middle"}}>↔ runbook</span>}</div>
+                          <div style={{fontSize:"var(--fs-sm)",fontWeight:600,marginBottom:".2rem",textDecoration:item.estado==="completado"?"line-through":"none",color:item.estado==="completado"?"var(--text-muted)":"var(--text)"}}>{item.tarea}{item.proyectoTareaId && <span title="Vinculada a tarea de Planificación" style={{marginLeft:".35rem",fontSize:"var(--fs-xs)",color:"var(--green)",fontFamily:"var(--font-mono)",verticalAlign:"middle"}}>↗ Proyecto</span>}{item._tlId && <span title="Vinculada a entrada del runbook del día D" style={{marginLeft:".35rem",fontSize:"var(--fs-xs)",color:"var(--violet)",fontFamily:"var(--font-mono)",verticalAlign:"middle"}}>↔ runbook</span>}{item.proyectoTareaId === filtroTareaId && filtroTareaId != null && <span style={{marginLeft:".35rem",fontSize:"var(--fs-xs)",color:"var(--cyan)",fontFamily:"var(--font-mono)",fontWeight:700,verticalAlign:"middle"}}>← filtrado</span>}</div>
                           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                             <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>👤 {item.responsable}</span>
                             <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".08rem .3rem",borderRadius:3,background:item.prioridad==="alta"?"var(--red-dim)":"var(--amber-dim)",color:item.prioridad==="alta"?"var(--red)":"var(--amber)"}}>{item.prioridad}</span>

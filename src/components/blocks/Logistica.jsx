@@ -5,7 +5,7 @@ import {
   SK_LOG_TL, SK_LOG_CONT, SK_LOG_INC, SK_LOG_CK,
   SK_LOG_RECORRIDOS,
   SK_PPTO_TRAMOS, SK_PPTO_INSCRITOS, SK_PPTO_MAXIMOS, SK_PPTO_CONCEPTOS,
-  SK_PROY_TAREAS,
+  SK_PROY_TAREAS, SK_PROY_HITOS,
   SK_PAT_PATS,
   SK_VOL_VOLUNTARIOS, SK_VOL_PUESTOS,
 } from "@/constants/storageKeys";
@@ -49,7 +49,7 @@ import {
 } from "@/components/logistica/logisticaConstants.js";
 
 // ─── APP ──────────────────────────────────────────────────────────────────────
-export default function App({ initialSubtab, onSubtabConsumed } = {}) {
+export default function App({ initialSubtab, onSubtabConsumed, initialFilter, onFilterConsumed } = {}) {
   // 5.1 Scroll indicator para tabs
   const tabsScrollRef = useRef(null);
   const [tabsScrolled, setTabsScrolled] = useState(false);
@@ -70,12 +70,17 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
   const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
   const [tab, setTab] = useState("dashboard");
+  const [filtroTareaId, setFiltroTareaId] = useState(null); // GAP-A: filtro por tarea vinculada desde Proyecto
   useEffect(() => {
     if (initialSubtab) {
       setTab(initialSubtab);
       if (onSubtabConsumed) onSubtabConsumed();
     }
-  }, [initialSubtab, onSubtabConsumed]);
+    if (initialFilter?.filtroTareaId != null) {
+      setFiltroTareaId(initialFilter.filtroTareaId);
+      if (onFilterConsumed) onFilterConsumed();
+    }
+  }, [initialSubtab, onSubtabConsumed, initialFilter, onFilterConsumed]);
   const [rawMaterial, setMaterial] = useData(SK_LOG_MAT,  MAT0);
   const material = Array.isArray(rawMaterial) ? rawMaterial : [];
   const [rawAsigs, setAsigs] = useData(SK_LOG_ASIG, ASIG0);
@@ -362,7 +367,29 @@ export default function App({ initialSubtab, onSubtabConsumed } = {}) {
               if (ckCambio) setCk(ckNext);
             }} />}
           {tab==="emergencias" && <TabEmergencias cont={cont} inc={inc} setInc={setInc} abrirModal={abrirModal} abrirFicha={abrirFicha} tiposContacto={tiposContacto} />}
-          {tab==="checklist" && <TabCK ck={ck} setCk={setCk} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCK} setOrdenAlfa={setOrdenCK} config={config} tareasProyecto={tareasProyecto} setTareasProyecto={(fn)=>{ const next=typeof fn==="function"?fn(tareasProyecto):fn; import("@/lib/dataService").then(m=>{ m.default.set(SK_PROY_TAREAS, next); m.default.notify('proyecto'); /* INC-05: notificar a Proyecto.jsx del cambio externo */ }); }}
+          {tab==="checklist" && <TabCK ck={ck} setCk={setCk} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenCK} setOrdenAlfa={setOrdenCK} config={config} tareasProyecto={tareasProyecto} filtroTareaId={filtroTareaId} onClearFiltroTarea={()=>setFiltroTareaId(null)} setTareasProyecto={(fn)=>{
+              const next=typeof fn==="function"?fn(tareasProyecto):fn;
+              import("@/lib/dataService").then(async m=>{
+                await m.default.set(SK_PROY_TAREAS, next);
+                m.default.notify('proyecto'); // INC-05
+                // GAP-B: sincronizar hitos auto-generados de las tareas modificadas
+                const { syncHitoTarea } = await import("@/components/blocks/Proyecto.jsx");
+                const hitos = await m.default.get(SK_PROY_HITOS, []);
+                let hitosNext = Array.isArray(hitos) ? hitos : [];
+                const prevMap = new Map(tareasProyecto.map(t => [t.id, t]));
+                for (const tarea of next) {
+                  const prev = prevMap.get(tarea.id);
+                  if (!prev || prev.estado !== tarea.estado) {
+                    hitosNext = syncHitoTarea(hitosNext, tarea);
+                  }
+                }
+                const cambiaron = JSON.stringify(hitosNext) !== JSON.stringify(hitos);
+                if (cambiaron) {
+                  await m.default.set(SK_PROY_HITOS, hitosNext);
+                  m.default.notify('proyecto');
+                }
+              });
+            }}
             onToggleSync={(id, estadoNuevo, hora) => {
               const { tlNext, tlCambio } = syncCkTl("ck", id, estadoNuevo, ck, tl, hora);
               if (tlCambio) setTl(tlNext);

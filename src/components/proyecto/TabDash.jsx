@@ -21,6 +21,12 @@ export function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hit
   // Ítems vinculados a tareas de Proyecto — para mostrar coherencia
   const ckVinculados = ck.filter(c => c.proyectoTareaId != null);
   const ckVinculadosDone = ckVinculados.filter(c => c.estado === "completado").length;
+  // GAP-F: ítems CK vinculados a tareas de alta prioridad que aún no están completados
+  const ckBloqueantes = ckVinculados.filter(c => {
+    if (c.estado === "completado") return false;
+    const tarea = tareas?.find(t => t.id === c.proyectoTareaId);
+    return tarea && tarea.prioridad === "alta" && tarea.estado !== "completado";
+  }).slice(0, 3);
   return (
     <>
       {/* Semáforo por área */}
@@ -287,6 +293,39 @@ export function TabDash({ stats, equipo, setTab, setModal, setFicha, tareas, hit
             </span>
             <span>100%</span>
           </div>
+          {/* GAP-F: ítems CK críticos pendientes vinculados a tareas de alta prioridad */}
+          {ckBloqueantes.length > 0 && (
+            <div style={{ marginTop:".65rem", borderTop:"1px dashed var(--border)", paddingTop:".5rem" }}>
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"#fbbf24",
+                fontWeight:700, marginBottom:".35rem" }}>
+                ⚡ Pendientes de alta prioridad
+              </div>
+              {ckBloqueantes.map(c => {
+                const tarea = tareas?.find(t => t.id === c.proyectoTareaId);
+                return (
+                  <div key={c.id} style={{ display:"flex", alignItems:"center", gap:".5rem",
+                    padding:".3rem 0", borderBottom:"1px solid rgba(30,45,80,.2)" }}>
+                    <div style={{ width:6, height:6, borderRadius:"50%", flexShrink:0,
+                      background:"#fbbf24", boxShadow:"0 0 5px #fbbf2466" }} />
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:"var(--fs-xs)", fontWeight:600,
+                        overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                        {c.tarea}
+                      </div>
+                      {tarea && (
+                        <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)",
+                          color:"var(--text-muted)" }}>↗ {tarea.titulo}</div>
+                      )}
+                    </div>
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)",
+                      color:"#fbbf24", background:"rgba(251,191,36,.1)",
+                      border:"1px solid rgba(251,191,36,.2)", borderRadius:3,
+                      padding:".05rem .3rem", flexShrink:0 }}>{c.fase}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </>

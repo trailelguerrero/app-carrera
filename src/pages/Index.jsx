@@ -267,6 +267,7 @@ export default function Index() {
   const [activeBlock, setActiveBlock] = useState("dashboard");
   const [showDiaCarrera, setShowDiaCarrera] = useState(false);
   const [pendingSubtab, setPendingSubtab] = useState(null);
+  const [pendingFilter, setPendingFilter] = useState(null); // { filtroTareaId? }
   const [readmeBlock, setReadmeBlock] = useState(null);
   const ActiveComponent = BLOCKS.find(b => b.id === activeBlock)?.component;
 
@@ -306,6 +307,9 @@ export default function Index() {
       if (e.detail?.block) {
         handleBlockChange(e.detail.block);
         if (e.detail.subtab) setPendingSubtab(e.detail.subtab);
+        // GAP-A: pasar filtro de tarea vinculada (ej. desde FichaProyecto → Pre-operativo)
+        if (e.detail.filtroTareaId != null) setPendingFilter({ filtroTareaId: e.detail.filtroTareaId });
+        else setPendingFilter(null);
       }
     };
     window.addEventListener("teg-navigate", h);
@@ -572,6 +576,8 @@ export default function Index() {
                   key={activeBlock}
                   initialSubtab={pendingSubtab}
                   onSubtabConsumed={() => setPendingSubtab(null)}
+                  initialFilter={pendingFilter}
+                  onFilterConsumed={() => setPendingFilter(null)}
                 />}
               </Suspense>
             </ErrorBoundary>

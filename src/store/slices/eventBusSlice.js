@@ -21,9 +21,13 @@
  *   Escucha: useDashboardQueries → invalida [camisetas, presupuesto]
  *
  * LOGISTICA_INCIDENCIA
- *   Emite:  DiaCarrera.jsx (notify('logistica')), futuro: Logística.jsx
+ *   Emite:  DiaCarrera.jsx (notify('logistica')), Logistica.jsx (CK completado)
  *   Escucha: useDashboardQueries → invalida [logistica]
  *            useAlertasBadges   → recalcula módulo 'logistica'
+ *
+ * PROYECTO_TAREA_CAMBIADA (también por CK)
+ *   Emite:  Logistica.jsx (setTareasProyecto → notify('proyecto'))
+ *   Escucha: useDashboardQueries → invalida [proyecto]
  *
  * PROYECTO_TAREA_CAMBIADA
  *   Emite:  Proyecto.jsx (notify('proyecto')), Logistica.jsx (notify('proyecto'))
@@ -101,9 +105,13 @@ export const EVENT_ACTIONS = {
     ESTADO_PAGO:      'estado_pago',
   },
   LOGISTICA: {
-    ABIERTA:     'abierta',
-    CERRADA:     'cerrada',
-    ACTUALIZADA: 'actualizada',
+    ABIERTA:        'abierta',
+    CERRADA:        'cerrada',
+    ACTUALIZADA:    'actualizada',
+    // Pre-operativo (checklist)
+    CK_COMPLETADO:  'ck_completado',
+    CK_REABIERTO:   'ck_reabierto',
+    FASE_COMPLETADA:'fase_completada',
   },
   DOCUMENTO: {
     SUBIDO:   'subido',

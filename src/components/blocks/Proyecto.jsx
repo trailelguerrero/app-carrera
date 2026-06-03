@@ -306,7 +306,35 @@ export default function App() {
       return nextTareas;
     });
   };
-  const updHito = (id, field, val) => { setHitos(p => p.map(h => h.id===id ? {...h,[field]:val} : h)); if(field==="completado") toast.success(val ? "Hito completado ✓" : "Hito reabierto"); };
+  const updHito = (id, field, val) => {
+    setHitos(p => p.map(h => h.id===id ? {...h,[field]:val} : h));
+    if (field === "completado") {
+      toast.success(val ? "Hito completado ✓" : "Hito reabierto");
+      // GAP-E: notificar bus para que Dashboard invalide KPIs de proyecto
+      import("@/lib/dataService").then(m => { m.default.notify('proyecto'); }).catch(() => {});
+      // GAP-C: si el hito está vinculado a un pedido (_pedidoId), reflejar estado en LogisticaPedidos
+      const hitoActual = hitos.find(h => h.id === id);
+      if (hitoActual?._pedidoId) {
+        import("@/lib/dataService").then(async m => {
+          const { SK_LOG_PEDIDOS_PROV } = await import("@/constants/storageKeys");
+          const pedidos = await m.default.get(SK_LOG_PEDIDOS_PROV, []);
+          if (!Array.isArray(pedidos)) return;
+          const idx = pedidos.findIndex(p => p.id === hitoActual._pedidoId);
+          if (idx === -1) return;
+          const estadoActual = pedidos[idx].estado;
+          if (val && (estadoActual === "pendiente" || estadoActual === "en curso" || estadoActual === "retrasado")) {
+            const next = pedidos.map((p, i) => i === idx ? { ...p, estado: "recibido" } : p);
+            await m.default.set(SK_LOG_PEDIDOS_PROV, next);
+            m.default.notify('logistica');
+          } else if (!val && estadoActual === "recibido") {
+            const next = pedidos.map((p, i) => i === idx ? { ...p, estado: "en curso" } : p);
+            await m.default.set(SK_LOG_PEDIDOS_PROV, next);
+            m.default.notify('logistica');
+          }
+        }).catch(() => {/* pedidos no disponibles — ignorar */});
+      }
+    }
+  };
 
   const TABS_VISTAS = [
     {id:"tablón",    icon:"📋", label:"Tablón"},

@@ -65,21 +65,27 @@ function FichaProyecto({ ficha, equipo, documentos, tareas, onClose, onEditar, o
                   </a>
                 </div>
               )}
-              {/* Crosslink → Pre-operativo en Logística */}
-              {ficha.tipo === "tarea" && (
-                <div style={{ marginTop: ".6rem", padding: ".5rem .65rem", borderRadius:8,
-                  background:"rgba(167,139,250,.08)", border:"1px solid rgba(167,139,250,.2)",
-                  display:"flex", alignItems:"center", justifyContent:"space-between", gap:".5rem" }}>
-                  <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--violet)" }}>
-                    ✅ Ver ítems Pre-operativo vinculados
+              {/* Crosslink → Pre-operativo en Logística — GAP-A: lleva filtroTareaId */}
+              {ficha.tipo === "tarea" && (() => {
+                // Calcular cuántos ítems CK vinculados existen (se muestra en el badge)
+                // El conteo lo hace TabCK al recibir el filtro; aquí solo mostramos el link
+                return (
+                  <div style={{ marginTop: ".6rem", padding: ".5rem .65rem", borderRadius:8,
+                    background:"rgba(167,139,250,.08)", border:"1px solid rgba(167,139,250,.2)",
+                    display:"flex", alignItems:"center", justifyContent:"space-between", gap:".5rem" }}>
+                    <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--violet)" }}>
+                      ✅ Ver ítems Pre-operativo vinculados
+                    </div>
+                    <button className="btn btn-ghost btn-sm"
+                      style={{fontSize:"var(--fs-xs)",padding:".2rem .5rem"}}
+                      onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", {
+                        detail: { block: "logistica", subtab: "checklist", filtroTareaId: data.id }
+                      }))}>
+                      Logística →
+                    </button>
                   </div>
-                  <button className="btn btn-ghost btn-sm"
-                    style={{fontSize:"var(--fs-xs)",padding:".2rem .5rem"}}
-                    onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "logistica" } }))}>
-                    Logística →
-                  </button>
-                </div>
-              )}
+                );
+              })()}
               {/* Gestión legal relacionada — para tareas del área permisos */}
               {data.area === "permisos" && (() => {
                 const gestRelacionada = documentos?.filter(d => d.subcategoria && !d.tipo)
@@ -196,6 +202,56 @@ function FichaProyecto({ ficha, equipo, documentos, tareas, onClose, onEditar, o
                    color={data.completado ? "var(--green)" : "var(--amber)"} />
               <FichaRow label="Crítico" value={data.critico ? "⚡ Sí, es crítico" : "No"}
                    color={data.critico ? "var(--red)" : undefined} />
+              {/* GAP-D: origen del hito auto-generado — navegación a tarea o pedido fuente */}
+              {data._tareaId && (() => {
+                const tareaOrigen = tareas?.find(t => t.id === data._tareaId);
+                return (
+                  <div style={{ marginTop:".8rem", padding:".65rem .75rem", borderRadius:8,
+                    background:"rgba(34,211,238,.07)", border:"1px solid rgba(34,211,238,.25)" }}>
+                    <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                      color:"var(--cyan)", textTransform:"uppercase", fontWeight:700, marginBottom:".35rem" }}>
+                      📋 Generado desde tarea
+                    </div>
+                    {tareaOrigen ? (
+                      <div style={{ display:"flex", alignItems:"center", gap:".6rem" }}>
+                        <span style={{ flex:1, fontSize:"var(--fs-base)", fontWeight:600 }}>
+                          {tareaOrigen.titulo}
+                        </span>
+                        <button className="btn btn-ghost btn-sm"
+                          style={{ fontSize:"var(--fs-xs)", padding:".15rem .45rem", flexShrink:0 }}
+                          onClick={() => { onClose(); setTimeout(() => {/* setFicha not accessible here */}, 0); }}>
+                          Ver →
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>
+                        Tarea #{data._tareaId}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+              {data._pedidoId && (
+                <div style={{ marginTop:".8rem", padding:".65rem .75rem", borderRadius:8,
+                  background:"rgba(167,139,250,.07)", border:"1px solid rgba(167,139,250,.25)" }}>
+                  <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                    color:"var(--violet)", textTransform:"uppercase", fontWeight:700, marginBottom:".35rem" }}>
+                    🛒 Generado desde pedido a proveedor
+                  </div>
+                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:".6rem" }}>
+                    <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>
+                      Pedido #{data._pedidoId} · Logística → Pedidos
+                    </div>
+                    <button className="btn btn-ghost btn-sm"
+                      style={{ fontSize:"var(--fs-xs)", padding:".15rem .45rem", flexShrink:0 }}
+                      onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", {
+                        detail: { block:"logistica", subtab:"pedidosprov" }
+                      }))}>
+                      Ver pedido →
+                    </button>
+                  </div>
+                </div>
+              )}
             </>)}
 
             {tipo === "persona" && (<>

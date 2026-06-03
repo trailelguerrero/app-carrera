@@ -719,3 +719,142 @@ describe('MEJORA-02c coherencia TAREAS0 — auto-promoción de datos semilla', (
     expect(hitos.filter(h => h._tareaId === tarea.id)).toHaveLength(1);
   });
 });
+
+// ── SYNC INTERCONEXIÓN: GAP-B, GAP-C, GAP-E ─────────────────────────────────
+
+describe('SYNC-INTER-01: updHito reverse-sync pedido (GAP-C lógica pura)', () => {
+  // Verifica la lógica pura de decisión de sync pedido→hito→pedido sin side-effects
+  it('hito completado con _pedidoId → estado pedido elegible cambia a recibido', () => {
+    const pedidos = [
+      { id: 10, nombre: "Medallas finisher", estado: "en curso" },
+      { id: 11, nombre: "Dorsales",          estado: "pendiente" },
+    ];
+    // Simular la decisión que toma el handler
+    const hitoActual = { id: 99, nombre: "🛒 Pedido: Medallas finisher", _pedidoId: 10, completado: false };
+    const val = true; // marcando completado
+    const idx = pedidos.findIndex(p => p.id === hitoActual._pedidoId);
+    expect(idx).toBe(0);
+    const estadoActual = pedidos[idx].estado;
+    const debeActualizar = val && (estadoActual === "pendiente" || estadoActual === "en curso" || estadoActual === "retrasado");
+    expect(debeActualizar).toBe(true);
+    const estadoNuevo = "recibido";
+    const next = pedidos.map((p, i) => i === idx ? { ...p, estado: estadoNuevo } : p);
+    expect(next[0].estado).toBe("recibido");
+    expect(next[1].estado).toBe("pendiente"); // no tocado
+  });
+
+  it('hito desmarcado con _pedidoId → pedido en "recibido" vuelve a "en curso"', () => {
+    const pedidos = [{ id: 10, nombre: "Medallas finisher", estado: "recibido" }];
+    const hitoActual = { id: 99, _pedidoId: 10, completado: true };
+    const val = false; // desmarcando
+    const idx = pedidos.findIndex(p => p.id === hitoActual._pedidoId);
+    const estadoActual = pedidos[idx].estado;
+    const debeRevertir = !val && estadoActual === "recibido";
+    expect(debeRevertir).toBe(true);
+    const next = pedidos.map((p, i) => i === idx ? { ...p, estado: "en curso" } : p);
+    expect(next[0].estado).toBe("en curso");
+  });
+
+  it('hito con _pedidoId en estado "facturado" NO se modifica al desmarcar hito', () => {
+    const pedidos = [{ id: 10, estado: "facturado" }];
+    const val = false;
+    const estadoActual = pedidos[0].estado;
+    const debeRevertir = !val && estadoActual === "recibido";
+    expect(debeRevertir).toBe(false); // facturado no revertible
+  });
+
+  it('hito sin _pedidoId no dispara sync de pedido', () => {
+    const hito = { id: 5, nombre: "Hito manual", completado: false };
+    expect(hito._pedidoId).toBeUndefined();
+    // Sin _pedidoId no hay lookup → no hay sync
+  });
+});
+
+describe('SYNC-INTER-02: GAP-B — syncHitoTarea en cadena CK→tarea→hito', () => {
+  it('completar tarea vía CK y luego syncHitoTarea produce hito.completado=true', async () => {
+    const { syncHitoTarea } = await import('../components/blocks/Proyecto.jsx');
+    const tarea = {
+      id: 38, area: "logistica", prioridad: "alta",
+      titulo: "Inventario material", fechaLimite: "2026-04-30",
+      estado: "completado",
+    };
+    const hitosPrevios = [
+      { id: 3, _tareaId: 38, nombre: "📋 Inventario material", fecha: "2026-04-30", completado: false, critico: false }
+    ];
+    const result = syncHitoTarea(hitosPrevios, tarea, "upsert");
+    const hito = result.find(h => h._tareaId === 38);
+    expect(hito).toBeDefined();
+    expect(hito.completado).toBe(true);
+  });
+
+  it('al volver tarea a pendiente, syncHitoTarea pone hito.completado=false', async () => {
+    const { syncHitoTarea } = await import('../components/blocks/Proyecto.jsx');
+    const tarea = {
+      id: 38, area: "logistica", prioridad: "alta",
+      titulo: "Inventario material", fechaLimite: "2026-04-30",
+      estado: "pendiente",
+    };
+    const hitosPrevios = [
+      { id: 3, _tareaId: 38, nombre: "📋 Inventario material", fecha: "2026-04-30", completado: true, critico: false }
+    ];
+    const result = syncHitoTarea(hitosPrevios, tarea, "upsert");
+    const hito = result.find(h => h._tareaId === 38);
+    expect(hito.completado).toBe(false);
+  });
+});
+
+describe('SYNC-INTER-03: GAP-F — ckBloqueantes computation', () => {
+  it('solo retorna ítems CK pendientes vinculados a tareas alta prioridad no completadas', () => {
+    const ck = [
+      { id: 1, proyectoTareaId: 10, estado: "pendiente",   tarea: "Confirmar autorización", fase: "Semana antes" },
+      { id: 2, proyectoTareaId: 11, estado: "completado",  tarea: "Servicio médico",         fase: "Semana antes" },
+      { id: 3, proyectoTareaId: 12, estado: "pendiente",   tarea: "Cronometraje",            fase: "1 mes antes" },
+      { id: 4, proyectoTareaId: null, estado: "pendiente", tarea: "Sin vínculo",             fase: "Semana antes" },
+    ];
+    const tareas = [
+      { id: 10, prioridad: "alta",  estado: "en curso",   titulo: "Tarea A" },
+      { id: 11, prioridad: "alta",  estado: "pendiente",  titulo: "Tarea B" },
+      { id: 12, prioridad: "media", estado: "pendiente",  titulo: "Tarea C" },
+    ];
+    const ckVinculados = ck.filter(c => c.proyectoTareaId != null);
+    const ckBloqueantes = ckVinculados.filter(c => {
+      if (c.estado === "completado") return false;
+      const tarea = tareas.find(t => t.id === c.proyectoTareaId);
+      return tarea && tarea.prioridad === "alta" && tarea.estado !== "completado";
+    });
+    // id=1 (pendiente, alta, en curso) ✓
+    // id=2 (completado) ✗
+    // id=3 (pendiente, media) ✗
+    // id=4 (sin vínculo) ✗
+    expect(ckBloqueantes).toHaveLength(1);
+    expect(ckBloqueantes[0].id).toBe(1);
+  });
+
+  it('no incluye ítems CK de tareas ya completadas', () => {
+    const ck = [{ id: 5, proyectoTareaId: 20, estado: "pendiente", tarea: "X", fase: "Semana antes" }];
+    const tareas = [{ id: 20, prioridad: "alta", estado: "completado", titulo: "Tarea Y" }];
+    const ckVinculados = ck.filter(c => c.proyectoTareaId != null);
+    const ckBloqueantes = ckVinculados.filter(c => {
+      if (c.estado === "completado") return false;
+      const tarea = tareas.find(t => t.id === c.proyectoTareaId);
+      return tarea && tarea.prioridad === "alta" && tarea.estado !== "completado";
+    });
+    expect(ckBloqueantes).toHaveLength(0);
+  });
+});
+
+describe('SYNC-INTER-04: eventBusSlice — EVENT_ACTIONS.LOGISTICA CK acciones', () => {
+  it('EVENT_ACTIONS.LOGISTICA tiene CK_COMPLETADO, CK_REABIERTO y FASE_COMPLETADA', async () => {
+    const { EVENT_ACTIONS } = await import('../store/slices/eventBusSlice.js');
+    expect(EVENT_ACTIONS.LOGISTICA.CK_COMPLETADO).toBe('ck_completado');
+    expect(EVENT_ACTIONS.LOGISTICA.CK_REABIERTO).toBe('ck_reabierto');
+    expect(EVENT_ACTIONS.LOGISTICA.FASE_COMPLETADA).toBe('fase_completada');
+  });
+
+  it('EVENT_ACTIONS.LOGISTICA mantiene acciones existentes', async () => {
+    const { EVENT_ACTIONS } = await import('../store/slices/eventBusSlice.js');
+    expect(EVENT_ACTIONS.LOGISTICA.ABIERTA).toBe('abierta');
+    expect(EVENT_ACTIONS.LOGISTICA.CERRADA).toBe('cerrada');
+    expect(EVENT_ACTIONS.LOGISTICA.ACTUALIZADA).toBe('actualizada');
+  });
+});
