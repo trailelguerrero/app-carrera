@@ -42,7 +42,7 @@ export function detectarSolapamiento(tareasExistentes, nuevaTarea) {
 }
 
 // ─── FICHA LOGÍSTICA ──────────────────────────────────────────────────────────
-function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar }) {
+function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar, asigs = [], setAsigs = null, locs = [], abrirModal = null }) {
   const { tipo, data } = ficha;
   const accents = { tl:"var(--amber)", ck:"var(--green)", mat:"var(--cyan)", veh:"var(--violet)", ruta:"var(--amber)", cont:"var(--cyan)", asig:"var(--cyan)", inc:"var(--red)" };
   const icons   = { tl:"⏱️", ck:"✅", mat:"📦", veh:"🚐", ruta:"🗺️", cont:"📞", asig:"📍", inc:"⚠️" };
@@ -119,13 +119,129 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar })
               <Row label="Responsable" value={data.responsable} />
               {data.notas && <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",borderLeft:`2px solid ${accent}`,marginTop:".25rem"}}><div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginBottom:".25rem",textTransform:"uppercase"}}>Notas</div><div style={{fontSize:"var(--fs-base)",lineHeight:1.5}}>{data.notas}</div></div>}
             </>)}
-            {tipo==="mat" && (<>
-              <Row label="Categoría"      value={`${CAT_ICONS[data.categoria]} ${data.categoria}`} />
-              <Row label="Stock total"    value={`${data.stock} ${data.unidad}`} />
-              {data.cantidadInicial != null && <Row label="Cantidad inicial" value={`${data.cantidadInicial} ${data.unidad}`} color="var(--text-muted)" />}
-              <Row label="Asignado"       value={`${data.asig||0} ${data.unidad}`} />
-              {(data.def||0)>0 && <Row label="⚠️ Déficit" value={`-${data.def} ${data.unidad}`} color="var(--red)" />}
-            </>)}
+            {tipo==="mat" && (() => {
+              // Asignaciones de este material a cada puesto
+              const asigsMat = asigs.filter(a => a.materialId === data.id);
+              const totalAsig = asigsMat.reduce((s, a) => s + (a.cantidad || 0), 0);
+              const totalEnt  = asigsMat.filter(a => a.estado === "entregado").reduce((s, a) => s + (a.cantidad || 0), 0);
+              const deficit   = Math.max(totalAsig - (data.stock || 0), 0);
+
+              return (
+                <>
+                  <Row label="Categoría"      value={`${CAT_ICONS[data.categoria]} ${data.categoria}`} />
+                  <Row label="Stock total"    value={`${data.stock} ${data.unidad}`} />
+                  {data.stockMinimo > 0 && (
+                    <Row
+                      label="Stock mínimo"
+                      value={`${data.stockMinimo} ${data.unidad}`}
+                      color={data.stock < data.stockMinimo ? "var(--red)" : "var(--text-muted)"}
+                    />
+                  )}
+                  {data.cantidadInicial != null && (
+                    <Row label="Cantidad inicial" value={`${data.cantidadInicial} ${data.unidad}`} color="var(--text-muted)" />
+                  )}
+                  <Row label="Asignado total" value={`${totalAsig} ${data.unidad}`} color={totalAsig > 0 ? "var(--cyan)" : "var(--text-muted)"} />
+                  {totalEnt > 0 && <Row label="Entregado"  value={`${totalEnt} ${data.unidad}`} color="var(--green)" />}
+                  {deficit > 0  && <Row label="⚠️ Déficit" value={`-${deficit} ${data.unidad}`} color="var(--red)" />}
+
+                  {/* ── Distribución por puestos ─────────────────────────── */}
+                  <div style={{ marginTop: ".75rem", borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: ".75rem" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ".5rem" }}>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase" }}>
+                        📍 Distribución por puestos
+                        <Tooltip text="Unidades de este material asignadas a cada puesto. Edita el estado de entrega directamente desde aquí.">
+                          <TooltipIcon size={10} style={{ marginLeft: 4 }} />
+                        </Tooltip>
+                      </div>
+                      {abrirModal && (
+                        <button
+                          className="btn btn-cyan"
+                          style={{ fontSize: "var(--fs-xs)", padding: ".2rem .55rem" }}
+                          onClick={() => {
+                            onClose();
+                            abrirModal({ tipo: "asig", data: { materialId: data.id }, conceptosPres: [] });
+                          }}
+                        >
+                          + Asignar a puesto
+                        </button>
+                      )}
+                    </div>
+
+                    {asigsMat.length === 0 ? (
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", textAlign: "center", padding: ".5rem 0" }}>
+                        Sin asignaciones. Usa "+ Asignar a puesto" para distribuir este material.
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: ".3rem" }}>
+                        {asigsMat.map(a => {
+                          const loc = locs.find(l => l.id === a.localizacionId);
+                          const locIcon = loc ? (LOC_ICONS[loc.tipo] || "📌") : "📌";
+                          const estadoColor = ESTADO_COLORES[a.estado] || "var(--text-muted)";
+                          return (
+                            <div key={a.id} style={{
+                              display: "flex", alignItems: "center", gap: ".5rem",
+                              padding: ".35rem .5rem", borderRadius: "var(--r-sm)",
+                              background: "var(--surface2)", border: "1px solid var(--border)",
+                              flexWrap: "wrap",
+                            }}>
+                              <span style={{ fontSize: "var(--fs-sm)", flexShrink: 0 }}>{locIcon}</span>
+                              <span style={{ flex: 1, fontSize: "var(--fs-sm)", fontWeight: 600, minWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {a.puesto}
+                              </span>
+                              <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700, color: "var(--cyan)", flexShrink: 0 }}>
+                                {a.cantidad} {data.unidad}
+                              </span>
+                              {setAsigs ? (
+                                <select
+                                  value={a.estado}
+                                  onChange={e => {
+                                    const nuevoEstado = e.target.value;
+                                    setAsigs(prev => prev.map(x => x.id === a.id ? { ...x, estado: nuevoEstado } : x));
+                                  }}
+                                  onClick={e => e.stopPropagation()}
+                                  style={{
+                                    fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+                                    background: "var(--surface3)", border: "1px solid var(--border)",
+                                    borderRadius: "var(--r-sm)", padding: ".15rem .35rem",
+                                    color: estadoColor, flexShrink: 0, cursor: "pointer",
+                                  }}
+                                >
+                                  {ESTADO_ENTREGA.map(s => <option key={s} value={s}>{s}</option>)}
+                                </select>
+                              ) : (
+                                <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: estadoColor, flexShrink: 0 }}>
+                                  {a.estado}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+
+                        {asigsMat.length > 1 && (
+                          <div style={{ display: "flex", gap: ".4rem", flexWrap: "wrap", marginTop: ".2rem", paddingTop: ".35rem", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                            {["pendiente","en tránsito","entregado","recogido"].map(est => {
+                              const n = asigsMat.filter(a => a.estado === est).length;
+                              if (!n) return null;
+                              return (
+                                <span key={est} style={{
+                                  fontFamily: "var(--font-mono)", fontSize: "var(--fs-2xs)",
+                                  padding: ".08rem .35rem", borderRadius: 20,
+                                  background: `${ESTADO_COLORES[est] || "var(--text-muted)"}18`,
+                                  color: ESTADO_COLORES[est] || "var(--text-muted)",
+                                  border: `1px solid ${ESTADO_COLORES[est] || "var(--text-muted)"}33`,
+                                }}>
+                                  {est}: {n}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
             {tipo==="asig" && (<>
               <Row label="Material"    value={matNombre} />
               <Row label="Puesto"      value={data.puesto} />
