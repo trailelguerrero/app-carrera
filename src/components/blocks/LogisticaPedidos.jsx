@@ -295,34 +295,15 @@ export function TabPedidosProv({ pedidos, setPedidos, cont, material=[], setMate
         </div>
       )}
 
-      {/* ── Sugerencias automáticas ── */}
-      <SugerenciasMedallas
-        inscritos={inscritos}
-        totalInscritos={totalInscritos}
-        precioMedalla={precioMedalla}
-        conceptoMedalla={conceptoMedalla}
-        pedidos={pedidos}
-        onCrear={(sugerido) => setModal(sugerido)}
-      />
-      {(conceptoDorsal || conceptosAvit.length > 0) && (
-        <SugerenciasSimples
-          inscritos={inscritos}
-          totalInscritos={totalInscritos}
-          conceptoDorsal={conceptoDorsal}
-          precioDorsal={precioDorsal}
-          conceptosAvit={conceptosAvit}
-          precioAvitTotal={precioAvitTotal}
-          pedidos={pedidos}
-          onCrear={(sugerido) => setModal(sugerido)}
-        />
-      )}
+
+
 
       {/* ── Lista de pedidos ── */}
       {pedidos.length === 0 ? (
         <div className="card" style={{textAlign:"center",padding:"2.5rem 1rem",
           color:"var(--text-dim)",fontFamily:"var(--font-mono)",fontSize:"var(--fs-base)"}}>
           <div style={{fontSize:"var(--fs-xl)",marginBottom:".5rem",opacity:.35}}>🛒</div>
-          Sin pedidos aún. Usa las sugerencias de arriba o crea uno manualmente.
+          Sin pedidos aún. Crea el primero con el botón «+ Nuevo pedido».
         </div>
       ) : (
         <div style={{display:"flex",flexDirection:"column",gap:".5rem"}}>
@@ -702,6 +683,9 @@ export function TabPedidosProv({ pedidos, setPedidos, cont, material=[], setMate
           proveedores={proveedores}
           material={material}
           conceptosPres={conceptosPres}
+          pedidosActivos={pedidos}
+          totalInscritos={totalInscritos}
+          inscritos={inscritos}
           onSave={guardar}
           onClose={()=>setModal(null)}
         />
@@ -712,6 +696,9 @@ export function TabPedidosProv({ pedidos, setPedidos, cont, material=[], setMate
           proveedores={proveedores}
           material={material}
           conceptosPres={conceptosPres}
+          pedidosActivos={pedidos}
+          totalInscritos={totalInscritos}
+          inscritos={inscritos}
           onSave={guardar}
           onClose={()=>setModal(null)}
         />
@@ -739,345 +726,8 @@ export function TabPedidosProv({ pedidos, setPedidos, cont, material=[], setMate
   );
 }
 
-// ── Panel de sugerencias simples: dorsales + avituallamiento ──────────────────
-function SugerenciasSimples({ inscritos, totalInscritos, conceptoDorsal, precioDorsal, conceptosAvit, precioAvitTotal, pedidos, onCrear }) {
-  const [colapsado, setColapsado] = useState(true); // colapsado por defecto para no saturar
-  const baseTotal = totalInscritos || 0;
-
-  const yaTieneDorsal = pedidos.some(p =>
-    p.articulos?.some(a => /dorsal/i.test(a.nombre)) && p.estado !== "borrador"
-  );
-  const yaTieneAvit = pedidos.some(p =>
-    p.articulos?.some(a => /avituall|nutrición|agua/i.test(a.nombre)) && p.estado !== "borrador"
-  );
-
-  const sugerencias = [
-    conceptoDorsal && {
-      key: "dorsal",
-      icon: "🔢",
-      label: "Dorsales",
-      cantidad: baseTotal,
-      precio: precioDorsal,
-      concepto: conceptoDorsal,
-      yaConfirmado: yaTieneDorsal,
-    },
-    ...conceptosAvit.map(c => ({
-      key: c.id,
-      icon: "🍎",
-      label: c.nombre,
-      cantidad: baseTotal,
-      precio: calcPrecioUnitario(c, []).precio,
-      concepto: c,
-      yaConfirmado: yaTieneAvit,
-    })),
-  ].filter(Boolean);
-
-  if (!sugerencias.length) return null;
-
-  return (
-    <div className="card mb" style={{padding:0,overflow:"hidden",
-      borderLeft:"3px solid var(--cyan)",marginBottom:".5rem"}}>
-      <button
-        onClick={() => setColapsado(v => !v)}
-        style={{width:"100%",display:"flex",alignItems:"center",gap:".65rem",
-          padding:".7rem .9rem",background:"rgba(34,211,238,.04)",
-          border:"none",cursor:"pointer",textAlign:"left"}}>
-        <div style={{flex:1,minWidth:0}}>
-          <div style={{fontWeight:700,fontSize:"var(--fs-base)"}}>
-            📦 Sugerencias — Dorsales y Avituallamiento
-          </div>
-          <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
-            color:"var(--text-muted)",marginTop:".1rem"}}>
-            {sugerencias.length} concepto{sugerencias.length!==1?"s":""} · {baseTotal} corredores base
-          </div>
-        </div>
-        <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
-          color:"var(--text-dim)",flexShrink:0,
-          transform:colapsado?"rotate(-90deg)":"rotate(0deg)",transition:"transform .18s"}}>▼</span>
-      </button>
-
-      {!colapsado && (
-        <div style={{borderTop:"1px solid var(--border)",padding:".75rem .9rem",
-          display:"flex",flexDirection:"column",gap:".5rem"}}>
-          {sugerencias.map(sg => (
-            <div key={sg.key} style={{
-              display:"flex",alignItems:"center",gap:".75rem",
-              padding:".55rem .75rem",borderRadius:8,
-              background:"var(--surface2)",border:"1px solid var(--border)",
-              flexWrap:"wrap"}}>
-              <span style={{fontSize:"var(--fs-lg)",flexShrink:0}}>{sg.icon}</span>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontWeight:700,fontSize:"var(--fs-base)"}}>{sg.label}</div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
-                  color:"var(--text-muted)",marginTop:".1rem"}}>
-                  {sg.cantidad} ud
-                  {sg.precio > 0 && ` · ${fmtEur(sg.precio)}/ud = ${fmtEur(sg.cantidad * sg.precio)}`}
-                  {sg.precio === 0 && " · precio no configurado en presupuesto"}
-                </div>
-              </div>
-              {sg.yaConfirmado ? (
-                <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
-                  padding:".1rem .4rem",borderRadius:4,fontWeight:700,
-                  background:"var(--green-dim)",color:"var(--green)",
-                  border:"1px solid rgba(52,211,153,.2)",flexShrink:0}}>
-                  ✓ Pedido confirmado
-                </span>
-              ) : (
-                <button
-                  className="btn btn-sm"
-                  style={{background:"rgba(34,211,238,.15)",color:"var(--cyan)",
-                    border:"1px solid rgba(34,211,238,.3)",fontSize:"var(--fs-xs)",
-                    flexShrink:0,whiteSpace:"nowrap"}}
-                  onClick={() => onCrear({
-                    _sugerido: true,
-                    nombre: `Pedido ${sg.label}`,
-                    articulos: [{
-                      nombre: sg.label,
-                      cantidad: sg.cantidad,
-                      precioUnit: sg.precio,
-                      conceptoId: sg.concepto?.id || null,
-                      esFijo: false,
-                    }],
-                    importeEstimado: sg.cantidad * sg.precio,
-                    importeTotal: sg.cantidad * sg.precio,
-                    estado: "borrador",
-                    fechaEntrega: "", proveedor: "",
-                    notas: `Generado automáticamente. Base: ${baseTotal} corredores.`,
-                    factura: null,
-                  })}>
-                  Crear pedido →
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 
-// ── Panel de sugerencias automáticas de medallas ──────────────────────────────
-function SugerenciasMedallas({ inscritos, totalInscritos, precioMedalla, conceptoMedalla, pedidos, onCrear, onEliminar }) {
-  const [margen, setMargen]       = useState(20);
-  const [modo,   setModo]         = useState("fijo");
-  const [collapsed, setCollapsed] = useState(true); // colapsado por defecto
-
-  const baseTotal       = totalInscritos || 0;
-  const extra           = modo === "pct" ? Math.ceil(baseTotal * margen / 100) : margen;
-  const cantidadSugerida = baseTotal + extra;
-  const costeEstimado    = cantidadSugerida * precioMedalla;
-
-  const pedidoExistente = pedidos.find(p =>
-    p.articulos?.some(a => /medalla/i.test(a.nombre)) && p.estado !== "borrador"
-  );
-
-  // El pedido sugerido guardado (si existe en la lista)
-  const pedidoGuardado = pedidos.find(p => p._esSugerido);
-
-  return (
-    <div className="card mb" style={{padding:0,overflow:"hidden",
-      borderLeft:"3px solid var(--amber)",marginBottom:".5rem"}}>
-
-      {/* ── Cabecera — mismo patrón que pedidos guardados ── */}
-      <div style={{
-        display:"flex", alignItems:"center", gap:".65rem",
-        padding:".7rem .9rem", cursor:"pointer",
-        background:"rgba(251,191,36,.04)",
-      }} onClick={()=>setCollapsed(v=>!v)}>
-        <div style={{flex:1,minWidth:0}}>
-          <div style={{display:"flex",alignItems:"center",gap:".5rem",flexWrap:"wrap"}}>
-            <span style={{fontWeight:700,fontSize:"var(--fs-base)"}}>
-              🏅 Sugerencia — Medallas finisher
-            </span>
-            {pedidoExistente && (
-              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
-                padding:".1rem .4rem",borderRadius:4,fontWeight:700,
-                background:"var(--green-dim)",color:"var(--green)",
-                border:"1px solid rgba(52,211,153,.2)"}}>
-                ✓ Pedido confirmado
-              </span>
-            )}
-          </div>
-          <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
-            color:"var(--text-muted)",marginTop:".1rem"}}>
-            {baseTotal} inscritos · sugerido: {cantidadSugerida} ud
-            {precioMedalla > 0 && ` · ${fmtEur(costeEstimado)} estimado`}
-          </div>
-        </div>
-        <div style={{textAlign:"right",flexShrink:0}}>
-          {precioMedalla > 0 ? (
-            <div style={{fontFamily:"var(--font-mono)",fontWeight:800,
-              fontSize:"var(--fs-base)",color:"var(--amber)"}}>
-              {fmtEur(costeEstimado)}
-            </div>
-          ) : (
-            <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
-              color:"var(--text-dim)"}}>sin precio</div>
-          )}
-          <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
-            padding:".1rem .4rem",borderRadius:4,
-            background:"rgba(251,191,36,.15)",color:"var(--amber)",fontWeight:700}}>
-            Sugerido
-          </span>
-        </div>
-        <span style={{color:"var(--text-dim)",fontSize:"var(--fs-base)",flexShrink:0,
-          transition:"transform .2s",transform:collapsed?"rotate(-90deg)":"rotate(0)"}}>
-          ▼
-        </span>
-      </div>
-
-      {/* ── Detalle colapsable ── */}
-      {!collapsed && (
-        <div style={{borderTop:"1px solid var(--border)",
-          padding:".75rem .9rem",display:"flex",flexDirection:"column",gap:".65rem"}}>
-
-          {/* Desglose por distancia */}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:".4rem"}}>
-            {["TG7","TG13","TG25"].map(d => (
-              <div key={d} style={{padding:".45rem .6rem",borderRadius:7,
-                background:"var(--surface2)",border:"1px solid var(--border)",
-                textAlign:"center"}}>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
-                  color:"var(--text-muted)",marginBottom:".1rem"}}>{d}</div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-md)",
-                  fontWeight:800,color:"var(--amber)"}}>{inscritos?.[d]||0}</div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
-                  color:"var(--text-dim)"}}>inscritos</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Margen */}
-          <div style={{display:"flex",alignItems:"center",gap:".5rem",flexWrap:"wrap"}}>
-            <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
-              color:"var(--text-muted)",flexShrink:0}}>Margen extra:</span>
-            <div style={{display:"flex",background:"var(--surface2)",
-              border:"1px solid var(--border)",borderRadius:6,overflow:"hidden"}}>
-              {[["fijo","ud"],["pct","%"]].map(([v,l])=>(
-                <button key={v} onClick={e=>{e.stopPropagation();setModo(v);}}
-                  style={{padding:".22rem .55rem",border:"none",cursor:"pointer",
-                    fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
-                    background:modo===v?"rgba(251,191,36,.2)":"transparent",
-                    color:modo===v?"var(--amber)":"var(--text-muted)"}}>
-                  {l}
-                </button>
-              ))}
-            </div>
-            <input type="number" min="0" max={modo==="pct"?100:500} value={margen}
-              onClick={e=>e.stopPropagation()}
-              onChange={e=>setMargen(Math.max(0,parseInt(e.target.value)||0))}
-              style={{width:56,background:"var(--surface2)",border:"1px solid var(--border)",
-                color:"var(--amber)",borderRadius:6,padding:".22rem .4rem",
-                fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",textAlign:"right",outline:"none"}}
-            />
-            <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
-              color:"var(--text-muted)"}}>
-              {modo==="pct" ? `% = +${extra} ud` : "ud extra"}
-            </span>
-          </div>
-
-          {/* Resumen */}
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
-            gap:"1rem",flexWrap:"wrap",padding:".55rem .75rem",borderRadius:8,
-            background:"rgba(251,191,36,.06)",border:"1px solid rgba(251,191,36,.18)"}}>
-            <div style={{display:"flex",gap:"1.5rem",flexWrap:"wrap"}}>
-              <div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
-                  color:"var(--text-muted)",textTransform:"uppercase",
-                  letterSpacing:".06em",marginBottom:".15rem"}}>
-                  BASE INSCRITOS
-                </div>
-                <div style={{fontFamily:"var(--font-mono)",fontWeight:800,fontSize:"var(--fs-md)"}}>
-                  {baseTotal}
-                </div>
-              </div>
-              <div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
-                  color:"var(--text-muted)",textTransform:"uppercase",
-                  letterSpacing:".06em",marginBottom:".15rem"}}>
-                  + MARGEN
-                </div>
-                <div style={{fontFamily:"var(--font-mono)",fontWeight:800,fontSize:"var(--fs-md)",
-                  color:"var(--amber)"}}>
-                  +{extra}
-                </div>
-              </div>
-              <div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
-                  color:"var(--text-muted)",textTransform:"uppercase",
-                  letterSpacing:".06em",marginBottom:".15rem"}}>
-                  = PEDIR AL PROVEEDOR
-                </div>
-                <div style={{fontFamily:"var(--font-mono)",fontWeight:800,fontSize:"var(--fs-md)",
-                  color:"var(--cyan)"}}>
-                  {cantidadSugerida}
-                </div>
-              </div>
-              {precioMedalla > 0 && (
-                <div>
-                  <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
-                    color:"var(--text-muted)",textTransform:"uppercase",
-                    letterSpacing:".06em",marginBottom:".15rem"}}>
-                    COSTE ESTIMADO ({fmtEur(precioMedalla)}/UD)
-                  </div>
-                  <div style={{fontFamily:"var(--font-mono)",fontWeight:800,fontSize:"var(--fs-md)",
-                    color:"var(--amber)"}}>
-                    {fmtEur(costeEstimado)}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Acciones — mismo patrón que pedidos guardados */}
-          <div style={{display:"flex",gap:".4rem",justifyContent:"flex-end",
-            paddingTop:".25rem",borderTop:"1px solid var(--border)",flexWrap:"wrap"}}>
-            <button className="btn btn-ghost btn-sm"
-              style={{fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}
-              onClick={e=>{e.stopPropagation();setCollapsed(true);}}>
-              Colapsar
-            </button>
-            <button className="btn btn-sm"
-              style={{fontSize:"var(--fs-xs)",
-                background:"rgba(251,191,36,.15)",color:"var(--amber)",
-                border:"1px solid rgba(251,191,36,.3)",marginLeft:"auto"}}
-              onClick={e=>{
-                e.stopPropagation();
-                onCrear({
-                  _sugerido: true,
-                  nombre:"Pedido medallas finisher",
-                  articulos:[{
-                    nombre:"Medalla finisher",
-                    cantidad: cantidadSugerida,
-                    precioUnit: precioMedalla,
-                    esFijo: false,
-                    notas:`Base: ${baseTotal} inscritos + ${extra} margen`
-                  }],
-                  importeEstimado: costeEstimado,
-                  importeTotal: costeEstimado,
-                  estado:"borrador",
-                  fechaEntrega:"",
-                  proveedor:"",
-                  notas:`Generado automáticamente. Base: ${baseTotal} inscritos (TG7:${inscritos?.TG7||0} + TG13:${inscritos?.TG13||0} + TG25:${inscritos?.TG25||0}) + ${extra} ud de margen.`,
-                  factura:null,
-                });
-              }}>
-              Crear pedido con esta cantidad →
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-
-// ── Modal crear/editar pedido ─────────────────────────────────────────────────
-// Calcula el precio UNITARIO correcto de un concepto del presupuesto
-// - Variable: costePorDistancia (ya es €/corredor)
-// - Fijo con material vinculado: costeTotal ÷ stock del artículo
-// - Fijo sin vínculo: 0 (el usuario debe introducirlo manualmente)
 function calcPrecioUnitario(concepto, material=[]) {
   if (!concepto) return { precio:0, esFijo:false, costeTotal:0 };
 
@@ -1111,7 +761,7 @@ function calcPrecioUnitario(concepto, material=[]) {
   return { precio: 0, esFijo: true, costeTotal: concepto.costeTotal, unidades: 0 };
 }
 
-function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, material=[], conceptosPres=[] }) {
+function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, material=[], conceptosPres=[], pedidosActivos=[], totalInscritos=0, inscritos={} }) {
   const esEdit = !!data?.id;
   const [form, setForm] = useState(() => {
     if (data) return { ...data, articulos: (data.articulos||[]).map(a=>({...a})) };
@@ -1166,6 +816,79 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
   }, [todosLosDocs, form.proveedor]);
 
   const updFactura = (k,v) => upd("factura", {...(form.factura||{}), [k]:v });
+
+  // ── Chips de artículos pre-configurados (sugerencias dentro del modal) ──────
+  // Construye la lista de conceptos relevantes con cantidad/precio ya calculados.
+  // Solo aparecen en modo creación (!esEdit) y cuando hay conceptosPres disponibles.
+  const chipsSugeridos = useMemo(() => {
+    if (esEdit || !conceptosPres.length) return [];
+    const base = totalInscritos || 0;
+    const chips = [];
+
+    // Patrones de detección por nombre de concepto
+    const PATRONES = [
+      { re: /medalla|finisher/i,           icon: "🏅", categoria: "finisher" },
+      { re: /dorsal/i,                     icon: "🔢", categoria: "dorsal" },
+      { re: /avituall|nutrici|agua|gel|isotónico/i, icon: "🍎", categoria: "avituallamiento" },
+      { re: /camiseta.*voluntario|voluntario.*camiseta/i, icon: "👕", categoria: "camiseta_vol" },
+      { re: /trofeo|podio|premio/i,         icon: "🏆", categoria: "trofeo" },
+      { re: /cron[eo]metr/i,               icon: "⏱️", categoria: "cronometraje" },
+      { re: /señali[zs]|baliz/i,           icon: "🚩", categoria: "señalización" },
+    ];
+
+    for (const concepto of conceptosPres) {
+      const patron = PATRONES.find(p => p.re.test(concepto.nombre));
+      if (!patron) continue;
+
+      const { precio, esFijo, costeTotal } = calcPrecioUnitario(concepto, material);
+      // Para conceptos variables: cantidad base = totalInscritos
+      // Para conceptos fijos: cantidad = 1 (lote completo)
+      const cantidad = esFijo ? 1 : Math.max(1, base);
+      const importe  = esFijo ? costeTotal : cantidad * precio;
+
+      // ¿Ya hay un artículo de este tipo en pedidos activos no-borrador?
+      const yaPedido = pedidosActivos.some(p =>
+        p.estado !== "borrador" &&
+        p.articulos?.some(a => patron.re.test(a.nombre))
+      );
+      // ¿Ya está en el form actual?
+      const yaEnForm = form.articulos.some(a => a.conceptoId === concepto.id);
+
+      chips.push({
+        concepto,
+        icon:     patron.icon,
+        label:    concepto.nombre,
+        cantidad,
+        precio,
+        esFijo,
+        costeTotal,
+        importe,
+        yaPedido,
+        yaEnForm,
+      });
+    }
+    return chips;
+  }, [esEdit, conceptosPres, material, totalInscritos, pedidosActivos, form.articulos]);
+
+  const addChip = (chip) => {
+    // Si el artículo ya está en el form, no duplicar
+    if (chip.yaEnForm) return;
+    const art = {
+      nombre:     chip.concepto.nombre,
+      conceptoId: chip.concepto.id,
+      cantidad:   chip.cantidad,
+      precioUnit: chip.precio,
+      esFijo:     chip.esFijo,
+      costeTotal: chip.costeTotal || 0,
+      fuente:     "presupuesto",
+    };
+    // Auto-rellenar nombre del pedido si está vacío
+    setForm(p => ({
+      ...p,
+      nombre: p.nombre || chip.concepto.nombre,
+      articulos: [...p.articulos.filter(a => a.nombre !== ""), art],
+    }));
+  };
 
   return createPortal(
     <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose()}>
@@ -1231,6 +954,74 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
                 onChange={e=>upd("fechaEntrega",e.target.value)} />
             </div>
           </div>
+
+          {/* ── Chips de artículos sugeridos (solo en nuevo pedido) ── */}
+          {!esEdit && chipsSugeridos.length > 0 && (
+            <div style={{padding:".6rem .75rem",borderRadius:8,
+              background:"rgba(34,211,238,.05)",border:"1px solid rgba(34,211,238,.18)"}}>
+              <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
+                color:"var(--cyan)",textTransform:"uppercase",letterSpacing:".07em",marginBottom:".45rem"}}>
+                ⚡ Artículos del presupuesto — clic para añadir
+              </div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:".35rem"}}>
+                {chipsSugeridos.map(chip => {
+                  const fmtImporte = chip.importe > 0
+                    ? new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(chip.importe)
+                    : null;
+                  const label = chip.esFijo
+                    ? `${chip.icon} ${chip.label}${fmtImporte ? " · " + fmtImporte : ""}`
+                    : `${chip.icon} ${chip.label} · ×${chip.cantidad}${fmtImporte ? " · " + fmtImporte : ""}`;
+                  if (chip.yaPedido) return (
+                    <span key={chip.concepto.id} style={{
+                      fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
+                      padding:".22rem .55rem",borderRadius:20,cursor:"default",
+                      background:"var(--green-dim)",color:"var(--green)",
+                      border:"1px solid rgba(52,211,153,.25)",
+                      textDecoration:"line-through",opacity:.7}}
+                      title="Ya existe un pedido activo para este artículo">
+                      {chip.icon} {chip.label} ✓
+                    </span>
+                  );
+                  if (chip.yaEnForm) return (
+                    <span key={chip.concepto.id} style={{
+                      fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
+                      padding:".22rem .55rem",borderRadius:20,cursor:"default",
+                      background:"rgba(167,139,250,.15)",color:"var(--violet)",
+                      border:"1px solid rgba(167,139,250,.3)"}}>
+                      {chip.icon} {chip.label} ↓
+                    </span>
+                  );
+                  return (
+                    <button key={chip.concepto.id}
+                      onClick={() => addChip(chip)}
+                      title={chip.esFijo
+                        ? `Coste fijo: ${fmtImporte||"sin precio"}`
+                        : `${chip.cantidad} ud × ${new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR",minimumFractionDigits:2}).format(chip.precio)}/ud`}
+                      style={{
+                        fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
+                        padding:".22rem .55rem",borderRadius:20,cursor:"pointer",
+                        background:"var(--surface3)",color:"var(--text)",
+                        border:"1px solid var(--border)",
+                        transition:"all .15s",
+                      }}
+                      onMouseEnter={e=>{e.currentTarget.style.background="rgba(34,211,238,.12)";e.currentTarget.style.borderColor="rgba(34,211,238,.4)";e.currentTarget.style.color="var(--cyan)";}}
+                      onMouseLeave={e=>{e.currentTarget.style.background="var(--surface3)";e.currentTarget.style.borderColor="var(--border)";e.currentTarget.style.color="var(--text)";}}>
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+              {totalInscritos > 0 && (
+                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-2xs)",
+                  color:"var(--text-dim)",marginTop:".35rem"}}>
+                  Base: {totalInscritos} inscritos
+                  {inscritos?.TG7 || inscritos?.TG13 || inscritos?.TG25
+                    ? ` (TG7: ${inscritos.TG7||0} · TG13: ${inscritos.TG13||0} · TG25: ${inscritos.TG25||0})`
+                    : ""}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Artículos — selector dual material / presupuesto */}
           <div>

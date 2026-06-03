@@ -531,7 +531,13 @@ export default function Documentos() {
   // Gestiones con vencimiento próximo o vencidas
   const gestionesProxVencer = useMemo(() => gestiones.filter(gst => {
     const ndias = diasHasta(gst.fechaVencimiento);
-    return ndias !== null && ndias >= 0 && ndias <= 30 && gst.estado !== "aprobado";
+    if (ndias === null || ndias < 0 || ndias > 30) return false;
+    if (gst.estado === "aprobado") return false;
+    // Si la gestión está completamente por defecto (sin responsable, url ni fichero subido)
+    // solo alertar en ventana ajustada de 7 días para no saturar el panel desde el día 1
+    const esPorDefecto = !gst.responsable && !gst.url && !gst.fechaSubida;
+    if (esPorDefecto && ndias > 7) return false;
+    return true;
   }), [gestiones]);
 
   const gestionesVencidas = useMemo(() => gestiones.filter(gst => {
@@ -778,7 +784,10 @@ export default function Documentos() {
           // Subvenciones
           const svConcedidas = subvenciones.filter(sv => ["concedida","justificada","cerrada"].includes(sv.estado));
           const svTotal      = svConcedidas.reduce((s,sv) => s + (parseFloat(String(sv.importeConcedido||"").replace(",",".")) || 0), 0);
-          const hayAlgo = permDocs.length > 0 || segDocs.length > 0 || gestiones.length > 0 || subvenciones.length > 0;
+          // Mostrar el semáforo documental solo si hay algo relevante que mostrar
+          // (docs reales subidos, gestiones con estado actualizado, o subvenciones activas)
+          const gestConActividad = gestiones.filter(g => g.estado !== "pendiente" || g.fechaSubida || g.url || g.responsable).length;
+          const hayAlgo = permDocs.length > 0 || segDocs.length > 0 || gestConActividad > 0 || subvenciones.length > 0;
           if (!hayAlgo) return null;
           const semItems = [
             permDocs.length > 0 && {
