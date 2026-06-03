@@ -9,6 +9,7 @@ import EmptyState from "@/components/EmptyState";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { useData } from "@/hooks/useData";
+import { SK_DOC_DOCS } from "@/constants/storageKeys";
 
 // ─── MEJ-06: Detección de solapamiento de horarios en Timeline ───────────────
 // Pure helper — exported for testing.
@@ -47,6 +48,34 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar })
   const icons   = { tl:"⏱️", ck:"✅", mat:"📦", veh:"🚐", ruta:"🗺️", cont:"📞", asig:"📍", inc:"⚠️" };
   const accent  = accents[tipo] || "var(--cyan)";
   const titulo  = data.titulo || data.tarea || data.nombre || data.descripcion || "—";
+
+  // ── Documentos vinculados (solo para tipo=cont, proveedor) ────────────────
+  const [todosLosDocs] = useData(SK_DOC_DOCS, []);
+  const docsProveedor = useMemo(() => {
+    if (tipo !== "cont" || data.tipo !== "proveedor" || !data.nombre) return [];
+    const nombreNorm = data.nombre.trim().toLowerCase();
+    return (Array.isArray(todosLosDocs) ? todosLosDocs : [])
+      .filter(d => (d.emisor || "").trim().toLowerCase() === nombreNorm)
+      .sort((a, b) => {
+        // presupuestos primero, luego facturas, luego resto
+        const order = { presupuestos: 0, facturas: 1 };
+        const oa = order[a.categoria] ?? 2;
+        const ob = order[b.categoria] ?? 2;
+        return oa !== ob ? oa - ob : new Date(b.fechaSubida || 0) - new Date(a.fechaSubida || 0);
+      });
+  }, [tipo, data, todosLosDocs]);
+
+  const totalPresupuestadoProv = useMemo(() =>
+    docsProveedor
+      .filter(d => d.categoria === "presupuestos" && d.importe != null)
+      .reduce((s, d) => s + (typeof d.importe === "number" ? d.importe : parseFloat(String(d.importe).replace(",", ".")) || 0), 0),
+  [docsProveedor]);
+
+  const totalFacturadoProv = useMemo(() =>
+    docsProveedor
+      .filter(d => d.categoria === "facturas" && d.importe != null)
+      .reduce((s, d) => s + (typeof d.importe === "number" ? d.importe : parseFloat(String(d.importe).replace(",", ".")) || 0), 0),
+  [docsProveedor]);
 
   const Row = ({label, value, color}) => !value ? null : (
     <div style={{display:"flex",justifyContent:"space-between",padding:".4rem 0",borderBottom:"1px solid rgba(30,45,80,.3)"}}>
@@ -122,6 +151,68 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar })
               <Row label="Teléfono"    value={data.telefono} color="var(--cyan)" />
               <Row label="Email"       value={data.email} />
               {data.notas && <div style={{background:"var(--surface2)",borderRadius:8,padding:".6rem .75rem",borderLeft:`2px solid ${accent}`}}><div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginBottom:".25rem",textTransform:"uppercase"}}>Notas</div><div style={{fontSize:"var(--fs-base)",lineHeight:1.5}}>{data.notas}</div></div>}
+
+              {/* ── Documentos vinculados del proveedor ── */}
+              {data.tipo === "proveedor" && (
+                <div style={{marginTop:".75rem",borderTop:"1px solid rgba(255,255,255,0.07)",paddingTop:".75rem"}}>
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",fontWeight:700,letterSpacing:".05em",textTransform:"uppercase",marginBottom:".5rem"}}>
+                    📁 Documentos vinculados
+                    <Tooltip text="Documentos del módulo Documentos donde el emisor coincide con el nombre de este proveedor.">
+                      <TooltipIcon size={10} style={{marginLeft:4}}/>
+                    </Tooltip>
+                  </div>
+                  {docsProveedor.length === 0 ? (
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",textAlign:"center",padding:".5rem 0"}}>
+                      Sin documentos vinculados. Sube facturas o presupuestos en el módulo Documentos con este proveedor como emisor.
+                    </div>
+                  ) : (
+                    <>
+                      {/* Totales económicos */}
+                      {(totalPresupuestadoProv > 0 || totalFacturadoProv > 0) && (
+                        <div style={{display:"flex",gap:".75rem",flexWrap:"wrap",marginBottom:".5rem"}}>
+                          {totalPresupuestadoProv > 0 && (
+                            <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#34d399",background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.25)",borderRadius:20,padding:".15rem .55rem"}}>
+                              💰 Presupuestado: {new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR"}).format(totalPresupuestadoProv)}
+                            </span>
+                          )}
+                          {totalFacturadoProv > 0 && (
+                            <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#22d3ee",background:"rgba(34,211,238,0.1)",border:"1px solid rgba(34,211,238,0.25)",borderRadius:20,padding:".15rem .55rem"}}>
+                              🧾 Facturado: {new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR"}).format(totalFacturadoProv)}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {/* Lista de documentos */}
+                      <div style={{display:"flex",flexDirection:"column",gap:".3rem"}}>
+                        {docsProveedor.map(doc => {
+                          const catIcon = {"presupuestos":"💰","facturas":"🧾","contratos":"📝","seguros":"🛡️","permisos":"📋"}[doc.categoria] || "📎";
+                          const estadoColor = {"aprobado":"#34d399","vigente":"#34d399","pendiente":"#94a3b8","vencido":"#f87171","firmado":"#a78bfa"}[doc.estado] || "#94a3b8";
+                          return (
+                            <div key={doc.id} style={{display:"flex",alignItems:"center",gap:".5rem",padding:".35rem .5rem",background:"var(--surface2)",borderRadius:6,flexWrap:"wrap"}}>
+                              <span style={{fontSize:"var(--fs-sm)"}}>{catIcon}</span>
+                              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                                {doc.nombreDisplay || doc.nombre}
+                              </span>
+                              {doc.importe != null && (
+                                <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#34d399",flexShrink:0}}>
+                                  {new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR"}).format(typeof doc.importe==="number"?doc.importe:parseFloat(String(doc.importe).replace(",","."))||0)}
+                                </span>
+                              )}
+                              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:estadoColor,flexShrink:0}}>{doc.estado||"—"}</span>
+                              {doc.blobUrl && (
+                                <a href={doc.blobUrl} target="_blank" rel="noreferrer"
+                                  style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#38bdf8",flexShrink:0,textDecoration:"underline"}}>
+                                  Ver
+                                </a>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </>)}
             {tipo==="inc" && (<>
               <Row label="Hora"        value={data.hora} />

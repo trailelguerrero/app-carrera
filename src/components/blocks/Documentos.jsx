@@ -53,6 +53,57 @@ export default function Documentos() {
 
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
 
+  // ── Auto-vencimiento ─────────────────────────────────────────────────────
+  // Aplica estado "vencido" a docs/gestiones cuya fechaVencimiento ya pasó.
+  // ESTADOS_EXCLUIDOS_VENC: documentos en estos estados no se tocan (ya son definitivos).
+  const ESTADOS_EXCLUIDOS_DOC  = ["vigente", "vencido", "aprobado", "firmado", "denegado"];
+  const ESTADOS_EXCLUIDOS_GEST = ["aprobado", "vigente", "denegado", "vencido"];
+
+  const aplicarAutoVencimiento = useCallback((currentDocs, currentGestiones) => {
+    const hoy = new Date();
+    let docsActualizados    = currentDocs;
+    let gestionesActualizadas = currentGestiones;
+    let cambiosDocs    = false;
+    let cambiosGest    = false;
+
+    const nextDocs = currentDocs.map(d => {
+      if (
+        d.fechaVencimiento &&
+        !ESTADOS_EXCLUIDOS_DOC.includes(d.estado) &&
+        Math.ceil((new Date(d.fechaVencimiento) - hoy) / 86400000) < 0
+      ) {
+        cambiosDocs = true;
+        return { ...d, estado: "vencido", fechaModificacion: new Date().toISOString() };
+      }
+      return d;
+    });
+
+    const nextGest = currentGestiones.map(g => {
+      if (
+        g.fechaVencimiento &&
+        !ESTADOS_EXCLUIDOS_GEST.includes(g.estado) &&
+        Math.ceil((new Date(g.fechaVencimiento) - hoy) / 86400000) < 0
+      ) {
+        cambiosGest = true;
+        return { ...g, estado: "vencido", fechaModificacion: new Date().toISOString() };
+      }
+      return g;
+    });
+
+    if (cambiosDocs) {
+      docsActualizados = nextDocs;
+      setDocs(nextDocs);
+      dataService.set(LS_KEY, nextDocs);
+    }
+    if (cambiosGest) {
+      gestionesActualizadas = nextGest;
+      setGestiones(nextGest);
+      dataService.set(LS_KEY + "_gestiones", nextGest).then(() => dataService.notify("documentos"));
+    }
+
+    return { docs: docsActualizados, gestiones: gestionesActualizadas, cambiosDocs, cambiosGest };
+  }, []);
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -60,53 +111,66 @@ export default function Documentos() {
         const res = await fetch("/api/proxy/documents", {
           headers: { "Content-Type": "application/json" }
         });
+        let docsInit;
         if (res.ok) {
-          const rows = await res.json();
-          // Los docs tienen blobUrl — no necesitan data en memoria
-          // Auto-marcar como "vencido" si la fecha ya pasó y no está vigente
-          const hoy = new Date();
-          const docsConEstado = rows.map(d => {
-            if (d.fechaVencimiento && d.estado !== "vigente" && d.estado !== "vencido") {
-              if (Math.ceil((new Date(d.fechaVencimiento) - hoy) / 86400000) < 0)
-                return { ...d, estado: "vencido" };
-            }
-            return d;
-          });
-          setDocs(docsConEstado);
-          // F8-01: sincronizar SK_DOC_DOCS tras carga inicial para que Dashboard,
-          // Proyecto y useAlertasBadges lean datos reales en lugar de array vacío
-          dataService.set(LS_KEY, docsConEstado);
+          docsInit = await res.json();
+          // F8-01: sincronizar SK_DOC_DOCS tras carga inicial
+          setDocs(docsInit);
+          dataService.set(LS_KEY, docsInit);
         } else {
-          // Fallback a localStorage si la API no responde
-          dataService.get(LS_KEY, []).then(d => setDocs(Array.isArray(d) ? d : []));
+          // Fallback a Neon/localStorage si la API de blobs no responde
+          const fallback = await dataService.get(LS_KEY, []);
+          docsInit = Array.isArray(fallback) ? fallback : [];
+          setDocs(docsInit);
         }
-      } catch {
-        dataService.get(LS_KEY, []).then(d => setDocs(Array.isArray(d) ? d : []));
-      }
-      // Gestiones siguen en colección JSON normal.
-      // Si Neon no tiene la clave (404, primer uso), se guardan los defaults explícitamente
-      // para que futuras eliminaciones persistan correctamente y no se restauren los defaults.
-      dataService.get(LS_KEY + "_gestiones", null).then(v => {
-        if (Array.isArray(v)) {
-          setGestiones(v);
+
+        // Gestiones: si Neon no tiene la clave (primer uso), guardar defaults
+        const rawGest = await dataService.get(LS_KEY + "_gestiones", null);
+        let gestInit;
+        if (Array.isArray(rawGest)) {
+          gestInit = rawGest;
         } else {
-          setGestiones(GESTIONES_DEFAULT);
+          gestInit = GESTIONES_DEFAULT;
           dataService.set(LS_KEY + "_gestiones", GESTIONES_DEFAULT);
         }
-      });
-      // Subvenciones — misma estrategia que gestiones
-      dataService.get(SK_DOC_SUBVENCIONES, null).then(v => {
-        if (Array.isArray(v)) {
-          setSubvenciones(v);
+        setGestiones(gestInit);
+
+        // Subvenciones — misma estrategia que gestiones
+        const rawSv = await dataService.get(SK_DOC_SUBVENCIONES, null);
+        if (Array.isArray(rawSv)) {
+          setSubvenciones(rawSv);
         } else {
           setSubvenciones(SUBVENCIONES_DEFAULT);
           dataService.set(SK_DOC_SUBVENCIONES, SUBVENCIONES_DEFAULT);
         }
-      });
+
+        // Auto-vencimiento inicial con todos los datos ya cargados
+        aplicarAutoVencimiento(docsInit, gestInit);
+
+      } catch {
+        const fallback = await dataService.get(LS_KEY, []).catch(() => []);
+        const docsInit = Array.isArray(fallback) ? fallback : [];
+        setDocs(docsInit);
+        setGestiones(GESTIONES_DEFAULT);
+        aplicarAutoVencimiento(docsInit, GESTIONES_DEFAULT);
+      }
       setIsLoading(false);
     };
     load();
-  }, []);
+
+    // Revisar vencimientos cada hora (sesiones largas el día del evento)
+    const intervalo = setInterval(() => {
+      setDocs(prevDocs => {
+        setGestiones(prevGest => {
+          aplicarAutoVencimiento(prevDocs, prevGest);
+          return prevGest;
+        });
+        return prevDocs;
+      });
+    }, 60 * 60 * 1000);
+
+    return () => clearInterval(intervalo);
+  }, [aplicarAutoVencimiento]);
 
   // save() actualiza el estado local Y sincroniza SK_DOC_DOCS en Neon [F8-01]
   const save = useCallback((next) => {
@@ -782,13 +846,19 @@ export default function Documentos() {
 
         {/* ── KPIs por categoría — solo las que tienen archivos ── */}
         {(() => {
+          // Helper: suma importe de docs de una categoría
+          const sumaImporte = (catId) => docs
+            .filter(d => d.categoria === catId && d.importe != null)
+            .reduce((s, d) => s + (typeof d.importe === "number" ? d.importe : parseFloat(String(d.importe).replace(",", ".")) || 0), 0);
+
           const cats = CATEGORIAS.map(c => ({
             ...c,
             cnt: docs.filter(d => d.categoria === c.id).length,
             alert: docs.filter(d => d.categoria === c.id && d.fechaVencimiento &&
               (diasHasta(d.fechaVencimiento) ?? 999) <= 30 &&
               (diasHasta(d.fechaVencimiento) ?? 999) >= 0 &&
-              d.estado !== "aprobado").length,
+              !["aprobado","vigente","vencido"].includes(d.estado)).length,
+            totalImporte: ["presupuestos","facturas"].includes(c.id) ? sumaImporte(c.id) : null,
           }));
           const conArchivos = cats.filter(c => c.cnt > 0);
           if (conArchivos.length === 0) return (
@@ -800,28 +870,89 @@ export default function Documentos() {
               📁 Sin archivos subidos todavía — usa la zona de subida para añadir documentos
             </div>
           );
+
+          // KPI de desviación presupuesto vs factura (solo si ambos tienen importes)
+          const totalPpto   = sumaImporte("presupuestos");
+          const totalFact   = sumaImporte("facturas");
+          const hayEcon     = totalPpto > 0 || totalFact > 0;
+          const desviacion  = totalPpto > 0 && totalFact > 0
+            ? ((totalFact - totalPpto) / totalPpto * 100)
+            : null;
+
           return (
-            <div className="kpi-grid mb">
-              {conArchivos.map(c => (
-                <div key={c.id} className="kpi" style={{cursor:"pointer",
-                  borderLeftColor:c.color,borderLeftWidth:3,borderLeftStyle:"solid"}}
-                  onClick={() => { setTab(c.id); setBusqueda(""); }}>
-                  <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>
-                  {c.icon} {c.label}
-                  <Tooltip text={`Documentos subidos en la categoría ${c.label}.\nHaz clic para ver y gestionar los archivos de esta categoría.`}>
-                    <TooltipIcon size={11}/>
-                  </Tooltip>
-                </div>
-                  <div className="kpi-value" style={{color:c.color}}>{c.cnt}</div>
-                  <div className="kpi-sub">
-                    {c.alert > 0
-                      ? <span style={{color:"var(--amber)"}}>⏰ {c.alert} por vencer</span>
-                      : "archivos"
-                    }
+            <>
+              <div className="kpi-grid mb">
+                {conArchivos.map(c => (
+                  <div key={c.id} className="kpi" style={{cursor:"pointer",
+                    borderLeftColor:c.color,borderLeftWidth:3,borderLeftStyle:"solid"}}
+                    onClick={() => { setTab(c.id); setBusqueda(""); }}>
+                    <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>
+                      {c.icon} {c.label}
+                      <Tooltip text={`Documentos subidos en la categoría ${c.label}.\nHaz clic para ver y gestionar los archivos de esta categoría.`}>
+                        <TooltipIcon size={11}/>
+                      </Tooltip>
+                    </div>
+                    <div className="kpi-value" style={{color:c.color}}>{c.cnt}</div>
+                    <div className="kpi-sub">
+                      {c.totalImporte != null && c.totalImporte > 0
+                        ? <span style={{color:c.color,fontWeight:700}}>{formatImporte(c.totalImporte)}</span>
+                        : c.alert > 0
+                          ? <span style={{color:"var(--amber)"}}>⏰ {c.alert} por vencer</span>
+                          : "archivos"
+                      }
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── Panel de totales económicos presupuesto vs factura ── */}
+              {hayEcon && (
+                <div className="card mb" style={{padding:".75rem 1rem",borderLeft:"3px solid rgba(52,211,153,0.4)"}}>
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginBottom:".5rem",fontWeight:700,letterSpacing:".05em",textTransform:"uppercase"}}>
+                    💰 Totales económicos
+                  </div>
+                  <div style={{display:"flex",gap:"1rem",flexWrap:"wrap",alignItems:"center"}}>
+                    {totalPpto > 0 && (
+                      <div style={{display:"flex",flexDirection:"column",gap:".1rem"}}>
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>💰 Presupuestado</span>
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-base)",fontWeight:700,color:"#34d399"}}>{formatImporte(totalPpto)}</span>
+                      </div>
+                    )}
+                    {totalFact > 0 && (
+                      <div style={{display:"flex",flexDirection:"column",gap:".1rem"}}>
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>🧾 Facturado</span>
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-base)",fontWeight:700,color:"#22d3ee"}}>{formatImporte(totalFact)}</span>
+                      </div>
+                    )}
+                    {desviacion !== null && (
+                      <div style={{display:"flex",flexDirection:"column",gap:".1rem"}}>
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>
+                          <Tooltip text={`Diferencia entre lo facturado y lo presupuestado.\n${desviacion > 0 ? "El gasto real supera el presupuesto." : desviacion < 0 ? "El gasto real está por debajo del presupuesto." : "Sin desviación."}`}>
+                            <span>📊 Desviación <TooltipIcon size={10}/></span>
+                          </Tooltip>
+                        </span>
+                        <span style={{
+                          fontFamily:"var(--font-mono)",fontSize:"var(--fs-base)",fontWeight:700,
+                          color: desviacion > 10 ? "#f87171" : desviacion > 0 ? "#fbbf24" : "#34d399"
+                        }}>
+                          {desviacion > 0 ? "+" : ""}{desviacion.toFixed(1)}%
+                        </span>
+                      </div>
+                    )}
+                    {totalPpto > 0 && totalFact > 0 && totalPpto > totalFact && (
+                      <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#34d399",background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.25)",borderRadius:20,padding:".15rem .55rem"}}>
+                        ✅ Dentro de presupuesto
+                      </span>
+                    )}
+                    {desviacion !== null && desviacion > 10 && (
+                      <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#f87171",background:"rgba(248,113,113,0.1)",border:"1px solid rgba(248,113,113,0.25)",borderRadius:20,padding:".15rem .55rem"}}>
+                        ⚠ Desviación alta
+                      </span>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           );
         })()}
 

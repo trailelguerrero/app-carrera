@@ -1342,3 +1342,149 @@ describe('DOCS-P5 — Importe en contratos y seguros', () => {
     expect(doc).toContain('Importe del contrato');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MEJORAS FUNCIONALES DOCUMENTOS — Auto-vencimiento · Totales económicos · Vinculación proveedor
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('DOC-MF1 — Auto-vencimiento robusto', () => {
+  it('aplicarAutoVencimiento definida como useCallback en Documentos', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('aplicarAutoVencimiento');
+    expect(doc).toContain('useCallback');
+  });
+  it('ESTADOS_EXCLUIDOS_DOC incluye vigente, vencido, aprobado, firmado, denegado', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('ESTADOS_EXCLUIDOS_DOC');
+    expect(doc).toContain('"vigente"');
+    expect(doc).toContain('"vencido"');
+    expect(doc).toContain('"aprobado"');
+    expect(doc).toContain('"firmado"');
+    expect(doc).toContain('"denegado"');
+  });
+  it('auto-vencimiento cubre también gestiones (ESTADOS_EXCLUIDOS_GEST)', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('ESTADOS_EXCLUIDOS_GEST');
+    expect(doc).toContain('currentGestiones');
+  });
+  it('persiste cambios a Neon cuando hay docs vencidos', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('cambiosDocs');
+    expect(doc).toContain('dataService.set(LS_KEY, nextDocs)');
+  });
+  it('persiste cambios de gestiones vencidas a Neon', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('cambiosGest');
+    expect(doc).toContain('dataService.set(LS_KEY + "_gestiones", nextGest)');
+  });
+  it('intervalo horario configurado con clearInterval en cleanup', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('60 * 60 * 1000');
+    expect(doc).toContain('clearInterval');
+    expect(doc).toContain('return () => clearInterval(intervalo)');
+  });
+  it('auto-vencimiento se aplica en carga inicial (load)', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('aplicarAutoVencimiento(docsInit, gestInit)');
+  });
+  it('añade fechaModificacion al marcar como vencido', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('fechaModificacion: new Date().toISOString()');
+  });
+});
+
+describe('DOC-MF2 — Totales económicos presupuesto vs factura', () => {
+  it('sumaImporte helper calcula total por categoría', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('sumaImporte');
+  });
+  it('campo totalImporte calculado para categorías presupuestos y facturas', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('totalImporte');
+    expect(doc).toContain('"presupuestos","facturas"');
+  });
+  it('KPI muestra totalImporte cuando existe importe en esa categoría', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('c.totalImporte != null && c.totalImporte > 0');
+  });
+  it('panel Totales económicos renderiza totalPpto y totalFact', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('totalPpto');
+    expect(doc).toContain('totalFact');
+    expect(doc).toContain('💰 Totales económicos');
+  });
+  it('desviación porcentual calculada cuando ambos totales existen', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('desviacion');
+    expect(doc).toContain('totalFact - totalPpto');
+    expect(doc).toContain('toFixed(1)');
+  });
+  it('label Dentro de presupuesto cuando factura < presupuesto', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('Dentro de presupuesto');
+  });
+  it('alerta Desviación alta cuando desviación > 10%', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('desviacion > 10');
+    expect(doc).toContain('Desviación alta');
+  });
+  it('panel solo se muestra cuando hayEcon (al menos un total > 0)', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('hayEcon');
+    expect(doc).toContain('{hayEcon && (');
+  });
+});
+
+describe('DOC-MF3 — Documentos vinculados en ficha proveedor', () => {
+  it('FichaLogistica importa SK_DOC_DOCS', () => {
+    const doc = read('src/components/logistica/FichaLogistica.jsx');
+    expect(doc).toContain('SK_DOC_DOCS');
+    expect(doc).toContain("from \"@/constants/storageKeys\"");
+  });
+  it('docsProveedor calculado con useMemo filtrando por emisor === nombre', () => {
+    const doc = read('src/components/logistica/FichaLogistica.jsx');
+    expect(doc).toContain('docsProveedor');
+    expect(doc).toContain('emisor');
+    expect(doc).toContain('data.nombre');
+  });
+  it('solo activa para tipo cont + data.tipo proveedor', () => {
+    const doc = read('src/components/logistica/FichaLogistica.jsx');
+    expect(doc).toContain("tipo !== \"cont\"");
+    expect(doc).toContain("data.tipo !== \"proveedor\"");
+  });
+  it('totalPresupuestadoProv y totalFacturadoProv calculados', () => {
+    const doc = read('src/components/logistica/FichaLogistica.jsx');
+    expect(doc).toContain('totalPresupuestadoProv');
+    expect(doc).toContain('totalFacturadoProv');
+  });
+  it('sección Documentos vinculados renderiza en ficha proveedor', () => {
+    const doc = read('src/components/logistica/FichaLogistica.jsx');
+    expect(doc).toContain('📁 Documentos vinculados');
+    expect(doc).toContain("data.tipo === \"proveedor\"");
+  });
+  it('totales económicos del proveedor con chips de importe', () => {
+    const doc = read('src/components/logistica/FichaLogistica.jsx');
+    expect(doc).toContain('💰 Presupuestado:');
+    expect(doc).toContain('🧾 Facturado:');
+  });
+  it('cada doc vinculado tiene link Ver si tiene blobUrl', () => {
+    const doc = read('src/components/logistica/FichaLogistica.jsx');
+    expect(doc).toContain('doc.blobUrl');
+    expect(doc).toContain('target="_blank"');
+  });
+  it('mensaje orientativo cuando sin docs vinculados', () => {
+    const doc = read('src/components/logistica/FichaLogistica.jsx');
+    expect(doc).toContain('Sin documentos vinculados');
+    expect(doc).toContain('módulo Documentos');
+  });
+  it('docs ordenados: presupuestos primero, facturas segundo', () => {
+    const doc = read('src/components/logistica/FichaLogistica.jsx');
+    expect(doc).toContain('presupuestos: 0');
+    expect(doc).toContain('facturas: 1');
+  });
+  it('normalización case-insensitive en el match de emisor', () => {
+    const doc = read('src/components/logistica/FichaLogistica.jsx');
+    expect(doc).toContain('toLowerCase()');
+    expect(doc).toContain('nombreNorm');
+  });
+});
