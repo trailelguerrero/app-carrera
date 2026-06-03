@@ -10,191 +10,49 @@ import { genIdStr } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import { blockCls as cls } from "@/lib/blockStyles";
 import SkeletonBlock from "@/components/common/SkeletonBlock";
-
 import { SK_DOC_DOCS, SK_DOC_SUBVENCIONES } from "@/constants/storageKeys";
+// MEJ-23: subcomponentes autónomos extraídos del orquestador
+import TabGestiones from "@/components/documentos/TabGestiones";
+import TabSubvenciones from "@/components/documentos/TabSubvenciones";
+import {
+  MAX_FILE_SIZE, ALLOWED_TYPES, ALLOWED_EXT,
+  CATEGORIAS, CAT_GESTIONES, TODAS_CATEGORIAS, SUBCATEGORIAS,
+  ESTADOS_DOC, getEstadoCfg, FILE_ICONS, getFileIcon,
+  formatSize, formatDate, formatImporte, diasHasta,
+  GESTIONES_DEFAULT, SUBVENCIONES_DEFAULT,
+} from "@/constants/documentosConstants";
 
-// ─── CONSTANTS ────────────────────────────────────────────────────────────────
-const LS_KEY        = SK_DOC_DOCS;
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
-const ALLOWED_TYPES = ["application/pdf", "image/png", "image/jpeg", "image/jpg", "image/webp"];
-const ALLOWED_EXT   = ".pdf,.png,.jpg,.jpeg,.webp";
-
-const CATEGORIAS = [
-  { id: "presupuestos",   icon: "💰", label: "Presupuestos proveedores", color: "#34d399" },
-  { id: "contratos",      icon: "📝", label: "Contratos",    color: "#f97316" },
-  { id: "facturas",       icon: "🧾", label: "Facturas",     color: "#22d3ee" },
-  { id: "permisos",       icon: "📋", label: "Permisos",     color: "#a78bfa" },
-  { id: "seguros",        icon: "🛡️", label: "Seguros",      color: "#fbbf24" },
-  { id: "protocolos",     icon: "📑", label: "Protocolos",   color: "#fb923c" },
-  { id: "comunicaciones", icon: "📢", label: "Comunicaciones", color: "#e879f9" },
-  { id: "certificados",   icon: "🏆", label: "Certificados", color: "#38bdf8" },
-  { id: "rrhh",           icon: "👥", label: "RR.HH.",       color: "#f472b6" },
-];
-// Gestiones es una sección separada — no mezclar con categorías de archivo
-const CAT_GESTIONES = { id: "gestiones", icon: "🏛️", label: "Gestiones legales", color: "#38bdf8", esGestion: true };
-const TODAS_CATEGORIAS = [...CATEGORIAS, { ...CAT_GESTIONES }]; // solo para búsqueda global
-
-const SUBCATEGORIAS = {
-  permisos:       ["Ayuntamiento", "Diputación", "Medio Ambiente", "Otro"],
-  seguros:        ["Accidentes", "Responsabilidad Civil", "Otro"],
-  protocolos:     ["Actuación Accidentes", "Actuación RC", "Evacuación", "Otro"],
-  comunicaciones: ["Nota de prensa", "Acreditación prensa", "Comunicado oficial", "Redes sociales", "Otro"],
-  certificados:   ["Registro federativo", "Declaración responsable", "Certificado oficial", "Otro"],
-  rrhh:           ["Contrato colaborador", "Autorización menor", "NDA", "Otro"],
-  presupuestos:   [],
-  facturas:       [],
-  contratos:      [],
-  gestiones:      ["Ayuntamiento", "Federación", "Medio Ambiente", "Diputación", "Cruz Roja", "Seguro RC", "Protección Civil", "Otro"],
-};
-
-// Gestiones legales predefinidas (registro sin archivo)
-const GESTIONES_DEFAULT = [
-  { id:"g1", nombre:"Autorización Administración Local", subcategoria:"Ayuntamiento",
-    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Solicitar autorización al organismo local competente.", url:"", fechaSubida: "", responsable: "" },
-  { id:"g2", nombre:"Licencia federativa colectiva", subcategoria:"Federación",
-    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Federación correspondiente. Requiere seguro RC previo.", url:"", fechaSubida: "", responsable: "" },
-  { id:"g3", nombre:"Seguro Responsabilidad Civil", subcategoria:"Seguro RC",
-    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Mínimo 600.000 € cobertura. Solicitar presupuesto a aseguradoras.", url:"", fechaSubida: "", responsable: "" },
-  { id:"g4", nombre:"Autorización Medio Ambiente", subcategoria:"Medio Ambiente",
-    estado:"pendiente", fechaVencimiento:"2026-06-30", nota:"Necesaria para uso de montes de utilidad pública.", url:"", fechaSubida: "", responsable: "" },
-  { id:"g5", nombre:"Protocolo Servicio médico", subcategoria:"Servicio Médico",
-    estado:"pendiente", fechaVencimiento:"2026-08-29", nota:"Ambulancia + 2 sanitarios titulados. Confirmar antes del 15 mayo.", url:"", fechaSubida: "", responsable: "" },
-  { id:"g6", nombre:"Plan de autoprotección", subcategoria:"Protección Civil",
-    estado:"pendiente", fechaVencimiento:"2026-07-31", nota:"Obligatorio cuando el aforo supera las 1.000 personas. Incluir plano de evacuación, puntos de concentración y protocolo de emergencias. Presentar ante Protección Civil con antelación.", url:"", fechaSubida: "", responsable: "" },
-  { id:"g7", nombre:"Notificación de recorrido a Guardia Civil", subcategoria:"Otro",
-    estado:"pendiente", fechaVencimiento:"2026-08-15", nota:"Comunicar el recorrido, horarios y número de participantes al puesto de la Guardia Civil correspondiente. Solicitar escolta si el recorrido cruza vías públicas de cierta densidad.", url:"", fechaSubida: "", responsable: "" },
-  { id:"g8", nombre:"Aviso a servicios de emergencia (112 / Cruz Roja)", subcategoria:"Cruz Roja",
-    estado:"pendiente", fechaVencimiento:"2026-08-22", nota:"Notificar fecha, recorrido y número de participantes a 112 y Cruz Roja. Confirmar disponibilidad de unidades móviles en zonas sin cobertura de ambulancia.", url:"", fechaSubida: "", responsable: "" },
-  { id:"g9", nombre:"Permiso de grabación / fotografía profesional", subcategoria:"Otro",
-    estado:"pendiente", fechaVencimiento:"2026-08-01", nota:"Necesario si hay cámaras o drones profesionales durante la carrera. Gestionar con la organización y, si el recorrido discurre por zonas protegidas, con Medio Ambiente.", url:"", fechaSubida: "", responsable: "" },
-];
-
-// ─── MODELO SUBVENCIONES ───────────────────────────────────────────────────────
-// Ciclo de vida: Detectada → Solicitada → En evaluación → Concedida → Justificada → Cerrada / Denegada
-const ESTADOS_SUBVENCION = [
-  { id: "detectada",     label: "Detectada",     color: "#94a3b8", bg: "rgba(148,163,184,0.12)", icon: "🔍" },
-  { id: "solicitada",    label: "Solicitada",     color: "#22d3ee", bg: "var(--cyan-dim)",        icon: "📤" },
-  { id: "en_evaluacion", label: "En evaluación",  color: "#60a5fa", bg: "rgba(96,165,250,0.12)",  icon: "⏳" },
-  { id: "concedida",     label: "Concedida",      color: "#34d399", bg: "var(--green-dim)",       icon: "✅" },
-  { id: "justificada",   label: "Justificada",    color: "#a78bfa", bg: "var(--violet-dim)",      icon: "📋" },
-  { id: "cerrada",       label: "Cerrada",        color: "#34d399", bg: "var(--green-dim)",       icon: "🔒" },
-  { id: "denegada",      label: "Denegada",       color: "#f87171", bg: "var(--red-dim)",         icon: "❌" },
-];
-const ORGANISMOS_SUBVENCION = [
-  "Ayuntamiento", "Diputación", "Comunidad Autónoma", "Ministerio",
-  "Federación", "Consejo Superior de Deportes", "Fundación privada", "Otro",
-];
-const getSvEstado = (id) => ESTADOS_SUBVENCION.find(e => e.id === id) || ESTADOS_SUBVENCION[0];
-
-const SUBVENCION_EMPTY = {
-  id: null, nombre: "", organismo: "Ayuntamiento", convocatoria: "",
-  importeSolicitado: "", importeConcedido: "",
-  fechaConvocatoria: "", fechaSolicitud: "", fechaResolucion: "", fechaJustificacion: "",
-  estado: "detectada", nota: "", url: "", responsable: "", docIds: [],
-};
-// Subvenciones predefinidas habituales en trail running
-const SUBVENCIONES_DEFAULT = [
-  {
-    id: "sv1", nombre: "Subvención Ayuntamiento", organismo: "Ayuntamiento",
-    convocatoria: "", importeSolicitado: "", importeConcedido: "",
-    fechaConvocatoria: "", fechaSolicitud: "", fechaResolucion: "", fechaJustificacion: "",
-    estado: "detectada", nota: "Solicitar partida presupuestaria para eventos deportivos municipales.", url: "", responsable: "", docIds: [],
-  },
-  {
-    id: "sv2", nombre: "Subvención Diputación Provincial", organismo: "Diputación",
-    convocatoria: "", importeSolicitado: "", importeConcedido: "",
-    fechaConvocatoria: "", fechaSolicitud: "", fechaResolucion: "", fechaJustificacion: "",
-    estado: "detectada", nota: "Convocatoria anual de promoción del deporte y turismo rural.", url: "", responsable: "", docIds: [],
-  },
-  {
-    id: "sv3", nombre: "Subvención Consejo Superior de Deportes", organismo: "Consejo Superior de Deportes",
-    convocatoria: "", importeSolicitado: "", importeConcedido: "",
-    fechaConvocatoria: "", fechaSolicitud: "", fechaResolucion: "", fechaJustificacion: "",
-    estado: "detectada", nota: "Programas de fomento de atletismo y deportes de montaña.", url: "", responsable: "", docIds: [],
-  },
-];
-const ESTADOS_DOC = [
-  { id: "pendiente",  label: "Pendiente",  color: "#94a3b8", bg: "rgba(148,163,184,0.12)" },
-  { id: "en_tramite", label: "En trámite", color: "#22d3ee", bg: "var(--cyan-dim)"  },
-  { id: "enviado",    label: "Enviado",    color: "#60a5fa", bg: "rgba(96,165,250,0.12)"   },
-  { id: "firmado",    label: "Firmado",    color: "#a78bfa", bg: "var(--violet-dim)" },
-  { id: "aprobado",   label: "Aprobado",   color: "#34d399", bg: "var(--green-dim)"  },
-  { id: "vigente",    label: "Vigente",    color: "#34d399", bg: "var(--green-dim)"  },
-  { id: "denegado",   label: "Denegado",   color: "#f87171", bg: "var(--red-dim)" },
-  { id: "vencido",    label: "Vencido",    color: "#fb923c", bg: "rgba(251,146,60,0.12)" },
-];
-
-const getEstadoCfg = (id) => ESTADOS_DOC.find(e => e.id === id) || ESTADOS_DOC[0];
-
-const FILE_ICONS = {
-  "application/pdf": "📄",
-  "image/png":  "🖼️",
-  "image/jpeg": "🖼️",
-  "image/jpg":  "🖼️",
-  "image/webp": "🖼️",
-};
-const getFileIcon = (mime) => FILE_ICONS[mime] || "📎";
-
-const formatSize = (bytes) => {
-  if (!bytes) return "0 B";
-  if (bytes < 1024)       return bytes + " B";
-  if (bytes < 1024*1024)  return (bytes/1024).toFixed(1) + " KB";
-  return (bytes/(1024*1024)).toFixed(2) + " MB";
-};
-const formatDate = (iso) => {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("es-ES", { day:"2-digit", month:"short", year:"numeric" });
-};
-const formatImporte = (val) => {
-  if (val == null || val === "") return null;
-  const n = typeof val === "number" ? val : parseFloat(String(val).replace(",","."));
-  if (isNaN(n)) return null;
-  return new Intl.NumberFormat("es-ES", { style:"currency", currency:"EUR", minimumFractionDigits:2 }).format(n);
-};
-const diasHasta = (iso) => {
-  if (!iso) return null;
-  return Math.ceil((new Date(iso) - new Date()) / 86400000);
-};
+const LS_KEY = SK_DOC_DOCS;
 
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 export default function Documentos() {
   const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
-  const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
-  const [docs, setDocs]         = useState([]);
-  const [gestiones, setGestiones] = useState([]);
+
+  const [docs, setDocs]               = useState([]);
+  const [gestiones, setGestiones]     = useState([]);
   const [subvenciones, setSubvenciones] = useState([]);
-  const [tab,  setTab]          = useState("presupuestos");
-  const [dragOver, setDragOver] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [subcat, setSubcat]     = useState("");
-  const [nota,   setNota]       = useState("");
+  const [tab,  setTab]                = useState("presupuestos");
+  const [dragOver, setDragOver]       = useState(false);
+  const [uploading, setUploading]     = useState(false);
+  const [subcat, setSubcat]           = useState("");
+  const [nota,   setNota]             = useState("");
   const [descripcionDoc, setDescripcionDoc] = useState("");
   const [estadoNuevo, setEstadoNuevo] = useState("pendiente");
   const [vencNuevo, setVencNuevo]     = useState("");
-  const [emisorNuevo, setEmisorNuevo]   = useState("");
+  const [emisorNuevo, setEmisorNuevo] = useState("");
   const [importeNuevo, setImporteNuevo] = useState("");
-  const [busqueda, setBusqueda] = useState("");
-  const [busqGlobal, setBusqGlobal] = useState(false);
-  const [uploadOpen, setUploadOpen] = useState(false); // colapsado por defecto (mandato UX)
-  const [editId,  setEditId]    = useState(null);
-  const [delConfirm, setDelConfirm] = useState(null); // {id, nombre, esGestion}
+  const [busqueda, setBusqueda]       = useState("");
+  const [busqGlobal, setBusqGlobal]   = useState(false);
+  const [uploadOpen, setUploadOpen]   = useState(false); // colapsado por defecto (mandato UX)
+  const [editId,  setEditId]          = useState(null);
+  const [delConfirm, setDelConfirm]   = useState(null); // {id, nombre, esGestion}
   const [uploadError, setUploadError] = useState(null); // mensaje de error de subida
-  const [editForm, setEditForm] = useState({});
-  // Modal nueva gestión
-  const [gModal, setGModal] = useState(false);
-  const [gForm, setGForm]   = useState({ nombre:"", subcategoria:"Ayuntamiento", estado:"pendiente", fechaVencimiento:"", fechaSolicitud:"", fechaConcesion:"", nota:"", url:"", responsable:"" });
-  const [gEditId, setGEditId]     = useState(null);
-  const [logGestionId, setLogGestionId] = useState(null);
-  const [nuevoLog, setNuevoLog]         = useState("");
-  // Modal subvención
-  const [svModal, setSvModal]   = useState(false);
-  const [svForm, setSvForm]     = useState({ ...SUBVENCION_EMPTY });
-  const [svEditId, setSvEditId] = useState(null);
-  const fileRef = useRef(null);
-  const [visorDoc, setVisorDoc] = useState(null); // doc a visualizar en modal
-  const [isLoading, setIsLoading] = useState(true); // skeleton hasta que la carga inicial termine
+  const [editForm, setEditForm]       = useState({});
+  const [visorDoc, setVisorDoc]       = useState(null); // doc a visualizar en modal
+  const [isLoading, setIsLoading]     = useState(true); // skeleton hasta que la carga inicial termine
 
-  // ── Carga inicial desde API ───────────────────────────────────────────────
+  const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -1444,249 +1302,14 @@ export default function Documentos() {
           </div>
         </div>
       , document.body)}
-      {/* ── SECCIÓN GESTIONES LEGALES — siempre visible ── */}
-      <div style={{marginTop:"1.5rem"}}>
-        <div style={{
-          display:"flex", justifyContent:"space-between", alignItems:"center",
-          marginBottom:".75rem", paddingBottom:".6rem",
-          borderBottom:"2px solid rgba(56,189,248,0.2)",
-        }}>
-          <div>
-            <div style={{
-              fontFamily:"var(--font-display)", fontWeight:800, fontSize:"var(--fs-md)",
-              color:"#38bdf8", display:"flex", alignItems:"center", gap:".5rem",
-            }}>
-              🏛️ Gestiones legales
-            </div>
-            <div style={{
-              fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-              color:"var(--text-muted)", marginTop:".15rem",
-            }}>
-              Trámites y autorizaciones · sin archivo adjunto
-            </div>
-          </div>
-          <div style={{display:"flex",gap:".5rem",alignItems:"center"}}>
-            {(gestionesVencidas.length > 0 || gestionesCriticas.length > 0) && (
-              <span style={{
-                fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
-                color:"var(--red)", background:"var(--red-dim)",
-                border:"1px solid rgba(248,113,113,0.25)",
-                borderRadius:20, padding:".15rem .55rem",
-              }}>
-                ⚠️ {gestionesVencidas.length + gestionesCriticas.length} urgente{(gestionesVencidas.length+gestionesCriticas.length)>1?"s":""}
-              </span>
-            )}
-            <button className="btn btn-primary btn-sm" onClick={()=>{
-              setGForm({nombre:"",subcategoria:"Ayuntamiento",estado:"pendiente",fechaVencimiento:"",fechaSolicitud:"",fechaConcesion:"",nota:"",url:"",responsable:""});
-              setGEditId(null); setGModal(true);
-            }}>+ Nueva gestión</button>
-          </div>
-        </div>
-
-        <div style={{display:"flex",flexDirection:"column",gap:".45rem"}}>
-          {gestiones.length === 0 && (
-            <div style={{textAlign:"center",padding:"2rem",color:"var(--text-dim)",
-              fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)"}}>
-              Sin gestiones registradas
-            </div>
-          )}
-          {gestiones.map(g => {
-            const ecfg = getEstadoCfg(g.estado);
-            const dias = diasHasta(g.fechaVencimiento);
-            const vcolor = dias===null?"var(--text-muted)":dias<0?"var(--red)":dias<=7?"var(--red)":dias<=30?"var(--amber)":"var(--text-muted)";
-            const isEditing = gEditId === g.id;
-            return (
-              <div key={g.id} style={{background:"var(--surface2)",border:`1px solid ${ecfg.color}33`,
-                borderLeft:`3px solid ${ecfg.color}`,borderRadius:8,padding:".65rem .85rem"}}>
-                {isEditing ? (
-                  <div style={{display:"flex",flexDirection:"column",gap:".4rem"}}>
-                    <input className="inp" value={gForm.nombre} onChange={e=>setGForm(p=>({...p,nombre:e.target.value}))} placeholder="Nombre de la gestión *" />
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem"}}>
-                      <select className="inp inp-sm" value={gForm.subcategoria} onChange={e=>setGForm(p=>({...p,subcategoria:e.target.value}))}>
-                        {(SUBCATEGORIAS.gestiones||[]).map(sc=><option key={sc} value={sc}>{sc}</option>)}
-                      </select>
-                      <select className="inp inp-sm" value={gForm.estado} onChange={e=>setGForm(p=>({...p,estado:e.target.value}))} style={{color:getEstadoCfg(gForm.estado).color}}>
-                        {ESTADOS_DOC.map(e=><option key={e.id} value={e.id}>{e.label}</option>)}
-                      </select>
-                    </div>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem"}}>
-                      <div><label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",display:"block",marginBottom:".2rem"}}>Fecha límite / vencimiento</label>
-                        <input className="inp inp-sm" type="date" value={gForm.fechaVencimiento} onChange={e=>setGForm(p=>({...p,fechaVencimiento:e.target.value}))} /></div>
-                      <div><label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",display:"block",marginBottom:".2rem"}}>URL / Referencia</label>
-                        <input className="inp inp-sm" value={gForm.url||""} onChange={e=>setGForm(p=>({...p,url:e.target.value}))} placeholder="https://…" /></div>
-                    </div>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem"}}>
-                      <div><label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--cyan)",display:"block",marginBottom:".2rem"}}>📅 Fecha de solicitud</label>
-                        <input className="inp inp-sm" type="date" value={gForm.fechaSolicitud||""} onChange={e=>setGForm(p=>({...p,fechaSolicitud:e.target.value}))} /></div>
-                      <div><label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#34d399",display:"block",marginBottom:".2rem"}}>✅ Fecha de concesión</label>
-                        <input className="inp inp-sm" type="date" value={gForm.fechaConcesion||""} onChange={e=>setGForm(p=>({...p,fechaConcesion:e.target.value}))} /></div>
-                    </div>
-                    <div><label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",display:"block",marginBottom:".2rem"}}>Responsable</label>
-                        <input className="inp inp-sm" value={gForm.responsable||""} onChange={e=>setGForm(p=>({...p,responsable:e.target.value}))} placeholder="Nombre del responsable…" /></div>
-                    <textarea className="inp" rows={2} value={gForm.nota||""} onChange={e=>setGForm(p=>({...p,nota:e.target.value}))} placeholder="Notas…" style={{resize:"vertical"}} />
-                    <div style={{display:"flex",gap:".4rem"}}>
-                      <button className="btn btn-primary btn-sm" onClick={()=>{
-                        if(!gForm.nombre.trim()) return;
-                        const prev = gestiones.find(x => x.id === g.id);
-                        const cambioEstado = prev && prev.estado !== gForm.estado;
-                        const entradaHist = cambioEstado ? [{
-                          id:      String(Date.now()),
-                          fecha:   new Date().toISOString(),
-                          campo:   "estado",
-                          antes:   prev.estado,
-                          despues: gForm.estado,
-                        }] : [];
-                        saveGestiones(gestiones.map(x => x.id === g.id
-                          ? { ...x, ...gForm, historial: [...(x.historial||[]), ...entradaHist].slice(-30) }
-                          : x
-                        ));
-                        setGEditId(null);
-                      }}>✅ Guardar</button>
-                      <button className="btn btn-ghost btn-sm" onClick={()=>setGEditId(null)}>Cancelar</button>
-                      <button className="btn btn-red btn-sm" style={{marginLeft:"auto"}} onClick={()=>{
-                        setDelConfirm({ id: g.id, nombre: g.nombre, esGestion: true });
-                      }}>🗑 Eliminar</button>
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{display:"flex",gap:".75rem",alignItems:"flex-start"}}>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:700,fontSize:"var(--fs-base)",marginBottom:".2rem"}}>{g.nombre}</div>
-                      <div style={{display:"flex",gap:".4rem",flexWrap:"wrap",alignItems:"center"}}>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".08rem .35rem",
-                          borderRadius:3,background:`${ecfg.color}18`,color:ecfg.color,border:`1px solid ${ecfg.color}33`}}>
-                          {ecfg.label}
-                        </span>
-                        {g.subcategoria && <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>{g.subcategoria}</span>}
-                        {g.fechaVencimiento && (
-                          <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:vcolor,fontWeight:700}}>
-                            {dias===null?"":dias<0?`⚠ Venció ${formatDate(g.fechaVencimiento)}`:dias===0?"⏰ Hoy":`⏰ ${dias}d · ${formatDate(g.fechaVencimiento)}`}
-                          </span>
-                        )}
-                        {g.url && <a href={g.url} target="_blank" rel="noreferrer" style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#38bdf8"}} onClick={e=>e.stopPropagation()}>🔗 Ver enlace</a>}
-                      </div>
-                      {/* Fechas de solicitud y concesión */}
-                      {(g.fechaSolicitud || g.fechaConcesion) && (
-                        <div style={{display:"flex",gap:".75rem",flexWrap:"wrap",marginTop:".25rem"}}>
-                          {g.fechaSolicitud && (
-                            <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#38bdf8",display:"flex",alignItems:"center",gap:".25rem"}}>
-                              📅 Solicitado: <span style={{color:"var(--text)"}}>{formatDate(g.fechaSolicitud)}</span>
-                            </span>
-                          )}
-                          {g.fechaConcesion && (
-                            <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#34d399",display:"flex",alignItems:"center",gap:".25rem"}}>
-                              ✅ Concedido: <span style={{color:"var(--text)"}}>{formatDate(g.fechaConcesion)}</span>
-                            </span>
-                          )}
-                        </div>
-                      )}
-                      {g.nota && <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginTop:".25rem",lineHeight:1.5}}>{g.nota}</div>}
-                      {g.responsable && (
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginTop:".2rem"}}>
-                          👤 <span style={{color:"var(--text)"}}>{g.responsable}</span>
-                        </div>
-                      )}
-
-                      {/* Log de comunicaciones — expandible */}
-                      {((g.log||[]).length > 0 || logGestionId === g.id) && (
-                        <div style={{marginTop:".5rem",paddingTop:".5rem",borderTop:"1px solid var(--border)"}}>
-                          <button
-                            onClick={() => setLogGestionId(logGestionId === g.id ? null : g.id)}
-                            style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",
-                              background:"none",border:"none",cursor:"pointer",padding:0,marginBottom:".35rem",
-                              display:"flex",alignItems:"center",gap:".3rem"}}>
-                            {logGestionId === g.id ? "▲" : "▼"}
-                            📋 Comunicaciones ({(g.log||[]).length})
-                          </button>
-                          {logGestionId === g.id && (
-                            <div>
-                              {(g.log||[]).length === 0 && (
-                                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
-                                  color:"var(--text-dim)",marginBottom:".4rem"}}>
-                                  Sin comunicaciones registradas aún
-                                </div>
-                              )}
-                              {[...(g.log||[])].reverse().map(entry => (
-                                <div key={entry.id} style={{display:"flex",gap:".5rem",
-                                  padding:".35rem .5rem",borderRadius:6,
-                                  background:"var(--surface)",marginBottom:".25rem",
-                                  border:"1px solid var(--border)"}}>
-                                  <div style={{flex:1,minWidth:0}}>
-                                    <div style={{fontSize:"var(--fs-sm)",lineHeight:1.5}}>{entry.texto}</div>
-                                    <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
-                                      color:"var(--text-dim)",marginTop:".15rem"}}>
-                                      {entry.autor} · {new Date(entry.fecha).toLocaleDateString("es-ES",{day:"2-digit",month:"short",year:"2-digit"})} {new Date(entry.fecha).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})}
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                              {/* Formulario añadir entrada */}
-                              <div style={{display:"flex",gap:".35rem",marginTop:".4rem"}}>
-                                <input
-                                  className="inp inp-sm"
-                                  placeholder="Añadir comunicación…"
-                                  value={nuevoLog}
-                                  onChange={e => setNuevoLog(e.target.value)}
-                                  onKeyDown={e => e.key === "Enter" && !e.shiftKey && addLogEntry(g.id)}
-                                  style={{flex:1,fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)"}}
-                                />
-                                <button
-                                  className="btn btn-primary btn-sm"
-                                  onClick={() => addLogEntry(g.id)}
-                                  disabled={!nuevoLog.trim()}>
-                                  + Añadir
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Botón para abrir log si está vacío */}
-                      {(g.log||[]).length === 0 && logGestionId !== g.id && (
-                        <button
-                          onClick={() => setLogGestionId(g.id)}
-                          style={{marginTop:".35rem",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
-                            color:"var(--text-dim)",background:"none",border:"none",
-                            cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:".25rem"}}>
-                          + Registrar comunicación
-                        </button>
-                      )}
-                    </div>
-                    <div style={{display:"flex",gap:".3rem",flexShrink:0}}>
-                      <button
-                        title="Crear tarea en Proyecto"
-                        onClick={() => {
-                          const titulo = `Gestión: ${g.nombre}`;
-                          const nota = `Vinculado desde Documentos → Gestiones legales. Estado: ${g.estado}${g.fechaVencimiento ? ` · Vence: ${g.fechaVencimiento}` : ""}.`;
-                          // Navegar a Proyecto con una tarea pre-rellenada
-                          window.dispatchEvent(new CustomEvent("teg-navigate", {
-                            detail: { block: "proyecto", action: "nueva-tarea",
-                              payload: { titulo, area: "permisos", notas: nota,
-                                fechaLimite: g.fechaVencimiento || "" } }
-                          }));
-                        }}
-                        style={{
-                          fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                          padding:".2rem .45rem", borderRadius:5,
-                          border:"1px solid rgba(167,139,250,.3)",
-                          background:"rgba(167,139,250,.1)", color:"var(--violet)",
-                          cursor:"pointer", flexShrink:0, whiteSpace:"nowrap",
-                        }}>
-                        ＋ Tarea
-                      </button>
-                      <button className="btn btn-ghost btn-sm" style={{flexShrink:0}} onClick={()=>{
-                        setGForm({nombre:g.nombre,subcategoria:g.subcategoria||"Ayuntamiento",estado:g.estado,fechaVencimiento:g.fechaVencimiento||"",fechaSolicitud:g.fechaSolicitud||"",fechaConcesion:g.fechaConcesion||"",nota:g.nota||"",url:g.url||"",responsable:g.responsable||""});
-                        setGEditId(g.id);
-                      }}>✏️</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      {/* ── SECCIÓN GESTIONES LEGALES — MEJ-23: subcomponente autónomo ── */}
+      <TabGestiones
+        gestiones={gestiones}
+        saveGestiones={saveGestiones}
+        gestionesVencidas={gestionesVencidas}
+        gestionesCriticas={gestionesCriticas}
+        setDelConfirm={setDelConfirm}
+      />
 
       {/* ── Toast error de subida ── */}
       {uploadError && (
@@ -1741,295 +1364,16 @@ export default function Documentos() {
       )}
 
 
-      {/* ── SECCIÓN SUBVENCIONES ── */}
-      {isSubvencion && (() => {
-        const totalSolicitado = subvenciones.reduce((s,sv) => s + (parseFloat(String(sv.importeSolicitado||"").replace(",",".")) || 0), 0);
-        const totalConcedido  = subvenciones.filter(sv => ["concedida","justificada","cerrada"].includes(sv.estado))
-          .reduce((s,sv) => s + (parseFloat(String(sv.importeConcedido||"").replace(",",".")) || 0), 0);
-        return (
-          <div style={{marginTop:"1rem"}}>
-            {/* Cabecera */}
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".75rem",paddingBottom:".6rem",borderBottom:"2px solid rgba(52,211,153,0.2)"}}>
-              <div>
-                <div style={{fontFamily:"var(--font-display)",fontWeight:800,fontSize:"var(--fs-md)",color:"#34d399",display:"flex",alignItems:"center",gap:".5rem"}}>
-                  🏅 Subvenciones
-                </div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginTop:".15rem"}}>
-                  Solicitudes y resoluciones · se sincroniza con Presupuesto
-                </div>
-              </div>
-              <div style={{display:"flex",gap:".5rem",alignItems:"center",flexWrap:"wrap"}}>
-                {totalConcedido > 0 && (
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,color:"#34d399",background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.25)",borderRadius:20,padding:".15rem .55rem"}}>
-                    ✅ {formatImporte(totalConcedido)} concedidos
-                  </span>
-                )}
-                {totalSolicitado > 0 && totalSolicitado !== totalConcedido && (
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#60a5fa",background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.25)",borderRadius:20,padding:".15rem .55rem"}}>
-                    📤 {formatImporte(totalSolicitado)} solicitados
-                  </span>
-                )}
-                <button className="btn btn-primary btn-sm" onClick={()=>{
-                  setSvForm({...SUBVENCION_EMPTY}); setSvEditId(null); setSvModal(true);
-                }}>+ Nueva subvención</button>
-              </div>
-            </div>
 
-            {/* Lista */}
-            {subvenciones.length === 0 ? (
-              <div style={{textAlign:"center",padding:"2rem",color:"var(--text-muted)",fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)"}}>
-                <div style={{fontSize:"2rem",marginBottom:".5rem"}}>🏅</div>
-                <div>Sin subvenciones registradas</div>
-                <div style={{fontSize:"var(--fs-xs)",marginTop:".25rem"}}>Añade subvenciones para hacer seguimiento y sincronizarlas con el Presupuesto</div>
-              </div>
-            ) : subvenciones.map(sv => {
-              const est = getSvEstado(sv.estado);
-              const impSol = parseFloat(String(sv.importeSolicitado||"").replace(",",".")) || 0;
-              const impConc = parseFloat(String(sv.importeConcedido||"").replace(",",".")) || 0;
-              const isConcedida = ["concedida","justificada","cerrada"].includes(sv.estado);
-              return (
-                <div key={sv.id} className="card mb" style={{padding:"1rem",border:isConcedida?"1px solid rgba(52,211,153,0.3)":undefined}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:".75rem",flexWrap:"wrap"}}>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:700,fontSize:"var(--fs-base)",display:"flex",alignItems:"center",gap:".5rem",flexWrap:"wrap"}}>
-                        <span>{sv.nombre}</span>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:est.color,background:est.bg,border:`1px solid ${est.color}44`,borderRadius:20,padding:".1rem .45rem",whiteSpace:"nowrap"}}>
-                          {est.icon} {est.label}
-                        </span>
-                        {isConcedida && impConc > 0 && (
-                          <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",fontWeight:700,color:"#34d399"}}>
-                            💶 {formatImporte(impConc)}
-                          </span>
-                        )}
-                      </div>
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginTop:".2rem",display:"flex",gap:".75rem",flexWrap:"wrap"}}>
-                        <span>🏢 {sv.organismo}</span>
-                        {sv.convocatoria && <span>📌 {sv.convocatoria}</span>}
-                        {sv.responsable && <span>👤 {sv.responsable}</span>}
-                      </div>
-                      {/* Importes */}
-                      <div style={{display:"flex",gap:".75rem",marginTop:".35rem",flexWrap:"wrap"}}>
-                        {impSol > 0 && !isConcedida && (
-                          <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#60a5fa"}}>📤 Solicitado: {formatImporte(impSol)}</span>
-                        )}
-                        {impSol > 0 && isConcedida && (
-                          <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>Solicitado: {formatImporte(impSol)}</span>
-                        )}
-                      </div>
-                      {/* Fechas */}
-                      <div style={{display:"flex",gap:".75rem",marginTop:".25rem",flexWrap:"wrap"}}>
-                        {sv.fechaConvocatoria && <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>📅 Conv: {formatDate(sv.fechaConvocatoria)}</span>}
-                        {sv.fechaSolicitud    && <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#38bdf8"}}>📤 Sol: {formatDate(sv.fechaSolicitud)}</span>}
-                        {sv.fechaResolucion   && <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#34d399"}}>✅ Res: {formatDate(sv.fechaResolucion)}</span>}
-                        {sv.fechaJustificacion && <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#a78bfa"}}>📋 Just: {formatDate(sv.fechaJustificacion)}</span>}
-                      </div>
-                      {sv.nota && <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginTop:".35rem",fontStyle:"italic"}}>{sv.nota}</div>}
-                      {sv.url && <a href={sv.url} target="_blank" rel="noreferrer" style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#38bdf8",display:"block",marginTop:".25rem"}}>🔗 Ver convocatoria</a>}
-                    </div>
-                    <div style={{display:"flex",gap:".4rem",flexShrink:0}}>
-                      <button className="btn btn-ghost btn-sm" title="Editar" onClick={()=>{
-                        setSvForm({
-                          id:sv.id, nombre:sv.nombre, organismo:sv.organismo||"Ayuntamiento",
-                          convocatoria:sv.convocatoria||"", importeSolicitado:sv.importeSolicitado||"",
-                          importeConcedido:sv.importeConcedido||"", fechaConvocatoria:sv.fechaConvocatoria||"",
-                          fechaSolicitud:sv.fechaSolicitud||"", fechaResolucion:sv.fechaResolucion||"",
-                          fechaJustificacion:sv.fechaJustificacion||"", estado:sv.estado,
-                          nota:sv.nota||"", url:sv.url||"", responsable:sv.responsable||"", docIds:sv.docIds||[],
-                        });
-                        setSvEditId(sv.id); setSvModal(true);
-                      }}>✏️</button>
-                      <button className="btn btn-ghost btn-sm" title="Eliminar" onClick={()=>setDelConfirm({id:sv.id,nombre:sv.nombre,esSubvencion:true})}>🗑</button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        );
-      })()}
+      {/* ── SECCIÓN SUBVENCIONES — MEJ-23: subcomponente autónomo ── */}
+      {isSubvencion && (
+        <TabSubvenciones
+          subvenciones={subvenciones}
+          saveSubvenciones={saveSubvenciones}
+          setDelConfirm={setDelConfirm}
+        />
+      )}
 
-      {/* ── Modal nueva gestión ── */}
-      {gModal && createPortal(
-        <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setGModal(false)}>
-          <div className="modal modal-ficha" style={{maxWidth:480}}>
-            <div className="modal-header">
-              <span className="modal-title">🏛️ Nueva gestión legal</span>
-              <button className="btn btn-ghost btn-sm" onClick={()=>setGModal(false)} aria-label="Cerrar">✕</button>
-            </div>
-            <div className="modal-body" style={{gap:".65rem"}}>
-              <div>
-                <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Nombre *</label>
-                <input autoFocus className="inp" value={gForm.nombre} onChange={e=>setGForm(p=>({...p,nombre:e.target.value}))} placeholder="Ej: Autorización Ayuntamiento" />
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
-                <div>
-                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Tipo</label>
-                  <select className="inp" value={gForm.subcategoria} onChange={e=>setGForm(p=>({...p,subcategoria:e.target.value}))}>
-                    {(SUBCATEGORIAS.gestiones||[]).map(sc=><option key={sc} value={sc}>{sc}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Estado</label>
-                  <select className="inp" value={gForm.estado} onChange={e=>setGForm(p=>({...p,estado:e.target.value}))} style={{color:getEstadoCfg(gForm.estado).color}}>
-                    {ESTADOS_DOC.map(e=><option key={e.id} value={e.id}>{e.label}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
-                <div>
-                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Fecha límite / vencimiento</label>
-                  <input className="inp" type="date" value={gForm.fechaVencimiento} onChange={e=>setGForm(p=>({...p,fechaVencimiento:e.target.value}))} />
-                </div>
-                <div>
-                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>URL / Referencia</label>
-                  <input className="inp" value={gForm.url} onChange={e=>setGForm(p=>({...p,url:e.target.value}))} placeholder="https://…" />
-                </div>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
-                <div>
-                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"#38bdf8",display:"block",marginBottom:".3rem"}}>📅 Fecha de solicitud</label>
-                  <input className="inp" type="date" value={gForm.fechaSolicitud||""} onChange={e=>setGForm(p=>({...p,fechaSolicitud:e.target.value}))} />
-                </div>
-                <div>
-                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"#34d399",display:"block",marginBottom:".3rem"}}>✅ Fecha de concesión</label>
-                  <input className="inp" type="date" value={gForm.fechaConcesion||""} onChange={e=>setGForm(p=>({...p,fechaConcesion:e.target.value}))} />
-                </div>
-              </div>
-              <div>
-                <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Responsable</label>
-                <input className="inp" value={gForm.responsable||""} onChange={e=>setGForm(p=>({...p,responsable:e.target.value}))} placeholder="Nombre del responsable…" />
-              </div>
-              <div>
-                <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Notas</label>
-                <textarea className="inp" rows={3} value={gForm.nota} onChange={e=>setGForm(p=>({...p,nota:e.target.value}))} placeholder="Instrucciones, contactos, requisitos previos…" style={{resize:"vertical"}} />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={()=>setGModal(false)}>Cancelar</button>
-              <button className="btn btn-primary" onClick={()=>{
-                if(!gForm.nombre.trim()) return;
-                const newG = {...gForm, id:"g"+Date.now(), fechaSubida:new Date().toISOString()};
-                saveGestiones([...gestiones, newG]);
-                setGModal(false);
-              }} disabled={!gForm.nombre.trim()} style={{opacity:gForm.nombre.trim()?1:.5}}>
-                Crear gestión
-              </button>
-            </div>
-          </div>
-        </div>
-      , document.body)}
-
-      {/* ── Modal subvención ── */}
-      {svModal && createPortal(
-        <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setSvModal(false)}>
-          <div className="modal modal-ficha" style={{maxWidth:520}}>
-            <div className="modal-header">
-              <span className="modal-title">🏅 {svEditId ? "Editar subvención" : "Nueva subvención"}</span>
-              <button className="btn btn-ghost btn-sm" onClick={()=>setSvModal(false)} aria-label="Cerrar">✕</button>
-            </div>
-            <div className="modal-body" style={{gap:".65rem"}}>
-              {/* Nombre */}
-              <div>
-                <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Nombre *</label>
-                <input autoFocus className="inp" value={svForm.nombre} onChange={e=>setSvForm(p=>({...p,nombre:e.target.value}))} placeholder="Ej: Subvención Diputación Provincial 2026" />
-              </div>
-              {/* Organismo + Estado */}
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
-                <div>
-                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Organismo</label>
-                  <select className="inp" value={svForm.organismo} onChange={e=>setSvForm(p=>({...p,organismo:e.target.value}))}>
-                    {ORGANISMOS_SUBVENCION.map(o=><option key={o} value={o}>{o}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Estado</label>
-                  <select className="inp" value={svForm.estado} onChange={e=>setSvForm(p=>({...p,estado:e.target.value}))}
-                    style={{color:getSvEstado(svForm.estado).color}}>
-                    {ESTADOS_SUBVENCION.map(e=><option key={e.id} value={e.id}>{e.icon} {e.label}</option>)}
-                  </select>
-                </div>
-              </div>
-              {/* Convocatoria */}
-              <div>
-                <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Nombre de la convocatoria</label>
-                <input className="inp" value={svForm.convocatoria} onChange={e=>setSvForm(p=>({...p,convocatoria:e.target.value}))} placeholder="Ej: Plan de Fomento del Deporte 2026" />
-              </div>
-              {/* Importes */}
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
-                <div>
-                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"#60a5fa",display:"block",marginBottom:".3rem"}}>📤 Importe solicitado (€)</label>
-                  <input className="inp" type="number" min="0" step="0.01" value={svForm.importeSolicitado} onChange={e=>setSvForm(p=>({...p,importeSolicitado:e.target.value}))} placeholder="0.00" />
-                </div>
-                <div>
-                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"#34d399",display:"block",marginBottom:".3rem"}}>✅ Importe concedido (€)</label>
-                  <input className="inp" type="number" min="0" step="0.01" value={svForm.importeConcedido} onChange={e=>setSvForm(p=>({...p,importeConcedido:e.target.value}))} placeholder="0.00" />
-                </div>
-              </div>
-              {/* Fechas */}
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
-                <div>
-                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>📅 Fecha convocatoria</label>
-                  <input className="inp" type="date" value={svForm.fechaConvocatoria} onChange={e=>setSvForm(p=>({...p,fechaConvocatoria:e.target.value}))} />
-                </div>
-                <div>
-                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"#38bdf8",display:"block",marginBottom:".3rem"}}>📤 Fecha solicitud</label>
-                  <input className="inp" type="date" value={svForm.fechaSolicitud} onChange={e=>setSvForm(p=>({...p,fechaSolicitud:e.target.value}))} />
-                </div>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
-                <div>
-                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"#34d399",display:"block",marginBottom:".3rem"}}>✅ Fecha resolución</label>
-                  <input className="inp" type="date" value={svForm.fechaResolucion} onChange={e=>setSvForm(p=>({...p,fechaResolucion:e.target.value}))} />
-                </div>
-                <div>
-                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"#a78bfa",display:"block",marginBottom:".3rem"}}>📋 Fecha justificación</label>
-                  <input className="inp" type="date" value={svForm.fechaJustificacion} onChange={e=>setSvForm(p=>({...p,fechaJustificacion:e.target.value}))} />
-                </div>
-              </div>
-              {/* Responsable + URL */}
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
-                <div>
-                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Responsable</label>
-                  <input className="inp" value={svForm.responsable} onChange={e=>setSvForm(p=>({...p,responsable:e.target.value}))} placeholder="Nombre del responsable…" />
-                </div>
-                <div>
-                  <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>URL convocatoria</label>
-                  <input className="inp" value={svForm.url} onChange={e=>setSvForm(p=>({...p,url:e.target.value}))} placeholder="https://…" />
-                </div>
-              </div>
-              {/* Notas */}
-              <div>
-                <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".3rem"}}>Notas</label>
-                <textarea className="inp" rows={3} value={svForm.nota} onChange={e=>setSvForm(p=>({...p,nota:e.target.value}))}
-                  placeholder="Requisitos, documentación necesaria, observaciones…" style={{resize:"vertical"}} />
-              </div>
-              {/* Aviso sincronización con Presupuesto */}
-              {(["concedida","justificada","cerrada"].includes(svForm.estado)) && (
-                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#34d399",background:"rgba(52,211,153,0.08)",border:"1px solid rgba(52,211,153,0.2)",borderRadius:8,padding:".5rem .75rem"}}>
-                  💡 Al guardar, el importe concedido se sincronizará automáticamente con <strong>Presupuesto → Ingresos extra → Subvención entidad pública</strong>
-                </div>
-              )}
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={()=>setSvModal(false)}>Cancelar</button>
-              <button className="btn btn-primary" disabled={!svForm.nombre.trim()} style={{opacity:svForm.nombre.trim()?1:.5}}
-                onClick={()=>{
-                  if (!svForm.nombre.trim()) return;
-                  if (svEditId) {
-                    saveSubvenciones(subvenciones.map(sv => sv.id === svEditId ? { ...svForm } : sv));
-                    toast.success("Subvención actualizada");
-                  } else {
-                    saveSubvenciones([...subvenciones, { ...svForm, id: "sv" + Date.now(), fechaSubida: new Date().toISOString() }]);
-                    toast.success("Subvención añadida");
-                  }
-                  setSvModal(false);
-                }}>
-                {svEditId ? "Guardar cambios" : "Crear subvención"}
-              </button>
-            </div>
-          </div>
-        </div>
-      , document.body)}
     </>
   );
 }

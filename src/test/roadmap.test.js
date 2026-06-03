@@ -1187,13 +1187,13 @@ describe('SUBV-01 — Módulo Subvenciones', () => {
     expect(sk).toContain('DOC_SUBVENCIONES');
   });
   it('ESTADOS_SUBVENCION define ciclo completo de vida', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = read('src/constants/documentosConstants.js'); // MEJ-23: moved to constants
     ['detectada','solicitada','en_evaluacion','concedida','justificada','cerrada','denegada'].forEach(e => {
       expect(doc).toContain(e);
     });
   });
   it('SUBVENCIONES_DEFAULT incluye subvenciones predefinidas', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = read('src/constants/documentosConstants.js'); // MEJ-23: moved to constants
     expect(doc).toContain('SUBVENCIONES_DEFAULT');
     expect(doc).toContain('sv1');
     expect(doc).toContain('sv2');
@@ -1209,21 +1209,23 @@ describe('SUBV-01 — Módulo Subvenciones', () => {
     expect(doc).toContain('"concedida","justificada","cerrada"');
   });
   it('modal de subvención tiene campos de importe solicitado y concedido', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = read('src/components/documentos/TabSubvenciones.jsx'); // MEJ-23: moved to subcomponent
     expect(doc).toContain('importeSolicitado');
     expect(doc).toContain('importeConcedido');
   });
   it('modal tiene las 4 fechas del ciclo documental', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = read('src/components/documentos/TabSubvenciones.jsx'); // MEJ-23: moved to subcomponent
     expect(doc).toContain('fechaConvocatoria');
     expect(doc).toContain('fechaSolicitud');
     expect(doc).toContain('fechaResolucion');
     expect(doc).toContain('fechaJustificacion');
   });
   it('pestaña Subvenciones con total concedido visible en el tab', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
-    expect(doc).toContain('tab === "subvenciones"');
-    expect(doc).toContain('totalConcedido');
+    // MEJ-23: tab logic in orchestrator, totalConcedido in TabSubvenciones
+    const orch = read('src/components/blocks/Documentos.jsx');
+    const sub  = read('src/components/documentos/TabSubvenciones.jsx');
+    expect(orch).toContain('tab === "subvenciones"');
+    expect(sub).toContain('totalConcedido');
   });
   it('confirmarDelete maneja esSubvencion', () => {
     const doc = read('src/components/blocks/Documentos.jsx');
@@ -1233,21 +1235,21 @@ describe('SUBV-01 — Módulo Subvenciones', () => {
 
 describe('DOCS-P1 — Nuevas categorías de documento', () => {
   it('categoría comunicaciones definida', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = read('src/constants/documentosConstants.js'); // MEJ-23: moved to constants
     expect(doc).toContain('"comunicaciones"');
     expect(doc).toContain('Comunicaciones');
   });
   it('categoría certificados definida', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = read('src/constants/documentosConstants.js'); // MEJ-23: moved to constants
     expect(doc).toContain('"certificados"');
   });
   it('categoría rrhh definida', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = read('src/constants/documentosConstants.js'); // MEJ-23: moved to constants
     expect(doc).toContain('"rrhh"');
     expect(doc).toContain('RR.HH.');
   });
   it('subcategorías definidas para las nuevas categorías', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = read('src/constants/documentosConstants.js'); // MEJ-23: moved to constants
     expect(doc).toContain('Nota de prensa');
     expect(doc).toContain('Acreditación prensa');
     expect(doc).toContain('Autorización menor');
@@ -1267,30 +1269,30 @@ describe('DOCS-P3 — Semáforo documental', () => {
 
 describe('DOCS-P4 — Nuevas gestiones predefinidas', () => {
   it('9 gestiones predefinidas (5 originales + 4 nuevas)', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = read('src/constants/documentosConstants.js'); // MEJ-23: moved to constants
     expect(doc).toContain('"g6"');
     expect(doc).toContain('"g7"');
     expect(doc).toContain('"g8"');
     expect(doc).toContain('"g9"');
   });
   it('Plan de autoprotección incluido', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = read('src/constants/documentosConstants.js'); // MEJ-23: moved to constants
     expect(doc).toContain('Plan de autoprotección');
   });
   it('Notificación Guardia Civil incluida', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = read('src/constants/documentosConstants.js'); // MEJ-23: moved to constants
     expect(doc).toContain('Guardia Civil');
   });
   it('Aviso servicios de emergencia incluido', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = read('src/constants/documentosConstants.js'); // MEJ-23: moved to constants
     expect(doc).toContain('112');
   });
   it('Permiso grabación/fotografía incluido', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = read('src/constants/documentosConstants.js'); // MEJ-23: moved to constants
     expect(doc).toContain('grabación');
   });
   it('Protección Civil en subcategorías de gestiones', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = read('src/constants/documentosConstants.js'); // MEJ-23: moved to constants
     expect(doc).toContain('Protección Civil');
   });
 });
