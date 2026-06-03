@@ -58,13 +58,13 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
         </div>
       </div>
       {vistaKanban?(
-        <div className="log-kanban-grid" style={{gridTemplateColumns:"repeat(2,1fr)"}}>
-          <div className="log-k-col">
-            <div className="log-k-hdr" style={{borderTopColor:"var(--cyan)"}}>
+        <div className="k-grid" style={{gridTemplateColumns:"repeat(2,1fr)"}}>
+          <div className="k-col">
+            <div className="k-col-hdr" style={{borderTopColor:"var(--cyan)"}}>
               <span style={{fontSize:"var(--fs-sm)",fontWeight:700,color:"var(--cyan)"}}>🚐 Flota</span>
-              <span className="log-k-cnt" style={{background:"var(--cyan-dim)",color:"var(--cyan)",border:"1px solid rgba(34,211,238,.3)"}}>{veh.length}</span>
+              <span className="k-col-cnt" style={{background:"var(--cyan-dim)",color:"var(--cyan)",border:"1px solid rgba(34,211,238,.3)"}}>{veh.length}</span>
             </div>
-            {vehOrdenado.map(v=>(<div key={v.id} className="log-k-card" style={{borderLeftColor:"var(--cyan)",cursor:"pointer"}} onClick={()=>abrirFicha("veh",v)}>
+            {vehOrdenado.map(v=>(<div key={v.id} className="k-card" style={{borderLeftColor:"var(--cyan)",cursor:"pointer"}} onClick={()=>abrirFicha("veh",v)}>
               <div style={{fontWeight:700,fontSize:"var(--fs-base)",marginBottom:".2rem"}}>{v.nombre}</div>
               <div className="mono xs muted">{v.matricula} · {v.conductor}</div>
               <div className="mono xs" style={{color:"var(--text-muted)",marginTop:".15rem"}}>{v.capacidad}</div>
@@ -74,12 +74,12 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
             {/* SECCIÓN VEHÍCULOS VOLUNTARIOS (POOL) */}
             {voluntariosConCoche.length > 0 && (
               <div style={{marginTop:"1.2rem"}}>
-                <div className="log-k-hdr" style={{borderTopColor:"var(--violet)",background:"transparent",padding:"0.6rem 0.2rem"}}>
+                <div className="k-col-hdr" style={{borderTopColor:"var(--violet)",background:"transparent",padding:"0.6rem 0.2rem"}}>
                   <span style={{fontSize:"var(--fs-sm)",fontWeight:700,color:"var(--violet)"}}>🙋‍♂️ Pool Voluntarios</span>
-                  <span className="log-k-cnt" style={{background:"var(--violet-dim)",color:"var(--violet)",border:"1px solid rgba(167,139,250,.3)"}}>{voluntariosConCoche.length}</span>
+                  <span className="k-col-cnt" style={{background:"var(--violet-dim)",color:"var(--violet)",border:"1px solid rgba(167,139,250,.3)"}}>{voluntariosConCoche.length}</span>
                 </div>
                 {voluntariosConCoche.map(vol => (
-                  <div key={vol.id} className="log-k-card" style={{borderLeftColor:"var(--violet)",background:"var(--violet-dim)"}}>
+                  <div key={vol.id} className="k-card" style={{borderLeftColor:"var(--violet)",background:"var(--violet-dim)"}}>
                     <div style={{fontWeight:700,fontSize:"var(--fs-base)",marginBottom:".2rem"}}>{vol.nombre}</div>
                     <div className="mono xs muted">{vol.cocheMatricula ? `🚙 ${vol.cocheMatricula}` : "🚙 Vehículo propio"}{vol.cochePlazas ? ` · ${vol.cochePlazas} plazas` : ""}</div>
                     <a href={`tel:${vol.telefono}`} style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--violet)",textDecoration:"none"}}>📞 {vol.telefono}</a>
@@ -88,12 +88,12 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
               </div>
             )}
           </div>
-          <div className="log-k-col">
-            <div className="log-k-hdr" style={{borderTopColor:"var(--amber)"}}>
+          <div className="k-col">
+            <div className="k-col-hdr" style={{borderTopColor:"var(--amber)"}}>
               <span style={{fontSize:"var(--fs-sm)",fontWeight:700,color:"var(--amber)"}}>🗺️ Rutas</span>
-              <span className="log-k-cnt" style={{background:"var(--amber-dim)",color:"var(--amber)",border:"1px solid rgba(251,191,36,.3)"}}>{rutas.length}</span>
+              <span className="k-col-cnt" style={{background:"var(--amber-dim)",color:"var(--amber)",border:"1px solid rgba(251,191,36,.3)"}}>{rutas.length}</span>
             </div>
-            {rutas.map(r=>{const v=veh.find(x=>x.id===r.vehiculoId);return(<div key={r.id} className="log-k-card" style={{borderLeftColor:"var(--amber)",cursor:"pointer"}} onClick={()=>abrirFicha("ruta",r)}>
+            {rutas.map(r=>{const v=veh.find(x=>x.id===r.vehiculoId);return(<div key={r.id} className="k-card" style={{borderLeftColor:"var(--amber)",cursor:"pointer"}} onClick={()=>abrirFicha("ruta",r)}>
               <div style={{fontWeight:700,fontSize:"var(--fs-base)",marginBottom:".2rem"}}>{r.nombre}</div>
               <div className="mono xs muted">🚐 {v?.nombre||"—"} · 🕐 {r.horaInicio}</div>
               <div style={{fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginTop:".2rem"}}>{(r.paradas||[]).length} paradas</div>

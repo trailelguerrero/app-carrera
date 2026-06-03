@@ -202,12 +202,12 @@ function TabCont({cont,setCont,inc,setInc,setModal,setDel,abrirFicha,ordenAlfa,s
               Sin contactos {filtroTipo!=="todos"?`de tipo "${getTipo(filtroTipo).nombre}"`:""}
             </div>
           ) : (
-            <div className="cgrid">
+            <div className="item-grid" style={{"--item-minw":"260px"}}>
               {contFiltrado.map(c=>{
                 const t = getTipo(c.tipo);
                 return (
-                  <div key={c.id} className="ccard"
-                    style={{borderTopColor:t.color,cursor:"pointer"}}
+                  <div key={c.id} className="item-card item-card--top"
+                    style={{"--item-accent":t.color,cursor:"pointer"}}
                     onClick={()=>abrirFicha("cont",c)}>
                     <div className="cch">
                       <div className="ccti" style={{fontSize:"var(--fs-lg)"}}>{t.icono}</div>

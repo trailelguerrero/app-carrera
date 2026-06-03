@@ -100,17 +100,17 @@ function TabTL({tl,setTl,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
         </div>
       </div>
       {vistaKanban?(
-        <div className="log-kanban-grid" style={{gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))"}}>
+        <div className="k-grid" style={{gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))"}}>
           {["logistica","organizacion","voluntarios","carrera","comunicacion"].map(cat=>{
             const items=sorted.filter(t=>t.categoria===cat);
             if(!items.length) return null;
             const color=TLC[cat]||"var(--text-muted)";
-            return(<div key={cat} className="log-k-col">
-              <div className="log-k-hdr" style={{borderTopColor:color}}>
+            return(<div key={cat} className="k-col">
+              <div className="k-col-hdr" style={{borderTopColor:color}}>
                 <span style={{fontSize:"var(--fs-sm)",fontWeight:700,color}}>{TLI[cat]} {cat}</span>
-                <span className="log-k-cnt" style={{background:color+"22",color,border:`1px solid ${color}44`}}>{items.length}</span>
+                <span className="k-col-cnt" style={{background:color+"22",color,border:`1px solid ${color}44`}}>{items.length}</span>
               </div>
-              {items.map(t=>{const ec=ESTADO_COLORES[t.estado];return(<div key={t.id} className="log-k-card" style={{borderLeftColor:color,cursor:"pointer",opacity:t.estado==="completado"?.55:1}} onClick={()=>abrirFicha("tl",t)}>
+              {items.map(t=>{const ec=ESTADO_COLORES[t.estado];return(<div key={t.id} className="k-card" style={{borderLeftColor:color,cursor:"pointer",opacity:t.estado==="completado"?.55:1}} onClick={()=>abrirFicha("tl",t)}>
                 <div className="mono" style={{fontSize:"var(--fs-xs)",color,marginBottom:".2rem"}}>{t.hora}</div>
                 <div style={{fontWeight:700,fontSize:"var(--fs-base)",marginBottom:".2rem"}}>{t.titulo}</div>
                 <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:ec,background:ec+"18",padding:".1rem .35rem",borderRadius:4,display:"inline-block"}}>{t.estado}</div>

@@ -92,8 +92,7 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
                     transition: "transform .18s" }}>▼</span>
                 </button>
                 {!collapsed && (
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: ".65rem",
-                    padding: ".65rem", background: "var(--surface)" }}>
+                  <div className="item-grid" style={{ padding: ".65rem", background: "var(--surface)" }}>
                     {items.map(p => <PuestoCard key={p.id} p={p} locs={locs} matPorLoc={matPorLoc}
                       onFichaPuesto={onFichaPuesto} onFichaVol={onFichaVol}
                       onEditPuesto={onEditPuesto} onDeletePuesto={onDeletePuesto} onAddVoluntario={onAddVoluntario} />)}
@@ -104,7 +103,7 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
           })}
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: ".65rem" }}>
+        <div className="item-grid">
           {puestosFiltrados.map(p => (
             <PuestoCard key={p.id} p={p} locs={locs} matPorLoc={matPorLoc}
               onFichaPuesto={onFichaPuesto} onFichaVol={onFichaVol}
@@ -126,7 +125,7 @@ function PuestoCard({ p, locs, matPorLoc, onFichaPuesto, onFichaVol, onEditPuest
   const pend = p.totalAsignados - p.confirmados;
 
   return (
-    <div className="card" style={{ borderLeft: `3px solid ${color}`, cursor: "pointer" }}
+    <div className="item-card" style={{ "--item-accent": color, cursor: "pointer" }}
       onClick={() => onFichaPuesto(p)}
       title="Click para ver ficha del puesto">
       {/* ── Cabecera: icono + nombre + badges + botones ── */}

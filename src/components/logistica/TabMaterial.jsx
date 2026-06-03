@@ -82,17 +82,17 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
           {CATS_MATERIAL.map(c=><button key={c} className={cls("chip",cat===c&&"ca")} onClick={()=>setCat(c)} style={cat===c?{borderColor:CAT_COLORS[c],color:CAT_COLORS[c],background:`${CAT_COLORS[c]}18`}:{}}>{CAT_ICONS[c]} {c}</button>)}
         </div>
         {vistaKanban?(
-          <div className="log-kanban-grid">
+          <div className="k-grid">
             {CATS_MATERIAL.map(catK=>{
               const items=mf.filter(m=>m.categoria===catK);
               if(!items.length) return null;
               const color=CAT_COLORS[catK];
-              return(<div key={catK} className="log-k-col">
-                <div className="log-k-hdr" style={{borderTopColor:color}}>
+              return(<div key={catK} className="k-col">
+                <div className="k-col-hdr" style={{borderTopColor:color}}>
                   <span style={{fontSize:"var(--fs-sm)",fontWeight:700,color}}>{CAT_ICONS[catK]} {catK}</span>
-                  <span className="log-k-cnt" style={{background:color+"22",color,border:`1px solid ${color}44`}}>{items.length}</span>
+                  <span className="k-col-cnt" style={{background:color+"22",color,border:`1px solid ${color}44`}}>{items.length}</span>
                 </div>
-                {items.map(m=>(<div key={m.id} className="log-k-card" style={{borderLeftColor:color,cursor:"pointer"}} onClick={()=>abrirFicha("mat",m)}>
+                {items.map(m=>(<div key={m.id} className="k-card" style={{borderLeftColor:color,cursor:"pointer"}} onClick={()=>abrirFicha("mat",m)}>
                   <div style={{fontWeight:700,fontSize:"var(--fs-base)",marginBottom:".3rem"}}>{m.nombre}</div>
                   <div style={{display:"flex",gap:".5rem",flexWrap:"wrap",fontSize:"var(--fs-xs)",fontFamily:"var(--font-mono)"}}>
                     <span style={{color:"var(--text-muted)"}}>Stock: <span style={{color:"var(--text)",fontWeight:700}}>{m.stock} {m.unidad}</span></span>

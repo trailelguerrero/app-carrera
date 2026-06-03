@@ -70,7 +70,7 @@ export function TabPedidos({ pedidos, coste, abrirFicha, abrirModal, filtroExter
         <div className="empty-state"><div className="empty-state-icon">🔍</div>Sin pedidos con esos filtros</div>
       )}
       {vistaK ? (
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:".65rem"}}>
+        <div className="k-grid">
           {ESTADOS_PAGO.map(estado=>{
             const cfg=EP[estado];
             const items=filtrados.filter(p=>{
@@ -79,16 +79,16 @@ export function TabPedidos({ pedidos, coste, abrirFicha, abrirModal, filtroExter
               return Object.entries(counts).sort((sa,sb)=>sb[1]-sa[1])[0]?.[0]===estado;
             });
             return (
-              <div key={estado} style={{background:"var(--surface)",border:"1px solid var(--border)",borderTop:`2px solid ${cfg.color}`,borderRadius:"var(--r)",overflow:"hidden"}}>
-                <div style={{padding:".6rem .75rem",background:"var(--surface2)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div key={estado} className="k-col">
+                <div className="k-col-hdr" style={{"--k-color": cfg.color}}>
                   <span style={{fontSize:"var(--fs-sm)",fontWeight:700,color:cfg.color}}>{cfg.icon} {cfg.label}</span>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".1rem .35rem",borderRadius:4,background:cfg.bg,color:cfg.color}}>{items.length}</span>
+                  <span className="k-col-cnt" style={{background:cfg.bg,color:cfg.color}}>{items.length}</span>
                 </div>
                 {items.map(p=>{
                   const {totalVenta,totalUnid}=calcPedido(p,coste); const be=badgeEnt(p);
                   return (
-                    <div key={p.id} style={{margin:".4rem .4rem 0",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:8,padding:".6rem .7rem",cursor:"pointer",transition:"all .15s"}}
-                      onClick={()=>abrirFicha(p)} onMouseEnter={e=>e.currentTarget.style.borderColor="var(--border-light)"} onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border)"}>
+                    <div key={p.id} className="k-card" style={{"--k-color": cfg.color}}
+                      onClick={()=>abrirFicha(p)}>
                       <div style={{fontWeight:700,fontSize:"var(--fs-base)",marginBottom:".25rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
                       <div style={{display:"flex",gap:".25rem",flexWrap:"wrap",marginBottom:".3rem"}}>
                         {p.lineas.map((l,i)=>(

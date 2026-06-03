@@ -150,12 +150,12 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
           Sin contactos{filtroTipo!=="todos"?` de tipo "${getTipo(filtroTipo).nombre}"`:""}
         </div>
       ) : (
-        <div className="cgrid">
+        <div className="item-grid" style={{"--item-minw": "260px"}}>
           {contFiltrado.map(citem=>{
             const t = getTipo(citem.tipo);
             return (
-              <div key={citem.id} className="ccard"
-                style={{borderTopColor:t.color,cursor:"pointer"}}
+              <div key={citem.id} className="item-card item-card--top"
+                style={{"--item-accent":t.color,cursor:"pointer"}}
                 onClick={()=>abrirFicha("cont",citem)}>
                 <div className="cch">
                   <div className="ccti" style={{fontSize:"var(--fs-lg)"}}>{t.icono}</div>

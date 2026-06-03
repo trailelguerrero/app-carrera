@@ -144,13 +144,12 @@ function TabEmergencias({cont,inc,setInc,abrirModal,abrirFicha,tiposContacto=[]}
               Sin contactos de emergencia. Añádelos en Contactos con tipo Emergencia o Médico.
             </div>
           ) : (
-            <div className="cgrid">
+            <div className="item-grid" style={{"--item-minw":"260px"}}>
               {contUrgentes.map(c=>{
                 const t=getTipo(c.tipo);
                 return (
-                  <div key={c.id} className="ccard"
-                    style={{borderTopColor:t.color,cursor:"pointer",
-                      borderLeft:`3px solid ${t.color}`}}
+                  <div key={c.id} className="item-card item-card--top"
+                    style={{"--item-accent":t.color,cursor:"pointer"}}
                     onClick={()=>abrirFicha("cont",c)}>
                     <div className="cch">
                       <div className="ccti">{t.icono}</div>

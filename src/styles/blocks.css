@@ -516,6 +516,74 @@
     .grid-3 { grid-template-columns: 1fr 1fr; }
   }
 
+  /* ── Item grid + item card — sistema unificado de cards de lista ─────────
+     Uso:
+       <div class="item-grid">
+         <div class="item-card" style="--item-accent: var(--cyan)">…</div>
+       </div>
+     Variante acento superior: añadir clase "item-card--top"
+     Token de ancho mínimo de columna: --item-minw (default 280px)
+  ─────────────────────────────────────────────────────────────────────────── */
+  .item-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--item-minw, 280px), 1fr));
+    gap: .65rem;
+  }
+  .item-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--item-accent, var(--border));
+    border-radius: var(--r);
+    padding: .85rem;
+    cursor: pointer;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .item-card--top {
+    border-left: 1px solid var(--border);
+    border-top: 2px solid var(--item-accent, var(--border));
+  }
+  .item-card:hover { border-color: var(--border-light); box-shadow: 0 2px 10px rgba(0,0,0,.2); }
+  /* Cabecera estándar: icono + texto + acciones */
+  .item-card-hdr { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: .4rem; gap: .5rem; }
+  .item-card-main { display: flex; gap: .5rem; align-items: center; }
+  .item-card-icon { font-size: var(--fs-lg); flex-shrink: 0; }
+  .item-card-name { font-weight: 700; font-size: var(--fs-base); }
+  .item-card-sub  { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--item-accent, var(--text-muted)); text-transform: uppercase; letter-spacing: .06em; }
+  .item-card-meta { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .2rem; }
+  .item-card-footer { border-top: 1px solid var(--border); padding-top: .4rem; margin-top: .45rem; }
+
+  /* ── Kanban genérico — sustituye .log-k-col/.log-k-card y .pat-kanban-grid
+     Uso:
+       <div class="k-grid">
+         <div class="k-col">
+           <div class="k-col-hdr" style="--k-color: var(--cyan)">…</div>
+           <div class="k-card" style="--k-color: var(--cyan)">…</div>
+         </div>
+       </div>
+  ─────────────────────────────────────────────────────────────────────────── */
+  .k-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: .65rem; margin-bottom: .85rem; }
+  .k-col  { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+  .k-col-hdr {
+    padding: .6rem .75rem;
+    border-top: 2px solid var(--k-color, var(--border));
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface2);
+  }
+  .k-col-cnt { font-family: var(--font-mono); font-size: var(--fs-2xs); font-weight: 700; padding: .1rem .35rem; border-radius: 4px; }
+  .k-card {
+    margin: .4rem .4rem 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--k-color, var(--border));
+    border-radius: 8px;
+    padding: .6rem .7rem;
+    transition: border-color .15s, box-shadow .15s;
+    cursor: pointer;
+  }
+  .k-card:last-child { margin-bottom: .4rem; }
+  .k-card:hover { border-color: var(--border-light); box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+  .k-card-actions { display: flex; gap: .3rem; margin-top: .4rem; }
+
   /* ── Tables ─────────────────────────────────────────────────────────────── */
   .overflow-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   /* Contenedor con fade lateral para indicar scroll en mobile */

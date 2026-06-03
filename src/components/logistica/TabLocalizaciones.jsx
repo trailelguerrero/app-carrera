@@ -387,12 +387,12 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {}, rec
       <MapaLocalizaciones locs={locs} matPorLoc={matPorLoc} recorridos={recorridos} />
 
       {/* ── CARDS DE LOCALIZACIONES ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: ".65rem" }}>
+      <div className="item-grid">
         {locsF.map(l => {
           const color = LOC_COLORS[l.tipo] || "var(--text-muted)";
           const icon  = LOC_ICONS[l.tipo]  || "📌";
           return (
-            <div key={l.id} className="card" style={{ borderLeft: `3px solid ${color}`, cursor: "pointer" }} onClick={() => openEditar(l)}>
+            <div key={l.id} className="item-card" style={{ "--item-accent": color, cursor: "pointer" }} onClick={() => openEditar(l)}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: ".4rem" }}>
                 <div style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
                   <span style={{ fontSize: "var(--fs-lg)" }}>{icon}</span>

@@ -83,9 +83,10 @@
   .tlcf{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
   .tlchip{font-family:var(--font-mono);font-size: var(--fs-2xs);padding:.1rem .4rem;border-radius:4px;border:1px solid;font-weight:700}
   .tlresp{font-family:var(--font-mono);font-size: var(--fs-2xs);color:var(--text-muted)}
-  .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.65rem}
-  .ccard{background:var(--surface);border:1px solid var(--border);border-top:2px solid;border-radius:var(--r);padding:.85rem;transition:all .15s}
-  .ccard:hover{border-color:var(--border-light)}
+  /* ── Directorio cards — LEGACY aliases → usa .item-grid/.item-card--top en blocks.css ── */
+  .cgrid { /* → .item-grid */ display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.65rem }
+  .ccard { /* → .item-card.item-card--top */ background:var(--surface);border:1px solid var(--border);border-top:2px solid;border-radius:var(--r);padding:.85rem;transition:all .15s }
+  .ccard:hover { border-color:var(--border-light) }
   .cch{display:flex;align-items:flex-start;gap:.6rem;margin-bottom:.5rem}
   .ccti{font-size: var(--fs-lg);flex-shrink:0} .ccn{font-weight:700;font-size: var(--fs-sm)} .ccr{font-family:var(--font-mono);font-size: var(--fs-2xs);color:var(--text-muted)}
   .ccd{display:flex;flex-direction:column;gap:.25rem;margin-bottom:.4rem}
@@ -139,15 +140,16 @@
     .ph{flex-direction:column;align-items:flex-start;gap:0.75rem}
     .twocol{grid-template-columns:1fr}
   }
-  /* ── Kanban logística ──────────────────────────────────────────── */
-  .log-kanban-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.65rem;margin-bottom:.85rem}
-  .log-k-col{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
-  .log-k-hdr{padding:.6rem .75rem;border-top:2px solid;display:flex;align-items:center;justify-content:space-between;background:var(--surface2)}
-  .log-k-cnt{font-family:var(--font-mono);font-size: var(--fs-2xs);font-weight:700;padding:.1rem .35rem;border-radius:4px}
-  .log-k-card{margin:.4rem .4rem 0;background:var(--surface2);border:1px solid var(--border);border-left:3px solid;border-radius:8px;padding:.6rem .7rem;transition:all .15s}
-  .log-k-card:last-child{margin-bottom:.4rem}
-  .log-k-card:hover{border-color:var(--border-light);box-shadow:0 2px 8px rgba(0,0,0,.2)}
-  .log-k-actions{display:flex;gap:.3rem;margin-top:.4rem}
+  /* ── Kanban logística — LEGACY aliases → usa .k-grid/.k-col/.k-col-hdr/.k-col-cnt/.k-card en blocks.css ── */
+  /* Estas clases ya no se usan en JSX. Se mantienen por si hay referencias externas. */
+  .log-kanban-grid { /* → .k-grid */ display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.65rem;margin-bottom:.85rem }
+  .log-k-col       { /* → .k-col */ background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden }
+  .log-k-hdr       { /* → .k-col-hdr */ padding:.6rem .75rem;border-top:2px solid;display:flex;align-items:center;justify-content:space-between;background:var(--surface2) }
+  .log-k-cnt       { /* → .k-col-cnt */ font-family:var(--font-mono);font-size:var(--fs-2xs);font-weight:700;padding:.1rem .35rem;border-radius:4px }
+  .log-k-card      { /* → .k-card */ margin:.4rem .4rem 0;background:var(--surface2);border:1px solid var(--border);border-left:3px solid;border-radius:8px;padding:.6rem .7rem;transition:all .15s }
+  .log-k-card:last-child { margin-bottom:.4rem }
+  .log-k-card:hover      { border-color:var(--border-light);box-shadow:0 2px 8px rgba(0,0,0,.2) }
+  .log-k-actions         { /* → .k-card-actions */ display:flex;gap:.3rem;margin-top:.4rem }
   /* ── Vista toggle ────────────────────────────────────────────────── */
   .log-vista-toggle{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden}
   /* ── Reorder ▲▼ ──────────────────────────────────────────────────── */
