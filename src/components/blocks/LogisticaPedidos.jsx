@@ -6,7 +6,8 @@ import { genIdNum, fmtEur2 as fmtEur } from "@/lib/utils";
 import { usePaginacion } from "@/hooks/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { blockCls as cls } from "@/lib/blockStyles";
-import { SK_PROY_HITOS } from "@/constants/storageKeys";
+import { SK_PROY_HITOS, SK_DOC_DOCS } from "@/constants/storageKeys";
+import { useData } from "@/hooks/useData";
 import dataService from "@/lib/dataService";
 import { HITOS0 } from "@/components/proyecto/proyectoConstants";
 
@@ -570,8 +571,17 @@ export function TabPedidosProv({ pedidos, setPedidos, cont, material=[], setMate
                         </div>
                         {p.factura?.numero ? (
                           <div>
-                            <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",fontWeight:700}}>
-                              {p.factura.numero}
+                            <div style={{display:"flex",alignItems:"center",gap:".4rem",flexWrap:"wrap"}}>
+                              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",fontWeight:700}}>
+                                {p.factura.numero}
+                              </span>
+                              {p.factura.blobUrl && (
+                                <a href={p.factura.blobUrl} target="_blank" rel="noreferrer"
+                                  style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
+                                    color:"#38bdf8",textDecoration:"underline"}}>
+                                  📄 Ver PDF
+                                </a>
+                              )}
                             </div>
                             <div style={{display:"flex",alignItems:"center",gap:".4rem",marginTop:".1rem"}}>
                               <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
@@ -1141,6 +1151,20 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
     onSave({...form, importeTotal: importeCalc, importeEstimado: form.importeEstimado||importeCalc });
   };
 
+  // ── Facturas del módulo Documentos disponibles para vincular ────────────────
+  const [todosLosDocs] = useData(SK_DOC_DOCS, []);
+  const facturasDoc = useMemo(() => {
+    const docs = Array.isArray(todosLosDocs) ? todosLosDocs : [];
+    const todas = docs.filter(d => d.categoria === "facturas");
+    // Si el pedido tiene proveedor asignado, mostrar las suyas primero
+    const nombreProv = (form.proveedor || "").trim().toLowerCase();
+    if (!nombreProv) return todas;
+    return [
+      ...todas.filter(d => (d.emisor || "").trim().toLowerCase() === nombreProv),
+      ...todas.filter(d => (d.emisor || "").trim().toLowerCase() !== nombreProv),
+    ];
+  }, [todosLosDocs, form.proveedor]);
+
   const updFactura = (k,v) => upd("factura", {...(form.factura||{}), [k]:v });
 
   return createPortal(
@@ -1361,6 +1385,70 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
             <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
               color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:".06em",
               marginBottom:".4rem"}}>🧾 Factura (opcional)</div>
+
+            {/* ── Vinculación con factura de Documentos ── */}
+            <div style={{marginBottom:".55rem"}}>
+              <label className="fl" style={{display:"flex",alignItems:"center",gap:".35rem"}}>
+                Vincular con factura de Documentos
+                <Tooltip text="Selecciona una factura ya subida en el módulo Documentos. Se rellenarán automáticamente el número y el importe. Las facturas del proveedor de este pedido aparecen primero.">
+                  <TooltipIcon size={11}/>
+                </Tooltip>
+              </label>
+              <select className="inp inp-sm"
+                value={form.factura?.docId || ""}
+                onChange={e => {
+                  const docId = e.target.value;
+                  if (!docId) {
+                    updFactura("docId", null);
+                    return;
+                  }
+                  const doc = facturasDoc.find(d => d.id === docId);
+                  if (!doc) return;
+                  // Pre-rellenar número e importe desde el doc
+                  const imp = doc.importe != null
+                    ? (typeof doc.importe === "number" ? doc.importe : parseFloat(String(doc.importe).replace(",", ".")) || 0)
+                    : (form.factura?.importe || 0);
+                  const num = doc.nombreDisplay || doc.nombre || form.factura?.numero || "";
+                  upd("factura", {
+                    ...(form.factura || {}),
+                    docId,
+                    numero: num,
+                    importe: imp,
+                    blobUrl: doc.blobUrl || null,
+                  });
+                }}>
+                <option value="">— Sin vincular —</option>
+                {facturasDoc.length === 0 && (
+                  <option disabled value="">No hay facturas subidas en Documentos</option>
+                )}
+                {facturasDoc.map(doc => {
+                  const esMismoProv = form.proveedor &&
+                    (doc.emisor || "").trim().toLowerCase() === form.proveedor.trim().toLowerCase();
+                  const imp = doc.importe != null
+                    ? ` · ${new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR"}).format(
+                        typeof doc.importe === "number" ? doc.importe : parseFloat(String(doc.importe).replace(",","."))||0
+                      )}`
+                    : "";
+                  const label = `${esMismoProv ? "★ " : ""}${doc.nombreDisplay || doc.nombre}${doc.emisor ? ` (${doc.emisor})` : ""}${imp}`;
+                  return <option key={doc.id} value={doc.id}>{label}</option>;
+                })}
+              </select>
+              {/* Doc vinculado: mostrar link si tiene blobUrl */}
+              {form.factura?.docId && form.factura?.blobUrl && (
+                <a href={form.factura.blobUrl} target="_blank" rel="noreferrer"
+                  style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
+                    color:"#38bdf8",display:"block",marginTop:".2rem"}}>
+                  📄 Ver factura adjunta
+                </a>
+              )}
+              {form.factura?.docId && !form.factura?.blobUrl && (
+                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
+                  color:"var(--text-muted)",marginTop:".2rem"}}>
+                  ✅ Factura vinculada (sin archivo adjunto)
+                </div>
+              )}
+            </div>
+
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem"}}>
               <div>
                 <label className="fl">Nº factura</label>
