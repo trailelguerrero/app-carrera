@@ -376,3 +376,45 @@ describe('DOC-10 — Indicador de urgencia en lista de documentos', () => {
     expect(getIndicadorUrgencia({ estado:"vigente", fechaVencimiento: ayer })).toBeNull();
   });
 });
+
+// ── DOC-REORDER: moverGestion — lógica de swap ─────────────────────────────
+describe('DOC-REORDER — moverGestion swap', () => {
+  // Replica la lógica pura de moverGestion sin depender del componente
+  function moverGestion(gestiones, id, dir) {
+    const arr = [...gestiones];
+    const i = arr.findIndex(x => x.id === id);
+    const j = i + dir;
+    if (j < 0 || j >= arr.length) return arr;
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+    return arr;
+  }
+
+  const g = (id, nombre) => ({ id, nombre, estado: 'pendiente' });
+  const lista = [g(1,'A'), g(2,'B'), g(3,'C')];
+
+  it('sube el segundo al primer puesto', () => {
+    const res = moverGestion(lista, 2, -1);
+    expect(res.map(x => x.id)).toEqual([2, 1, 3]);
+  });
+
+  it('baja el primer elemento al segundo puesto', () => {
+    const res = moverGestion(lista, 1, +1);
+    expect(res.map(x => x.id)).toEqual([2, 1, 3]);
+  });
+
+  it('no hace nada si el primero intenta subir', () => {
+    const res = moverGestion(lista, 1, -1);
+    expect(res.map(x => x.id)).toEqual([1, 2, 3]);
+  });
+
+  it('no hace nada si el último intenta bajar', () => {
+    const res = moverGestion(lista, 3, +1);
+    expect(res.map(x => x.id)).toEqual([1, 2, 3]);
+  });
+
+  it('no muta el array original', () => {
+    const original = [g(1,'A'), g(2,'B')];
+    moverGestion(original, 1, +1);
+    expect(original[0].id).toBe(1);
+  });
+});

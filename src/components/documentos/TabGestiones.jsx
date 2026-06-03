@@ -12,7 +12,7 @@
  *   gestionesVencidas, gestionesCriticas — derivados para alertas (calculados arriba)
  *   setDelConfirm                   — modal de confirmación compartido
  */
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import {
   SUBCATEGORIAS, ESTADOS_DOC, getEstadoCfg, diasHasta, formatDate,
@@ -30,6 +30,25 @@ export default function TabGestiones({
   const [gEditId,       setGEditId]       = useState(null);
   const [logGestionId,  setLogGestionId]  = useState(null);
   const [nuevoLog,      setNuevoLog]      = useState("");
+  const [ordenAlfa,     setOrdenAlfa]     = useState(false);
+
+  const moverGestion = useCallback((id, dir) => {
+    if (ordenAlfa) return;
+    saveGestiones(prev => {
+      const arr = [...prev];
+      const i = arr.findIndex(x => x.id === id);
+      const j = i + dir;
+      if (j < 0 || j >= arr.length) return arr;
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+      return arr;
+    });
+  }, [ordenAlfa, saveGestiones]);
+
+  const gestionesOrdenadas = useMemo(() =>
+    ordenAlfa
+      ? [...gestiones].sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es"))
+      : gestiones,
+  [gestiones, ordenAlfa]);
 
   const addLogEntry = (gestionId) => {
     const texto = nuevoLog.trim();
@@ -82,6 +101,11 @@ export default function TabGestiones({
                 ⚠️ {gestionesVencidas.length + gestionesCriticas.length} urgente{(gestionesVencidas.length+gestionesCriticas.length)>1?"s":""}
               </span>
             )}
+            <button
+              className={`btn btn-sm ${ordenAlfa ? "btn-cyan" : "btn-ghost"}`}
+              onClick={() => setOrdenAlfa(v => !v)}
+              title={ordenAlfa ? "Volver a orden manual" : "Ordenar A-Z"}
+            >{ordenAlfa ? "A-Z ✓" : "A-Z"}</button>
             <button className="btn btn-primary btn-sm" onClick={()=>{
               setGForm({nombre:"",subcategoria:"Ayuntamiento",estado:"pendiente",fechaVencimiento:"",fechaSolicitud:"",fechaConcesion:"",nota:"",url:"",responsable:""});
               setGEditId(null); setGModal(true);
@@ -96,14 +120,35 @@ export default function TabGestiones({
               Sin gestiones registradas
             </div>
           )}
-          {gestiones.map(g => {
+          {gestionesOrdenadas.map((g, i, arr) => {
             const ecfg = getEstadoCfg(g.estado);
             const dias = diasHasta(g.fechaVencimiento);
             const vcolor = dias===null?"var(--text-muted)":dias<0?"var(--red)":dias<=7?"var(--red)":dias<=30?"var(--amber)":"var(--text-muted)";
             const isEditing = gEditId === g.id;
             return (
               <div key={g.id} style={{background:"var(--surface2)",border:`1px solid ${ecfg.color}33`,
-                borderLeft:`3px solid ${ecfg.color}`,borderRadius:8,padding:".65rem .85rem"}}>
+                borderLeft:`3px solid ${ecfg.color}`,borderRadius:8,padding:".65rem .85rem",
+                display:"flex",gap:".5rem",alignItems:"flex-start"}}>
+                {!ordenAlfa && (
+                  <div style={{display:"flex",flexDirection:"column",gap:1,flexShrink:0,marginTop:".1rem"}}
+                    onClick={e=>e.stopPropagation()}>
+                    <span
+                      onClick={() => moverGestion(g.id, -1)}
+                      style={{display:"block",width:18,height:14,lineHeight:"14px",textAlign:"center",
+                        fontSize:"var(--fs-2xs)",background:"var(--surface3)",border:"1px solid var(--border)",
+                        borderRadius:3,color:"var(--text-muted)",cursor:i===0?"default":"pointer",
+                        opacity:i===0?0.2:1,transition:"all .1s",userSelect:"none"}}
+                      title="Subir">▲</span>
+                    <span
+                      onClick={() => moverGestion(g.id, +1)}
+                      style={{display:"block",width:18,height:14,lineHeight:"14px",textAlign:"center",
+                        fontSize:"var(--fs-2xs)",background:"var(--surface3)",border:"1px solid var(--border)",
+                        borderRadius:3,color:"var(--text-muted)",cursor:i===arr.length-1?"default":"pointer",
+                        opacity:i===arr.length-1?0.2:1,transition:"all .1s",userSelect:"none"}}
+                      title="Bajar">▼</span>
+                  </div>
+                )}
+                <div style={{flex:1,minWidth:0}}>
                 {isEditing ? (
                   <div style={{display:"flex",flexDirection:"column",gap:".4rem"}}>
                     <input className="inp" value={gForm.nombre} onChange={e=>setGForm(p=>({...p,nombre:e.target.value}))} placeholder="Nombre de la gestión *" />
@@ -284,6 +329,7 @@ export default function TabGestiones({
                     </div>
                   </div>
                 )}
+                </div>
               </div>
             );
           })}
