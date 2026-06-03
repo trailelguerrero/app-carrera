@@ -10,18 +10,81 @@
  *   subvenciones, saveSubvenciones   — datos y persistencia (con sync a Presupuesto)
  *   setDelConfirm                    — modal de confirmación compartido
  */
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "@/lib/toast";
+import { genIdStr } from "@/lib/utils";
 import {
   ESTADOS_SUBVENCION, ORGANISMOS_SUBVENCION, getSvEstado,
   SUBVENCION_EMPTY, formatImporte, formatDate,
+  MAX_FILE_SIZE, ALLOWED_TYPES,
 } from "@/constants/documentosConstants";
 
+// ── helpers de upload (standalone, sin depender del orquestador) ──────────────
+const fileToBase64Sv = (file) => new Promise((res, rej) => {
+  const r = new FileReader();
+  r.onload  = () => res(r.result);
+  r.onerror = () => rej(new Error("Error leyendo archivo"));
+  r.readAsDataURL(file);
+});
+
 export default function TabSubvenciones({ subvenciones, saveSubvenciones, setDelConfirm }) {
-  const [svModal,  setSvModal]  = useState(false);
-  const [svForm,   setSvForm]   = useState({ ...SUBVENCION_EMPTY });
-  const [svEditId, setSvEditId] = useState(null);
+  const [svModal,        setSvModal]        = useState(false);
+  const [svForm,         setSvForm]         = useState({ ...SUBVENCION_EMPTY });
+  const [svEditId,       setSvEditId]       = useState(null);
+  const [resUploading,   setResUploading]   = useState(false);
+  const [resError,       setResError]       = useState(null);
+  const resFileRef = useRef(null);
+
+  // Sube el archivo de resolución al proxy BFF y devuelve el objeto doc
+  const uploadResolucion = async (file) => {
+    if (!ALLOWED_TYPES.includes(file.type) && !file.name.match(/\.pdf$/i)) {
+      setResError("Solo PDF, PNG, JPG o WebP.");
+      return null;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      setResError(`El archivo excede 10 MB.`);
+      return null;
+    }
+    setResUploading(true);
+    setResError(null);
+    try {
+      const base64 = await fileToBase64Sv(file);
+      const b64Data = base64.includes(",") ? base64.split(",")[1] : base64;
+      const realSize = Math.round(b64Data.length * 0.75);
+      const tipo = file.type || (file.name.match(/\.pdf$/i) ? "application/pdf" : "image/jpeg");
+      const doc = {
+        id: genIdStr(),
+        nombre: file.name,
+        nombreDisplay: file.name.replace(/\.[^.]+$/, ""),
+        categoria: "subvencion-resolucion",
+        subcategoria: null,
+        tipo,
+        size: realSize,
+        data: base64,
+        fechaSubida: new Date().toISOString(),
+        fechaModificacion: new Date().toISOString(),
+      };
+      const res = await fetch("/api/proxy/documents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(doc),
+      });
+      if (res.ok) {
+        const { blobUrl } = await res.json();
+        return { ...doc, data: null, blobUrl: blobUrl || null };
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setResError(err.error || `Error ${res.status}`);
+        return null;
+      }
+    } catch (e) {
+      setResError("Error de red al subir.");
+      return null;
+    } finally {
+      setResUploading(false);
+    }
+  };
 
   const totalSolicitado = subvenciones.reduce((s,sv) => s + (parseFloat(String(sv.importeSolicitado||"").replace(",",".")) || 0), 0);
   const totalConcedido  = subvenciones.filter(sv => ["concedida","justificada","cerrada"].includes(sv.estado))
@@ -53,7 +116,7 @@ export default function TabSubvenciones({ subvenciones, saveSubvenciones, setDel
               </span>
             )}
             <button className="btn btn-primary btn-sm" onClick={()=>{
-              setSvForm({...SUBVENCION_EMPTY}); setSvEditId(null); setSvModal(true);
+              setSvForm({...SUBVENCION_EMPTY}); setSvEditId(null); setResError(null); setSvModal(true);
             }}>+ Nueva subvención</button>
           </div>
         </div>
@@ -106,6 +169,30 @@ export default function TabSubvenciones({ subvenciones, saveSubvenciones, setDel
                   </div>
                   {sv.nota && <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginTop:".35rem",fontStyle:"italic"}}>{sv.nota}</div>}
                   {sv.url && <a href={sv.url} target="_blank" rel="noreferrer" style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#38bdf8",display:"block",marginTop:".25rem"}}>🔗 Ver convocatoria</a>}
+                  {/* Documento de resolución adjunto */}
+                  {sv.resolucionDoc && (
+                    <div style={{display:"flex",alignItems:"center",gap:".4rem",marginTop:".35rem",flexWrap:"wrap"}}>
+                      <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#34d399"}}>📄 Resolución:</span>
+                      {sv.resolucionDoc.blobUrl ? (
+                        <a
+                          href={sv.resolucionDoc.blobUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#38bdf8",textDecoration:"underline"}}
+                        >
+                          {sv.resolucionDoc.nombre}
+                        </a>
+                      ) : (
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>{sv.resolucionDoc.nombre}</span>
+                      )}
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        title="Eliminar documento de resolución"
+                        style={{padding:"0 .3rem",fontSize:"var(--fs-xs)",lineHeight:1.2}}
+                        onClick={() => saveSubvenciones(subvenciones.map(s => s.id === sv.id ? { ...s, resolucionDoc: null } : s))}
+                      >✕</button>
+                    </div>
+                  )}
                 </div>
                 <div style={{display:"flex",gap:".4rem",flexShrink:0}}>
                   <button className="btn btn-ghost btn-sm" title="Editar" onClick={()=>{
@@ -116,7 +203,9 @@ export default function TabSubvenciones({ subvenciones, saveSubvenciones, setDel
                       fechaSolicitud:sv.fechaSolicitud||"", fechaResolucion:sv.fechaResolucion||"",
                       fechaJustificacion:sv.fechaJustificacion||"", estado:sv.estado,
                       nota:sv.nota||"", url:sv.url||"", responsable:sv.responsable||"", docIds:sv.docIds||[],
+                      resolucionDoc:sv.resolucionDoc||null,
                     });
+                    setResError(null);
                     setSvEditId(sv.id); setSvModal(true);
                   }}>✏️</button>
                   <button className="btn btn-ghost btn-sm" title="Eliminar" onClick={()=>setDelConfirm({id:sv.id,nombre:sv.nombre,esSubvencion:true})}>🗑</button>
@@ -209,12 +298,61 @@ export default function TabSubvenciones({ subvenciones, saveSubvenciones, setDel
                   💡 Al guardar, el importe concedido se sincronizará automáticamente con <strong>Presupuesto → Ingresos extra → Subvención entidad pública</strong>
                 </div>
               )}
+              {/* ── Documento de resolución ── */}
+              <div style={{borderTop:"1px solid rgba(255,255,255,0.07)",paddingTop:".75rem"}}>
+                <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-muted)",display:"block",marginBottom:".4rem"}}>
+                  📄 Documento de resolución
+                </label>
+                {svForm.resolucionDoc ? (
+                  <div style={{display:"flex",alignItems:"center",gap:".5rem",background:"rgba(52,211,153,0.07)",border:"1px solid rgba(52,211,153,0.2)",borderRadius:8,padding:".45rem .65rem"}}>
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#34d399",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                      ✅ {svForm.resolucionDoc.nombre}
+                    </span>
+                    {svForm.resolucionDoc.blobUrl && (
+                      <a href={svForm.resolucionDoc.blobUrl} target="_blank" rel="noreferrer"
+                        style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#38bdf8",whiteSpace:"nowrap"}}>
+                        Ver
+                      </a>
+                    )}
+                    <button className="btn btn-ghost btn-sm" style={{padding:"0 .3rem",fontSize:"var(--fs-xs)"}}
+                      title="Eliminar documento"
+                      onClick={()=>setSvForm(p=>({...p,resolucionDoc:null}))}>✕</button>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      ref={resFileRef}
+                      type="file"
+                      accept=".pdf,.png,.jpg,.jpeg,.webp"
+                      style={{display:"none"}}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        e.target.value = "";
+                        const doc = await uploadResolucion(file);
+                        if (doc) setSvForm(p=>({...p,resolucionDoc:doc}));
+                      }}
+                    />
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      disabled={resUploading}
+                      onClick={()=>resFileRef.current?.click()}
+                      style={{width:"100%",justifyContent:"center",border:"1px dashed rgba(255,255,255,0.15)"}}
+                    >
+                      {resUploading ? "⏳ Subiendo…" : "📎 Adjuntar resolución (PDF / imagen)"}
+                    </button>
+                    {resError && (
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#f87171",marginTop:".3rem"}}>{resError}</div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="modal-footer">
               <button className="btn btn-ghost" onClick={()=>setSvModal(false)}>Cancelar</button>
-              <button className="btn btn-primary" disabled={!svForm.nombre.trim()} style={{opacity:svForm.nombre.trim()?1:.5}}
+              <button className="btn btn-primary" disabled={!svForm.nombre.trim() || resUploading} style={{opacity:(!svForm.nombre.trim()||resUploading)?0.5:1}}
                 onClick={()=>{
-                  if (!svForm.nombre.trim()) return;
+                  if (!svForm.nombre.trim() || resUploading) return;
                   if (svEditId) {
                     saveSubvenciones(subvenciones.map(sv => sv.id === svEditId ? { ...svForm } : sv));
                     toast.success("Subvención actualizada");

@@ -132,7 +132,7 @@ export const SUBVENCION_EMPTY = {
   id: null, nombre: "", organismo: "Ayuntamiento", convocatoria: "",
   importeSolicitado: "", importeConcedido: "",
   fechaConvocatoria: "", fechaSolicitud: "", fechaResolucion: "", fechaJustificacion: "",
-  estado: "detectada", nota: "", url: "", responsable: "", docIds: [],
+  estado: "detectada", nota: "", url: "", responsable: "", docIds: [], resolucionDoc: null,
 };
 
 export const SUBVENCIONES_DEFAULT = [
@@ -140,18 +140,18 @@ export const SUBVENCIONES_DEFAULT = [
     id: "sv1", nombre: "Subvención Ayuntamiento", organismo: "Ayuntamiento",
     convocatoria: "", importeSolicitado: "", importeConcedido: "",
     fechaConvocatoria: "", fechaSolicitud: "", fechaResolucion: "", fechaJustificacion: "",
-    estado: "detectada", nota: "Solicitar partida presupuestaria para eventos deportivos municipales.", url: "", responsable: "", docIds: [],
+    estado: "detectada", nota: "Solicitar partida presupuestaria para eventos deportivos municipales.", url: "", responsable: "", docIds: [], resolucionDoc: null,
   },
   {
     id: "sv2", nombre: "Subvención Diputación Provincial", organismo: "Diputación",
     convocatoria: "", importeSolicitado: "", importeConcedido: "",
     fechaConvocatoria: "", fechaSolicitud: "", fechaResolucion: "", fechaJustificacion: "",
-    estado: "detectada", nota: "Convocatoria anual de promoción del deporte y turismo rural.", url: "", responsable: "", docIds: [],
+    estado: "detectada", nota: "Convocatoria anual de promoción del deporte y turismo rural.", url: "", responsable: "", docIds: [], resolucionDoc: null,
   },
   {
     id: "sv3", nombre: "Subvención Consejo Superior de Deportes", organismo: "Consejo Superior de Deportes",
     convocatoria: "", importeSolicitado: "", importeConcedido: "",
     fechaConvocatoria: "", fechaSolicitud: "", fechaResolucion: "", fechaJustificacion: "",
-    estado: "detectada", nota: "Programas de fomento de atletismo y deportes de montaña.", url: "", responsable: "", docIds: [],
+    estado: "detectada", nota: "Programas de fomento de atletismo y deportes de montaña.", url: "", responsable: "", docIds: [], resolucionDoc: null,
   },
 ];

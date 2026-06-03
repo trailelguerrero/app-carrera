@@ -1231,6 +1231,37 @@ describe('SUBV-01 — Módulo Subvenciones', () => {
     const doc = read('src/components/blocks/Documentos.jsx');
     expect(doc).toContain('esSubvencion');
   });
+  it('SUBVENCION_EMPTY incluye campo resolucionDoc', () => {
+    const doc = read('src/constants/documentosConstants.js');
+    expect(doc).toContain('resolucionDoc');
+    expect(doc).toContain('null');
+  });
+  it('SUBVENCIONES_DEFAULT tiene resolucionDoc en cada subvención', () => {
+    const doc = read('src/constants/documentosConstants.js');
+    // cada default debe tener resolucionDoc
+    const matches = [...doc.matchAll(/resolucionDoc/g)];
+    expect(matches.length).toBeGreaterThanOrEqual(4); // EMPTY + 3 defaults
+  });
+  it('TabSubvenciones tiene lógica de uploadResolucion', () => {
+    const doc = read('src/components/documentos/TabSubvenciones.jsx');
+    expect(doc).toContain('uploadResolucion');
+    expect(doc).toContain('resolucionDoc');
+    expect(doc).toContain('/api/proxy/documents');
+  });
+  it('TabSubvenciones muestra y permite eliminar resolucionDoc en tarjeta', () => {
+    const doc = read('src/components/documentos/TabSubvenciones.jsx');
+    expect(doc).toContain('sv.resolucionDoc');
+    expect(doc).toContain('resolucionDoc: null');
+  });
+  it('TabSubvenciones tiene sección de adjuntar resolución en modal', () => {
+    const doc = read('src/components/documentos/TabSubvenciones.jsx');
+    expect(doc).toContain('Adjuntar resolución');
+    expect(doc).toContain('resFileRef');
+  });
+  it('modal de subvención propaga resolucionDoc al editar', () => {
+    const doc = read('src/components/documentos/TabSubvenciones.jsx');
+    expect(doc).toContain('resolucionDoc:sv.resolucionDoc');
+  });
 });
 
 describe('DOCS-P1 — Nuevas categorías de documento', () => {
