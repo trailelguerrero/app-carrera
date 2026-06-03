@@ -2624,3 +2624,115 @@ describe('MEJ-05 syncCkTl — propagación bidireccional CK ↔ TL', () => {
     }
   });
 });
+
+// ── LOC-COV-01: widget cobertura de puestos ─────────────────────────────────
+describe('LOC-COV-01 — calcularCobertura y lógica widget cobertura por puesto', () => {
+  let calcularCobertura;
+  beforeAll(async () => {
+    const mod = await import('../components/logistica/TabLocalizaciones.jsx');
+    calcularCobertura = mod.calcularCobertura;
+  });
+
+  // calcularCobertura util existente
+  it('completa cuando hay material Y voluntario', () => {
+    expect(calcularCobertura(true, true)).toBe('completa');
+  });
+  it('sin_voluntario cuando solo hay material', () => {
+    expect(calcularCobertura(true, false)).toBe('sin_voluntario');
+  });
+  it('sin_material cuando solo hay voluntario', () => {
+    expect(calcularCobertura(false, true)).toBe('sin_material');
+  });
+  it('null cuando no hay ni material ni voluntario', () => {
+    expect(calcularCobertura(false, false)).toBeNull();
+  });
+
+  // Lógica del widget del Dashboard (estado derivado de matPorLoc + volsPorLoc)
+  const buildCobertura = (locs, matPorLoc, volsPorLoc) =>
+    locs.map(loc => {
+      const tieneMat = (matPorLoc[loc.id] || []).length > 0;
+      const tieneVol = (volsPorLoc[loc.id] || []).length > 0;
+      let estado;
+      if      (tieneMat && tieneVol)    estado = 'completa';
+      else if (!tieneMat && !tieneVol)  estado = 'sin_nada';
+      else if (!tieneMat)               estado = 'sin_material';
+      else                              estado = 'sin_voluntario';
+      return { loc, estado };
+    });
+
+  const locs = [
+    { id: 1, nombre: 'Avituallamiento KM4', tipo: 'avituallamiento' },
+    { id: 2, nombre: 'Control KM7',         tipo: 'control'         },
+    { id: 3, nombre: 'Meta',                tipo: 'meta'            },
+    { id: 4, nombre: 'Parking',             tipo: 'parking'         },
+  ];
+
+  it('detecta puestos completos (mat+vol)', () => {
+    const matPorLoc = { 1: [{ nombre: 'Agua', cantidad: 8, unidad: 'ud' }] };
+    const volsPorLoc = { 1: [{ vol: { estado: 'confirmado' }, puesto: { nombre: 'AV KM4' } }] };
+    const res = buildCobertura([locs[0]], matPorLoc, volsPorLoc);
+    expect(res[0].estado).toBe('completa');
+  });
+
+  it('detecta puesto sin material', () => {
+    const matPorLoc = {};
+    const volsPorLoc = { 2: [{ vol: { estado: 'confirmado' }, puesto: { nombre: 'Ctrl KM7' } }] };
+    const res = buildCobertura([locs[1]], matPorLoc, volsPorLoc);
+    expect(res[0].estado).toBe('sin_material');
+  });
+
+  it('detecta puesto sin voluntario', () => {
+    const matPorLoc = { 3: [{ nombre: 'Dorsales', cantidad: 650, unidad: 'ud' }] };
+    const volsPorLoc = {};
+    const res = buildCobertura([locs[2]], matPorLoc, volsPorLoc);
+    expect(res[0].estado).toBe('sin_voluntario');
+  });
+
+  it('detecta puesto sin nada', () => {
+    const res = buildCobertura([locs[3]], {}, {});
+    expect(res[0].estado).toBe('sin_nada');
+  });
+
+  it('calcula porcentaje de cobertura correcta', () => {
+    const matPorLoc = {
+      1: [{ nombre: 'Agua', cantidad: 8 }],
+      3: [{ nombre: 'Dorsales', cantidad: 650 }],
+    };
+    const volsPorLoc = {
+      1: [{ vol: { estado: 'confirmado' }, puesto: { nombre: 'AV KM4' } }],
+      2: [{ vol: { estado: 'confirmado' }, puesto: { nombre: 'Ctrl KM7' } }],
+    };
+    const coberturas = buildCobertura(locs, matPorLoc, volsPorLoc);
+    const completas = coberturas.filter(c => c.estado === 'completa').length;
+    const pct = Math.round(completas / locs.length * 100);
+    // loc1: completa; loc2: sin_material; loc3: sin_voluntario; loc4: sin_nada
+    expect(completas).toBe(1);
+    expect(pct).toBe(25);
+  });
+
+  it('ordena problemáticos primero (sin_nada < sin_material < sin_voluntario < completa)', () => {
+    const ORDEN_EST = { sin_nada:0, sin_material:1, sin_voluntario:2, completa:3 };
+    const matPorLoc  = { 1: [{ nombre:'Agua', cantidad:8 }], 3: [{ nombre:'Dorsal', cantidad:650 }] };
+    const volsPorLoc = { 1: [{ vol: { estado:'confirmado' }, puesto:{ nombre:'AV' } }], 2: [{ vol:{ estado:'confirmado' }, puesto:{ nombre:'Ctrl' } }] };
+    const coberturas = buildCobertura(locs, matPorLoc, volsPorLoc);
+    const sorted = [...coberturas].sort((a, b) => ORDEN_EST[a.estado] - ORDEN_EST[b.estado]);
+    expect(sorted[0].estado).toBe('sin_nada');
+    expect(sorted[sorted.length - 1].estado).toBe('completa');
+  });
+
+  it('widget no se muestra cuando ninguna loc tiene datos (evita ruido)', () => {
+    const coberturas = buildCobertura(locs, {}, {});
+    const conDatos = coberturas.filter(c => c.loc && (
+      ({} [c.loc.id] || []).length > 0 || ({} [c.loc.id] || []).length > 0
+    ));
+    // matPorLoc y volsPorLoc vacíos → conDatos vacío → widget oculto
+    const matPorLocVacio  = {};
+    const volsPorLocVacio = {};
+    const conDatos2 = coberturas.filter(c => {
+      const tieneMat = (matPorLocVacio[c.loc.id]  || []).length > 0;
+      const tieneVol = (volsPorLocVacio[c.loc.id] || []).length > 0;
+      return tieneMat || tieneVol;
+    });
+    expect(conDatos2).toHaveLength(0);
+  });
+});

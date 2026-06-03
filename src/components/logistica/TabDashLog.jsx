@@ -13,7 +13,7 @@ import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { SK_PROY_TAREAS } from "@/constants/storageKeys";
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
-function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [], asigs = [], totalInscritos = 0 }) {
+function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [], asigs = [], totalInscritos = 0, locs = [], matPorLoc = {}, volsPorLoc = {} }) {
   const prox = [...tl].filter(t=>t.estado!=="completado").sort((a,b)=>a.hora.localeCompare(b.hora)).slice(0,6);
   const porFase = FASES_CHECKLIST.map(f0 => { const it=ck.filter(c=>c.fase===f0); const d=it.filter(c=>c.estado==="completado").length; return {f:f0,d,t:it.length,pct:it.length?Math.round(d/it.length*100):0}; });
 
@@ -517,6 +517,193 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
           )}
         </div>
       )}
+
+      {/* ── Widget: Cobertura de puestos (material + voluntario) ── */}
+      {/* LOC-COV-01: cruza locs con matPorLoc y volsPorLoc para detectar puestos sin cubrir */}
+      {locs.length > 0 && (() => {
+        // Calcular estado de cobertura para cada localización
+        const coberturas = locs.map(loc => {
+          const tieneMat = (matPorLoc[loc.id] || []).length > 0;
+          const tieneVol = (volsPorLoc[loc.id] || []).length > 0;
+          const matItems  = matPorLoc[loc.id] || [];
+          const volItems  = volsPorLoc[loc.id] || [];
+          const volsConf  = volItems.filter(a => a.vol.estado === "confirmado").length;
+
+          let estado;
+          if (tieneMat && tieneVol)        estado = "completa";
+          else if (!tieneMat && !tieneVol) estado = "sin_nada";
+          else if (!tieneMat)              estado = "sin_material";
+          else                             estado = "sin_voluntario";
+
+          return { loc, tieneMat, tieneVol, matItems, volItems, volsConf, estado };
+        });
+
+        // Solo mostrar widget si hay al menos una loc con datos (evitar ruido en estado vacío)
+        const conDatos = coberturas.filter(c => c.tieneMat || c.tieneVol);
+        if (!conDatos.length) return null;
+
+        const completas      = coberturas.filter(c => c.estado === "completa").length;
+        const sinNada        = coberturas.filter(c => c.estado === "sin_nada").length;
+        const sinMaterial    = coberturas.filter(c => c.estado === "sin_material").length;
+        const sinVoluntario  = coberturas.filter(c => c.estado === "sin_voluntario").length;
+        const total          = locs.length;
+        const pctCompleto    = total > 0 ? Math.round(completas / total * 100) : 0;
+
+        const colorHeader = completas === total ? "var(--green)" : sinNada > 0 ? "var(--red)" : "var(--amber)";
+        const bgHeader    = completas === total
+          ? "rgba(52,211,153,.05)"
+          : sinNada > 0
+            ? "rgba(248,113,113,.05)"
+            : "rgba(251,191,36,.05)";
+        const borderLeft  = completas === total
+          ? "3px solid var(--green)"
+          : sinNada > 0
+            ? "3px solid var(--red)"
+            : "3px solid var(--amber)";
+
+        // Colores y etiqueta por estado de cobertura
+        const EST_CFG = {
+          completa:       { color:"var(--green)",  bg:"rgba(52,211,153,.1)",  border:"rgba(52,211,153,.3)",  label:"✅ Completa"        },
+          sin_nada:       { color:"var(--red)",    bg:"rgba(248,113,113,.1)", border:"rgba(248,113,113,.3)", label:"⛔ Sin cubrir"      },
+          sin_material:   { color:"var(--amber)",  bg:"rgba(251,191,36,.1)",  border:"rgba(251,191,36,.3)",  label:"📦 Sin material"    },
+          sin_voluntario: { color:"var(--amber)",  bg:"rgba(251,191,36,.1)",  border:"rgba(251,191,36,.3)",  label:"👤 Sin voluntario"  },
+        };
+
+        // Ordenar: primero los problemáticos
+        const ORDEN_EST = { sin_nada:0, sin_material:1, sin_voluntario:2, completa:3 };
+        const sorted = [...coberturas].sort((a,b) => ORDEN_EST[a.estado] - ORDEN_EST[b.estado]);
+
+        return (
+          <div style={{
+            marginBottom: ".85rem", padding: ".65rem .85rem",
+            background: bgHeader,
+            border: "1px solid rgba(100,120,180,.15)",
+            borderLeft,
+            borderRadius: "var(--r-sm)",
+          }}>
+            {/* Cabecera */}
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:".5rem", flexWrap:"wrap", gap:".4rem" }}>
+              <div>
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700, color:colorHeader, textTransform:"uppercase", letterSpacing:".06em" }}>
+                  📍 Cobertura de puestos
+                </span>
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)", marginLeft:".5rem" }}>
+                  {completas}/{total} completos
+                </span>
+              </div>
+              <div style={{ display:"flex", gap:".4rem", alignItems:"center", flexWrap:"wrap" }}>
+                {/* Pills resumen */}
+                {sinNada > 0 && (
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", padding:".1rem .4rem", borderRadius:20, background:"rgba(248,113,113,.12)", color:"var(--red)", border:"1px solid rgba(248,113,113,.3)", whiteSpace:"nowrap" }}>
+                    ⛔ {sinNada} sin cubrir
+                  </span>
+                )}
+                {sinMaterial > 0 && (
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", padding:".1rem .4rem", borderRadius:20, background:"rgba(251,191,36,.1)", color:"var(--amber)", border:"1px solid rgba(251,191,36,.3)", whiteSpace:"nowrap" }}>
+                    📦 {sinMaterial} sin material
+                  </span>
+                )}
+                {sinVoluntario > 0 && (
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", padding:".1rem .4rem", borderRadius:20, background:"rgba(251,191,36,.1)", color:"var(--amber)", border:"1px solid rgba(251,191,36,.3)", whiteSpace:"nowrap" }}>
+                    👤 {sinVoluntario} sin voluntario
+                  </span>
+                )}
+                <button className="btn btn-ghost btn-sm"
+                  style={{ fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}
+                  onClick={() => setTab("localizaciones")}>
+                  Ver ubicaciones →
+                </button>
+              </div>
+            </div>
+
+            {/* Barra de progreso global */}
+            <div style={{ marginBottom:".6rem" }}>
+              <div className="pbar">
+                <div className="pfill" style={{
+                  width:`${pctCompleto}%`,
+                  background: pctCompleto === 100 ? "var(--green)" : pctCompleto > 60 ? "var(--cyan)" : "var(--amber)"
+                }}/>
+              </div>
+              <div style={{ display:"flex", justifyContent:"flex-end", marginTop:".15rem" }}>
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color: pctCompleto === 100 ? "var(--green)" : "var(--text-muted)" }}>
+                  {pctCompleto}%
+                </span>
+              </div>
+            </div>
+
+            {/* Lista de puestos — máx 8, ordenados problemáticos primero */}
+            <div style={{ display:"flex", flexDirection:"column", gap:".28rem" }}>
+              {sorted.slice(0,8).map(({ loc, tieneMat, tieneVol, matItems, volItems, volsConf, estado }) => {
+                const cfg = EST_CFG[estado];
+                const locIcon = LOC_ICONS[loc.tipo] || "📌";
+                return (
+                  <div
+                    key={loc.id}
+                    onClick={() => setTab("localizaciones")}
+                    style={{
+                      display:"flex", alignItems:"center", gap:".5rem",
+                      padding:".3rem .5rem", borderRadius:"var(--r-sm)",
+                      background:"var(--surface2)", border:"1px solid var(--border)",
+                      cursor:"pointer", transition:"background .12s",
+                    }}
+                    title={`Ir a Ubicaciones — ${loc.nombre}`}
+                  >
+                    {/* Icono tipo */}
+                    <span style={{ fontSize:"var(--fs-sm)", flexShrink:0 }}>{locIcon}</span>
+
+                    {/* Nombre puesto */}
+                    <span style={{
+                      flex:1, fontSize:"var(--fs-sm)", fontWeight:600,
+                      overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
+                    }}>
+                      {loc.nombre}
+                    </span>
+
+                    {/* Indicadores M + V */}
+                    <div style={{ display:"flex", gap:".25rem", flexShrink:0, alignItems:"center" }}>
+                      <span title={tieneMat ? `${matItems.length} tipo(s) de material` : "Sin material asignado"}
+                        style={{
+                          fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)",
+                          padding:".08rem .3rem", borderRadius:3, fontWeight:700,
+                          background: tieneMat ? "rgba(52,211,153,.1)" : "rgba(248,113,113,.1)",
+                          color: tieneMat ? "var(--green)" : "var(--red)",
+                          border: `1px solid ${tieneMat ? "rgba(52,211,153,.3)" : "rgba(248,113,113,.3)"}`,
+                        }}>
+                        📦{tieneMat ? ` ${matItems.length}` : " ✗"}
+                      </span>
+                      <span title={tieneVol ? `${volItems.length} vol. (${volsConf} conf.)` : "Sin voluntarios asignados"}
+                        style={{
+                          fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)",
+                          padding:".08rem .3rem", borderRadius:3, fontWeight:700,
+                          background: tieneVol ? "rgba(52,211,153,.1)" : "rgba(248,113,113,.1)",
+                          color: tieneVol ? "var(--green)" : "var(--red)",
+                          border: `1px solid ${tieneVol ? "rgba(52,211,153,.3)" : "rgba(248,113,113,.3)"}`,
+                        }}>
+                        👥{tieneVol ? ` ${volsConf}/${volItems.length}` : " ✗"}
+                      </span>
+                    </div>
+
+                    {/* Badge estado */}
+                    <span style={{
+                      fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)",
+                      padding:".08rem .35rem", borderRadius:20, flexShrink:0,
+                      background: cfg.bg, color: cfg.color, border:`1px solid ${cfg.border}`,
+                      whiteSpace:"nowrap",
+                    }}>
+                      {cfg.label}
+                    </span>
+                  </div>
+                );
+              })}
+              {sorted.length > 8 && (
+                <div style={{ textAlign:"center", fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)", padding:".2rem 0" }}>
+                  +{sorted.length - 8} ubicaciones más · <span style={{ color:"var(--cyan)", cursor:"pointer" }} onClick={() => setTab("localizaciones")}>ver todas →</span>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </>
   );
 }
