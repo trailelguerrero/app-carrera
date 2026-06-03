@@ -50,6 +50,7 @@ export default function Documentos() {
   const [editForm, setEditForm]       = useState({});
   const [visorDoc, setVisorDoc]       = useState(null); // doc a visualizar en modal
   const [isLoading, setIsLoading]     = useState(true); // skeleton hasta que la carga inicial termine
+  const fileRef = useRef(null); // input file oculto para zona de subida
 
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
 

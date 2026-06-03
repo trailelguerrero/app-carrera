@@ -1151,12 +1151,12 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
     onSave({...form, importeTotal: importeCalc, importeEstimado: form.importeEstimado||importeCalc });
   };
 
-  // ── Facturas del módulo Documentos disponibles para vincular ────────────────
+  // ── Facturas y presupuestos del módulo Documentos disponibles para vincular ─
   const [todosLosDocs] = useData(SK_DOC_DOCS, []);
-  const facturasDoc = useMemo(() => {
+  const docsVinculables = useMemo(() => {
     const docs = Array.isArray(todosLosDocs) ? todosLosDocs : [];
-    const todas = docs.filter(d => d.categoria === "facturas");
-    // Si el pedido tiene proveedor asignado, mostrar las suyas primero
+    const todas = docs.filter(d => d.categoria === "facturas" || d.categoria === "presupuestos");
+    // Si el pedido tiene proveedor asignado, mostrar los suyos primero
     const nombreProv = (form.proveedor || "").trim().toLowerCase();
     if (!nombreProv) return todas;
     return [
@@ -1389,8 +1389,8 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
             {/* ── Vinculación con factura de Documentos ── */}
             <div style={{marginBottom:".55rem"}}>
               <label className="fl" style={{display:"flex",alignItems:"center",gap:".35rem"}}>
-                Vincular con factura de Documentos
-                <Tooltip text="Selecciona una factura ya subida en el módulo Documentos. Se rellenarán automáticamente el número y el importe. Las facturas del proveedor de este pedido aparecen primero.">
+                Vincular con factura/presupuesto de Documentos
+                <Tooltip text="Selecciona una factura o presupuesto subido en el módulo Documentos. Se rellenarán automáticamente el nombre e importe. Los documentos del proveedor de este pedido aparecen primero marcados con ★.">
                   <TooltipIcon size={11}/>
                 </Tooltip>
               </label>
@@ -1402,7 +1402,7 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
                     updFactura("docId", null);
                     return;
                   }
-                  const doc = facturasDoc.find(d => d.id === docId);
+                  const doc = docsVinculables.find(d => d.id === docId);
                   if (!doc) return;
                   // Pre-rellenar número e importe desde el doc
                   const imp = doc.importe != null
@@ -1418,18 +1418,19 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
                   });
                 }}>
                 <option value="">— Sin vincular —</option>
-                {facturasDoc.length === 0 && (
-                  <option disabled value="">No hay facturas subidas en Documentos</option>
+                {docsVinculables.length === 0 && (
+                  <option disabled value="">No hay facturas ni presupuestos subidos en Documentos</option>
                 )}
-                {facturasDoc.map(doc => {
+                {docsVinculables.map(doc => {
                   const esMismoProv = form.proveedor &&
                     (doc.emisor || "").trim().toLowerCase() === form.proveedor.trim().toLowerCase();
+                  const catIcon = doc.categoria === "presupuestos" ? "💰" : "🧾";
                   const imp = doc.importe != null
                     ? ` · ${new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR"}).format(
                         typeof doc.importe === "number" ? doc.importe : parseFloat(String(doc.importe).replace(",","."))||0
                       )}`
                     : "";
-                  const label = `${esMismoProv ? "★ " : ""}${doc.nombreDisplay || doc.nombre}${doc.emisor ? ` (${doc.emisor})` : ""}${imp}`;
+                  const label = `${esMismoProv ? "★ " : ""}${catIcon} ${doc.nombreDisplay || doc.nombre}${doc.emisor ? ` (${doc.emisor})` : ""}${imp}`;
                   return <option key={doc.id} value={doc.id}>{label}</option>;
                 })}
               </select>
@@ -1438,13 +1439,13 @@ function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, materia
                 <a href={form.factura.blobUrl} target="_blank" rel="noreferrer"
                   style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                     color:"#38bdf8",display:"block",marginTop:".2rem"}}>
-                  📄 Ver factura adjunta
+                  📄 Ver documento adjunto
                 </a>
               )}
               {form.factura?.docId && !form.factura?.blobUrl && (
                 <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
                   color:"var(--text-muted)",marginTop:".2rem"}}>
-                  ✅ Factura vinculada (sin archivo adjunto)
+                  ✅ Documento vinculado (sin archivo adjunto)
                 </div>
               )}
             </div>

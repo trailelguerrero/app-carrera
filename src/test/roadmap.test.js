@@ -1489,25 +1489,32 @@ describe('DOC-MF3 — Documentos vinculados en ficha proveedor', () => {
   });
 });
 
-describe('LOG-FACT — Vinculación facturas Documentos desde pedidos proveedor', () => {
+describe('LOG-FACT — Vinculación facturas/presupuestos Documentos desde pedidos proveedor', () => {
   it('LogisticaPedidos importa SK_DOC_DOCS y useData', () => {
     const doc = read('src/components/blocks/LogisticaPedidos.jsx');
     expect(doc).toContain('SK_DOC_DOCS');
     expect(doc).toContain('useData');
   });
-  it('facturasDoc calculado con useMemo filtrando categoria facturas', () => {
+  it('docsVinculables filtra facturas Y presupuestos', () => {
     const doc = read('src/components/blocks/LogisticaPedidos.jsx');
-    expect(doc).toContain('facturasDoc');
+    expect(doc).toContain('docsVinculables');
     expect(doc).toContain('"facturas"');
+    expect(doc).toContain('"presupuestos"');
   });
-  it('facturas del proveedor del pedido aparecen primero (★)', () => {
+  it('docs del proveedor del pedido aparecen primero (★)', () => {
     const doc = read('src/components/blocks/LogisticaPedidos.jsx');
     expect(doc).toContain('esMismoProv');
     expect(doc).toContain('"★ "');
   });
+  it('icono de categoría distingue presupuesto (💰) de factura (🧾)', () => {
+    const doc = read('src/components/blocks/LogisticaPedidos.jsx');
+    expect(doc).toContain('catIcon');
+    expect(doc).toContain('"💰"');
+    expect(doc).toContain('"🧾"');
+  });
   it('selector vinculación en sección factura del modal', () => {
     const doc = read('src/components/blocks/LogisticaPedidos.jsx');
-    expect(doc).toContain('Vincular con factura de Documentos');
+    expect(doc).toContain('Vincular con factura/presupuesto de Documentos');
     expect(doc).toContain('factura?.docId');
   });
   it('al seleccionar doc se pre-rellena numero e importe', () => {
@@ -1515,9 +1522,9 @@ describe('LOG-FACT — Vinculación facturas Documentos desde pedidos proveedor'
     expect(doc).toContain('docId');
     expect(doc).toContain('blobUrl: doc.blobUrl');
   });
-  it('link Ver factura adjunta visible si blobUrl existe en modal', () => {
+  it('link Ver documento adjunto visible si blobUrl existe en modal', () => {
     const doc = read('src/components/blocks/LogisticaPedidos.jsx');
-    expect(doc).toContain('Ver factura adjunta');
+    expect(doc).toContain('Ver documento adjunto');
     expect(doc).toContain('form.factura?.blobUrl');
   });
   it('link Ver PDF en tarjeta expandida del pedido si hay blobUrl', () => {
@@ -1525,8 +1532,12 @@ describe('LOG-FACT — Vinculación facturas Documentos desde pedidos proveedor'
     expect(doc).toContain('Ver PDF');
     expect(doc).toContain('p.factura.blobUrl');
   });
-  it('mensaje orientativo cuando no hay facturas en Documentos', () => {
+  it('mensaje orientativo cuando no hay docs en Documentos', () => {
     const doc = read('src/components/blocks/LogisticaPedidos.jsx');
-    expect(doc).toContain('No hay facturas subidas en Documentos');
+    expect(doc).toContain('No hay facturas ni presupuestos subidos en Documentos');
+  });
+  it('fileRef declarado en Documentos.jsx (fix MEJ-23 regression)', () => {
+    const doc = read('src/components/blocks/Documentos.jsx');
+    expect(doc).toContain('const fileRef = useRef(null)');
   });
 });
