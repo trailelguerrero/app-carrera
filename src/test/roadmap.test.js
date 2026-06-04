@@ -75,6 +75,33 @@ const readDocumentos = () => {
   }).join('\n');
 };
 
+// Fase 2 refactor: Voluntarios.jsx extrajo lógica a useVoluntarios y BuscadorSpotlight.
+const readVoluntarios = () => {
+  const files = [
+    'src/components/blocks/Voluntarios.jsx',
+    'src/hooks/useVoluntarios.js',
+    'src/components/voluntarios/BuscadorSpotlight.jsx',
+  ];
+  return files.map(f => {
+    const p = path.resolve(process.cwd(), f);
+    return existsSync(p) ? readFileSync(p, 'utf-8') : '';
+  }).join('\n');
+};
+
+// Fase 2 refactor: LogisticaPedidos.jsx extrajo helpers, PedidoCard y ModalPedidoProv.
+const readLogisticaPedidos = () => {
+  const files = [
+    'src/components/blocks/LogisticaPedidos.jsx',
+    'src/components/logistica/logisticaHelpers.js',
+    'src/components/logistica/PedidoCard.jsx',
+    'src/components/logistica/ModalPedidoProv.jsx',
+  ];
+  return files.map(f => {
+    const p = path.resolve(process.cwd(), f);
+    return existsSync(p) ? readFileSync(p, 'utf-8') : '';
+  }).join('\n');
+};
+
 // ── T1.1 — SEC-04: api/voluntarios sin API key hardcodeada ─────────────────
 describe('T1.1 — SEC-04: API key hardcodeada eliminada', () => {
   const voluntariosApi = read('api/voluntarios/index.js');
@@ -181,7 +208,7 @@ describe('T2.1 — camisetasConstants.js: fuente única de verdad', () => {
 // ── T2.1b — Voluntarios y VoluntarioPortal importan desde camisetasConstants ─
 describe('T2.1b — Imports desde camisetasConstants en ambos archivos', () => {
   it('Voluntarios.jsx importa desde camisetasConstants', () => {
-    const vols = read('src/components/blocks/Voluntarios.jsx');
+    const vols = readVoluntarios();
     expect(vols).toContain('camisetasConstants');
     expect(vols).not.toContain("const TALLAS = [");
     expect(vols).not.toContain("const GUIA_TALLAS = [");
@@ -401,7 +428,7 @@ describe('T5.2 — Confirmaciones destructivas en eliminaciones', () => {
 // ── T5.3 — mensajeOrganizador ya estaba implementado ─────────────────────
 describe('T5.3 — mensajeOrganizador en ficha del voluntario', () => {
   it('Voluntarios.jsx tiene MensajeOrganizadorEdit', () => {
-    const vols = read('src/components/blocks/Voluntarios.jsx');
+    const vols = readVoluntarios();
     expect(vols).toContain('MensajeOrganizadorEdit');
     expect(vols).toContain('mensajeOrganizador');
   });
@@ -543,11 +570,11 @@ describe('T7.2 — useAlertasBadges: throttle 5s y granularidad por módulo', ()
 
 describe('SP1-01 — FormularioPublico eliminado de Voluntarios.jsx', () => {
   it('Voluntarios.jsx ya no exporta FormularioPublico', () => {
-    const vols = read('src/components/blocks/Voluntarios.jsx');
+    const vols = readVoluntarios();
     expect(vols).not.toContain('export function FormularioPublico');
   });
   it('Voluntarios.jsx es más pequeño que 3713 líneas (original)', () => {
-    const vols = read('src/components/blocks/Voluntarios.jsx');
+    const vols = readVoluntarios();
     expect(vols.split('\n').length).toBeLessThan(3713);
   });
   it('FormularioPublico separado sigue existiendo en components/voluntarios/', () => {
@@ -640,7 +667,7 @@ describe('SP1-05 — budget-log: SEC-04 todos los métodos protegidos', () => {
 
 describe('SP2-01 — Voluntarios.jsx reducido por extracción de sub-componentes', () => {
   it('Voluntarios.jsx tiene menos de 1100 líneas (era 3713)', () => {
-    const vols = read('src/components/blocks/Voluntarios.jsx');
+    const vols = readVoluntarios();
     expect(vols.split('\n').length).toBeLessThan(1200);
   });
   it('TabDashboardVol.jsx extraído existe', () => {
@@ -668,7 +695,7 @@ describe('SP2-01 — Voluntarios.jsx reducido por extracción de sub-componentes
     expect(exists('src/components/voluntarios/ModalVoluntario.jsx')).toBe(true);
   });
   it('Voluntarios.jsx importa desde components/voluntarios/', () => {
-    const vols = read('src/components/blocks/Voluntarios.jsx');
+    const vols = readVoluntarios();
     expect(vols).toContain('@/components/voluntarios/TabDashboardVol');
     expect(vols).toContain('@/components/voluntarios/TabVoluntariosList');
   });
@@ -776,7 +803,7 @@ describe('SP3-03 — FRAG-DASH-01: indicador datos provisionales en Dashboard', 
 
 describe('SP2-01 — Voluntarios.jsx refactorizado en módulos', () => {
   it('Voluntarios.jsx tiene menos de 1100 líneas', () => {
-    const v = read('src/components/blocks/Voluntarios.jsx');
+    const v = readVoluntarios();
     expect(v.split('\n').length).toBeLessThan(1200);
   });
   it('TabDashboardVol.jsx extraído', () => {
@@ -804,7 +831,7 @@ describe('SP2-01 — Voluntarios.jsx refactorizado en módulos', () => {
     expect(exists('src/components/voluntarios/ModalVoluntario.jsx')).toBe(true);
   });
   it('Voluntarios.jsx importa desde los módulos extraídos', () => {
-    const v = read('src/components/blocks/Voluntarios.jsx');
+    const v = readVoluntarios();
     expect(v).toContain('@/components/voluntarios/TabDashboardVol');
     expect(v).toContain('@/components/voluntarios/TabVoluntariosList');
     expect(v).toContain('@/components/voluntarios/FichaVoluntario');
@@ -1536,49 +1563,49 @@ describe('DOC-MF3 — Documentos vinculados en ficha proveedor', () => {
 
 describe('LOG-FACT — Vinculación facturas/presupuestos Documentos desde pedidos proveedor', () => {
   it('LogisticaPedidos importa SK_DOC_DOCS y useData', () => {
-    const doc = read('src/components/blocks/LogisticaPedidos.jsx');
+    const doc = readLogisticaPedidos();
     expect(doc).toContain('SK_DOC_DOCS');
     expect(doc).toContain('useData');
   });
   it('docsVinculables filtra facturas Y presupuestos', () => {
-    const doc = read('src/components/blocks/LogisticaPedidos.jsx');
+    const doc = readLogisticaPedidos();
     expect(doc).toContain('docsVinculables');
     expect(doc).toContain('"facturas"');
     expect(doc).toContain('"presupuestos"');
   });
   it('docs del proveedor del pedido aparecen primero (★)', () => {
-    const doc = read('src/components/blocks/LogisticaPedidos.jsx');
+    const doc = readLogisticaPedidos();
     expect(doc).toContain('esMismoProv');
     expect(doc).toContain('"★ "');
   });
   it('icono de categoría distingue presupuesto (💰) de factura (🧾)', () => {
-    const doc = read('src/components/blocks/LogisticaPedidos.jsx');
+    const doc = readLogisticaPedidos();
     expect(doc).toContain('catIcon');
     expect(doc).toContain('"💰"');
     expect(doc).toContain('"🧾"');
   });
   it('selector vinculación en sección factura del modal', () => {
-    const doc = read('src/components/blocks/LogisticaPedidos.jsx');
+    const doc = readLogisticaPedidos();
     expect(doc).toContain('Vincular con factura/presupuesto de Documentos');
     expect(doc).toContain('factura?.docId');
   });
   it('al seleccionar doc se pre-rellena numero e importe', () => {
-    const doc = read('src/components/blocks/LogisticaPedidos.jsx');
+    const doc = readLogisticaPedidos();
     expect(doc).toContain('docId');
     expect(doc).toContain('blobUrl: doc.blobUrl');
   });
   it('link Ver documento adjunto visible si blobUrl existe en modal', () => {
-    const doc = read('src/components/blocks/LogisticaPedidos.jsx');
+    const doc = readLogisticaPedidos();
     expect(doc).toContain('Ver documento adjunto');
     expect(doc).toContain('form.factura?.blobUrl');
   });
   it('link Ver PDF en tarjeta expandida del pedido si hay blobUrl', () => {
-    const doc = read('src/components/blocks/LogisticaPedidos.jsx');
+    const doc = readLogisticaPedidos();
     expect(doc).toContain('Ver PDF');
     expect(doc).toContain('p.factura.blobUrl');
   });
   it('mensaje orientativo cuando no hay docs en Documentos', () => {
-    const doc = read('src/components/blocks/LogisticaPedidos.jsx');
+    const doc = readLogisticaPedidos();
     expect(doc).toContain('No hay facturas ni presupuestos subidos en Documentos');
   });
   it('fileRef declarado en Documentos.jsx (fix MEJ-23 regression)', () => {

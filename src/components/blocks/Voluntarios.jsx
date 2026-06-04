@@ -1,620 +1,152 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import {
-  SK_VOL_ROOT, SK_VOL_PUESTOS, SK_VOL_VOLUNTARIOS,
-  SK_LOG_MAT, SK_LOG_ASIG, SK_LOG_RUT,
-} from "@/constants/storageKeys";
-import { TALLAS, SHIRT_PLACEHOLDER_FRONT, SHIRT_PLACEHOLDER_BACK } from "@/constants/camisetasConstants";
 import { createPortal } from "react-dom";
-import { exportarVoluntarios } from "@/lib/exportUtils";
-import { toast } from "@/lib/toast";
-import { genIdNum, scrollMainToTop } from "@/lib/utils";
-import { useModalClose } from "@/hooks/useModalClose";
-import EmptyState from "@/components/EmptyState";
-import { usePaginacion } from "@/hooks/usePaginacion.jsx";
-import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
-import { estadoColor, estadoBg } from "@/constants/voluntariosConstants";
-import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
-import { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys"; // FIX-DEP: migrado desde alias deprecated
-import { getEventDate } from "@/lib/eventUtils";
-import { LOCS_DEFAULT, LOCS_KEY } from "@/constants/localizaciones";
-import { useData } from "@/hooks/useData";
-import dataService from "@/lib/dataService";
-import { ImagenUploader } from "@/components/common/ImagenUploader";
-import { PanelCompartir } from "@/components/voluntarios/PanelCompartir";
-import { PUESTOS_DEFAULT } from "@/constants/puestosConstants"; // MEJ-21: fuente canónica
-
-// Sprint 2: sub-components extracted to src/components/voluntarios/
-import { TabDashboard } from "@/components/voluntarios/TabDashboardVol";
-import { TabVoluntarios } from "@/components/voluntarios/TabVoluntariosList";
-import { TabKanbanVol } from "@/components/voluntarios/TabKanbanVol";
-import { TabPuestos, PuestoCard } from "@/components/voluntarios/TabPuestosVol";
-import { TabTallas } from "@/components/voluntarios/TabTallasVol";
-import { TabDiaD } from "@/components/voluntarios/TabDiaDVol";
+import { exportarVoluntarios }  from "@/lib/exportUtils";
+import { blockCls as cls }      from "@/lib/blockStyles";
+import { getEventDate }         from "@/lib/eventUtils";
+import SkeletonBlock             from "@/components/common/SkeletonBlock";
+import EmptyState                from "@/components/EmptyState";
+import { PanelCompartir }        from "@/components/voluntarios/PanelCompartir";
+import { TabDashboard }          from "@/components/voluntarios/TabDashboardVol";
+import { TabVoluntarios }        from "@/components/voluntarios/TabVoluntariosList";
+import { TabKanbanVol }          from "@/components/voluntarios/TabKanbanVol";
+import { TabPuestos }            from "@/components/voluntarios/TabPuestosVol";
+import { TabTallas }             from "@/components/voluntarios/TabTallasVol";
+import { TabDiaD }               from "@/components/voluntarios/TabDiaDVol";
 import { FichaVoluntario, MensajeOrganizadorEdit } from "@/components/voluntarios/FichaVoluntario";
-import { FichaPuesto } from "@/components/voluntarios/FichaPuesto";
-import { ModalVoluntario } from "@/components/voluntarios/ModalVoluntario";
-import { ModalPuesto } from "@/components/voluntarios/ModalPuesto";
-import { ModalConfirm } from "@/components/voluntarios/ModalConfirmar";
-import { ModalMensaje } from "@/components/voluntarios/ModalMensaje";
+import { FichaPuesto }           from "@/components/voluntarios/FichaPuesto";
+import { ModalVoluntario }       from "@/components/voluntarios/ModalVoluntario";
+import { ModalPuesto }           from "@/components/voluntarios/ModalPuesto";
+import { ModalConfirm }          from "@/components/voluntarios/ModalConfirmar";
+import { ModalMensaje }          from "@/components/voluntarios/ModalMensaje";
+import { useVoluntarios }        from "@/hooks/useVoluntarios";
+import { BuscadorSpotlight }     from "@/components/voluntarios/BuscadorSpotlight";
 
-import { blockCls as cls } from "@/lib/blockStyles";
-import SkeletonBlock from "@/components/common/SkeletonBlock";
-// SK_VOL_ROOT y demás claves importadas de @/constants/storageKeys
-// Para producción: sustituir por URLs de tus imágenes reales (SHIRT_PLACEHOLDER_FRONT/BACK)
+// Re-export para retrocompatibilidad
+export { resolverLocalizacionDeVoluntario } from "@/hooks/useVoluntarios";
 
-const VOLUNTARIOS_DEFAULT = [
-  { id: 1, nombre: "Voluntario Ejemplo 1", telefono: "600 000 001", email: "voluntario1@ejemplo.es", talla: "S", puestoId: 1, rol: "responsable", estado: "confirmado", coche: true, notas: "", fechaRegistro: "2026-02-15" },
-  { id: 2, nombre: "Voluntario Ejemplo 2", telefono: "600 000 002", email: "voluntario2@ejemplo.es", talla: "L", puestoId: 2, rol: "apoyo", estado: "confirmado", coche: false, notas: "", fechaRegistro: "2026-02-20" },
-  { id: 3, nombre: "Voluntario Ejemplo 3", telefono: "600 000 003", email: "voluntario3@ejemplo.es", talla: "M", puestoId: 3, rol: "responsable", estado: "pendiente", coche: true, notas: "", fechaRegistro: "2026-03-01" },
-];
+export default function Voluntarios() {
+  const {
+    config, puestos, voluntarios, isLoading,
+    locs, rutas, matPorLoc,
+    tab, setTab,
+    saveStatus, isExportingExcel, setIsExportingExcel,
+    busqueda, setBusqueda,
+    filtroEstado, setFiltroEstado,
+    filtroPuesto, setFiltroPuesto,
+    filtroTallas, setFiltroTallas,
+    filtroCoche, setFiltroCoche,
+    filtroDistancias, setFiltroDistancias,
+    filtroTipoPuesto, setFiltroTipoPuesto,
+    modalVol, setModalVol,
+    modalPuesto, setModalPuesto,
+    modalMensaje, setModalMensaje,
+    confirmDelete, setConfirmDelete,
+    confirmDeletePuesto, setConfirmDeletePuesto,
+    pendingDeleteRef,
+    stats, sugerenciasReubicacion, puestosConStats, volsFiltrados,
+    guardar, addVoluntario, importarCSV,
+    updateVoluntario, bulkUpdateVoluntarios,
+    updatePuesto, addPuesto, deletePuesto,
+    ejecutarEliminacion,
+  } = useVoluntarios();
 
-// useData maneja la persistencia automáticamente
+  const [ficha, setFicha]   = useState(null);
+  const [vista, setVista]   = useState("gestion");
 
-/**
- * MEJ-06: Resuelve la localización de un voluntario a través de su puesto.
- * Cadena: voluntario.puestoId → puesto.localizacionId → localización (lat/lng/descripcion)
- *
- * Estrategia de resolución con retrocompatibilidad:
- *   1. Por localizacionId (vínculo fuerte — nuevo campo en puesto)
- *   2. Por nombre exacto en locs (puestos guardados antes del cambio)
- *
- * @param {object}       voluntario  - objeto voluntario con puestoId
- * @param {Array}        puestos     - lista de puestos
- * @param {Array}        locs        - lista de localizaciones (LOCS_DEFAULT)
- * @returns {{ puesto: object|null, localizacion: object|null }}
- */
-export function resolverLocalizacionDeVoluntario(voluntario, puestos = [], locs = []) {
-  if (!voluntario) return { puesto: null, localizacion: null };
-  const pts  = Array.isArray(puestos) ? puestos : [];
-  const lsArr = Array.isArray(locs)   ? locs    : [];
+  const abrirFicha = (tipo, data) => setFicha({ tipo, data });
 
-  const puesto = pts.find(p => p.id === voluntario.puestoId) ?? null;
-  if (!puesto) return { puesto: null, localizacion: null };
-
-  // 1. Vínculo fuerte por localizacionId
-  if (puesto.localizacionId != null) {
-    const loc = lsArr.find(l => l.id === puesto.localizacionId) ?? null;
-    return { puesto, localizacion: loc };
-  }
-
-  // 2. Fallback por nombre exacto (puestos sin localizacionId aún)
-  const locPorNombre = lsArr.find(l => l.nombre === puesto.nombre) ?? null;
-  return { puesto, localizacion: locPorNombre };
-}
-
-// ─── MAIN APP ─────────────────────────────────────────────────────────────────
-export default function App() {
-  const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
-  const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
-  const [vista, setVista] = useState("gestion"); // "gestion" | "formulario"
-  const [tab, setTab] = useState("dashboard");
-  const [rawPuestos, setPuestos, isLoadingPuestos] = useData(SK_VOL_PUESTOS, PUESTOS_DEFAULT);
-  const puestos = Array.isArray(rawPuestos) ? rawPuestos : [];
-  const [rawVoluntarios, setVoluntarios, isLoadingVols] = useData(SK_VOL_VOLUNTARIOS, VOLUNTARIOS_DEFAULT);
-  const isLoading = isLoadingPuestos || isLoadingVols;
-  const voluntarios = useMemo(() => {
-    const raw = Array.isArray(rawVoluntarios) ? rawVoluntarios : [];
-    return raw.map(v => {
-      let out = { ...v };
-      // Migrar campo legado contactoEmergencia -> telefonoEmergencia
-      if (out.contactoEmergencia && !out.telefonoEmergencia) {
-        out = { ...out, telefonoEmergencia: out.contactoEmergencia };
-      }
-      // CORE-10: migrar nombre completo concatenado -> nombre + apellidos separados
-      // Solo actua si apellidos esta vacio/undefined y nombre contiene un espacio
-      // Usa lastIndexOf para manejar nombres compuestos ibéricos: "María José García"
-      // → nombre="María José", apellidos="García" (en lugar de partir por el primer espacio)
-      if (!out.apellidos && out.nombre && out.nombre.trim().includes(" ")) {
-        const spaceIdx = out.nombre.trim().lastIndexOf(" ");
-        out = {
-          ...out,
-          nombre:    out.nombre.trim().slice(0, spaceIdx),
-          apellidos: out.nombre.trim().slice(spaceIdx + 1),
-        };
-      }
-      return out;
-    });
-  }, [rawVoluntarios]);
-  const [locs, setLocs] = useData(LOCS_KEY, LOCS_DEFAULT);
-  // Material asignado a localizaciones (solo lectura, para mostrar en ficha de puesto)
-  const [rawMat]  = useData(SK_LOG_MAT,  []);
-  const [rawAsig] = useData(SK_LOG_ASIG, []);
-  const [rawRutas] = useData(SK_LOG_RUT, []);
-  const rutas = Array.isArray(rawRutas) ? rawRutas : [];
-  const matPorLoc = useMemo(() => {
-    const mat   = Array.isArray(rawMat)  ? rawMat  : [];
-    const asigs = Array.isArray(rawAsig) ? rawAsig : [];
-    const lcsArr = Array.isArray(locs)   ? locs    : [];
-    // Construir dos mapas: por localizacionId (ID robusto) y por nombre (fallback)
-    const mapById = {};   // localizacionId → [{nombre, cantidad, unidad}]
-    const mapByName = {}; // locNombre      → [{nombre, cantidad, unidad}]
-    asigs.forEach(a => {
-      const item = mat.find(m => m.id === a.materialId);
-      if (!item) return;
-      const entry = { nombre: item.nombre, cantidad: a.cantidad, unidad: item.unidad || "ud" };
-      if (a.localizacionId) {
-        if (!mapById[a.localizacionId]) mapById[a.localizacionId] = [];
-        mapById[a.localizacionId].push(entry);
-      }
-      if (a.puesto) {
-        if (!mapByName[a.puesto]) mapByName[a.puesto] = [];
-        mapByName[a.puesto].push(entry);
-      }
-    });
-    // Devolver mapa por nombre para compatibilidad con el código existente,
-    // enriquecido con los datos por ID (si el puesto tiene localizacionId)
-    const map = { ...mapByName };
-    lcsArr.forEach(loc => {
-      if (mapById[loc.id]) {
-        // Fusionar sin duplicados por nombre
-        const existentes = map[loc.nombre] || [];
-        const nuevos = mapById[loc.id].filter(n => !existentes.some(e => e.nombre === n.nombre));
-        map[loc.nombre] = [...existentes, ...nuevos];
-      }
-    });
-    return map;
-  }, [rawMat, rawAsig, locs]);
-
-  // F4-01 — Polling 30s: detectar cambios del portal en tabs dashboard y diaD
-  useEffect(() => {
-    if (tab !== "dashboard" && tab !== "diaD") return;
-
-    const interval = setInterval(async () => {
-      const fresco = await dataService.get(SK_VOL_VOLUNTARIOS, []);
-      if (JSON.stringify(fresco) !== JSON.stringify(rawVoluntarios)) {
-        setVoluntarios(fresco);
-      }
-    }, 30 * 1000);
-
-    return () => clearInterval(interval);
-  }, [tab, rawVoluntarios]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const [saveStatus, setSaveStatus] = useState("idle");
-  const [isExportingExcel, setIsExportingExcel] = useState(false); // C6
-  const [busqueda, setBusqueda] = useState("");
-  const [filtroEstado, setFiltroEstado] = useState("todos");
-  const [filtroPuesto, setFiltroPuesto] = useState("todos");
-  // Filtros avanzados
-  const [filtroTallas, setFiltroTallas]       = useState([]);       // [] = todos
-  const [filtroCoche, setFiltroCoche]         = useState("todos");  // "todos" | "si" | "no"
-  const [filtroDistancias, setFiltroDistancias] = useState([]);     // [] = todas
-  const [filtroTipoPuesto, setFiltroTipoPuesto] = useState([]);     // [] = todos
-  const [modalVol, setModalVol] = useState(null); // null | "nuevo" | voluntario
-  const [modalPuesto, setModalPuesto] = useState(null);
-  const [modalMensaje, setModalMensaje] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(null);
-  const [confirmDeletePuesto, setConfirmDeletePuesto] = useState(null);
-  // Ref para capturar el ID a eliminar antes de cualquier setState — solución definitiva al bug de eliminación
-  const pendingDeleteRef = useRef(null);
-
-  const ejecutarEliminacion = useCallback((id) => {
-    if (id === null || id === undefined) return;
-    const sid = String(id);
-    // Usar prev para obtener el estado más reciente + force:true para saltarse hasChanged
-    setVoluntarios(
-      prev => Array.isArray(prev) ? prev.filter(v => String(v.id) !== sid) : prev,
-      { force: true }
-    );
-    setConfirmDelete(null);
-    pendingDeleteRef.current = null;
-    toast.success('Voluntario eliminado');
-    dataService.notify('voluntarios'); // FIX-VOL-01: invalidar Dashboard
-  }, [setVoluntarios]);
-  const [ficha, setFicha] = useState(null); // {tipo:'vol'|'puesto', data}
-  const abrirFicha = (tipo, data) => { scrollMainToTop(); setFicha({ tipo, data }); };
-
-  // ── Métricas ──────────────────────────────────────────────────────────────
-  const stats = useMemo(() => {
-    const vols = voluntarios || [];
-    const pts = puestos || [];
-    const total = vols.length;
-    const confirmados = vols.filter(v => v?.estado === "confirmado").length;
-    const pendientes = vols.filter(v => v?.estado === "pendiente").length;
-    const cancelados = vols.filter(v => v?.estado === "cancelado").length;
-    const totalNecesarios = pts.reduce((s, p) => s + (p?.necesarios || 0), 0);
-    const asignados = vols.filter(v => v?.puestoId).length;
-    const conCoche = vols.filter(v => v?.coche).length;
-    const tallasCount = TALLAS.reduce((acc, t) => {
-      acc[t] = vols.filter(v => v?.talla === t && v?.estado !== "cancelado").length;
-      return acc;
-    }, {});
-    const coberturaGlobal = totalNecesarios > 0 ? Math.round((confirmados / totalNecesarios) * 100) : 0;
-    const enPuesto = vols.filter(v => v?.enPuesto).length;
-    return { total, confirmados, pendientes, cancelados, totalNecesarios, asignados, conCoche, tallasCount, coberturaGlobal, enPuesto };
-  }, [voluntarios, puestos]);
-
-  // Sugerencias de reubicación automáticas
-  const sugerenciasReubicacion = useMemo(() => {
-    const stats = (puestos || []).map(p => {
-      const asig = (voluntarios || []).filter(v => v.puestoId === p.id && v.estado !== "cancelado");
-      const conf = asig.filter(v => v.estado === "confirmado");
-      return {
-        ...p,
-        exceso:  Math.max(0, conf.length - p.necesarios),
-        deficit: Math.max(0, p.necesarios - conf.length),
-        confirmados: conf,
-      };
-    });
-    const conExceso  = stats.filter(s => s.exceso > 0).sort((a, b) => b.exceso - a.exceso);
-    const conDeficit = stats.filter(s => s.deficit > 0).sort((a, b) => b.deficit - a.deficit);
-    const sug = [];
-    for (const destino of conDeficit) {
-      for (const origen of conExceso) {
-        if (sug.length >= 5) break;
-        const movibles = Math.min(origen.exceso, destino.deficit);
-        if (movibles > 0) {
-          const candidatos = origen.confirmados
-            // FORMULA-03: responsableId siempre es null (no implementado en ModalPuesto).
-            // Usamos v.rol !== "responsable" como proxy null-safe para excluir al responsable
-            // del puesto de las sugerencias de reubicacion.
-            .filter(v => v.rol !== "responsable")
-            .slice(0, movibles);
-          if (candidatos.length > 0) {
-            sug.push({
-              desde:      origen.nombre,
-              desdeId:    origen.id,
-              hasta:      destino.nombre,
-              hastaId:    destino.id,
-              candidatos: candidatos.map(v => ({ id: v.id, nombre: v.nombre })),
-              n:          candidatos.length,
-            });
-          }
-        }
-      }
-    }
-    return sug;
-  }, [puestos, voluntarios]);
-
-  const puestosConStats = useMemo(() => (puestos || []).map(p => {
-    const vols = (voluntarios || []).filter(v => v?.puestoId === p?.id && v?.estado !== "cancelado" && v?.estado !== "ausente");
-    const confirmados = vols.filter(v => v?.estado === "confirmado").length;
-    const cobertura = p?.necesarios > 0 ? Math.round((vols.length / p.necesarios) * 100) : 0;
-    const coberturaConf = p?.necesarios > 0 ? Math.round((confirmados / p.necesarios) * 100) : 0;
-    return { ...p, voluntariosAsignados: vols, totalAsignados: vols.length, confirmados, cobertura, coberturaConf };
-  }), [puestos, voluntarios]);
-
-  // ── Handlers ──────────────────────────────────────────────────────────────
-  const guardar = () => {
-    dataService.notify('voluntarios');
-    setSaveStatus("saved");
-    setTimeout(() => setSaveStatus("idle"), 2500);
-  };
-
-  const hashPinLocal = (pin) => { let h=0; for(let i=0;i<pin.length;i++){h=(Math.imul(31,h)+pin.charCodeAt(i))|0;} return String(h); };
-  const pinInicialLocal = (tel) => { const d=(tel||'').replace(/\D/g,''); return d.slice(-4)||'0000'; };
-
-  const addVoluntario = (data) => {
-    const telNorm = (data.telefono || '').replace(/\D/g, '');
-    if (telNorm.length >= 9) {
-      const dup = voluntarios.find(v => (v.telefono || '').replace(/\D/g, '') === telNorm);
-      if (dup) {
-        toast.error(`Ya existe un voluntario con ese teléfono: ${dup.nombre}`);
-        return false;
-      }
-    }
-    const pinHash = hashPinLocal(pinInicialLocal(data.telefono || ''));
-    const nuevo = { id: genIdNum(voluntarios), camisetaEntregada: false, enPuesto: false, horaLlegada: null, sessionToken: null, pinHash, ...data };
-    setVoluntarios(prev => [...prev, nuevo]);
-    toast.success("Voluntario añadido");
-    dataService.notify('voluntarios'); // FIX-VOL-01: invalidar Dashboard
-    return true;
-  };
-
-  // Importación masiva desde CSV
-  const importarCSV = async (file) => {
-    const text = await file.text();
-    const lines = text.split(/\r?\n/).filter(Boolean);
-    if (!lines.length) { toast.error("Archivo vacío"); return; }
-    // Detectar separador
-    const sep = lines[0].includes(';') ? ';' : ',';
-    const headers = lines[0].split(sep).map(h => h.trim().toLowerCase().replace(/['"]/g,''));
-    const idx = (names) => names.map(n => headers.findIndex(h => h.includes(n))).find(i => i >= 0) ?? -1;
-    const iNombre = idx(['nombre','name']);
-    const iApel   = idx(['apellido','surname','last']);
-    const iTel    = idx(['telefono','phone','tel','móvil','movil','celular']);
-    const iTalla  = idx(['talla','size']);
-    const iEmail  = idx(['email','correo','mail']);
-    if (iTel === -1) { toast.error("El CSV necesita una columna 'telefono'"); return; }
-
-    let added = 0, dupes = 0;
-    const genId = () => genIdNum([...voluntarios, ...(new Array(added).fill(0).map((_,i) => ({id: Date.now()+i})))]);
-
-    const nuevos = [];
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(sep).map(c => c.trim().replace(/^['"]+|['"]+$/g,''));
-      const tel = cols[iTel] || '';
-      if (!tel) continue;
-      const telNorm = tel.replace(/\D/g,'');
-      const dup = voluntarios.find(v => (v.telefono||'').replace(/\D/g,'') === telNorm) ||
-                  nuevos.find(v => (v.telefono||'').replace(/\D/g,'') === telNorm);
-      if (dup) { dupes++; continue; }
-      const nombre = iNombre >= 0 ? cols[iNombre] : '';
-      const apellidos = iApel >= 0 ? cols[iApel] : '';
-      const talla = iTalla >= 0 ? cols[iTalla].toUpperCase() : '';
-      const email = iEmail >= 0 ? cols[iEmail] : '';
-      const pinHash = hashPinLocal(pinInicialLocal(tel));
-      nuevos.push({
-        id: Date.now() + i,
-        nombre, apellidos, telefono: tel, email, talla,
-        estado: 'pendiente', camisetaEntregada: false,
-        enPuesto: false, horaLlegada: null, sessionToken: null,
-        pinHash, fechaRegistro: new Date().toISOString().split('T')[0],
-        origenImportacion: 'csv',
-      });
-      added++;
-    }
-    if (nuevos.length > 0) {
-      setVoluntarios(prev => [...prev, ...nuevos], { force: true });
-      dataService.notify('voluntarios'); // FIX-VOL-01: invalidar Dashboard
-    }
-    toast.success(`Importados: ${added} voluntario${added !== 1 ? "s" : ""}${dupes > 0 ? ` · ${dupes} duplicado${dupes !== 1 ? "s" : ""} omitido${dupes !== 1 ? "s" : ""}` : ""}`);
-  };
-
-  // Registrar entrada en el historial de cambios del voluntario
-  const registrarHistorial = (volActual, cambios) => {
-    const ahora = new Date();
-    const fecha = ahora.toLocaleDateString("es-ES", { day:"2-digit", month:"2-digit", year:"numeric" });
-    const hora  = ahora.toLocaleTimeString("es-ES", { hour:"2-digit", minute:"2-digit" });
-    const descripcion = [];
-    if (cambios.estado !== undefined && cambios.estado !== volActual.estado)
-      descripcion.push(`Estado: ${volActual.estado} → ${cambios.estado}`);
-    if (cambios.puestoId !== undefined && cambios.puestoId !== volActual.puestoId)
-      descripcion.push(`Puesto reasignado`);
-    if (cambios.camisetaEntregada !== undefined && cambios.camisetaEntregada !== volActual.camisetaEntregada)
-      descripcion.push(cambios.camisetaEntregada ? "Camiseta entregada" : "Camiseta: pendiente");
-    if (cambios.mensajeOrganizador !== undefined)
-      descripcion.push("Mensaje del organizador actualizado");
-    if (cambios.enPuesto !== undefined && cambios.enPuesto)
-      descripcion.push(`En puesto${cambios.horaLlegada ? " a las "+cambios.horaLlegada : ""}`);
-    if (!descripcion.length) return volActual.historial || [];
-    const entrada = { fecha, hora, texto: descripcion.join(" · ") };
-    const histPrev = Array.isArray(volActual.historial) ? volActual.historial : [];
-    return [entrada, ...histPrev].slice(0, 50); // máximo 50 entradas
-  };
-
-  const updateVoluntario = (id, data) => {
-    setVoluntarios(prev => prev.map(v => {
-      if (v.id !== id) return v;
-      const historial = registrarHistorial(v, data);
-      return { ...v, ...data, historial };
-    }));
-    if(data.estado==="confirmado") toast.success("Voluntario confirmado ✓");
-    else if(data.estado==="cancelado") toast.warning("Voluntario cancelado");
-    else if(!Object.prototype.hasOwnProperty.call(data, "estado")) toast.success("Voluntario actualizado");
-    dataService.notify('voluntarios'); // FIX-VOL-01: invalidar Dashboard
-  };
-  const bulkUpdateVoluntarios = (ids, data) => {
-    setVoluntarios(prev => prev.map(v => ids.includes(v.id) ? { ...v, ...data } : v));
-    if (data.estado === "confirmado") toast.success(`${ids.length} voluntarios confirmados ✓`);
-    else if (data.estado === "cancelado") toast.warning(`${ids.length} voluntarios cancelados`);
-    else if (data.estado === "pendiente") toast.info(`${ids.length} voluntarios movidos a pendiente`);
-    dataService.notify('voluntarios'); // FIX-VOL-01: invalidar Dashboard
-  };
-  // P2: al actualizar un puesto con coords y loc vinculada, propaga coords a la loc
-  const updatePuesto = (id, data) => {
-    setPuestos(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
-    if (data.localizacionId && data.lat != null && data.lng != null) {
-      setLocs(prev => prev.map(l =>
-        l.id === data.localizacionId ? { ...l, lat: data.lat, lng: data.lng } : l
-      ));
-      // Propagar a todos los demás puestos vinculados a la misma loc
-      setPuestos(prev => prev.map(p =>
-        p.id !== id && p.localizacionId === data.localizacionId
-          ? { ...p, lat: data.lat, lng: data.lng }
-          : p
-      ));
-    }
-    toast.success("Puesto actualizado");
-    dataService.notify('voluntarios');
-  };
-  // P1: al crear un puesto con loc vinculada, crea la loc si no existe
-  // P2: si tiene coords, propaga a la loc y demás puestos vinculados
-  const addPuesto = (data) => {
-    let locId = data.localizacionId;
-    // P1: si nombre de loc coincide pero no existe → crear loc nueva
-    if (!locId && data._crearLoc && data.nombre) {
-      const nuevaLoc = {
-        id: genIdNum(Array.isArray(locs) ? locs : []),
-        nombre: data.nombre,
-        tipo: data.tipo || "otro",
-        descripcion: "",
-        ...(data.lat != null && data.lng != null ? { lat: data.lat, lng: data.lng } : {}),
-      };
-      setLocs(prev => [...(Array.isArray(prev) ? prev : []), nuevaLoc]);
-      locId = nuevaLoc.id;
-      dataService.notify('logistica');
-    }
-    const puestoFinal = { id: genIdNum(puestos), ...data, localizacionId: locId ?? null };
-    delete puestoFinal._crearLoc;
-    setPuestos(prev => [...prev, puestoFinal]);
-    // P2: si tiene coords y loc, propagar coords a la loc y demás puestos vinculados
-    if (locId && data.lat != null && data.lng != null) {
-      setLocs(prev => prev.map(l =>
-        l.id === locId ? { ...l, lat: data.lat, lng: data.lng } : l
-      ));
-    }
-    toast.success("Puesto creado");
-    dataService.notify('voluntarios');
-  };
-  const deletePuesto = (id) => { setPuestos(prev => prev.filter(p => p.id !== id)); setVoluntarios(prev => prev.map(v => v.puestoId === id ? { ...v, puestoId: null } : v)); toast.success("Puesto eliminado"); dataService.notify('voluntarios'); };
-
-  const volsFiltrados = useMemo(() => {
-    const q = busqueda.trim().toLowerCase();
-    return voluntarios.filter(v => {
-      if (q) {
-        const nombreComp = ((v.nombre||"") + " " + (v.apellidos||"")).toLowerCase();
-        const apellNomb  = ((v.apellidos||"") + " " + (v.nombre||"")).toLowerCase();
-        const tel        = (v.telefono||"").replace(/\s/g,"");
-        const email      = (v.email||"").toLowerCase();
-        const puestoNombre = (puestos.find(p => p.id === v.puestoId)?.nombre || "").toLowerCase();
-        const notas      = (v.notas||"").toLowerCase();
-        const matchBusqueda = nombreComp.includes(q) || apellNomb.includes(q) ||
-          tel.includes(q.replace(/\s/g,"")) ||
-          email.includes(q) ||
-          puestoNombre.includes(q) ||
-          notas.includes(q);
-        if (!matchBusqueda) return false;
-      }
-      const matchEstado = filtroEstado === "todos"
-        ? true
-        : filtroEstado === "en-puesto"
-          ? Boolean(v.enPuesto)
-          : v.estado === filtroEstado;
-      const matchPuesto = filtroPuesto === "todos" || String(v.puestoId) === filtroPuesto || (filtroPuesto === "sin-asignar" && !v.puestoId);
-      // Filtros avanzados
-      const matchTalla = filtroTallas.length === 0 || filtroTallas.includes(v.talla || "");
-      const matchCoche = filtroCoche === "todos" || (filtroCoche === "si" ? Boolean(v.coche) : !v.coche);
-      const matchDistancia = filtroDistancias.length === 0 || (() => {
-        const puesto = puestos.find(p => String(p.id) === String(v.puestoId));
-        if (!puesto) return false;
-        return (puesto.distancias || []).some(d => filtroDistancias.includes(d));
-      })();
-      const matchTipoPuesto = filtroTipoPuesto.length === 0 || (() => {
-        const puesto = puestos.find(p => String(p.id) === String(v.puestoId));
-        return puesto ? filtroTipoPuesto.includes(puesto.tipo || "") : false;
-      })();
-      return matchEstado && matchPuesto && matchTalla && matchCoche && matchDistancia && matchTipoPuesto;
-    });
-  }, [voluntarios, puestos, busqueda, filtroEstado, filtroPuesto, filtroTallas, filtroCoche, filtroDistancias, filtroTipoPuesto]);
-
-  // ── Formulario público ────────────────────────────────────────────────────
   if (isLoading) return <SkeletonBlock variant="voluntarios" />;
 
-  if (vista === "formulario") return (
-    <AppShell>
-      <FormularioPublico
-        onVolver={() => setVista("gestion")}
-        puestos={puestos}
-        config={config}
-        voluntarios={voluntarios}
-        onRegistrar={(data) => { addVoluntario(data); setVista("gestion"); setTab("voluntarios"); }}
-      />
-    </AppShell>
-  );
-
-  // Días hasta el evento — para reordenar tabs en semana de carrera
   const diasHastaEvento = Math.ceil((getEventDate(config) - new Date()) / 86400000);
   const esSemanaCarrera = diasHastaEvento >= 0 && diasHastaEvento <= 7;
 
   const TABS_BASE = [
-    { id: "dashboard",  icon: "📊", label: "Dashboard" },
-    { id: "voluntarios",icon: "👥", label: "Voluntarios", badge: stats.total },
-    { id: "kanban",     icon: "🗂️", label: "Kanban" },
-    { id: "puestos",    icon: "📍", label: "Puestos",     badge: puestos.length },
-    { id: "tallas",     icon: "👕", label: "Tallas",
-      badge: Object.values(stats.tallasCount).reduce((s, v) => s + v, 0) || undefined,
-      badgeColor: "badge-violet" },
-    { id: "dia-d",      icon: "🏁", label: esSemanaCarrera ? "🚨 Día de Carrera" : "Día de Carrera",
-      badge: stats.enPuesto > 0 ? stats.enPuesto : undefined, badgeColor: "badge-green" },
+    { id: "dashboard",   icon: "📊", label: "Dashboard" },
+    { id: "voluntarios", icon: "👥", label: "Voluntarios",    badge: stats.total },
+    { id: "kanban",      icon: "🗂️", label: "Kanban" },
+    { id: "puestos",     icon: "📍", label: "Puestos",        badge: puestos.length },
+    { id: "tallas",      icon: "👕", label: "Tallas",         badge: Object.values(stats.tallasCount).reduce((s, v) => s + v, 0) || undefined, badgeColor: "badge-violet" },
+    { id: "dia-d",       icon: "🏁", label: esSemanaCarrera ? "🚨 Día de Carrera" : "Día de Carrera", badge: stats.enPuesto > 0 ? stats.enPuesto : undefined, badgeColor: "badge-green" },
   ];
-  // En semana de carrera, Día de Carrera sube a primera posición (ahora en índice 5)
-  const TABS_VOL = esSemanaCarrera
-    ? [TABS_BASE[5], ...TABS_BASE.slice(0, 5)]
-    : TABS_BASE;
+  const TABS_VOL = esSemanaCarrera ? [TABS_BASE[5], ...TABS_BASE.slice(0, 5)] : TABS_BASE;
 
   return (
-    <AppShell>
+    <>
       <div className="block-container">
-
         {/* HEADER */}
         <div className="block-header">
           <div>
-            <div style={{display:"flex",alignItems:"center",gap:".65rem",flexWrap:"wrap",marginBottom:".15rem"}}>
-              <h1 className="block-title" style={{margin:0}}>👥 Voluntarios</h1>
-              <button
-                onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"proyecto"}}))}
-                style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".15rem .45rem",
-                  borderRadius:4,border:"1px solid rgba(34,211,238,.3)",
-                  background:"rgba(34,211,238,.1)",color:"var(--cyan)",cursor:"pointer"}}>
+            <div style={{ display: "flex", alignItems: "center", gap: ".65rem", flexWrap: "wrap", marginBottom: ".15rem" }}>
+              <h1 className="block-title" style={{ margin: 0 }}>👥 Voluntarios</h1>
+              <button onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "proyecto" } }))}
+                style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", padding: ".15rem .45rem", borderRadius: 4, border: "1px solid rgba(34,211,238,.3)", background: "rgba(34,211,238,.1)", color: "var(--cyan)", cursor: "pointer" }}>
                 📋 Ver en Proyecto →
               </button>
             </div>
             <div className="block-title-sub">
               Módulo de gestión · Trail El Guerrero 2026
-              {esSemanaCarrera && <span style={{marginLeft:"0.5rem",color:"var(--red)",fontWeight:700}}>⚡ SEMANA DE CARRERA</span>}
+              {esSemanaCarrera && <span style={{ marginLeft: "0.5rem", color: "var(--red)", fontWeight: 700 }}>⚡ SEMANA DE CARRERA</span>}
             </div>
           </div>
           <div className="block-actions">
-            <span className={`badge ${stats.coberturaGlobal>=80?"badge-green":stats.coberturaGlobal>=50?"badge-amber":"badge-red"}`}>
+            <span className={`badge ${stats.coberturaGlobal >= 80 ? "badge-green" : stats.coberturaGlobal >= 50 ? "badge-amber" : "badge-red"}`}>
               🎯 {stats.coberturaGlobal}% cobertura
             </span>
             <button className="btn btn-primary" onClick={() => setModalVol("nuevo")}>+ Voluntario</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setModalMensaje(true)} title="Generar mensaje de instrucciones para voluntarios">📨 Instrucciones</button>
             <button className="btn btn-ghost btn-sm"
-              onClick={() => setModalMensaje(true)}
-              title="Generar mensaje de instrucciones para voluntarios">
-              📨 Instrucciones
-            </button>
-            <button className="btn btn-ghost btn-sm"
-              onClick={async () => {
-                if (isExportingExcel) return;
-                setIsExportingExcel(true);
-                try { await exportarVoluntarios(voluntarios, puestos); }
-                finally { setIsExportingExcel(false); }
-              }}
-              disabled={isExportingExcel}
-              title="Exportar lista de voluntarios a Excel">
+              onClick={async () => { if (isExportingExcel) return; setIsExportingExcel(true); try { await exportarVoluntarios(voluntarios, puestos); } finally { setIsExportingExcel(false); } }}
+              disabled={isExportingExcel} title="Exportar lista de voluntarios a Excel">
               {isExportingExcel ? "⏳ Generando…" : "📊 Excel"}
             </button>
-            <label className="btn btn-ghost btn-sm"
-              title="Importar voluntarios desde un archivo CSV (columnas: nombre, apellidos, telefono, talla, email)"
-              style={{ cursor:"pointer", margin:0 }}>
+            <label className="btn btn-ghost btn-sm" title="Importar voluntarios desde CSV" style={{ cursor: "pointer", margin: 0 }}>
               📥 Importar CSV
-              <input type="file" accept=".csv,.txt" style={{ display:"none" }}
-                onChange={e => { if (e.target.files[0]) { importarCSV(e.target.files[0]); e.target.value = ''; } }} />
+              <input type="file" accept=".csv,.txt" style={{ display: "none" }} onChange={e => { if (e.target.files[0]) { importarCSV(e.target.files[0]); e.target.value = ""; } }} />
             </label>
-            {/* Dropdown Compartir portal — consolida 3 acciones */}
             <PanelCompartir portalUrl={window.location.origin + "/voluntarios/mi-ficha"} />
           </div>
         </div>
 
-        {/* OPCIONES FORMULARIO — ir a Configuración */}
-        {/* OPCIONES FORMULARIO — ir a Configuración */}
+        {/* Enlace a config formulario */}
         <div className="card mb" style={{ padding: "0.65rem 1rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-            ⚙️ Configuración formulario público
-          </span>
-          <button
-            className="btn btn-ghost btn-sm"
-            title="Ir a Configuración → sección Formulario de voluntarios"
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "configuracion" } }));
-              // Scroll al ancla tras la navegación
-              setTimeout(() => {
-                const el = document.getElementById("cfg-formulario");
-                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-              }, 300);
-            }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>⚙️ Configuración formulario público</span>
+          <button className="btn btn-ghost btn-sm" title="Ir a Configuración → sección Formulario de voluntarios"
+            onClick={() => { window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "configuracion" } })); setTimeout(() => document.getElementById("cfg-formulario")?.scrollIntoView({ behavior: "smooth", block: "start" }), 300); }}>
             Configurar formulario →
           </button>
         </div>
 
-        {/* Buscador global con spotlight — resultados inline sin cambiar de tab */}
+        {/* Buscador spotlight */}
         <BuscadorSpotlight
-          busqueda={busqueda}
-          setBusqueda={setBusqueda}
-          voluntarios={voluntarios}
-          puestos={puestos}
+          busqueda={busqueda} setBusqueda={setBusqueda}
+          voluntarios={voluntarios} puestos={puestos}
           onAbrirFicha={(v) => abrirFicha("vol", v)}
           onVerTodos={() => setTab("voluntarios")}
           onFiltroPuesto={(pId) => { setFiltroPuesto(String(pId)); setTab("voluntarios"); }}
         />
-        {/* TABS */}
+
+        {/* Tabs */}
         <div className="tabs">
           {TABS_VOL.map(item => (
-            <button key={item.id} className={cls("tab-btn", tab===item.id && "active")} onClick={() => setTab(item.id)}>
+            <button key={item.id} className={cls("tab-btn", tab === item.id && "active")} onClick={() => setTab(item.id)}>
               {item.icon} {item.label}
-              {item.badge !== undefined && (
-                <span className={`badge ${item.badgeColor || "badge-cyan"}`} style={{marginLeft:"0.3rem"}}>{item.badge}</span>
-              )}
+              {item.badge !== undefined && <span className={`badge ${item.badgeColor || "badge-cyan"}`} style={{ marginLeft: "0.3rem" }}>{item.badge}</span>}
             </button>
           ))}
         </div>
 
-        {/* CONTENIDO */}
+        {/* Contenido por tab */}
         <div key={tab}>
-          {tab==="dashboard" && <TabDashboard stats={stats} puestosConStats={puestosConStats} voluntarios={voluntarios} setTab={setTab} onEditarVol={(v) => abrirFicha("vol", v)} onEditarPuesto={(p) => abrirFicha("puesto", p)} sugerenciasReubicacion={sugerenciasReubicacion} onReasignar={(volId, puestoId) => updateVoluntario(volId, { puestoId })} />}
-          {tab==="kanban" && <TabKanbanVol voluntarios={voluntarios} puestos={puestos} onUpdate={updateVoluntario} onFicha={(v) => abrirFicha("vol", v)} />}
-          {tab==="voluntarios" && (
+          {tab === "dashboard" && (
+            <TabDashboard stats={stats} puestosConStats={puestosConStats} voluntarios={voluntarios} setTab={setTab}
+              onEditarVol={(v) => abrirFicha("vol", v)} onEditarPuesto={(p) => abrirFicha("puesto", p)}
+              sugerenciasReubicacion={sugerenciasReubicacion}
+              onReasignar={(volId, puestoId) => updateVoluntario(volId, { puestoId })} />
+          )}
+          {tab === "kanban" && (
+            <TabKanbanVol voluntarios={voluntarios} puestos={puestos} onUpdate={updateVoluntario} onFicha={(v) => abrirFicha("vol", v)} />
+          )}
+          {tab === "voluntarios" && (
             <TabVoluntarios
               voluntarios={volsFiltrados} todosVols={voluntarios} puestos={puestos}
               busqueda={busqueda} setBusqueda={setBusqueda}
@@ -624,513 +156,70 @@ export default function App() {
               filtroCoche={filtroCoche} setFiltroCoche={setFiltroCoche}
               filtroDistancias={filtroDistancias} setFiltroDistancias={setFiltroDistancias}
               filtroTipoPuesto={filtroTipoPuesto} setFiltroTipoPuesto={setFiltroTipoPuesto}
-              onUpdate={updateVoluntario} onBulkUpdate={bulkUpdateVoluntarios} onDelete={(id) => setConfirmDelete(id)}
+              onUpdate={updateVoluntario} onBulkUpdate={bulkUpdateVoluntarios}
+              onDelete={(id) => setConfirmDelete(id)}
               onNuevo={() => setModalVol("nuevo")} onEditar={(v) => setModalVol(v)}
               onFicha={(v) => abrirFicha("vol", v)}
             />
           )}
-          {tab==="puestos" && (
+          {tab === "puestos" && (
             <TabPuestos
-              puestosConStats={puestosConStats} voluntarios={voluntarios}
-              locs={locs}
+              puestosConStats={puestosConStats} voluntarios={voluntarios} locs={locs}
               onUpdatePuesto={updatePuesto} onDeletePuesto={(id) => setConfirmDeletePuesto(id)}
               onNuevoPuesto={() => setModalPuesto("nuevo")} onEditPuesto={(p) => setModalPuesto(p)}
               onEditarVol={(v) => setModalVol(v)}
-              onFichaPuesto={(p) => abrirFicha("puesto", p)}
-              onFichaVol={(v) => abrirFicha("vol", v)}
+              onFichaPuesto={(p) => abrirFicha("puesto", p)} onFichaVol={(v) => abrirFicha("vol", v)}
               onAddVoluntario={(puestoId) => setModalVol({ _nuevo: true, puestoId })}
             />
           )}
-          {tab==="dia-d"  && <TabDiaD puestosConStats={puestosConStats} voluntarios={voluntarios} onUpdateVol={updateVoluntario} diasHastaEvento={diasHastaEvento} />}
-          {tab==="tallas" && <TabTallas stats={stats} voluntarios={voluntarios} puestos={puestos} />}
+          {tab === "dia-d"  && <TabDiaD puestosConStats={puestosConStats} voluntarios={voluntarios} onUpdateVol={updateVoluntario} diasHastaEvento={diasHastaEvento} />}
+          {tab === "tallas" && <TabTallas stats={stats} voluntarios={voluntarios} puestos={puestos} />}
         </div>
       </div>
 
-      {/* MODALES */}
-      {ficha?.tipo==="vol" && createPortal(
+      {/* Fichas */}
+      {ficha?.tipo === "vol" && createPortal(
         <FichaVoluntario
-          voluntario={ficha.data} puestos={puestos}
-          locs={locs} matPorLoc={matPorLoc}
-          config={config}
+          voluntario={ficha.data} puestos={puestos} locs={locs} matPorLoc={matPorLoc} config={config}
           onClose={() => setFicha(null)}
-          onEditar={() => { const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"}); setFicha(null); setModalVol(ficha.data); }}
-          onEliminar={() => {
-            const id = ficha.data?.id;
-            if (id === null || id === undefined) return;
-            // FIX-DEL-01: asignar ref ANTES de cualquier setState para evitar race condition
-            // setConfirmDelete primero, setFicha después — el modal ya tiene el ID cuando se monta
-            pendingDeleteRef.current = id;
-            setConfirmDelete(id);
-            setFicha(null);
-          }}
-          onEliminarConfirmado={() => {
-            const id = ficha.data?.id ?? pendingDeleteRef.current;
-            if (id === null || id === undefined) return;
-            pendingDeleteRef.current = id;
-            setFicha(null);
-            ejecutarEliminacion(id);
-          }}
+          onEditar={() => { document.querySelector("main")?.scrollTo({ top: 0, behavior: "instant" }); setFicha(null); setModalVol(ficha.data); }}
+          onEliminar={() => { const id = ficha.data?.id; if (!id && id !== 0) return; pendingDeleteRef.current = id; setConfirmDelete(id); setFicha(null); }}
+          onEliminarConfirmado={() => { const id = ficha.data?.id ?? pendingDeleteRef.current; if (!id && id !== 0) return; pendingDeleteRef.current = id; setFicha(null); ejecutarEliminacion(id); }}
           onUpdate={(data) => { updateVoluntario(ficha.data.id, data); setFicha(f => ({ ...f, data: { ...f.data, ...data } })); }}
-        />
-      , document.body)}
-      {ficha?.tipo==="puesto" && createPortal(
+        />, document.body
+      )}
+      {ficha?.tipo === "puesto" && createPortal(
         <FichaPuesto
-          puesto={ficha.data} voluntarios={voluntarios}
-          locs={locs} matPorLoc={matPorLoc} rutas={rutas}
+          puesto={ficha.data} voluntarios={voluntarios} locs={locs} matPorLoc={matPorLoc} rutas={rutas}
           onClose={() => setFicha(null)}
           onFichaVol={(v) => { setFicha(null); setTimeout(() => abrirFicha("vol", v), 50); }}
-          onEditar={() => { const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"}); setFicha(null); setModalPuesto(ficha.data); }}
+          onEditar={() => { document.querySelector("main")?.scrollTo({ top: 0, behavior: "instant" }); setFicha(null); setModalPuesto(ficha.data); }}
           onEliminar={() => { setFicha(null); setConfirmDeletePuesto(ficha.data.id); }}
-        />
-      , document.body)}
+        />, document.body
+      )}
+
+      {/* Modales */}
       {modalVol && createPortal(
         <ModalVoluntario
-          key={modalVol==="nuevo" || modalVol?._nuevo ? "nuevo" : modalVol.id}
-          voluntario={modalVol==="nuevo" || modalVol?._nuevo ? (modalVol?._nuevo ? { puestoId: modalVol.puestoId } : null) : modalVol}
+          key={modalVol === "nuevo" || modalVol?._nuevo ? "nuevo" : modalVol.id}
+          voluntario={modalVol === "nuevo" || modalVol?._nuevo ? (modalVol?._nuevo ? { puestoId: modalVol.puestoId } : null) : modalVol}
           puestos={puestosConStats}
-          onSave={(data) => { if (modalVol==="nuevo" || modalVol?._nuevo) addVoluntario(data); else updateVoluntario(modalVol.id, data); setModalVol(null); }}
+          onSave={(data) => { if (modalVol === "nuevo" || modalVol?._nuevo) addVoluntario(data); else updateVoluntario(modalVol.id, data); setModalVol(null); }}
           onClose={() => setModalVol(null)}
-          onEliminar={modalVol!=="nuevo" && !modalVol?._nuevo ? () => { const id = modalVol?.id; if (!id) return; pendingDeleteRef.current = id; setModalVol(null); setConfirmDelete(id); } : undefined}
-        />
-      , document.body)}
+          onEliminar={modalVol !== "nuevo" && !modalVol?._nuevo ? () => { const id = modalVol?.id; if (!id) return; pendingDeleteRef.current = id; setModalVol(null); setConfirmDelete(id); } : undefined}
+        />, document.body
+      )}
       {modalPuesto && createPortal(
         <ModalPuesto
-          key={modalPuesto==="nuevo" ? "nuevo" : modalPuesto.id}
-          puesto={modalPuesto==="nuevo" ? null : modalPuesto}
-          locs={locs}
-          onSave={(data) => { if (modalPuesto==="nuevo") addPuesto(data); else updatePuesto(modalPuesto.id, data); setModalPuesto(null); }}
+          key={modalPuesto === "nuevo" ? "nuevo" : modalPuesto.id}
+          puesto={modalPuesto === "nuevo" ? null : modalPuesto} locs={locs}
+          onSave={(data) => { if (modalPuesto === "nuevo") addPuesto(data); else updatePuesto(modalPuesto.id, data); setModalPuesto(null); }}
           onClose={() => setModalPuesto(null)}
-        />
-      , document.body)}
+        />, document.body
+      )}
       {confirmDelete && createPortal(<ModalConfirm zIndex={400} mensaje="¿Eliminar este voluntario? Esta acción no se puede deshacer." onConfirm={() => ejecutarEliminacion(pendingDeleteRef.current ?? confirmDelete)} onCancel={() => { setConfirmDelete(null); pendingDeleteRef.current = null; }} />, document.body)}
       {confirmDeletePuesto && createPortal(<ModalConfirm zIndex={400} mensaje="¿Eliminar este puesto? Los voluntarios asignados quedarán sin puesto." onConfirm={() => { deletePuesto(confirmDeletePuesto); setConfirmDeletePuesto(null); }} onCancel={() => setConfirmDeletePuesto(null)} />, document.body)}
       {modalMensaje && <ModalMensaje config={config} onClose={() => setModalMensaje(false)} />}
-    </AppShell>
-  );
-}
-
-// ─── BUSCADOR SPOTLIGHT ───────────────────────────────────────────────────────
-function BuscadorSpotlight({ busqueda, setBusqueda, voluntarios, puestos, onAbrirFicha, onVerTodos, onFiltroPuesto }) {
-  const [abierto, setAbierto] = useState(false);
-  const inputRef = useRef(null);
-  const wrapRef  = useRef(null);
-
-  // Cerrar al click fuera
-  useEffect(() => {
-    const handler = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setAbierto(false); };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  // Atajos teclado: Escape cierra, "/" abre desde cualquier tab
-  useEffect(() => {
-    const handler = (e) => {
-      if (e.key === "Escape") { setAbierto(false); setBusqueda(""); inputRef.current?.blur(); }
-      if (e.key === "/" && document.activeElement?.tagName !== "INPUT" && document.activeElement?.tagName !== "TEXTAREA") {
-        e.preventDefault(); inputRef.current?.focus(); setAbierto(true);
-      }
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [setBusqueda]);
-
-  const q = busqueda.trim().toLowerCase();
-
-  const resultadosVols = useMemo(() => {
-    if (!q || q.length < 2) return [];
-    return voluntarios.filter(v => {
-      const nc  = ((v.nombre||"") + " " + (v.apellidos||"")).toLowerCase();
-      const an  = ((v.apellidos||"") + " " + (v.nombre||"")).toLowerCase();
-      const tel = (v.telefono||"").replace(/\s/g,"");
-      const em  = (v.email||"").toLowerCase();
-      const pn  = (puestos.find(p => p.id === v.puestoId)?.nombre || "").toLowerCase();
-      return nc.includes(q) || an.includes(q) || tel.includes(q.replace(/\s/g,"")) || em.includes(q) || pn.includes(q);
-    }).slice(0, 7);
-  }, [q, voluntarios, puestos]);
-
-  const resultadosPuestos = useMemo(() => {
-    if (!q || q.length < 2) return [];
-    return puestos.filter(p => (p.nombre||"").toLowerCase().includes(q) || (p.tipo||"").toLowerCase().includes(q)).slice(0, 3);
-  }, [q, puestos]);
-
-  const hayResultados = resultadosVols.length > 0 || resultadosPuestos.length > 0;
-  const mostrarDropdown = abierto && q.length >= 2;
-
-  const eColor = (e) => e==="confirmado"?"var(--green)":e==="cancelado"?"var(--red)":e==="ausente"?"var(--orange)":"var(--amber)";
-  const eBg    = (e) => e==="confirmado"?"var(--green-dim)":e==="cancelado"?"var(--red-dim)":e==="ausente"?"var(--orange-dim)":"var(--amber-dim)";
-
-  const seleccionar = (v) => { setAbierto(false); setBusqueda(""); onAbrirFicha(v); };
-  const verTodos    = ()  => { setAbierto(false); onVerTodos(); };
-
-  return (
-    <div ref={wrapRef} style={{ marginBottom:".6rem", position:"relative" }}>
-      <div style={{ display:"flex", gap:".5rem", alignItems:"center" }}>
-        <div style={{ position:"relative", flex:1, maxWidth:440 }}>
-          <span style={{ position:"absolute", left:".7rem", top:"50%", transform:"translateY(-50%)",
-            fontFamily:"var(--font-mono)", fontSize:"var(--fs-base)", pointerEvents:"none",
-            color: abierto && q ? "var(--cyan)" : "var(--text-dim)", transition:"color .15s" }}>🔍</span>
-          <input
-            ref={inputRef}
-            className="inp"
-            value={busqueda}
-            onFocus={() => setAbierto(true)}
-            onChange={e => { setBusqueda(e.target.value); setAbierto(true); }}
-            placeholder="Buscar voluntario por nombre, teléfono o puesto… ( / )"
-            style={{
-              paddingLeft:"2.2rem",
-              paddingRight: busqueda ? "1.8rem" : ".6rem",
-              fontSize:"var(--fs-base)",
-              borderColor:  mostrarDropdown ? "var(--cyan)"                 : undefined,
-              boxShadow:    mostrarDropdown ? "0 0 0 2px rgba(34,211,238,.08)" : undefined,
-              borderBottomLeftRadius:  mostrarDropdown ? 0 : undefined,
-              borderBottomRightRadius: mostrarDropdown ? 0 : undefined,
-            }}
-          />
-          {busqueda && (
-            <button onClick={() => { setBusqueda(""); setAbierto(false); inputRef.current?.focus(); }}
-              style={{ position:"absolute", right:".5rem", top:"50%", transform:"translateY(-50%)",
-                background:"none", border:"none", cursor:"pointer", color:"var(--text-muted)",
-                fontSize:"var(--fs-base)", padding:"0 .1rem", lineHeight:1 }}>✕</button>
-          )}
-        </div>
-      </div>
-
-      {mostrarDropdown && (
-        <div style={{
-          position:"absolute", top:"100%", left:0, maxWidth:440, right:0,
-          background:"var(--surface)", border:"1px solid var(--cyan)", borderTop:"none",
-          borderRadius:"0 0 var(--radius-sm) var(--radius-sm)",
-          boxShadow:"0 8px 32px rgba(0,0,0,.5)", zIndex:300, overflow:"hidden",
-        }}>
-          {!hayResultados ? (
-            <div style={{ padding:".75rem 1rem", fontFamily:"var(--font-mono)",
-              fontSize:"var(--fs-sm)", color:"var(--text-muted)", textAlign:"center" }}>
-              Sin resultados para "{q}"
-            </div>
-          ) : (
-            <>
-              {resultadosVols.length > 0 && (
-                <>
-                  <div style={{ padding:".28rem .75rem .18rem", fontFamily:"var(--font-mono)",
-                    fontSize:"var(--fs-xs)", color:"var(--text-dim)",
-                    textTransform:"uppercase", letterSpacing:".08em",
-                    borderBottom:"1px solid rgba(30,45,80,.5)" }}>👥 Voluntarios</div>
-                  {resultadosVols.map(v => {
-                    const puesto = puestos.find(p => p.id === v.puestoId);
-                    const ini = [(v.nombre||""),(v.apellidos||"")].join(" ").trim()
-                      .split(" ").map(n=>n[0]).slice(0,2).join("").toUpperCase() || "V";
-                    return (
-                      <div key={v.id} onClick={() => seleccionar(v)}
-                        style={{ display:"flex", alignItems:"center", gap:".6rem",
-                          padding:".42rem .75rem", cursor:"pointer", transition:"background .1s",
-                          borderBottom:"1px solid rgba(30,45,80,.25)" }}
-                        onMouseEnter={e=>e.currentTarget.style.background="var(--surface2)"}
-                        onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                        <div style={{ width:28, height:28, borderRadius:"50%", flexShrink:0,
-                          background:"var(--surface2)", border:"1px solid var(--border)",
-                          display:"flex", alignItems:"center", justifyContent:"center",
-                          fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                          fontWeight:700, color:"var(--cyan)" }}>{ini}</div>
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ display:"flex", alignItems:"center", gap:".35rem", flexWrap:"wrap" }}>
-                            <span style={{ fontWeight:600, fontSize:"var(--fs-base)", color:"var(--text)",
-                              whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
-                              {[v.nombre, v.apellidos].filter(Boolean).join(" ")}
-                            </span>
-                            <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                              padding:".04rem .28rem", borderRadius:3, flexShrink:0,
-                              background:eBg(v.estado), color:eColor(v.estado) }}>
-                              {v.estado||"pendiente"}
-                            </span>
-                            {v.coche && <span title="Tiene vehículo" style={{fontSize:"var(--fs-sm)"}}>🚗</span>}
-                          </div>
-                          <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                            color:"var(--text-muted)", marginTop:".04rem",
-                            whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
-                            {v.telefono && <span>{v.telefono}</span>}
-                            {puesto && <span style={{marginLeft:".4rem",color:"var(--text-dim)"}}>· 📍 {puesto.nombre}</span>}
-                            {!v.puestoId && <span style={{marginLeft:".4rem",color:"var(--amber)"}}>· Sin asignar</span>}
-                          </div>
-                        </div>
-                        <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                          color:"var(--text-dim)", flexShrink:0 }}>→</span>
-                      </div>
-                    );
-                  })}
-                </>
-              )}
-
-              {resultadosPuestos.length > 0 && (
-                <>
-                  <div style={{ padding:".28rem .75rem .18rem", fontFamily:"var(--font-mono)",
-                    fontSize:"var(--fs-xs)", color:"var(--text-dim)",
-                    textTransform:"uppercase", letterSpacing:".08em",
-                    borderTop: resultadosVols.length > 0 ? "1px solid rgba(30,45,80,.5)" : undefined,
-                    borderBottom:"1px solid rgba(30,45,80,.5)" }}>📍 Puestos</div>
-                  {resultadosPuestos.map(p => {
-                    const conf = voluntarios.filter(v => v.puestoId===p.id && v.estado==="confirmado").length;
-                    const pct  = p.necesarios > 0 ? Math.round(conf/p.necesarios*100) : 0;
-                    const col  = pct>=80?"var(--green)":pct>=50?"var(--amber)":"var(--red)";
-                    return (
-                      <div key={p.id}
-                        onClick={() => { setAbierto(false); setBusqueda(""); onFiltroPuesto(p.id); }}
-                        style={{ display:"flex", alignItems:"center", gap:".6rem",
-                          padding:".42rem .75rem", cursor:"pointer", transition:"background .1s",
-                          borderBottom:"1px solid rgba(30,45,80,.25)" }}
-                        onMouseEnter={e=>e.currentTarget.style.background="var(--surface2)"}
-                        onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                        <span style={{fontSize:"1rem",flexShrink:0}}>📍</span>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontWeight:600,fontSize:"var(--fs-base)",color:"var(--text)",
-                            whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.nombre}</div>
-                          <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginTop:".04rem"}}>
-                            <span style={{color:col}}>{conf}/{p.necesarios} conf.</span>
-                            {p.tipo && <span style={{marginLeft:".4rem",color:"var(--text-dim)"}}>· {p.tipo}</span>}
-                            {p.horaInicio && <span style={{marginLeft:".4rem",color:"var(--text-dim)"}}>· {p.horaInicio}{p.horaFin?`–${p.horaFin}`:""}</span>}
-                          </div>
-                        </div>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-dim)",flexShrink:0}}>ver lista →</span>
-                      </div>
-                    );
-                  })}
-                </>
-              )}
-
-              {resultadosVols.length > 0 && (
-                <div onClick={verTodos}
-                  style={{ padding:".42rem .75rem", cursor:"pointer",
-                    borderTop:"1px solid rgba(30,45,80,.5)",
-                    display:"flex", alignItems:"center", justifyContent:"center", gap:".4rem",
-                    fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                    color:"var(--cyan)", transition:"background .1s" }}
-                  onMouseEnter={e=>e.currentTarget.style.background="var(--cyan-dim)"}
-                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                  {resultadosVols.length >= 7
-                    ? `Ver todos los resultados en lista completa →`
-                    : `Ver ${resultadosVols.length} resultado${resultadosVols.length!==1?"s":""} en lista completa →`}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function AppShell({ children }) {
-  return (
-    <>
-      <style>{`
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-        :root {
-          --bg: var(--bg);
-          --surface: var(--bg);
-          --surface2: #151e35;
-          --surface3: #1a2540;
-          --border: #263754;
-          --border-light: #344d7a;
-          --text: #e8eef8;
-          --text-muted: #8a9dba;
-          --text-dim: #7080a0;
-          --cyan: #22d3ee;
-          --cyan-dim: rgba(34,211,238,0.1);
-          --violet: #a78bfa;
-          --violet-dim: rgba(167,139,250,0.1);
-          --green: #34d399;
-          --green-dim: rgba(52,211,153,0.1);
-          --amber: #fbbf24;
-          --amber-dim: rgba(251,191,36,0.1);
-          --red: #f87171;
-          --red-dim: rgba(248,113,113,0.1);
-          --orange: #fb923c;
-          --font-display: 'Syne', sans-serif;
-          --font-mono: 'DM Mono', 'Space Mono', monospace;
-          --radius: 12px;
-          --radius-sm: 8px;
-        }
-
-        body { background: var(--bg); color: var(--text); font-family: var(--font-display); min-height: 100vh;
-          background-image: radial-gradient(ellipse 80% 40% at 50% -5%, rgba(34,211,238,0.06) 0%, transparent 55%); }
-
-        /* LAYOUT */
-        .layout { display: flex; min-height: 100vh; }
-        @media (max-width: 900px) {
-          .layout { flex-direction: column; }
-          .sidebar { width: 100% !important; height: auto !important; position: relative !important; top: 0 !important; border-right: none !important; border-bottom: 1px solid var(--border); padding-bottom: 1rem !important; }
-          .sidebar-nav { display: flex !important; flex-direction: row !important; overflow-x: auto; padding: 0.5rem !important; gap: 0.5rem !important; }
-          .nav-item { flex-shrink: 0; width: auto !important; margin-bottom: 0 !important; }
-          .sidebar-logo, .sidebar-stats, .sidebar-actions { padding: 0.75rem !important; }
-          .sidebar-stats { display: flex; flex-direction: row !important; gap: 0.75rem; overflow-x: auto; }
-          .sidebar-stat { flex-shrink: 0; min-width: 100px; border-bottom: none !important; border-right: 1px solid rgba(30,45,80,0.4); padding-right: 0.75rem !important; }
-        }
-
-        /* SIDEBAR */
-        .sidebar { width: 210px; min-height: 100vh; height: 100vh; position: sticky; top: 0;
-          background: var(--surface); border-right: 1px solid var(--border);
-          display: flex; flex-direction: column; flex-shrink: 0; z-index: 10; }
-        .sidebar-logo { padding: 1.25rem 1rem 1rem; border-bottom: 1px solid var(--border); }
-        .logo-tag { font-family: var(--font-mono); font-size: 0.52rem; color: var(--cyan);
-          letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 0.3rem; opacity: 0.8; }
-        .logo-title { font-size: 1.25rem; font-weight: 800;
-          background: linear-gradient(135deg, #fff 0%, var(--cyan) 100%);
-          -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; line-height: 1; }
-        .logo-sub { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text-muted); margin-top: 0.25rem; }
-        .sidebar-nav { flex: 1; padding: 0.6rem 0.4rem; display: flex; flex-direction: column; gap: 0.12rem; overflow-y: auto; }
-        .nav-label { font-size: 0.52rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em;
-          color: var(--text-dim); padding: 0.5rem 0.6rem 0.25rem; font-family: var(--font-mono); }
-        .nav-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.65rem;
-          border-radius: var(--radius-sm); border: 1px solid transparent; cursor: pointer;
-          background: none; color: var(--text-muted); font-family: var(--font-display);
-          font-size: 0.76rem; font-weight: 600; text-align: left; width: 100%;
-          transition: all 0.15s; position: relative; overflow: hidden; }
-        .nav-item::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
-          border-radius: 0 2px 2px 0; background: transparent; transition: background 0.15s; }
-        .nav-item:hover { color: var(--text); background: var(--surface2); }
-        .nav-item.active { color: var(--text); background: var(--surface2); border-color: var(--border-light); }
-        .nav-item.active::before { background: var(--cyan); }
-        .nav-icon { font-size: 0.85rem; width: 18px; text-align: center; flex-shrink: 0; }
-        .nav-badge { margin-left: auto; font-size: 0.52rem; font-family: var(--font-mono);
-          padding: 0.1rem 0.3rem; border-radius: 3px; font-weight: 700; }
-        .nav-badge-cyan { background: var(--cyan-dim); color: var(--cyan); }
-        .sidebar-stats { display: flex; flex-direction: column; gap: 0.3rem; padding: 0 0.6rem 0.25rem; }
-        .sidebar-stat { display: flex; justify-content: space-between; align-items: center; padding: 0.3rem 0; border-bottom: 1px solid rgba(30,45,80,0.4); }
-        .sidebar-actions { padding: 0.75rem; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.4rem; }
-        .btn-link-registro { width: 100%; padding: 0.5rem; background: var(--violet-dim); color: var(--violet);
-          border: 1px solid rgba(167,139,250,0.25); border-radius: var(--radius-sm); font-family: var(--font-mono);
-          font-size: 0.65rem; font-weight: 700; cursor: pointer; transition: all 0.15s; text-align: center; }
-        .btn-link-registro:hover { background: rgba(167,139,250,0.18); transform: translateY(-1px); }
-        .btn-action { display: flex; align-items: center; justify-content: center; gap: 0.35rem;
-          font-family: var(--font-mono); font-size: 0.68rem; font-weight: 700; padding: 0.5rem;
-          border-radius: var(--radius-sm); border: none; cursor: pointer; transition: all 0.15s; width: 100%; }
-        .btn-save { background: var(--green-dim); color: var(--green); border: 1px solid rgba(52,211,153,0.25); }
-        .btn-save:hover { background: rgba(52,211,153,0.2); }
-        .btn-save.saved { background: rgba(52,211,153,0.2); }
-
-        /* MAIN */
-        .main { flex: 1; min-width: 0; padding: 1.5rem 1.25rem 4rem; overflow-x: hidden; }
-        .tab-content { animation: fadeUp 0.2s ease both; }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* PAGE HEADER */
-        .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
-        .page-title { font-size: 1.3rem; font-weight: 800; color: var(--text); }
-        .page-desc { font-family: var(--font-mono); font-size: 0.62rem; color: var(--text-muted); margin-top: 0.25rem; }
-
-        /* CARDS */
-        .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-          padding: 1.1rem; margin-bottom: 0.85rem; transition: border-color 0.2s; }
-        .card:hover { border-color: var(--border-light); }
-        .card-title { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em;
-          text-transform: uppercase; margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.4rem; color: var(--text-muted); }
-
-        /* KPI GRID */
-        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.65rem; margin-bottom: 1.1rem; }
-        .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-          padding: 0.9rem 1rem; position: relative; overflow: hidden; transition: all 0.2s; cursor: default; }
-        .kpi:hover { transform: translateY(-2px); border-color: var(--border-light); box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
-        .kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
-        .kpi.c-green::before { background: linear-gradient(90deg, var(--green), transparent); }
-        .kpi.c-amber::before { background: linear-gradient(90deg, var(--amber), transparent); }
-        .kpi.c-red::before { background: linear-gradient(90deg, var(--red), transparent); }
-        .kpi.c-cyan::before { background: linear-gradient(90deg, var(--cyan), transparent); }
-        .kpi.c-violet::before { background: linear-gradient(90deg, var(--violet), transparent); }
-        .kpi-label { font-size: 0.58rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.35rem; font-family: var(--font-mono); }
-        .kpi-value { font-size: 1.5rem; font-weight: 800; font-family: var(--font-mono); line-height: 1; }
-        .kpi.c-green .kpi-value { color: var(--green); }
-        .kpi.c-amber .kpi-value { color: var(--amber); }
-        .kpi.c-red .kpi-value { color: var(--red); }
-        .kpi.c-cyan .kpi-value { color: var(--cyan); }
-        .kpi.c-violet .kpi-value { color: var(--violet); }
-        .kpi-sub { font-size: 0.6rem; color: var(--text-muted); margin-top: 0.25rem; font-family: var(--font-mono); }
-
-        .tbl td { padding: 0.5rem 0.6rem; border-bottom: 1px solid rgba(30,45,80,0.35); vertical-align: middle; }
-        @media (max-width: 768px) {
-          .tbl thead { display: none; }
-          .tbl tr { display: block; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 0.75rem; padding: 0.75rem; }
-          .tbl td { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(30,45,80,0.2); padding: 0.4rem 0; width: 100%; text-align: right; }
-          .tbl td::before { content: attr(data-label); font-family: var(--font-mono); font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase; float: left; font-weight: 700; }
-          .tbl td:last-child { border-bottom: none; margin-top: 0.5rem; justify-content: flex-end; }
-        }
-        .tbl tr:last-child td { border-bottom: none; }
-        .tbl tr:hover td { background: rgba(34,211,238,0.02); }
-
-        /* INPUTS */
-        .inp { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm);
-          color: var(--text); font-family: var(--font-display); font-size: 0.78rem; padding: 0.4rem 0.6rem;
-          outline: none; transition: border-color 0.15s, box-shadow 0.15s; width: 100%; }
-        .inp:focus { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(34,211,238,0.08); }
-        .inp-sm { padding: 0.28rem 0.4rem; font-size: 0.72rem; }
-        .pub-input { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm);
-          color: var(--text); font-family: var(--font-display); font-size: 0.85rem; padding: 0.55rem 0.75rem;
-          outline: none; transition: border-color 0.15s, box-shadow 0.15s; width: 100%; }
-        .pub-input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(34,211,238,0.1); }
-
-        /* BTNS */
-        .btn { padding: 0.38rem 0.8rem; border: none; border-radius: var(--radius-sm);
-          font-family: var(--font-display); font-size: 0.72rem; font-weight: 700;
-          cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 0.3rem; }
-        .btn:hover { transform: translateY(-1px); }
-        .btn-cyan { background: var(--cyan-dim); color: var(--cyan); border: 1px solid rgba(34,211,238,0.25); }
-        .btn-cyan:hover { background: rgba(34,211,238,0.18); }
-        .btn-green { background: var(--green-dim); color: var(--green); border: 1px solid rgba(52,211,153,0.25); }
-        .btn-green:hover { background: rgba(52,211,153,0.18); }
-        .btn-red { background: var(--red-dim); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
-        .btn-amber { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(251,191,36,0.2); }
-        .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
-        .btn-ghost:hover { color: var(--text); border-color: var(--border-light); }
-
-        /* BADGES */
-        .badge { display: inline-block; padding: 0.12rem 0.4rem; border-radius: 4px;
-          font-size: 0.6rem; font-weight: 700; font-family: var(--font-mono); text-transform: uppercase; }
-        .badge-green { background: var(--green-dim); color: var(--green); }
-        .badge-amber { background: var(--amber-dim); color: var(--amber); }
-        .badge-red { background: var(--red-dim); color: var(--red); }
-        .badge-cyan { background: var(--cyan-dim); color: var(--cyan); }
-        .badge-violet { background: var(--violet-dim); color: var(--violet); }
-
-        /* PROGRESS */
-        .prog-bar { height: 5px; background: var(--surface3); border-radius: 3px; overflow: hidden; }
-        .prog-fill { height: 100%; border-radius: 3px; transition: width 0.5s cubic-bezier(0.4,0,0.2,1); }
-
-        /* CHECKBOX / TOGGLE */
-        .toggle-pill { width: 42px; height: 22px; border-radius: 11px; border: none; cursor: pointer;
-          position: relative; transition: background 0.2s; flex-shrink: 0; }
-        .toggle-pill-dot { position: absolute; top: 3px; width: 16px; height: 16px; border-radius: 50%;
-          background: #fff; transition: left 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
-
-        /* TALLAS GRID */
-        .tallas-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 0.5rem; }
-        .talla-cell { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm);
-          padding: 0.65rem 0.5rem; text-align: center; }
-
-        /* CHECKLIST */
-        .checklist-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.65rem 0.75rem;
-          border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface2);
-          margin-bottom: 0.4rem; transition: all 0.15s; }
-        .checklist-row.presente { border-color: rgba(52,211,153,0.3); background: rgba(52,211,153,0.05); }
-        .checklist-row.ausente { border-color: rgba(248,113,113,0.25); background: var(--red-dim); }
-
-        /* OVERFLOW */
-        .overflow-x { overflow-x: auto; }
-        .flex-between { display: flex; align-items: center; justify-content: space-between; }
-        .flex-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-        .mono { font-family: var(--font-mono); }
-        .text-muted { color: var(--text-muted); }
-        .text-xs { font-size: 0.62rem; }
-        .mb-1 { margin-bottom: 0.5rem; }
-        .mb-2 { margin-bottom: 1rem; }
-
-        /* SCROLLBAR */
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-track { background: var(--surface); }
-        ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
-        @media(max-width:900px){.layout{grid-template-columns:1fr;display:flex;flex-direction:column}.sidebar{border-right:none;border-bottom:1px solid rgba(30,45,80,.4);position:relative;height:auto;padding-bottom:.5rem}.sidebar-nav{display:flex;overflow-x:auto;padding-bottom:.5rem}.nav-item{flex-shrink:0}}
-      `}</style>
-      {children}
     </>
   );
 }
-
