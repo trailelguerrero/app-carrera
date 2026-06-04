@@ -9,6 +9,7 @@ import EmptyState from "@/components/EmptyState";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { useData } from "@/hooks/useData";
+import { useLastEvent } from "@/store/useAppStore";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { SK_PROY_TAREAS } from "@/constants/storageKeys";
 
@@ -51,6 +52,17 @@ function TabDash({ stats, tl, ck, setTab, config, patsConEspecie, material = [],
     return "3 meses antes";
   })();
   const [faseSeleccionada, setFaseSeleccionada] = useState(null); // null = Todas
+
+  // GAP-4: suscribirse al bus de eventos para refrescar el widget cuando CK cambia
+  // (desde otra pestaña o desde el propio TabCK) sin necesidad de navegar al tab.
+  const lastEvent = useLastEvent();
+  const [_ckVersion, setCkVersion] = useState(0);
+  useEffect(() => {
+    if (!lastEvent) return;
+    if (lastEvent.module === 'logistica' || lastEvent.module === 'proyecto') {
+      setCkVersion(v => v + 1); // fuerza re-render del widget porFase
+    }
+  }, [lastEvent]);
 
   // Filtrado del mini-checklist por fase seleccionada
   const porFaseFiltrado = useMemo(() => {

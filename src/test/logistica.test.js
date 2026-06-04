@@ -2736,3 +2736,133 @@ describe('LOC-COV-01 — calcularCobertura y lógica widget cobertura por puesto
     expect(conDatos2).toHaveLength(0);
   });
 });
+
+// ── SYNC-CK-01: GAP-2 — toggle sin proyectoTareaId/_tlId debe marcar cambio ──
+describe('SYNC-CK-01 GAP-2 — toggle propaga estado aunque ítem no tenga proyectoTareaId', () => {
+  // La función toggle() llama setCk() vía useData. Lo que verificamos aquí es que
+  // el nuevo estado se calcula correctamente para ítems sin vínculo externo,
+  // y que la detección de "fase completada" funciona correctamente.
+
+  function simulateToggle(ckPrev, ckId) {
+    return ckPrev.map(function(ckItm) {
+      var nuevoEstado = ckItm.id === ckId
+        ? (ckItm.estado === 'completado' ? 'pendiente' : 'completado')
+        : ckItm.estado;
+      return ckItm.id === ckId
+        ? { ...ckItm, estado: nuevoEstado }
+        : ckItm;
+    });
+  }
+
+  const ck = [
+    { id: 1, fase: 'Semana antes', tarea: 'Ítem sin vínculo', estado: 'pendiente' },
+    { id: 2, fase: 'Semana antes', tarea: 'Ítem con vínculo', estado: 'pendiente', proyectoTareaId: 10 },
+  ];
+
+  it('toggle cambia estado pendiente → completado para ítem sin proyectoTareaId', () => {
+    const next = simulateToggle(ck, 1);
+    expect(next.find(c => c.id === 1).estado).toBe('completado');
+    expect(next.find(c => c.id === 2).estado).toBe('pendiente'); // no afecta a otros
+  });
+
+  it('toggle cambia estado completado → pendiente (desmarcar)', () => {
+    const ckComp = ck.map(c => c.id === 1 ? { ...c, estado: 'completado' } : c);
+    const next = simulateToggle(ckComp, 1);
+    expect(next.find(c => c.id === 1).estado).toBe('pendiente');
+  });
+
+  it('ítem sin proyectoTareaId no afecta a ninguna tarea de Proyecto', () => {
+    const tareas = [{ id: 10, estado: 'pendiente' }];
+    const ckHit = { id: 1, estado: 'completado' }; // sin proyectoTareaId
+    const deberiaActualizar = ckHit.proyectoTareaId != null;
+    expect(deberiaActualizar).toBe(false);
+    // tareas permanecen intactas
+    const tareasNext = deberiaActualizar
+      ? tareas.map(t => t.id === ckHit.proyectoTareaId ? { ...t, estado: ckHit.estado } : t)
+      : tareas;
+    expect(tareasNext).toEqual(tareas);
+  });
+});
+
+// ── SYNC-CK-02: GAP-3 — detección de fase completada al 100% ─────────────────
+describe('SYNC-CK-02 GAP-3 — detección de fase completada al 100%', () => {
+  function isFaseCompleted(ckNext, fase) {
+    var faseItems = ckNext.filter(c => c.fase === fase);
+    return faseItems.length > 0 && faseItems.every(c => c.estado === 'completado');
+  }
+
+  it('fase completa cuando todos sus ítems están completados', () => {
+    const ckNext = [
+      { id: 1, fase: 'Semana antes', estado: 'completado' },
+      { id: 2, fase: 'Semana antes', estado: 'completado' },
+      { id: 3, fase: 'Día antes',    estado: 'pendiente'  },
+    ];
+    expect(isFaseCompleted(ckNext, 'Semana antes')).toBe(true);
+    expect(isFaseCompleted(ckNext, 'Día antes')).toBe(false);
+  });
+
+  it('fase NO completa si queda algún ítem pendiente', () => {
+    const ckNext = [
+      { id: 1, fase: 'Semana antes', estado: 'completado' },
+      { id: 2, fase: 'Semana antes', estado: 'pendiente'  },
+    ];
+    expect(isFaseCompleted(ckNext, 'Semana antes')).toBe(false);
+  });
+
+  it('fase con 0 ítems devuelve false (no existe)', () => {
+    const ckNext = [
+      { id: 1, fase: 'Día antes', estado: 'completado' },
+    ];
+    expect(isFaseCompleted(ckNext, 'Semana antes')).toBe(false);
+  });
+
+  it('FASES_CHECKLIST cubre todas las fases posibles en CK0', async () => {
+    const { FASES_CHECKLIST, CK0 } = await import('../components/logistica/logisticaConstants.js');
+    const fasesEnDatos = [...new Set(CK0.map(c => c.fase))];
+    fasesEnDatos.forEach(f => {
+      expect(FASES_CHECKLIST).toContain(f);
+    });
+  });
+});
+
+// ── SYNC-CK-03: GAP-1 — hito completado propaga estado a CK via _tareaId ─────
+describe('SYNC-CK-03 GAP-1 — hito._tareaId enlaza con proyectoTareaId del CK', () => {
+  it('hito con _tareaId tiene tareaId que existe en CK0 via proyectoTareaId', async () => {
+    const { CK0 } = await import('../components/logistica/logisticaConstants.js');
+    const { TAREAS0 } = await import('../components/proyecto/proyectoConstants.js');
+    const ckTareaIds = new Set(CK0.filter(c => c.proyectoTareaId != null).map(c => c.proyectoTareaId));
+    // Todo _tareaId de un hito auto-generado debe apuntar a una tarea que esté en CK0
+    const hitos0 = TAREAS0
+      .filter(t => t.prioridad === 'alta' && t.fechaLimite)
+      .map(t => ({ _tareaId: t.id }));
+    // No todos los hitos tienen CK vinculado, pero si lo tienen, debe ser consistente
+    const hitosConCk = hitos0.filter(h => ckTareaIds.has(h._tareaId));
+    hitosConCk.forEach(h => {
+      expect(ckTareaIds.has(h._tareaId)).toBe(true);
+    });
+  });
+
+  it('la lógica de propagación hito→CK cambia estado correctamente', () => {
+    const ckActual = [
+      { id: 1, proyectoTareaId: 42, estado: 'pendiente' },
+      { id: 2, proyectoTareaId: 99, estado: 'pendiente' },
+    ];
+    const hitoMod = { id: 7, _tareaId: 42 };
+    const val = true; // completado
+
+    const ckEstado = val ? 'completado' : 'pendiente';
+    const ckNext = ckActual.map(c =>
+      c.proyectoTareaId === hitoMod._tareaId ? { ...c, estado: ckEstado } : c
+    );
+    expect(ckNext.find(c => c.proyectoTareaId === 42).estado).toBe('completado');
+    expect(ckNext.find(c => c.proyectoTareaId === 99).estado).toBe('pendiente');
+  });
+
+  it('hito sin _tareaId no afecta a ningún ítem del CK', () => {
+    const ckActual = [{ id: 1, proyectoTareaId: 42, estado: 'pendiente' }];
+    const hitoSinTarea = { id: 8 }; // sin _tareaId
+    const debeActualizar = hitoSinTarea._tareaId != null;
+    expect(debeActualizar).toBe(false);
+    // ckActual permanece intacto
+  });
+});

@@ -403,6 +403,29 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
       if (ckHit?._tlId && onToggleSync) {
         onToggleSync(ckId, ckHit.estado, ckNow);
       }
+
+      // GAP-2: notificar siempre al bus — incluso ítems sin proyectoTareaId/_tlId.
+      // GAP-3: detectar fase completada al 100% y emitir acción FASE_COMPLETADA.
+      import('@/lib/dataService').then(function(m) {
+        var ds = m.default;
+        if (ckHit) {
+          var faseItems = ckNext.filter(function(c) { return c.fase === ckHit.fase; });
+          var faseDone  = faseItems.length > 0 && faseItems.every(function(c) { return c.estado === 'completado'; });
+          if (faseDone && ckHit.estado === 'completado') {
+            // GAP-3: última tarea de la fase — emitir evento específico FASE_COMPLETADA
+            import('@/store/useAppStore').then(function(store) {
+              store.useAppStore.getState().emitEvent(
+                'LOGISTICA_INCIDENCIA', 'logistica',
+                { accion: 'fase_completada', fase: ckHit.fase }
+              );
+            }).catch(function() { ds.notify('logistica'); });
+          } else {
+            // GAP-2: cambio simple — notificar para que Dashboard y multi-tab se actualicen
+            ds.notify('logistica');
+          }
+        }
+      }).catch(function() {});
+
       return ckNext;
     });
   }

@@ -312,6 +312,23 @@ export default function App() {
       toast.success(val ? "Hito completado ✓" : "Hito reabierto");
       // GAP-E: notificar bus para que Dashboard invalide KPIs de proyecto
       import("@/lib/dataService").then(m => { m.default.notify('proyecto'); }).catch(() => {});
+      // GAP-1: propagar cambio de hito al ítem CK vinculado (via _tareaId → proyectoTareaId)
+      const hitoMod = hitos.find(h => h.id === id);
+      if (hitoMod?._tareaId) {
+        import("@/lib/dataService").then(async m => {
+          const ckActual = await m.default.get(SK_LOG_CK, []);
+          if (!Array.isArray(ckActual)) return;
+          const ckEstado = val ? "completado" : "pendiente";
+          const ckNext = ckActual.map(c =>
+            c.proyectoTareaId === hitoMod._tareaId ? { ...c, estado: ckEstado } : c
+          );
+          const cambio = ckNext.some((c, i) => c.estado !== ckActual[i].estado);
+          if (cambio) {
+            await m.default.set(SK_LOG_CK, ckNext);
+            m.default.notify('logistica');
+          }
+        }).catch(() => {/* CK no disponible — ignorar */});
+      }
       // GAP-C: si el hito está vinculado a un pedido (_pedidoId), reflejar estado en LogisticaPedidos
       const hitoActual = hitos.find(h => h.id === id);
       if (hitoActual?._pedidoId) {
