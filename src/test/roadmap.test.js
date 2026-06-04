@@ -30,6 +30,33 @@ beforeAll(() => {
 const read = (rel) => readFileSync(path.resolve(process.cwd(), rel), 'utf-8');
 const exists = (rel) => existsSync(path.resolve(process.cwd(), rel));
 
+// Fase 2 refactor: VoluntarioPortal se dividió en src/pages/voluntario-portal/
+// readPortal() concatena todos los archivos del módulo para que los tests
+// que buscan strings sigan funcionando sin cambios.
+const readPortal = () => {
+  const base = 'src/pages/voluntario-portal';
+  const files = [
+    'index.jsx',
+    'lib/session.js',
+    'screens/LandingScreen.jsx',
+    'screens/RegistroScreen.jsx',
+    'screens/RegistroOkScreen.jsx',
+    'screens/LoginScreen.jsx',
+    'screens/StepperForm.jsx',
+    'screens/PortalMain.jsx',
+    'components/PinNumpad.jsx',
+    'components/FormField.jsx',
+    'components/PuestoDetalle.jsx',
+    'components/CronometroTurno.jsx',
+    'components/CambiarPin.jsx',
+    'components/CancelarAsistencia.jsx',
+  ];
+  return files.map(f => {
+    const p = path.resolve(process.cwd(), base, f);
+    return existsSync(p) ? readFileSync(p, 'utf-8') : '';
+  }).join('\n');
+};
+
 // ── T1.1 — SEC-04: api/voluntarios sin API key hardcodeada ─────────────────
 describe('T1.1 — SEC-04: API key hardcodeada eliminada', () => {
   const voluntariosApi = read('api/voluntarios/index.js');
@@ -64,7 +91,7 @@ describe('T1.2 — api/setup.js protegido con x-api-key', () => {
 
 // ── T1.3 — SESSION_TTL = 30 días ───────────────────────────────────────────
 describe('T1.3 — SESSION_TTL sincronizado con backend (30 días)', () => {
-  const portal = read('src/pages/VoluntarioPortal.jsx');
+  const portal = readPortal();
   it('SESSION_TTL es 30 días (no 7)', () => {
     expect(portal).not.toContain('SESSION_TTL = 7 *');
     expect(portal).toContain('30 * 24 * 60 * 60 * 1000');
@@ -142,7 +169,7 @@ describe('T2.1b — Imports desde camisetasConstants en ambos archivos', () => {
     expect(vols).not.toContain("const GUIA_TALLAS = [");
   });
   it('VoluntarioPortal.jsx importa desde camisetasConstants', () => {
-    const portal = read('src/pages/VoluntarioPortal.jsx');
+    const portal = readPortal();
     expect(portal).toContain('camisetasConstants');
     expect(portal).not.toContain("const TALLAS = [");
     expect(portal).not.toContain("const GUIA_TALLAS = [");
@@ -369,15 +396,15 @@ describe('T5.3 — mensajeOrganizador en ficha del voluntario', () => {
 // ── T5.4 — Recuperación de PIN en VoluntarioPortal ───────────────────────
 describe('T5.4 — Recuperación de PIN para voluntarios', () => {
   it('el portal tiene enlace Restablecer PIN', () => {
-    const portal = read('src/pages/VoluntarioPortal.jsx');
+    const portal = readPortal();
     expect(portal).toContain('Restablecer PIN');
   });
   it('el portal tiene estado showRecoverPin', () => {
-    const portal = read('src/pages/VoluntarioPortal.jsx');
+    const portal = readPortal();
     expect(portal).toContain('showRecoverPin');
   });
   it('el portal llama a action=recover-pin', () => {
-    const portal = read('src/pages/VoluntarioPortal.jsx');
+    const portal = readPortal();
     expect(portal).toContain('action=recover-pin');
   });
   it('el backend tiene endpoint recover-pin', () => {
@@ -1058,44 +1085,44 @@ describe('SP7-02 — SEC-06: Cambio de PIN forzado en primer login', () => {
   });
 
   it('VoluntarioPortal tiene estado mustChangePin', () => {
-    const portal = read('src/pages/VoluntarioPortal.jsx');
+    const portal = readPortal();
     expect(portal).toContain('mustChangePin');
     expect(portal).toContain('setMustChangePin');
   });
 
   it('VoluntarioPortal activa mustChangePin cuando pinPersonalizado === false', () => {
-    const portal = read('src/pages/VoluntarioPortal.jsx');
+    const portal = readPortal();
     expect(portal).toContain('pinPersonalizado === false');
     expect(portal).toContain('setMustChangePin(true)');
   });
 
   it('VoluntarioPortal muestra pantalla bloqueante cuando mustChangePin es true', () => {
-    const portal = read('src/pages/VoluntarioPortal.jsx');
+    const portal = readPortal();
     expect(portal).toContain('if (mustChangePin) return');
     // La pantalla debe contener un mensaje explicativo
     expect(portal).toContain('Personaliza tu PIN');
   });
 
   it('VoluntarioPortal usa CambiarPin con hideCancel=true en modo forzado', () => {
-    const portal = read('src/pages/VoluntarioPortal.jsx');
+    const portal = readPortal();
     expect(portal).toContain('hideCancel={true}');
   });
 
   it('CambiarPin acepta prop hideCancel y oculta el botón cancelar', () => {
-    const portal = read('src/pages/VoluntarioPortal.jsx');
+    const portal = readPortal();
     expect(portal).toContain('hideCancel = false');
     expect(portal).toContain('!hideCancel &&');
   });
 
   it('VoluntarioPortal llama fetchData tras cambio de PIN forzado', () => {
-    const portal = read('src/pages/VoluntarioPortal.jsx');
+    const portal = readPortal();
     // onDone del CambiarPin forzado debe desactivar mustChangePin y recargar datos
     expect(portal).toContain('setMustChangePin(false)');
     expect(portal).toContain('fetchData(true)');
   });
 
   it('Banner de PIN temporal sigue presente en la ficha normal', () => {
-    const portal = read('src/pages/VoluntarioPortal.jsx');
+    const portal = readPortal();
     expect(portal).toContain('PIN temporal activo');
     expect(portal).toContain('!v.pinPersonalizado');
   });

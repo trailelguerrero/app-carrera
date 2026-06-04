@@ -13,7 +13,7 @@
  * UX-10  Portal: focus-visible definido
  */
 import { describe, it, expect, vi, beforeAll } from 'vitest';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import path from 'path';
 
 beforeAll(() => {
@@ -31,9 +31,27 @@ const blockStyles = readFileSync(
 const indexJsx = readFileSync(
   path.resolve(process.cwd(), 'src/pages/Index.jsx'), 'utf-8'
 );
-const portalJsx = readFileSync(
-  path.resolve(process.cwd(), 'src/pages/VoluntarioPortal.jsx'), 'utf-8'
-);
+// Fase 2 refactor: VoluntarioPortal dividido en src/pages/voluntario-portal/
+const _portalFiles = [
+  'src/pages/voluntario-portal/index.jsx',
+  'src/pages/voluntario-portal/lib/session.js',
+  'src/pages/voluntario-portal/screens/LandingScreen.jsx',
+  'src/pages/voluntario-portal/screens/RegistroScreen.jsx',
+  'src/pages/voluntario-portal/screens/RegistroOkScreen.jsx',
+  'src/pages/voluntario-portal/screens/LoginScreen.jsx',
+  'src/pages/voluntario-portal/screens/StepperForm.jsx',
+  'src/pages/voluntario-portal/screens/PortalMain.jsx',
+  'src/pages/voluntario-portal/components/PinNumpad.jsx',
+  'src/pages/voluntario-portal/components/FormField.jsx',
+  'src/pages/voluntario-portal/components/PuestoDetalle.jsx',
+  'src/pages/voluntario-portal/components/CronometroTurno.jsx',
+  'src/pages/voluntario-portal/components/CambiarPin.jsx',
+  'src/pages/voluntario-portal/components/CancelarAsistencia.jsx',
+];
+const portalJsx = _portalFiles.map(f => {
+  const p = path.resolve(process.cwd(), f);
+  return existsSync(p) ? readFileSync(p, 'utf-8') : '';
+}).join('\n');
 
 // ── UX-01: --fs-xs >= 0.75rem ─────────────────────────────────────────────
 describe('UX-01 — --fs-xs panel >= 0.75rem (legibilidad mínima en campo)', () => {
