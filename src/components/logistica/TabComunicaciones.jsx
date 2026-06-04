@@ -376,7 +376,7 @@ function TabCK({ck,setCk,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrir
   const [fase,setFase]=useState(faseActiva);
   const [vistaKanban,setVistaKanban]=useState(false);
   // GAP-A: auto-cambiar a la fase que contiene el ítem vinculado a filtroTareaId
-  React.useEffect(() => {
+  useEffect(() => {
     if (filtroTareaId == null) return;
     const item = ck.find(c => c.proyectoTareaId === filtroTareaId);
     if (item?.fase) setFase(item.fase);

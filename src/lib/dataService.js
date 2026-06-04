@@ -456,7 +456,7 @@ if (typeof window !== 'undefined' && ADAPTER === 'api') {
           return false;
         }
         const delay = baseDelayMs * Math.pow(2, attempt - 1); // 1s, 2s, 4s, 8s, 16s
-        console.log(`[dataService] Reintento ${attempt}/${maxAttempts} en ${delay}ms…`);
+        console.debug(`[dataService] Reintento ${attempt}/${maxAttempts} en ${delay}ms…`);
         await new Promise(r => setTimeout(r, delay));
       }
     }
@@ -468,7 +468,7 @@ if (typeof window !== 'undefined' && ADAPTER === 'api') {
       .filter(k => k.startsWith('__pending_sync_'));
     if (pendingKeys.length === 0) return;
 
-    console.log(`[dataService] Conexión recuperada — ${pendingKeys.length} colección(es) pendiente(s)`);
+    console.debug(`[dataService] Conexión recuperada — ${pendingKeys.length} colección(es) pendiente(s)`);
 
     // Emitir estado con conteo para usePendingSync
     window.dispatchEvent(new CustomEvent('teg-save-status', {
@@ -527,7 +527,7 @@ if (typeof window !== 'undefined' && ADAPTER === 'api') {
     }));
 
     if (synced > 0) {
-      console.log(`[dataService] Sincronizadas ${synced} colección(es). Pendientes restantes: ${remaining}`);
+      console.debug(`[dataService] Sincronizadas ${synced} colección(es). Pendientes restantes: ${remaining}`);
       // dataService.notify() → emite teg-sync para que los módulos recarguen sus datos
       dataService.notify();
     }

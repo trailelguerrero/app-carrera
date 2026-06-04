@@ -45,6 +45,9 @@ export default function Documentos() {
   const [busqGlobal, setBusqGlobal]   = useState(false);
   const [uploadOpen, setUploadOpen]   = useState(false); // colapsado por defecto (mandato UX)
   const [editId,  setEditId]          = useState(null);
+  const [gEditId, setGEditId]         = useState(null); // id de gestión en edición inline
+  const [svEditId, setSvEditId]       = useState(null); // id de subvención en edición inline
+  const [nuevoLog, setNuevoLog]       = useState("");   // texto del nuevo log de gestión
   const [delConfirm, setDelConfirm]   = useState(null); // {id, nombre, esGestion}
   const [uploadError, setUploadError] = useState(null); // mensaje de error de subida
   const [editForm, setEditForm]       = useState({});

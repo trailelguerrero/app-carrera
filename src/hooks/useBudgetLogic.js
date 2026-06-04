@@ -343,7 +343,7 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
         maximos: currentMaximos,
       };
       await dataService.set(backupKey, backup);
-      console.log('[useBudgetLogic] Backup pre-reset guardado en Neon ✓', backup.timestamp);
+      console.debug('[useBudgetLogic] Backup pre-reset guardado en Neon ✓', backup.timestamp);
       return true;
     } catch (e) {
       console.error('[useBudgetLogic] Error guardando backup pre-reset:', e);
