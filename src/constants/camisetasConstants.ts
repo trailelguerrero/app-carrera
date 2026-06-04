@@ -1,5 +1,5 @@
 /**
- * camisetasConstants.js — re-export de compatibilidad
+ * camisetasConstants.ts — re-export de compatibilidad
  *
  * La fuente única de verdad vive en:
  *   src/components/camisetas/camisetasConstants.js
@@ -7,7 +7,6 @@
  * Este módulo existe para mantener compatibilidad con los imports
  * existentes de @/constants/camisetasConstants.
  *
- * Tipos disponibles en camisetasConstants.ts (mismo directorio).
  * No añadir nuevas constantes aquí. Editar siempre en el canónico.
  */
 export {
@@ -15,4 +14,4 @@ export {
   SHIRT_PLACEHOLDER_FRONT,
   SHIRT_PLACEHOLDER_BACK,
   GUIA_TALLAS,
-} from "@/components/camisetas/camisetasConstants";
+} from '@/components/camisetas/camisetasConstants';
