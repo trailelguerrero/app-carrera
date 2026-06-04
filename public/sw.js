@@ -47,16 +47,45 @@ const CACHE_VERSION = Array.isArray(WB_MANIFEST) && WB_MANIFEST.length > 0
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 const CACHE_DATA    = `${CACHE_VERSION}-data`;
 
-// ── Patrones de caché importados desde módulo compartido ──────────────────
-// TEST-01: src/constants/swPatterns.js es la fuente única de verdad.
-// Cualquier cambio en storageKeys.js que desincronice los patrones
-// fallará automáticamente en src/test/sw-patterns.test.js
-import {
-  STALE_WHILE_REVALIDATE_PATTERNS,
-  NETWORK_ONLY_PATTERNS,
-  NETWORK_FIRST_PATTERNS,
-  PRECACHE_URLS,    // PWA-11: fuente única — sw.js ya no define su propio array
-} from '../src/constants/swPatterns.js';
+// ── Patrones de caché (inlineados) ─────────────────────────────────────────
+// IMPORTANTE: mantener sincronizados con src/constants/swPatterns.ts,
+// que es la fuente de verdad para los tests de Vitest.
+// Rollup/Workbox procesa public/sw.js en un contexto aislado y NO puede
+// resolver imports que crucen de public/ hacia src/ — ni .js ni .ts.
+// TEST-01: src/test/sw-patterns.test.js sigue importando swPatterns.ts directamente.
+
+/** PWA-11: URLs precacheadas durante el install del SW (app shell crítico). */
+const PRECACHE_URLS = [
+  '/',
+  '/voluntarios/mi-ficha',
+  '/manifest.json',
+  '/icon-192.webp',
+  '/icon-512.webp',
+  '/logo.webp',
+  '/offline.html',
+];
+
+/** Network First — intenta red primero, fallback a caché. */
+const NETWORK_FIRST_PATTERNS = [
+  /\/api\/proxy\/data\/teg_voluntarios_/,
+  /\/api\/proxy\/data\/teg_logistica_/,
+  /\/api\/proxy\/data\/teg_dia_/,
+];
+
+/** @deprecated Alias de NETWORK_FIRST_PATTERNS (Mejora 10). */
+const STALE_WHILE_REVALIDATE_PATTERNS = NETWORK_FIRST_PATTERNS;
+
+/** Network Only — datos sensibles que NUNCA se sirven desde caché. */
+const NETWORK_ONLY_PATTERNS = [
+  /\/api\/voluntarios/,
+  /\/api\/proxy\/data\/teg_presupuesto/,
+  /\/api\/proxy\/data\/teg_pat_/,
+  /\/api\/proxy\/budget/,
+  /\/api\/panel\/auth/,
+  /\/api\/proxy\/documents/,
+  /\/api\/proxy\/docs/,
+  /\/api\/setup/,
+];
 
 // ── INSTALL — precargar assets críticos ────────────────────────────────────
 self.addEventListener("install", (event) => {
