@@ -1,152 +1,45 @@
-import React, { useState, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
+import React, { useState, useRef } from "react";
 import { useData } from "@/hooks/useData";
-import { Tooltip, TooltipIcon } from "../common/Tooltip";
-import { DISTANCIAS, DISTANCIA_COLORS, DISTANCIA_LABELS } from "../../constants/budgetConstants";
-import { NumInput } from "./common/NumInput";
-import { cls } from "../../lib/budgetUtils";
-import { SK_UI_CODIGOS_PROMO, SK_UI_CODIGOS_INIT } from "@/constants/storageKeys";
-import dataService from "@/lib/dataService";
+import { SK_UI_CODIGOS_PROMO } from "@/constants/storageKeys";
+import { PanelPlazas }       from "./PanelPlazas";
+import { TimelineTramos }    from "./TimelineTramos";
+import { TablaTramos }       from "./TablaTramos";
+import { CodigosPromo }      from "./CodigosPromo";
+import { ModalConfirmDelete } from "./ModalConfirmDelete";
+import { ModalCsvImport }    from "./ModalCsvImport";
 
-// MEJ-01: getTramoStatus ahora acepta fechaInicio (opcional) para distinguir
-// "Próximo" (no abierto aún) de "Abierto" (plazo largo pero ya activo).
-// Retrocompatibilidad: si fechaInicio está ausente se omite la comprobación
-// y el tramo se considera siempre abierto mientras fechaFin sea futura.
-//
-// Estados:
-//   fechaInicio > hoy                → "Próximo"      ⏳ (aún no ha comenzado)
-//   fechaFin pasada                  → "Cerrado"      🔒
-//   diffDías ≤ 7                     → "Último plazo" ⚡
-//   diffDías ≤ 30                    → "Activo"       🟢
-//   diffDías > 30                    → "Abierto"      📅
-const getTramoStatus = (fechaFin, fechaInicio) => {
-  const now   = new Date(); now.setHours(0,0,0,0);
-  // Comprobar si el tramo aún no ha comenzado (MEJ-01)
-  if (fechaInicio) {
-    const start = new Date(fechaInicio);
-    if (start > now) return { label: "Próximo", color: "#a78bfa", bg: "rgba(167,139,250,0.12)", glyph: "⏳" };
-  }
-  const end      = new Date(fechaFin);
-  const diffDays = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
-  if (diffDays < 0)   return { label: "Cerrado",       color: "#f87171", bg: "rgba(248,113,113,0.12)", glyph: "🔒" };
-  if (diffDays <= 7)  return { label: "Último plazo",  color: "#fbbf24", bg: "rgba(251,191,36,0.12)",  glyph: "⚡" };
-  if (diffDays <= 30) return { label: "Activo",        color: "#34d399", bg: "rgba(52,211,153,0.12)",  glyph: "🟢" };
-  return               { label: "Abierto",             color: "#60a5fa", bg: "rgba(96,165,250,0.12)",  glyph: "📅" };
-};
-
-const fmt = (n) => n.toLocaleString("es-ES", { maximumFractionDigits: 0 }) + " €";
-
-const formatDate = (iso) => {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
-};
-
-// Calcular inscritos e ingresos de un tramo
+// MEJ-01: getTramoStatus — ver TimelineTramos.jsx para implementación completa
+const DISTANCIAS = ["TG7", "TG13", "TG25"];
 const tramoStats = (t, inscritos) => {
-  const total = DISTANCIAS.reduce((s, d) => s + (inscritos?.tramos?.[t.id]?.[d] || 0), 0);
+  const total    = DISTANCIAS.reduce((s, d) => s + (inscritos?.tramos?.[t.id]?.[d] || 0), 0);
   const ingresos = DISTANCIAS.reduce((s, d) => s + (inscritos?.tramos?.[t.id]?.[d] || 0) * (t.precios[d] || 0), 0);
   return { total, ingresos };
 };
 
-// ─── Modal confirmación de eliminación ───────────────────────────────────────
-const ModalConfirmDelete = ({ tramo, stats, onConfirm, onCancel }) => (
-  <div
-    onClick={e => e.target === e.currentTarget && onCancel()}
-    style={{
-      position: "fixed", inset: 0, zIndex: 9999,
-      background: "rgba(0,0,0,0.85)", backdropFilter: "blur(6px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem",
-    }}
-  >
-    <div style={{
-      background: "var(--surface)", border: "1px solid rgba(248,113,113,0.3)",
-      borderRadius: 16, padding: "2rem 1.75rem", maxWidth: 380, width: "100%",
-      textAlign: "center", boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
-      animation: "slideUp 0.2s ease",
-    }}>
-      <style>{`@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}`}</style>
-      <div style={{ fontSize: "var(--fs-xl)", marginBottom: "0.75rem" }}>🗑️</div>
-      <div style={{ fontWeight: 800, fontSize: "var(--fs-md)", marginBottom: "0.5rem" }}>
-        ¿Eliminar «{tramo.nombre}»?
-      </div>
-
-      {stats.total > 0 ? (
-        <div style={{
-          background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.25)",
-          borderRadius: 10, padding: "0.75rem 1rem", marginBottom: "1.25rem",
-        }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--red)", fontWeight: 700, marginBottom: "0.3rem" }}>
-            ⚠️ Este tramo tiene datos de inscritos
-          </div>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)", lineHeight: 1.6 }}>
-            {stats.total} corredor{stats.total !== 1 ? "es" : ""} · {fmt(stats.ingresos)} en ingresos
-          </div>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)", marginTop: "0.3rem" }}>
-            Al eliminar el tramo se perderán estos datos del presupuesto.
-          </div>
-        </div>
-      ) : (
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)", marginBottom: "1.25rem", lineHeight: 1.6 }}>
-          El tramo no tiene inscritos asignados.<br />Esta acción no se puede deshacer.
-        </div>
-      )}
-
-      <div style={{ display: "flex", gap: "0.6rem", justifyContent: "center" }}>
-        <button
-          onClick={onCancel}
-          style={{
-            background: "var(--surface2)", color: "var(--text-muted)",
-            border: "1px solid var(--border)", borderRadius: 8,
-            padding: "0.5rem 1.2rem", fontFamily: "var(--font-display)",
-            fontWeight: 700, fontSize: "var(--fs-base)", cursor: "pointer",
-          }}
-        >Cancelar</button>
-        <button
-          onClick={onConfirm}
-          style={{
-            background: "rgba(248,113,113,0.15)", color: "var(--red)",
-            border: "1px solid rgba(248,113,113,0.35)", borderRadius: 8,
-            padding: "0.5rem 1.2rem", fontFamily: "var(--font-display)",
-            fontWeight: 700, fontSize: "var(--fs-base)", cursor: "pointer",
-          }}
-        >Sí, eliminar</button>
-      </div>
-    </div>
-  </div>
-);
-
-// ─── Main component ──────────────────────────────────────────────────────────
-export const TabInscripciones = ({ 
-  tramos, 
-  setTramos, 
-  updateTramoPrecio, 
-  addTramo, 
-  inscritos, 
-  setInscritos,
-  updateInscritos, 
-  totalInscritos, 
-  ingresosPorDistancia, 
-  maximos, 
-  setMaximos 
+export const TabInscripciones = ({
+  tramos, setTramos, updateTramoPrecio, addTramo,
+  inscritos, setInscritos, updateInscritos,
+  totalInscritos, ingresosPorDistancia,
+  maximos, setMaximos,
 }) => {
+  const [rawCodigos] = useData(SK_UI_CODIGOS_PROMO, []);
+  const codigos = Array.isArray(rawCodigos) ? rawCodigos : [];
+
   const [pendingDelete, setPendingDelete] = useState(null);
 
-  // ── Importación CSV ────────────────────────────────────────────────────────
-  const [csvModalOpen,  setCsvModalOpen]  = useState(false);
-  const [csvPreview,    setCsvPreview]    = useState(null);  // { rows, errors, parsed }
-  const [csvMergeMode,  setCsvMergeMode]  = useState("reemplazar"); // "reemplazar" | "sumar"
-  const [csvMsg,        setCsvMsg]        = useState(null);
-  const csvInputRef = useRef(null);
+  // CSV import state
+  const [csvModalOpen, setCsvModalOpen] = useState(false);
+  const [csvPreview,   setCsvPreview]   = useState(null);
+  const [csvMergeMode, setCsvMergeMode] = useState("reemplazar");
+  const [csvMsg,       setCsvMsg]       = useState(null);
 
   const parseCsv = (text) => {
-    // Detectar separador: si hay más ";" que "," en la primera línea, usar ";"
     const firstLine = text.split(/\r?\n/)[0] || "";
     const sep = (firstLine.split(";").length - 1) > (firstLine.split(",").length - 1) ? ";" : ",";
     const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
     if (lines.length < 2) return { rows: [], errors: ["El archivo no tiene datos o solo tiene cabecera."] };
 
-    // Normalizar cabeceras: minúsculas, sin espacios extra
-    const rawHeaders = lines[0].split(sep).map(h => h.trim().toLowerCase().replace(/\s+/g,""));
+    const rawHeaders = lines[0].split(sep).map(h => h.trim().toLowerCase().replace(/\s+/g, ""));
     const idxDistancia = rawHeaders.findIndex(h => h === "distancia");
     const idxTramo     = rawHeaders.findIndex(h => h === "tramo");
     const idxNumero    = rawHeaders.findIndex(h => h === "numero" || h === "número");
@@ -157,1160 +50,121 @@ export const TabInscripciones = ({
     if (idxNumero    < 0) missing.push("numero");
     if (missing.length > 0) return { rows: [], errors: [`Columnas no encontradas: ${missing.join(", ")}. Cabeceras detectadas: ${rawHeaders.join(", ")}`] };
 
-    const DIST_VALID = ["TG7","TG13","TG25"];
-    const rows = [];
-    const errors = [];
-
+    const DIST_VALID = ["TG7", "TG13", "TG25"];
+    const rows = []; const errors = [];
     lines.slice(1).forEach((line, i) => {
       if (!line) return;
-      const cells = line.split(sep).map(c => c.trim().replace(/^["']|["']$/g,""));
+      const cells     = line.split(sep).map(c => c.trim().replace(/^["']|["']$/g, ""));
       const distancia = (cells[idxDistancia] || "").toUpperCase();
-      const tramo     = cells[idxTramo]     || "";
+      const tramo     = cells[idxTramo] || "";
       const numero    = parseInt(cells[idxNumero] || "", 10);
-
-      if (!DIST_VALID.includes(distancia)) {
-        errors.push(`Fila ${i+2}: distancia inválida "${cells[idxDistancia]}"`);
-        return;
-      }
-      if (!tramo) {
-        errors.push(`Fila ${i+2}: tramo vacío`);
-        return;
-      }
-      if (isNaN(numero) || numero < 0) {
-        errors.push(`Fila ${i+2}: número inválido "${cells[idxNumero]}"`);
-        return;
-      }
+      if (!DIST_VALID.includes(distancia)) { errors.push(`Fila ${i + 2}: distancia inválida "${cells[idxDistancia]}"`); return; }
+      if (!tramo) { errors.push(`Fila ${i + 2}: tramo vacío`); return; }
+      if (isNaN(numero) || numero < 0) { errors.push(`Fila ${i + 2}: número inválido "${cells[idxNumero]}"`); return; }
       rows.push({ distancia, tramo, numero });
     });
-
     return { rows, errors };
   };
 
   const handleCsvFile = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      setCsvMsg({ type: "error", text: "El archivo supera el límite de 2 MB." });
-      return;
-    }
+    if (file.size > 2 * 1024 * 1024) { setCsvMsg({ type: "error", text: "El archivo supera el límite de 2 MB." }); return; }
     setCsvMsg(null);
     const reader = new FileReader();
     reader.onload = (ev) => {
-      const text = ev.target.result;
-      const { rows, errors } = parseCsv(text);
+      const { rows, errors } = parseCsv(ev.target.result);
       setCsvPreview({ rows, errors });
     };
-    // Intentar UTF-8 primero; si hay caracteres raros, Latin-1 también funciona con readAsText
     reader.readAsText(file, "UTF-8");
-    // Reset input para poder cargar el mismo archivo dos veces
     e.target.value = "";
   };
 
   const handleCsvConfirm = () => {
     if (!csvPreview?.rows?.length) return;
     const { rows } = csvPreview;
-
-    // Agrupar: { [tramoNombre]: { [distancia]: numero } }
     const grouped = {};
     rows.forEach(({ distancia, tramo, numero }) => {
       if (!grouped[tramo]) grouped[tramo] = {};
       grouped[tramo][distancia] = (grouped[tramo][distancia] || 0) + numero;
     });
-
     setInscritos(prev => {
       const prevTramos = prev.tramos || {};
-      const newTramos = { ...prevTramos };
-
-      // Para cada tramo del CSV buscamos el tramo existente por nombre
+      const newTramos  = { ...prevTramos };
       Object.entries(grouped).forEach(([nombreTramo, distMap]) => {
         const tramoMatch = tramos.find(t => t.nombre.trim().toLowerCase() === nombreTramo.trim().toLowerCase());
-        if (!tramoMatch) return; // tramo no existe en la app → ignorar
-        const tid = tramoMatch.id;
+        if (!tramoMatch) return;
+        const tid      = tramoMatch.id;
         const prevDists = newTramos[tid] || {};
-        const merged = { ...prevDists };
+        const merged   = { ...prevDists };
         Object.entries(distMap).forEach(([dist, n]) => {
           merged[dist] = csvMergeMode === "sumar" ? (prevDists[dist] || 0) + n : n;
         });
         newTramos[tid] = merged;
       });
-
       return { ...prev, tramos: newTramos };
     });
-
-    const ignored = csvPreview.rows.filter(r =>
-      !tramos.find(t => t.nombre.trim().toLowerCase() === r.tramo.trim().toLowerCase())
-    ).length;
-
-    setCsvMsg({
-      type: "success",
-      text: `✅ ${rows.length - ignored} inscritos importados (modo: ${csvMergeMode}). ${ignored > 0 ? `${ignored} filas ignoradas por tramo no encontrado.` : ""} ${csvPreview.errors.length > 0 ? `${csvPreview.errors.length} filas con error de formato.` : ""}`
-    });
+    const ignored = csvPreview.rows.filter(r => !tramos.find(t => t.nombre.trim().toLowerCase() === r.tramo.trim().toLowerCase())).length;
+    setCsvMsg({ type: "success", text: `✅ ${rows.length - ignored} inscritos importados (modo: ${csvMergeMode}). ${ignored > 0 ? `${ignored} filas ignoradas por tramo no encontrado.` : ""} ${csvPreview.errors.length > 0 ? `${csvPreview.errors.length} filas con error de formato.` : ""}` });
     setCsvPreview(null);
     setCsvModalOpen(false);
-  };
-
-  // ── Códigos promocionales ──────────────────────────────────────────────────
-  const LS_CODIGOS = SK_UI_CODIGOS_PROMO;
-  const [rawCodigos, setCodigos, codigosLoading] = useData(LS_CODIGOS, []);
-  const [rawCodigosInit, setCodigosInit] = useData(SK_UI_CODIGOS_INIT, null);
-  const codigos = Array.isArray(rawCodigos) ? rawCodigos : [];
-  const [codigosTab, setCodigosTab]   = useState("todos");
-  const [busquedaCod, setBusquedaCod] = useState("");
-  const [importText, setImportText]   = useState("");
-  const [importDist, setImportDist]   = useState("TG7");
-  const [importMsg,  setImportMsg]    = useState(null);
-  const [editCodigo, setEditCodigo]   = useState(null);
-  const [delCodigo,  setDelCodigo]    = useState(null);
-  const [importOpen, setImportOpen]   = useState(false);
-  // Secciones por distancia colapsadas
-  const [colapsadas, setColapsadas]   = useState({ TG7: true, TG13: true, TG25: true }); // todas colapsadas por defecto
-  const toggleDistancia = (d) => setColapsadas(p => ({...p, [d]: !p[d]}));
-
-  // Cargar códigos iniciales solo la primera vez (cuando Neon tampoco tiene datos).
-  // FIX BUG-PROMO-02: esperar a que codigosLoading sea false (Neon ya respondió)
-  // antes de decidir si inicializar. Así evitamos recrear códigos borrados en
-  // otro dispositivo donde localStorage estaba vacío pero Neon ya tenía el array.
-  // La guarda SK_UI_CODIGOS_INIT se persiste en Neon para que sea multi-dispositivo.
-  const codigosRef = useRef(codigos);
-  useEffect(() => {
-    codigosRef.current = codigos;
-  });
-  useEffect(() => {
-    if (codigosLoading) return; // esperar respuesta de Neon antes de evaluar
-    // rawCodigosInit es null solo si Neon (y localStorage) no tienen la clave
-    const yaInicializado = rawCodigosInit !== null && rawCodigosInit !== undefined;
-    if (codigosRef.current.length === 0 && !yaInicializado) {
-      setCodigos([
-        {id:"7G7-1",     codigo:"7G7",      distancia:"TG7",  estado:"disponible",usadoPor:null,fechaUso:null},
-        {id:"KDZ145OX",  codigo:"KDZ145OX", distancia:"TG7",  estado:"disponible",usadoPor:null,fechaUso:null},
-        {id:"LHNHNP8O",  codigo:"LHNHNP8O", distancia:"TG7",  estado:"disponible",usadoPor:null,fechaUso:null},
-        {id:"Y24SA1TO",  codigo:"Y24SA1TO", distancia:"TG7",  estado:"disponible",usadoPor:null,fechaUso:null},
-        {id:"H4D95XXK",  codigo:"H4D95XXK", distancia:"TG7",  estado:"disponible",usadoPor:null,fechaUso:null},
-        {id:"INWPP2FZ",  codigo:"INWPP2FZ", distancia:"TG7",  estado:"disponible",usadoPor:null,fechaUso:null},
-        {id:"UBUQ4P9H",  codigo:"UBUQ4P9H", distancia:"TG13", estado:"disponible",usadoPor:null,fechaUso:null},
-        {id:"E4AXY9BB",  codigo:"E4AXY9BB", distancia:"TG13", estado:"disponible",usadoPor:null,fechaUso:null},
-        {id:"CFW8V4YX",  codigo:"CFW8V4YX", distancia:"TG13", estado:"disponible",usadoPor:null,fechaUso:null},
-        {id:"OSEQZJW8",  codigo:"OSEQZJW8", distancia:"TG13", estado:"disponible",usadoPor:null,fechaUso:null},
-        {id:"AAWKNOY8",  codigo:"AAWKNOY8", distancia:"TG13", estado:"disponible",usadoPor:null,fechaUso:null},
-        {id:"L3BBI448",  codigo:"L3BBI448", distancia:"TG25", estado:"disponible",usadoPor:null,fechaUso:null},
-        {id:"E3Z05H0D",  codigo:"E3Z05H0D", distancia:"TG25", estado:"disponible",usadoPor:null,fechaUso:null},
-        {id:"40ACCVZF",  codigo:"40ACCVZF", distancia:"TG25", estado:"disponible",usadoPor:null,fechaUso:null},
-        {id:"K5RBRVHK",  codigo:"K5RBRVHK", distancia:"TG25", estado:"disponible",usadoPor:null,fechaUso:null},
-        {id:"UUCTJWSV",  codigo:"UUCTJWSV", distancia:"TG25", estado:"disponible",usadoPor:null,fechaUso:null},
-      ]);
-      // Persistir la guarda en Neon (no solo localStorage) para que sea multi-dispositivo
-      setCodigosInit("1");
-    }
-  }, [codigosLoading, rawCodigosInit, setCodigos, setCodigosInit]);
-
-  const fmtDate = (iso) => iso ? iso.split("T")[0] : "—";
-
-  const handleRequestDelete = (t) => {
-    const stats = tramoStats(t, inscritos);
-    setPendingDelete({ tramo: t, stats });
-  };
-
-  const handleConfirmDelete = () => {
-    const id = pendingDelete.tramo.id;
-    setTramos(prev => prev.filter(x => x.id !== id));
-    // Limpiar los inscritos del tramo eliminado para no contaminar totales
-    setInscritos(prev => {
-      const { [id]: _dropped, ...restTramos } = prev.tramos || {};
-      return { ...prev, tramos: restTramos };
-    });
-    setPendingDelete(null);
   };
 
   return (
     <>
       <style>{`
-        .input-inline {
-          background: transparent; border: 1px solid transparent; color: var(--text);
-          padding: 0.15rem 0.3rem; border-radius: 4px; font-family: var(--font-display);
-          font-weight: 700; width: 100%; min-width: 90px;
-          outline: none; transition: background 0.15s;
-        }
-        .input-inline:focus {
-          background: var(--surface2); border-color: var(--border);
-        }
-        .date-inline {
-          background: transparent; color: var(--text-muted); border: none; outline: none;
-          font-family: var(--font-mono); font-size: 0.72rem; cursor: pointer; padding: 0.1rem;
-        }
+        .input-inline { background: transparent; border: 1px solid transparent; color: var(--text); padding: 0.15rem 0.3rem; border-radius: 4px; font-family: var(--font-display); font-weight: 700; width: 100%; min-width: 90px; outline: none; transition: background 0.15s; }
+        .input-inline:focus { background: var(--surface2); border-color: var(--border); }
+        .date-inline { background: transparent; color: var(--text-muted); border: none; outline: none; font-family: var(--font-mono); font-size: 0.72rem; cursor: pointer; padding: 0.1rem; }
         .date-inline::-webkit-calendar-picker-indicator { cursor: pointer; filter: invert(0.6); }
-        .cell-group {
-          display: flex; flex-direction: column; gap: 0.35rem; align-items: flex-end; justify-content: center;
-        }
+        .cell-group { display: flex; flex-direction: column; gap: 0.35rem; align-items: flex-end; justify-content: center; }
       `}</style>
-      
 
+      <PanelPlazas totalInscritos={totalInscritos} maximos={maximos} setMaximos={setMaximos} />
 
-      {/* ── SECCIÓN 1: PLAZAS MÁXIMAS ── */}
-      <div className="card" style={{ marginBottom: "1rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: ".5rem" }}>
-          <div className="card-title" style={{ color: "var(--cyan)", margin: 0 }}>🎯 Panel de Plazas y Volúmenes de Inscripción</div>
-        </div>
-        <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", alignItems: "flex-start" }}>
-          {DISTANCIAS.map(d => {
-            const pct = maximos[d] > 0 ? Math.min((totalInscritos[d] / maximos[d]) * 100, 100) : 0;
-            const color = pct >= 90 ? "var(--red)" : pct >= 70 ? "var(--amber)" : "var(--green)";
-            const libre = Math.max(maximos[d] - totalInscritos[d], 0);
-            return (
-              <div key={d} style={{ minWidth: 200, flex: 1 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-                  <span style={{ color: DISTANCIA_COLORS[d], fontWeight: 700, fontSize: "var(--fs-base)" }}>{DISTANCIA_LABELS[d]}</span>
-                  {pct >= 90 && maximos[d] > 0 && (
-                    <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
-                      padding:".1rem .45rem", borderRadius:10,
-                      background: pct >= 100 ? "rgba(248,113,113,.15)" : "rgba(251,191,36,.15)",
-                      color: pct >= 100 ? "var(--red)" : "var(--amber)",
-                      border: `1px solid ${pct >= 100 ? "rgba(248,113,113,.3)" : "rgba(251,191,36,.3)"}` }}>
-                      {pct >= 100 ? "⛔ Aforo completo" : `🔶 ${(100-pct).toFixed(0)}% libre`}
-                    </span>
-                  )}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-base)", color: "var(--text-muted)" }}>Máx. plazas:</span>
-                  <NumInput value={maximos[d]} onChange={v => setMaximos(prev => ({ ...prev, [d]: Math.max(1, Math.round(v)) }))} step={10} small />
-                </div>
-                <div className="progress-bar" style={{ height: 8 }}>
-                  <div className="progress-fill" style={{ width: `${pct}%`, background: color, transition: "width 0.4s" }} />
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginTop: "0.3rem" }}>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color }}>{totalInscritos[d]} inscritos · {pct.toFixed(0)}%</span>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: libre <= 10 ? "var(--red)" : "var(--text-muted)" }}>{libre} libres</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      <TimelineTramos tramos={tramos} />
 
-        {/* Aviso si alguna distancia supera el máximo configurado */}
-        {DISTANCIAS.some(d => maximos[d] > 0 && totalInscritos[d] > maximos[d]) && (
-          <div style={{
-            display:"flex", alignItems:"flex-start", gap:".6rem",
-            padding:".65rem .9rem", borderRadius:8, marginTop:"1rem",
-            background:"rgba(251,191,36,0.06)", border:"1px solid rgba(251,191,36,0.25)"
-          }}>
-            <span style={{ fontSize:"var(--fs-md)", flexShrink:0 }}>⚠️</span>
-            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", lineHeight:1.6 }}>
-              <span style={{ color:"var(--amber)", fontWeight:700 }}>
-                {DISTANCIAS.filter(d => maximos[d] > 0 && totalInscritos[d] > maximos[d])
-                  .map(d => `${DISTANCIA_LABELS[d]}: ${totalInscritos[d]}/${maximos[d]} (+${totalInscritos[d]-maximos[d]})`)
-                  .join(" · ")}
-              </span>
-              <span style={{ color:"var(--text-muted)", marginLeft:".5rem" }}>
-                superan el aforo máximo. El P&L y el punto de equilibrio usan estos valores.
-                Si es intencional, actualiza el máximo arriba.
-              </span>
-            </div>
-          </div>
-        )}
-      </div>
+      <TablaTramos
+        tramos={tramos} setTramos={setTramos}
+        updateTramoPrecio={updateTramoPrecio}
+        inscritos={inscritos} updateInscritos={updateInscritos}
+        totalInscritos={totalInscritos} ingresosPorDistancia={ingresosPorDistancia}
+        maximos={maximos} codigos={codigos}
+        addTramo={addTramo}
+        onRequestDelete={(t, stats) => setPendingDelete({ tramo: t, stats })}
+        onOpenCsv={() => { setCsvPreview(null); setCsvMsg(null); setCsvModalOpen(true); }}
+      />
 
-      {/* ── Timeline bar ── */}
-      {tramos.length > 0 && (
-        <div className="card" style={{ padding: "1rem 1.25rem", marginBottom: "1rem" }}>
-          <div style={{ fontSize: "var(--fs-sm)", color: "var(--text-muted)", fontWeight: 700, marginBottom: "0.6rem", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-            Línea temporal de tramos
-          </div>
-          <div style={{ display: "flex", gap: 4 }}>
-            {tramos.map((t) => {
-              const status = getTramoStatus(t.fechaFin, t.fechaInicio);
-              return (
-                <div key={t.id} style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    height: 8, borderRadius: 4,
-                    background: status.color,
-                    opacity: status.label === "Cerrado" ? 0.3 : 1,
-                    boxShadow: status.label !== "Cerrado" ? `0 0 8px ${status.color}80` : "none",
-                  }} />
-                  <div style={{
-                    fontSize: "var(--fs-xs)", color: status.color, fontFamily: "var(--font-mono)",
-                    marginTop: 4, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                  }}>
-                    {t.nombre}
-                  </div>
-                  <div style={{ fontSize: "var(--fs-2xs)", color: "var(--text-muted)" }}>
-                    {t.fechaInicio ? `${formatDate(t.fechaInicio)} → ` : ""}{formatDate(t.fechaFin)}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      <CodigosPromo />
 
-      {/* ── SECCIÓN 2: MATRIZ DE PRECIOS Y VOLÚMENES ── */}
-      <div className="card">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
-          <div style={{
-            fontFamily: "var(--font-display)", fontWeight: 800,
-            fontSize: "var(--fs-md)", color: "var(--amber)", display: "flex", alignItems: "center", gap: 8
-          }}>
-            <span>💰</span> Gestión de Precios y Volúmenes por Tramo
-          </div>
-          <div style={{ display:"flex", gap:".5rem", flexWrap:"wrap" }}>
-            <button
-              className="btn btn-ghost"
-              onClick={() => { setCsvPreview(null); setCsvMsg(null); setCsvModalOpen(true); }}
-              style={{ display:"flex", alignItems:"center", gap:6, fontSize:"var(--fs-sm)" }}
-            >
-              📥 Importar CSV
-            </button>
-            <button className="btn btn-amber" onClick={addTramo} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ fontSize: "var(--fs-md)", fontWeight: 400 }}>+</span> Añadir Tramo
-            </button>
-          </div>
-        </div>
-        
-        <div className="overflow-x" style={{ paddingBottom: "1.5rem" }}>
-          <table className="tbl" style={{ minWidth: 700 }}>
-            <thead>
-              <tr>
-                <th style={{ minWidth: 160, paddingLeft: 8 }}>Información del Tramo</th>
-                {DISTANCIAS.map(d => (
-                  <th key={d} className="text-right" style={{ width: 140, paddingRight: 8 }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
-                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: DISTANCIA_COLORS[d], display: "inline-block" }} />
-                      <span style={{ color: DISTANCIA_COLORS[d], fontSize: "var(--fs-base)", fontWeight: 700 }}>{DISTANCIA_LABELS[d]}</span>
-                    </div>
-                  </th>
-                ))}
-                <th className="text-right" style={{ width: 100, paddingRight: 8 }}>Ingresos Brutos</th>
-                <th style={{ width: 40 }}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {tramos.map((t, idx) => {
-                const status = getTramoStatus(t.fechaFin, t.fechaInicio);
-                const stats = tramoStats(t, inscritos);
-                const prev = idx > 0 ? tramos[idx - 1] : null;
-
-                return (
-                  <tr key={t.id} style={{
-                    background: "rgba(255,255,255,0.015)",
-                    borderBottom: "1px dashed var(--border)"
-                  }}>
-                    <td style={{ verticalAlign: "top", paddingTop: "0.9rem", paddingLeft: 8 }}>
-                      <input
-                        className="input-inline"
-                        value={t.nombre}
-                        onChange={e => setTramos(prev => prev.map(x => x.id === t.id ? { ...x, nombre: e.target.value } : x))}
-                        placeholder="Nombre tramo"
-                        style={{ fontSize: "var(--fs-md)", marginBottom: 2 }}
-                      />
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: "0.4rem" }}>
-                        <span style={{
-                          display: "inline-flex", alignItems: "center", gap: 4,
-                          background: status.bg, color: status.color,
-                          border: `1px solid ${status.color}44`,
-                          borderRadius: 20, padding: "0.15rem 0.5rem",
-                          fontSize: "var(--fs-xs)", fontWeight: 700, fontFamily: "var(--font-mono)", whiteSpace: "nowrap",
-                        }}>
-                          {status.glyph} {status.label}
-                        </span>
-                        {/* MEJ-01: campo de fecha de inicio — opcional. Sin él el tramo se considera siempre abierto */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                          <span style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>Inicio:</span>
-                          <input
-                            type="date"
-                            className="date-inline"
-                            value={t.fechaInicio || ""}
-                            onChange={e => setTramos(prev => prev.map(x => x.id === t.id ? { ...x, fechaInicio: e.target.value || undefined } : x))}
-                            title="Fecha de apertura del tramo (opcional — sin fecha se considera siempre abierto)"
-                          />
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                          <span style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>Cierre:</span>
-                          <input
-                            type="date"
-                            className="date-inline"
-                            value={t.fechaFin}
-                            onChange={e => setTramos(prev => prev.map(x => x.id === t.id ? { ...x, fechaFin: e.target.value } : x))}
-                            title="Fecha de cierre del tramo"
-                          />
-                        </div>
-                        {/* Aviso si fechaInicio > fechaFin — no bloqueante */}
-                        {t.fechaInicio && t.fechaInicio > t.fechaFin && (
-                          <span style={{ fontSize: "var(--fs-xs)", color: "#f87171" }} title="La fecha de inicio es posterior al cierre">⚠️</span>
-                        )}
-                      </div>
-                    </td>
-                    
-                    {DISTANCIAS.map(d => {
-                      const delta = prev && t.precios[d] !== undefined ? t.precios[d] - prev.precios[d] : null;
-                      return (
-                        <td key={d} className="text-right" style={{ verticalAlign: "middle", padding: "0.9rem 0.5rem" }}>
-                          <div className="cell-group">
-                            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                              <span style={{ fontSize: "var(--fs-sm)", color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>Precio:</span>
-                              <NumInput
-                                value={t.precios[d]}
-                                onChange={v => updateTramoPrecio(t.id, d, v)}
-                                small step={1}
-                              />
-                            </div>
-                            {delta !== null && delta !== 0 && (
-                              <div style={{ 
-                                fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700,
-                                color: delta > 0 ? "var(--amber)" : "var(--red)", marginTop: "-4px" 
-                              }}>
-                                {delta > 0 ? `(+${Math.round(delta)}€)` : `(${Math.round(delta)}€)`}
-                              </div>
-                            )}
-                            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginTop: "0.3rem" }}>
-                              <span style={{ fontSize: "var(--fs-sm)", color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>Volumen:</span>
-                              <NumInput
-                                value={inscritos.tramos[t.id]?.[d] || 0}
-                                onChange={v => updateInscritos(t.id, d, Math.round(v))}
-                                step={1} small
-                                style={{ background: "rgba(0,0,0,0.2)" }}
-                              />
-                            </div>
-                          </div>
-                        </td>
-                      );
-                    })}
-
-                    <td className="text-right" style={{ verticalAlign: "middle", paddingRight: 8 }}>
-                      <div className="mono" style={{ color: "var(--violet)", fontWeight: 700, fontSize: "var(--fs-md)" }}>
-                        {fmt(stats.ingresos)}
-                      </div>
-                      <div className="mono" style={{ color: "var(--text-muted)", fontSize: "var(--fs-sm)", marginTop: 4 }}>
-                        {stats.total} ctes
-                      </div>
-                    </td>
-
-                    <td style={{ verticalAlign: "middle", textAlign: "center" }}>
-                      <button
-                        onClick={() => handleRequestDelete(t)}
-                        title="Eliminar tramo"
-                        style={{
-                          background: "transparent", color: "var(--red-dim)", border: "none",
-                          cursor: "pointer", fontSize: "var(--fs-md)", padding: "0.3rem",
-                          transition: "color 0.2s"
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.color = "var(--red)"}
-                        onMouseLeave={e => e.currentTarget.style.color = "var(--red-dim)"}
-                      >
-                        ✕
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-
-              <tr className="total-row">
-                <td style={{ fontSize: "var(--fs-md)", color: "var(--text)", paddingLeft: 8 }}>
-                  TOTALES ACUMULADOS
-                </td>
-                {DISTANCIAS.map(d => {
-                  const supera = maximos[d] > 0 && totalInscritos[d] > maximos[d];
-                  const justo  = maximos[d] > 0 && totalInscritos[d] === maximos[d];
-                  return (
-                    <td key={d} className="text-right" style={{ padding: "0.9rem 0.5rem" }}>
-                      <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:"0.15rem" }}>
-                        <span className="mono" style={{ color: supera ? "var(--red)" : DISTANCIA_COLORS[d], fontWeight: supera ? 800 : 700, fontSize: "var(--fs-md)" }}>
-                          {totalInscritos[d]}
-                          {supera && <span style={{ fontSize:"var(--fs-sm)", marginLeft:"0.3rem" }}>⚠️</span>}
-                          {justo  && <span style={{ fontSize:"var(--fs-sm)", marginLeft:"0.3rem" }}>✅</span>}
-                        </span>
-                        {supera && (
-                          <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--red)", fontWeight:700 }}>
-                            +{totalInscritos[d] - maximos[d]} max
-                          </span>
-                        )}
-                        <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--violet)", marginTop: 2 }}>
-                          {fmt((ingresosPorDistancia[d] || 0))}
-                        </span>
-                      </div>
-                    </td>
-                  );
-                })}
-                <td className="text-right mono" style={{ paddingRight: 8 }}>
-                  <div style={{ color: "var(--violet)", fontWeight: 800, fontSize: "var(--fs-lg)" }}>
-                    {fmt(ingresosPorDistancia.total)}
-                  </div>
-                  <div style={{ color: "var(--text-muted)", fontSize: "var(--fs-base)", marginTop: 2 }}>
-                    {totalInscritos.total} ctes totales
-                    {codigos.filter(c => c.estado === "usado").length > 0 && (
-                      <span style={{
-                        fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                        marginLeft:"0.4rem", padding:"0.05rem 0.3rem",
-                        borderRadius:3, background:"rgba(167,139,250,.15)",
-                        color:"var(--violet)", border:"1px solid rgba(167,139,250,.25)",
-                        fontWeight:700,
-                      }}>
-                        🎟️ {codigos.filter(c => c.estado === "usado").length} promo
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-
-      {/* ── CÓDIGOS PROMOCIONALES ── */}
-      <div style={{marginBottom:"1.5rem"}}>
-
-        {/* Header con stats */}
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
-          flexWrap:"wrap",gap:".5rem",marginBottom:".85rem"}}>
-          <div>
-            <div style={{fontWeight:700,fontSize:"var(--fs-md)",marginBottom:".15rem"}}>
-              🎟️ Códigos promocionales
-            </div>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>
-              Inscripciones gratuitas · {codigos.filter(c=>c.estado==="disponible").length} disponibles de {codigos.length}
-            </div>
-          </div>
-          <div style={{display:"flex",gap:".4rem",flexWrap:"wrap",alignItems:"center"}}>
-            {["TG7","TG13","TG25"].map(d=>{
-              const disp=codigos.filter(c=>c.distancia===d&&c.estado==="disponible").length;
-              const tot=codigos.filter(c=>c.distancia===d).length;
-              const color=DISTANCIA_COLORS[d]||"var(--cyan)";
-              return (
-                <button key={d}
-                  onClick={()=>setCodigosTab(codigosTab===d?"todos":d)}
-                  style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",fontWeight:700,
-                    padding:".25rem .6rem",borderRadius:20,cursor:"pointer",
-                    background:codigosTab===d?color+"22":"transparent",
-                    color:codigosTab===d?color:color+"99",
-                    border:`1px solid ${codigosTab===d?color:color+"44"}`}}>
-                  {d} <span style={{opacity:.75}}>{disp}/{tot}</span>
-                </button>
-              );
-            })}
-            <button
-              onClick={()=>setEditCodigo({id:null,codigo:"",distancia:"TG7",estado:"disponible",usadoPor:"",fechaUso:""})}
-              style={{padding:".3rem .7rem",borderRadius:8,cursor:"pointer",fontWeight:700,
-                fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",background:"var(--primary)",
-                color:"#fff",border:"none"}}>
-              + Nuevo
-            </button>
-            <button
-              onClick={()=>setImportOpen(v=>!v)}
-              style={{padding:".3rem .6rem",borderRadius:8,cursor:"pointer",fontWeight:700,
-                fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
-                background:importOpen?"var(--cyan-dim)":"var(--surface2)",
-                color:importOpen?"var(--cyan)":"var(--text-muted)",
-                border:`1px solid ${importOpen?"rgba(34,211,238,.35)":"var(--border)"}`}}>
-              📥 Lote
-            </button>
-          </div>
-        </div>
-
-        {/* Importar en lote — colapsable */}
-        {importOpen && (
-          <div style={{padding:".75rem",borderRadius:8,marginBottom:".75rem",
-            background:"var(--surface2)",border:"1px solid rgba(34,211,238,.2)"}}>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
-              color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:".06em",
-              marginBottom:".5rem"}}>Pega los códigos (uno por línea o separados por espacios)</div>
-            <div style={{display:"flex",gap:".5rem",alignItems:"flex-start",flexWrap:"wrap"}}>
-              <textarea value={importText} onChange={e=>setImportText(e.target.value)}
-                placeholder="CODIGO1&#10;CODIGO2&#10;CODIGO3"
-                rows={4}
-                style={{flex:1,minWidth:200,background:"var(--surface)",
-                  border:"1px solid var(--border)",borderRadius:6,color:"var(--text)",
-                  padding:".4rem .55rem",fontFamily:"var(--font-mono)",fontSize:"var(--fs-base)",
-                  outline:"none",resize:"vertical"}} />
-              <div style={{display:"flex",flexDirection:"column",gap:".3rem",minWidth:90}}>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
-                  color:"var(--text-dim)",marginBottom:".15rem"}}>Distancia</div>
-                {["TG7","TG13","TG25"].map(d=>(
-                  <button key={d} onClick={()=>setImportDist(d)}
-                    style={{padding:".28rem .5rem",borderRadius:6,cursor:"pointer",
-                      fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",fontWeight:700,
-                      border:`1px solid ${importDist===d?"var(--cyan)":"var(--border)"}`,
-                      background:importDist===d?"var(--cyan-dim)":"transparent",
-                      color:importDist===d?"var(--cyan)":"var(--text-muted)"}}>
-                    {d}
-                  </button>
-                ))}
-                <button disabled={!importText.trim()}
-                  style={{marginTop:".25rem",padding:".35rem .5rem",borderRadius:6,cursor:"pointer",
-                    fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",fontWeight:700,
-                    background:"var(--primary)",color:"#fff",border:"none",
-                    opacity:importText.trim()?1:.45}}
-                  onClick={()=>{
-                    const nuevos=importText.split(/[,\s\n\r]+/)
-                      .map(l=>l.trim().toUpperCase()).filter(l=>l.length>=2)
-                      .filter(cod=>!codigos.find(c=>c.codigo===cod))
-                      .map(cod=>({id:cod+"-"+Date.now().toString(36)+Math.random().toString(36).slice(2,4),
-                        codigo:cod,distancia:importDist,estado:"disponible",usadoPor:null,fechaUso:null}));
-                    if(!nuevos.length){setImportMsg({ok:false,txt:"Todos los códigos ya existen."});return;}
-                    setCodigos(prev=>[...prev,...nuevos]);
-                    setImportText("");
-                    setImportMsg({ok:true,txt:`✓ ${nuevos.length} código${nuevos.length>1?"s":""} importados para ${importDist}`});
-                    setTimeout(()=>setImportMsg(null),3500);
-                  }}>
-                  Importar
-                </button>
-              </div>
-            </div>
-            {importMsg && (
-              <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",marginTop:".4rem",
-                color:importMsg.ok?"var(--green)":"var(--red)"}}>
-                {importMsg.txt}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Buscador + filtros de estado */}
-        <div style={{display:"flex",gap:".4rem",flexWrap:"wrap",alignItems:"center",marginBottom:".6rem"}}>
-          <div style={{display:"flex",background:"var(--surface2)",border:"1px solid var(--border)",
-            borderRadius:8,overflow:"hidden",flexShrink:0}}>
-            {[["todos","Todos"],["disponible","✅ Libres"],["usado","✓ Usados"]].map(([v,l])=>(
-              <button key={v} onClick={()=>setCodigosTab(v)}
-                style={{padding:".28rem .6rem",border:"none",cursor:"pointer",
-                  fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",fontWeight:700,
-                  background:codigosTab===v?"rgba(34,211,238,.15)":"transparent",
-                  color:codigosTab===v?"var(--cyan)":"var(--text-muted)",
-                  whiteSpace:"nowrap"}}>
-                {l}
-              </button>
-            ))}
-          </div>
-          <div style={{flex:1,minWidth:140,display:"flex",alignItems:"center",
-            background:"var(--surface2)",border:"1px solid var(--border)",
-            borderRadius:8,padding:".28rem .6rem",gap:".4rem"}}>
-            <span style={{opacity:.5,fontSize:"var(--fs-base)",flexShrink:0}}>🔍</span>
-            <input placeholder="Buscar código o nombre..."
-              value={busquedaCod} onChange={e=>setBusquedaCod(e.target.value)}
-              style={{background:"none",border:"none",color:"var(--text)",
-                fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",outline:"none",width:"100%"}} />
-            {busquedaCod && (
-              <button onClick={()=>setBusquedaCod("")}
-                style={{background:"none",border:"none",cursor:"pointer",
-                  color:"var(--text-muted)",fontSize:"var(--fs-sm)",padding:0,flexShrink:0}}>✕</button>
-            )}
-          </div>
-        </div>
-
-        {/* Lista de códigos — agrupada por distancia, colapsable */}
-        {(() => {
-          const filtrados = codigos
-            .filter(c => {
-              if (codigosTab === "disponible") return c.estado === "disponible";
-              if (codigosTab === "usado")      return c.estado === "usado";
-              if (["TG7","TG13","TG25"].includes(codigosTab)) return c.distancia === codigosTab;
-              return true;
-            })
-            .filter(c =>
-              !busquedaCod ||
-              c.codigo.toLowerCase().includes(busquedaCod.toLowerCase()) ||
-              (c.usadoPor||"").toLowerCase().includes(busquedaCod.toLowerCase())
-            );
-
-          if (!filtrados.length) return (
-            <div style={{
-              textAlign:"center", padding:"2.5rem 1rem",
-              fontFamily:"var(--font-mono)", fontSize:"var(--fs-base)",
-              color:"var(--text-dim)", background:"var(--surface2)",
-              borderRadius:10, border:"1px dashed var(--border)",
-            }}>
-              {codigos.length === 0
-                ? <>Sin códigos. Pulsa <strong style={{color:"var(--cyan)"}}>+ Nuevo</strong> o importa en lote.</>
-                : "Sin resultados con ese filtro."}
-            </div>
-          );
-
-          // Agrupar por distancia
-          const grupos = ["TG7","TG13","TG25"].map(d => ({
-            dist: d,
-            items: filtrados.filter(c => c.distancia === d),
-            color: DISTANCIA_COLORS[d] || "var(--cyan)",
-          })).filter(g => g.items.length > 0);
-
-          const renderCard = (c) => {
-            const usado   = c.estado === "usado";
-            const dColor  = DISTANCIA_COLORS[c.distancia] || "var(--cyan)";
-            return (
-              <div key={c.id} style={{
-                borderRadius:10, background:"var(--surface2)",
-                border:"1px solid var(--border)",
-                borderLeft:`3px solid ${usado ? "var(--border)" : dColor}`,
-                overflow:"hidden",
-              }}>
-                <div style={{
-                  display:"flex", alignItems:"center",
-                  gap:".5rem", padding:".75rem .85rem", minHeight:56,
-                }}>
-                  <span style={{
-                    fontFamily:"var(--font-mono)", fontWeight:800, fontSize:"var(--fs-md)",
-                    letterSpacing:".06em", flex:1, minWidth:0,
-                    color: usado ? "var(--text-dim)" : "var(--text)",
-                    textDecoration: usado ? "line-through" : "none",
-                  }}>
-                    {c.codigo}
-                  </span>
-
-                  <div style={{flex:2, minWidth:0}}>
-                    {usado ? (
-                      <div style={{fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
-                        color:"var(--text-muted)",
-                        overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>
-                        {c.usadoPor || "—"}
-                        {c.fechaUso && (
-                          <span style={{color:"var(--text-dim)", marginLeft:".4rem"}}>
-                            · {c.fechaUso}
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      <input
-                        placeholder="Inscrito... ↵"
-                        aria-label={`Marcar código ${c.codigo} como usado`}
-                        style={{
-                          background:"transparent", border:"none",
-                          borderBottom:"1px solid rgba(52,211,153,.35)",
-                          color:"var(--text)", fontFamily:"var(--font-mono)",
-                          fontSize:"var(--fs-sm)", outline:"none",
-                          width:"100%", padding:".15rem 0",
-                          transition:"border-color .15s",
-                        }}
-                        onFocus={e => e.target.style.borderBottomColor = "var(--green)"}
-                        onBlur={e  => e.target.style.borderBottomColor = "rgba(52,211,153,.35)"}
-                        onKeyDown={e => {
-                          if (e.key === "Enter" && e.target.value.trim()) {
-                            const nombre = e.target.value.trim();
-                            setCodigos(prev => prev.map(x => x.id === c.id
-                              ? {...x, estado:"usado", usadoPor:nombre,
-                                 fechaUso: new Date().toISOString().split("T")[0]}
-                              : x));
-                            e.target.value = "";
-                          }
-                        }}
-                      />
-                    )}
-                  </div>
-
-                  <div style={{display:"flex", gap:".25rem", flexShrink:0}}>
-                    {usado && (
-                      <button
-                        title="Liberar código" aria-label="Liberar código"
-                        onClick={() => setCodigos(prev => prev.map(x => x.id === c.id
-                          ? {...x, estado:"disponible", usadoPor:null, fechaUso:null} : x))}
-                        style={{display:"flex",alignItems:"center",justifyContent:"center",
-                          width:40,height:40,borderRadius:8,
-                          background:"rgba(251,191,36,.12)",border:"1px solid rgba(251,191,36,.3)",
-                          color:"var(--amber)",fontSize:"var(--fs-base)",cursor:"pointer"}}>
-                        ↩
-                      </button>
-                    )}
-                    <button title="Editar" aria-label="Editar código"
-                      onClick={() => setEditCodigo({...c})}
-                      style={{display:"flex",alignItems:"center",justifyContent:"center",
-                        width:40,height:40,borderRadius:8,
-                        background:"var(--surface3)",border:"1px solid var(--border)",
-                        color:"var(--text-muted)",fontSize:"var(--fs-base)",cursor:"pointer"}}>
-                      ✏️
-                    </button>
-                    <button title="Eliminar" aria-label="Eliminar código"
-                      onClick={() => setDelCodigo(c.id)}
-                      style={{display:"flex",alignItems:"center",justifyContent:"center",
-                        width:40,height:40,borderRadius:8,
-                        background:"rgba(248,113,113,.1)",border:"1px solid rgba(248,113,113,.25)",
-                        color:"var(--red)",fontSize:"var(--fs-base)",fontWeight:700,cursor:"pointer"}}>
-                      ✕
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          };
-
-          return (
-            <div style={{display:"flex", flexDirection:"column", gap:".75rem"}}>
-              {grupos.map(({dist, items, color}) => {
-                const usados = items.filter(c => c.estado === "usado").length;
-                const libres = items.length - usados;
-                const collapsed = colapsadas[dist];
-                return (
-                  <div key={dist} style={{
-                    borderRadius:10, overflow:"hidden",
-                    border:`1px solid ${color}33`,
-                  }}>
-                    {/* Cabecera de grupo — clickable */}
-                    <button
-                      onClick={() => toggleDistancia(dist)}
-                      style={{
-                        width:"100%", display:"flex", alignItems:"center",
-                        gap:".65rem", padding:".6rem .85rem",
-                        background:`${color}0d`, border:"none",
-                        cursor:"pointer", textAlign:"left",
-                        borderBottom: collapsed ? "none" : `1px solid ${color}22`,
-                      }}>
-                      <span style={{
-                        fontFamily:"var(--font-mono)", fontWeight:800, fontSize:"var(--fs-base)",
-                        color, letterSpacing:".04em",
-                      }}>
-                        {dist}
-                      </span>
-                      <span style={{
-                        fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
-                        color:"var(--text-muted)", flex:1,
-                      }}>
-                        {items.length} código{items.length!==1?"s":""}
-                      </span>
-                      {/* Pills libres/usados */}
-                      <div style={{display:"flex", gap:".3rem"}}>
-                        {libres > 0 && (
-                          <span style={{
-                            fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
-                            padding:".1rem .45rem", borderRadius:20,
-                            background:"rgba(52,211,153,.12)", color:"var(--green)",
-                            border:"1px solid rgba(52,211,153,.25)",
-                          }}>
-                            {libres} libre{libres!==1?"s":""}
-                          </span>
-                        )}
-                        {usados > 0 && (
-                          <span style={{
-                            fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
-                            padding:".1rem .45rem", borderRadius:20,
-                            background:"rgba(148,163,184,.1)", color:"var(--text-dim)",
-                            border:"1px solid var(--border)",
-                          }}>
-                            {usados} usado{usados!==1?"s":""}
-                          </span>
-                        )}
-                      </div>
-                      <span style={{
-                        fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
-                        color:"var(--text-dim)", flexShrink:0,
-                        transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)",
-                        transition:"transform .18s",
-                      }}>
-                        ▼
-                      </span>
-                    </button>
-
-                    {/* Cards del grupo */}
-                    {!collapsed && (
-                      <div style={{
-                        display:"flex", flexDirection:"column", gap:".35rem",
-                        padding:".5rem .5rem",
-                        background:"var(--surface)",
-                      }}>
-                        {items.map(renderCard)}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })()}
-
-
-        {/* Modal editar/crear código */}
-        {editCodigo && createPortal(
-          <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setEditCodigo(null)}>
-            <div className="modal" style={{maxWidth:420}}>
-              <div className="modal-header">
-                <span className="modal-title">
-                  {editCodigo.id ? "✏️ Editar código" : "🎟️ Nuevo código"}
-                </span>
-                <button className="btn btn-ghost btn-sm" onClick={()=>setEditCodigo(null)}>✕</button>
-              </div>
-              <div className="modal-body" style={{gap:".6rem"}}>
-                <div>
-                  <label className="fl">Código *</label>
-                  <input className="inp"
-                    value={editCodigo.codigo||""}
-                    onChange={e=>setEditCodigo(p=>({...p,codigo:e.target.value.toUpperCase()}))}
-                    placeholder="ej. ABC12345"
-                    style={{fontFamily:"var(--font-mono)",fontWeight:700,letterSpacing:".05em"}} />
-                </div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
-                  <div>
-                    <label className="fl">Distancia</label>
-                    <select className="inp" value={editCodigo.distancia||"TG7"}
-                      onChange={e=>setEditCodigo(p=>({...p,distancia:e.target.value}))}>
-                      <option value="TG7">TG7</option>
-                      <option value="TG13">TG13</option>
-                      <option value="TG25">TG25</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="fl">Estado</label>
-                    <select className="inp" value={editCodigo.estado||"disponible"}
-                      onChange={e=>setEditCodigo(p=>({...p,estado:e.target.value}))}>
-                      <option value="disponible">✅ Disponible</option>
-                      <option value="usado">✓ Usado</option>
-                    </select>
-                  </div>
-                </div>
-                {editCodigo.estado==="usado" && (
-                  <>
-                    <div>
-                      <label className="fl">Usado por</label>
-                      <input className="inp"
-                        value={editCodigo.usadoPor||""}
-                        onChange={e=>setEditCodigo(p=>({...p,usadoPor:e.target.value}))}
-                        placeholder="Nombre del inscrito" />
-                    </div>
-                    <div>
-                      <label className="fl">Fecha de uso</label>
-                      <input className="inp" type="date"
-                        value={editCodigo.fechaUso||""}
-                        onChange={e=>setEditCodigo(p=>({...p,fechaUso:e.target.value}))} />
-                    </div>
-                  </>
-                )}
-              </div>
-              <div className="modal-footer">
-                <button className="btn btn-ghost" onClick={()=>setEditCodigo(null)}>Cancelar</button>
-                <button className="btn btn-primary"
-                  disabled={!editCodigo.codigo?.trim()}
-                  style={{opacity:editCodigo.codigo?.trim()?1:.5}}
-                  onClick={()=>{
-                    if (!editCodigo.codigo?.trim()) return;
-                    const cod = {
-                      ...editCodigo,
-                      codigo: editCodigo.codigo.trim().toUpperCase(),
-                      usadoPor: editCodigo.estado==="usado" ? (editCodigo.usadoPor||null) : null,
-                      fechaUso: editCodigo.estado==="usado" ? (editCodigo.fechaUso||null) : null,
-                    };
-                    if (cod.id) {
-                      setCodigos(prev=>prev.map(x=>x.id===cod.id?cod:x));
-                    } else {
-                      cod.id = cod.codigo+"-"+Date.now().toString(36);
-                      setCodigos(prev=>[...prev,cod]);
-                    }
-                    setEditCodigo(null);
-                  }}>
-                  {editCodigo.id ? "Guardar" : "Crear"}
-                </button>
-              </div>
-            </div>
-          </div>,
-          document.body
-        )}
-        {delCodigo && createPortal(
-          <div className="modal-backdrop" style={{zIndex:200}}
-            onClick={e=>e.target===e.currentTarget&&setDelCodigo(null)}>
-            <div className="modal" style={{maxWidth:320,textAlign:"center"}}>
-              <div className="modal-body" style={{paddingTop:"1.5rem"}}>
-                <div style={{fontSize:"var(--fs-xl)",marginBottom:".5rem"}}>🗑️</div>
-                <div style={{fontWeight:700,marginBottom:".3rem"}}>¿Eliminar este código?</div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
-                  color:"var(--text-muted)",marginBottom:".2rem"}}>
-                  {codigos.find(c=>c.id===delCodigo)?.codigo}
-                </div>
-                <div className="mono xs muted">Esta acción no se puede deshacer.</div>
-              </div>
-              <div className="modal-footer">
-                <button className="btn btn-ghost" onClick={()=>setDelCodigo(null)}>Cancelar</button>
-                <button className="btn btn-red" onClick={()=>{
-                  setCodigos(prev=>prev.filter(x=>x.id!==delCodigo));
-                  setDelCodigo(null);
-                }}>Eliminar</button>
-              </div>
-            </div>
-          </div>,
-          document.body
-        )}
-      </div>
-
-
-                  {pendingDelete && (
+      {pendingDelete && (
         <ModalConfirmDelete
           tramo={pendingDelete.tramo}
           stats={pendingDelete.stats}
-          onConfirm={handleConfirmDelete}
+          onConfirm={() => {
+            const id = pendingDelete.tramo.id;
+            setTramos(prev => prev.filter(x => x.id !== id));
+            setInscritos(prev => { const { [id]: _dropped, ...restTramos } = prev.tramos || {}; return { ...prev, tramos: restTramos }; });
+            setPendingDelete(null);
+          }}
           onCancel={() => setPendingDelete(null)}
         />
       )}
 
-      {/* ── Modal importación CSV ──────────────────────────────────────────── */}
-      {csvModalOpen && (
-        <div
-          style={{
-            position:"fixed", inset:0, zIndex:9998,
-            background:"rgba(0,0,0,0.85)", backdropFilter:"blur(6px)",
-            display:"flex", alignItems:"center", justifyContent:"center", padding:"1rem",
-          }}
-          onClick={e => e.target === e.currentTarget && setCsvModalOpen(false)}
-        >
-          <div style={{
-            background:"var(--surface)", border:"1px solid var(--border)",
-            borderRadius:16, padding:"1.75rem", maxWidth:560, width:"100%",
-            boxShadow:"0 24px 64px rgba(0,0,0,0.5)", animation:"slideUp 0.2s ease",
-            maxHeight:"85vh", overflowY:"auto",
-          }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"1.25rem" }}>
-              <div style={{ fontWeight:800, fontSize:"var(--fs-md)" }}>📥 Importar inscritos desde CSV</div>
-              <button className="btn btn-ghost btn-sm" onClick={() => setCsvModalOpen(false)}>✕</button>
-            </div>
+      <ModalCsvImport
+        open={csvModalOpen} onClose={() => setCsvModalOpen(false)}
+        tramos={tramos} inscritos={inscritos}
+        csvPreview={csvPreview} setCsvPreview={setCsvPreview}
+        csvMergeMode={csvMergeMode} setCsvMergeMode={setCsvMergeMode}
+        onFileChange={handleCsvFile} onConfirm={handleCsvConfirm}
+      />
 
-            {/* Instrucciones */}
-            <div style={{
-              background:"rgba(167,139,250,0.06)", border:"1px solid rgba(167,139,250,0.2)",
-              borderRadius:10, padding:".75rem 1rem", marginBottom:"1rem",
-              fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", lineHeight:1.8,
-            }}>
-              <div style={{ color:"var(--violet)", fontWeight:700, marginBottom:".25rem" }}>Formato esperado del CSV:</div>
-              <div>Columnas (en cualquier orden): <strong>distancia</strong>, <strong>tramo</strong>, <strong>numero</strong></div>
-              <div>Separador: coma (<code>,</code>) o punto y coma (<code>;</code>) — detectado automáticamente</div>
-              <div>Distancias válidas: <strong>TG7</strong>, <strong>TG13</strong>, <strong>TG25</strong></div>
-              <div>Los nombres de tramo deben coincidir con los tramos configurados en esta tab.</div>
-              <div style={{ marginTop:".3rem" }}>Tamaño máximo: 2 MB</div>
-            </div>
-
-            {/* Selector de archivo */}
-            <div style={{ marginBottom:"1rem" }}>
-              <input
-                ref={csvInputRef}
-                type="file"
-                accept=".csv,.txt"
-                onChange={handleCsvFile}
-                style={{ display:"none" }}
-                id="csv-upload-input"
-              />
-              <label
-                htmlFor="csv-upload-input"
-                className="btn btn-primary"
-                style={{ display:"inline-flex", alignItems:"center", gap:6, cursor:"pointer" }}
-              >
-                📂 Seleccionar archivo CSV
-              </label>
-            </div>
-
-            {/* Preview */}
-            {csvPreview && (
-              <div>
-                {csvPreview.errors.length > 0 && (
-                  <div style={{
-                    background:"rgba(251,191,36,.06)", border:"1px solid rgba(251,191,36,.25)",
-                    borderRadius:8, padding:".65rem .9rem", marginBottom:".75rem",
-                  }}>
-                    <div style={{ fontWeight:700, fontSize:"var(--fs-sm)", color:"var(--amber)", marginBottom:".35rem" }}>
-                      ⚠️ {csvPreview.errors.length} fila{csvPreview.errors.length!==1?"s":""} con error de formato (se ignorarán):
-                    </div>
-                    {csvPreview.errors.slice(0,5).map((e,i) => (
-                      <div key={i} style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>{e}</div>
-                    ))}
-                    {csvPreview.errors.length > 5 && (
-                      <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-dim)" }}>
-                        ...y {csvPreview.errors.length - 5} más
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {csvPreview.rows.length > 0 ? (
-                  <>
-                    <div style={{ fontWeight:700, fontSize:"var(--fs-sm)", color:"var(--green)", marginBottom:".5rem" }}>
-                      ✅ {csvPreview.rows.length} fila{csvPreview.rows.length!==1?"s":""} válida{csvPreview.rows.length!==1?"s":""} — preview (primeras 5):
-                    </div>
-                    <div className="overflow-x" style={{ marginBottom:".75rem" }}>
-                      <table className="tbl" style={{ minWidth:300, fontSize:"var(--fs-xs)" }}>
-                        <thead>
-                          <tr>
-                            <th>Distancia</th>
-                            <th>Tramo</th>
-                            <th className="text-right">Número</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {csvPreview.rows.slice(0,5).map((r,i) => (
-                            <tr key={i}>
-                              <td style={{ fontFamily:"var(--font-mono)", color:"var(--violet)" }}>{r.distancia}</td>
-                              <td style={{ color:"var(--text)" }}>{r.tramo}</td>
-                              <td className="text-right" style={{ fontFamily:"var(--font-mono)" }}>{r.numero}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Modo de importación si ya hay datos */}
-                    {Object.keys(inscritos?.tramos || {}).some(tid => Object.values(inscritos.tramos[tid]||{}).some(v => v > 0)) && (
-                      <div style={{
-                        background:"rgba(248,113,113,.06)", border:"1px solid rgba(248,113,113,.2)",
-                        borderRadius:8, padding:".65rem .9rem", marginBottom:".75rem",
-                      }}>
-                        <div style={{ fontWeight:700, fontSize:"var(--fs-sm)", color:"var(--red)", marginBottom:".5rem" }}>
-                          ⚠️ Ya existen datos de inscritos. ¿Cómo quieres proceder?
-                        </div>
-                        <div style={{ display:"flex", gap:".75rem", flexWrap:"wrap" }}>
-                          {[
-                            { v:"reemplazar", label:"🔄 Reemplazar", desc:"Sobreescribir los valores actuales de cada tramo/distancia del CSV" },
-                            { v:"sumar",      label:"➕ Sumar",      desc:"Añadir los valores del CSV a los ya existentes" },
-                          ].map(opt => (
-                            <label key={opt.v} style={{
-                              display:"flex", alignItems:"flex-start", gap:".5rem",
-                              cursor:"pointer", flex:"1 1 160px",
-                              background: csvMergeMode===opt.v ? "rgba(167,139,250,.1)" : "transparent",
-                              border: `1px solid ${csvMergeMode===opt.v ? "rgba(167,139,250,.4)" : "var(--border)"}`,
-                              borderRadius:8, padding:".5rem .65rem",
-                            }}>
-                              <input
-                                type="radio"
-                                value={opt.v}
-                                checked={csvMergeMode===opt.v}
-                                onChange={() => setCsvMergeMode(opt.v)}
-                                style={{ marginTop:"2px", accentColor:"var(--violet)", flexShrink:0 }}
-                              />
-                              <div>
-                                <div style={{ fontWeight:700, fontSize:"var(--fs-sm)" }}>{opt.label}</div>
-                                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", lineHeight:1.5 }}>{opt.desc}</div>
-                              </div>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div style={{ display:"flex", gap:".6rem", justifyContent:"flex-end" }}>
-                      <button className="btn btn-ghost" onClick={() => { setCsvPreview(null); }}>← Volver</button>
-                      <button className="btn btn-primary" onClick={handleCsvConfirm}>
-                        Confirmar importación ({csvPreview.rows.length} filas)
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", color:"var(--red)", padding:".5rem 0" }}>
-                    ❌ No se encontraron filas válidas en el archivo.
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── Mensaje resultado importación ────────────────────────────────────── */}
       {csvMsg && !csvModalOpen && (
-        <div style={{
-          position:"fixed", bottom:"1.5rem", left:"50%", transform:"translateX(-50%)",
-          zIndex:9997, maxWidth:520,
-          background: csvMsg.type==="success" ? "rgba(52,211,153,.12)" : "rgba(248,113,113,.12)",
-          border: `1px solid ${csvMsg.type==="success" ? "rgba(52,211,153,.35)" : "rgba(248,113,113,.35)"}`,
-          color: csvMsg.type==="success" ? "var(--green)" : "var(--red)",
-          borderRadius:10, padding:".75rem 1.1rem",
-          fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", fontWeight:700,
-          display:"flex", alignItems:"center", gap:".75rem",
-          boxShadow:"0 8px 32px rgba(0,0,0,.4)",
-        }}>
-          <span style={{ flex:1 }}>{csvMsg.text}</span>
-          <button
-            onClick={() => setCsvMsg(null)}
-            style={{ background:"transparent", border:"none", cursor:"pointer",
-              color:"inherit", fontSize:"var(--fs-base)", opacity:.7 }}
-          >✕</button>
+        <div style={{ position: "fixed", bottom: "1.5rem", left: "50%", transform: "translateX(-50%)", zIndex: 9997, maxWidth: 520, background: csvMsg.type === "success" ? "rgba(52,211,153,.12)" : "rgba(248,113,113,.12)", border: `1px solid ${csvMsg.type === "success" ? "rgba(52,211,153,.35)" : "rgba(248,113,113,.35)"}`, color: csvMsg.type === "success" ? "var(--green)" : "var(--red)", borderRadius: 10, padding: ".75rem 1.1rem", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 700, display: "flex", alignItems: "center", gap: ".75rem", boxShadow: "0 8px 32px rgba(0,0,0,.4)" }}>
+          <span style={{ flex: 1 }}>{csvMsg.text}</span>
+          <button onClick={() => setCsvMsg(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "inherit", fontSize: "var(--fs-base)", opacity: .7 }}>✕</button>
         </div>
       )}
-
     </>
   );
 };
