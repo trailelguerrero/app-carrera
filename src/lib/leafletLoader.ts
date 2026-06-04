@@ -1,5 +1,5 @@
 /**
- * leafletLoader.js — carga Leaflet desde el bundle npm (no CDN).
+ * leafletLoader.ts — carga Leaflet desde el bundle npm (no CDN).
  *
  * Antes se cargaba desde unpkg.com en index.html. Eso fallaba en:
  *   - Tor Browser (bloquea CDNs externos)
@@ -12,8 +12,13 @@
  *
  * Este archivo se importa UNA VEZ en main.tsx.
  */
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Ampliar Window para que TypeScript conozca window.L
+declare global {
+  interface Window { L: typeof L }
+}
 
 // Exponer globalmente para compatibilidad con los componentes de mapa
 window.L = L;

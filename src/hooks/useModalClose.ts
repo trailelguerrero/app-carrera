@@ -1,19 +1,19 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback } from 'react';
 
 /**
  * Hook para animar el cierre de un modal antes de desmontarlo.
- * 
+ *
  * Uso:
  *   const { closing, handleClose } = useModalClose(onClose);
- *   
+ *
  *   <div className={`modal-backdrop${closing ? " modal-backdrop-closing" : ""}`}>
  *     <div className={`modal${closing ? " modal-closing" : ""}`}>
  *       <button onClick={handleClose}>✕</button>
  *     </div>
  *   </div>
  */
-export function useModalClose(onClose, delayMs = 175) {
-  const [closing, setClosing] = useState(false);
+export function useModalClose(onClose: () => void, delayMs: number = 175) {
+  const [closing, setClosing] = useState<boolean>(false);
 
   const handleClose = useCallback(() => {
     setClosing(true);

@@ -1,14 +1,32 @@
 /**
- * useMapFullscreen.js
+ * useMapFullscreen.ts
  *
  * Gestiona pantalla completa para un contenedor de mapa.
  * Usa la Fullscreen API del navegador + fallback CSS para iOS Safari.
  * Llama map.invalidateSize() automáticamente tras el cambio.
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, RefObject } from 'react';
+import type { Map as LeafletMap } from 'leaflet';
 
-export function useMapFullscreen(wrapperRef, mapRef) {
-  const [isFullscreen, setIsFullscreen] = useState(false);
+// Ampliar tipos de Document/HTMLElement para APIs prefijadas
+declare global {
+  interface Document {
+    webkitFullscreenElement?: Element | null;
+    mozFullScreenElement?: Element | null;
+    webkitExitFullscreen?: () => Promise<void>;
+    mozCancelFullScreen?: () => Promise<void>;
+  }
+  interface HTMLElement {
+    webkitRequestFullscreen?: () => Promise<void>;
+    mozRequestFullScreen?: () => Promise<void>;
+  }
+}
+
+export function useMapFullscreen(
+  wrapperRef: RefObject<HTMLElement | null>,
+  mapRef: RefObject<LeafletMap | null>
+) {
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
   useEffect(() => {
     const onChange = () => {
@@ -19,13 +37,13 @@ export function useMapFullscreen(wrapperRef, mapRef) {
       setIsFullscreen(inFS);
       setTimeout(() => mapRef.current?.invalidateSize(), 120);
     };
-    document.addEventListener("fullscreenchange", onChange);
-    document.addEventListener("webkitfullscreenchange", onChange);
-    document.addEventListener("mozfullscreenchange", onChange);
+    document.addEventListener('fullscreenchange', onChange);
+    document.addEventListener('webkitfullscreenchange', onChange);
+    document.addEventListener('mozfullscreenchange', onChange);
     return () => {
-      document.removeEventListener("fullscreenchange", onChange);
-      document.removeEventListener("webkitfullscreenchange", onChange);
-      document.removeEventListener("mozfullscreenchange", onChange);
+      document.removeEventListener('fullscreenchange', onChange);
+      document.removeEventListener('webkitfullscreenchange', onChange);
+      document.removeEventListener('mozfullscreenchange', onChange);
     };
   }, [mapRef]);
 
