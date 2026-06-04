@@ -57,6 +57,24 @@ const readPortal = () => {
   }).join('\n');
 };
 
+// Fase 2 refactor: Documentos.jsx extrajo lógica a useDocumentos y subcomponentes.
+// readDocumentos() concatena todos los archivos del módulo.
+const readDocumentos = () => {
+  const files = [
+    'src/components/blocks/Documentos.jsx',
+    'src/hooks/useDocumentos.js',
+    'src/components/documentos/VisorModal.jsx',
+    'src/components/documentos/DeleteConfirmModal.jsx',
+    'src/components/documentos/UploadZone.jsx',
+    'src/components/documentos/TabGestiones.jsx',
+    'src/components/documentos/TabSubvenciones.jsx',
+  ];
+  return files.map(f => {
+    const p = path.resolve(process.cwd(), f);
+    return existsSync(p) ? readFileSync(p, 'utf-8') : '';
+  }).join('\n');
+};
+
 // ── T1.1 — SEC-04: api/voluntarios sin API key hardcodeada ─────────────────
 describe('T1.1 — SEC-04: API key hardcodeada eliminada', () => {
   const voluntariosApi = read('api/voluntarios/index.js');
@@ -1226,13 +1244,13 @@ describe('SUBV-01 — Módulo Subvenciones', () => {
     expect(doc).toContain('sv2');
   });
   it('saveSubvenciones sincroniza con Presupuesto (subvencionPublica)', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = readDocumentos();
     expect(doc).toContain('saveSubvenciones');
     expect(doc).toContain('subvencionPublica');
     expect(doc).toContain('teg_presupuesto_v1_ingresosExtra');
   });
   it('sync solo activa subvenciones en estado concedida/justificada/cerrada', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = readDocumentos();
     expect(doc).toContain('"concedida","justificada","cerrada"');
   });
   it('modal de subvención tiene campos de importe solicitado y concedido', () => {
@@ -1249,13 +1267,13 @@ describe('SUBV-01 — Módulo Subvenciones', () => {
   });
   it('pestaña Subvenciones con total concedido visible en el tab', () => {
     // MEJ-23: tab logic in orchestrator, totalConcedido in TabSubvenciones
-    const orch = read('src/components/blocks/Documentos.jsx');
+    const orch = readDocumentos();
     const sub  = read('src/components/documentos/TabSubvenciones.jsx');
     expect(orch).toContain('tab === "subvenciones"');
     expect(sub).toContain('totalConcedido');
   });
   it('confirmarDelete maneja esSubvencion', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = readDocumentos();
     expect(doc).toContain('esSubvencion');
   });
   it('SUBVENCION_EMPTY incluye campo resolucionDoc', () => {
@@ -1316,11 +1334,11 @@ describe('DOCS-P1 — Nuevas categorías de documento', () => {
 
 describe('DOCS-P3 — Semáforo documental', () => {
   it('panel semáforo presente en el render', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = readDocumentos();
     expect(doc).toContain('Estado documental');
   });
   it('semáforo evalúa permisos, seguros, gestiones y subvenciones', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = readDocumentos();
     ['permOk','segOk','gestOk','svConcedidas'].forEach(v => expect(doc).toContain(v));
   });
 });
@@ -1357,15 +1375,15 @@ describe('DOCS-P4 — Nuevas gestiones predefinidas', () => {
 
 describe('DOCS-P5 — Importe en contratos y seguros', () => {
   it('contratos y seguros incluidos en condición de importe', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = readDocumentos();
     expect(doc).toContain('"contratos","seguros"');
   });
   it('placeholder diferenciado para seguros', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = readDocumentos();
     expect(doc).toContain('Prima anual');
   });
   it('placeholder diferenciado para contratos', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = readDocumentos();
     expect(doc).toContain('Importe del contrato');
   });
 });
@@ -1376,12 +1394,12 @@ describe('DOCS-P5 — Importe en contratos y seguros', () => {
 
 describe('DOC-MF1 — Auto-vencimiento robusto', () => {
   it('aplicarAutoVencimiento definida como useCallback en Documentos', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = readDocumentos();
     expect(doc).toContain('aplicarAutoVencimiento');
     expect(doc).toContain('useCallback');
   });
   it('ESTADOS_EXCLUIDOS_DOC incluye vigente, vencido, aprobado, firmado, denegado', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = readDocumentos();
     expect(doc).toContain('ESTADOS_EXCLUIDOS_DOC');
     expect(doc).toContain('"vigente"');
     expect(doc).toContain('"vencido"');
@@ -1390,73 +1408,73 @@ describe('DOC-MF1 — Auto-vencimiento robusto', () => {
     expect(doc).toContain('"denegado"');
   });
   it('auto-vencimiento cubre también gestiones (ESTADOS_EXCLUIDOS_GEST)', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = readDocumentos();
     expect(doc).toContain('ESTADOS_EXCLUIDOS_GEST');
     expect(doc).toContain('currentGestiones');
   });
   it('persiste cambios a Neon cuando hay docs vencidos', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = readDocumentos();
     expect(doc).toContain('cambiosDocs');
     expect(doc).toContain('dataService.set(LS_KEY, nextDocs)');
   });
   it('persiste cambios de gestiones vencidas a Neon', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = readDocumentos();
     expect(doc).toContain('cambiosGest');
     expect(doc).toContain('dataService.set(LS_KEY + "_gestiones", nextGest)');
   });
   it('intervalo horario configurado con clearInterval en cleanup', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = readDocumentos();
     expect(doc).toContain('60 * 60 * 1000');
     expect(doc).toContain('clearInterval');
     expect(doc).toContain('return () => clearInterval(intervalo)');
   });
   it('auto-vencimiento se aplica en carga inicial (load)', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = readDocumentos();
     expect(doc).toContain('aplicarAutoVencimiento(docsInit, gestInit)');
   });
   it('añade fechaModificacion al marcar como vencido', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = readDocumentos();
     expect(doc).toContain('fechaModificacion: new Date().toISOString()');
   });
 });
 
 describe('DOC-MF2 — Totales económicos presupuesto vs factura', () => {
   it('sumaImporte helper calcula total por categoría', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = readDocumentos();
     expect(doc).toContain('sumaImporte');
   });
   it('campo totalImporte calculado para categorías presupuestos y facturas', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = readDocumentos();
     expect(doc).toContain('totalImporte');
     expect(doc).toContain('"presupuestos","facturas"');
   });
   it('KPI muestra totalImporte cuando existe importe en esa categoría', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = readDocumentos();
     expect(doc).toContain('c.totalImporte != null && c.totalImporte > 0');
   });
   it('panel Totales económicos renderiza totalPpto y totalFact', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = readDocumentos();
     expect(doc).toContain('totalPpto');
     expect(doc).toContain('totalFact');
     expect(doc).toContain('💰 Totales económicos');
   });
   it('desviación porcentual calculada cuando ambos totales existen', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = readDocumentos();
     expect(doc).toContain('desviacion');
     expect(doc).toContain('totalFact - totalPpto');
     expect(doc).toContain('toFixed(1)');
   });
   it('label Dentro de presupuesto cuando factura < presupuesto', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = readDocumentos();
     expect(doc).toContain('Dentro de presupuesto');
   });
   it('alerta Desviación alta cuando desviación > 10%', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = readDocumentos();
     expect(doc).toContain('desviacion > 10');
     expect(doc).toContain('Desviación alta');
   });
   it('panel solo se muestra cuando hayEcon (al menos un total > 0)', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = readDocumentos();
     expect(doc).toContain('hayEcon');
     expect(doc).toContain('{hayEcon && (');
   });
@@ -1564,7 +1582,7 @@ describe('LOG-FACT — Vinculación facturas/presupuestos Documentos desde pedid
     expect(doc).toContain('No hay facturas ni presupuestos subidos en Documentos');
   });
   it('fileRef declarado en Documentos.jsx (fix MEJ-23 regression)', () => {
-    const doc = read('src/components/blocks/Documentos.jsx');
+    const doc = readDocumentos();
     expect(doc).toContain('const fileRef = useRef(null)');
   });
 });

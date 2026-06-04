@@ -1,612 +1,61 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import EmptyState from "@/components/EmptyState";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
-import { createPortal } from "react-dom";
-import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
-import { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys"; // FIX-DEP: migrado desde alias deprecated
-import dataService from "@/lib/dataService";
-import { useData } from "@/hooks/useData";
-import { genIdStr } from "@/lib/utils";
-import { toast } from "@/lib/toast";
-import { blockCls as cls } from "@/lib/blockStyles";
 import SkeletonBlock from "@/components/common/SkeletonBlock";
-import { SK_DOC_DOCS, SK_DOC_SUBVENCIONES } from "@/constants/storageKeys";
-// MEJ-23: subcomponentes autónomos extraídos del orquestador
 import TabGestiones from "@/components/documentos/TabGestiones";
 import TabSubvenciones from "@/components/documentos/TabSubvenciones";
+import { VisorModal } from "@/components/documentos/VisorModal";
+import { DeleteConfirmModal } from "@/components/documentos/DeleteConfirmModal";
+import { UploadZone } from "@/components/documentos/UploadZone";
+import { useDocumentos } from "@/hooks/useDocumentos";
 import {
-  MAX_FILE_SIZE, ALLOWED_TYPES, ALLOWED_EXT,
-  CATEGORIAS, CAT_GESTIONES, TODAS_CATEGORIAS, SUBCATEGORIAS,
-  ESTADOS_DOC, getEstadoCfg, FILE_ICONS, getFileIcon,
+  CATEGORIAS, CAT_GESTIONES, TODAS_CATEGORIAS,
+  ESTADOS_DOC, getEstadoCfg, getFileIcon,
   formatSize, formatDate, formatImporte, diasHasta,
-  GESTIONES_DEFAULT, SUBVENCIONES_DEFAULT,
+  SUBCATEGORIAS,
 } from "@/constants/documentosConstants";
-
-const LS_KEY = SK_DOC_DOCS;
 
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 export default function Documentos() {
-  const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
+  const {
+    docs, gestiones, subvenciones,
+    tab, setTab,
+    dragOver, uploading,
+    subcat, setSubcat,
+    nota, setNota,
+    descripcionDoc, setDescripcionDoc,
+    estadoNuevo, setEstadoNuevo,
+    vencNuevo, setVencNuevo,
+    emisorNuevo, setEmisorNuevo,
+    importeNuevo, setImporteNuevo,
+    busqueda, setBusqueda,
+    busqGlobal, setBusqGlobal,
+    uploadOpen, setUploadOpen,
+    editId, setEditId,
+    gEditId, setGEditId,
+    svEditId, setSvEditId,
+    nuevoLog, setNuevoLog,
+    delConfirm, setDelConfirm,
+    uploadError, setUploadError,
+    editForm, setEditForm,
+    visorDoc, setVisorDoc,
+    isLoading, config,
+    handleFiles, handleDrop, handleDragOver, handleDragLeave,
+    deleteDoc, confirmarDelete, downloadDoc, viewDoc,
+    startEdit, saveEdit, updateEstado,
+    saveGestiones, saveSubvenciones,
+    addLogEntry,
+    gestionesProxVencer, gestionesVencidas, gestionesCriticas,
+    semaforoRiesgo, proxVencer, vencidos,
+    resultadosGlobales, catDocs,
+    totalSize, storagePct,
+  } = useDocumentos();
 
-  const [docs, setDocs]               = useState([]);
-  const [gestiones, setGestiones]     = useState([]);
-  const [subvenciones, setSubvenciones] = useState([]);
-  const [tab,  setTab]                = useState("presupuestos");
-  const [dragOver, setDragOver]       = useState(false);
-  const [uploading, setUploading]     = useState(false);
-  const [subcat, setSubcat]           = useState("");
-  const [nota,   setNota]             = useState("");
-  const [descripcionDoc, setDescripcionDoc] = useState("");
-  const [estadoNuevo, setEstadoNuevo] = useState("pendiente");
-  const [vencNuevo, setVencNuevo]     = useState("");
-  const [emisorNuevo, setEmisorNuevo] = useState("");
-  const [importeNuevo, setImporteNuevo] = useState("");
-  const [busqueda, setBusqueda]       = useState("");
-  const [busqGlobal, setBusqGlobal]   = useState(false);
-  const [uploadOpen, setUploadOpen]   = useState(false); // colapsado por defecto (mandato UX)
-  const [editId,  setEditId]          = useState(null);
-  const [gEditId, setGEditId]         = useState(null); // id de gestión en edición inline
-  const [svEditId, setSvEditId]       = useState(null); // id de subvención en edición inline
-  const [nuevoLog, setNuevoLog]       = useState("");   // texto del nuevo log de gestión
-  const [delConfirm, setDelConfirm]   = useState(null); // {id, nombre, esGestion}
-  const [uploadError, setUploadError] = useState(null); // mensaje de error de subida
-  const [editForm, setEditForm]       = useState({});
-  const [visorDoc, setVisorDoc]       = useState(null); // doc a visualizar en modal
-  const [isLoading, setIsLoading]     = useState(true); // skeleton hasta que la carga inicial termine
-  const fileRef = useRef(null); // input file oculto para zona de subida
-
-  const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
-
-  // ── Auto-vencimiento ─────────────────────────────────────────────────────
-  // Aplica estado "vencido" a docs/gestiones cuya fechaVencimiento ya pasó.
-  // ESTADOS_EXCLUIDOS_VENC: documentos en estos estados no se tocan (ya son definitivos).
-  const ESTADOS_EXCLUIDOS_DOC  = ["vigente", "vencido", "aprobado", "firmado", "denegado"];
-  const ESTADOS_EXCLUIDOS_GEST = ["aprobado", "vigente", "denegado", "vencido"];
-
-  const aplicarAutoVencimiento = useCallback((currentDocs, currentGestiones) => {
-    const hoy = new Date();
-    let docsActualizados    = currentDocs;
-    let gestionesActualizadas = currentGestiones;
-    let cambiosDocs    = false;
-    let cambiosGest    = false;
-
-    const nextDocs = currentDocs.map(d => {
-      if (
-        d.fechaVencimiento &&
-        !ESTADOS_EXCLUIDOS_DOC.includes(d.estado) &&
-        Math.ceil((new Date(d.fechaVencimiento) - hoy) / 86400000) < 0
-      ) {
-        cambiosDocs = true;
-        return { ...d, estado: "vencido", fechaModificacion: new Date().toISOString() };
-      }
-      return d;
-    });
-
-    const nextGest = currentGestiones.map(g => {
-      if (
-        g.fechaVencimiento &&
-        !ESTADOS_EXCLUIDOS_GEST.includes(g.estado) &&
-        Math.ceil((new Date(g.fechaVencimiento) - hoy) / 86400000) < 0
-      ) {
-        cambiosGest = true;
-        return { ...g, estado: "vencido", fechaModificacion: new Date().toISOString() };
-      }
-      return g;
-    });
-
-    if (cambiosDocs) {
-      docsActualizados = nextDocs;
-      setDocs(nextDocs);
-      dataService.set(LS_KEY, nextDocs);
-    }
-    if (cambiosGest) {
-      gestionesActualizadas = nextGest;
-      setGestiones(nextGest);
-      dataService.set(LS_KEY + "_gestiones", nextGest).then(() => dataService.notify("documentos"));
-    }
-
-    return { docs: docsActualizados, gestiones: gestionesActualizadas, cambiosDocs, cambiosGest };
-  }, []);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        // SEC-01: llamada al proxy BFF — sin x-api-key en el cliente
-        const res = await fetch("/api/proxy/documents", {
-          headers: { "Content-Type": "application/json" }
-        });
-        let docsInit;
-        if (res.ok) {
-          docsInit = await res.json();
-          // F8-01: sincronizar SK_DOC_DOCS tras carga inicial
-          setDocs(docsInit);
-          dataService.set(LS_KEY, docsInit);
-        } else {
-          // Fallback a Neon/localStorage si la API de blobs no responde
-          const fallback = await dataService.get(LS_KEY, []);
-          docsInit = Array.isArray(fallback) ? fallback : [];
-          setDocs(docsInit);
-        }
-
-        // Gestiones: si Neon no tiene la clave (primer uso), guardar defaults
-        const rawGest = await dataService.get(LS_KEY + "_gestiones", null);
-        let gestInit;
-        if (Array.isArray(rawGest)) {
-          gestInit = rawGest;
-        } else {
-          gestInit = GESTIONES_DEFAULT;
-          dataService.set(LS_KEY + "_gestiones", GESTIONES_DEFAULT);
-        }
-        setGestiones(gestInit);
-
-        // Subvenciones — misma estrategia que gestiones
-        const rawSv = await dataService.get(SK_DOC_SUBVENCIONES, null);
-        if (Array.isArray(rawSv)) {
-          setSubvenciones(rawSv);
-        } else {
-          setSubvenciones(SUBVENCIONES_DEFAULT);
-          dataService.set(SK_DOC_SUBVENCIONES, SUBVENCIONES_DEFAULT);
-        }
-
-        // Auto-vencimiento inicial con todos los datos ya cargados
-        aplicarAutoVencimiento(docsInit, gestInit);
-
-      } catch {
-        const fallback = await dataService.get(LS_KEY, []).catch(() => []);
-        const docsInit = Array.isArray(fallback) ? fallback : [];
-        setDocs(docsInit);
-        setGestiones(GESTIONES_DEFAULT);
-        aplicarAutoVencimiento(docsInit, GESTIONES_DEFAULT);
-      }
-      setIsLoading(false);
-    };
-    load();
-
-    // Revisar vencimientos cada hora (sesiones largas el día del evento)
-    const intervalo = setInterval(() => {
-      setDocs(prevDocs => {
-        setGestiones(prevGest => {
-          aplicarAutoVencimiento(prevDocs, prevGest);
-          return prevGest;
-        });
-        return prevDocs;
-      });
-    }, 60 * 60 * 1000);
-
-    return () => clearInterval(intervalo);
-  }, [aplicarAutoVencimiento]);
-
-  // save() actualiza el estado local Y sincroniza SK_DOC_DOCS en Neon [F8-01]
-  const save = useCallback((next) => {
-    setDocs(next);
-    dataService.set(LS_KEY, next);
-    dataService.notify('documentos');
-  }, []);
-  const saveGestiones = useCallback((next) => {
-    setGestiones(next);
-    dataService.set(LS_KEY + "_gestiones", next).then(() => dataService.notify('documentos'));
-  }, []);
-
-  // saveSubvenciones: guarda y sincroniza el total concedido a SK_PPTO_INGRESOS_EXTRA
-  // para que aparezca automáticamente en el Presupuesto como "Subvención entidad pública" (syncKey: subvencionPublica)
-  const saveSubvenciones = useCallback((next) => {
-    setSubvenciones(next);
-    dataService.set(SK_DOC_SUBVENCIONES, next).then(async () => {
-      // Calcular total concedido (solo subvenciones en estado concedida/justificada/cerrada)
-      const totalConcedido = next
-        .filter(sv => ["concedida", "justificada", "cerrada"].includes(sv.estado))
-        .reduce((sum, sv) => {
-          const v = parseFloat(String(sv.importeConcedido || "0").replace(",", ".")) || 0;
-          return sum + v;
-        }, 0);
-      // Actualizar la línea subvencionPublica en ingresosExtra
-      const ingresosExtra = await dataService.get("teg_presupuesto_v1_ingresosExtra", []);
-      if (Array.isArray(ingresosExtra)) {
-        const updated = ingresosExtra.map(ie =>
-          ie.syncKey === "subvencionPublica"
-            ? { ...ie, valor: totalConcedido, activo: totalConcedido > 0 }
-            : ie
-        );
-        await dataService.set("teg_presupuesto_v1_ingresosExtra", updated);
-      }
-      dataService.notify('documentos');
-      dataService.notify('presupuesto');
-    });
-  }, []);
-
-  // ─── FILE HANDLING ────────────────────────────────────────────────────────
-  const handleFiles = useCallback(async (files) => {
-    if (uploading) return;
-    const validFiles = Array.from(files).filter(f => {
-      const typeOk = ALLOWED_TYPES.includes(f.type) ||
-        f.name.match(/\.(pdf|png|jpe?g|webp)$/i);
-      if (!typeOk) { setUploadError(`Tipo no permitido: "${f.name}". Usa PDF, PNG, JPG o WebP.`); return false; }
-      if (f.size > MAX_FILE_SIZE) { setUploadError(`"${f.name}" excede 10 MB.`); return false; }
-      return true;
-    });
-    if (!validFiles.length) return;
-    setUploading(true);
-    const newDocs = [];
-    for (const file of validFiles) {
-      const base64 = await fileToBase64(file);
-      // Calcular tamaño real del archivo comprimido (base64 → bytes)
-      const b64Data = base64.includes(",") ? base64.split(",")[1] : base64;
-      const realSize = Math.round(b64Data.length * 0.75); // aprox bytes desde base64
-      // Si la imagen fue comprimida a WebP, usar nombre con extensión .webp
-      const isCompressedImg = base64.startsWith("data:image/webp") && !file.name.match(/\.webp$/i);
-      const nombre = isCompressedImg ? file.name.replace(/\.[^.]+$/, "") + ".webp" : file.name;
-      const tipo   = isCompressedImg ? "image/webp"
-        : (file.type || (file.name.match(/\.pdf$/i) ? "application/pdf" : "image/jpeg"));
-      newDocs.push({
-        id: genIdStr(),
-        nombre,
-        nombreDisplay: nota ? nota.trim() : file.name.replace(/\.[^.]+$/, ""),
-        emisor: emisorNuevo || null,
-        importe: importeNuevo ? parseFloat(importeNuevo.replace(",",".")) || null : null,
-        categoria: tab,
-        subcategoria: subcat || null,
-        nota: descripcionDoc ? descripcionDoc.trim() : null,
-        estado: estadoNuevo,
-        fechaVencimiento: vencNuevo || null,
-        size: realSize,
-        tipo,
-        data: base64,
-        fechaSubida: new Date().toISOString(),
-        fechaModificacion: new Date().toISOString(),
-      });
-    }
-    // SEC-01: subida al proxy BFF — sin x-api-key en el cliente
-    const subidos = [];
-    const errores = [];
-    for (const doc of newDocs) {
-      try {
-        const res = await fetch("/api/proxy/documents", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(doc),
-        });
-        if (res.ok) {
-          const { blobUrl } = await res.json();
-          // Guardar en estado con blobUrl — necesario para Ver/Descargar
-          subidos.push({ ...doc, data: null, blobUrl: blobUrl || null });
-        } else {
-          const err = await res.json().catch(() => ({}));
-          console.error("Error subiendo documento:", err);
-          errores.push(`"${doc.nombre}": ${err.error || res.status}`);
-        }
-      } catch (e) {
-        console.error("Error subiendo documento:", e);
-        errores.push(`"${doc.nombre}": error de red`);
-      }
-    }
-    if (subidos.length > 0) save([...docs, ...subidos]);
-    if (subidos.length > 0) toast.success(subidos.length === 1 ? "Documento subido correctamente" : `${subidos.length} documentos subidos`);
-    if (errores.length > 0) setUploadError(`Error al subir: ${errores.join(" · ")}`);
-    setNota(""); setSubcat(""); setVencNuevo(""); setEstadoNuevo("pendiente"); setEmisorNuevo(""); setImporteNuevo(""); setDescripcionDoc("");
-    setUploading(false);
-  }, [docs, tab, subcat, nota, descripcionDoc, estadoNuevo, vencNuevo, emisorNuevo, importeNuevo, uploading, save]);
-
-  // Comprime imágenes vía canvas antes de codificar (PDFs pasan sin cambio).
-  // Reduce tamaño ~60-80% en imágenes grandes sin pérdida visible.
-  const fileToBase64 = (file) => new Promise((res, rej) => {
-    const isImage = file.type.startsWith("image/") || !!file.name.match(/\.(png|jpe?g|webp)$/i);
-    if (!isImage) {
-      const r = new FileReader();
-      r.onload = () => res(r.result);
-      r.onerror = rej;
-      r.readAsDataURL(file);
-      return;
-    }
-    const MAX_DIM = 1920;
-    const QUALITY = 0.82;
-    const img = new Image();
-    const objUrl = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(objUrl);
-      let { width, height } = img;
-      if (width > MAX_DIM || height > MAX_DIM) {
-        const ratio = Math.min(MAX_DIM / width, MAX_DIM / height);
-        width  = Math.round(width  * ratio);
-        height = Math.round(height * ratio);
-      }
-      const canvas = document.createElement("canvas");
-      canvas.width  = width;
-      canvas.height = height;
-      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-      res(canvas.toDataURL("image/webp", QUALITY));
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(objUrl);
-      const r = new FileReader();
-      r.onload = () => res(r.result);
-      r.onerror = rej;
-      r.readAsDataURL(file);
-    };
-    img.src = objUrl;
-  });
-
-  const handleDrop      = (e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); };
-  const handleDragOver  = (e) => { e.preventDefault(); setDragOver(true); };
-  const handleDragLeave = (e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(false); };
-
-  const deleteDoc = async (id) => {
-    setDelConfirm({ id, nombre: docs.find(d=>d.id===id)?.nombreDisplay || docs.find(d=>d.id===id)?.nombre || "documento", esGestion: false });
-  };
-
-  const confirmarDelete = async () => {
-    if (!delConfirm) return;
-    const { id, esGestion, esSubvencion } = delConfirm;
-    setDelConfirm(null);
-    if (esGestion) {
-      saveGestiones(gestiones.filter(x => x.id !== id));
-      setGEditId(null);
-      toast.success("Gestión eliminada");
-    } else if (esSubvencion) {
-      saveSubvenciones(subvenciones.filter(sv => sv.id !== id));
-      setSvEditId(null);
-      toast.success("Subvención eliminada");
-    } else {
-      try {
-        // SEC-01: proxy BFF — sin x-api-key en el cliente
-        await fetch(`/api/proxy/documents?id=${id}`, {
-          method: "DELETE",
-        });
-      } catch (e) { console.error("Error eliminando:", e); }
-      save(docs.filter(d => d.id !== id));
-      toast.success("Documento eliminado");
-    }
-  };
-  const downloadDoc = async (doc) => {
-    // Preferir blobUrl — descarga directa sin pasar por Neon
-    if (doc.blobUrl) {
-      const a = document.createElement("a");
-      a.href = doc.blobUrl;
-      a.download = doc.nombre;
-      a.target = "_blank";
-      a.click();
-      return;
-    }
-    // Fallback legacy: base64 en memoria
-    const data = doc.data || await fetchDocData(doc);
-    if (!data) return;
-    const a = document.createElement("a");
-    a.href = data; a.download = doc.nombre; a.click();
-  };
-  // Obtener el data del documento desde la API (lazy — no se descarga al listar)
-  // fetchDocData — ya no necesario para nuevos docs (tienen blobUrl)
-  // Se mantiene como fallback para docs legacy con base64 en memoria
-  const fetchDocData = async (doc) => {
-    if (doc.data) return doc.data;
-    return null;
-  };
-
-  const viewDoc = async (doc) => {
-    const esImg = doc.tipo?.startsWith("image/")
-      || !!doc.nombre?.match(/\.(png|jpe?g|webp)$/i);
-
-    // CASO 1: doc tiene blobUrl (nuevo sistema — Vercel Blob)
-    if (doc.blobUrl) {
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      if (esImg) {
-        setVisorDoc({ ...doc, _loading: false });
-      } else if (isIOS) {
-        // iOS no soporta iframe embebido — abrir en nueva pestaña
-        window.open(doc.blobUrl, "_blank", "noopener");
-      } else {
-        // Desktop y Android: fetch del blob → objectURL local para evitar
-        // problemas con Content-Disposition: attachment de Vercel Blob
-        setVisorDoc({ ...doc, _loading: true, _esPdf: true });
-        try {
-          const resp = await fetch(doc.blobUrl);
-          const blob = await resp.blob();
-          const objectUrl = URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
-          setVisorDoc({ ...doc, _loading: false, _esPdf: true, _objectUrl: objectUrl });
-        } catch {
-          // Fallback: abrir en nueva pestaña si el fetch falla (CORS, etc.)
-          setVisorDoc(null);
-          window.open(doc.blobUrl, "_blank", "noopener");
-        }
-      }
-      return;
-    }
-
-    // CASO 2: doc legacy con base64 en memoria
-    if (doc.data) {
-      const esPdf = doc.tipo === "application/pdf"
-        || doc.nombre?.toLowerCase().endsWith(".pdf")
-        || doc.data.startsWith("data:application/pdf");
-      if (esPdf) {
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        if (isIOS) {
-          // iOS: descarga directa
-          const a = document.createElement("a");
-          a.href = doc.data;
-          a.download = doc.nombre || "documento.pdf";
-          a.click();
-        } else {
-          try {
-            const b64 = doc.data.includes(",") ? doc.data.split(",")[1] : doc.data;
-            const bin = atob(b64);
-            const buf = new Uint8Array(bin.length);
-            for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
-            const url = URL.createObjectURL(new Blob([buf], { type: "application/pdf" }));
-            setVisorDoc({ ...doc, _loading: false, _esPdf: true, _objectUrl: url });
-          } catch {
-            setVisorDoc({ ...doc, _loading: false, _esPdf: true });
-          }
-        }
-        return;
-      }
-      if (esImg) {
-        setVisorDoc({ ...doc, _loading: false });
-        return;
-      }
-      window.open(doc.data, "_blank");
-      return;
-    }
-
-    // CASO 3: sin data ni blobUrl — error
-    setVisorDoc({ ...doc, _loading: false, _error: true });
-  };
-
-  const startEdit = (doc) => {
-    const main = document.querySelector("main");
-    if (main) main.scrollTo({ top: 0, behavior: "instant" });
-    setEditId(doc.id);
-    setEditForm({
-      nombreDisplay: doc.nombreDisplay || doc.nombre.replace(/\.[^.]+$/, ""),
-      emisor: doc.emisor || "",
-      importe: doc.importe != null ? String(doc.importe) : "",
-      nota: doc.nota || "",
-      subcategoria: doc.subcategoria || "",
-      estado: doc.estado || "pendiente",
-      fechaVencimiento: doc.fechaVencimiento || "",
-    });
-  };
-
-  const saveEdit = async () => {
-    const formToSave = {
-      ...editForm,
-      importe: editForm.importe !== "" && editForm.importe != null
-        ? parseFloat(String(editForm.importe).replace(",",".")) || null
-        : null,
-    };
-    try {
-      // SEC-01: proxy BFF — sin x-api-key en el cliente
-      await fetch(`/api/proxy/documents?id=${editId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formToSave),
-      });
-    } catch (e) { console.error("Error actualizando:", e); }
-    save(docs.map(d => d.id === editId
-      ? { ...d, ...formToSave, fechaModificacion: new Date().toISOString() }
-      : d
-    ));
-    const doc = docs.find(d => d.id === editId);
-    if (doc && editForm.categoria && editForm.categoria !== doc.categoria) setTab(editForm.categoria);
-    setEditId(null);
-  };
-
-  const updateEstado = async (id, estado) => {
-    try {
-      // SEC-01: proxy BFF — sin x-api-key en el cliente
-      await fetch(`/api/proxy/documents?id=${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ estado }),
-      });
-    } catch (e) { console.error("Error actualizando estado:", e); }
-    save(docs.map(d => d.id === id ? { ...d, estado, fechaModificacion: new Date().toISOString() } : d));
-  };
-
-  // ─── DERIVED ─────────────────────────────────────────────────────────────
-  const catInfo      = CATEGORIAS.find(c => c.id === tab);
   const isGestion    = tab === "gestiones";
   const isSubvencion = tab === "subvenciones";
-  // Fallback para pestañas especiales que no están en CATEGORIAS (gestiones, subvenciones)
+  const catInfo      = CATEGORIAS.find(c => c.id === tab);
   const catInfoSafe  = catInfo || { id: tab, icon: "📄", label: tab, color: "#94a3b8" };
-
-  const addLogEntry = (gestionId) => {
-    const texto = nuevoLog.trim();
-    if (!texto) return;
-    const entrada = {
-      id: Date.now(),
-      fecha: new Date().toISOString(),
-      texto,
-      autor: "Organización",
-    };
-    saveGestiones(gestiones.map(g =>
-      g.id === gestionId
-        ? { ...g, log: [...(g.log || []), entrada] }
-        : g
-    ));
-    setNuevoLog("");
-  };
-  const subcats   = SUBCATEGORIAS[tab] || [];
-  const totalSize = docs.reduce((s, d) => s + (d.size || 0), 0);
-  const storagePct = Math.min((totalSize / (100*1024*1024)) * 100, 100);
   const storageColor = storagePct > 80 ? "#f87171" : storagePct > 50 ? "#fbbf24" : "#34d399";
-
-  // C4: useMemo en todos los filtros/cálculos costosos para evitar recálculo
-  // en renders causados por cambios de estado no relacionados (modales, editId, etc.)
-
-  // Gestiones con vencimiento próximo o vencidas
-  const gestionesProxVencer = useMemo(() => gestiones.filter(gst => {
-    const ndias = diasHasta(gst.fechaVencimiento);
-    if (ndias === null || ndias < 0 || ndias > 30) return false;
-    if (gst.estado === "aprobado") return false;
-    // Si la gestión está completamente por defecto (sin responsable, url ni fichero subido)
-    // solo alertar en ventana ajustada de 7 días para no saturar el panel desde el día 1
-    const esPorDefecto = !gst.responsable && !gst.url && !gst.fechaSubida;
-    if (esPorDefecto && ndias > 7) return false;
-    return true;
-  }), [gestiones]);
-
-  const gestionesVencidas = useMemo(() => gestiones.filter(gst => {
-    const ndias = diasHasta(gst.fechaVencimiento);
-    return ndias !== null && ndias < 0 && gst.estado !== "aprobado" && gst.estado !== "denegado";
-  }), [gestiones]);
-
-  const gestionesCriticas = useMemo(() =>
-    gestiones.filter(g => g.estado === "denegado"),
-  [gestiones]);
-
-  // Semáforo de riesgo legal global
-  const semaforoRiesgo = useMemo(() => {
-    const GESTIONES_CRITICAS_IDS = ["g1","g2","g3"]; // Ayuntamiento, RFEA, Seguro RC
-    const criticas = gestiones.filter(g => GESTIONES_CRITICAS_IDS.includes(g.id));
-    if (criticas.some(g => g.estado === "denegado")) return "rojo";
-    if (criticas.some(g => {
-      const nd = diasHasta(g.fechaVencimiento);
-      return g.estado !== "aprobado" && (nd === null || nd < 0);
-    })) return "rojo";
-    if (criticas.some(g => {
-      const nd = diasHasta(g.fechaVencimiento);
-      return g.estado !== "aprobado" && nd !== null && nd <= 30;
-    })) return "ambar";
-    if (criticas.every(g => g.estado === "aprobado")) return "verde";
-    return "ambar";
-  }, [gestiones]);
-
-  // Documentos por vencer en <30 días (para alertas)
-  const proxVencer = useMemo(() => docs.filter(doc => {
-    const ndias = diasHasta(doc.fechaVencimiento);
-    return ndias !== null && ndias >= 0 && ndias <= 30 && doc.estado !== "aprobado";
-  }).sort((sa,sb) => new Date(sa.fechaVencimiento) - new Date(sb.fechaVencimiento)),
-  [docs]);
-
-  const vencidos = useMemo(() => docs.filter(doc => {
-    const ndias = diasHasta(doc.fechaVencimiento);
-    return ndias !== null && ndias < 0 && doc.estado !== "aprobado";
-  }), [docs]);
-
-  // Búsqueda global (todas las categorías)
-  const resultadosGlobales = useMemo(() => busqueda && busqGlobal
-    ? docs.filter(d => {
-        const q = busqueda.toLowerCase();
-        return (d.nombreDisplay||d.nombre).toLowerCase().includes(q)
-          || (d.emisor||"").toLowerCase().includes(q)
-          || (d.nota||"").toLowerCase().includes(q)
-          || (d.subcategoria||"").toLowerCase().includes(q);
-      }).sort((sa,sb) => new Date(sb.fechaSubida) - new Date(sa.fechaSubida))
-    : null,
-  [docs, busqueda, busqGlobal]);
-
-  // Filtrado: categoría + búsqueda
-  const catDocs = useMemo(() => docs
-    .filter(d => d.categoria === tab)
-    .filter(d => {
-      if (!busqueda || busqGlobal) return true;
-      const q = busqueda.toLowerCase();
-      return (d.nombreDisplay||d.nombre).toLowerCase().includes(q)
-        || (d.emisor||"").toLowerCase().includes(q)
-        || (d.nota||"").toLowerCase().includes(q)
-        || (d.subcategoria||"").toLowerCase().includes(q)
-        || (d.estado||"").toLowerCase().includes(q);
-    })
-    .sort((sa, sb) => new Date(sb.fechaSubida) - new Date(sa.fechaSubida)),
-  [docs, tab, busqueda, busqGlobal]);
 
   if (isLoading) return <SkeletonBlock variant="documentos" />;
 
@@ -621,42 +70,38 @@ export default function Documentos() {
             <div className="block-title-sub">{config.nombre} {config.edicion} · Gestión documental</div>
           </div>
           <div className="block-actions">
-            {/* Semáforo de riesgo legal */}
             <span title={
-              semaforoRiesgo==="verde"?"✅ Permisos críticos OK (Ayuntamiento, RFEA, Seguro RC)":
-              semaforoRiesgo==="ambar"?"⚠️ Algún permiso crítico pendiente o próximo a vencer":
+              semaforoRiesgo === "verde" ? "✅ Permisos críticos OK (Ayuntamiento, RFEA, Seguro RC)" :
+              semaforoRiesgo === "ambar" ? "⚠️ Algún permiso crítico pendiente o próximo a vencer" :
               "🚨 Permiso crítico denegado o vencido — revisar urgente"
             } style={{
-              fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,cursor:"help",
-              color: semaforoRiesgo==="verde"?"var(--green)":semaforoRiesgo==="ambar"?"var(--amber)":"var(--red)",
-              background: semaforoRiesgo==="verde"?"var(--green-dim)":semaforoRiesgo==="ambar"?"rgba(251,191,36,.15)":"var(--red-dim)",
-              border:`1px solid ${semaforoRiesgo==="verde"?"rgba(52,211,153,.3)":semaforoRiesgo==="ambar"?"rgba(251,191,36,.3)":"rgba(248,113,113,.3)"}`,
-              borderRadius:6,padding:".2rem .55rem",
+              fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700, cursor: "help",
+              color: semaforoRiesgo === "verde" ? "var(--green)" : semaforoRiesgo === "ambar" ? "var(--amber)" : "var(--red)",
+              background: semaforoRiesgo === "verde" ? "var(--green-dim)" : semaforoRiesgo === "ambar" ? "rgba(251,191,36,.15)" : "var(--red-dim)",
+              border: `1px solid ${semaforoRiesgo === "verde" ? "rgba(52,211,153,.3)" : semaforoRiesgo === "ambar" ? "rgba(251,191,36,.3)" : "rgba(248,113,113,.3)"}`,
+              borderRadius: 6, padding: ".2rem .55rem",
             }}>
-              {semaforoRiesgo==="verde"?"✅ Permisos OK":semaforoRiesgo==="ambar"?"⚠️ Atención":"🚨 Riesgo legal"}
+              {semaforoRiesgo === "verde" ? "✅ Permisos OK" : semaforoRiesgo === "ambar" ? "⚠️ Atención" : "🚨 Riesgo legal"}
             </span>
-            {/* Alertas de vencimiento en el header */}
             {(vencidos.length + gestionesVencidas.length + gestionesCriticas.length) > 0 && (
               <span className="badge badge-red">
-                ⚠️ {vencidos.length + gestionesVencidas.length + gestionesCriticas.length} urgente{(vencidos.length+gestionesVencidas.length+gestionesCriticas.length)>1?"s":""}
+                ⚠️ {vencidos.length + gestionesVencidas.length + gestionesCriticas.length} urgente{(vencidos.length + gestionesVencidas.length + gestionesCriticas.length) > 1 ? "s" : ""}
               </span>
             )}
             {proxVencer.length > 0 && (
-              <span className="badge badge-amber" title={`Vencen pronto: ${proxVencer.map(d=>d.nombre).join(", ")}`}>
-                ⏰ {proxVencer.length} próximo{proxVencer.length>1?"s":""}
+              <span className="badge badge-amber" title={`Vencen pronto: ${proxVencer.map(d => d.nombre).join(", ")}`}>
+                ⏰ {proxVencer.length} próximo{proxVencer.length > 1 ? "s" : ""}
               </span>
             )}
-            <span className="badge badge-cyan">{docs.length} doc{docs.length!==1?"s":""}</span>
+            <span className="badge badge-cyan">{docs.length} doc{docs.length !== 1 ? "s" : ""}</span>
 
-            {/* Buscador con alcance siempre visible */}
             <div className="doc-search">
-              <span style={{opacity:.5, fontSize:"var(--fs-base)", flexShrink:0}}>🔍</span>
+              <span style={{ opacity: .5, fontSize: "var(--fs-base)", flexShrink: 0 }}>🔍</span>
               <input
                 value={busqueda}
                 onChange={e => setBusqueda(e.target.value)}
                 placeholder="Buscar documentos…"
               />
-              {/* Alcance: siempre visible, no solo cuando hay texto */}
               <button
                 onClick={() => setBusqGlobal(v => !v)}
                 title={busqGlobal ? "Buscar solo en esta categoría" : "Buscar en todas las categorías"}
@@ -664,16 +109,15 @@ export default function Documentos() {
                   background: busqGlobal ? "var(--cyan-dim)" : "var(--surface3)",
                   border: busqGlobal ? "1px solid rgba(34,211,238,0.3)" : "1px solid var(--border)",
                   color: busqGlobal ? "var(--cyan)" : "var(--text-muted)",
-                  cursor:"pointer", fontSize:"var(--fs-xs)", padding:".12rem .4rem",
-                  borderRadius:4, fontFamily:"var(--font-mono)",
-                  whiteSpace:"nowrap", flexShrink:0, transition:"all .15s",
+                  cursor: "pointer", fontSize: "var(--fs-xs)", padding: ".12rem .4rem",
+                  borderRadius: 4, fontFamily: "var(--font-mono)",
+                  whiteSpace: "nowrap", flexShrink: 0, transition: "all .15s",
                 }}>
                 {busqGlobal ? "🌐" : "📁"}
               </button>
               {busqueda && (
                 <button onClick={() => { setBusqueda(""); setBusqGlobal(false); }}
-                  style={{background:"none",border:"none",color:"var(--text-muted)",
-                    cursor:"pointer",fontSize:"var(--fs-sm)",padding:0}}>✕</button>
+                  style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "var(--fs-sm)", padding: 0 }}>✕</button>
               )}
             </div>
           </div>
@@ -683,81 +127,79 @@ export default function Documentos() {
         {(gestionesCriticas.length > 0 || gestionesVencidas.length > 0 ||
           vencidos.length > 0 || gestionesProxVencer.length > 0 || proxVencer.length > 0) && (() => {
           const hayCriticos = gestionesCriticas.length > 0 || gestionesVencidas.length > 0 || vencidos.length > 0;
-          // Unificamos gestiones + documentos en una sola lista priorizada
           const items = [
             ...gestionesCriticas.map(g => ({
-              id:"g"+g.id, icon:"🚫", nombre:g.nombre, color:"var(--red)",
-              bg:"var(--red-dim)", border:"rgba(248,113,113,.2)",
-              etiqueta:"Denegado", accion:()=>{setTab("gestiones");setGEditId(g.id);}, btnLabel:"Actualizar"
+              id: "g" + g.id, icon: "🚫", nombre: g.nombre, color: "var(--red)",
+              bg: "var(--red-dim)", border: "rgba(248,113,113,.2)",
+              etiqueta: "Denegado", accion: () => { setTab("gestiones"); setGEditId(g.id); }, btnLabel: "Actualizar"
             })),
             ...gestionesVencidas.map(g => ({
-              id:"gv"+g.id, icon:"⚠️", nombre:g.nombre, color:"var(--red)",
-              bg:"var(--red-dim)", border:"rgba(248,113,113,.2)",
-              etiqueta:`Venció ${formatDate(g.fechaVencimiento)}`,
-              accion:()=>{setTab("gestiones");setGEditId(g.id);}, btnLabel:"Actualizar"
+              id: "gv" + g.id, icon: "⚠️", nombre: g.nombre, color: "var(--red)",
+              bg: "var(--red-dim)", border: "rgba(248,113,113,.2)",
+              etiqueta: `Venció ${formatDate(g.fechaVencimiento)}`,
+              accion: () => { setTab("gestiones"); setGEditId(g.id); }, btnLabel: "Actualizar"
             })),
             ...vencidos.map(d => ({
-              id:"d"+d.id, icon:CATEGORIAS.find(c=>c.id===d.categoria)?.icon||"📄",
-              nombre:d.nombreDisplay||d.nombre, color:"var(--red)",
-              bg:"var(--red-dim)", border:"rgba(248,113,113,.2)",
-              etiqueta:`Venció ${formatDate(d.fechaVencimiento)}`,
-              accion:()=>{ setTab(d.categoria); startEdit(d); }, btnLabel:"Actualizar"
+              id: "d" + d.id, icon: CATEGORIAS.find(c => c.id === d.categoria)?.icon || "📄",
+              nombre: d.nombreDisplay || d.nombre, color: "var(--red)",
+              bg: "var(--red-dim)", border: "rgba(248,113,113,.2)",
+              etiqueta: `Venció ${formatDate(d.fechaVencimiento)}`,
+              accion: () => { setTab(d.categoria); startEdit(d); }, btnLabel: "Actualizar"
             })),
             ...gestionesProxVencer.map(g => {
               const dias = diasHasta(g.fechaVencimiento);
               return {
-                id:"gp"+g.id, icon:"⏰", nombre:g.nombre, color:"var(--amber)",
-                bg:"var(--amber-dim)", border:"rgba(251,191,36,.2)",
-                etiqueta: dias===0?"Hoy":`en ${dias}d`,
-                accion:()=>{setTab("gestiones");setGEditId(g.id);}, btnLabel:"Ver"
+                id: "gp" + g.id, icon: "⏰", nombre: g.nombre, color: "var(--amber)",
+                bg: "var(--amber-dim)", border: "rgba(251,191,36,.2)",
+                etiqueta: dias === 0 ? "Hoy" : `en ${dias}d`,
+                accion: () => { setTab("gestiones"); setGEditId(g.id); }, btnLabel: "Ver"
               };
             }),
             ...proxVencer.map(d => {
               const dias = diasHasta(d.fechaVencimiento);
               return {
-                id:"dp"+d.id, icon:CATEGORIAS.find(c=>c.id===d.categoria)?.icon||"📄",
-                nombre:d.nombreDisplay||d.nombre, color:"var(--amber)",
-                bg:"var(--amber-dim)", border:"rgba(251,191,36,.2)",
-                etiqueta: dias===0?"Hoy":`en ${dias}d`,
-                accion:()=>{ setTab(d.categoria); }, btnLabel:"Ver"
+                id: "dp" + d.id, icon: CATEGORIAS.find(c => c.id === d.categoria)?.icon || "📄",
+                nombre: d.nombreDisplay || d.nombre, color: "var(--amber)",
+                bg: "var(--amber-dim)", border: "rgba(251,191,36,.2)",
+                etiqueta: dias === 0 ? "Hoy" : `en ${dias}d`,
+                accion: () => { setTab(d.categoria); }, btnLabel: "Ver"
               };
             }),
           ];
           return (
             <div className="card mb" style={{
-              padding:".7rem .9rem",
+              padding: ".7rem .9rem",
               position: hayCriticos ? "sticky" : "relative",
               top: hayCriticos ? "0" : "auto",
               zIndex: hayCriticos ? 15 : "auto",
               boxShadow: hayCriticos ? "0 4px 16px rgba(248,113,113,.15), 0 2px 4px rgba(0,0,0,.3)" : "none",
               borderColor: hayCriticos ? "rgba(248,113,113,.35)" : "var(--border)",
             }}>
-              <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
-                color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:".08em",
-                marginBottom:".45rem"}}>
-                ⚠️ Requieren atención · {items.length} elemento{items.length!==1?"s":""}
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700,
+                color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: ".45rem" }}>
+                ⚠️ Requieren atención · {items.length} elemento{items.length !== 1 ? "s" : ""}
               </div>
-              <div style={{display:"flex",flexDirection:"column",gap:".25rem"}}>
+              <div style={{ display: "flex", flexDirection: "column", gap: ".25rem" }}>
                 {items.map(item => (
                   <div key={item.id} style={{
-                    display:"flex",alignItems:"center",gap:".5rem",
-                    padding:".28rem .55rem",borderRadius:6,
-                    background:item.bg,border:`1px solid ${item.border}`}}>
-                    <span style={{fontSize:"var(--fs-base)",flexShrink:0}}>{item.icon}</span>
-                    <span style={{flex:1,fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
-                      fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                    display: "flex", alignItems: "center", gap: ".5rem",
+                    padding: ".28rem .55rem", borderRadius: 6,
+                    background: item.bg, border: `1px solid ${item.border}` }}>
+                    <span style={{ fontSize: "var(--fs-base)", flexShrink: 0 }}>{item.icon}</span>
+                    <span style={{ flex: 1, fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+                      fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {item.nombre}
                     </span>
-                    <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
-                      color:item.color,fontWeight:700,flexShrink:0}}>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+                      color: item.color, fontWeight: 700, flexShrink: 0 }}>
                       {item.etiqueta}
                     </span>
                     <button
-                      style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
-                        padding:".1rem .35rem",borderRadius:4,
-                        border:`1px solid ${item.color}44`,
-                        background:`${item.color}15`,
-                        color:item.color,cursor:"pointer",flexShrink:0}}
+                      style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
+                        padding: ".1rem .35rem", borderRadius: 4,
+                        border: `1px solid ${item.color}44`,
+                        background: `${item.color}15`,
+                        color: item.color, cursor: "pointer", flexShrink: 0 }}
                       onClick={item.accion}>
                       {item.btnLabel}
                     </button>
@@ -770,86 +212,38 @@ export default function Documentos() {
 
         {/* ── Semáforo documental ── */}
         {(() => {
-          const hoy = new Date();
           const dias30 = (iso) => { const d = diasHasta(iso); return d != null && d >= 0 && d <= 30; };
-          // Permisos
           const permDocs = docs.filter(d => d.categoria === "permisos");
-          const permOk   = permDocs.filter(d => ["aprobado","vigente"].includes(d.estado)).length;
-          const permWarn = permDocs.filter(d => d.fechaVencimiento && dias30(d.fechaVencimiento) && !["aprobado","vigente"].includes(d.estado)).length;
-          // Seguros
-          const segDocs = docs.filter(d => d.categoria === "seguros");
-          const segOk   = segDocs.filter(d => ["aprobado","vigente"].includes(d.estado)).length;
-          const segWarn = segDocs.filter(d => d.fechaVencimiento && dias30(d.fechaVencimiento) && !["aprobado","vigente"].includes(d.estado)).length;
-          // Gestiones
-          const gestVenc = gestiones.filter(g => g.estado === "denegado" || (g.fechaVencimiento && diasHasta(g.fechaVencimiento) != null && diasHasta(g.fechaVencimiento) < 0 && !["aprobado","vigente"].includes(g.estado))).length;
-          const gestCrit = gestiones.filter(g => g.fechaVencimiento && dias30(g.fechaVencimiento) && !["aprobado","vigente"].includes(g.estado)).length;
-          const gestOk   = gestiones.filter(g => ["aprobado","vigente"].includes(g.estado)).length;
-          // Subvenciones
-          const svConcedidas = subvenciones.filter(sv => ["concedida","justificada","cerrada"].includes(sv.estado));
-          const svTotal      = svConcedidas.reduce((s,sv) => s + (parseFloat(String(sv.importeConcedido||"").replace(",",".")) || 0), 0);
-          // Mostrar el semáforo documental solo si hay algo relevante que mostrar
-          // (docs reales subidos, gestiones con estado actualizado, o subvenciones activas)
+          const permOk   = permDocs.filter(d => ["aprobado", "vigente"].includes(d.estado)).length;
+          const permWarn = permDocs.filter(d => d.fechaVencimiento && dias30(d.fechaVencimiento) && !["aprobado", "vigente"].includes(d.estado)).length;
+          const segDocs  = docs.filter(d => d.categoria === "seguros");
+          const segOk    = segDocs.filter(d => ["aprobado", "vigente"].includes(d.estado)).length;
+          const segWarn  = segDocs.filter(d => d.fechaVencimiento && dias30(d.fechaVencimiento) && !["aprobado", "vigente"].includes(d.estado)).length;
+          const gestVenc = gestiones.filter(g => g.estado === "denegado" || (g.fechaVencimiento && diasHasta(g.fechaVencimiento) != null && diasHasta(g.fechaVencimiento) < 0 && !["aprobado", "vigente"].includes(g.estado))).length;
+          const gestCrit = gestiones.filter(g => g.fechaVencimiento && dias30(g.fechaVencimiento) && !["aprobado", "vigente"].includes(g.estado)).length;
+          const gestOk   = gestiones.filter(g => ["aprobado", "vigente"].includes(g.estado)).length;
+          const svConcedidas  = subvenciones.filter(sv => ["concedida", "justificada", "cerrada"].includes(sv.estado));
+          const svTotal       = svConcedidas.reduce((s, sv) => s + (parseFloat(String(sv.importeConcedido || "").replace(",", ".")) || 0), 0);
           const gestConActividad = gestiones.filter(g => g.estado !== "pendiente" || g.fechaSubida || g.url || g.responsable).length;
           const hayAlgo = permDocs.length > 0 || segDocs.length > 0 || gestConActividad > 0 || subvenciones.length > 0;
           if (!hayAlgo) return null;
           const semItems = [
-            permDocs.length > 0 && {
-              icon: "📋", label: "Permisos",
-              color: permWarn > 0 ? "#fbbf24" : permOk > 0 ? "#34d399" : "#94a3b8",
-              dot:   permWarn > 0 ? "🟡" : permOk > 0 ? "🟢" : "⚪",
-              detail: permOk > 0 ? `${permOk}/${permDocs.length} aprobados` : `${permDocs.length} pendiente${permDocs.length>1?"s":""}`,
-              warn:  permWarn > 0 ? `⏰ ${permWarn} por vencer` : null,
-              onClick: () => setTab("permisos"),
-            },
-            segDocs.length > 0 && {
-              icon: "🛡️", label: "Seguros",
-              color: segWarn > 0 ? "#fbbf24" : segOk > 0 ? "#34d399" : "#94a3b8",
-              dot:   segWarn > 0 ? "🟡" : segOk > 0 ? "🟢" : "⚪",
-              detail: segOk > 0 ? `${segOk}/${segDocs.length} vigentes` : `${segDocs.length} pendiente${segDocs.length>1?"s":""}`,
-              warn:  segWarn > 0 ? `⏰ ${segWarn} por vencer` : null,
-              onClick: () => setTab("seguros"),
-            },
-            gestiones.length > 0 && {
-              icon: "🏛️", label: "Gestiones",
-              color: gestVenc > 0 ? "#f87171" : gestCrit > 0 ? "#fbbf24" : gestOk > 0 ? "#34d399" : "#94a3b8",
-              dot:   gestVenc > 0 ? "🔴" : gestCrit > 0 ? "🟡" : gestOk > 0 ? "🟢" : "⚪",
-              detail: `${gestOk}/${gestiones.length} aprobadas`,
-              warn:  gestVenc > 0 ? `⚠ ${gestVenc} vencida${gestVenc>1?"s":""}` : gestCrit > 0 ? `⏰ ${gestCrit} urgente${gestCrit>1?"s":""}` : null,
-              onClick: () => setTab("gestiones"),
-            },
-            subvenciones.length > 0 && {
-              icon: "🏅", label: "Subvenciones",
-              color: svConcedidas.length > 0 ? "#34d399" : "#94a3b8",
-              dot:   svConcedidas.length > 0 ? "🟢" : "⚪",
-              detail: svConcedidas.length > 0 ? `${svConcedidas.length} concedida${svConcedidas.length>1?"s":""}` : `${subvenciones.length} en seguimiento`,
-              warn:  svTotal > 0 ? `💶 ${formatImporte(svTotal)}` : null,
-              onClick: () => setTab("subvenciones"),
-            },
+            permDocs.length > 0 && { icon: "📋", label: "Permisos", color: permWarn > 0 ? "#fbbf24" : permOk > 0 ? "#34d399" : "#94a3b8", dot: permWarn > 0 ? "🟡" : permOk > 0 ? "🟢" : "⚪", detail: permOk > 0 ? `${permOk}/${permDocs.length} aprobados` : `${permDocs.length} pendiente${permDocs.length > 1 ? "s" : ""}`, warn: permWarn > 0 ? `⏰ ${permWarn} por vencer` : null, onClick: () => setTab("permisos") },
+            segDocs.length > 0 && { icon: "🛡️", label: "Seguros", color: segWarn > 0 ? "#fbbf24" : segOk > 0 ? "#34d399" : "#94a3b8", dot: segWarn > 0 ? "🟡" : segOk > 0 ? "🟢" : "⚪", detail: segOk > 0 ? `${segOk}/${segDocs.length} vigentes` : `${segDocs.length} pendiente${segDocs.length > 1 ? "s" : ""}`, warn: segWarn > 0 ? `⏰ ${segWarn} por vencer` : null, onClick: () => setTab("seguros") },
+            gestiones.length > 0 && { icon: "🏛️", label: "Gestiones", color: gestVenc > 0 ? "#f87171" : gestCrit > 0 ? "#fbbf24" : gestOk > 0 ? "#34d399" : "#94a3b8", dot: gestVenc > 0 ? "🔴" : gestCrit > 0 ? "🟡" : gestOk > 0 ? "🟢" : "⚪", detail: `${gestOk}/${gestiones.length} aprobadas`, warn: gestVenc > 0 ? `⚠ ${gestVenc} vencida${gestVenc > 1 ? "s" : ""}` : gestCrit > 0 ? `⏰ ${gestCrit} urgente${gestCrit > 1 ? "s" : ""}` : null, onClick: () => setTab("gestiones") },
+            subvenciones.length > 0 && { icon: "🏅", label: "Subvenciones", color: svConcedidas.length > 0 ? "#34d399" : "#94a3b8", dot: svConcedidas.length > 0 ? "🟢" : "⚪", detail: svConcedidas.length > 0 ? `${svConcedidas.length} concedida${svConcedidas.length > 1 ? "s" : ""}` : `${subvenciones.length} en seguimiento`, warn: svTotal > 0 ? `💶 ${formatImporte(svTotal)}` : null, onClick: () => setTab("subvenciones") },
           ].filter(Boolean);
           return (
-            <div className="card mb" style={{padding:".75rem 1rem",borderLeft:"3px solid rgba(148,163,184,0.3)"}}>
-              <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginBottom:".5rem",fontWeight:700,letterSpacing:".05em",textTransform:"uppercase"}}>
+            <div className="card mb" style={{ padding: ".75rem 1rem", borderLeft: "3px solid rgba(148,163,184,0.3)" }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginBottom: ".5rem", fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase" }}>
                 Estado documental
               </div>
-              <div style={{display:"flex",gap:".5rem",flexWrap:"wrap"}}>
+              <div style={{ display: "flex", gap: ".5rem", flexWrap: "wrap" }}>
                 {semItems.map(item => (
-                  <div key={item.label} onClick={item.onClick} style={{
-                    cursor:"pointer",display:"flex",flexDirection:"column",gap:".15rem",
-                    background:"var(--surface2)",border:`1px solid ${item.color}33`,
-                    borderLeft:`3px solid ${item.color}`,
-                    borderRadius:"var(--r-sm)",padding:".4rem .65rem",minWidth:120,flex:"1 1 120px",
-                  }}>
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:item.color,fontWeight:700}}>
-                      {item.dot} {item.label}
-                    </div>
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text)"}}>
-                      {item.detail}
-                    </div>
-                    {item.warn && (
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:item.color,fontWeight:700}}>
-                        {item.warn}
-                      </div>
-                    )}
+                  <div key={item.label} onClick={item.onClick} style={{ cursor: "pointer", display: "flex", flexDirection: "column", gap: ".15rem", background: "var(--surface2)", border: `1px solid ${item.color}33`, borderLeft: `3px solid ${item.color}`, borderRadius: "var(--r-sm)", padding: ".4rem .65rem", minWidth: 120, flex: "1 1 120px" }}>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: item.color, fontWeight: 700 }}>{item.dot} {item.label}</div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text)" }}>{item.detail}</div>
+                    {item.warn && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: item.color, fontWeight: 700 }}>{item.warn}</div>}
                   </div>
                 ))}
               </div>
@@ -857,111 +251,43 @@ export default function Documentos() {
           );
         })()}
 
-        {/* ── KPIs por categoría — solo las que tienen archivos ── */}
+        {/* ── KPIs por categoría ── */}
         {(() => {
-          // Helper: suma importe de docs de una categoría
-          const sumaImporte = (catId) => docs
-            .filter(d => d.categoria === catId && d.importe != null)
-            .reduce((s, d) => s + (typeof d.importe === "number" ? d.importe : parseFloat(String(d.importe).replace(",", ".")) || 0), 0);
-
-          const cats = CATEGORIAS.map(c => ({
-            ...c,
-            cnt: docs.filter(d => d.categoria === c.id).length,
-            alert: docs.filter(d => d.categoria === c.id && d.fechaVencimiento &&
-              (diasHasta(d.fechaVencimiento) ?? 999) <= 30 &&
-              (diasHasta(d.fechaVencimiento) ?? 999) >= 0 &&
-              !["aprobado","vigente","vencido"].includes(d.estado)).length,
-            totalImporte: ["presupuestos","facturas"].includes(c.id) ? sumaImporte(c.id) : null,
-          }));
+          const sumaImporte = (catId) => docs.filter(d => d.categoria === catId && d.importe != null).reduce((s, d) => s + (typeof d.importe === "number" ? d.importe : parseFloat(String(d.importe).replace(",", ".")) || 0), 0);
+          const cats = CATEGORIAS.map(c => ({ ...c, cnt: docs.filter(d => d.categoria === c.id).length, alert: docs.filter(d => d.categoria === c.id && d.fechaVencimiento && (diasHasta(d.fechaVencimiento) ?? 999) <= 30 && (diasHasta(d.fechaVencimiento) ?? 999) >= 0 && !["aprobado", "vigente", "vencido"].includes(d.estado)).length, totalImporte: ["presupuestos", "facturas"].includes(c.id) ? sumaImporte(c.id) : null }));
           const conArchivos = cats.filter(c => c.cnt > 0);
           if (conArchivos.length === 0) return (
-            <div style={{ marginBottom:".85rem", padding:".6rem .85rem",
-              background:"var(--surface2)", border:"1px solid var(--border)",
-              borderRadius:"var(--r-sm)",
-              fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
-              color:"var(--text-muted)", textAlign:"center" }}>
+            <div style={{ marginBottom: ".85rem", padding: ".6rem .85rem", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: "var(--r-sm)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "var(--text-muted)", textAlign: "center" }}>
               📁 Sin archivos subidos todavía — usa la zona de subida para añadir documentos
             </div>
           );
-
-          // KPI de desviación presupuesto vs factura (solo si ambos tienen importes)
-          const totalPpto   = sumaImporte("presupuestos");
-          const totalFact   = sumaImporte("facturas");
-          const hayEcon     = totalPpto > 0 || totalFact > 0;
-          const desviacion  = totalPpto > 0 && totalFact > 0
-            ? ((totalFact - totalPpto) / totalPpto * 100)
-            : null;
-
+          const totalPpto  = sumaImporte("presupuestos");
+          const totalFact  = sumaImporte("facturas");
+          const hayEcon    = totalPpto > 0 || totalFact > 0;
+          const desviacion = totalPpto > 0 && totalFact > 0 ? ((totalFact - totalPpto) / totalPpto * 100) : null;
           return (
             <>
               <div className="kpi-grid mb">
                 {conArchivos.map(c => (
-                  <div key={c.id} className="kpi" style={{cursor:"pointer",
-                    borderLeftColor:c.color,borderLeftWidth:3,borderLeftStyle:"solid"}}
-                    onClick={() => { setTab(c.id); setBusqueda(""); }}>
-                    <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>
+                  <div key={c.id} className="kpi" style={{ cursor: "pointer", borderLeftColor: c.color, borderLeftWidth: 3, borderLeftStyle: "solid" }} onClick={() => { setTab(c.id); setBusqueda(""); }}>
+                    <div className="kpi-label" style={{ display: "flex", alignItems: "center", gap: 4 }}>
                       {c.icon} {c.label}
-                      <Tooltip text={`Documentos subidos en la categoría ${c.label}.\nHaz clic para ver y gestionar los archivos de esta categoría.`}>
-                        <TooltipIcon size={11}/>
-                      </Tooltip>
+                      <Tooltip text={`Documentos subidos en la categoría ${c.label}.\nHaz clic para ver y gestionar los archivos de esta categoría.`}><TooltipIcon size={11} /></Tooltip>
                     </div>
-                    <div className="kpi-value" style={{color:c.color}}>{c.cnt}</div>
-                    <div className="kpi-sub">
-                      {c.totalImporte != null && c.totalImporte > 0
-                        ? <span style={{color:c.color,fontWeight:700}}>{formatImporte(c.totalImporte)}</span>
-                        : c.alert > 0
-                          ? <span style={{color:"var(--amber)"}}>⏰ {c.alert} por vencer</span>
-                          : "archivos"
-                      }
-                    </div>
+                    <div className="kpi-value" style={{ color: c.color }}>{c.cnt}</div>
+                    <div className="kpi-sub">{c.totalImporte != null && c.totalImporte > 0 ? <span style={{ color: c.color, fontWeight: 700 }}>{formatImporte(c.totalImporte)}</span> : c.alert > 0 ? <span style={{ color: "var(--amber)" }}>⏰ {c.alert} por vencer</span> : "archivos"}</div>
                   </div>
                 ))}
               </div>
-
-              {/* ── Panel de totales económicos presupuesto vs factura ── */}
               {hayEcon && (
-                <div className="card mb" style={{padding:".75rem 1rem",borderLeft:"3px solid rgba(52,211,153,0.4)"}}>
-                  <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",marginBottom:".5rem",fontWeight:700,letterSpacing:".05em",textTransform:"uppercase"}}>
-                    💰 Totales económicos
-                  </div>
-                  <div style={{display:"flex",gap:"1rem",flexWrap:"wrap",alignItems:"center"}}>
-                    {totalPpto > 0 && (
-                      <div style={{display:"flex",flexDirection:"column",gap:".1rem"}}>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>💰 Presupuestado</span>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-base)",fontWeight:700,color:"#34d399"}}>{formatImporte(totalPpto)}</span>
-                      </div>
-                    )}
-                    {totalFact > 0 && (
-                      <div style={{display:"flex",flexDirection:"column",gap:".1rem"}}>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>🧾 Facturado</span>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-base)",fontWeight:700,color:"#22d3ee"}}>{formatImporte(totalFact)}</span>
-                      </div>
-                    )}
-                    {desviacion !== null && (
-                      <div style={{display:"flex",flexDirection:"column",gap:".1rem"}}>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>
-                          <Tooltip text={`Diferencia entre lo facturado y lo presupuestado.\n${desviacion > 0 ? "El gasto real supera el presupuesto." : desviacion < 0 ? "El gasto real está por debajo del presupuesto." : "Sin desviación."}`}>
-                            <span>📊 Desviación <TooltipIcon size={10}/></span>
-                          </Tooltip>
-                        </span>
-                        <span style={{
-                          fontFamily:"var(--font-mono)",fontSize:"var(--fs-base)",fontWeight:700,
-                          color: desviacion > 10 ? "#f87171" : desviacion > 0 ? "#fbbf24" : "#34d399"
-                        }}>
-                          {desviacion > 0 ? "+" : ""}{desviacion.toFixed(1)}%
-                        </span>
-                      </div>
-                    )}
-                    {totalPpto > 0 && totalFact > 0 && totalPpto > totalFact && (
-                      <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#34d399",background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.25)",borderRadius:20,padding:".15rem .55rem"}}>
-                        ✅ Dentro de presupuesto
-                      </span>
-                    )}
-                    {desviacion !== null && desviacion > 10 && (
-                      <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#f87171",background:"rgba(248,113,113,0.1)",border:"1px solid rgba(248,113,113,0.25)",borderRadius:20,padding:".15rem .55rem"}}>
-                        ⚠ Desviación alta
-                      </span>
-                    )}
+                <div className="card mb" style={{ padding: ".75rem 1rem", borderLeft: "3px solid rgba(52,211,153,0.4)" }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginBottom: ".5rem", fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase" }}>💰 Totales económicos</div>
+                  <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "center" }}>
+                    {totalPpto > 0 && <div style={{ display: "flex", flexDirection: "column", gap: ".1rem" }}><span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>💰 Presupuestado</span><span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-base)", fontWeight: 700, color: "#34d399" }}>{formatImporte(totalPpto)}</span></div>}
+                    {totalFact > 0 && <div style={{ display: "flex", flexDirection: "column", gap: ".1rem" }}><span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>🧾 Facturado</span><span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-base)", fontWeight: 700, color: "#22d3ee" }}>{formatImporte(totalFact)}</span></div>}
+                    {desviacion !== null && <div style={{ display: "flex", flexDirection: "column", gap: ".1rem" }}><span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}><Tooltip text={`Diferencia entre lo facturado y lo presupuestado.\n${desviacion > 0 ? "El gasto real supera el presupuesto." : desviacion < 0 ? "El gasto real está por debajo del presupuesto." : "Sin desviación."}`}><span>📊 Desviación <TooltipIcon size={10} /></span></Tooltip></span><span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-base)", fontWeight: 700, color: desviacion > 10 ? "#f87171" : desviacion > 0 ? "#fbbf24" : "#34d399" }}>{desviacion > 0 ? "+" : ""}{desviacion.toFixed(1)}%</span></div>}
+                    {totalPpto > 0 && totalFact > 0 && totalPpto > totalFact && <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "#34d399", background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.25)", borderRadius: 20, padding: ".15rem .55rem" }}>✅ Dentro de presupuesto</span>}
+                    {desviacion !== null && desviacion > 10 && <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "#f87171", background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.25)", borderRadius: 20, padding: ".15rem .55rem" }}>⚠ Desviación alta</span>}
                   </div>
                 </div>
               )}
@@ -969,222 +295,110 @@ export default function Documentos() {
           );
         })()}
 
-        {/* ── Storage bar — solo si >50% ocupado ── */}
+        {/* ── Storage bar ── */}
         {storagePct > 50 && (
-          <div className="card mb" style={{padding:".65rem 1rem"}}>
+          <div className="card mb" style={{ padding: ".65rem 1rem" }}>
             <div className="flex-between mb-sm">
-              <span className="mono xs muted" style={{display:"flex",alignItems:"center",gap:6}}>
-                <span style={{width:7,height:7,borderRadius:"50%",background:storageColor,display:"inline-block"}}/>
+              <span className="mono xs muted" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: storageColor, display: "inline-block" }} />
                 {formatSize(totalSize)} · Neon Storage
               </span>
-              <span className="mono xs bold" style={{color:storageColor}}>{storagePct.toFixed(0)}% de 100 MB</span>
+              <span className="mono xs bold" style={{ color: storageColor }}>{storagePct.toFixed(0)}% de 100 MB</span>
             </div>
             <div className="doc-storage-bar">
-              <div className="doc-storage-fill" style={{width:`${storagePct}%`,background:`linear-gradient(90deg,${storageColor}99,${storageColor})`}}/>
+              <div className="doc-storage-fill" style={{ width: `${storagePct}%`, background: `linear-gradient(90deg,${storageColor}99,${storageColor})` }} />
             </div>
           </div>
         )}
 
-        {/* ── Category tabs — archivos + secciones especiales ── */}
-        <div className="tabs" style={{gap:".4rem",flexWrap:"wrap"}}>
+        {/* ── Category tabs ── */}
+        <div className="tabs" style={{ gap: ".4rem", flexWrap: "wrap" }}>
           {CATEGORIAS.map(c => {
             const active = tab === c.id;
             const cnt    = docs.filter(d => d.categoria === c.id).length;
             return (
-              <button key={c.id}
-                className={`tab-btn${active ? " active" : ""}`}
-                onClick={() => { setTab(c.id); setSubcat(""); setBusqueda(""); }}
-                style={active ? {
-                  background: `${c.color}18`,
-                  color: c.color,
-                  borderColor: `${c.color}55`,
-                  boxShadow: `0 0 12px ${c.color}22`,
-                } : {}}>
+              <button key={c.id} className={`tab-btn${active ? " active" : ""}`}
+                onClick={() => { setTab(c.id); setBusqueda(""); }}
+                style={active ? { background: `${c.color}18`, color: c.color, borderColor: `${c.color}55`, boxShadow: `0 0 12px ${c.color}22` } : {}}>
                 {c.icon} {c.label}
-                {cnt > 0 && <span style={{
-                  fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                  background:"rgba(255,255,255,.07)", borderRadius:10,
-                  padding:".05rem .4rem", marginLeft:".1rem",
-                }}>{cnt}</span>}
+                {cnt > 0 && <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", background: "rgba(255,255,255,.07)", borderRadius: 10, padding: ".05rem .4rem", marginLeft: ".1rem" }}>{cnt}</span>}
               </button>
             );
           })}
-          {/* Subvenciones */}
+          {/* Subvenciones tab */}
           {(() => {
             const active = tab === "subvenciones";
-            const concedidas = subvenciones.filter(sv => ["concedida","justificada","cerrada"].includes(sv.estado));
-            const totalConcedido = concedidas.reduce((s,sv) => s + (parseFloat(String(sv.importeConcedido||"0").replace(",",".")) || 0), 0);
+            const concedidas = subvenciones.filter(sv => ["concedida", "justificada", "cerrada"].includes(sv.estado));
+            const totalConcedido = concedidas.reduce((s, sv) => s + (parseFloat(String(sv.importeConcedido || "0").replace(",", ".")) || 0), 0);
             return (
               <button className={`tab-btn${active ? " active" : ""}`}
                 onClick={() => { setTab("subvenciones"); setBusqueda(""); }}
-                style={active ? { background:"#34d39918", color:"#34d399", borderColor:"#34d39955", boxShadow:"0 0 12px #34d39922" } : {}}>
+                style={active ? { background: "#34d39918", color: "#34d399", borderColor: "#34d39955", boxShadow: "0 0 12px #34d39922" } : {}}>
                 🏅 Subvenciones
-                {subvenciones.length > 0 && (
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",background:"rgba(255,255,255,.07)",borderRadius:10,padding:".05rem .4rem",marginLeft:".1rem"}}>
-                    {subvenciones.length}
-                  </span>
-                )}
-                {totalConcedido > 0 && (
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"#34d399",marginLeft:".25rem",fontWeight:700}}>
-                    {formatImporte(totalConcedido)}
-                  </span>
-                )}
+                {subvenciones.length > 0 && <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", background: "rgba(255,255,255,.07)", borderRadius: 10, padding: ".05rem .4rem", marginLeft: ".1rem" }}>{subvenciones.length}</span>}
+                {totalConcedido > 0 && <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "#34d399", marginLeft: ".25rem", fontWeight: 700 }}>{formatImporte(totalConcedido)}</span>}
               </button>
             );
           })()}
         </div>
 
-        {/* ── Upload zone — solo para categorías de archivo ── */}
+        {/* ── Upload zone ── */}
         {!isGestion && !isSubvencion && (
-        <div className="card mb" style={{padding: uploadOpen ? undefined : ".65rem 1rem"}}>
-          <button
-            onClick={() => setUploadOpen(v => !v)}
-            style={{display:"flex",alignItems:"center",justifyContent:"space-between",
-              width:"100%",background:"none",border:"none",cursor:"pointer",padding:0,
-              marginBottom: uploadOpen ? ".65rem" : 0}}>
-            <span className="card-title" style={{color:catInfoSafe.color,margin:0}}>
-              {catInfoSafe.icon} Subir a {catInfoSafe.label}
-            </span>
-            <div style={{display:"flex",alignItems:"center",gap:".75rem"}}>
-              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-dim)"}}>
-                PDF · JPG · PNG · máx. 10 MB
-              </span>
-              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-dim)"}}>
-                {uploadOpen ? "▲ ocultar" : "▼ mostrar"}
-              </span>
-            </div>
-          </button>
-          {uploadOpen && (
-            <div>
-
-          {/* Campos de metadatos */}
-          <div className="doc-upload-fields">
-            <input value={nota} onChange={e => setNota(e.target.value)}
-              placeholder="Nombre descriptivo (ej: Seguro RC Mapfre 2026)" className="doc-input" style={{flexBasis:"100%"}} />
-            <input value={descripcionDoc} onChange={e => setDescripcionDoc(e.target.value)}
-              placeholder="Notas / descripción (opcional: quién lo emite, qué cubre, observaciones…)" className="doc-input" style={{flexBasis:"100%"}} />
-            <input value={emisorNuevo} onChange={e => setEmisorNuevo(e.target.value)}
-              placeholder="Emisor / proveedor (ej: Mapfre, Cruz Roja…)" className="doc-input" />
-            {(["presupuestos","facturas","contratos","seguros"].includes(tab)) && (
-              <input
-                value={importeNuevo}
-                onChange={e => setImporteNuevo(e.target.value)}
-                placeholder={tab === "seguros" ? "Prima anual (€)" : tab === "contratos" ? "Importe del contrato (€)" : "Importe (€)"}
-                className="doc-input"
-                type="number"
-                min="0"
-                step="0.01"
-                style={{maxWidth:160}}
-              />
-            )}
-            {subcats.length > 0 && (
-              <select value={subcat} onChange={e => setSubcat(e.target.value)} className="doc-select">
-                <option value="">— Subcategoría —</option>
-                {subcats.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            )}
-            <select value={estadoNuevo} onChange={e => setEstadoNuevo(e.target.value)} className="doc-select">
-              {ESTADOS_DOC.map(e => <option key={e.id} value={e.id}>{e.label}</option>)}
-            </select>
-            <input type="date" value={vencNuevo} onChange={e => setVencNuevo(e.target.value)}
-              className="doc-select" title="Fecha de vencimiento (opcional)" />
-          </div>
-
-          {/* Drop zone — más visual con instrucción explícita */}
-          <div
-            className={cls("doc-dropzone", dragOver && "over")}
-            onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave}
-            onClick={() => fileRef.current?.click()}>
-            <input ref={fileRef} type="file" accept={ALLOWED_EXT} multiple style={{display:"none"}}
-              onChange={e => { handleFiles(e.target.files); e.target.value = ""; }} />
-
-            <div className="doc-dropzone-icon">
-              {uploading ? "⏳" : dragOver ? "⬇️" : "📎"}
-            </div>
-            <div className="doc-dropzone-msg">
-              {uploading
-                ? "Subiendo documentos…"
-                : dragOver
-                  ? "✓ Suelta aquí para subir"
-                  : "Arrastra archivos aquí · o haz clic para seleccionar"}
-            </div>
-            <div className="doc-dropzone-hint">
-              {!uploading && !dragOver && (
-                <>PDF, PNG, JPG, WebP · Máx. 10 MB<br/>
-                Puedes subir varios archivos a la vez</>
-              )}
-            </div>
-            {!uploading && !dragOver && (
-              <div className="doc-dropzone-types">
-                {["PDF","PNG","JPG","WebP"].map(t => (
-                  <span key={t} className="doc-type-pill">{t}</span>
-                ))}
-              </div>
-            )}
-          </div>
-            </div>
-          )}
-        </div>
+          <UploadZone
+            tab={tab} catInfoSafe={catInfoSafe}
+            uploadOpen={uploadOpen} setUploadOpen={setUploadOpen}
+            nota={nota} setNota={setNota}
+            descripcionDoc={descripcionDoc} setDescripcionDoc={setDescripcionDoc}
+            emisorNuevo={emisorNuevo} setEmisorNuevo={setEmisorNuevo}
+            importeNuevo={importeNuevo} setImporteNuevo={setImporteNuevo}
+            subcat={subcat} setSubcat={setSubcat}
+            estadoNuevo={estadoNuevo} setEstadoNuevo={setEstadoNuevo}
+            vencNuevo={vencNuevo} setVencNuevo={setVencNuevo}
+            uploading={uploading} dragOver={dragOver}
+            handleFiles={handleFiles} handleDrop={handleDrop}
+            handleDragOver={handleDragOver} handleDragLeave={handleDragLeave}
+          />
         )}
 
         {/* ── Resultados búsqueda global ── */}
         {resultadosGlobales && (
-          <div className="card mb" style={{padding:".75rem 1rem"}}>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--cyan)",
-              fontWeight:700,marginBottom:".65rem"}}>
-              🌐 {resultadosGlobales.length} resultado{resultadosGlobales.length!==1?"s":""} en todos los documentos para "{busqueda}"
+          <div className="card mb" style={{ padding: ".75rem 1rem" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--cyan)", fontWeight: 700, marginBottom: ".65rem" }}>
+              🌐 {resultadosGlobales.length} resultado{resultadosGlobales.length !== 1 ? "s" : ""} en todos los documentos para "{busqueda}"
             </div>
             <div className="doc-list">
               {resultadosGlobales.map(doc => {
-                const cat = TODAS_CATEGORIAS.find(c => c.id === doc.categoria) || CATEGORIAS[0];
+                const cat  = TODAS_CATEGORIAS.find(c => c.id === doc.categoria) || CATEGORIAS[0];
                 const ecfg = getEstadoCfg(doc.estado);
-                const dV = diasHasta(doc.fechaVencimiento);
-                const vc = dV !== null ? (dV < 0 ? "var(--red)" : dV <= 30 ? "var(--amber)" : "var(--text-muted)") : "var(--text-muted)";
+                const dV   = diasHasta(doc.fechaVencimiento);
+                const vc   = dV !== null ? (dV < 0 ? "var(--red)" : dV <= 30 ? "var(--amber)" : "var(--text-muted)") : "var(--text-muted)";
                 return (
-                  <div key={doc.id} className="doc-card" onClick={() => setTab(doc.categoria)} style={{cursor:"pointer"}}>
-                    <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:cat.color,borderRadius:"12px 12px 0 0"}} />
-                    <div style={{display:"flex",alignItems:"center",gap:8,paddingTop:4}}>
-                      <div className="item-icon-pill"
-                        style={{"--pill-color": cat.color, width:38, height:38, fontSize:"var(--fs-lg)"}}>
-                        {getFileIcon(doc.tipo)}
-                      </div>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div className="doc-card-name" style={{fontSize:"var(--fs-base)"}}>{doc.nombreDisplay || doc.nombre}</div>
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:cat.color,marginTop:".1rem"}}>
-                          {cat.icon} {cat.label}{doc.subcategoria ? ` · ${doc.subcategoria}` : ""}
-                        </div>
-                        {(["presupuestos","facturas","contratos","seguros"].includes(doc.categoria)) && doc.importe != null && (
-                          <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",fontWeight:700,color:"#34d399",marginTop:".1rem"}}>
-                            💶 {formatImporte(doc.importe)}
-                          </div>
-                        )}
+                  <div key={doc.id} className="doc-card" onClick={() => setTab(doc.categoria)} style={{ cursor: "pointer" }}>
+                    <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: cat.color, borderRadius: "12px 12px 0 0" }} />
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, paddingTop: 4 }}>
+                      <div className="item-icon-pill" style={{ "--pill-color": cat.color, width: 38, height: 38, fontSize: "var(--fs-lg)" }}>{getFileIcon(doc.tipo)}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="doc-card-name" style={{ fontSize: "var(--fs-base)" }}>{doc.nombreDisplay || doc.nombre}</div>
+                        <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: cat.color, marginTop: ".1rem" }}>{cat.icon} {cat.label}{doc.subcategoria ? ` · ${doc.subcategoria}` : ""}</div>
+                        {(["presupuestos", "facturas", "contratos", "seguros"].includes(doc.categoria)) && doc.importe != null && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 700, color: "#34d399", marginTop: ".1rem" }}>💶 {formatImporte(doc.importe)}</div>}
                       </div>
                     </div>
-                    <div style={{display:"flex",gap:".4rem",flexWrap:"wrap",alignItems:"center"}}>
-                      <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",padding:".08rem .35rem",
-                        borderRadius:3,background:ecfg.bg,color:ecfg.color,border:`1px solid ${ecfg.color}33`}}>
-                        {ecfg.label}
-                      </span>
-                      {doc.emisor && <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)"}}>🏢 {doc.emisor}</span>}
-                      {doc.fechaVencimiento && dV !== null && (
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:vc,fontWeight:700}}>
-                          ⏰ {formatDate(doc.fechaVencimiento)}
-                        </span>
-                      )}
+                    <div style={{ display: "flex", gap: ".4rem", flexWrap: "wrap", alignItems: "center" }}>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", padding: ".08rem .35rem", borderRadius: 3, background: ecfg.bg, color: ecfg.color, border: `1px solid ${ecfg.color}33` }}>{ecfg.label}</span>
+                      {doc.emisor && <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>🏢 {doc.emisor}</span>}
+                      {doc.fechaVencimiento && dV !== null && <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: vc, fontWeight: 700 }}>⏰ {formatDate(doc.fechaVencimiento)}</span>}
                     </div>
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-dim)"}}>
-                      {formatSize(doc.size)} · {formatDate(doc.fechaSubida)}
-                    </div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-dim)" }}>{formatSize(doc.size)} · {formatDate(doc.fechaSubida)}</div>
                     <div className="doc-card-actions">
-                      <button onClick={e=>{e.stopPropagation();viewDoc(doc);}} className="doc-btn doc-btn-view">👁 Ver</button>
-                      <button onClick={e=>{e.stopPropagation();downloadDoc(doc);}} aria-label="Descargar documento" className="doc-btn doc-btn-dl">⬇</button>
+                      <button onClick={e => { e.stopPropagation(); viewDoc(doc); }} className="doc-btn doc-btn-view">👁 Ver</button>
+                      <button onClick={e => { e.stopPropagation(); downloadDoc(doc); }} aria-label="Descargar documento" className="doc-btn doc-btn-dl">⬇</button>
                     </div>
                   </div>
                 );
               })}
             </div>
             {resultadosGlobales.length === 0 && (
-              <div style={{textAlign:"center",padding:"1.5rem",color:"var(--text-dim)",fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)"}}>
+              <div style={{ textAlign: "center", padding: "1.5rem", color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)" }}>
                 Sin resultados para "{busqueda}"
               </div>
             )}
@@ -1196,163 +410,87 @@ export default function Documentos() {
           <EmptyState
             svg={busqueda ? "search" : "docs"}
             color={catInfoSafe.color}
-            title={busqueda ? `Sin resultados` : `Sin documentos`}
-            sub={busqueda
-              ? `No se encontró "${busqueda}" en ${catInfoSafe.label}`
-              : `Sube el primer documento a ${catInfoSafe.label}`}
+            title={busqueda ? "Sin resultados" : "Sin documentos"}
+            sub={busqueda ? `No se encontró "${busqueda}" en ${catInfoSafe.label}` : `Sube el primer documento a ${catInfoSafe.label}`}
             action={!busqueda && (
-              <button className="btn btn-ghost btn-sm"
-                style={{ fontSize:"var(--fs-sm)" }}
-                onClick={() => setUploadOpen(true)}>
+              <button className="btn btn-ghost btn-sm" style={{ fontSize: "var(--fs-sm)" }} onClick={() => setUploadOpen(true)}>
                 + Subir documento
               </button>
             )}
           />
         ) : busqGlobal ? null : (
           <>
-            {busqueda && (
-              <div className="mono xs muted mb-sm">
-                {catDocs.length} resultado{catDocs.length!==1?"s":""} para "{busqueda}"
-              </div>
-            )}
+            {busqueda && <div className="mono xs muted mb-sm">{catDocs.length} resultado{catDocs.length !== 1 ? "s" : ""} para "{busqueda}"</div>}
             <div className="doc-list">
               {catDocs.map(doc => {
                 const estadoCfg = getEstadoCfg(doc.estado);
                 const dVenc     = diasHasta(doc.fechaVencimiento);
-                const vencColor = dVenc !== null
-                  ? (dVenc < 0 ? "#f87171" : dVenc <= 7 ? "#f87171" : dVenc <= 30 ? "#fbbf24" : "var(--text-muted)")
-                  : "var(--text-muted)";
-
+                const vencColor = dVenc !== null ? (dVenc < 0 ? "#f87171" : dVenc <= 7 ? "#f87171" : dVenc <= 30 ? "#fbbf24" : "var(--text-muted)") : "var(--text-muted)";
                 return (
                   <div key={doc.id} className="doc-card">
-                    {/* Accent line */}
-                    <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:catInfoSafe.color,borderRadius:"12px 12px 0 0"}} />
-
+                    <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: catInfoSafe.color, borderRadius: "12px 12px 0 0" }} />
                     {editId === doc.id ? (
-                      /* ── Edit mode ── */
-                      <div className="doc-edit-card" style={{paddingTop:4}}>
-                        <div style={{fontSize:"var(--fs-sm)",fontWeight:700,color:catInfoSafe.color,marginBottom:".25rem"}}>✏️ Editando documento</div>
-                        <input value={editForm.nombreDisplay}
-                          onChange={e => setEditForm(p=>({...p,nombreDisplay:e.target.value}))}
-                          placeholder="Nombre descriptivo *" className="doc-input" style={{width:"100%",boxSizing:"border-box"}} />
-                        <input value={editForm.emisor}
-                          onChange={e => setEditForm(p=>({...p,emisor:e.target.value}))}
-                          placeholder="Emisor / proveedor" className="doc-input" style={{width:"100%",boxSizing:"border-box"}} />
-                        {(["presupuestos","facturas","contratos","seguros"].includes(editForm.categoria ?? doc.categoria)) && (
-                          <input
-                            value={editForm.importe ?? ""}
-                            onChange={e => setEditForm(p=>({...p,importe:e.target.value}))}
-                            placeholder="Importe (ej: 1250.00)"
-                            className="doc-input"
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            style={{width:"100%",boxSizing:"border-box"}}
-                          />
+                      <div className="doc-edit-card" style={{ paddingTop: 4 }}>
+                        <div style={{ fontSize: "var(--fs-sm)", fontWeight: 700, color: catInfoSafe.color, marginBottom: ".25rem" }}>✏️ Editando documento</div>
+                        <input value={editForm.nombreDisplay} onChange={e => setEditForm(p => ({ ...p, nombreDisplay: e.target.value }))} placeholder="Nombre descriptivo *" className="doc-input" style={{ width: "100%", boxSizing: "border-box" }} />
+                        <input value={editForm.emisor} onChange={e => setEditForm(p => ({ ...p, emisor: e.target.value }))} placeholder="Emisor / proveedor" className="doc-input" style={{ width: "100%", boxSizing: "border-box" }} />
+                        {(["presupuestos", "facturas", "contratos", "seguros"].includes(editForm.categoria ?? doc.categoria)) && (
+                          <input value={editForm.importe ?? ""} onChange={e => setEditForm(p => ({ ...p, importe: e.target.value }))} placeholder="Importe (ej: 1250.00)" className="doc-input" type="number" min="0" step="0.01" style={{ width: "100%", boxSizing: "border-box" }} />
                         )}
-                        <select value={editForm.categoria ?? doc.categoria}
-                          onChange={e => setEditForm(p=>({...p,categoria:e.target.value}))}
-                          className="doc-select" style={{width:"100%"}}>
+                        <select value={editForm.categoria ?? doc.categoria} onChange={e => setEditForm(p => ({ ...p, categoria: e.target.value }))} className="doc-select" style={{ width: "100%" }}>
                           {CATEGORIAS.map(c => <option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
                         </select>
-                        {(SUBCATEGORIAS[editForm.categoria ?? doc.categoria]||[]).length > 0 && (
-                          <select value={editForm.subcategoria} onChange={e => setEditForm(p=>({...p,subcategoria:e.target.value}))}
-                            className="doc-select" style={{width:"100%"}}>
+                        {(SUBCATEGORIAS[editForm.categoria ?? doc.categoria] || []).length > 0 && (
+                          <select value={editForm.subcategoria} onChange={e => setEditForm(p => ({ ...p, subcategoria: e.target.value }))} className="doc-select" style={{ width: "100%" }}>
                             <option value="">— Subcategoría —</option>
-                            {(SUBCATEGORIAS[editForm.categoria ?? doc.categoria]||[]).map(sc => <option key={sc} value={sc}>{sc}</option>)}
+                            {(SUBCATEGORIAS[editForm.categoria ?? doc.categoria] || []).map(sc => <option key={sc} value={sc}>{sc}</option>)}
                           </select>
                         )}
-                        <select value={editForm.estado} onChange={e => setEditForm(p=>({...p,estado:e.target.value}))}
-                          className="doc-select" style={{width:"100%",color:getEstadoCfg(editForm.estado).color}}>
+                        <select value={editForm.estado} onChange={e => setEditForm(p => ({ ...p, estado: e.target.value }))} className="doc-select" style={{ width: "100%", color: getEstadoCfg(editForm.estado).color }}>
                           {ESTADOS_DOC.map(e => <option key={e.id} value={e.id}>{e.label}</option>)}
                         </select>
-                        <input type="date" value={editForm.fechaVencimiento}
-                          onChange={e => setEditForm(p=>({...p,fechaVencimiento:e.target.value}))}
-                          className="doc-select" style={{width:"100%"}} />
-                        <input value={editForm.nota} onChange={e => setEditForm(p=>({...p,nota:e.target.value}))}
-                          placeholder="Notas adicionales" className="doc-input" style={{width:"100%",boxSizing:"border-box"}} />
-                        <div style={{display:"flex",gap:6}}>
+                        <input type="date" value={editForm.fechaVencimiento} onChange={e => setEditForm(p => ({ ...p, fechaVencimiento: e.target.value }))} className="doc-select" style={{ width: "100%" }} />
+                        <input value={editForm.nota} onChange={e => setEditForm(p => ({ ...p, nota: e.target.value }))} placeholder="Notas adicionales" className="doc-input" style={{ width: "100%", boxSizing: "border-box" }} />
+                        <div style={{ display: "flex", gap: 6 }}>
                           <button onClick={saveEdit} className="doc-btn doc-btn-save">✅ Guardar</button>
                           <button onClick={() => setEditId(null)} className="doc-btn doc-btn-cancel">Cancelar</button>
                         </div>
                       </div>
                     ) : (
-                      /* ── View mode ── */
                       <>
-                        {/* Thumbnail para imágenes */}
                         {(doc.tipo?.startsWith("image/")) && (doc.blobUrl || doc.data) && (
-                          <div onClick={() => viewDoc(doc)} style={{
-                            width:"100%", height:100, borderRadius:8,
-                            overflow:"hidden", cursor:"pointer",
-                            background:"var(--surface2)",
-                            marginBottom:".25rem",
-                          }}>
-                            <img src={doc.blobUrl || doc.data} alt={doc.nombreDisplay||doc.nombre}
-                              style={{width:"100%",height:"100%",objectFit:"cover"}} />
+                          <div onClick={() => viewDoc(doc)} style={{ width: "100%", height: 100, borderRadius: 8, overflow: "hidden", cursor: "pointer", background: "var(--surface2)", marginBottom: ".25rem" }}>
+                            <img src={doc.blobUrl || doc.data} alt={doc.nombreDisplay || doc.nombre} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                           </div>
                         )}
-
-                        <div style={{display:"flex",alignItems:"flex-start",gap:8,paddingTop:doc.tipo?.startsWith("image/")?"0":"4px"}}>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8, paddingTop: doc.tipo?.startsWith("image/") ? "0" : "4px" }}>
                           {!doc.tipo?.startsWith("image/") && (() => {
                             const docCat = TODAS_CATEGORIAS.find(c => c.id === doc.categoria) || CATEGORIAS[0];
-                            return (
-                              <div className="item-icon-pill"
-                                style={{"--pill-color": docCat.color, width:36, height:36, fontSize:"1.05rem", flexShrink:0}}>
-                                {getFileIcon(doc.tipo)}
-                              </div>
-                            );
+                            return <div className="item-icon-pill" style={{ "--pill-color": docCat.color, width: 36, height: 36, fontSize: "1.05rem", flexShrink: 0 }}>{getFileIcon(doc.tipo)}</div>;
                           })()}
-                          <div style={{flex:1,minWidth:0}}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
                             <div className="doc-card-name">{doc.nombreDisplay || doc.nombre}</div>
-                            {doc.emisor && (
-                              <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
-                                color:"var(--text-muted)",marginTop:".1rem"}}>
-                                🏢 {doc.emisor}
-                              </div>
-                            )}
-                            {(["presupuestos","facturas","contratos","seguros"].includes(doc.categoria)) && doc.importe != null && (
-                              <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",
-                                fontWeight:700,color:"#34d399",marginTop:".15rem",letterSpacing:"-.01em"}}>
-                                💶 {formatImporte(doc.importe)}
-                              </div>
-                            )}
+                            {doc.emisor && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: ".1rem" }}>🏢 {doc.emisor}</div>}
+                            {(["presupuestos", "facturas", "contratos", "seguros"].includes(doc.categoria)) && doc.importe != null && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 700, color: "#34d399", marginTop: ".15rem", letterSpacing: "-.01em" }}>💶 {formatImporte(doc.importe)}</div>}
                           </div>
                         </div>
-
-                        {/* Estado + fecha vencimiento */}
-                        <div style={{display:"flex",alignItems:"center",gap:".4rem",flexWrap:"wrap"}}>
-                          <select
-                            className="doc-estado-sel"
-                            value={doc.estado || "pendiente"}
-                            onChange={e => updateEstado(doc.id, e.target.value)}
-                            style={{color:estadoCfg.color, background:estadoCfg.bg,
-                              border:`1px solid ${estadoCfg.color}44`}}>
+                        <div style={{ display: "flex", alignItems: "center", gap: ".4rem", flexWrap: "wrap" }}>
+                          <select className="doc-estado-sel" value={doc.estado || "pendiente"} onChange={e => updateEstado(doc.id, e.target.value)} style={{ color: estadoCfg.color, background: estadoCfg.bg, border: `1px solid ${estadoCfg.color}44` }}>
                             {ESTADOS_DOC.map(e => <option key={e.id} value={e.id}>{e.label}</option>)}
                           </select>
                           {doc.fechaVencimiento && (
-                            <span className="mono" style={{fontSize:"var(--fs-xs)",color:vencColor,fontWeight:700}}>
-                              {dVenc === null ? "" :
-                               dVenc < 0    ? `⚠ Venció ${formatDate(doc.fechaVencimiento)}` :
-                               dVenc === 0  ? "⏰ Vence hoy" :
-                                             `⏰ ${dVenc}d · ${formatDate(doc.fechaVencimiento)}`}
+                            <span className="mono" style={{ fontSize: "var(--fs-xs)", color: vencColor, fontWeight: 700 }}>
+                              {dVenc === null ? "" : dVenc < 0 ? `⚠ Venció ${formatDate(doc.fechaVencimiento)}` : dVenc === 0 ? "⏰ Vence hoy" : `⏰ ${dVenc}d · ${formatDate(doc.fechaVencimiento)}`}
                             </span>
                           )}
                         </div>
-
                         <div className="doc-card-meta">
                           <span className="doc-card-meta-item">{formatSize(doc.size)}</span>
-                          <span className="doc-card-meta-item" style={{color:"var(--text-dim)"}}>·</span>
+                          <span className="doc-card-meta-item" style={{ color: "var(--text-dim)" }}>·</span>
                           <span className="doc-card-meta-item">{formatDate(doc.fechaSubida)}</span>
-                          {doc.subcategoria && (
-                            <span className="doc-badge" style={{
-                              background:`${catInfoSafe.color}18`,color:catInfoSafe.color,
-                              border:`1px solid ${catInfoSafe.color}44`
-                            }}>{doc.subcategoria}</span>
-                          )}
+                          {doc.subcategoria && <span className="doc-badge" style={{ background: `${catInfoSafe.color}18`, color: catInfoSafe.color, border: `1px solid ${catInfoSafe.color}44` }}>{doc.subcategoria}</span>}
                         </div>
-
                         {doc.nota && <div className="doc-card-note">💬 {doc.nota}</div>}
-
                         <div className="doc-card-actions">
                           <button onClick={() => viewDoc(doc)} className="doc-btn doc-btn-view">👁 Ver</button>
                           <button onClick={() => downloadDoc(doc)} className="doc-btn doc-btn-dl">⬇ Guardar</button>
@@ -1369,84 +507,10 @@ export default function Documentos() {
         )}
       </div>
 
-      {/* ── VISOR DE DOCUMENTOS — portal a document.body para evitar overflow:auto del main ── */}
-      {visorDoc && createPortal(
-        <div onClick={e => { if (e.target===e.currentTarget) { setVisorDoc(null); } }} style={{
-          position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",
-          backdropFilter:"blur(8px)",zIndex:9999,
-          display:"flex",flexDirection:"column",
-        }}>
-          {/* Header del visor */}
-          <div style={{
-            display:"flex",alignItems:"center",justifyContent:"space-between",
-            padding:".75rem 1rem",background:"rgba(0,0,0,0.6)",
-            borderBottom:"1px solid rgba(255,255,255,0.1)",flexShrink:0,
-          }}>
-            <div>
-              <div style={{fontFamily:"var(--font-display)",fontWeight:700,fontSize:"var(--fs-base)",color:"#fff"}}>
-                {getFileIcon(visorDoc.tipo)} {visorDoc.nombreDisplay || visorDoc.nombre}
-              </div>
-              {visorDoc.emisor && (
-                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"rgba(255,255,255,0.5)",marginTop:".15rem"}}>
-                  🏢 {visorDoc.emisor}
-                </div>
-              )}
-            </div>
-            <div style={{display:"flex",gap:".5rem",alignItems:"center"}}>
-              <button onClick={() => downloadDoc(visorDoc)} style={{
-                background:"rgba(52,211,153,0.15)",color:"#34d399",
-                border:"1px solid rgba(52,211,153,0.3)",borderRadius:8,
-                padding:".35rem .75rem",fontFamily:"var(--font-display)",
-                fontWeight:700,fontSize:"var(--fs-sm)",cursor:"pointer",
-              }}>⬇ Descargar</button>
-              <button onClick={() => { setVisorDoc(null); }} style={{
-                background:"rgba(255,255,255,0.1)",color:"#fff",
-                border:"1px solid rgba(255,255,255,0.2)",borderRadius:8,
-                padding:".35rem .75rem",fontFamily:"var(--font-display)",
-                fontWeight:700,fontSize:"var(--fs-sm)",cursor:"pointer",
-              }}>✕ Cerrar</button>
-            </div>
-          </div>
+      {/* ── Visor de documentos ── */}
+      <VisorModal visorDoc={visorDoc} onClose={() => setVisorDoc(null)} onDownload={downloadDoc} />
 
-          {/* Contenido del visor — solo imágenes y spinner de carga */}
-          <div style={{flex:1,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
-            {visorDoc._loading ? (
-              <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"1rem",textAlign:"center"}}>
-                <div style={{width:40,height:40,borderRadius:"50%",
-                  border:"3px solid rgba(255,255,255,0.15)",borderTopColor:"#22d3ee",
-                  animation:"teg-spin 0.7s linear infinite"}} />
-                <div style={{fontFamily:"monospace",fontSize:"var(--fs-sm)",color:"rgba(255,255,255,0.5)"}}>
-                  Cargando documento…
-                </div>
-              </div>
-            ) : visorDoc._error ? (
-              <div style={{textAlign:"center",color:"rgba(255,255,255,0.7)"}}>
-                <div style={{fontSize:"3rem",marginBottom:".75rem"}}>⚠️</div>
-                <div style={{fontFamily:"monospace",fontSize:"var(--fs-base)",marginBottom:"1rem"}}>
-                  No se pudo cargar el documento
-                </div>
-                <button onClick={() => downloadDoc(visorDoc)} style={{
-                  background:"#34d399",color:"var(--bg)",border:"none",borderRadius:10,
-                  padding:".6rem 1.5rem",fontWeight:800,fontSize:"var(--fs-base)",cursor:"pointer",
-                }}>⬇ Descargar</button>
-              </div>
-            ) : visorDoc._esPdf ? (
-              <iframe
-                src={visorDoc._objectUrl || visorDoc.blobUrl || visorDoc.data}
-                style={{ width: "100%", height: "100%", border: "none", minHeight: "60vh" }}
-                title={visorDoc.nombre}
-              />
-            ) : (visorDoc.blobUrl || visorDoc.data) ? (
-              <img
-                src={visorDoc.blobUrl || visorDoc.data}
-                alt={visorDoc.nombreDisplay || visorDoc.nombre}
-                style={{maxWidth:"100%",maxHeight:"100%",objectFit:"contain",borderRadius:8}}
-              />
-            ) : null}
-          </div>
-        </div>
-      , document.body)}
-      {/* ── SECCIÓN GESTIONES LEGALES — MEJ-23: subcomponente autónomo ── */}
+      {/* ── Gestiones legales ── */}
       <TabGestiones
         gestiones={gestiones}
         saveGestiones={saveGestiones}
@@ -1458,58 +522,29 @@ export default function Documentos() {
       {/* ── Toast error de subida ── */}
       {uploadError && (
         <div onClick={() => setUploadError(null)} style={{
-          position:"fixed", bottom:"calc(env(safe-area-inset-bottom,0px) + 80px)",
-          left:"50%", transform:"translateX(-50%)",
-          background:"var(--red-dim)", border:"1px solid rgba(248,113,113,.35)",
-          borderRadius:10, padding:".65rem 1rem",
-          fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", fontWeight:600,
-          color:"var(--red)", zIndex:9998, maxWidth:340, width:"90%",
-          display:"flex", alignItems:"center", gap:".6rem",
-          boxShadow:"0 4px 20px rgba(0,0,0,.3)", cursor:"pointer",
+          position: "fixed", bottom: "calc(env(safe-area-inset-bottom,0px) + 80px)",
+          left: "50%", transform: "translateX(-50%)",
+          background: "var(--red-dim)", border: "1px solid rgba(248,113,113,.35)",
+          borderRadius: 10, padding: ".65rem 1rem",
+          fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", fontWeight: 600,
+          color: "var(--red)", zIndex: 9998, maxWidth: 340, width: "90%",
+          display: "flex", alignItems: "center", gap: ".6rem",
+          boxShadow: "0 4px 20px rgba(0,0,0,.3)", cursor: "pointer",
         }}>
-          <span style={{flexShrink:0}}>❌</span>
-          <span style={{flex:1}}>{uploadError}</span>
-          <span style={{flexShrink:0, opacity:.6, fontSize:"var(--fs-sm)"}}>Toca para cerrar</span>
+          <span style={{ flexShrink: 0 }}>❌</span>
+          <span style={{ flex: 1 }}>{uploadError}</span>
+          <span style={{ flexShrink: 0, opacity: .6, fontSize: "var(--fs-sm)" }}>Toca para cerrar</span>
         </div>
       )}
 
       {/* ── Modal confirmación eliminar ── */}
-      {delConfirm && createPortal(
-        <div onClick={() => setDelConfirm(null)} style={{
-          position:"fixed", inset:0, background:"rgba(0,0,0,0.75)",
-          display:"flex", alignItems:"center", justifyContent:"center",
-          zIndex:9999, padding:"1rem",
-        }}>
-          <div onClick={e => e.stopPropagation()} style={{
-            background:"var(--surface)", border:"1px solid var(--border)",
-            borderRadius:14, padding:"1.5rem", maxWidth:320, width:"100%",
-            textAlign:"center",
-          }}>
-            <div style={{ fontSize:"var(--fs-xl)", marginBottom:".6rem" }}>🗑</div>
-            <div style={{ fontWeight:800, fontSize:"var(--fs-md)", marginBottom:".35rem" }}>
-              ¿Eliminar este {delConfirm.esGestion ? "trámite" : delConfirm.esSubvencion ? "subvención" : "documento"}?
-            </div>
-            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
-              color:"var(--text-muted)", marginBottom:"1.25rem",
-              overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-              {delConfirm.nombre}
-            </div>
-            <div style={{ display:"flex", gap:".5rem", justifyContent:"center" }}>
-              <button onClick={() => setDelConfirm(null)} className="btn btn-ghost">
-                Cancelar
-              </button>
-              <button onClick={confirmarDelete} className="btn btn-red">
-                Eliminar
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+      <DeleteConfirmModal
+        delConfirm={delConfirm}
+        onCancel={() => setDelConfirm(null)}
+        onConfirm={confirmarDelete}
+      />
 
-
-
-      {/* ── SECCIÓN SUBVENCIONES — MEJ-23: subcomponente autónomo ── */}
+      {/* ── Subvenciones ── */}
       {isSubvencion && (
         <TabSubvenciones
           subvenciones={subvenciones}
@@ -1517,7 +552,6 @@ export default function Documentos() {
           setDelConfirm={setDelConfirm}
         />
       )}
-
     </>
   );
 }
