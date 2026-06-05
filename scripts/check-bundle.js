@@ -27,6 +27,7 @@ const THRESHOLDS = {
   'vendor-charts':  110,  // actual 92 kB gzip
   'vendor-exceljs': 320,  // actual 271 kB gzip (librería no divisible)
   'vendor-pdf':     100,  // referencia; aparece si se usa jspdf
+  'vendor-leaflet': 50,   // actual ~42 kB gzip (mapa interactivo)
   'vendor-icons':   10,   // actual 0.91 kB gzip
   'vendor-qr':      15,   // actual 9.66 kB gzip
   // Chunk principal de la app — más flexible por crecimiento orgánico

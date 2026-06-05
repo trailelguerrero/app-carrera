@@ -11,7 +11,16 @@
   ],
   "functions": {
     "api/**/*.js": {
-      "maxDuration": 15
+      "maxDuration": 10
+    },
+    "api/images/index.js": {
+      "maxDuration": 25
+    },
+    "api/push/index.js": {
+      "maxDuration": 25
+    },
+    "api/setup.js": {
+      "maxDuration": 30
     }
   },
   "headers": [

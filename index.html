@@ -14,6 +14,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
+    <!-- DNS prefetch para dominios de terceros usados en producción -->
+    <!-- Tile servers OSM — el mapa Leaflet los consulta en cuanto se abre el módulo -->
+    <link rel="dns-prefetch" href="https://tile.openstreetmap.org" />
+    <link rel="dns-prefetch" href="https://server.arcgisonline.com" />
+    <!-- Sentry ingest — solo activo en producción (VITE_SENTRY_DSN) -->
+    <link rel="dns-prefetch" href="https://o0.ingest.sentry.io" />
+
     <meta property="og:title" content="Trail El Guerrero 2026" />
     <meta property="og:description" content="Panel de gestión integral del Trail El Guerrero 2026" />
     <meta property="og:type" content="website" />
