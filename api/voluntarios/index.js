@@ -11,7 +11,8 @@
  * action=reset-pin POST  Reset PIN (organizador, requiere x-api-key)
  * action=delete    POST  Eliminar voluntario (admin, requiere x-api-key)
  */
-import { neon } from '@neondatabase/serverless';
+// FASE-7: instancia compartida — evita múltiples conexiones por módulo
+import { sql } from '../lib/db.js';
 import { checkRateLimit } from '../lib/rateLimiter.js';
 import { logError, requestContext } from '../lib/logger.js';
 
@@ -94,7 +95,6 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const { action } = req.query;
-  const sql = neon(process.env.DATABASE_URL);
 
   try {
     // ── AUTH: POST ?action=auth ────────────────────────────────────────────

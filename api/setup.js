@@ -60,10 +60,96 @@ export default async function handler(req, res) {
       ON rate_limit (window_end)
     `;
 
+    // FASE-7: tabla documents (subvenciones/documentos del evento)
+    await sqlDDL`
+      CREATE TABLE IF NOT EXISTS documents (
+        id                TEXT PRIMARY KEY,
+        nombre            TEXT NOT NULL,
+        nombre_display    TEXT,
+        emisor            TEXT,
+        categoria         TEXT NOT NULL,
+        subcategoria      TEXT,
+        nota              TEXT,
+        estado            TEXT DEFAULT 'pendiente',
+        fecha_vencimiento TEXT,
+        size              INTEGER,
+        tipo              TEXT,
+        blob_url          TEXT,
+        fecha_subida      TIMESTAMPTZ DEFAULT NOW(),
+        fecha_modificacion TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    // Migración: añadir blob_url si la tabla existía con columna 'data'
+    await sqlDDL`ALTER TABLE documents ADD COLUMN IF NOT EXISTS blob_url TEXT`.catch(() => {});
+    await sqlDDL`ALTER TABLE documents DROP COLUMN IF EXISTS data`.catch(() => {});
+    // Índices para filtrado frecuente por categoría y estado
+    await sqlDDL`
+      CREATE INDEX IF NOT EXISTS idx_documents_categoria
+      ON documents (categoria)
+    `;
+    await sqlDDL`
+      CREATE INDEX IF NOT EXISTS idx_documents_estado
+      ON documents (estado)
+    `;
+    await sqlDDL`
+      CREATE INDEX IF NOT EXISTS idx_documents_fecha_subida
+      ON documents (fecha_subida DESC)
+    `;
+
+    // FASE-7: tabla pat_docs (documentos de patrocinadores)
+    await sqlDDL`
+      CREATE TABLE IF NOT EXISTS pat_docs (
+        id         SERIAL PRIMARY KEY,
+        pat_id     INTEGER NOT NULL,
+        nombre     TEXT NOT NULL,
+        tipo       TEXT,
+        mime       TEXT,
+        blob_url   TEXT,
+        size       INTEGER,
+        fecha      TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    await sqlDDL`ALTER TABLE pat_docs ADD COLUMN IF NOT EXISTS blob_url TEXT`.catch(() => {});
+    await sqlDDL`ALTER TABLE pat_docs DROP COLUMN IF EXISTS data`.catch(() => {});
+    // Índice para lookup por pat_id (consulta más frecuente)
+    await sqlDDL`
+      CREATE INDEX IF NOT EXISTS idx_pat_docs_pat_id
+      ON pat_docs (pat_id)
+    `;
+
+    // FASE-7: tabla budget_log (auditoría de cambios presupuestarios)
+    await sqlDDL`
+      CREATE TABLE IF NOT EXISTS budget_log (
+        id          SERIAL PRIMARY KEY,
+        ts          TIMESTAMPTZ DEFAULT NOW(),
+        concepto_id INTEGER,
+        concepto    TEXT NOT NULL,
+        campo       TEXT NOT NULL,
+        valor_antes TEXT,
+        valor_nuevo TEXT,
+        tipo        TEXT
+      )
+    `;
+    // Índice para queries de historial ordenado por fecha
+    await sqlDDL`
+      CREATE INDEX IF NOT EXISTS idx_budget_log_ts
+      ON budget_log (ts DESC)
+    `;
+
     return res.status(200).json({
       message: 'Database setup successful!',
-      indexes: ['idx_collections_value_gin (GIN)', 'idx_collections_updated_at', 'idx_rate_limit_window_end'],
-      tables: ['collections', 'rate_limit'],
+      indexes: [
+        'idx_collections_value_gin (GIN)',
+        'idx_collections_updated_at',
+        'idx_rate_limit_window_end',
+        'idx_documents_categoria',
+        'idx_documents_estado',
+        'idx_documents_fecha_subida',
+        'idx_pat_docs_pat_id',
+        'idx_budget_log_ts',
+      ],
+      tables: ['collections', 'rate_limit', 'documents', 'pat_docs', 'budget_log'],
       direct_url_configured: usingDirectUrl,
       connection_used: usingDirectUrl
         ? 'DIRECT_URL (non-pooled)'

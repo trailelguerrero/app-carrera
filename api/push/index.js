@@ -13,13 +13,11 @@
  *   /api/push/subscribe, /api/push/unsubscribe, /api/push/send
  * pero Vercel las enruta todas aquí si se eliminan los archivos individuales.
  */
-import { neon } from '@neondatabase/serverless';
+import { sql } from '../lib/db.js';
 import { createSign } from 'crypto';
 import { verifySessionToken, readSessionCookie } from '../lib/session.js';
 import { logError, logWarn, logInfo } from '../lib/logger.js';
 import { checkRateLimit } from '../lib/rateLimiter.js'; // MEJ-22
-
-const sql = neon(process.env.DATABASE_URL);
 
 // ── Auth helpers ──────────────────────────────────────────────────────────
 

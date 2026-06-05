@@ -20,7 +20,8 @@
  *     → { ok: boolean }
  */
 
-import { neon } from '@neondatabase/serverless';
+// FASE-7: instancia compartida — evita múltiples conexiones por módulo
+import { sql } from '../lib/db.js';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { checkRateLimit, peekRateLimit, resetRateLimit } from '../lib/rateLimiter.js';
@@ -171,8 +172,6 @@ export default async function handler(req, res) {
     logWarn('[panel/auth]', 'DATABASE_URL no configurada');
     return res.status(503).json({ error: 'Servicio no disponible' });
   }
-
-  const sql = neon(process.env.DATABASE_URL);
 
   // Rate limiting per-IP: 10 intentos por IP en 5 minutos.
   // SEC-H1: priorizar x-real-ip (poblada por Vercel) sobre x-forwarded-for. Vercel

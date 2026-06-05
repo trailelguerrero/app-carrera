@@ -15,7 +15,8 @@
  * Colecciones de ESCRITURA permitidas (registro):
  *   - teg_voluntarios_v1_voluntarios  (solo APPEND, nunca sobreescribe el array)
  */
-import { neon } from '@neondatabase/serverless';
+// FASE-7: instancia compartida — evita múltiples conexiones por módulo
+import { sql } from '../lib/db.js';
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 import { checkRateLimit } from '../lib/rateLimiter.js';
@@ -89,7 +90,6 @@ export default async function handler(req, res) {
     }
 
     try {
-      const sql = neon(process.env.DATABASE_URL);
       const result = await sql`SELECT value FROM collections WHERE key = ${collection}`;
       if (result.length > 0) {
         return res.status(200).json(result[0].value);
@@ -109,8 +109,7 @@ export default async function handler(req, res) {
 
     // SEC-05: Rate limiting persistente en PostgreSQL (survives deploys y múltiples instancias)
     const clientIp = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
-    const sqlRl = neon(process.env.DATABASE_URL);
-    if (await checkRateLimit(sqlRl, clientIp, 'register', { max: 3, windowMs: 5 * 60 * 1000 })) {
+    if (await checkRateLimit(sql, clientIp, 'register', { max: 3, windowMs: 5 * 60 * 1000 })) {
       return res.status(429).json({ error: 'Demasiadas solicitudes. Inténtalo en unos minutos.' });
     }
 
@@ -167,8 +166,6 @@ export default async function handler(req, res) {
     };
 
     try {
-      const sql = neon(process.env.DATABASE_URL);
-
       // Leer array actual y hacer APPEND — nunca sobreescribir
       const result = await sql`SELECT value FROM collections WHERE key = ${collection}`;
       const current = result.length > 0 && Array.isArray(result[0].value)

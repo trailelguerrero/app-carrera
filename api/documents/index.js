@@ -1,4 +1,5 @@
-import { neon }     from '@neondatabase/serverless';
+// FASE-7: instancia compartida — evita múltiples conexiones por módulo
+import { sql } from '../lib/db.js';
 import { put, del } from '@vercel/blob';
 import { logError, logWarn, requestContext } from '../lib/logger.js';
 import { checkRateLimit } from '../lib/rateLimiter.js'; // MEJ-22
@@ -12,41 +13,12 @@ const auth = (req, res) => {
   return true;
 };
 
-const ensureTable = async (sql) => {
-  await sql`
-    CREATE TABLE IF NOT EXISTS documents (
-      id                TEXT PRIMARY KEY,
-      nombre            TEXT NOT NULL,
-      nombre_display    TEXT,
-      emisor            TEXT,
-      categoria         TEXT NOT NULL,
-      subcategoria      TEXT,
-      nota              TEXT,
-      estado            TEXT DEFAULT 'pendiente',
-      fecha_vencimiento TEXT,
-      size              INTEGER,
-      tipo              TEXT,
-      blob_url          TEXT,
-      fecha_subida      TIMESTAMPTZ DEFAULT NOW(),
-      fecha_modificacion TIMESTAMPTZ DEFAULT NOW()
-    )
-  `;
-  // Migración: añadir blob_url si la tabla ya existía con columna 'data'
-  try {
-    await sql`ALTER TABLE documents ADD COLUMN IF NOT EXISTS blob_url TEXT`;
-    await sql`ALTER TABLE documents DROP COLUMN IF EXISTS data`;
-  } catch {}
-};
-
-let tableReady = false;
+// FASE-7: DDL movido a /api/setup — tabla documents gestionada allí
 
 export default async function handler(req, res) {
   if (!auth(req, res)) return;
 
   try {
-    const sql = neon(process.env.DATABASE_URL);
-    if (!tableReady) { await ensureTable(sql); tableReady = true; }
-
     // ── GET — un documento (redirect a blob) o listar metadatos ──────────
     if (req.method === 'GET') {
       // GET /api/documents?id=xxx → redirige al blob (absorbe /api/documents/[id])

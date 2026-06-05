@@ -1,4 +1,5 @@
-import { neon } from '@neondatabase/serverless';
+// FASE-7: instancia compartida — evita múltiples conexiones por módulo
+import { sql } from '../lib/db.js';
 import { logError, requestContext } from '../lib/logger.js';
 import { checkRateLimit } from '../lib/rateLimiter.js'; // MEJ-22
 
@@ -11,30 +12,12 @@ const auth = (req, res) => {
   return true;
 };
 
-let tableReady = false;
-
-const ensureTable = async (sql) => {
-  await sql`
-    CREATE TABLE IF NOT EXISTS budget_log (
-      id          SERIAL PRIMARY KEY,
-      ts          TIMESTAMPTZ DEFAULT NOW(),
-      concepto_id INTEGER,
-      concepto    TEXT NOT NULL,
-      campo       TEXT NOT NULL,
-      valor_antes TEXT,
-      valor_nuevo TEXT,
-      tipo        TEXT
-    )
-  `;
-};
+// FASE-7: DDL movido a /api/setup — tabla budget_log gestionada allí
 
 export default async function handler(req, res) {
   // SEC-04: todos los métodos requieren API key — el GET expone datos financieros sensibles
   if (!auth(req, res)) return;
   try {
-    const sql = neon(process.env.DATABASE_URL);
-    if (!tableReady) { await ensureTable(sql); tableReady = true; }
-
     if (req.method === 'GET') {
       const limit = Math.min(parseInt(req.query.limit || '50'), 200);
       const rows = await sql`
