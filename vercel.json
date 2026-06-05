@@ -10,17 +10,41 @@
     }
   ],
   "functions": {
-    "api/**/*.js": {
+    "api/proxy.js": {
+      "maxDuration": 10
+    },
+    "api/setup.js": {
+      "maxDuration": 30
+    },
+    "api/budget-log/index.js": {
+      "maxDuration": 10
+    },
+    "api/data/[collection].js": {
+      "maxDuration": 10
+    },
+    "api/data/batch.js": {
+      "maxDuration": 10
+    },
+    "api/data/public.js": {
+      "maxDuration": 10
+    },
+    "api/docs/[patId].js": {
+      "maxDuration": 10
+    },
+    "api/documents/index.js": {
       "maxDuration": 10
     },
     "api/images/index.js": {
       "maxDuration": 25
     },
+    "api/panel/auth.js": {
+      "maxDuration": 10
+    },
     "api/push/index.js": {
       "maxDuration": 25
     },
-    "api/setup.js": {
-      "maxDuration": 30
+    "api/voluntarios/index.js": {
+      "maxDuration": 10
     }
   },
   "headers": [
