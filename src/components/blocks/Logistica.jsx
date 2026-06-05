@@ -10,6 +10,7 @@ import {
   SK_VOL_VOLUNTARIOS, SK_VOL_PUESTOS,
 } from "@/constants/storageKeys";
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useAppStore, useLogisticaTab, useLogisticaFiltro, useLogisticaOrdenMat, useLogisticaOrdenVeh, useLogisticaOrdenTL, useLogisticaOrdenCont, useLogisticaOrdenCK, useToggleLogisticaOrden } from "@/store/useAppStore";
 import { useModalClose } from "@/hooks/useModalClose";
 import { exportarMaterial } from "@/lib/exportUtils";
 import { toast } from "@/lib/toast";
@@ -69,8 +70,12 @@ export default function App({ initialSubtab, onSubtabConsumed, initialFilter, on
 
   const [eventCfg] = useData(LS_KEY_CONFIG, EVENT_CONFIG_DEFAULT);
   const config = { ...EVENT_CONFIG_DEFAULT, ...(eventCfg || {}) };
-  const [tab, setTab] = useState("dashboard");
-  const [filtroTareaId, setFiltroTareaId] = useState(null); // GAP-A: filtro por tarea vinculada desde Proyecto
+  // ── Fase 4: tab y filtro desde store (persisten entre navegaciones) ─────────
+  const tab           = useLogisticaTab();
+  const filtroTareaId = useLogisticaFiltro();
+  // Selectores atómicos estables — evitan bucle infinito en useEffect
+  const setTab           = useAppStore((s) => s.setLogisticaTab);
+  const setFiltroTareaId = useAppStore((s) => s.setLogisticaFiltroTareaId);
   useEffect(() => {
     if (initialSubtab) {
       setTab(initialSubtab);
@@ -80,7 +85,7 @@ export default function App({ initialSubtab, onSubtabConsumed, initialFilter, on
       setFiltroTareaId(initialFilter.filtroTareaId);
       if (onFilterConsumed) onFilterConsumed();
     }
-  }, [initialSubtab, onSubtabConsumed, initialFilter, onFilterConsumed]);
+  }, [initialSubtab, onSubtabConsumed, initialFilter, onFilterConsumed, setTab, setFiltroTareaId]);
   const [rawMaterial, setMaterial] = useData(SK_LOG_MAT,  MAT0);
   const material = Array.isArray(rawMaterial) ? rawMaterial : [];
   const [rawAsigs, setAsigs] = useData(SK_LOG_ASIG, ASIG0);
@@ -197,11 +202,19 @@ export default function App({ initialSubtab, onSubtabConsumed, initialFilter, on
     setModal(obj);
   };
   // Ordenaciones
-  const [ordenMat, setOrdenMat]   = useState(false); // A-Z material
-  const [ordenVeh, setOrdenVeh]   = useState(false); // A-Z vehículos
-  const [ordenTL,  setOrdenTL]    = useState(false); // A-Z timeline
-  const [ordenCont,setOrdenCont]  = useState(false); // A-Z contactos
-  const [ordenCK,  setOrdenCK]    = useState(false); // A-Z checklist
+  // ── Fase 4: órdenes de columna desde store ────────────────────────────────
+  // Selectores primitivos individuales (booleanos = refs estables, sin re-render extra)
+  const ordenMat   = useLogisticaOrdenMat();
+  const ordenVeh   = useLogisticaOrdenVeh();
+  const ordenTL    = useLogisticaOrdenTL();
+  const ordenCont  = useLogisticaOrdenCont();
+  const ordenCK    = useLogisticaOrdenCK();
+  const toggleOrden  = useToggleLogisticaOrden();
+  const setOrdenMat  = () => toggleOrden('mat');
+  const setOrdenVeh  = () => toggleOrden('veh');
+  const setOrdenTL   = () => toggleOrden('tl');
+  const setOrdenCont = () => toggleOrden('cont');
+  const setOrdenCK   = () => toggleOrden('ck');
 
   // useData handles saving automatically.
 

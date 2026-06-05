@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useAppStore, useDiaCarreraTab, useDiaCarreraBusPresencia } from "@/store/useAppStore";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { createPortal } from "react-dom";
 import dataService from "@/lib/dataService";
@@ -23,10 +24,14 @@ const CAT_COLOR = { logistica:"#fbbf24", organizacion:"#a78bfa", voluntarios:"#3
 const TIPO_COLOR = { emergencia:"#f87171", institucional:"#a78bfa", proveedor:"#22d3ee", staff:"#34d399" };
 
 export default function DiaCarrera({ onClose }) {
-  const [tab, setTab] = useState("ahora"); // Iniciar en Mission Control
+  // ── Fase 4: tab y búsqueda desde store (persisten entre navegaciones) ──────
+  const tab          = useDiaCarreraTab();
+  const busPresencia = useDiaCarreraBusPresencia();
+  // Selectores atómicos estables
+  const setTab          = useAppStore((s) => s.setDiaCarreraTab);
+  const setBusPresencia = useAppStore((s) => s.setDiaCarreraBusPresencia);
   const [ahora, setAhora] = useState(new Date());
   const [showInc, setShowInc] = useState(false);
-  const [busPresencia, setBusPresencia] = useState("");
   const [incForm, setIncForm] = useState({ tipo: "médica", gravedad: "media", descripcion: "", puestoNombre: "— Sin puesto específico" });
   const [incGuardado, setIncGuardado] = useState(false);
   const { supported: pushSupported, enabled: pushEnabled, loading: pushLoading, toggle: pushToggle, notifyLocal } = usePushNotifications();
