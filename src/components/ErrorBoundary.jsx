@@ -5,6 +5,11 @@ import * as Sentry from "@sentry/react";
  * Error Boundary — atrapa errores en cualquier bloque hijo.
  * Si un bloque explota, muestra un mensaje de error útil
  * en lugar de pantalla blanca, y permite reintentarlo.
+ *
+ * Mejoras Fase 8:
+ * - withScope para enriquecer el evento de Sentry con contexto del módulo
+ * - Nivel de severidad "error" explícito
+ * - No se filtran datos sensibles aquí (el scrubber beforeSend de main.tsx los cubre)
  */
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -22,7 +27,7 @@ export default class ErrorBoundary extends Component {
       return { error: null, info: null, blockName: nextProps.blockName };
     }
     if (nextProps.blockName !== prevState.blockName) {
-      return { blockName: nextProps.blockName };
+      return { blockName: nextProps.blockName }; 
     }
     return null;
   }
@@ -30,12 +35,20 @@ export default class ErrorBoundary extends Component {
   componentDidCatch(error, info) {
     this.setState({ info });
     console.error("[ErrorBoundary]", error, info?.componentStack);
-    // Reportar a Sentry si está inicializado (producción)
-    Sentry.captureException(error, {
-      contexts: {
-        react: { componentStack: info?.componentStack },
-      },
-      tags: { blockName: this.props.blockName || "unknown" },
+
+    // Reportar a Sentry con contexto enriquecido del módulo que falló
+    Sentry.withScope((scope) => {
+      const blockName = this.props.blockName || "unknown";
+      // Tag indexable en Sentry para filtrar por módulo
+      scope.setTag("blockName", blockName);
+      scope.setTag("errorBoundary", true);
+      // Contexto extra con el stack del árbol de React
+      scope.setContext("react", {
+        componentStack: info?.componentStack ?? "(no stack)",
+      });
+      // Nivel: siempre "error" (ya que el boundary solo se dispara en throws)
+      scope.setLevel("error");
+      Sentry.captureException(error);
     });
   }
 

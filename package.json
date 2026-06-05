@@ -13,7 +13,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "analyze": "npm run build && node scripts/check-bundle.js",
-    "analyze:ci": "node scripts/check-bundle.js --json"
+    "analyze:ci": "node scripts/check-bundle.js --json",
+    "build:ci": "VITE_SENTRY_RELEASE=$(node -e \"const p=require('./package.json');const g=require('child_process').execSync('git rev-parse --short HEAD').toString().trim();console.log(p.version+'+'+g)\") vite build"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

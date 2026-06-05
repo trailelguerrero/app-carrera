@@ -15,6 +15,11 @@ const API_PROXY_TARGET =
 export default defineConfig(({ mode }) => ({
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
+    // VITE_SENTRY_RELEASE: inyectado en CI via env var (e.g. "1.0.1+abc1234")
+    // En builds locales sin la variable queda undefined y main.tsx usa __APP_VERSION__
+    "import.meta.env.VITE_SENTRY_RELEASE": JSON.stringify(
+      process.env.VITE_SENTRY_RELEASE ?? undefined
+    ),
   },
   server: {
     host: "::",
