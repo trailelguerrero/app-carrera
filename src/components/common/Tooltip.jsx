@@ -75,12 +75,16 @@ export function Tooltip({ text, children, position = "top", maxWidth = 260 }) {
       if (triggerRef.current?.contains(e.target)) return;
       setVisible(false);
     };
+    // perf: guardamos referencia para poder limpiarla si el componente se desmonta
+    // antes de que el scroll dispare (evita llamar setVisible en componente desmontado)
+    const closeOnScroll = () => setVisible(false);
     document.addEventListener("mousedown",  close);
     document.addEventListener("touchstart", close, { passive: true });
-    window.addEventListener("scroll", () => setVisible(false), { once:true, passive:true });
+    window.addEventListener("scroll", closeOnScroll, { once:true, passive:true });
     return () => {
       document.removeEventListener("mousedown",  close);
       document.removeEventListener("touchstart", close);
+      window.removeEventListener("scroll", closeOnScroll);
     };
   }, [visible]);
 

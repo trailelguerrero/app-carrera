@@ -12,6 +12,7 @@ import { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys"; // F
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useAppStore, EVENT_TYPES } from "@/store/useAppStore";
 import QuickNav from "../components/common/QuickNav";
+import SkeletonBlock from "../components/common/SkeletonBlock";
 
 // Lazy-style imports for blocks
 const Dashboard = lazy(() => import("../components/blocks/Dashboard"));
@@ -25,15 +26,15 @@ const Camisetas = lazy(() => import("../components/blocks/Camisetas"));
 const Configuracion = lazy(() => import("../components/blocks/Configuracion"));
 
 const BLOCKS = [
-  { id: "dashboard", icon: "📊", label: "Dashboard", shortLabel: "Dash", component: Dashboard },
-  { id: "proyecto", icon: "🏔️", label: "Proyecto", shortLabel: "Proy", component: Proyecto },
-  { id: "presupuesto", icon: "💰", label: "Presupuesto", shortLabel: "Pres", component: Presupuesto },
-  { id: "voluntarios", icon: "👥", label: "Voluntarios", shortLabel: "Vols", component: Voluntarios },
-  { id: "logistica", icon: "📦", label: "Logística", shortLabel: "Log", component: Logistica },
-  { id: "patrocinadores", icon: "🤝", label: "Patrocinadores", shortLabel: "Pat", component: Patrocinadores },
-  { id: "camisetas", icon: "👕", label: "Camisetas", shortLabel: "Cam", component: Camisetas },
-  { id: "documentos", icon: "📁", label: "Docs", shortLabel: "Docs", component: Documentos },
-  { id: "configuracion", icon: "⚙️", label: "Configuración", shortLabel: "Cfg", component: Configuracion },
+  { id: "dashboard",     icon: "📊", label: "Dashboard",      shortLabel: "Dash", component: Dashboard,     skeleton: "dashboard"     },
+  { id: "proyecto",      icon: "🏔️", label: "Proyecto",       shortLabel: "Proy", component: Proyecto,      skeleton: "default"       },
+  { id: "presupuesto",   icon: "💰", label: "Presupuesto",    shortLabel: "Pres", component: Presupuesto,   skeleton: "presupuesto"   },
+  { id: "voluntarios",   icon: "👥", label: "Voluntarios",    shortLabel: "Vols", component: Voluntarios,   skeleton: "voluntarios"   },
+  { id: "logistica",     icon: "📦", label: "Logística",      shortLabel: "Log",  component: Logistica,     skeleton: "default"       },
+  { id: "patrocinadores",icon: "🤝", label: "Patrocinadores", shortLabel: "Pat",  component: Patrocinadores,skeleton: "patrocinadores" },
+  { id: "camisetas",     icon: "👕", label: "Camisetas",      shortLabel: "Cam",  component: Camisetas,     skeleton: "default"       },
+  { id: "documentos",    icon: "📁", label: "Docs",           shortLabel: "Docs", component: Documentos,    skeleton: "documentos"    },
+  { id: "configuracion", icon: "⚙️", label: "Configuración",  shortLabel: "Cfg",  component: Configuracion, skeleton: "default"       },
 ];
 
 // ── TOAST SYSTEM ──────────────────────────────────────────────────────────────
@@ -555,22 +556,7 @@ export default function Index() {
               onNavigate={handleBlockChange}
             >
               <Suspense fallback={
-                <div style={{
-                  display: "flex", flexDirection: "column", alignItems: "center",
-                  justifyContent: "center", minHeight: "60vh", gap: "1rem",
-                }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: "50%",
-                    border: "3px solid var(--border)",
-                    borderTopColor: "var(--cyan)",
-                    animation: "teg-spin 0.7s linear infinite",
-                  }} />
-                  <div style={{
-                    fontFamily: "'DM Mono', 'Space Mono', monospace,monospace", fontSize: "var(--fs-xs)",
-                    color: "var(--text-dim)", letterSpacing: "0.1em",
-                  }}>Cargando módulo…</div>
-                  <style>{`@keyframes teg-spin { to { transform: rotate(360deg); } }`}</style>
-                </div>
+                <SkeletonBlock variant={BLOCKS.find(b => b.id === activeBlock)?.skeleton ?? "default"} />
               }>
                 {ActiveComponent && <ActiveComponent
                   key={activeBlock}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import ConfirmModal from "@/components/common/ConfirmModal";
 import { blockCls as cls } from "@/lib/blockStyles";
 import SkeletonBlock from "@/components/common/SkeletonBlock";
@@ -137,29 +137,29 @@ const Presupuesto = () => {
     });
   }, [scenarioInscritos, scenarioConceptos, scenarioIngresosExtra, scenarioMerchandising]);
 
-  const exitScenario = () => {
+  const exitScenario = useCallback(() => {
     _exitScenario();
     setScenarioOverrides({ scenarioInscritos: null, scenarioConceptos: null, scenarioIngresosExtra: null, scenarioMerchandising: null });
-  };
+  }, [_exitScenario]);
 
-  const handleUpdateConcepto = (id, field, value) => {
+  const handleUpdateConcepto = useCallback((id, field, value) => {
     if (isScenarioMode) {
       if (field === "activo") toggleScenarioConcepto(id);
       else overrideScenarioConcepto(id, field, value);
     } else {
       updateConcepto(id, field, value);
     }
-  };
+  }, [isScenarioMode, toggleScenarioConcepto, overrideScenarioConcepto, updateConcepto]);
 
-  const handleUpdateCostePorDistancia = (id, dist, value) => {
+  const handleUpdateCostePorDistancia = useCallback((id, dist, value) => {
     if (isScenarioMode) {
       overrideScenarioConceptoCosteDist(id, dist, value);
     } else {
       updateCostePorDistancia(id, dist, value);
     }
-  };
+  }, [isScenarioMode, overrideScenarioConceptoCosteDist, updateCostePorDistancia]);
 
-  const handleUpdateActivoDistancia = (id, dist, value) => {
+  const handleUpdateActivoDistancia = useCallback((id, dist, value) => {
     if (isScenarioMode) {
       const curr = (scenarioConceptos || conceptos).find(c => c.id === id);
       if (!curr) return;
@@ -168,9 +168,19 @@ const Presupuesto = () => {
     } else {
       updateActivoDistancia(id, dist, value);
     }
-  };
+  }, [isScenarioMode, scenarioConceptos, conceptos, overrideScenarioConcepto, updateActivoDistancia]);
 
   const resPositivo = (resultado?.total ?? 0) >= 0;
+
+  // perf: memoizar el cálculo de completitud de conceptos — se usa en el header
+  const conceptosCompletitud = useMemo(() => {
+    const conceptosActivos = conceptos.filter(c => c.activo !== false);
+    const tieneCoste = (c) => c.tipo === 'fijo'
+      ? c.costeTotal > 0
+      : Object.values(c.costePorDistancia || {}).some(v => v > 0);
+    const conReal = conceptosActivos.filter(tieneCoste).length;
+    return { conReal, total: conceptosActivos.length, isComplete: conReal === conceptosActivos.length };
+  }, [conceptos]);
 
   const saveCls   = saveStatus === "saving" ? "btn btn-amber"
                   : saveStatus === "saved"  ? "btn btn-green"
@@ -225,27 +235,18 @@ const Presupuesto = () => {
             <h1 className="block-title">💰 Presupuesto</h1>
             <div className="block-title-sub">
               {config.nombre} {config.edicion} · Gestión económica
-              {conceptos.length > 0 && (() => {
-                // INC-P2 fix: extraer lógica tieneCoste/conReal a variables únicas
-                const conceptosActivos = conceptos.filter(c => c.activo !== false);
-                const tieneCoste = (c) => c.tipo === 'fijo'
-                  ? c.costeTotal > 0
-                  : Object.values(c.costePorDistancia || {}).some(v => v > 0);
-                const conReal = conceptosActivos.filter(tieneCoste).length;
-                const isComplete = conReal === conceptosActivos.length;
-                return (
+              {conceptos.length > 0 && (
                   <span style={{
                     marginLeft:".6rem", padding:".08rem .45rem",
                     borderRadius:10, fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                    background: isComplete ? "var(--green-dim)" : "var(--amber-dim)",
-                    color: isComplete ? "var(--green)" : "var(--amber)",
+                    background: conceptosCompletitud.isComplete ? "var(--green-dim)" : "var(--amber-dim)",
+                    color: conceptosCompletitud.isComplete ? "var(--green)" : "var(--amber)",
                     border: "1px solid",
-                    borderColor: isComplete ? "rgba(52,211,153,.3)" : "rgba(251,191,36,.3)",
+                    borderColor: conceptosCompletitud.isComplete ? "rgba(52,211,153,.3)" : "rgba(251,191,36,.3)",
                   }}>
-                    {`${conReal}/${conceptosActivos.length} conceptos con coste`}
+                    {`${conceptosCompletitud.conReal}/${conceptosCompletitud.total} conceptos con coste`}
                   </span>
-                );
-              })()}
+              )}
             </div>
           </div>
           <div className="block-actions">
