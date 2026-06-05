@@ -269,9 +269,13 @@ export default async function handler(req, res) {
       // 1. Si orgConfig.organizadores tiene entradas, usarlas como base.
       // 2. Si está vacío, construir desde los campos legacy (organizador + telefonoContacto).
       //    Esto evita que el mismo contacto aparezca en ambas fuentes y se duplique.
+      // FIX: normalizar cada entrada — rellenar nombre vacío con fallback, descartar sin teléfono.
+      const normOrg = (arr) => arr
+        .filter(o => (o.telefono || '').trim())
+        .map(o => ({ ...o, nombre: (o.nombre || '').trim() || (orgConfig.organizador || 'Organización') }));
       let organizadores;
       if (Array.isArray(orgConfig.organizadores) && orgConfig.organizadores.length > 0) {
-        organizadores = orgConfig.organizadores;
+        organizadores = normOrg(orgConfig.organizadores);
       } else if (orgConfig.organizador || orgConfig.telefonoContacto) {
         organizadores = [{
           nombre:   orgConfig.organizador     || 'Organizacion',

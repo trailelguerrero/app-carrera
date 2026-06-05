@@ -289,7 +289,7 @@ export function PortalMain({ token, onLogout }) {
           <div className="vp-label" style={{marginBottom:".5rem"}}>📞 Contacta con el organizador</div>
           {organizadores.map((org, i) => (
             <div key={i} style={{ paddingTop:i>0?".5rem":0, borderTop:i>0?"1px solid var(--border)":"none" }}>
-              {org.nombre && <div style={{ fontWeight:700, marginBottom:".2rem" }}>{org.nombre}</div>}
+              <div style={{ fontWeight:700, marginBottom:".2rem" }}>{org.nombre || 'Organización'}</div>
               {org.telefono && (
                 <a href={`tel:${org.telefono.replace(/\s/g,"")}`}
                   style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
@@ -628,7 +628,7 @@ export function PortalMain({ token, onLogout }) {
                   <div className="vp-mono" style={{ fontSize:".6rem", color:"var(--text-muted)", fontWeight:700, textTransform:"uppercase", letterSpacing:".05em", marginBottom:".4rem" }}>
                     📞 Contacto directo
                   </div>
-                  {contacto.nombre && <div style={{ fontWeight:700, fontSize:".9rem", marginBottom:".25rem" }}>{contacto.nombre}</div>}
+                  <div style={{ fontWeight:700, fontSize:".9rem", marginBottom:".25rem" }}>{contacto.nombre || 'Organización'}</div>
                   {contacto.telefono && (
                     <a href={`tel:${contacto.telefono.replace(/\s/g,"")}`}
                       style={{ display:"flex", alignItems:"center", gap:".5rem",
@@ -938,7 +938,7 @@ export function PortalMain({ token, onLogout }) {
             <div className="vp-label">📞 Contacto organizadores</div>
             {organizadores.map((org,i) => (
               <div key={i} style={{paddingTop:i>0?".65rem":0,marginTop:i>0?".65rem":0,borderTop:i>0?"1px solid var(--border)":"none"}}>
-                {org.nombre && <div style={{fontWeight:700,fontSize:".95rem",marginBottom:".2rem"}}>{org.nombre}</div>}
+                <div style={{fontWeight:700,fontSize:".95rem",marginBottom:".2rem"}}>{org.nombre || 'Organización'}</div>
                 {org.telefono && <a href={`tel:${org.telefono.replace(/\s/g,"")}`}
                   style={{fontFamily:"var(--font-mono)",fontSize:"1rem",color:"var(--cyan)",textDecoration:"none",display:"block",fontWeight:700,marginBottom:".1rem"}}>
                   📞 {org.telefono}</a>}
