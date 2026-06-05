@@ -740,8 +740,8 @@ export default function App() {
       {modal && createPortal(<ModalPedido data={modal.data} coste={coste} onSave={savePedido} onClose={() => setModal(null)} />, document.body)}
       {delId && createPortal(
         <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && setDelId(null)}>
-          <div className="modal" role="dialog" aria-modal="true" style={{ maxWidth: 340, textAlign: "center" }}>
-            <div className="modal-body" style={{ paddingTop: "1.5rem" }}><div style={{ fontSize: "var(--fs-xl)", marginBottom: ".6rem" }}>⚠️</div><div style={{ fontWeight: 700, marginBottom: ".4rem" }}>¿Eliminar pedido?</div><div className="mono xs muted">Esta acción no se puede deshacer.</div></div>
+          <div className="modal" role="dialog" aria-modal="true" aria-labelledby="cam-del-title" style={{ maxWidth: 340, textAlign: "center" }}>
+            <div className="modal-body" style={{ paddingTop: "1.5rem" }}><div style={{ fontSize: "var(--fs-xl)", marginBottom: ".6rem" }} aria-hidden="true">⚠️</div><div id="cam-del-title" style={{ fontWeight: 700, marginBottom: ".4rem" }}>¿Eliminar pedido?</div><div className="mono xs muted">Esta acción no se puede deshacer.</div></div>
             <div className="modal-footer"><button className="btn btn-ghost" onClick={() => setDelId(null)}>Cancelar</button><button className="btn btn-red" onClick={deletePedido}>Eliminar</button></div>
           </div>
         </div>

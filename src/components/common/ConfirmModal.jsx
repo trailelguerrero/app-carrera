@@ -16,6 +16,7 @@
  */
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 
 const VARIANT = {
   danger:  { color: "var(--red)",   bg: "var(--red-dim)",   border: "var(--red-border)",   icon: "🗑️" },
@@ -34,6 +35,7 @@ export default function ConfirmModal({
   onCancel,
 }) {
   const v = VARIANT[variant] || VARIANT.default;
+  const trapRef = useFocusTrap(open);
 
   // Cerrar con Escape
   useEffect(() => {
@@ -53,7 +55,7 @@ export default function ConfirmModal({
       aria-modal="true"
       aria-labelledby="confirm-modal-title"
     >
-      <div className="modal" style={{ maxWidth: 380, textAlign: "center" }}>
+      <div ref={trapRef} className="modal" style={{ maxWidth: 380, textAlign: "center" }}>
         {/* Icono */}
         <div style={{ fontSize: "2.5rem", marginBottom: ".65rem" }}>{v.icon}</div>
 
@@ -80,7 +82,6 @@ export default function ConfirmModal({
           <button
             className="btn btn-ghost"
             onClick={onCancel}
-            autoFocus
           >
             {cancelLabel}
           </button>

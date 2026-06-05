@@ -417,10 +417,10 @@ export default function App() {
       , document.body)}
       {delId && createPortal(
         <div className="modal-backdrop" onClick={e => e.target===e.currentTarget && setDelId(null)}>
-          <div className="modal" role="dialog" aria-modal="true" style={{maxWidth:340,textAlign:"center"}}>
+          <div className="modal" role="dialog" aria-modal="true" aria-labelledby="pat-del-title" style={{maxWidth:340,textAlign:"center"}}>
             <div className="modal-body" style={{paddingTop:"1.5rem"}}>
-              <div style={{fontSize:"var(--fs-xl)",marginBottom:".6rem"}}>⚠️</div>
-              <div style={{fontWeight:700,marginBottom:".4rem"}}>¿Eliminar patrocinador?</div>
+              <div style={{fontSize:"var(--fs-xl)",marginBottom:".6rem"}} aria-hidden="true">⚠️</div>
+              <div id="pat-del-title" style={{fontWeight:700,marginBottom:".4rem"}}>¿Eliminar patrocinador?</div>
               <div className="muted mono xs">Se eliminarán también todas sus contraprestaciones.</div>
             </div>
             <div className="modal-footer">

@@ -37,28 +37,28 @@ function QuickCreateTarea({ onSave, onClose, areas=AREAS, prefillArea="" }) {
 
   return createPortal(
     <div className="modal-backdrop" onClick={e => e.target===e.currentTarget && onClose()}>
-      <div className="proy-modal" role="dialog" aria-modal="true" style={{maxWidth:420}}>
+      <div className="proy-modal" role="dialog" aria-modal="true" aria-labelledby="qct-title" style={{maxWidth:420}}>
         <div className="modal-header">
-          <span className="modal-title">⚡ Nueva tarea rápida</span>
-          <button className="btn btn-ghost btn-icon" onClick={onClose}>✕</button>
+          <span id="qct-title" className="modal-title">⚡ Nueva tarea rápida</span>
+          <button className="btn btn-ghost btn-icon" aria-label="Cerrar" onClick={onClose}><span aria-hidden="true">✕</span></button>
         </div>
         <div className="modal-body" style={{display:"flex",flexDirection:"column",gap:".75rem"}}>
           <div>
-            <label className="fl">Título *</label>
-            <input ref={inputRef} className={"inp"+(err?" inp-error":"")}
+            <label className="fl" htmlFor="qct-titulo">Título *</label>
+            <input id="qct-titulo" ref={inputRef} className={"inp"+(err?" inp-error":"")}
               placeholder="¿Qué hay que hacer?"
               value={titulo} onChange={e=>{setTitulo(e.target.value);setErr("");}} />
             {err && <FormError msg={err} />}
           </div>
           <div>
-            <label className="fl">Área</label>
-            <select className="inp" value={area} onChange={e=>setArea(e.target.value)}>
+            <label className="fl" htmlFor="qct-area">Área</label>
+            <select id="qct-area" className="inp" value={area} onChange={e=>setArea(e.target.value)}>
               {areas.map(a => <option key={a.id} value={a.id}>{a.icon} {a.label}</option>)}
             </select>
           </div>
           <div>
-            <label className="fl">Fecha límite</label>
-            <input type="date" className="inp" value={fechaLimite}
+            <label className="fl" htmlFor="qct-fecha">Fecha límite</label>
+            <input id="qct-fecha" type="date" className="inp" value={fechaLimite}
               onChange={e=>setFechaLimite(e.target.value)} />
           </div>
         </div>
@@ -95,15 +95,15 @@ function ModalTarea({
 
   return createPortal(
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="proy-modal" role="dialog" aria-modal="true">
+      <div className="proy-modal" role="dialog" aria-modal="true" aria-labelledby="modal-tarea-title">
         <div className="modal-header">
-          <span className="mtit">{data?"✏️ Editar tarea":"➕ Nueva tarea"}</span>
+          <span id="modal-tarea-title" className="mtit">{data?"✏️ Editar tarea":"➕ Nueva tarea"}</span>
           <button className="btn btn-sm btn-ghost" aria-label="Cerrar formulario de tarea" onClick={onClose}><span aria-hidden="true">✕</span></button>
         </div>
         <div className="modal-body">
           <div>
-            <label className="fl" style={{color:err.titulo?"var(--red)":undefined}}>Título de la tarea *</label>
-            <input className="inp" autoFocus value={form.titulo} onChange={e=>upd("titulo",e.target.value)} placeholder="Describe la tarea..." />
+            <label className="fl" htmlFor="mt-titulo" style={{color:err.titulo?"var(--red)":undefined}}>Título de la tarea *</label>
+            <input id="mt-titulo" className="inp" autoFocus value={form.titulo} onChange={e=>upd("titulo",e.target.value)} placeholder="Describe la tarea..." />
             {err.titulo && <FormError msg={err.titulo} />}
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".75rem"}}>
@@ -198,17 +198,17 @@ function ModalHito({
   };
   return createPortal(
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="proy-modal" role="dialog" aria-modal="true" style={{maxWidth:420}}>
-        <div className="modal-header"><span className="mtit">{data?"✏️ Editar hito":"🏁 Nuevo hito"}</span><button className="btn btn-sm btn-ghost" aria-label="Cerrar formulario de tarea" onClick={onClose}><span aria-hidden="true">✕</span></button></div>
+      <div className="proy-modal" role="dialog" aria-modal="true" aria-labelledby="modal-hito-title" style={{maxWidth:420}}>
+        <div className="modal-header"><span id="modal-hito-title" className="mtit">{data?"✏️ Editar hito":"🏁 Nuevo hito"}</span><button className="btn btn-sm btn-ghost" aria-label="Cerrar" onClick={onClose}><span aria-hidden="true">✕</span></button></div>
         <div className="modal-body">
           <div>
-            <label className="fl" style={{color:err.nombre?"var(--red)":undefined}}>Nombre del hito *</label>
-            <input ref={firstInputRef} className="inp" autoFocus value={form.nombre} onChange={e=>upd("nombre",e.target.value)} placeholder="Ej: Apertura de inscripciones"/>
+            <label className="fl" htmlFor="mh-nombre" style={{color:err.nombre?"var(--red)":undefined}}>Nombre del hito *</label>
+            <input id="mh-nombre" ref={firstInputRef} className="inp" autoFocus value={form.nombre} onChange={e=>upd("nombre",e.target.value)} placeholder="Ej: Apertura de inscripciones"/>
             {err.nombre && <FormError msg={err.nombre} />}
           </div>
           <div>
-            <label className="fl" style={{color:err.fecha?"var(--red)":undefined}}>Fecha *</label>
-            <input className="inp" type="date" value={form.fecha} onChange={e=>upd("fecha",e.target.value)}/>
+            <label className="fl" htmlFor="mh-fecha" style={{color:err.fecha?"var(--red)":undefined}}>Fecha *</label>
+            <input id="mh-fecha" className="inp" type="date" value={form.fecha} onChange={e=>upd("fecha",e.target.value)}/>
             {err.fecha && <FormError msg={err.fecha} />}
           </div>
           <div style={{display:"flex",gap:"1rem"}}>
@@ -246,8 +246,8 @@ function ModalPersona({ data, onSave, onClose }) {
   };
   return createPortal(
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="proy-modal" role="dialog" aria-modal="true">
-        <div className="modal-header"><span className="mtit">{data?"✏️ Editar persona":"👤 Nueva persona"}</span><button className="btn btn-sm btn-ghost" aria-label="Cerrar formulario de tarea" onClick={onClose}><span aria-hidden="true">✕</span></button></div>
+      <div className="proy-modal" role="dialog" aria-modal="true" aria-labelledby="modal-persona-title">
+        <div className="modal-header"><span id="modal-persona-title" className="mtit">{data?"✏️ Editar persona":"👤 Nueva persona"}</span><button className="btn btn-sm btn-ghost" aria-label="Cerrar" onClick={onClose}><span aria-hidden="true">✕</span></button></div>
         <div className="modal-body">
           <div style={{display:"flex",alignItems:"center",gap:"1rem",padding:".75rem",background:"var(--surface2)",borderRadius:10}}>
             <div className="avatar-lg" style={{background:form.color+"22",border:`2px solid ${form.color}66`,color:form.color,flexShrink:0}}>{iniciales(form.nombre||"??")}</div>
@@ -255,33 +255,33 @@ function ModalPersona({ data, onSave, onClose }) {
               <div className="fl" style={{marginBottom:".4rem"}}>Color de identificación</div>
               <div style={{display:"flex",gap:".3rem",flexWrap:"wrap"}}>
                 {PERSONA_COLORS.map(c=>(
-                  <div key={c} onClick={()=>upd("color",c)} style={{width:20,height:20,borderRadius:"50%",background:c,cursor:"pointer",border:form.color===c?"3px solid white":"2px solid transparent",transition:"all .15s",transform:form.color===c?"scale(1.2)":"scale(1)"}}/>
+                  <div key={c} onClick={()=>upd("color",c)} role="radio" aria-checked={form.color===c} aria-label={`Color ${c}`} tabIndex={0} onKeyDown={e=>e.key===" "&&upd("color",c)} style={{width:20,height:20,borderRadius:"50%",background:c,cursor:"pointer",border:form.color===c?"3px solid white":"2px solid transparent",transition:"all .15s",transform:form.color===c?"scale(1.2)":"scale(1)"}}/>
                 ))}
               </div>
             </div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".75rem"}}>
             <div>
-              <label className="fl" style={{color:err.nombre?"var(--red)":undefined}}>Nombre completo *</label>
-              <input className="inp" autoFocus value={form.nombre} onChange={e=>upd("nombre",e.target.value)} placeholder="Nombre Apellido"/>
+              <label className="fl" htmlFor="mp-nombre" style={{color:err.nombre?"var(--red)":undefined}}>Nombre completo *</label>
+              <input id="mp-nombre" className="inp" autoFocus value={form.nombre} onChange={e=>upd("nombre",e.target.value)} placeholder="Nombre Apellido"/>
               {err.nombre && <FormError msg={err.nombre} />}
             </div>
             <div>
-              <label className="fl" style={{color:err.rol?"var(--red)":undefined}}>Rol en el equipo *</label>
-              <input className="inp" value={form.rol} onChange={e=>upd("rol",e.target.value)} placeholder="Director, Coordinador..."/>
+              <label className="fl" htmlFor="mp-rol" style={{color:err.rol?"var(--red)":undefined}}>Rol en el equipo *</label>
+              <input id="mp-rol" className="inp" value={form.rol} onChange={e=>upd("rol",e.target.value)} placeholder="Director, Coordinador..."/>
               {err.rol && <FormError msg={err.rol} />}
             </div>
           </div>
           <div>
-            <label className="fl">Área principal</label>
-            <select className="inp" value={form.area} onChange={e=>upd("area",e.target.value)}>
+            <label className="fl" htmlFor="mp-area">Área principal</label>
+            <select id="mp-area" className="inp" value={form.area} onChange={e=>upd("area",e.target.value)}>
               {AREAS.map(a=><option key={a.id} value={a.id}>{a.icon} {a.label}</option>)}
             </select>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".75rem"}}>
             <div>
-              <label className="fl">Teléfono</label>
-              <input className="inp" value={form.telefono||""} onChange={e=>upd("telefono",e.target.value)} placeholder="611 000 000" inputMode="tel"/>
+              <label className="fl" htmlFor="mp-tel">Teléfono</label>
+              <input id="mp-tel" className="inp" value={form.telefono||""} onChange={e=>upd("telefono",e.target.value)} placeholder="611 000 000" inputMode="tel"/>
             </div>
             <div>
               <label className="fl">Email</label>

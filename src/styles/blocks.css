@@ -5,6 +5,28 @@
  * como <style> tag en cada bloque.
  */
 
+/* ── Accesibilidad global (Fase 6) ─────────────────────────────────────────── */
+
+/* Texto visible solo para lectores de pantalla */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Focus-visible global: cualquier elemento interactivo muestra outline claro */
+*:focus { outline: none; }
+*:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
   /* ── Design tokens — Kinetik Ops identity ──────────────────────────────── */
   :root {
     --bg:           #08091a;
@@ -765,6 +787,7 @@
     -webkit-appearance: none;
   }
   .inp:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--cyan-dim); }
+  .inp:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
   .inp::placeholder { color: var(--text-dim); }
   .inp-mono {
     font-family: var(--font-mono);
@@ -1276,6 +1299,7 @@
   outline: none; transition: border-color .15s; width: 100%; box-sizing: border-box;
 }
 .cfg-input:focus { border-color: var(--cyan); }
+.cfg-input:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
 .cfg-input-num { font-family: var(--font-mono); text-align: right; width: 80px; }
 .cfg-hint { font-family: var(--font-mono); font-size: .58rem; color: var(--text-dim); line-height: 1.5; }
 .cfg-threshold-row {
@@ -1336,11 +1360,14 @@
 @media (max-width: 768px) { .resumen-grid { grid-template-columns: 1fr; } }
 .num-input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: var(--r-sm); padding: 0.3rem 0.5rem; width: 80px; text-align: right; font-family: var(--font-mono); font-size: var(--fs-base); outline: none; }
 .num-input:focus { border-color: var(--cyan); box-shadow: 0 0 0 2px var(--cyan-dim); }
+.num-input:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
 .num-input-sm { font-size: var(--fs-sm); padding: 0.2rem 0.4rem; width: 65px; }
 .text-input { background: transparent; border: 1px solid transparent; color: var(--text); padding: 0.3rem; width: 100%; border-radius: var(--r-sm); font-family: var(--font-display); font-size: var(--fs-base); outline: none; }
 .text-input:focus { background: var(--surface2); border-color: var(--border); }
+.text-input:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
 .date-input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: var(--r-sm); padding: 0.25rem 0.45rem; font-size: var(--fs-xs); font-family: var(--font-mono); cursor: pointer; outline: none; }
 .date-input:focus { border-color: var(--cyan); }
+.date-input:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
 .dist-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
 .badge-fijo     { background: var(--cyan-dim);  color: var(--cyan);  border: 1px solid rgba(34,211,238,0.2); }
 .badge-variable { background: var(--green-dim); color: var(--green); border: 1px solid rgba(52,211,153,0.2); }

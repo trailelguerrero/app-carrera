@@ -468,10 +468,10 @@ export default function App() {
       {modal?.tipo==="persona" && <ModalPersona key={modal.data?.id||"new"} data={modal.data}                                  onSave={savePersona} onClose={() => setModal(null)} />}
       {delConf && (
         <div className="overlay" onClick={e => e.target===e.currentTarget && setDelConf(null)}>
-          <div className="modal" role="dialog" aria-modal="true" style={{maxWidth:340,textAlign:"center"}}>
+          <div className="modal" role="dialog" aria-modal="true" aria-labelledby="proy-del-title" style={{maxWidth:340,textAlign:"center"}}>
             <div className="modal-body" style={{paddingTop:"1.5rem"}}>
-              <div style={{fontSize:"var(--fs-xl)",marginBottom:".6rem"}}>⚠️</div>
-              <div style={{fontWeight:700,fontSize:"var(--fs-md)",marginBottom:".4rem"}}>¿Eliminar este elemento?</div>
+              <div style={{fontSize:"var(--fs-xl)",marginBottom:".6rem"}} aria-hidden="true">⚠️</div>
+              <div id="proy-del-title" style={{fontWeight:700,fontSize:"var(--fs-md)",marginBottom:".4rem"}}>¿Eliminar este elemento?</div>
               <div className="mono xs muted">Esta acción no se puede deshacer.</div>
             </div>
             <div className="modal-footer">

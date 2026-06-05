@@ -456,10 +456,10 @@ export default function App({ initialSubtab, onSubtabConsumed, initialFilter, on
           locs={locs} tiposContacto={tiposContacto} conceptosPres={conceptosPres} />, document.body)}
       {del && createPortal(
         <div className="modal-backdrop" onClick={e => e.target===e.currentTarget && setDel(null)}>
-          <div className="modal" role="dialog" aria-modal="true" style={{maxWidth:340,textAlign:"center"}}>
+          <div className="modal" role="dialog" aria-modal="true" aria-labelledby="log-del-title" style={{maxWidth:340,textAlign:"center"}}>
             <div className="modal-body" style={{paddingTop:"1.5rem"}}>
-              <div style={{fontSize:"var(--fs-xl)",marginBottom:"0.6rem"}}>⚠️</div>
-              <div style={{fontWeight:700,marginBottom:"0.4rem"}}>¿Eliminar elemento?</div>
+              <div style={{fontSize:"var(--fs-xl)",marginBottom:"0.6rem"}} aria-hidden="true">⚠️</div>
+              <div id="log-del-title" style={{fontWeight:700,marginBottom:"0.4rem"}}>¿Eliminar elemento?</div>
               <div className="muted mono xs">Esta acción no se puede deshacer.</div>
             </div>
             <div className="modal-footer"><button className="btn btn-ghost" onClick={() => setDel(null)}>Cancelar</button><button className="btn btn-red" onClick={doDelete}>Eliminar</button></div>

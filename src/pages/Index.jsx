@@ -380,7 +380,29 @@ export default function Index() {
           0%,100% { opacity:1; transform:scale(1); }
           50%      { opacity:0.35; transform:scale(0.6); }
         }
+        /* Skip to main content — visible only on focus (keyboard nav) */
+        .skip-to-main {
+          position: fixed;
+          top: -100%;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 99999;
+          background: var(--cyan);
+          color: #000;
+          font-family: var(--font-mono);
+          font-weight: 700;
+          font-size: var(--fs-sm);
+          padding: .5rem 1.25rem;
+          border-radius: 0 0 var(--r-sm) var(--r-sm);
+          text-decoration: none;
+          transition: top .15s;
+          white-space: nowrap;
+        }
+        .skip-to-main:focus { top: 0; outline: 3px solid #000; outline-offset: 2px; }
       `}</style>
+
+      {/* Skip link — accesibilidad: permite saltar al contenido con Tab */}
+      <a href="#main-content" className="skip-to-main">Saltar al contenido</a>
 
       {/* ── BANNER OFFLINE ───────────────────────────────────────────────── */}
       {!isOnline && (
@@ -511,7 +533,10 @@ export default function Index() {
         </header>
 
         {/* CONTENT */}
-        <main style={{
+        <main
+          id="main-content"
+          aria-label="Contenido principal"
+          style={{
           flex: 1, overflow: "auto",
           paddingBottom: `calc(${NAV_H}px + 8px + env(safe-area-inset-bottom, 0px))`,
         }}>
@@ -614,7 +639,7 @@ export default function Index() {
                   transition: "opacity 0.2s",
                   opacity: isActive ? 1 : 0.38,
                   flex: 1,
-                  position: "relative", outline: "none",
+                  position: "relative",
                   WebkitTapHighlightColor: "transparent",
                   minHeight: NAV_H - 4,
                 }}

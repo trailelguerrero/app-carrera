@@ -149,10 +149,10 @@ export function TabPedidosProv({ pedidos, setPedidos, cont, material = [], setMa
       {/* Confirmar eliminar */}
       {delId && createPortal(
         <div className="modal-backdrop" style={{ zIndex: 200 }} onClick={e => e.target === e.currentTarget && setDelId(null)}>
-          <div className="modal" role="dialog" aria-modal="true" style={{ maxWidth: 320, textAlign: "center" }}>
+          <div className="modal" role="dialog" aria-modal="true" aria-labelledby="lp-del-title" style={{ maxWidth: 320, textAlign: "center" }}>
             <div className="modal-body" style={{ paddingTop: "1.5rem" }}>
-              <div style={{ fontSize: "var(--fs-xl)", marginBottom: ".5rem" }}>⚠️</div>
-              <div style={{ fontWeight: 700 }}>¿Eliminar pedido?</div>
+              <div style={{ fontSize: "var(--fs-xl)", marginBottom: ".5rem" }} aria-hidden="true">⚠️</div>
+              <div id="lp-del-title" style={{ fontWeight: 700 }}>¿Eliminar pedido?</div>
               <div className="mono xs muted">Esta acción no se puede deshacer.</div>
             </div>
             <div className="modal-footer">
