@@ -82,3 +82,4 @@ Implementado con Neon PostgreSQL persistente (`api/lib/rateLimiter.js`).
 | 2026-05-09 | CSP configurada en `vercel.json`; rate limiter activado en todos los endpoints |
 | 2026-05-09 | `ADAPTER` externalizado a `VITE_ADAPTER` env var |
 | 2026-05-09 | ExcelJS cargado con `import()` dinámico — eliminado del bundle inicial |
+| 2026-06-05 | Fase 12: documentación completa — README, docs/ARCHITECTURE.md, docs/API.md |
