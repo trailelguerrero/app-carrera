@@ -10,6 +10,7 @@ import { usePaginacion } from "@/hooks/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { blockCls as cls } from "@/lib/blockStyles";
+import { ModalReasignar } from "@/components/voluntarios/ModalReasignar";
 
 // ─── FICHA VOLUNTARIO ─────────────────────────────────────────────────────────
 // ─── HISTORIAL DE CAMBIOS ─────────────────────────────────────────────────────
@@ -115,9 +116,10 @@ function MensajeOrganizadorEdit({ valor, onChange }) {
   );
 }
 
-function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClose, onEditar, onEliminar, onEliminarConfirmado, onUpdate, config }) {
+function FichaVoluntario({ voluntario: v, puestos, voluntarios=[], locs=[], matPorLoc={}, onClose, onEditar, onEliminar, onEliminarConfirmado, onUpdate, onReasignar, onIntercambiar, config }) {
   const { closing: fvClosing, handleClose: fvHandleClose } = useModalClose(onClose);
   const [confirmando, setConfirmando] = useState(false);
+  const [modalReasignar, setModalReasignar] = useState(false);
   const puesto = puestos.find(p => p.id === v.puestoId);
   const estadoColor = v.estado === "confirmado" ? "var(--green)" : v.estado === "cancelado" ? "var(--red)" : "var(--amber)";
 
@@ -206,6 +208,7 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
   const materialEnLoc = loc ? (matPorLoc[loc.nombre] || []) : [];
 
   return (
+    <>
     <div className={`modal-backdrop${fvClosing ? " modal-backdrop-closing" : ""}`} onClick={e => e.target===e.currentTarget && fvHandleClose()}>
       <div className={`modal modal-ficha${fvClosing ? " modal-closing" : ""}`} style={{ maxWidth: 460 }}>
         <div style={{ borderTop: "3px solid var(--cyan)", borderRadius: "16px 16px 0 0" }}>
@@ -274,7 +277,60 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
             ["✉️ Email",      v.email],
             ["👕 Talla",      v.talla],
             ["🏷️ Rol",        v.rol ? (v.rol === "responsable" ? "Responsable de puesto" : "Voluntario de apoyo") : null],
-            ["📍 Puesto",     puesto?.nombre || "Sin asignar"],
+          ].filter(([,val]) => val).map(([label, val]) => {
+            return (
+            <div key={label} style={{ display:"flex", justifyContent:"space-between",
+              alignItems:"flex-start",
+              padding:"0.4rem 0.4rem", borderBottom:"1px solid rgba(30,45,80,0.3)",
+            }}>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", flexShrink:0 }}>{label}</span>
+              <span style={{ fontSize:"var(--fs-base)", fontWeight:600, textAlign:"right", marginLeft:".5rem" }}>{val}</span>
+            </div>
+          )})}
+          {/* ── Fila puesto: con botones de desasignar / cambiar puesto ── */}
+          <div style={{ display:"flex", justifyContent:"space-between",
+            alignItems:"center",
+            padding:"0.4rem 0.4rem", borderBottom:"1px solid rgba(30,45,80,0.3)",
+            gap:".5rem",
+          }}>
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", flexShrink:0 }}>📍 Puesto</span>
+            <div style={{ display:"flex", alignItems:"center", gap:".4rem", marginLeft:".5rem", flex:1, justifyContent:"flex-end" }}>
+              <span style={{ fontSize:"var(--fs-base)", fontWeight:600, textAlign:"right" }}>
+                {puesto?.nombre || "Sin asignar"}
+              </span>
+              {onReasignar && (
+                <>
+                  {v.puestoId != null && (
+                    <button
+                      onClick={() => { onReasignar(v.id, null); }}
+                      title="Desasignar de este puesto"
+                      style={{
+                        padding:".1rem .35rem", borderRadius:4, cursor:"pointer",
+                        fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", fontWeight:700,
+                        background:"rgba(248,113,113,.1)", color:"var(--red)",
+                        border:"1px solid rgba(248,113,113,.25)", flexShrink:0,
+                        lineHeight:1.2,
+                      }}>
+                      🚫 Desasignar
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setModalReasignar(true)}
+                    title="Cambiar puesto"
+                    style={{
+                      padding:".1rem .35rem", borderRadius:4, cursor:"pointer",
+                      fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", fontWeight:700,
+                      background:"rgba(34,211,238,.1)", color:"var(--cyan)",
+                      border:"1px solid rgba(34,211,238,.25)", flexShrink:0,
+                      lineHeight:1.2,
+                    }}>
+                    🔄 {v.puestoId != null ? "Cambiar" : "Asignar"}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+          {[
             ["🗓 Registrado", v.fechaRegistro ? new Date(v.fechaRegistro).toLocaleDateString("es-ES", {day:"2-digit", month:"short", year:"numeric"}) : "—"],
             ["🚗 Vehículo",   v.coche ? "Sí, tiene coche" : "No"],
             ["🎂 Nacimiento", v.fechaNacimiento ? (() => {
@@ -590,6 +646,22 @@ function FichaVoluntario({ voluntario: v, puestos, locs=[], matPorLoc={}, onClos
         </div>
       </div>
     </div>
+    {/* ── Modal reasignación de puesto ── */}
+    {modalReasignar && onReasignar && createPortal(
+      <ModalReasignar
+        voluntario={v}
+        puestos={puestos}
+        voluntarios={voluntarios}
+        onReasignar={(id, puestoId) => {
+          onReasignar(id, puestoId);
+          setModalReasignar(false);
+        }}
+        onIntercambiar={onIntercambiar || (() => {})}
+        onClose={() => setModalReasignar(false)}
+      />,
+      document.body
+    )}
+  </>
   );
 }
 
