@@ -270,9 +270,16 @@ export default async function handler(req, res) {
       // 2. Si está vacío, construir desde los campos legacy (organizador + telefonoContacto).
       //    Esto evita que el mismo contacto aparezca en ambas fuentes y se duplique.
       // FIX: normalizar cada entrada — rellenar nombre vacío con fallback, descartar sin teléfono.
+      const eventNombre = (orgConfig.nombre || '').trim(); // nombre del evento p.ej. "Trail El Guerrero 2026"
       const normOrg = (arr) => arr
         .filter(o => (o.telefono || '').trim())
-        .map(o => ({ ...o, nombre: (o.nombre || '').trim() || (orgConfig.organizador || 'Organización') }));
+        .map((o, idx) => ({
+          ...o,
+          nombre: (o.nombre || '').trim() ||
+                  (orgConfig.organizador || '').trim() ||
+                  (eventNombre ? `Organización ${eventNombre}` : '') ||
+                  `Coordinador${arr.length > 1 ? ` ${idx + 1}` : ''}`,
+        }));
       let organizadores;
       if (Array.isArray(orgConfig.organizadores) && orgConfig.organizadores.length > 0) {
         organizadores = normOrg(orgConfig.organizadores);
@@ -301,7 +308,20 @@ export default async function handler(req, res) {
 
       const companerosEnPuesto = voluntario.puestoId != null
         ? vols.filter(v => v.puestoId != null && String(v.puestoId) === String(voluntario.puestoId) && (v.estado === 'confirmado' || v.estado === 'pendiente') && String(v.id) !== String(voluntario.id))
-             .map(v => ({ nombre: v.nombre, apellidos: v.apellidos || '', telefono: v.telefono || '', estado: v.estado || 'pendiente', enPuesto: v.enPuesto || false, horaLlegada: v.horaLlegada || null }))
+             .map(v => {
+               // Normalizar nombre/apellidos: si apellidos está vacío pero nombre contiene espacio,
+               // asumir "nombre apellidos" legacy para mostrar correctamente
+               const nombreRaw = (v.nombre || '').trim();
+               const apellidosRaw = (v.apellidos || '').trim();
+               let nombreFinal = nombreRaw;
+               let apellidosFinal = apellidosRaw;
+               if (!apellidosRaw && nombreRaw.includes(' ')) {
+                 const partes = nombreRaw.split(/\s+/);
+                 nombreFinal = partes[0];
+                 apellidosFinal = partes.slice(1).join(' ');
+               }
+               return { nombre: nombreFinal, apellidos: apellidosFinal, telefono: v.telefono || '', estado: v.estado || 'pendiente', enPuesto: v.enPuesto || false, horaLlegada: v.horaLlegada || null };
+             })
         : [];
 
       // Enriquecer puesto con lat/lng: primero los coords explícitos del puesto,

@@ -287,9 +287,14 @@ export function PortalMain({ token, onLogout }) {
       {organizadores.length > 0 && (
         <div className="vp-card" style={{ maxWidth:360, width:"100%", marginBottom:"1rem" }}>
           <div className="vp-label" style={{marginBottom:".5rem"}}>📞 Contacta con el organizador</div>
-          {organizadores.map((org, i) => (
+          {organizadores.map((org, i) => {
+            const nombreMostrado = (org.nombre || '').trim()
+              || (config.organizador || '').trim()
+              || (config.nombre ? `Organización ${config.nombre}` : '')
+              || 'Organización Trail El Guerrero';
+            return (
             <div key={i} style={{ paddingTop:i>0?".5rem":0, borderTop:i>0?"1px solid var(--border)":"none" }}>
-              <div style={{ fontWeight:700, marginBottom:".2rem" }}>{org.nombre || 'Organización'}</div>
+              <div style={{ fontWeight:700, marginBottom:".2rem" }}>{nombreMostrado}</div>
               {org.telefono && (
                 <a href={`tel:${org.telefono.replace(/\s/g,"")}`}
                   style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
@@ -298,7 +303,7 @@ export function PortalMain({ token, onLogout }) {
                 </a>
               )}
             </div>
-          ))}
+          );})}
         </div>
       )}
       <button className="vp-btn vp-btn-ghost"
@@ -936,9 +941,14 @@ export function PortalMain({ token, onLogout }) {
         {organizadores.length > 0 && (
           <div id="sec-contacto" className="vp-card" style={{marginBottom:".75rem",borderLeft:"3px solid var(--cyan)"}}>
             <div className="vp-label">📞 Contacto organizadores</div>
-            {organizadores.map((org,i) => (
+            {organizadores.map((org,i) => {
+              const nombreMostrado = (org.nombre || '').trim()
+                || (config.organizador || '').trim()
+                || (config.nombre ? `Organización ${config.nombre}` : '')
+                || 'Organización Trail El Guerrero';
+              return (
               <div key={i} style={{paddingTop:i>0?".65rem":0,marginTop:i>0?".65rem":0,borderTop:i>0?"1px solid var(--border)":"none"}}>
-                <div style={{fontWeight:700,fontSize:".95rem",marginBottom:".2rem"}}>{org.nombre || 'Organización'}</div>
+                <div style={{fontWeight:700,fontSize:".95rem",marginBottom:".2rem"}}>{nombreMostrado}</div>
                 {org.telefono && <a href={`tel:${org.telefono.replace(/\s/g,"")}`}
                   style={{fontFamily:"var(--font-mono)",fontSize:"1rem",color:"var(--cyan)",textDecoration:"none",display:"block",fontWeight:700,marginBottom:".1rem"}}>
                   📞 {org.telefono}</a>}
@@ -946,7 +956,7 @@ export function PortalMain({ token, onLogout }) {
                   style={{fontFamily:"var(--font-mono)",fontSize:".76rem",color:"var(--text-muted)",textDecoration:"none",display:"block"}}>
                   ✉ {org.email}</a>}
               </div>
-            ))}
+            );})}
           </div>
         )}
 
