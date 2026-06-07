@@ -205,11 +205,14 @@ export default function Voluntarios() {
       )}
       {ficha?.tipo === "puesto" && createPortal(
         <FichaPuesto
-          puesto={ficha.data} voluntarios={voluntarios} locs={locs} matPorLoc={matPorLoc} rutas={rutas}
+          puesto={ficha.data} voluntarios={voluntarios} puestosConStats={puestosConStats} locs={locs} matPorLoc={matPorLoc} rutas={rutas}
           onClose={() => setFicha(null)}
           onFichaVol={(v) => { setFicha(null); setTimeout(() => abrirFicha("vol", v), 50); }}
           onEditar={() => { document.querySelector("main")?.scrollTo({ top: 0, behavior: "instant" }); setFicha(null); setModalPuesto(ficha.data); }}
           onEliminar={() => { setFicha(null); setConfirmDeletePuesto(ficha.data.id); }}
+          onDesasignarVol={(volId) => handleReasignar(volId, null)}
+          onReasignarVol={(volId, puestoId) => handleReasignar(volId, puestoId)}
+          onIntercambiarVol={(idA, idB) => { intercambiarVoluntarios(idA, idB); setFicha(null); }}
         />, document.body
       )}
 

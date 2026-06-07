@@ -10,10 +10,12 @@ import { usePaginacion } from "@/hooks/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { blockCls as cls } from "@/lib/blockStyles";
+import { ModalReasignar } from "@/components/voluntarios/ModalReasignar";
 
 // ─── FICHA PUESTO ─────────────────────────────────────────────────────────────
-function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], onClose, onEditar, onEliminar, onFichaVol }) {
+function FichaPuesto({ puesto: p, voluntarios, puestosConStats=[], locs=[], matPorLoc={}, rutas=[], onClose, onEditar, onEliminar, onFichaVol, onDesasignarVol, onReasignarVol, onIntercambiarVol }) {
   const { closing: fpuClosing, handleClose: fpuHandleClose } = useModalClose(onClose);
+  const [modalReasignarVol, setModalReasignarVol] = useState(null); // voluntario a reasignar desde esta ficha
   const asignados = voluntarios.filter(v => v.puestoId === p.id && v.estado !== "cancelado");
   const confirmados = asignados.filter(v => v.estado === "confirmado").length;
   const cobertura = p.necesarios > 0 ? Math.round(asignados.length / p.necesarios * 100) : 0;
@@ -32,6 +34,7 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
   );
 
   return (
+    <>
     <div className={`modal-backdrop${fpuClosing ? " modal-backdrop-closing" : ""}`} onClick={e => e.target===e.currentTarget && fpuHandleClose()}>
       <div className={`modal modal-ficha${fpuClosing ? " modal-closing" : ""}`} style={{ maxWidth: 460 }}>
         <div style={{ borderTop: "3px solid var(--violet)", borderRadius: "16px 16px 0 0" }}>
@@ -106,21 +109,28 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
           {asignados.length > 0 && (
             <div style={{ background:"var(--surface2)", borderRadius:8, padding:"0.6rem 0.75rem" }}>
               <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)",
-                marginBottom:"0.4rem", textTransform:"uppercase" }}>
-                Voluntarios asignados ({asignados.length})
+                marginBottom:"0.4rem", textTransform:"uppercase", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                <span>Voluntarios asignados ({asignados.length})</span>
+                {onReasignarVol && (
+                  <span style={{ color:"var(--text-dim)", fontSize:"var(--fs-2xs)", fontWeight:400, textTransform:"none" }}>
+                    🔄 cambiar · ✕ desasignar
+                  </span>
+                )}
               </div>
               {asignados.map(v => (
                 <div key={v.id}
-                  onClick={() => onFichaVol && onFichaVol(v)}
                   style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
                     padding:"0.45rem 0.5rem", fontSize:"var(--fs-base)",
-                    cursor: onFichaVol ? "pointer" : "default",
                     borderRadius:6, marginBottom:"0.15rem",
                     transition:"background .1s",
                   }}
-                  onMouseEnter={e => { if(onFichaVol) e.currentTarget.style.background="var(--surface3)"; }}
+                  onMouseEnter={e => { e.currentTarget.style.background="var(--surface3)"; }}
                   onMouseLeave={e => { e.currentTarget.style.background="transparent"; }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:".5rem" }}>
+                  {/* Info — clickable si hay onFichaVol */}
+                  <div
+                    onClick={() => onFichaVol && onFichaVol(v)}
+                    style={{ display:"flex", alignItems:"center", gap:".5rem", flex:1, minWidth:0,
+                      cursor: onFichaVol ? "pointer" : "default" }}>
                     <div style={{ width:28, height:28, borderRadius:"50%", flexShrink:0,
                       background:"var(--surface3)", border:"1px solid var(--border)",
                       display:"flex", alignItems:"center", justifyContent:"center",
@@ -128,15 +138,18 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
                       color:"var(--cyan)" }}>
                       {([v.nombre, v.apellidos].filter(Boolean).map(n=>n[0]).slice(0,2).join("")).toUpperCase() || "V"}
                     </div>
-                    <div>
-                      <div className="fw-600">{v.nombre}</div>
+                    <div style={{ minWidth:0 }}>
+                      <div className="fw-600" style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                        {[v.nombre, v.apellidos].filter(Boolean).join(" ") || "Sin nombre"}
+                      </div>
                       {v.telefono && (
                         <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                           color:"var(--text-muted)" }}>{v.telefono}</div>
                       )}
                     </div>
                   </div>
-                  <div style={{ display:"flex", alignItems:"center", gap:".4rem" }}>
+                  {/* Estado + acciones */}
+                  <div onClick={e => e.stopPropagation()} style={{ display:"flex", alignItems:"center", gap:".35rem", flexShrink:0 }}>
                     <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                       color: v.estado==="confirmado"?"var(--green)":v.estado==="ausente"?"var(--orange)":"var(--amber)" }}>
                       {v.estado}
@@ -146,6 +159,24 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
                         color:"var(--green)", background:"var(--green-dim)",
                         border:"1px solid var(--green-border)", borderRadius:4,
                         padding:"0 .3rem" }}>📍 {v.horaLlegada||"En puesto"}</span>
+                    )}
+                    {onReasignarVol && (
+                      <button
+                        title="Cambiar puesto"
+                        onClick={() => setModalReasignarVol(v)}
+                        style={{ padding:"0 .28rem", borderRadius:3, cursor:"pointer",
+                          fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", fontWeight:700,
+                          background:"rgba(34,211,238,.08)", color:"var(--cyan)",
+                          border:"1px solid rgba(34,211,238,.2)", lineHeight:"1.5" }}>🔄</button>
+                    )}
+                    {onDesasignarVol && (
+                      <button
+                        title="Desasignar de este puesto"
+                        onClick={() => onDesasignarVol(v.id)}
+                        style={{ padding:"0 .28rem", borderRadius:3, cursor:"pointer",
+                          fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", fontWeight:700,
+                          background:"rgba(248,113,113,.08)", color:"var(--red)",
+                          border:"1px solid rgba(248,113,113,.2)", lineHeight:"1.5" }}>✕</button>
                     )}
                     {onFichaVol && <span style={{ color:"var(--text-dim)", fontSize:"var(--fs-xs)" }}>→</span>}
                   </div>
@@ -276,6 +307,19 @@ function FichaPuesto({ puesto: p, voluntarios, locs=[], matPorLoc={}, rutas=[], 
         </div>
       </div>
     </div>
+    {/* Modal reasignación inline desde la ficha del puesto */}
+    {modalReasignarVol && onReasignarVol && createPortal(
+      <ModalReasignar
+        voluntario={modalReasignarVol}
+        puestos={puestosConStats}
+        voluntarios={voluntarios}
+        onReasignar={(volId, puestoId) => { onReasignarVol(volId, puestoId); setModalReasignarVol(null); }}
+        onIntercambiar={onIntercambiarVol || (() => {})}
+        onClose={() => setModalReasignarVol(null)}
+      />,
+      document.body
+    )}
+  </>
   );
 }
 

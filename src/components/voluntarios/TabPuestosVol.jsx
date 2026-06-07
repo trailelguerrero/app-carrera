@@ -231,7 +231,7 @@ function PuestoCard({ p, locs, matPorLoc, onFichaPuesto, onFichaVol, onEditPuest
                   <span style={{ width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
                     background: v.estado === "confirmado" ? "var(--green)" : v.estado === "pendiente" ? "var(--amber)" : "var(--text-dim)" }} />
                   <span style={{ color: "var(--text)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {(v.nombre || "V").split(" ")[0]} {(v.nombre || "").split(" ")[1]?.[0] || ""}.
+                    {[v.nombre, v.apellidos].filter(Boolean).join(" ") || "Sin nombre"}
                   </span>
                   <span style={{ color: "var(--text-dim)", fontSize: "var(--fs-xs)", flexShrink: 0 }}>{v.estado}</span>
                 </span>
