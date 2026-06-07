@@ -18,6 +18,7 @@ import { ModalVoluntario }       from "@/components/voluntarios/ModalVoluntario"
 import { ModalPuesto }           from "@/components/voluntarios/ModalPuesto";
 import { ModalConfirm }          from "@/components/voluntarios/ModalConfirmar";
 import { ModalMensaje }          from "@/components/voluntarios/ModalMensaje";
+import { ModalReasignar }        from "@/components/voluntarios/ModalReasignar";
 import { useVoluntarios }        from "@/hooks/useVoluntarios";
 import { BuscadorSpotlight }     from "@/components/voluntarios/BuscadorSpotlight";
 
@@ -45,15 +46,25 @@ export default function Voluntarios() {
     pendingDeleteRef,
     stats, sugerenciasReubicacion, puestosConStats, volsFiltrados,
     guardar, addVoluntario, importarCSV,
-    updateVoluntario, bulkUpdateVoluntarios,
+    updateVoluntario, bulkUpdateVoluntarios, intercambiarVoluntarios,
     updatePuesto, addPuesto, deletePuesto,
     ejecutarEliminacion,
   } = useVoluntarios();
 
   const [ficha, setFicha]   = useState(null);
   const [vista, setVista]   = useState("gestion");
+  const [modalReasignarVol, setModalReasignarVol] = useState(null); // voluntario a reasignar
 
   const abrirFicha = (tipo, data) => setFicha({ tipo, data });
+
+  // Handler reasignación rápida (desde puestos o ficha)
+  const handleReasignar = (volId, puestoId) => {
+    updateVoluntario(volId, { puestoId: puestoId ?? null });
+  };
+  // Abrir modal reasignar desde PuestoCard
+  const handleAbrirReasignar = (voluntarioObj) => {
+    setModalReasignarVol(voluntarioObj);
+  };
 
   if (isLoading) return <SkeletonBlock variant="voluntarios" />;
 
@@ -170,6 +181,8 @@ export default function Voluntarios() {
               onEditarVol={(v) => setModalVol(v)}
               onFichaPuesto={(p) => abrirFicha("puesto", p)} onFichaVol={(v) => abrirFicha("vol", v)}
               onAddVoluntario={(puestoId) => setModalVol({ _nuevo: true, puestoId })}
+              onDesasignarVol={(volId) => handleReasignar(volId, null)}
+              onReasignarVol={(volObj) => handleAbrirReasignar(volObj)}
             />
           )}
           {tab === "dia-d"  && <TabDiaD puestosConStats={puestosConStats} voluntarios={voluntarios} onUpdateVol={updateVoluntario} diasHastaEvento={diasHastaEvento} />}
@@ -180,12 +193,14 @@ export default function Voluntarios() {
       {/* Fichas */}
       {ficha?.tipo === "vol" && createPortal(
         <FichaVoluntario
-          voluntario={ficha.data} puestos={puestos} locs={locs} matPorLoc={matPorLoc} config={config}
+          voluntario={ficha.data} puestos={puestos} voluntarios={voluntarios} locs={locs} matPorLoc={matPorLoc} config={config}
           onClose={() => setFicha(null)}
           onEditar={() => { document.querySelector("main")?.scrollTo({ top: 0, behavior: "instant" }); setFicha(null); setModalVol(ficha.data); }}
           onEliminar={() => { const id = ficha.data?.id; if (!id && id !== 0) return; pendingDeleteRef.current = id; setConfirmDelete(id); setFicha(null); }}
           onEliminarConfirmado={() => { const id = ficha.data?.id ?? pendingDeleteRef.current; if (!id && id !== 0) return; pendingDeleteRef.current = id; setFicha(null); ejecutarEliminacion(id); }}
           onUpdate={(data) => { updateVoluntario(ficha.data.id, data); setFicha(f => ({ ...f, data: { ...f.data, ...data } })); }}
+          onReasignar={(volId, puestoId) => { handleReasignar(volId, puestoId); setFicha(f => ({ ...f, data: { ...f.data, puestoId: puestoId ?? null } })); }}
+          onIntercambiar={(idA, idB) => { intercambiarVoluntarios(idA, idB); setFicha(null); }}
         />, document.body
       )}
       {ficha?.tipo === "puesto" && createPortal(
@@ -220,6 +235,18 @@ export default function Voluntarios() {
       {confirmDelete && createPortal(<ModalConfirm zIndex={400} mensaje="¿Eliminar este voluntario? Esta acción no se puede deshacer." onConfirm={() => ejecutarEliminacion(pendingDeleteRef.current ?? confirmDelete)} onCancel={() => { setConfirmDelete(null); pendingDeleteRef.current = null; }} />, document.body)}
       {confirmDeletePuesto && createPortal(<ModalConfirm zIndex={400} mensaje="¿Eliminar este puesto? Los voluntarios asignados quedarán sin puesto." onConfirm={() => { deletePuesto(confirmDeletePuesto); setConfirmDeletePuesto(null); }} onCancel={() => setConfirmDeletePuesto(null)} />, document.body)}
       {modalMensaje && <ModalMensaje config={config} onClose={() => setModalMensaje(false)} />}
+      {/* Modal reasignación rápida desde vista de puestos */}
+      {modalReasignarVol && createPortal(
+        <ModalReasignar
+          voluntario={modalReasignarVol}
+          puestos={puestosConStats}
+          voluntarios={voluntarios}
+          onReasignar={(volId, puestoId) => { handleReasignar(volId, puestoId); setModalReasignarVol(null); }}
+          onIntercambiar={(idA, idB) => { intercambiarVoluntarios(idA, idB); setModalReasignarVol(null); }}
+          onClose={() => setModalReasignarVol(null)}
+        />,
+        document.body
+      )}
     </>
   );
 }

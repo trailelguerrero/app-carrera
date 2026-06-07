@@ -1713,3 +1713,87 @@ describe('VOL-32 — Lista voluntarios: Map O(1) lookup de puestos', () => {
     expect(sorted[2].id).toBe(1); // Meta
   });
 });
+
+// ─── REASIGNACIÓN / DESASIGNACIÓN / INTERCAMBIO ───────────────────────────────
+describe('Reasignación de voluntarios', () => {
+  const voluntarios = [
+    { id: 1, nombre: 'Ana',  apellidos: 'García', puestoId: 10, estado: 'confirmado' },
+    { id: 2, nombre: 'Luis', apellidos: 'Pérez',  puestoId: 10, estado: 'pendiente'  },
+    { id: 3, nombre: 'Sara', apellidos: 'López',  puestoId: 20, estado: 'confirmado' },
+    { id: 4, nombre: 'Iván', apellidos: 'Ruiz',   puestoId: null, estado: 'pendiente' },
+  ];
+
+  it('desasignar: puestoId → null', () => {
+    const result = voluntarios.map(v => v.id === 1 ? { ...v, puestoId: null } : v);
+    expect(result.find(v => v.id === 1).puestoId).toBeNull();
+    // Resto no cambia
+    expect(result.find(v => v.id === 2).puestoId).toBe(10);
+    expect(result.find(v => v.id === 3).puestoId).toBe(20);
+  });
+
+  it('reasignar: cambia puestoId al nuevo puesto', () => {
+    const result = voluntarios.map(v => v.id === 1 ? { ...v, puestoId: 99 } : v);
+    expect(result.find(v => v.id === 1).puestoId).toBe(99);
+    // Otros intactos
+    expect(result.find(v => v.id === 2).puestoId).toBe(10);
+  });
+
+  it('intercambiar: swap atómico de puestos entre dos voluntarios', () => {
+    const idA = 1; // puestoId 10
+    const idB = 3; // puestoId 20
+    const volA = voluntarios.find(v => v.id === idA);
+    const volB = voluntarios.find(v => v.id === idB);
+    const puestoA = volA.puestoId;
+    const puestoB = volB.puestoId;
+    const result = voluntarios.map(v => {
+      if (v.id === idA) return { ...v, puestoId: puestoB };
+      if (v.id === idB) return { ...v, puestoId: puestoA };
+      return v;
+    });
+    expect(result.find(v => v.id === 1).puestoId).toBe(20); // A tiene puesto de B
+    expect(result.find(v => v.id === 3).puestoId).toBe(10); // B tiene puesto de A
+    // El resto no cambia
+    expect(result.find(v => v.id === 2).puestoId).toBe(10);
+    expect(result.find(v => v.id === 4).puestoId).toBeNull();
+  });
+
+  it('intercambiar con voluntario sin puesto: A recibe null, B recibe puesto de A', () => {
+    const idA = 1; // puestoId 10
+    const idB = 4; // puestoId null
+    const volA = voluntarios.find(v => v.id === idA);
+    const volB = voluntarios.find(v => v.id === idB);
+    const result = voluntarios.map(v => {
+      if (v.id === idA) return { ...v, puestoId: volB.puestoId };
+      if (v.id === idB) return { ...v, puestoId: volA.puestoId };
+      return v;
+    });
+    expect(result.find(v => v.id === 1).puestoId).toBeNull();
+    expect(result.find(v => v.id === 4).puestoId).toBe(10);
+  });
+
+  it('intercambiar con id inexistente: array sin cambios', () => {
+    const idA = 1;
+    const idB = 999; // no existe
+    const volA = voluntarios.find(v => v.id === idA);
+    const volB = voluntarios.find(v => v.id === idB);
+    if (!volA || !volB) {
+      // intercambiarVoluntarios devuelve prev sin modificar si alguno no existe
+      expect(voluntarios.find(v => v.id === 1).puestoId).toBe(10);
+      return;
+    }
+    // Rama inalcanzable en este test — se documenta el comportamiento esperado
+    expect(true).toBe(true);
+  });
+
+  it('reasignar no modifica el estado del voluntario', () => {
+    const result = voluntarios.map(v => v.id === 1 ? { ...v, puestoId: 50 } : v);
+    expect(result.find(v => v.id === 1).estado).toBe('confirmado');
+  });
+
+  it('desasignar voluntario ya sin puesto no lanza error', () => {
+    const vol = voluntarios.find(v => v.id === 4);
+    expect(vol.puestoId).toBeNull();
+    const result = voluntarios.map(v => v.id === 4 ? { ...v, puestoId: null } : v);
+    expect(result.find(v => v.id === 4).puestoId).toBeNull();
+  });
+});

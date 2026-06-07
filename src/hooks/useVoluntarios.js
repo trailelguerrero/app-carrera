@@ -244,6 +244,24 @@ export function useVoluntarios() {
     dataService.notify("voluntarios");
   };
 
+  // Intercambia los puestos de dos voluntarios en una sola operación atómica
+  const intercambiarVoluntarios = (idA, idB) => {
+    setVoluntarios(prev => {
+      const volA = prev.find(v => v.id === idA);
+      const volB = prev.find(v => v.id === idB);
+      if (!volA || !volB) return prev;
+      const puestoA = volA.puestoId ?? null;
+      const puestoB = volB.puestoId ?? null;
+      return prev.map(v => {
+        if (v.id === idA) return { ...v, puestoId: puestoB };
+        if (v.id === idB) return { ...v, puestoId: puestoA };
+        return v;
+      });
+    });
+    toast.success("Voluntarios intercambiados ↔");
+    dataService.notify("voluntarios");
+  };
+
   const updatePuesto = (id, data) => {
     setPuestos(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
     if (data.localizacionId && data.lat != null && data.lng != null) {
@@ -323,7 +341,7 @@ export function useVoluntarios() {
     pendingDeleteRef,
     stats, sugerenciasReubicacion, puestosConStats, volsFiltrados,
     guardar, addVoluntario, importarCSV,
-    updateVoluntario, bulkUpdateVoluntarios,
+    updateVoluntario, bulkUpdateVoluntarios, intercambiarVoluntarios,
     updatePuesto, addPuesto, deletePuesto,
     ejecutarEliminacion,
     setVoluntarios, setPuestos,

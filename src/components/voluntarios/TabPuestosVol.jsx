@@ -13,7 +13,7 @@ import { blockCls as cls } from "@/lib/blockStyles";
 import { DIST_COLORS } from "@/constants/voluntariosConstants";
 
 // ─── TAB PUESTOS ──────────────────────────────────────────────────────────────
-function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpdatePuesto, onDeletePuesto, onNuevoPuesto, onEditPuesto, onFichaPuesto, onFichaVol, onAddVoluntario }) {
+function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpdatePuesto, onDeletePuesto, onNuevoPuesto, onEditPuesto, onFichaPuesto, onFichaVol, onAddVoluntario, onDesasignarVol, onReasignarVol }) {
   const [ordenAlfa, setOrdenAlfa]   = useState(false);
   const [busqPuesto, setBusqPuesto] = useState("");
   const [vistaAgrupada, setVistaAgrupada] = useState(false);
@@ -95,7 +95,8 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
                   <div className="item-grid" style={{ padding: ".65rem", background: "var(--surface)" }}>
                     {items.map(p => <PuestoCard key={p.id} p={p} locs={locs} matPorLoc={matPorLoc}
                       onFichaPuesto={onFichaPuesto} onFichaVol={onFichaVol}
-                      onEditPuesto={onEditPuesto} onDeletePuesto={onDeletePuesto} onAddVoluntario={onAddVoluntario} />)}
+                      onEditPuesto={onEditPuesto} onDeletePuesto={onDeletePuesto} onAddVoluntario={onAddVoluntario}
+                      onDesasignarVol={onDesasignarVol} onReasignarVol={onReasignarVol} />)}
                   </div>
                 )}
               </div>
@@ -107,7 +108,8 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
           {puestosFiltrados.map(p => (
             <PuestoCard key={p.id} p={p} locs={locs} matPorLoc={matPorLoc}
               onFichaPuesto={onFichaPuesto} onFichaVol={onFichaVol}
-              onEditPuesto={onEditPuesto} onDeletePuesto={onDeletePuesto} onAddVoluntario={onAddVoluntario} />
+              onEditPuesto={onEditPuesto} onDeletePuesto={onDeletePuesto} onAddVoluntario={onAddVoluntario}
+              onDesasignarVol={onDesasignarVol} onReasignarVol={onReasignarVol} />
           ))}
         </div>
       )}
@@ -115,7 +117,7 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
   );
 }
 
-function PuestoCard({ p, locs, matPorLoc, onFichaPuesto, onFichaVol, onEditPuesto, onDeletePuesto, onAddVoluntario }) {
+function PuestoCard({ p, locs, matPorLoc, onFichaPuesto, onFichaVol, onEditPuesto, onDeletePuesto, onAddVoluntario, onDesasignarVol, onReasignarVol }) {
   const pct   = Math.min(p.coberturaConf, 100);
   const color = pct >= 80 ? "var(--green)" : pct >= 50 ? "var(--amber)" : "var(--red)";
   const deficit = Math.max(0, p.necesarios - p.confirmados);
@@ -222,14 +224,42 @@ function PuestoCard({ p, locs, matPorLoc, onFichaPuesto, onFichaVol, onEditPuest
           <div style={{ display: "flex", flexDirection: "column", gap: ".18rem" }}>
             {p.voluntariosAsignados.slice(0, 4).map((v, i) => (
               <div key={i}
-                onClick={e => { e.stopPropagation(); onFichaVol && onFichaVol(v); }}
-                style={{ display: "flex", alignItems: "center", gap: ".4rem", fontSize: "var(--fs-xs)", fontFamily: "var(--font-mono)", cursor: onFichaVol ? "pointer" : "default" }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
-                  background: v.estado === "confirmado" ? "var(--green)" : v.estado === "pendiente" ? "var(--amber)" : "var(--text-dim)" }} />
-                <span style={{ color: "var(--text)", fontWeight: 600 }}>
-                  {(v.nombre || "V").split(" ")[0]} {(v.nombre || "").split(" ")[1]?.[0] || ""}.
+                style={{ display: "flex", alignItems: "center", gap: ".4rem", fontSize: "var(--fs-xs)", fontFamily: "var(--font-mono)" }}>
+                <span
+                  onClick={e => { e.stopPropagation(); onFichaVol && onFichaVol(v); }}
+                  style={{ display: "flex", alignItems: "center", gap: ".35rem", flex: 1, cursor: onFichaVol ? "pointer" : "default", minWidth: 0 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
+                    background: v.estado === "confirmado" ? "var(--green)" : v.estado === "pendiente" ? "var(--amber)" : "var(--text-dim)" }} />
+                  <span style={{ color: "var(--text)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {(v.nombre || "V").split(" ")[0]} {(v.nombre || "").split(" ")[1]?.[0] || ""}.
+                  </span>
+                  <span style={{ color: "var(--text-dim)", fontSize: "var(--fs-xs)", flexShrink: 0 }}>{v.estado}</span>
                 </span>
-                <span style={{ color: "var(--text-dim)", fontSize: "var(--fs-xs)" }}>{v.estado}</span>
+                {/* Botones rápidos desasignar / reasignar */}
+                <div onClick={e => e.stopPropagation()} style={{ display: "flex", gap: ".18rem", flexShrink: 0 }}>
+                  {onReasignarVol && (
+                    <button
+                      title="Cambiar puesto"
+                      onClick={e => { e.stopPropagation(); onReasignarVol(v); }}
+                      style={{
+                        padding: "0 .25rem", borderRadius: 3, cursor: "pointer",
+                        fontFamily: "var(--font-mono)", fontSize: "var(--fs-2xs)", fontWeight: 700,
+                        background: "rgba(34,211,238,.08)", color: "var(--cyan)",
+                        border: "1px solid rgba(34,211,238,.2)", lineHeight: "1.4",
+                      }}>🔄</button>
+                  )}
+                  {onDesasignarVol && (
+                    <button
+                      title="Desasignar de este puesto"
+                      onClick={e => { e.stopPropagation(); onDesasignarVol(v.id); }}
+                      style={{
+                        padding: "0 .25rem", borderRadius: 3, cursor: "pointer",
+                        fontFamily: "var(--font-mono)", fontSize: "var(--fs-2xs)", fontWeight: 700,
+                        background: "rgba(248,113,113,.08)", color: "var(--red)",
+                        border: "1px solid rgba(248,113,113,.2)", lineHeight: "1.4",
+                      }}>✕</button>
+                  )}
+                </div>
               </div>
             ))}
             {p.voluntariosAsignados.length > 4 && (
