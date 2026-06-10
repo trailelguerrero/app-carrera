@@ -45,9 +45,6 @@
     },
     "api/voluntarios/index.js": {
       "maxDuration": 10
-    },
-    "api/audit-pins-temp.js": {
-      "maxDuration": 15
     }
   },
   "headers": [
