@@ -1097,11 +1097,13 @@ describe('SP7-01 — SEC-05: Rate limiting persistente en PostgreSQL', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SP7-02 — SEC-06: Cambio de PIN forzado en el primer login
-// PIN inicial = últimos 4 dígitos del teléfono.
-// El portal bloquea el acceso a la ficha hasta que se cambie.
+// SP7-02 — SEC-06: PIN opcional — el banner avisa sin bloquear acceso
+// Decisión de diseño: cambio de PIN es voluntario.
+// El banner suave en la ficha informa al voluntario sin impedir el acceso.
+// fix(portal): eliminada pantalla bloqueante mustChangePin — afectaba a voluntarios
+//              con pinPersonalizado:false (tras reset/recover) impidiendo acceder.
 // ─────────────────────────────────────────────────────────────────────────────
-describe('SP7-02 — SEC-06: Cambio de PIN forzado en primer login', () => {
+describe('SP7-02 — SEC-06: PIN opcional con banner suave', () => {
   it('api/voluntarios tiene función pinInicial que usa los últimos 4 dígitos', () => {
     const api = read('api/voluntarios/index.js');
     expect(api).toContain('function pinInicial(telefono)');
@@ -1110,10 +1112,7 @@ describe('SP7-02 — SEC-06: Cambio de PIN forzado en primer login', () => {
 
   it('api/voluntarios devuelve pinPersonalizado en la respuesta auth', () => {
     const api = read('api/voluntarios/index.js');
-    // La respuesta de auth incluye el objeto voluntario completo (pub) que contiene pinPersonalizado
-    // La desestructuración elimina solo pinHash y sessionToken
     expect(api).toContain('pinHash: _ph, sessionToken: _st, ...pub');
-    // pinPersonalizado queda en pub → se incluye en la respuesta
     expect(api).toContain('voluntario: { ...pub, sessionToken }');
   });
 
@@ -1125,32 +1124,20 @@ describe('SP7-02 — SEC-06: Cambio de PIN forzado en primer login', () => {
 
   it('api/voluntarios acción reset-pin resetea pinPersonalizado: false', () => {
     const api = read('api/voluntarios/index.js');
-    // reset-pin y recover-pin deben poner pinPersonalizado: false al resetear
     expect(api).toContain("pinPersonalizado: false");
   });
 
-  it('VoluntarioPortal tiene estado mustChangePin', () => {
-    const portal = readPortal();
-    expect(portal).toContain('mustChangePin');
-    expect(portal).toContain('setMustChangePin');
+  it('api/voluntarios action=ficha normaliza pinPersonalizado para evitar bloqueo', () => {
+    const api = read('api/voluntarios/index.js');
+    // fix: ficha GET normaliza el campo — false explícito en BD no bloquea al voluntario
+    expect(api).toContain('pinPersonalizado: voluntario.pinPersonalizado === true');
   });
 
-  it('VoluntarioPortal activa mustChangePin cuando pinPersonalizado === false', () => {
+  it('VoluntarioPortal NO tiene pantalla bloqueante de cambio de PIN', () => {
     const portal = readPortal();
-    expect(portal).toContain('pinPersonalizado === false');
-    expect(portal).toContain('setMustChangePin(true)');
-  });
-
-  it('VoluntarioPortal muestra pantalla bloqueante cuando mustChangePin es true', () => {
-    const portal = readPortal();
-    expect(portal).toContain('if (mustChangePin) return');
-    // La pantalla debe contener un mensaje explicativo
-    expect(portal).toContain('Personaliza tu PIN');
-  });
-
-  it('VoluntarioPortal usa CambiarPin con hideCancel=true en modo forzado', () => {
-    const portal = readPortal();
-    expect(portal).toContain('hideCancel={true}');
+    // La pantalla bloqueante fue eliminada — el cambio de PIN es opcional
+    expect(portal).not.toContain('if (mustChangePin) return');
+    expect(portal).not.toContain('setMustChangePin(true)');
   });
 
   it('CambiarPin acepta prop hideCancel y oculta el botón cancelar', () => {
@@ -1159,17 +1146,17 @@ describe('SP7-02 — SEC-06: Cambio de PIN forzado en primer login', () => {
     expect(portal).toContain('!hideCancel &&');
   });
 
-  it('VoluntarioPortal llama fetchData tras cambio de PIN forzado', () => {
-    const portal = readPortal();
-    // onDone del CambiarPin forzado debe desactivar mustChangePin y recargar datos
-    expect(portal).toContain('setMustChangePin(false)');
-    expect(portal).toContain('fetchData(true)');
-  });
-
-  it('Banner de PIN temporal sigue presente en la ficha normal', () => {
+  it('Banner de PIN temporal sigue presente en la ficha normal (no bloqueante)', () => {
     const portal = readPortal();
     expect(portal).toContain('PIN temporal activo');
     expect(portal).toContain('!v.pinPersonalizado');
+  });
+
+  it('Botón voluntario de cambio de PIN sigue disponible en la ficha', () => {
+    const portal = readPortal();
+    // El voluntario puede cambiar su PIN cuando quiera desde la ficha
+    expect(portal).toContain('Cambiar mi PIN');
+    expect(portal).toContain('CambiarPin');
   });
 });
 

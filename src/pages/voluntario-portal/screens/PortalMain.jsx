@@ -15,8 +15,6 @@ export function PortalMain({ token, onLogout }) {
   const [cambiandoPin, setCPin]     = useState(false);
   // SEC-02: dismissal del banner de PIN automático — solo en sesión, no persistente
   const [bannerPinDismissed, setBannerPinDismissed] = useState(false);
-  // SEC-06: forzar cambio de PIN en el primer login
-  const [mustChangePin, setMustChangePin] = useState(false);
   const [form,       setForm]       = useState({});
   const [saving,     setSaving]     = useState(false);
   const [marcando,    setMarcando]    = useState(false);
@@ -49,10 +47,6 @@ export function PortalMain({ token, onLogout }) {
       const json = await res.json();
       setData(json);
       setUltimaActualizacion(Date.now());
-      // SEC-06: si el PIN no ha sido personalizado, forzar cambio inmediato
-      if (json.voluntario && json.voluntario.pinPersonalizado === false) {
-        setMustChangePin(true);
-      }
       const v = json.voluntario || {};
       setForm({
         telefono:           v.telefono || "",
@@ -189,32 +183,7 @@ export function PortalMain({ token, onLogout }) {
     </div>
   );
 
-  // SEC-06: pantalla bloqueante de cambio de PIN obligatorio (primer login)
-  if (mustChangePin) return (
-    <div className="vp-page" style={{ minHeight:"100dvh", display:"flex", flexDirection:"column",
-      alignItems:"center", justifyContent:"center",
-      background:"radial-gradient(ellipse 60% 40% at 50% 0%, rgba(251,191,36,0.08) 0%, transparent 60%)" }}>
-      <div style={{ maxWidth:420, width:"100%", padding:"1.5rem 1.25rem", animation:"fadeUp .4s ease both" }}>
-        <div style={{ textAlign:"center", marginBottom:"1.5rem" }}>
-          <div style={{ fontSize:"2.5rem", marginBottom:".6rem" }}>🔐</div>
-          <div style={{ fontWeight:800, fontSize:"1.35rem", color:"var(--amber)",
-            fontFamily:"var(--font-display)", marginBottom:".5rem" }}>
-            Personaliza tu PIN
-          </div>
-          <div className="vp-mono" style={{ fontSize:".8rem", color:"var(--text-muted)", lineHeight:1.7 }}>
-            Por seguridad, debes establecer un PIN personal antes de acceder a tu ficha.
-            <br/>Tu PIN provisional eran los <strong style={{color:"var(--text)"}}>últimos 4 dígitos de tu teléfono</strong>.
-          </div>
-        </div>
-        <CambiarPin
-          token={token}
-          hideCancel={true}
-          onDone={() => { setMustChangePin(false); fetchData(true); }}
-          onCancel={null}
-        />
-      </div>
-    </div>
-  );
+  // SEC-06: cambio de PIN opcional — el banner suave (línea ~404) ya avisa sin bloquear
 
   const { voluntario:v={}, puesto, companerosEnPuesto=[], materialPuesto=[], config={} } = data || {};
 
