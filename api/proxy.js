@@ -9,9 +9,9 @@
  * Batch GET usa Promise.all para queries paralelas (~4-6× más rápido).
  */
 // MEJORA-03: instancia compartida — evita múltiples conexiones por módulo
-import { sql } from './lib/db.js';
-import { logError, requestContext } from './lib/logger.js';
-import { verifySessionToken, readSessionCookie, createSessionToken, buildSessionCookie } from './lib/session.js';
+import { sql } from '../lib/db.js';
+import { logError, requestContext } from '../lib/logger.js';
+import { verifySessionToken, readSessionCookie, createSessionToken, buildSessionCookie } from '../lib/session.js';
 
 const ALLOWED_COLLECTIONS = /^teg_(voluntarios|logistica|presupuesto|camisetas|patrocinadores|pat_log|localizaciones|documentos|proyecto|event_config|scenarios|codigos_promo|codigos_initialized|panel_pin_hash|panel_pin_length|escenarios|dia_carrera|scenario_active_name|auto_backup)_?v?\d*(_[a-zA-Z0-9]+)*$/;
 

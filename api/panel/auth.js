@@ -23,9 +23,9 @@
 import { neon } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import { checkRateLimit, peekRateLimit, resetRateLimit } from '../lib/rateLimiter.js';
-import { logError, logWarn } from '../lib/logger.js';
-import { createSessionToken, buildSessionCookie } from '../lib/session.js';
+import { checkRateLimit, peekRateLimit, resetRateLimit } from '../../lib/rateLimiter.js';
+import { logError, logWarn } from '../../lib/logger.js';
+import { createSessionToken, buildSessionCookie } from '../../lib/session.js';
 
 // SEC-AUTHZ (Mejora 2): tras un PIN correcto se emite una cookie de sesión firmada.
 // El proxy exige esa cookie para tocar las colecciones de negocio (data/*).

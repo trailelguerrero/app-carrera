@@ -12,8 +12,8 @@
  * action=delete    POST  Eliminar voluntario (admin, requiere x-api-key)
  */
 import { neon } from '@neondatabase/serverless';
-import { checkRateLimit } from '../lib/rateLimiter.js';
-import { logError, requestContext } from '../lib/logger.js';
+import { checkRateLimit } from '../../lib/rateLimiter.js';
+import { logError, requestContext } from '../../lib/logger.js';
 
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto'; // fix(SEC-CRIT-02): CSPRNG para sessionToken

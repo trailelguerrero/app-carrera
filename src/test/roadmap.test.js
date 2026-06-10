@@ -1024,12 +1024,12 @@ describe('SP7-01 — SEC-05: Rate limiting persistente en PostgreSQL', () => {
   // SEC-05 (sesión 2026-05-08): reemplaza los Map() en memoria que no
   // sobrevivían deploys ni funcionaban con múltiples instancias serverless.
 
-  it('existe api/lib/rateLimiter.js', () => {
-    expect(exists('api/lib/rateLimiter.js')).toBe(true);
+  it('existe lib/rateLimiter.js', () => {
+    expect(exists('lib/rateLimiter.js')).toBe(true);
   });
 
   it('rateLimiter exporta checkRateLimit', () => {
-    const rl = read('api/lib/rateLimiter.js');
+    const rl = read('lib/rateLimiter.js');
     expect(rl).toContain('export async function checkRateLimit');
   });
 
@@ -1037,7 +1037,7 @@ describe('SP7-01 — SEC-05: Rate limiting persistente en PostgreSQL', () => {
     // C3: el DDL se movió a api/setup.js para evitar ejecutarlo en cada request.
     const setup = read('api/setup.js');
     expect(setup).toContain('CREATE TABLE IF NOT EXISTS rate_limit');
-    const rl = read('api/lib/rateLimiter.js');
+    const rl = read('lib/rateLimiter.js');
     expect(rl).toContain('rate_limit');
     expect(rl).toContain('ip');
     expect(rl).toContain('scope');
@@ -1046,7 +1046,7 @@ describe('SP7-01 — SEC-05: Rate limiting persistente en PostgreSQL', () => {
   });
 
   it('rateLimiter usa UPSERT atómico para evitar race conditions', () => {
-    const rl = read('api/lib/rateLimiter.js');
+    const rl = read('lib/rateLimiter.js');
     expect(rl).toContain('ON CONFLICT');
     expect(rl).toContain('DO UPDATE SET');
   });
@@ -1060,7 +1060,7 @@ describe('SP7-01 — SEC-05: Rate limiting persistente en PostgreSQL', () => {
 
   it('api/voluntarios importa checkRateLimit desde lib/rateLimiter', () => {
     const vol = read('api/voluntarios/index.js');
-    expect(vol).toContain("from '../lib/rateLimiter.js'");
+    expect(vol).toContain("from '../../lib/rateLimiter.js'");
     expect(vol).toContain('checkRateLimit');
   });
 
@@ -1080,7 +1080,7 @@ describe('SP7-01 — SEC-05: Rate limiting persistente en PostgreSQL', () => {
 
   it('api/data/public.js importa checkRateLimit desde lib/rateLimiter', () => {
     const pub = read('api/data/public.js');
-    expect(pub).toContain("from '../lib/rateLimiter.js'");
+    expect(pub).toContain("from '../../lib/rateLimiter.js'");
     expect(pub).toContain('checkRateLimit');
   });
 
@@ -1091,7 +1091,7 @@ describe('SP7-01 — SEC-05: Rate limiting persistente en PostgreSQL', () => {
   });
 
   it('rateLimiter limpia filas expiradas para no acumular basura', () => {
-    const rl = read('api/lib/rateLimiter.js');
+    const rl = read('lib/rateLimiter.js');
     expect(rl).toContain('DELETE FROM rate_limit WHERE window_end < NOW()');
   });
 });

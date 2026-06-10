@@ -13,7 +13,7 @@ describe('SEC-AUTHZ — módulo de sesión (api/lib/session.js)', () => {
   let session;
   beforeAll(async () => {
     process.env.SESSION_SECRET = 'test-secret-para-vitest-123';
-    session = await import('../../api/lib/session.js');
+    session = await import('../../lib/session.js');
   });
 
   it('emite y valida un token firmado (roundtrip)', () => {

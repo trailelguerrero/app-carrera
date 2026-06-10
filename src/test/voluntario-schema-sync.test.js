@@ -35,7 +35,7 @@ beforeAll(() => {
 
 const loadSchemas = async () => {
   const cliente = await import('../lib/schemas/voluntarioSchema.js');
-  const servidor = await import('../../api/lib/voluntarioValidation.js');
+  const servidor = await import('../../lib/voluntarioValidation.js');
   return { cliente, servidor };
 };
 

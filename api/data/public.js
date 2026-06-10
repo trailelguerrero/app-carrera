@@ -18,8 +18,8 @@
 import { neon } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
-import { checkRateLimit } from '../lib/rateLimiter.js';
-import { validarVoluntario } from '../lib/voluntarioValidation.js';
+import { checkRateLimit } from '../../lib/rateLimiter.js';
+import { validarVoluntario } from '../../lib/voluntarioValidation.js';
 
 const BCRYPT_SALT_ROUNDS = 10;
 

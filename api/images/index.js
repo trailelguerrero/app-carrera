@@ -9,7 +9,7 @@
  */
 import { put, del } from '@vercel/blob';
 import { neon } from '@neondatabase/serverless'; // MEJ-22
-import { checkRateLimit } from '../lib/rateLimiter.js'; // MEJ-22
+import { checkRateLimit } from '../../lib/rateLimiter.js'; // MEJ-22
 
 const auth = (req, res) => {
   const key = req.headers['x-api-key'];

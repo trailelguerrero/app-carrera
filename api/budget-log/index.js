@@ -1,6 +1,6 @@
 import { neon } from '@neondatabase/serverless';
-import { logError, requestContext } from '../lib/logger.js';
-import { checkRateLimit } from '../lib/rateLimiter.js'; // MEJ-22
+import { logError, requestContext } from '../../lib/logger.js';
+import { checkRateLimit } from '../../lib/rateLimiter.js'; // MEJ-22
 
 const auth = (req, res) => {
   const key = req.headers['x-api-key'];

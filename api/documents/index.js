@@ -1,7 +1,7 @@
 import { neon }     from '@neondatabase/serverless';
 import { put, del } from '@vercel/blob';
-import { logError, logWarn, requestContext } from '../lib/logger.js';
-import { checkRateLimit } from '../lib/rateLimiter.js'; // MEJ-22
+import { logError, logWarn, requestContext } from '../../lib/logger.js';
+import { checkRateLimit } from '../../lib/rateLimiter.js'; // MEJ-22
 
 const auth = (req, res) => {
   const key = req.headers['x-api-key'];

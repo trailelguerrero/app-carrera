@@ -1,6 +1,6 @@
 // MEJORA-03: usar sqlDirect del módulo compartido — conexión no pooled para DDL
-import { sqlDirect as sqlDDL } from './lib/db.js';
-import { logError, requestContext } from './lib/logger.js';
+import { sqlDirect as sqlDDL } from '../lib/db.js';
+import { logError, requestContext } from '../lib/logger.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {

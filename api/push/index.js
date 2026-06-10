@@ -15,9 +15,9 @@
  */
 import { neon } from '@neondatabase/serverless';
 import { createSign } from 'crypto';
-import { verifySessionToken, readSessionCookie } from '../lib/session.js';
-import { logError, logWarn, logInfo } from '../lib/logger.js';
-import { checkRateLimit } from '../lib/rateLimiter.js'; // MEJ-22
+import { verifySessionToken, readSessionCookie } from '../../lib/session.js';
+import { logError, logWarn, logInfo } from '../../lib/logger.js';
+import { checkRateLimit } from '../../lib/rateLimiter.js'; // MEJ-22
 
 const sql = neon(process.env.DATABASE_URL);
 
