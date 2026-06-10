@@ -97,6 +97,46 @@ export default async function handler(req, res) {
   const sql = neon(process.env.DATABASE_URL);
 
   try {
+    // ── AUDIT: GET ?action=audit (solo lectura, requiere x-api-key) ────────
+    if (action === 'audit') {
+      if (req.method !== 'GET') return res.status(405).end();
+      if (req.headers['x-api-key'] !== process.env.API_KEY)
+        return res.status(401).json({ error: 'Unauthorized' });
+      const vols = await getVols(sql);
+      const ahora = new Date();
+      const resultado = vols.map(v => {
+        const tel = v.telefono || '';
+        const ph  = v.pinHash;
+        const pp  = v.pinPersonalizado;
+        const nombre = `${v.nombre||''}${v.apellidos?' '+v.apellidos:''}`.trim();
+        let flagBD = pp===true?'true': pp===false?'FALSE_EXPLICITO':'undefined';
+        let esPersonalizadoReal=false, metodo='';
+        if (pp===true)       { esPersonalizadoReal=true;  metodo='flag=true'; }
+        else if (!ph)        { esPersonalizadoReal=false; metodo='sin_hash'; }
+        else if (ph.startsWith('$2')) {
+          const esInicial = bcrypt.compareSync(pinInicial(tel), ph);
+          esPersonalizadoReal=!esInicial; metodo=esInicial?'bcrypt=inicial':'bcrypt=CAMBIADO';
+        } else {
+          const esInicial = hashPinLegacy(pinInicial(tel))===ph;
+          esPersonalizadoReal=!esInicial; metodo=esInicial?'djb2=inicial':'djb2=CAMBIADO';
+        }
+        let sesionActiva=false;
+        if (v.sessionToken&&v.sessionTokenExpiry) {
+          const exp=new Date(v.sessionTokenExpiry);
+          sesionActiva=!isNaN(exp.getTime())&&exp>ahora;
+        }
+        return { nombre, telefono:tel, estado:v.estado||'?',
+          flagBD, esPersonalizadoReal, metodo, sesionActiva,
+          bloqueado: pp===false, fechaRegistro:v.fechaRegistro||null };
+      });
+      return res.status(200).json({
+        total: vols.length,
+        bloqueados: resultado.filter(r=>r.bloqueado).length,
+        conPinPropio: resultado.filter(r=>r.esPersonalizadoReal).length,
+        voluntarios: resultado,
+      });
+    }
+
     // ── AUTH: POST ?action=auth ────────────────────────────────────────────
     if (action === 'auth') {
       if (req.method !== 'POST') return res.status(405).end();
