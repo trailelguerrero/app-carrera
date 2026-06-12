@@ -51,8 +51,9 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
   const todosLosTipos = [...TIPOS_BASE, ...tiposCustom];
   function getTipo(tkId){return todosLosTipos.find(function(ttItem){return ttItem.id===tkId;})||{nombre:tkId,icono:"🏷️",color:"var(--text-muted)"};}
 
-  // Excluir emergencia y médico del directorio (están en la pestaña Emergencias)
-  const TIPOS_EXCLUIDOS_DIR = ["emergencia","medico"];
+  // Excluir solo emergencia del directorio (están en la pestaña Emergencias)
+  // Médico se muestra en ambos tabs: directorio y emergencias
+  const TIPOS_EXCLUIDOS_DIR = ["emergencia"];
   const contDir      = filtrarContactosDir(cont, TIPOS_EXCLUIDOS_DIR);
   const contOrdenado = ordenAlfa ? ordenarContactosAlfa(contDir) : contDir;
   const contFiltradoPorTipo = filtroTipo==="todos" ? contOrdenado : filtrarContactosPorTipo(contOrdenado, filtroTipo);
@@ -81,7 +82,7 @@ function TabDirectorio({cont,setCont,setModal,setDel,abrirFicha,ordenAlfa,setOrd
       <div className="ph">
         <div>
           <div className="pt">📋 Directorio de Contactos</div>
-          <div className="pd">{contDir.length} contacto{contDir.length!==1?"s":""} · Los urgentes están en Emergencias</div>
+          <div className="pd">{contDir.length} contacto{contDir.length!==1?"s":""} · Emergencias críticas en pestaña Emergencias</div>
         </div>
         <div style={{display:"flex",gap:".4rem",flexWrap:"wrap"}}>
           <button className="btn btn-ghost btn-sm"
