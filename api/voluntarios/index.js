@@ -62,6 +62,14 @@ async function getVols(sql) {
   const r = await sql`SELECT value FROM collections WHERE key = ${LS_KEY}`;
   return r.length > 0 && Array.isArray(r[0].value) ? r[0].value : [];
 }
+// PERF-F1: lee varias colecciones en UNA query (key = ANY) en vez de N round-trips secuenciales.
+// Devuelve { [key]: value }. Claves ausentes simplemente no aparecen en el mapa.
+async function getCollections(sql, keys) {
+  const rows = await sql`SELECT key, value FROM collections WHERE key = ANY(${keys})`;
+  const map = {};
+  for (const row of rows) map[row.key] = row.value;
+  return map;
+}
 async function saveVols(sql, vols) {
   await sql`
     INSERT INTO collections (key, value) VALUES (${LS_KEY}, ${JSON.stringify(vols)}::jsonb)
@@ -239,16 +247,17 @@ export default async function handler(req, res) {
 
     // GET ficha
     if ((action === 'ficha' || !action) && req.method === 'GET') {
-      const puestosRes = await sql`SELECT value FROM collections WHERE key = ${LS_PUESTOS}`;
-      const configRes  = await sql`SELECT value FROM collections WHERE key = ${LS_CONFIG}`;
-      const matRes     = await sql`SELECT value FROM collections WHERE key = 'teg_logistica_v1_mat'`;
-      const asigRes    = await sql`SELECT value FROM collections WHERE key = 'teg_logistica_v1_asig'`;
-      const locsRes    = await sql`SELECT value FROM collections WHERE key = 'teg_localizaciones_v1'`;
-      const puestos  = puestosRes.length > 0 && Array.isArray(puestosRes[0].value) ? puestosRes[0].value : [];
-      const orgConfig = configRes.length > 0 ? configRes[0].value : {};
-      const allMat   = matRes.length > 0 && Array.isArray(matRes[0].value) ? matRes[0].value : [];
-      const allAsig  = asigRes.length > 0 && Array.isArray(asigRes[0].value) ? asigRes[0].value : [];
-      const allLocs  = locsRes.length > 0 && Array.isArray(locsRes[0].value) ? locsRes[0].value : [];
+      // PERF-F1: una sola query batch en vez de 6 round-trips secuenciales (incluye cont, usado más abajo)
+      const cols = await getCollections(sql, [
+        LS_PUESTOS, LS_CONFIG,
+        'teg_logistica_v1_mat', 'teg_logistica_v1_asig',
+        'teg_localizaciones_v1', 'teg_logistica_v1_cont',
+      ]);
+      const puestos  = Array.isArray(cols[LS_PUESTOS]) ? cols[LS_PUESTOS] : [];
+      const orgConfig = cols[LS_CONFIG] || {};
+      const allMat   = Array.isArray(cols['teg_logistica_v1_mat'])  ? cols['teg_logistica_v1_mat']  : [];
+      const allAsig  = Array.isArray(cols['teg_logistica_v1_asig']) ? cols['teg_logistica_v1_asig'] : [];
+      const allLocs  = Array.isArray(cols['teg_localizaciones_v1']) ? cols['teg_localizaciones_v1'] : [];
 
       // Coerción explícita: puestoId puede ser number o string según la fuente de registro
       const puesto = voluntario.puestoId != null
@@ -295,9 +304,9 @@ export default async function handler(req, res) {
 
       // Fusionar con contactos de logística relevantes, deduplicando por teléfono normalizado
       try {
-        const contRes = await sql`SELECT value FROM collections WHERE key = 'teg_logistica_v1_cont'`;
-        if (contRes.length > 0 && Array.isArray(contRes[0].value)) {
-          const aptos = contRes[0].value.filter(c => ['organizacion','voluntarios','coordinacion'].includes(c.tipo))
+        const contVal = cols['teg_logistica_v1_cont'];
+        if (Array.isArray(contVal)) {
+          const aptos = contVal.filter(c => ['organizacion','voluntarios','coordinacion'].includes(c.tipo))
             .map(c => ({ nombre: c.nombre || c.contacto, telefono: c.telefono || c.tel, email: c.email || '' }))
             .filter(c => c.nombre && c.telefono);
           const tels = new Set(organizadores.map(o => (o.telefono || '').replace(/\D/g, '')));
