@@ -22,7 +22,6 @@ import {
   SK_PPTO_INGRESOS_EXTRA,
   SK_LOG_INC,
   SK_LOG_MAT,
-  SK_LOG_ASIG,
 } from "@/constants/storageKeys";
 
 const THROTTLE_MS = 5000; // T7.2: no recalcular más de 1 vez cada 5s por módulo
@@ -54,8 +53,8 @@ async function calcBadgeModulo(modulo) {
         return vencidas > 0 ? { proyecto: vencidas } : {};
       }
       case "voluntarios": {
-        const vols = await dataService.get(SK_VOL_VOLUNTARIOS, []);
-        const puestos = await dataService.get(SK_VOL_PUESTOS, []);
+        const { [SK_VOL_VOLUNTARIOS]: vols, [SK_VOL_PUESTOS]: puestos } =
+          await dataService.getMultiple({ [SK_VOL_VOLUNTARIOS]: [], [SK_VOL_PUESTOS]: [] });
         if (!Array.isArray(puestos) || !Array.isArray(vols)) return {};
         const criticos = puestos.filter(p => {
           const confirmados = vols.filter(v => v.puestoId === p.id && v.estado === "confirmado").length;
@@ -64,8 +63,8 @@ async function calcBadgeModulo(modulo) {
         return criticos > 0 ? { voluntarios: criticos } : {};
       }
       case "documentos": {
-        const docs = await dataService.get(SK_DOC_DOCS, []);
-        const gests = await dataService.get(SK_DOC_GESTIONES, []);
+        const { [SK_DOC_DOCS]: docs, [SK_DOC_GESTIONES]: gests } =
+          await dataService.getMultiple({ [SK_DOC_DOCS]: [], [SK_DOC_GESTIONES]: [] });
         const docsV = Array.isArray(docs) ? docs.filter(d =>
           d.fechaVencimiento && d.estado !== "vigente" && d.estado !== "aprobado" &&
           Math.ceil((new Date(d.fechaVencimiento) - new Date()) / 86400000) < 0
@@ -78,10 +77,13 @@ async function calcBadgeModulo(modulo) {
         return docsV + gestV > 0 ? { documentos: docsV + gestV } : {};
       }
       case "presupuesto": {
-        const conceptos = await dataService.get(SK_PPTO_CONCEPTOS, []);
-        const tramos = await dataService.get(SK_PPTO_TRAMOS, []);
-        const inscritos = await dataService.get(SK_PPTO_INSCRITOS, { tramos: {} });
-        const ingExt = await dataService.get(SK_PPTO_INGRESOS_EXTRA, []);
+        const {
+          [SK_PPTO_CONCEPTOS]: conceptos, [SK_PPTO_TRAMOS]: tramos,
+          [SK_PPTO_INSCRITOS]: inscritos, [SK_PPTO_INGRESOS_EXTRA]: ingExt,
+        } = await dataService.getMultiple({
+          [SK_PPTO_CONCEPTOS]: [], [SK_PPTO_TRAMOS]: [],
+          [SK_PPTO_INSCRITOS]: { tramos: {} }, [SK_PPTO_INGRESOS_EXTRA]: [],
+        });
         if (!Array.isArray(conceptos) || !Array.isArray(tramos)) return {};
         const DIST = ["TG7", "TG13", "TG25"];
         const totalIns = DIST.reduce((s, d) =>
@@ -100,22 +102,24 @@ async function calcBadgeModulo(modulo) {
         return ((ingresos + totalIngExtra) - costes < 0 && totalIns > 0) ? { presupuesto: "!" } : {};
       }
       case "logistica": {
-        const inc = await dataService.get(SK_LOG_INC, []);
+        const {
+          [SK_LOG_INC]: inc, [SK_LOG_MAT]: material,
+          [SK_PPTO_INSCRITOS]: inscrData, [SK_PPTO_TRAMOS]: tramos,
+        } = await dataService.getMultiple({
+          [SK_LOG_INC]: [], [SK_LOG_MAT]: [],
+          [SK_PPTO_INSCRITOS]: { tramos: {} }, [SK_PPTO_TRAMOS]: [],
+        });
         const abiertas = Array.isArray(inc) ? inc.filter(i => i.estado === "abierta").length : 0;
 
         // [LOG-04] Alertas de avituallamiento insuficiente basadas en inscritos
         let avitInsuficientes = 0;
         try {
-          const material  = await dataService.get(SK_LOG_MAT,  []);
-          const asigs     = await dataService.get(SK_LOG_ASIG, []);
-          const inscrData = await dataService.get(SK_PPTO_INSCRITOS, { tramos: {} });
-          const tramos    = await dataService.get(SK_PPTO_TRAMOS, []);
           const DIST = ["TG7", "TG13", "TG25"];
           const totalInscritos = Array.isArray(tramos)
             ? tramos.reduce((s, t) =>
                 s + DIST.reduce((ss, d) => ss + (inscrData?.tramos?.[t.id]?.[d] || 0), 0), 0)
             : 0;
-          if (totalInscritos > 0) {
+          if (totalInscritos > 0 && Array.isArray(material)) {
             const UMBRAL = 0.5;
             avitInsuficientes = material.filter(m => {
               if (m.categoria !== "Avituallamiento") return false;
@@ -123,7 +127,7 @@ async function calcBadgeModulo(modulo) {
               return (m.stock / totalInscritos) < umbral;
             }).length;
           }
-        } catch { /* si falla la lectura de logística, no bloquear */ }
+        } catch { /* si falla el cálculo de logística, no bloquear */ }
 
         const total = abiertas + avitInsuficientes;
         return total > 0 ? { logistica: total } : {};
