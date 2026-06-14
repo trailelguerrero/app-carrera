@@ -9,7 +9,7 @@ import {
   useNavigationType,
 } from "react-router-dom";
 // Leaflet bundleado (no CDN) — funciona en Tor Browser, offline y sin unpkg.com
-import "@/lib/leafletLoader";
+// PERF-F4: Leaflet ya no se carga en boot — useLeafletReady lo importa bajo demanda
 import App from "./App.tsx";
 import "./index.css";
 

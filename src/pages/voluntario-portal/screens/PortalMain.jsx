@@ -71,12 +71,16 @@ export function PortalMain({ token, onLogout }) {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // PORTAL-MAP: cargar recorridos GPX una sola vez al montar
+  // PORTAL-MAP: cargar recorridos GPX solo si hay puesto asignado (el mapa solo
+  // se muestra entonces). Evita una petición de red innecesaria en el primer
+  // pintado para voluntarios sin puesto. PERF-F4.
   useEffect(() => {
-    fetchPublic(SK_LOG_RECORRIDOS).then(data => {
-      if (Array.isArray(data)) setRecorridosState(data);
+    if (!data?.puesto) return;
+    if (recorridos.length > 0) return;
+    fetchPublic(SK_LOG_RECORRIDOS).then(d => {
+      if (Array.isArray(d)) setRecorridosState(d);
     }).catch(() => {});
-  }, []);
+  }, [data?.puesto, recorridos.length]);
 
   // Auto-refresh cada 30 segundos (silencioso)
   useEffect(() => {

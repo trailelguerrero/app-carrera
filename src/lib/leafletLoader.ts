@@ -1,24 +1,37 @@
 /**
- * leafletLoader.ts — carga Leaflet desde el bundle npm (no CDN).
+ * leafletLoader.ts — carga Leaflet bajo demanda (no en boot).
  *
- * Antes se cargaba desde unpkg.com en index.html. Eso fallaba en:
- *   - Tor Browser (bloquea CDNs externos)
- *   - Redes sin acceso a unpkg.com
- *   - Modo offline / PWA sin caché del CDN
+ * Antes este módulo se importaba en main.tsx con efecto de lado, metiendo
+ * Leaflet (~150 kB) en el bundle de entrada de TODA la app, incluido el
+ * portal del voluntario donde el mapa es condicional y va below-the-fold.
  *
- * Ahora Leaflet está en package.json y va bundleado con la app.
- * Lo exponemos en window.L para compatibilidad con el código existente
- * que usa window.L (los componentes de mapa con useRef + useEffect).
- *
- * Este archivo se importa UNA VEZ en main.tsx.
+ * Ahora exporta ensureLeaflet(): importa Leaflet + su CSS de forma dinámica
+ * (su propio chunk), expone window.L para el código existente basado en
+ * window.L, cachea la promesa e idempotente. Lo invoca useLeafletReady()
+ * cuando un componente de mapa se monta (admin o portal).
  */
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import type L from 'leaflet';
 
 // Ampliar Window para que TypeScript conozca window.L
 declare global {
   interface Window { L: typeof L }
 }
 
-// Exponer globalmente para compatibilidad con los componentes de mapa
-window.L = L;
+let leafletPromise: Promise<typeof L> | null = null;
+
+export function ensureLeaflet(): Promise<typeof L> {
+  if (typeof window !== 'undefined' && typeof window.L !== 'undefined') {
+    return Promise.resolve(window.L);
+  }
+  if (!leafletPromise) {
+    leafletPromise = Promise.all([
+      import('leaflet'),
+      import('leaflet/dist/leaflet.css'),
+    ]).then(([mod]) => {
+      const Lmod = (mod as { default?: typeof L }).default ?? (mod as unknown as typeof L);
+      window.L = Lmod;
+      return Lmod;
+    });
+  }
+  return leafletPromise;
+}
