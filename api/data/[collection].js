@@ -33,7 +33,9 @@ export default async function handler(req, res) {
       if (result.length > 0) {
         return res.status(200).json({ data: result[0].value, version: result[0].version || 1 });
       } else {
-        return res.status(404).json({ error: 'Not found' });
+        // Colección no inicializada aún — devolver vacío en lugar de 404
+        // para evitar ruido en logs y errores innecesarios en cliente.
+        return res.status(200).json({ data: null, version: 0 });
       }
     }
 

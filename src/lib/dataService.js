@@ -129,6 +129,11 @@ const apiAdapter = {
       // Unwrap versioned response { data, version } o raw data (legado)
       const data = response?.data !== undefined ? response.data : response;
       const version = response?.version;
+      // Si la colección no existe aún en Neon, el API devuelve { data: null, version: 0 }
+      // → tratar como vacío y devolver defaultValue sin cachear null en localStorage.
+      if (data === null && version === 0) {
+        return defaultValue;
+      }
       // Actualizar caché local con el dato fresco de Neon (para uso offline)
       await localAdapter.set(collection, data);
       localStorage.setItem(`__last_fetch_${collection}`, Date.now().toString());
