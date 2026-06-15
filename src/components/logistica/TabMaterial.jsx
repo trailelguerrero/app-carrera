@@ -18,6 +18,8 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
   const [vistaKanban,setVistaKanban]=useState(false);
   const [cat,setCat]=useState("todas");
   const [busqMat,setBusqMat]=useState("");
+  const [filtroStock,setFiltroStock]=useState("todos");
+  const [filtroEstadoAsig,setFiltroEstadoAsig]=useState("todos");
 
   // (rawTramos, rawInscritos, totalInscritos, totalMaximos vienen del componente padre vía props)
   // ESCALA_CON_INSCRITOS se importa desde logisticaConstants.js (exportado desde ahí)
@@ -37,14 +39,45 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
     return map;
   }, [material]);
   const mf=useMemo(()=>{
-    let list = ms.filter(m => cat === "todas" || m.categoria === cat);
+    let list = ms.filter(m => {
+      if (cat !== "todas" && m.categoria !== cat) return false;
+      if (filtroStock === "deficit" && m.def <= 0) return false;
+      if (filtroStock === "bajo"    && (m.def > 0 || !(m.stockMinimo > 0 && m.stock < m.stockMinimo))) return false;
+      if (filtroStock === "ok"      && (m.def > 0 || (m.stockMinimo > 0 && m.stock < m.stockMinimo))) return false;
+      return true;
+    });
     if(busqMat.trim()) {
       const q = busqMat.toLowerCase();
       list = list.filter(m => (m.nombre||"").toLowerCase().includes(q) || (m.categoria||"").toLowerCase().includes(q));
     }
     if(ordenAlfa) list=[...list].sort((sa,sb)=>(sa.nombre||"").localeCompare(sb.nombre||"","es"));
     return list;
-  },[ms,cat,ordenAlfa,busqMat]);
+  },[ms,cat,filtroStock,ordenAlfa,busqMat]);
+
+  const statsStock = useMemo(() => {
+    let ok=0, bajo=0, deficit=0;
+    ms.forEach(m => {
+      if (m.def > 0) deficit++;
+      else if (m.stockMinimo > 0 && m.stock < m.stockMinimo) bajo++;
+      else ok++;
+    });
+    return { ok, bajo, deficit };
+  }, [ms]);
+
+  const statsAsig = useMemo(() => {
+    const counts = {};
+    ESTADO_ENTREGA.forEach(e => { counts[e] = 0; });
+    asigs.forEach(a => { counts[a.estado] = (counts[a.estado]||0)+1; });
+    return counts;
+  }, [asigs]);
+
+  const asigsFiltradas = useMemo(() => {
+    if (filtroEstadoAsig === "todos") return asigs;
+    return asigs.filter(a => a.estado === filtroEstadoAsig);
+  }, [asigs, filtroEstadoAsig]);
+
+  const hayFiltrosCat = cat !== "todas" || filtroStock !== "todos" || busqMat.trim();
+  const limpiarFiltrosCat = () => { setCat("todas"); setFiltroStock("todos"); setBusqMat(""); };
   const { items: mfPag, total: totalMat, PaginadorUI: PagMat } = usePaginacion(mf, 20);
   const mover=useCallback((id,dir)=>{
     if(ordenAlfa) return;
@@ -57,7 +90,7 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
   return(
     <>
       <div className="ph">
-        <div><div className="pt">📦 Inventario de Material</div><div className="pd">{material.length} artículos · {asigs.length} asignaciones</div></div>
+        <div><div className="pt">📦 Inventario de Material</div><div className="pd">{mf.length}/{material.length} artículos · {asigsFiltradas.length}/{asigs.length} asignaciones</div></div>
         <div className="fr g1">
           <button className={cls("btn",!vistaAsig?"btn-cyan":"btn-ghost")} onClick={()=>setVistaAsig(false)}>Catálogo<span style={{marginLeft:"0.3rem",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",background:!vistaAsig?"rgba(0,0,0,0.15)":"var(--surface3)",padding:"0.05rem 0.35rem",borderRadius:3}}>{material.length}</span></button>
           <button className={cls("btn",vistaAsig?"btn-cyan":"btn-ghost")} onClick={()=>setVistaAsig(true)}>Asignaciones<span style={{marginLeft:"0.3rem",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",background:vistaAsig?"rgba(0,0,0,0.15)":"var(--surface3)",padding:"0.05rem 0.35rem",borderRadius:3}}>{asigs.length}</span></button>
@@ -77,9 +110,56 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
         {material.length === 0 && (
           <div style={{ padding:"0 0 .85rem" }}><SkeletonRows n={5} /></div>
         )}
-        <div className="chips">
-          <button className={cls("chip",cat==="todas"&&"ca")} onClick={()=>setCat("todas")}>Todas</button>
-          {CATS_MATERIAL.map(c=><button key={c} className={cls("chip",cat===c&&"ca")} onClick={()=>setCat(c)} style={cat===c?{borderColor:CAT_COLORS[c],color:CAT_COLORS[c],background:`${CAT_COLORS[c]}18`}:{}}>{CAT_ICONS[c]} {c}</button>)}
+        {/* Pills stock */}
+        <div style={{ display:"flex", flexWrap:"wrap", gap:".35rem", marginBottom:".45rem", alignItems:"center" }}>
+          {[
+            { id:"todos",   label:"Todo el stock", count:ms.length,          color:"var(--text-muted)", bg:"rgba(255,255,255,.08)" },
+            { id:"ok",      label:"✅ OK",          count:statsStock.ok,      color:"var(--green)",      bg:"rgba(52,211,153,.15)"  },
+            { id:"bajo",    label:"⚠ Bajo mínimo", count:statsStock.bajo,    color:"var(--amber)",      bg:"rgba(251,191,36,.15)"  },
+            { id:"deficit", label:"🔴 Déficit",     count:statsStock.deficit, color:"var(--red)",        bg:"rgba(248,113,113,.15)" },
+          ].map(({ id, label, count, color, bg }) => (
+            <button key={id} className={"filter-pill"+(filtroStock===id?" active":"")} onClick={() => setFiltroStock(id)}>
+              {label}
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                color:filtroStock===id?color:"var(--text-dim)", background:filtroStock===id?bg:"transparent",
+                borderRadius:10, padding:"0 .3rem", marginLeft:".15rem",
+                minWidth:16, display:"inline-block", textAlign:"center", transition:"all .15s" }}>{count}</span>
+            </button>
+          ))}
+          {hayFiltrosCat && (
+            <button className="filter-pill" onClick={limpiarFiltrosCat}
+              style={{ color:"var(--red)", borderColor:"rgba(248,113,113,0.3)" }}>✕ Limpiar</button>
+          )}
+        </div>
+        {/* Pills categoría */}
+        <div style={{ display:"flex", flexWrap:"wrap", gap:".3rem", marginBottom:".65rem" }}>
+          <button onClick={() => setCat("todas")} style={{ padding:".2rem .55rem", borderRadius:5, cursor:"pointer",
+            fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+            border:"1px solid "+(cat==="todas"?"var(--cyan)":"var(--border)"),
+            background:cat==="todas"?"var(--cyan-dim)":"var(--surface)",
+            color:cat==="todas"?"var(--cyan)":"var(--text-muted)", transition:"all .12s" }}>
+            Todas <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+              color:cat==="todas"?"var(--cyan)":"var(--text-dim)",
+              background:cat==="todas"?"rgba(34,211,238,.15)":"transparent",
+              borderRadius:10, padding:"0 .25rem" }}>{ms.length}</span>
+          </button>
+          {CATS_MATERIAL.map(c => {
+            const cnt = ms.filter(m => m.categoria === c).length;
+            if (!cnt) return null;
+            const color = CAT_COLORS[c];
+            const active = cat === c;
+            return (
+              <button key={c} onClick={() => setCat(active?"todas":c)} style={{ padding:".2rem .55rem", borderRadius:5, cursor:"pointer",
+                fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                border:"1px solid "+(active?color:color+"55"),
+                background:active?color+"18":"var(--surface)", color:active?color:color+"cc", transition:"all .12s" }}>
+                {CAT_ICONS[c]} {c}
+                <span style={{ marginLeft:".3rem", fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                  color:active?color:"var(--text-dim)", background:active?color+"25":"transparent",
+                  borderRadius:10, padding:"0 .25rem" }}>{cnt}</span>
+              </button>
+            );
+          })}
         </div>
         {vistaKanban?(
           <div className="k-grid">
@@ -151,9 +231,35 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
           <PagMat />
         </>)}
       </>):(
+        <>
+        <div style={{ display:"flex", flexWrap:"wrap", gap:".35rem", marginBottom:".65rem", alignItems:"center" }}>
+          {[
+            { id:"todos",       label:"Todas",         color:"var(--text-muted)", bg:"rgba(255,255,255,.08)" },
+            { id:"pendiente",   label:"⏳ Pendiente",   color:"var(--amber)",      bg:"rgba(251,191,36,.15)"  },
+            { id:"en tránsito", label:"🚚 En tránsito", color:"var(--cyan)",       bg:"rgba(34,211,238,.15)"  },
+            { id:"entregado",   label:"✅ Entregado",   color:"var(--green)",      bg:"rgba(52,211,153,.15)"  },
+            { id:"recogido",    label:"📦 Recogido",    color:"var(--violet)",     bg:"rgba(167,139,250,.15)" },
+          ].map(({ id, label, color, bg }) => {
+            const count = id==="todos" ? asigs.length : (statsAsig[id]||0);
+            const active = filtroEstadoAsig===id;
+            return (
+              <button key={id} className={"filter-pill"+(active?" active":"")} onClick={() => setFiltroEstadoAsig(id)}>
+                {label}
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                  color:active?color:"var(--text-dim)", background:active?bg:"transparent",
+                  borderRadius:10, padding:"0 .3rem", marginLeft:".15rem",
+                  minWidth:16, display:"inline-block", textAlign:"center", transition:"all .15s" }}>{count}</span>
+              </button>
+            );
+          })}
+          {filtroEstadoAsig !== "todos" && (
+            <button className="filter-pill" onClick={() => setFiltroEstadoAsig("todos")}
+              style={{ color:"var(--red)", borderColor:"rgba(248,113,113,0.3)" }}>✕ Limpiar</button>
+          )}
+        </div>
         <div className="card p0"><div className="ox"><table className="tbl">
           <thead><tr><th>Material</th><th>Puesto destino</th><th className="tr">Cantidad</th><th>Estado</th></tr></thead>
-          <tbody>{asigs.map(a=>{const m=materialMap.get(a.materialId);return(
+          <tbody>{asigsFiltradas.map(a=>{const m=materialMap.get(a.materialId);return(
             <tr key={a.id} style={{cursor:"pointer"}} onClick={()=>abrirFicha("asig",{...a,materialNombre:m?.nombre,unidad:m?.unidad})}>
               <td className="f6">{m?.nombre||"—"}</td>
               <td><span className="pbadge">{a.puesto}</span></td>
@@ -161,8 +267,12 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
               <td onClick={e=>e.stopPropagation()}><select className="isml" value={a.estado} onChange={e=>setAsigs(p=>p.map(x=>x.id===a.id?{...x,estado:e.target.value}:x))} style={{color:ESTADO_COLORES[a.estado]}}>{ESTADO_ENTREGA.map(s=><option key={s} value={s}>{s}</option>)}</select></td>
             </tr>
           );})}
+          {asigsFiltradas.length===0 && (
+            <tr><td colSpan={4} style={{textAlign:"center",padding:"1.5rem",fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-dim)"}}>Sin asignaciones con ese estado</td></tr>
+          )}
           </tbody>
         </table></div></div>
+        </>
       )}
     </>
   );
