@@ -284,12 +284,56 @@ export function calcularCobertura(tieneMaterial, tieneVoluntario) {
 function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {}, recorridos = [], puestos = [], setPuestos = null }) {
   const [modal, setModal] = useState(null);
   const [del, setDel] = useState(null);
-  const [filtroTipo, setFiltroTipo] = useState("todos");
+  const [filtroTipo, setFiltroTipo]       = useState("todos");
+  const [filtroGps, setFiltroGps]         = useState("todos"); // todos|con|sin
+  const [filtroCobertura, setFiltroCobertura] = useState("todos"); // todos|completa|sin_voluntario|sin_material|sin_asignar
+  const [filtroPuesto, setFiltroPuesto]   = useState("todos"); // todos|con|sin
+  const [busqLoc, setBusqLoc]             = useState("");
   const [form, setForm] = useState({ nombre: "", tipo: "otro", descripcion: "", lat: "", lng: "" });
   // Cuántos puestos serían actualizados al guardar la loc (se muestra en modal)
   const [puestosAfectados, setPuestosAfectados] = useState([]);
 
-  const locsF = filtroTipo === "todos" ? locs : locs.filter(l0 => l0.tipo === filtroTipo);
+  const locsF = useMemo(() => {
+    return locs.filter(l => {
+      if (filtroTipo !== "todos" && l.tipo !== filtroTipo) return false;
+      if (busqLoc.trim()) {
+        const q = busqLoc.toLowerCase();
+        if (!(l.nombre||"").toLowerCase().includes(q) && !(l.descripcion||"").toLowerCase().includes(q)) return false;
+      }
+      if (filtroGps === "con" && (l.lat == null || l.lng == null)) return false;
+      if (filtroGps === "sin" && l.lat != null && l.lng != null)   return false;
+      if (filtroCobertura !== "todos") {
+        const tieneMat = (matPorLoc[l.id] || []).length > 0;
+        const tieneVol = (volsPorLoc[l.id] || []).length > 0;
+        const cob = calcularCobertura(tieneMat, tieneVol);
+        if (filtroCobertura === "sin_asignar" && cob !== null) return false;
+        if (filtroCobertura !== "sin_asignar" && cob !== filtroCobertura) return false;
+      }
+      if (filtroPuesto === "con" && !puestos.some(p => p.localizacionId === l.id)) return false;
+      if (filtroPuesto === "sin" && puestos.some(p => p.localizacionId === l.id))  return false;
+      return true;
+    });
+  }, [locs, filtroTipo, busqLoc, filtroGps, filtroCobertura, filtroPuesto, matPorLoc, volsPorLoc, puestos]);
+
+  // Stats para pills
+  const statsLoc = useMemo(() => {
+    let conGps=0, sinGps=0, completa=0, sinVol=0, sinMat=0, sinAsignar=0, conPuesto=0, sinPuesto=0;
+    locs.forEach(l => {
+      if (l.lat != null && l.lng != null) conGps++; else sinGps++;
+      const tieneMat = (matPorLoc[l.id] || []).length > 0;
+      const tieneVol = (volsPorLoc[l.id] || []).length > 0;
+      const cob = calcularCobertura(tieneMat, tieneVol);
+      if (cob === "completa")       completa++;
+      else if (cob === "sin_voluntario") sinVol++;
+      else if (cob === "sin_material")   sinMat++;
+      else sinAsignar++;
+      if (puestos.some(p => p.localizacionId === l.id)) conPuesto++; else sinPuesto++;
+    });
+    return { conGps, sinGps, completa, sinVol, sinMat, sinAsignar, conPuesto, sinPuesto };
+  }, [locs, matPorLoc, volsPorLoc, puestos]);
+
+  const hayFiltros = filtroTipo !== "todos" || filtroGps !== "todos" || filtroCobertura !== "todos" || filtroPuesto !== "todos" || busqLoc.trim();
+  const limpiarFiltros = () => { setFiltroTipo("todos"); setFiltroGps("todos"); setFiltroCobertura("todos"); setFiltroPuesto("todos"); setBusqLoc(""); };
 
   // Calcular puestos vinculados a la loc en edición (para mostrar aviso)
   useEffect(() => {
@@ -355,31 +399,170 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {}, rec
         <div>
           <div className="pt">📍 Localizaciones Maestras</div>
           <div className="pd">
-            {locs.length} ubicaciones · Compartidas con Voluntarios ·{" "}
+            {locsF.length}/{locs.length} ubicaciones · Compartidas con Voluntarios ·{" "}
             <span style={{cursor:"pointer",color:"var(--text-dim)"}} onClick={()=>window.dispatchEvent(new CustomEvent("teg-navigate",{detail:{block:"configuracion"}}))} title="Abrir Configuración">⚙️ Configuración</span>
           </div>
         </div>
-        <div style={{ display: "flex", gap: ".5rem", alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ display:"flex", gap:".5rem", alignItems:"center", flexWrap:"wrap" }}>
           {resumenCobertura.total > 0 && (
             <span style={{
-              fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)",
-              padding: ".2rem .55rem", borderRadius: 20,
-              background: resumenCobertura.completos === resumenCobertura.total ? "rgba(34,197,94,.12)" : "rgba(251,191,36,.12)",
-              color: resumenCobertura.completos === resumenCobertura.total ? "var(--green)" : "var(--amber)",
-              border: `1px solid ${resumenCobertura.completos === resumenCobertura.total ? "rgba(34,197,94,.3)" : "rgba(251,191,36,.3)"}`,
-              whiteSpace: "nowrap",
+              fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+              padding:".2rem .55rem", borderRadius:20,
+              background: resumenCobertura.completos===resumenCobertura.total ? "rgba(34,197,94,.12)" : "rgba(251,191,36,.12)",
+              color: resumenCobertura.completos===resumenCobertura.total ? "var(--green)" : "var(--amber)",
+              border: `1px solid ${resumenCobertura.completos===resumenCobertura.total ? "rgba(34,197,94,.3)" : "rgba(251,191,36,.3)"}`,
+              whiteSpace:"nowrap",
             }}>
-              {resumenCobertura.completos === resumenCobertura.total ? "✅" : "⚠️"} {resumenCobertura.completos}/{resumenCobertura.total} cobertura completa
+              {resumenCobertura.completos===resumenCobertura.total ? "✅" : "⚠️"} {resumenCobertura.completos}/{resumenCobertura.total} cobertura
             </span>
           )}
-          <select
-            style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text)", borderRadius: "var(--r-sm)", padding: ".3rem .5rem" }}
-            value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}
-          >
-            <option value="todos">Todos los tipos</option>
-            {TIPOS_LOC.map(t0 => <option key={t0} value={t0}>{LOC_ICONS[t0]} {t0}</option>)}
-          </select>
           <button className="btn btn-primary" onClick={openNueva}>+ Nueva</button>
+        </div>
+      </div>
+
+      {/* ── Filtros ───────────────────────────────────────────────────────── */}
+      <div style={{ marginBottom:".85rem", display:"flex", flexDirection:"column", gap:".5rem" }}>
+
+        {/* Búsqueda */}
+        <input className="inp" placeholder="🔍 Buscar ubicación…" value={busqLoc}
+          onChange={e => setBusqLoc(e.target.value)}
+          style={{ maxWidth:300, fontSize:"var(--fs-base)" }} />
+
+        {/* Pills cobertura */}
+        <div style={{ display:"flex", flexWrap:"wrap", gap:".35rem", alignItems:"center" }}>
+          {[
+            { id:"todos",          label:"Todas",            count:locs.length,            color:"var(--text-muted)", bg:"rgba(255,255,255,.08)" },
+            { id:"completa",       label:"✅ Completa",      count:statsLoc.completa,      color:"var(--green)",      bg:"rgba(52,211,153,.15)"  },
+            { id:"sin_voluntario", label:"⚡ Sin voluntario",count:statsLoc.sinVol,        color:"var(--amber)",      bg:"rgba(251,191,36,.15)"  },
+            { id:"sin_material",   label:"📦 Sin material",  count:statsLoc.sinMat,        color:"var(--amber)",      bg:"rgba(251,191,36,.15)"  },
+            { id:"sin_asignar",    label:"⬜ Sin asignar",   count:statsLoc.sinAsignar,    color:"var(--text-dim)",   bg:"rgba(255,255,255,.06)" },
+          ].map(({ id, label, count, color, bg }) => count === 0 && id !== "todos" ? null : (
+            <button key={id}
+              className={"filter-pill"+(filtroCobertura===id?" active":"")}
+              onClick={() => setFiltroCobertura(id)}>
+              {label}
+              <span style={{
+                fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                color:filtroCobertura===id?color:"var(--text-dim)",
+                background:filtroCobertura===id?bg:"transparent",
+                borderRadius:10, padding:"0 .3rem", marginLeft:".15rem",
+                minWidth:16, display:"inline-block", textAlign:"center", transition:"all .15s",
+              }}>{count}</span>
+            </button>
+          ))}
+          {hayFiltros && (
+            <button className="filter-pill" onClick={limpiarFiltros}
+              style={{ color:"var(--red)", borderColor:"rgba(248,113,113,0.3)" }}>✕ Limpiar</button>
+          )}
+        </div>
+
+        {/* Panel secundario: tipo + GPS + puesto */}
+        <div style={{
+          padding:".75rem .85rem", borderRadius:8,
+          background:"var(--surface2)", border:"1px solid var(--border)",
+          display:"flex", flexDirection:"column", gap:".6rem",
+        }}>
+
+          {/* Tipo */}
+          <div style={{ display:"flex", alignItems:"flex-start", gap:".65rem", flexWrap:"wrap" }}>
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", fontWeight:700, minWidth:80, paddingTop:".2rem" }}>
+              📍 Tipo
+            </span>
+            <div style={{ display:"flex", flexWrap:"wrap", gap:".3rem" }}>
+              <button onClick={() => setFiltroTipo("todos")} style={{
+                padding:".2rem .55rem", borderRadius:5, cursor:"pointer",
+                fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                border:"1px solid "+(filtroTipo==="todos"?"var(--cyan)":"var(--border)"),
+                background:filtroTipo==="todos"?"var(--cyan-dim)":"var(--surface)",
+                color:filtroTipo==="todos"?"var(--cyan)":"var(--text-muted)", transition:"all .12s",
+              }}>Todos <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:filtroTipo==="todos"?"var(--cyan)":"var(--text-dim)", background:filtroTipo==="todos"?"rgba(34,211,238,.15)":"transparent", borderRadius:10, padding:"0 .25rem" }}>{locs.length}</span></button>
+              {TIPOS_LOC.map(t => {
+                const cnt = locs.filter(l => l.tipo === t).length;
+                if (!cnt) return null;
+                const color = LOC_COLORS[t] || "var(--text-muted)";
+                const active = filtroTipo === t;
+                return (
+                  <button key={t} onClick={() => setFiltroTipo(active?"todos":t)} style={{
+                    padding:".2rem .55rem", borderRadius:5, cursor:"pointer",
+                    fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                    border:"1px solid "+(active?color:color+"55"),
+                    background:active?color+"18":"var(--surface)",
+                    color:active?color:color+"cc", transition:"all .12s",
+                  }}>
+                    {LOC_ICONS[t]} {t}
+                    <span style={{ marginLeft:".3rem", fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                      color:active?color:"var(--text-dim)", background:active?color+"25":"transparent",
+                      borderRadius:10, padding:"0 .25rem" }}>{cnt}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* GPS */}
+          <div style={{ display:"flex", alignItems:"center", gap:".65rem", flexWrap:"wrap" }}>
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", fontWeight:700, minWidth:80 }}>
+              🗺️ GPS
+            </span>
+            <div style={{ display:"flex", gap:".3rem" }}>
+              {[
+                ["todos", "Todas",    locs.length],
+                ["con",   "Con GPS",  statsLoc.conGps],
+                ["sin",   "Sin GPS",  statsLoc.sinGps],
+              ].map(([v, lbl, count]) => {
+                const active = filtroGps === v;
+                return (
+                  <button key={v} onClick={() => setFiltroGps(v)} style={{
+                    padding:".2rem .55rem", borderRadius:5, cursor:"pointer",
+                    fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                    border:"1px solid "+(active?"var(--cyan)":"var(--border)"),
+                    background:active?"var(--cyan-dim)":"var(--surface)",
+                    color:active?"var(--cyan)":"var(--text-muted)", transition:"all .12s",
+                    display:"flex", alignItems:"center", gap:".3rem",
+                  }}>
+                    {lbl}
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                      color:active?"var(--cyan)":"var(--text-dim)",
+                      background:active?"rgba(34,211,238,.15)":"transparent",
+                      borderRadius:10, padding:"0 .25rem" }}>{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Vinculación a puesto */}
+          <div style={{ display:"flex", alignItems:"center", gap:".65rem", flexWrap:"wrap" }}>
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", fontWeight:700, minWidth:80 }}>
+              🔗 Puesto
+            </span>
+            <div style={{ display:"flex", gap:".3rem" }}>
+              {[
+                ["todos", "Todos",          locs.length],
+                ["con",   "Con puesto",     statsLoc.conPuesto],
+                ["sin",   "Sin puesto",     statsLoc.sinPuesto],
+              ].map(([v, lbl, count]) => {
+                const active = filtroPuesto === v;
+                return (
+                  <button key={v} onClick={() => setFiltroPuesto(v)} style={{
+                    padding:".2rem .55rem", borderRadius:5, cursor:"pointer",
+                    fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                    border:"1px solid "+(active?"var(--cyan)":"var(--border)"),
+                    background:active?"var(--cyan-dim)":"var(--surface)",
+                    color:active?"var(--cyan)":"var(--text-muted)", transition:"all .12s",
+                    display:"flex", alignItems:"center", gap:".3rem",
+                  }}>
+                    {lbl}
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                      color:active?"var(--cyan)":"var(--text-dim)",
+                      background:active?"rgba(34,211,238,.15)":"transparent",
+                      borderRadius:10, padding:"0 .25rem" }}>{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -478,8 +661,9 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {}, rec
           );
         })}
         {locsF.length === 0 && locs.length > 0 && (
-          <div className="card" style={{ textAlign: "center", color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", padding: "2rem" }}>
-            Sin ubicaciones con ese filtro
+          <div className="card" style={{ textAlign:"center", color:"var(--text-dim)", fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)", padding:"2rem", display:"flex", flexDirection:"column", alignItems:"center", gap:".65rem" }}>
+            <span>Sin ubicaciones con esos filtros</span>
+            <button className="btn btn-ghost btn-sm" onClick={limpiarFiltros}>✕ Limpiar filtros</button>
           </div>
         )}
         {locs.length === 0 && (
