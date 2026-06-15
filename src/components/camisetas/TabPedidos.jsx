@@ -22,7 +22,29 @@ export function TabPedidos({ pedidos, coste, abrirFicha, abrirModal, filtroExter
     }
   }, [filtroExterno]);
   const [bus,   setBus]      = useState("");
-  const [pedGrupos, setPedGrupos] = useState({ pendiente:true, preparado:true, entregado:true, cancelado:true }); // todos colapsados por defecto
+  const [pedGrupos, setPedGrupos] = useState({ pendiente:false, pagado:false, regalo:false }); // expandidos por defecto
+
+  // Stats para pills — calculados sobre todos los pedidos (no los filtrados)
+  const statsPago = useMemo(() => {
+    const counts = {};
+    ESTADOS_PAGO.forEach(e => { counts[e] = 0; });
+    pedidos.forEach(p => {
+      const dominant = (() => {
+        const c = {};
+        p.lineas.forEach(l => { const s = l.estadoPago||"pendiente"; c[s]=(c[s]||0)+l.cantidad; });
+        return Object.entries(c).sort((a,b)=>b[1]-a[1])[0]?.[0] || "pendiente";
+      })();
+      counts[dominant] = (counts[dominant]||0) + 1;
+    });
+    return counts;
+  }, [pedidos]);
+
+  const statsEnt = useMemo(() => {
+    const pendientes  = pedidos.filter(p => p.lineas.some(l=>(l.estadoEntrega||"pendiente")==="pendiente")).length;
+    const entregados  = pedidos.filter(p => p.lineas.every(l=>(l.estadoEntrega||"pendiente")==="entregado")).length;
+    return { pendiente: pendientes, entregado: entregados };
+  }, [pedidos]);
+
   const filtrados = useMemo(()=>{
     let list = pedidos.filter(p=>{
       const q  = bus.toLowerCase();
@@ -37,7 +59,7 @@ export function TabPedidos({ pedidos, coste, abrirFicha, abrirModal, filtroExter
   return (
     <>
       <div className="ph">
-        <div><div className="pt">👕 Pedidos de camisetas</div><div className="pd">{pedidos.length} pedidos · {pedidos.reduce((s,p)=>s+p.lineas.reduce((a,l)=>a+l.cantidad,0),0)} unidades</div></div>
+        <div><div className="pt">👕 Pedidos de camisetas</div><div className="pd">{filtrados.length}/{pedidos.length} pedidos · {filtrados.reduce((s,p)=>s+p.lineas.reduce((a,l)=>a+l.cantidad,0),0)} unidades</div></div>
         <div className="fr g1" style={{flexWrap:"wrap"}}>
           <div style={{display:"flex",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:"var(--r-sm)",overflow:"hidden"}}>
             {[["lista","☰"],["kanban","⬛"]].map(([v,ic])=>(
@@ -48,18 +70,60 @@ export function TabPedidos({ pedidos, coste, abrirFicha, abrirModal, filtroExter
           <button className="btn btn-primary" onClick={()=>abrirModal(null)}>+ Nuevo pedido</button>
         </div>
       </div>
-      <div className="card" style={{marginBottom:".75rem",padding:".65rem .85rem"}}>
-        <div style={{display:"flex",gap:".6rem",flexWrap:"wrap",alignItems:"center"}}>
-          <input className="inp" placeholder="🔍 Nombre, teléfono o email…" value={bus} onChange={e=>setBus(e.target.value)} style={{maxWidth:240}} />
-          <select className="inp" value={fPago} onChange={e=>setFPago(e.target.value)} style={{width:"auto"}}>
-            <option value="todos">Pago: todos</option>
-            {ESTADOS_PAGO.map(ep=><option key={ep} value={ep}>{EP[ep].icon} {EP[ep].label}</option>)}
-          </select>
-          <select className="inp" value={fEnt} onChange={e=>setFEnt(e.target.value)} style={{width:"auto"}}>
-            <option value="todos">Entrega: todos</option>
-            {ESTADOS_ENTREGA.map(ee=><option key={ee} value={ee}>{EE[ee].icon} {EE[ee].label}</option>)}
-          </select>
-          {(bus||fPago!=="todos"||fEnt!=="todos")&&<button className="btn btn-ghost btn-sm" onClick={()=>{setBus("");setFPago("todos");setFEnt("todos");}}>✕ Limpiar</button>}
+      {/* ── Filtros ─────────────────────────────────────────────────────── */}
+      <div style={{ marginBottom:".85rem", display:"flex", flexDirection:"column", gap:".5rem" }}>
+
+        {/* Búsqueda */}
+        <input className="inp" placeholder="🔍 Nombre, teléfono o email…" value={bus}
+          onChange={e=>setBus(e.target.value)} style={{ maxWidth:300, fontSize:"var(--fs-base)" }} />
+
+        {/* Pills de estado de pago */}
+        <div style={{ display:"flex", flexWrap:"wrap", gap:".35rem", alignItems:"center" }}>
+          {[
+            { id:"todos",     label:"Todos",      count:pedidos.length,        color:"var(--text-muted)", bg:"rgba(255,255,255,.08)" },
+            { id:"pendiente", label:"⏳ Pendiente",count:statsPago.pendiente||0,color:"var(--amber)",      bg:"rgba(251,191,36,.15)"  },
+            { id:"pagado",    label:"✅ Pagado",   count:statsPago.pagado||0,   color:"var(--green)",      bg:"rgba(52,211,153,.15)"  },
+            { id:"regalo",    label:"🎁 Regalo",   count:statsPago.regalo||0,   color:"var(--violet)",     bg:"rgba(167,139,250,.15)" },
+          ].map(({ id, label, count, color, bg }) => (
+            <button key={id}
+              className={"filter-pill"+(fPago===id?" active":"")}
+              onClick={() => setFPago(id)}>
+              {label}
+              <span style={{
+                fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                color:fPago===id?color:"var(--text-dim)",
+                background:fPago===id?bg:"transparent",
+                borderRadius:10, padding:"0 .3rem", marginLeft:".15rem",
+                minWidth:16, display:"inline-block", textAlign:"center", transition:"all .15s",
+              }}>{count}</span>
+            </button>
+          ))}
+          <div className="filter-pill-sep" />
+          {/* Pills estado de entrega */}
+          {[
+            { id:"todos",     label:"Entrega: todas",count:pedidos.length,       color:"var(--text-muted)", bg:"rgba(255,255,255,.08)" },
+            { id:"pendiente", label:"📦 Sin entregar",count:statsEnt.pendiente,  color:"var(--amber)",      bg:"rgba(251,191,36,.15)"  },
+            { id:"entregado", label:"✔️ Entregado",   count:statsEnt.entregado,  color:"var(--green)",      bg:"rgba(52,211,153,.15)"  },
+          ].map(({ id, label, count, color, bg }) => (
+            <button key={"ent-"+id}
+              className={"filter-pill"+(fEnt===id?" active":"")}
+              onClick={() => setFEnt(id)}>
+              {label}
+              <span style={{
+                fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                color:fEnt===id?color:"var(--text-dim)",
+                background:fEnt===id?bg:"transparent",
+                borderRadius:10, padding:"0 .3rem", marginLeft:".15rem",
+                minWidth:16, display:"inline-block", textAlign:"center", transition:"all .15s",
+              }}>{count}</span>
+            </button>
+          ))}
+          {(bus||fPago!=="todos"||fEnt!=="todos") && (
+            <button className="filter-pill" onClick={()=>{setBus("");setFPago("todos");setFEnt("todos");}}
+              style={{ color:"var(--red)", borderColor:"rgba(248,113,113,0.3)" }}>
+              ✕ Limpiar
+            </button>
+          )}
         </div>
       </div>
       {filtrados.length===0 && pedidos.length===0 && (
