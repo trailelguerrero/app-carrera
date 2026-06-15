@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { NIVELES, NIVEL_CFG, ESTADOS, ESTADO_CFG, getCfg } from "./constants.js";
 import { fmtEur } from "@/lib/utils";
 import { usePaginacion } from "@/hooks/usePaginacion.jsx";
@@ -7,7 +7,7 @@ import EmptyState from "@/components/EmptyState";
 
 // ─── TAB PATROCINADORES ───────────────────────────────────────────────────────
 export default function TabPatrocinadores({
-  pats, todosLen, search, setSearch,
+  pats, todosLen, todosPats = [], search, setSearch,
   filtroNivel, setFiltroNivel,
   filtroEstado, setFiltroEstado,
   filtroSector = "todos", setFiltroSector,
@@ -19,12 +19,26 @@ export default function TabPatrocinadores({
   const patsOrdenados = ordenAlfa ? [...pats].sort((a,b) => a.nombre.localeCompare(b.nombre,"es")) : pats;
   const { items: patsPaginados, total: totalPats, PaginadorUI } = usePaginacion(patsOrdenados, 12);
 
+  // Conteos para pills — calculados sobre todos los patrocinadores (sin filtrar)
+  const statsEstado = useMemo(() => {
+    const counts = {};
+    ["prospecto","negociando","confirmado","cobrado","cancelado"].forEach(e => { counts[e] = 0; });
+    todosPats.forEach(p => { counts[p.estado] = (counts[p.estado]||0) + 1; });
+    return counts;
+  }, [todosPats]);
+
+  const statsNivel = useMemo(() => {
+    const counts = {};
+    todosPats.forEach(p => { counts[p.nivel] = (counts[p.nivel]||0) + 1; });
+    return counts;
+  }, [todosPats]);
+
   return (
     <>
       <div className="ph">
         <div>
           <div className="pt">🤝 Patrocinadores</div>
-          <div className="pd">{todosLen} registrados · {pats.length} mostrados</div>
+          <div className="pd">{pats.length}/{todosLen} mostrados · click para detalle</div>
         </div>
         <div style={{display:"flex",gap:".5rem",alignItems:"center"}}>
           <div className="filter-pill-group">
@@ -44,28 +58,56 @@ export default function TabPatrocinadores({
           onChange={e => setSearch(e.target.value)} style={{ maxWidth:320, fontSize:"var(--fs-base)" }} />
         <div className="filter-pill-group">
           {[
-            { id:"todos",      label:"Todos" },
-            { id:"prospecto",  label:"Prospecto" },
-            { id:"negociando", label:"Negociando" },
-            { id:"confirmado", label:"Confirmado" },
-            { id:"cobrado",    label:"Cobrado" },
-          ].map(({ id, label }) => (
+            { id:"todos",      label:"Todos",      count:todosLen,                       color:"var(--text-muted)", bg:"rgba(255,255,255,.08)" },
+            { id:"prospecto",  label:"Prospecto",  count:statsEstado.prospecto||0,       color:"var(--text-muted)", bg:"rgba(90,106,138,.15)"  },
+            { id:"negociando", label:"Negociando", count:statsEstado.negociando||0,      color:"#fbbf24",           bg:"var(--amber-dim)"       },
+            { id:"confirmado", label:"Confirmado", count:statsEstado.confirmado||0,      color:"#22d3ee",           bg:"var(--cyan-dim)"        },
+            { id:"cobrado",    label:"Cobrado",    count:statsEstado.cobrado||0,         color:"var(--green)",      bg:"var(--green-dim)"       },
+          ].map(({ id, label, count, color, bg }) => (
             <button key={id}
               className={`filter-pill${filtroEstado === id ? " active" : ""}`}
               onClick={() => setFiltroEstado(id)}>
               {label}
+              <span style={{
+                fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                color: filtroEstado===id ? color : "var(--text-dim)",
+                background: filtroEstado===id ? bg : "transparent",
+                borderRadius:10, padding:"0 .3rem", marginLeft:".15rem",
+                minWidth:16, display:"inline-block", textAlign:"center", transition:"all .15s",
+              }}>{count}</span>
             </button>
           ))}
           <div className="filter-pill-sep" />
           <button className={`filter-pill${filtroNivel === "todos" ? " active" : ""}`}
-            onClick={() => setFiltroNivel("todos")}>Todos</button>
-          {NIVELES.map(n => (
-            <button key={n}
-              className={`filter-pill${filtroNivel === n ? " active" : ""}`}
-              onClick={() => setFiltroNivel(n)}>
-              {NIVEL_CFG[n].icon} {n}
-            </button>
-          ))}
+            onClick={() => setFiltroNivel("todos")}>
+            Todos
+            <span style={{
+              fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+              color: filtroNivel==="todos" ? "var(--text-muted)" : "var(--text-dim)",
+              background: filtroNivel==="todos" ? "rgba(255,255,255,.08)" : "transparent",
+              borderRadius:10, padding:"0 .3rem", marginLeft:".15rem",
+              minWidth:16, display:"inline-block", textAlign:"center", transition:"all .15s",
+            }}>{todosLen}</span>
+          </button>
+          {NIVELES.map(n => {
+            const cfg = NIVEL_CFG[n];
+            const count = statsNivel[n] || 0;
+            const active = filtroNivel === n;
+            return (
+              <button key={n}
+                className={`filter-pill${active ? " active" : ""}`}
+                onClick={() => setFiltroNivel(n)}>
+                {cfg.icon} {n}
+                <span style={{
+                  fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                  color: active ? cfg.color : "var(--text-dim)",
+                  background: active ? cfg.dim : "transparent",
+                  borderRadius:10, padding:"0 .3rem", marginLeft:".15rem",
+                  minWidth:16, display:"inline-block", textAlign:"center", transition:"all .15s",
+                }}>{count}</span>
+              </button>
+            );
+          })}
           {(search || filtroNivel !== "todos" || filtroEstado !== "todos" || filtroSector !== "todos") && (
             <>
               <div className="filter-pill-sep" />

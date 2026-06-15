@@ -374,7 +374,7 @@ export default function App() {
           {tab==="dashboard" && <TabDashboard stats={stats} pats={pats} objetivo={objetivo} setObjetivo={setObjetivo} setTab={setTab} openNuevo={openNuevo} openDetalle={openDetalle}  config={config} />}
           {tab==="patrocinadores" && (
             <TabPatrocinadores
-              pats={patsFiltrados} todosLen={pats.length}
+              pats={patsFiltrados} todosLen={pats.length} todosPats={pats}
               search={search} setSearch={setSearch}
               filtroNivel={filtroNivel} setFiltroNivel={setFiltroNivel}
               filtroEstado={filtroEstado} setFiltroEstado={setFiltroEstado}
