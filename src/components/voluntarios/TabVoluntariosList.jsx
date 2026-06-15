@@ -38,9 +38,9 @@ function TabVoluntarios({
   const salirModo = () => { setModoSeleccion(false); setSeleccionados([]); };
   const [orden, setOrden]           = useState("nombre");
   const [colapsados, setColapsados] = useState({
-    confirmado: true,
-    pendiente:  true,
-    cancelado:  true,
+    confirmado: false,
+    pendiente:  false,
+    cancelado:  false,
   });
 
   const toggleGrupo = (id) => setColapsados(prev => ({ ...prev, [id]: !prev[id] }));
@@ -71,6 +71,11 @@ function TabVoluntarios({
   // T1.5: resetear página a 1 al cambiar cualquier filtro (evita página vacía)
   useEffect(() => { resetPage(); }, [busqueda, filtroEstado, filtroPuesto, filtroTallas, filtroCoche, filtroDistancias, filtroTipoPuesto]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Expandir grupos automáticamente al cambiar filtros — muestra resultados sin colapsar manualmente
+  useEffect(() => {
+    setColapsados({ confirmado: false, pendiente: false, cancelado: false });
+  }, [busqueda, filtroEstado, filtroPuesto, filtroTallas, filtroCoche, filtroDistancias, filtroTipoPuesto]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Grupos para la vista agrupada por estado
   const GRUPOS_ESTADO = [
     { id:"confirmado", label:"Confirmados", color:"var(--green)",  bg:"rgba(52,211,153,.08)"  },
@@ -83,6 +88,14 @@ function TabVoluntarios({
     () => new Map(puestos.map(p => [p.id, p])),
     [puestos]
   );
+
+  // Tipos de puesto disponibles: predefinidos + personalizados existentes en los puestos actuales
+  const tiposPuestoDisponibles = useMemo(() => {
+    const tiposCustom = puestos
+      .map(p => p.tipo)
+      .filter(t => t && !TIPOS_PUESTO.includes(t));
+    return [...TIPOS_PUESTO, ...new Set(tiposCustom)];
+  }, [puestos]);
 
   // Paginación por grupo: cuántos items mostrar por cada grupo de estado
   const ITEMS_INICIALES = 20;
@@ -330,8 +343,12 @@ function TabVoluntarios({
               <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", fontWeight: 700, minWidth: 80 }}>
                 🚗 Vehículo
               </span>
-              <div style={{ display: "flex", gap: ".3rem" }}>
-                {[["todos","Todos"],["si","Con vehículo"],["no","Sin vehículo"]].map(([v, lbl]) => {
+              <div style={{ display: "flex", gap: ".3rem", flexWrap: "wrap" }}>
+                {[
+                  ["todos",  "Todos",        todosVols.length],
+                  ["si",     "Con vehículo", todosVols.filter(v => v.coche).length],
+                  ["no",     "Sin vehículo", todosVols.filter(v => !v.coche).length],
+                ].map(([v, lbl, count]) => {
                   const active = filtroCoche === v;
                   return (
                     <button key={v} onClick={() => setFiltroCoche(v)}
@@ -342,8 +359,19 @@ function TabVoluntarios({
                         background: active ? "var(--cyan-dim)" : "var(--surface)",
                         color: active ? "var(--cyan)" : "var(--text-muted)",
                         transition: "all .12s",
+                        display: "flex", alignItems: "center", gap: ".3rem",
                       }}>
                       {lbl}
+                      <span style={{
+                        fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700,
+                        color: active ? "var(--cyan)" : "var(--text-dim)",
+                        background: active ? "rgba(34,211,238,.15)" : "transparent",
+                        borderRadius: 10, padding: "0 .3rem",
+                        minWidth: 16, display: "inline-block", textAlign: "center",
+                        transition: "all .15s",
+                      }}>
+                        {count}
+                      </span>
                     </button>
                   );
                 })}
@@ -385,7 +413,7 @@ function TabVoluntarios({
                 📍 Tipo puesto
               </span>
               <div style={{ display: "flex", flexWrap: "wrap", gap: ".3rem" }}>
-                {TIPOS_PUESTO.map(t => {
+                {tiposPuestoDisponibles.map(t => {
                   const active = filtroTipoPuesto.includes(t);
                   return (
                     <button key={t}

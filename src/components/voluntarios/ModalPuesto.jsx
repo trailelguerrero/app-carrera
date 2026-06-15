@@ -22,6 +22,8 @@ function ModalPuesto({ puesto, locs, onSave, onClose }) {
     horaInicio: "08:00", horaFin: "15:00", necesarios: 3, responsableId: null, tiempoLimite: "", notas: ""
   });
   const [errMP, setErrMP] = useState({});
+  // Tipo personalizado: input libre con datalist de sugerencias
+  const [tipoCustomInput, setTipoCustomInput] = useState("");
   // P1: modo vinculación — "existente" | "nueva" | "ninguna"
   const [modoVinculo, setModoVinculo] = useState(() => {
     if (puesto?.localizacionId) return "existente";
@@ -138,9 +140,22 @@ function ModalPuesto({ puesto, locs, onSave, onClose }) {
           <div className="field-row">
             <div>
               <label className="field-label">Tipo</label>
-              <select className="inp" value={form.tipo} onChange={e => upd("tipo", e.target.value)}>
-                {TIPOS_PUESTO.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
+              <div style={{ display: "flex", gap: ".4rem", alignItems: "center" }}>
+                <input
+                  className="inp"
+                  list="tipos-puesto-list"
+                  value={form.tipo || ""}
+                  onChange={e => upd("tipo", e.target.value)}
+                  placeholder="Ej: Avituallamiento"
+                  style={{ flex: 1 }}
+                />
+                <datalist id="tipos-puesto-list">
+                  {TIPOS_PUESTO.map(t => <option key={t} value={t} />)}
+                </datalist>
+              </div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: ".2rem" }}>
+                Elige de la lista o escribe uno personalizado
+              </div>
             </div>
             <div>
               <label className="field-label">Voluntarios necesarios</label>
