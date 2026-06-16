@@ -2,7 +2,7 @@
  * TabTablon.jsx — Tarea 3.3
  * Tab de tablón de tareas (lista + kanban) del módulo Proyecto.
  */
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { usePaginacion } from "@/hooks/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
@@ -19,9 +19,30 @@ export function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroAr
   const handleBusqueda = (v) => { setBusqueda(v); setBusquedaGlobal(v); };
   const busquedaActiva = busquedaGlobal || busqueda;
 
+  // Stats sobre TODAS las tareas (sin filtrar) para los conteos de pills
+  const statsEstado = useMemo(() => {
+    const c = {};
+    ESTADOS.forEach(e => { c[e] = 0; });
+    todasTareas.forEach(t => { c[t.estado] = (c[t.estado]||0)+1; });
+    return c;
+  }, [todasTareas]);
+
+  const statsPrioridad = useMemo(() => {
+    const c = {};
+    PRIORIDADES.forEach(p => { c[p] = 0; });
+    todasTareas.forEach(t => { if (t.prioridad) c[t.prioridad] = (c[t.prioridad]||0)+1; });
+    return c;
+  }, [todasTareas]);
+
+  const statsArea = useMemo(() => {
+    const c = {};
+    todasTareas.forEach(t => { c[t.area] = (c[t.area]||0)+1; });
+    return c;
+  }, [todasTareas]);
+
   // Aplicar filtros locales (estado, prioridad, búsqueda) sobre las tareas
   // pre-filtradas por área/responsable que llegan del orquestador.
-  const tareasLocales = tareas.filter(t => {
+  const tareasLocales = useMemo(() => tareas.filter(t => {
     if (filtroEstado !== "todos" && t.estado !== filtroEstado) return false;
     if (filtroPrioridad !== "todas" && t.prioridad !== filtroPrioridad) return false;
     if (busquedaActiva) {
@@ -29,12 +50,18 @@ export function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroAr
       if (!t.titulo.toLowerCase().includes(q) && !(t.notas||"").toLowerCase().includes(q)) return false;
     }
     return true;
-  }).sort((a,b) => (a.fechaLimite||"").localeCompare(b.fechaLimite||""));
+  }).sort((a,b) => (a.fechaLimite||"").localeCompare(b.fechaLimite||"")),
+  [tareas, filtroEstado, filtroPrioridad, busquedaActiva]);
 
   const { items: tareasPag, PaginadorUI } = usePaginacion(tareasLocales, 15);
   const hayFiltros = filtroArea!=="todas"||filtroResponsable!=="todos"||filtroEstado!=="todos"||filtroPrioridad!=="todas"||busquedaActiva;
-  const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
+  const [filtrosAbiertos, setFiltrosAbiertos] = useState(true); // panel siempre visible por defecto
   const limpiar = () => { setFiltroArea("todas"); setFiltroResponsable("todos"); setFiltroEstado("todos"); setFiltroPrioridad("todas"); setBusqueda(""); setBusquedaGlobal(""); };
+
+  // Auto-expandir panel al activar cualquier filtro
+  useEffect(() => {
+    if (hayFiltros) setFiltrosAbiertos(true);
+  }, [hayFiltros]);
 
   // Resumen de filtros activos para mostrar en el botón cuando están colapsados
   const resumenFiltros = [
@@ -169,55 +196,119 @@ export function TabTablon({ tareas, todasTareas, equipo, filtroArea, setFiltroAr
           </div>
         )}
 
-        {/* Panel expandido de filtros */}
+        {/* Panel de filtros — siempre visible */}
         {filtrosAbiertos && (
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem",marginTop:".5rem"}}>
-            <div>
-              <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
-                color:"var(--text-muted)",display:"block",marginBottom:".2rem",
-                textTransform:"uppercase",letterSpacing:".06em"}}>Área</label>
-              <select className="inp inp-sm" value={filtroArea}
-                onChange={e => setFiltroArea(e.target.value)}>
-                <option value="todas">Todas ({todasTareas.length})</option>
+          <div style={{display:"flex",flexDirection:"column",gap:".55rem",marginTop:".5rem"}}>
+
+            {/* Estado */}
+            <div style={{display:"flex",alignItems:"flex-start",gap:".65rem",flexWrap:"wrap"}}>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",fontWeight:700,minWidth:72,paddingTop:".2rem"}}>Estado</span>
+              <div style={{display:"flex",flexWrap:"wrap",gap:".3rem"}}>
+                {[{id:"todos",label:"Todos",count:todasTareas.length,color:"var(--text-muted)",bg:"rgba(255,255,255,.08)"},
+                  ...ESTADOS.map(s=>({id:s,label:EST_CFG[s].label,count:statsEstado[s]||0,color:EST_CFG[s].color,bg:EST_CFG[s].bg}))
+                ].map(({id,label,count,color,bg})=>(
+                  <button key={id} onClick={()=>setFiltroEstado(id)}
+                    className={"filter-pill"+(filtroEstado===id?" active":"")}
+                    style={filtroEstado===id?{borderColor:color,color,background:bg}:{}}>
+                    {label}
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
+                      color:filtroEstado===id?color:"var(--text-dim)",
+                      background:filtroEstado===id?bg:"transparent",
+                      borderRadius:10,padding:"0 .3rem",marginLeft:".15rem",
+                      minWidth:16,display:"inline-block",textAlign:"center",transition:"all .15s"}}>{count}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Prioridad */}
+            <div style={{display:"flex",alignItems:"flex-start",gap:".65rem",flexWrap:"wrap"}}>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",fontWeight:700,minWidth:72,paddingTop:".2rem"}}>Prioridad</span>
+              <div style={{display:"flex",flexWrap:"wrap",gap:".3rem"}}>
+                {[{id:"todas",label:"Todas",count:todasTareas.length,color:"var(--text-muted)",bg:"rgba(255,255,255,.08)"},
+                  ...PRIORIDADES.map(p=>({id:p,label:p.charAt(0).toUpperCase()+p.slice(1),count:statsPrioridad[p]||0,color:PRI_CFG[p].color,bg:PRI_CFG[p].bg}))
+                ].map(({id,label,count,color,bg})=>(
+                  <button key={id} onClick={()=>setFiltroPrioridad(id)}
+                    className={"filter-pill"+(filtroPrioridad===id?" active":"")}
+                    style={filtroPrioridad===id?{borderColor:color,color,background:bg}:{}}>
+                    {label}
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
+                      color:filtroPrioridad===id?color:"var(--text-dim)",
+                      background:filtroPrioridad===id?bg:"transparent",
+                      borderRadius:10,padding:"0 .3rem",marginLeft:".15rem",
+                      minWidth:16,display:"inline-block",textAlign:"center",transition:"all .15s"}}>{count}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Área */}
+            <div style={{display:"flex",alignItems:"flex-start",gap:".65rem",flexWrap:"wrap"}}>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",fontWeight:700,minWidth:72,paddingTop:".2rem"}}>Área</span>
+              <div style={{display:"flex",flexWrap:"wrap",gap:".3rem"}}>
+                <button onClick={()=>setFiltroArea("todas")}
+                  className={"filter-pill"+(filtroArea==="todas"?" active":"")}>
+                  Todas
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
+                    color:filtroArea==="todas"?"var(--text-muted)":"var(--text-dim)",
+                    background:filtroArea==="todas"?"rgba(255,255,255,.08)":"transparent",
+                    borderRadius:10,padding:"0 .3rem",marginLeft:".15rem",
+                    minWidth:16,display:"inline-block",textAlign:"center"}}>{todasTareas.length}</span>
+                </button>
                 {AREAS.map(a => {
-                  const cnt = todasTareas.filter(t=>t.area===a.id).length;
-                  const pend = todasTareas.filter(t=>t.area===a.id&&t.estado!=="completado").length;
-                  return <option key={a.id} value={a.id}>{a.icon} {a.label} ({pend} pend.)</option>;
+                  const count = statsArea[a.id]||0;
+                  if (!count) return null;
+                  const active = filtroArea===a.id;
+                  return (
+                    <button key={a.id} onClick={()=>setFiltroArea(active?"todas":a.id)}
+                      className={"filter-pill"+(active?" active":"")}
+                      style={active?{borderColor:a.color,color:a.color,background:a.color+"18"}:{}}>
+                      {a.icon} {a.label}
+                      <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
+                        color:active?a.color:"var(--text-dim)",
+                        background:active?a.color+"25":"transparent",
+                        borderRadius:10,padding:"0 .3rem",marginLeft:".15rem",
+                        minWidth:16,display:"inline-block",textAlign:"center"}}>{count}</span>
+                    </button>
+                  );
                 })}
-              </select>
+              </div>
             </div>
-            <div>
-              <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
-                color:"var(--text-muted)",display:"block",marginBottom:".2rem",
-                textTransform:"uppercase",letterSpacing:".06em"}}>Estado</label>
-              <select className="inp inp-sm" value={filtroEstado}
-                onChange={e => setFiltroEstado(e.target.value)}
-                style={{color:filtroEstado!=="todos"?EST_CFG[filtroEstado]?.color:undefined}}>
-                <option value="todos">Todos</option>
-                {ESTADOS.map(s => <option key={s} value={s}>{EST_CFG[s].label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
-                color:"var(--text-muted)",display:"block",marginBottom:".2rem",
-                textTransform:"uppercase",letterSpacing:".06em"}}>Prioridad</label>
-              <select className="inp inp-sm" value={filtroPrioridad}
-                onChange={e => setFiltroPrioridad(e.target.value)}
-                style={{color:filtroPrioridad!=="todas"?PRI_CFG[filtroPrioridad]?.color:undefined}}>
-                <option value="todas">Todas</option>
-                {PRIORIDADES.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",
-                color:"var(--text-muted)",display:"block",marginBottom:".2rem",
-                textTransform:"uppercase",letterSpacing:".06em"}}>Responsable</label>
-              <select className="inp inp-sm" value={filtroResponsable}
-                onChange={e => setFiltroResponsable(e.target.value)}>
-                <option value="todos">Todos</option>
-                {equipo.map(p => <option key={p.id} value={String(p.id)}>{p.nombre.split(" ")[0]}</option>)}
-              </select>
-            </div>
+
+            {/* Responsable */}
+            {equipo.length > 0 && (
+              <div style={{display:"flex",alignItems:"flex-start",gap:".65rem",flexWrap:"wrap"}}>
+                <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",fontWeight:700,minWidth:72,paddingTop:".2rem"}}>Responsable</span>
+                <div style={{display:"flex",flexWrap:"wrap",gap:".3rem"}}>
+                  <button onClick={()=>setFiltroResponsable("todos")}
+                    className={"filter-pill"+(filtroResponsable==="todos"?" active":"")}>
+                    Todos
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
+                      color:filtroResponsable==="todos"?"var(--text-muted)":"var(--text-dim)",
+                      background:filtroResponsable==="todos"?"rgba(255,255,255,.08)":"transparent",
+                      borderRadius:10,padding:"0 .3rem",marginLeft:".15rem",
+                      minWidth:16,display:"inline-block",textAlign:"center"}}>{todasTareas.length}</span>
+                  </button>
+                  {equipo.map(p => {
+                    const cnt = todasTareas.filter(t=>String(t.responsableId)===String(p.id)).length;
+                    if (!cnt) return null;
+                    const active = filtroResponsable===String(p.id);
+                    return (
+                      <button key={p.id} onClick={()=>setFiltroResponsable(active?"todos":String(p.id))}
+                        className={"filter-pill"+(active?" active":"")}
+                        style={active?{borderColor:p.color||"var(--cyan)",color:p.color||"var(--cyan)",background:(p.color||"#22d3ee")+"18"}:{}}>
+                        {iniciales(p.nombre)} {p.nombre.split(" ")[0]}
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
+                          color:active?p.color||"var(--cyan)":"var(--text-dim)",
+                          background:active?(p.color||"#22d3ee")+"25":"transparent",
+                          borderRadius:10,padding:"0 .3rem",marginLeft:".15rem",
+                          minWidth:16,display:"inline-block",textAlign:"center"}}>{cnt}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
