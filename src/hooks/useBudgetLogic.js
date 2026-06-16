@@ -467,7 +467,8 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       id, tipo, nombre: `Nuevo concepto ${tipo}`,
       costeTotal: 0, costePorDistancia: { TG7: 0, TG13: 0, TG25: 0 },
       activoDistancias: { TG7: true, TG13: true, TG25: true },
-      activo: true, modoUniforme: tipo === "variable" ? true : undefined, orden: conceptos.length
+      activo: true, modoUniforme: tipo === "variable" ? true : undefined,
+      categoria: "", orden: conceptos.length
     }]);
   };
 

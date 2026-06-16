@@ -21,7 +21,7 @@ const ESTADOS_PEDIDO = [
 const estadoCfg = (val, lista) => lista.find(e => e.id === val) || lista[0];
 
 // ─── MODAL DE EDICIÓN ─────────────────────────────────────────────────────────
-export function ModalEditarConcepto({ concepto: c, totalInscritos, onSave, onClose }) {
+export function ModalEditarConcepto({ concepto: c, totalInscritos, onSave, onClose, categoriasExistentes = [] }) {
   // ⚠️ Hooks must always be called — guard moved below all hook declarations
   const esFijo = c ? c.tipo === "fijo" : false;
   const accentColor = esFijo ? "var(--cyan)" : "var(--green)";
@@ -43,6 +43,7 @@ export function ModalEditarConcepto({ concepto: c, totalInscritos, onSave, onClo
     estadoPedido:     c?.estadoPedido     || "pendiente",
     fechaEntrega:     c?.fechaEntrega     || "",
     costeUnitarioReal: c?.costeUnitarioReal ?? "",
+    categoria:         c?.categoria         || "",
   });
 
   const [guardado, setGuardado] = useState(false);
@@ -88,6 +89,21 @@ export function ModalEditarConcepto({ concepto: c, totalInscritos, onSave, onClo
               <FL>Nombre del concepto</FL>
               <input className="inp" value={form.nombre}
                 onChange={e => upd("nombre", e.target.value)} />
+            </div>
+          </div>
+
+          {/* Categoría / partida */}
+          <div>
+            <FL>🏷️ Categoría / partida</FL>
+            <input className="inp" list="cat-budget-list"
+              value={form.categoria}
+              onChange={e => upd("categoria", e.target.value)}
+              placeholder="Ej: Sanidad, Premios, Señalización…" />
+            <datalist id="cat-budget-list">
+              {categoriasExistentes.map(cat => <option key={cat} value={cat} />)}
+            </datalist>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)", marginTop:".2rem" }}>
+              Elige existente o escribe una nueva
             </div>
           </div>
 

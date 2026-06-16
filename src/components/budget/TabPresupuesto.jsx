@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { ModalEditarConcepto } from "./FichaConcepto";
 import { Tooltip, TooltipIcon } from "../common/Tooltip";
 import { DISTANCIAS, DISTANCIA_COLORS, DISTANCIA_LABELS } from "../../constants/budgetConstants";
@@ -75,8 +75,57 @@ export const TabPresupuesto = ({
     ? [...arr].sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es"))
     : arr;
 
-  const conceptosFijos = sort(conceptos.filter(c => c.tipo === "fijo"),     ordenAlfaFijo);
-  const conceptosVar   = sort(conceptos.filter(c => c.tipo === "variable"), ordenAlfaVar);
+  const [filtroCategFijo, setFiltroCategFijo] = useState("todas");
+  const [filtroCategVar,  setFiltroCategVar]  = useState("todas");
+
+  // Categorías dinámicas: extraídas de los conceptos existentes
+  const categsFijas = useMemo(() =>
+    [...new Set(conceptos.filter(c => c.tipo==="fijo" && c.categoria?.trim()).map(c => c.categoria.trim()))].sort()
+  , [conceptos]);
+
+  const categsVar = useMemo(() =>
+    [...new Set(conceptos.filter(c => c.tipo==="variable" && c.categoria?.trim()).map(c => c.categoria.trim()))].sort()
+  , [conceptos]);
+
+  // Todas las categorías para el datalist del modal
+  const todasCategorias = useMemo(() =>
+    [...new Set([...categsFijas, ...categsVar])].sort()
+  , [categsFijas, categsVar]);
+
+  const conceptosFijos = useMemo(() => {
+    let list = sort(conceptos.filter(c => c.tipo === "fijo"), ordenAlfaFijo);
+    if (filtroCategFijo !== "todas") list = list.filter(c => (c.categoria?.trim()||"Sin categoría") === filtroCategFijo);
+    return list;
+  }, [conceptos, ordenAlfaFijo, filtroCategFijo]);
+
+  const conceptosVar = useMemo(() => {
+    let list = sort(conceptos.filter(c => c.tipo === "variable"), ordenAlfaVar);
+    if (filtroCategVar !== "todas") list = list.filter(c => (c.categoria?.trim()||"Sin categoría") === filtroCategVar);
+    return list;
+  }, [conceptos, ordenAlfaVar, filtroCategVar]);
+
+  // Totales por categoría para los pills
+  const totalesFijosPorCateg = useMemo(() => {
+    const m = {};
+    conceptos.filter(c => c.tipo==="fijo" && c.activo).forEach(c => {
+      const cat = c.categoria?.trim() || "Sin categoría";
+      m[cat] = (m[cat]||0) + (c.costeTotal||0);
+    });
+    return m;
+  }, [conceptos]);
+
+  const totalesVarPorCateg = useMemo(() => {
+    const m = {};
+    conceptos.filter(c => c.tipo==="variable" && c.activo).forEach(c => {
+      const cat = c.categoria?.trim() || "Sin categoría";
+      // Suma coste total estimado por distancia activa
+      const total = Object.entries(c.activoDistancias||{})
+        .filter(([,v])=>v)
+        .reduce((s,[d]) => s + ((c.costePorDistancia?.[d]||0) * (totalInscritos?.[d]||0)), 0);
+      m[cat] = (m[cat]||0) + total;
+    });
+    return m;
+  }, [conceptos, totalInscritos]);
 
   const moverFijo = (id, dir) => {
     const arr = conceptosFijos;
@@ -353,6 +402,64 @@ export const TabPresupuesto = ({
             <button className="btn btn-cyan" onClick={() => addConcepto("fijo")}>+ Añadir</button>
           </div>
         </div>
+        {/* Pills categoría — fijos */}
+        {categsFijas.length > 0 && (
+          <div style={{ display:"flex", flexWrap:"wrap", gap:".3rem", marginBottom:".65rem" }}>
+            <button onClick={() => setFiltroCategFijo("todas")} style={{
+              padding:".2rem .55rem", borderRadius:5, cursor:"pointer",
+              fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+              border:"1px solid "+(filtroCategFijo==="todas"?"var(--cyan)":"var(--border)"),
+              background:filtroCategFijo==="todas"?"var(--cyan-dim)":"var(--surface)",
+              color:filtroCategFijo==="todas"?"var(--cyan)":"var(--text-muted)", transition:"all .12s",
+            }}>
+              Todas
+              <span style={{ marginLeft:".3rem", fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                color:filtroCategFijo==="todas"?"var(--cyan)":"var(--text-dim)",
+                background:filtroCategFijo==="todas"?"rgba(34,211,238,.15)":"transparent",
+                borderRadius:10, padding:"0 .25rem" }}>
+                {fmtN(costesFijos.total??0)} €
+              </span>
+            </button>
+            {categsFijas.map(cat => {
+              const total = totalesFijosPorCateg[cat]||0;
+              const active = filtroCategFijo===cat;
+              return (
+                <button key={cat} onClick={() => setFiltroCategFijo(active?"todas":cat)} style={{
+                  padding:".2rem .55rem", borderRadius:5, cursor:"pointer",
+                  fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                  border:"1px solid "+(active?"var(--amber)":"var(--border)"),
+                  background:active?"rgba(251,191,36,.12)":"var(--surface)",
+                  color:active?"var(--amber)":"var(--text-muted)", transition:"all .12s",
+                }}>
+                  🏷️ {cat}
+                  <span style={{ marginLeft:".3rem", fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                    color:active?"var(--amber)":"var(--text-dim)",
+                    background:active?"rgba(251,191,36,.15)":"transparent",
+                    borderRadius:10, padding:"0 .25rem" }}>
+                    {fmtN(total)} €
+                  </span>
+                </button>
+              );
+            })}
+            {/* Pill Sin categoría si hay conceptos sin asignar */}
+            {totalesFijosPorCateg["Sin categoría"] > 0 && (
+              <button onClick={() => setFiltroCategFijo(filtroCategFijo==="Sin categoría"?"todas":"Sin categoría")} style={{
+                padding:".2rem .55rem", borderRadius:5, cursor:"pointer",
+                fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                border:"1px solid "+(filtroCategFijo==="Sin categoría"?"var(--text-dim)":"var(--border)"),
+                background:filtroCategFijo==="Sin categoría"?"rgba(255,255,255,.06)":"var(--surface)",
+                color:"var(--text-dim)", transition:"all .12s",
+              }}>
+                Sin categoría
+                <span style={{ marginLeft:".3rem", fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                  borderRadius:10, padding:"0 .25rem" }}>
+                  {conceptos.filter(c=>c.tipo==="fijo" && !c.categoria?.trim()).length}
+                </span>
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Vista resumen — solo nombre + total + activo */}
         {vistaResumen ? (
           <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
@@ -367,6 +474,14 @@ export const TabPresupuesto = ({
                     overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                     {c.nombre}
                   </span>
+                  {c.categoria?.trim() && (
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                      color:"var(--amber)", background:"rgba(251,191,36,.1)",
+                      border:"1px solid rgba(251,191,36,.25)", borderRadius:10, padding:"0 .35rem",
+                      whiteSpace:"nowrap", flexShrink:0 }}>
+                      {c.categoria}
+                    </span>
+                  )}
                 </div>
                 <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
                   color:"var(--text)", flexShrink:0, marginLeft:".5rem" }}>
@@ -439,6 +554,48 @@ export const TabPresupuesto = ({
             <button className="btn btn-green" onClick={() => addConcepto("variable")}>+ Añadir</button>
           </div>
         </div>
+        {/* Pills categoría — variables */}
+        {categsVar.length > 0 && (
+          <div style={{ display:"flex", flexWrap:"wrap", gap:".3rem", marginBottom:".65rem" }}>
+            <button onClick={() => setFiltroCategVar("todas")} style={{
+              padding:".2rem .55rem", borderRadius:5, cursor:"pointer",
+              fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+              border:"1px solid "+(filtroCategVar==="todas"?"var(--green)":"var(--border)"),
+              background:filtroCategVar==="todas"?"var(--green-dim)":"var(--surface)",
+              color:filtroCategVar==="todas"?"var(--green)":"var(--text-muted)", transition:"all .12s",
+            }}>
+              Todas
+              <span style={{ marginLeft:".3rem", fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                color:filtroCategVar==="todas"?"var(--green)":"var(--text-dim)",
+                background:filtroCategVar==="todas"?"rgba(52,211,153,.15)":"transparent",
+                borderRadius:10, padding:"0 .25rem" }}>
+                {fmtN(costesVariables.total??0)} €
+              </span>
+            </button>
+            {categsVar.map(cat => {
+              const total = totalesVarPorCateg[cat]||0;
+              const active = filtroCategVar===cat;
+              return (
+                <button key={cat} onClick={() => setFiltroCategVar(active?"todas":cat)} style={{
+                  padding:".2rem .55rem", borderRadius:5, cursor:"pointer",
+                  fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                  border:"1px solid "+(active?"var(--green)":"var(--border)"),
+                  background:active?"var(--green-dim)":"var(--surface)",
+                  color:active?"var(--green)":"var(--text-muted)", transition:"all .12s",
+                }}>
+                  🏷️ {cat}
+                  <span style={{ marginLeft:".3rem", fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                    color:active?"var(--green)":"var(--text-dim)",
+                    background:active?"rgba(52,211,153,.15)":"transparent",
+                    borderRadius:10, padding:"0 .25rem" }}>
+                    ~{fmtN(total)} €
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {/* Vista resumen variables */}
         {vistaResumen ? (
           <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
@@ -517,6 +674,7 @@ export const TabPresupuesto = ({
           totalInscritos={totalInscritos}
           onSave={handleSave}
           onClose={() => setEditando(null)}
+          categoriasExistentes={todasCategorias}
         />
       )}
     </>

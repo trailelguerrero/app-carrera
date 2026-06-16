@@ -43,6 +43,7 @@ export interface ConceptoFijo {
   costeTotal: number;
   activoDistancias: Record<DistanciaBudget, boolean>;
   costePorDistancia: Record<DistanciaBudget, null>;
+  categoria?: string;   // partida presupuestaria libre (ej. "Sanidad", "Premios")
 }
 
 export interface ConceptoVariable {
@@ -53,6 +54,7 @@ export interface ConceptoVariable {
   activo: boolean;
   activoDistancias: Record<DistanciaBudget, boolean>;
   costePorDistancia: Record<DistanciaBudget, number>;
+  categoria?: string;   // partida presupuestaria libre
 }
 
 export type Concepto = ConceptoFijo | ConceptoVariable;
