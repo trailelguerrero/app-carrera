@@ -43,15 +43,17 @@ function useToastSystem() {
 
   useEffect(() => {
     const handler = (e) => {
-      const { id, type, message, duration = 3500 } = e.detail;
-      setToasts(prev => [...prev, { id, type, message, duration, leaving: false }]);
-      setTimeout(() => {
-        // Marcar como leaving para animar salida
-        setToasts(prev => prev.map(t => t.id === id ? { ...t, leaving: true } : t));
+      const { id, type, message, duration = 3500, action } = e.detail;
+      setToasts(prev => [...prev, { id, type, message, duration, action, leaving: false }]);
+      // Si duration === 0 (toast con acción), no auto-descarta
+      if (duration > 0) {
         setTimeout(() => {
-          setToasts(prev => prev.filter(t => t.id !== id));
-        }, 220);
-      }, duration);
+          setToasts(prev => prev.map(t => t.id === id ? { ...t, leaving: true } : t));
+          setTimeout(() => {
+            setToasts(prev => prev.filter(t => t.id !== id));
+          }, 220);
+        }, duration);
+      }
     };
     window.addEventListener("teg-toast", handler);
     return () => window.removeEventListener("teg-toast", handler);
@@ -87,6 +89,15 @@ function ToastStack({ toasts, dismiss, navH }) {
         >
           <span className="teg-toast-icon">{TOAST_ICONS[t.type]}</span>
           <span className="teg-toast-msg">{t.message}</span>
+          {t.action && (
+            <button
+              className="teg-toast-action"
+              onClick={() => { t.action.onClick(); dismiss(t.id); }}
+              aria-label={t.action.label}
+            >
+              {t.action.label}
+            </button>
+          )}
           <button className="teg-toast-close" onClick={() => dismiss(t.id)} aria-label="Cerrar">×</button>
         </div>
       ))}

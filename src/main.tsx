@@ -150,23 +150,36 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
           if (!newWorker) return;
 
           newWorker.addEventListener("statechange", () => {
-            // Solo notificar si hay un SW previo activo (no en la primera instalación)
+            // Solo actuar si hay un SW previo activo (no en la primera instalación)
             if (
               newWorker.state === "installed" &&
               navigator.serviceWorker.controller
             ) {
-              // Disparar toast via el bus de eventos de la app
+              // Toast con botón: el usuario decide cuándo recargar
               window.dispatchEvent(
                 new CustomEvent("teg-toast", {
                   detail: {
                     type: "info",
-                    message:
-                      "🔄 Nueva versión disponible — recarga para actualizar",
+                    message: "🔄 Nueva versión disponible",
+                    duration: 0, // no auto-dismiss
+                    id: Date.now(),
+                    action: {
+                      label: "Actualizar",
+                      onClick: () => {
+                        // Pedir al nuevo SW que tome el control inmediatamente
+                        newWorker.postMessage({ type: "SKIP_WAITING" });
+                      },
+                    },
                   },
                 })
               );
             }
           });
+        });
+
+        // Cuando el SW nuevo toma el control, recargar la página
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          window.location.reload();
         });
       })
       .catch((err) => {

@@ -939,6 +939,23 @@
   }
   .teg-toast-icon { flex-shrink: 0; font-size: 1rem; }
   .teg-toast-msg  { flex: 1; min-width: 0; }
+  .teg-toast-action {
+    flex-shrink: 0;
+    background: currentColor;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    padding: 3px 8px;
+    line-height: 1.4;
+    transition: opacity 0.15s;
+    /* texto del botón en color de fondo para contrastar con currentColor bg */
+    color: var(--bg, #0f172a);
+    opacity: 0.85;
+  }
+  .teg-toast-action:hover { opacity: 1; }
   .teg-toast-close {
     flex-shrink: 0;
     background: none; border: none; cursor: pointer;
