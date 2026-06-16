@@ -2,7 +2,7 @@
  * TabEquipo.jsx — Tarea 3.3
  * Tab de gestión del equipo del módulo Proyecto.
  */
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { diasHasta, fmt, AREAS, EST_CFG, PRI_CFG, getArea, iniciales } from "./proyectoConstants";
@@ -10,9 +10,13 @@ import { diasHasta, fmt, AREAS, EST_CFG, PRI_CFG, getArea, iniciales } from "./p
 export function TabEquipo({ equipo, setEquipo, tareas, setModal, setDelConf, setFicha, voluntarios=[], contLog=[] }) {
   const [vistaEquipo, setVistaEquipo]  = useState("cards");
   const [ordenAlfa, setOrdenAlfa]      = useState(false);
-  // Inicializar todas las áreas colapsadas por defecto
+  const [busqEquipo, setBusqEquipo]    = useState("");
+  const [filtroArea, setFiltroArea]    = useState("todas");
+  const [filtroUrgentes, setFiltroUrgentes] = useState(false); // solo personas con tareas urgentes
+  const [filtroSinTareas, setFiltroSinTareas] = useState(false); // solo sin tareas asignadas
+  // Expandidas por defecto
   const [areasColapsadas, setAreasCol] = useState(
-    () => Object.fromEntries(AREAS.map(a => [a.id, true]))
+    () => Object.fromEntries(AREAS.map(a => [a.id, false]))
   );
   const toggleArea = (areaId) => setAreasCol(p => ({...p, [areaId]: !p[areaId]}));
   const expandirTodo  = () => setAreasCol(Object.fromEntries(AREAS.map(a => [a.id, false])));
@@ -31,10 +35,49 @@ export function TabEquipo({ equipo, setEquipo, tareas, setModal, setDelConf, set
     });
   };
 
-  const equipoOrdenado = ordenAlfa
-    ? [...equipo].sort((a,b) => (a.nombre||"").localeCompare(b.nombre||"","es"))
-    : equipo;
+  // Stats para pills
+  const statsArea = useMemo(() => {
+    const c = {};
+    equipo.forEach(p => { c[p.area] = (c[p.area]||0)+1; });
+    return c;
+  }, [equipo]);
+
+  const statsUrgentes = useMemo(() =>
+    equipo.filter(p => tareas.some(t =>
+      t.responsableId===p.id && t.estado!=="completado" &&
+      t.fechaLimite && diasHasta(t.fechaLimite) <= 14
+    )).length
+  , [equipo, tareas]);
+
+  const statsSinTareas = useMemo(() =>
+    equipo.filter(p => !tareas.some(t => t.responsableId===p.id)).length
+  , [equipo, tareas]);
+
+  const equipoOrdenado = useMemo(() => {
+    let list = ordenAlfa
+      ? [...equipo].sort((a,b) => (a.nombre||"").localeCompare(b.nombre||"","es"))
+      : equipo;
+    if (busqEquipo.trim()) {
+      const q = busqEquipo.toLowerCase();
+      list = list.filter(p =>
+        (p.nombre||"").toLowerCase().includes(q) ||
+        (p.rol||"").toLowerCase().includes(q)
+      );
+    }
+    if (filtroArea !== "todas") list = list.filter(p => p.area === filtroArea);
+    if (filtroUrgentes) list = list.filter(p =>
+      tareas.some(t => t.responsableId===p.id && t.estado!=="completado" &&
+        t.fechaLimite && diasHasta(t.fechaLimite) <= 14)
+    );
+    if (filtroSinTareas) list = list.filter(p =>
+      !tareas.some(t => t.responsableId===p.id)
+    );
+    return list;
+  }, [equipo, tareas, ordenAlfa, busqEquipo, filtroArea, filtroUrgentes, filtroSinTareas]);
+
   const areasConPersonas = AREAS.filter(a => equipoOrdenado.some(p => p.area === a.id));
+  const hayFiltros = busqEquipo.trim() || filtroArea !== "todas" || filtroUrgentes || filtroSinTareas;
+  const limpiar = () => { setBusqEquipo(""); setFiltroArea("todas"); setFiltroUrgentes(false); setFiltroSinTareas(false); };
   return (
     <>
       {/* ── Banner de interconexiones ── */}
@@ -67,7 +110,7 @@ export function TabEquipo({ equipo, setEquipo, tareas, setModal, setDelConf, set
       <div className="ph">
         <div>
           <div className="pt">👥 Equipo Organizador</div>
-          <div className="pd">{equipo.length} personas · Trail El Guerrero 2026</div>
+          <div className="pd">{equipoOrdenado.length}/{equipo.length} personas · Trail El Guerrero 2026</div>
         </div>
         <div style={{display:"flex",gap:".5rem",alignItems:"center",flexWrap:"wrap"}}>
           {vistaEquipo === "cards" && (
@@ -84,6 +127,82 @@ export function TabEquipo({ equipo, setEquipo, tareas, setModal, setDelConf, set
           </div>
           <button className={`btn btn-sm ${ordenAlfa?"btn-primary":"btn-ghost"}`} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
           <button className="btn btn-primary" onClick={() => setModal({tipo:"persona",data:null})}>+ Añadir persona</button>
+        </div>
+      </div>
+
+      {/* ── Filtros ───────────────────────────────────────────────────────── */}
+      <div style={{marginBottom:".85rem",display:"flex",flexDirection:"column",gap:".5rem"}}>
+
+        {/* Búsqueda */}
+        <input className="inp" placeholder="🔍 Buscar por nombre o rol…" value={busqEquipo}
+          onChange={e=>setBusqEquipo(e.target.value)}
+          style={{maxWidth:300,fontSize:"var(--fs-base)"}} />
+
+        {/* Pills de estado rápido */}
+        <div style={{display:"flex",flexWrap:"wrap",gap:".35rem",alignItems:"center"}}>
+          <button className={"filter-pill"+(filtroUrgentes?" active":"")}
+            onClick={()=>{ setFiltroUrgentes(v=>!v); setFiltroSinTareas(false); }}
+            style={filtroUrgentes?{borderColor:"#fbbf24",color:"#fbbf24",background:"rgba(251,191,36,.12)"}:{}}>
+            ⚡ Urgentes
+            <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
+              color:filtroUrgentes?"#fbbf24":"var(--text-dim)",
+              background:filtroUrgentes?"rgba(251,191,36,.15)":"transparent",
+              borderRadius:10,padding:"0 .3rem",marginLeft:".15rem",
+              minWidth:16,display:"inline-block",textAlign:"center",transition:"all .15s"}}>{statsUrgentes}</span>
+          </button>
+          {statsSinTareas > 0 && (
+            <button className={"filter-pill"+(filtroSinTareas?" active":"")}
+              onClick={()=>{ setFiltroSinTareas(v=>!v); setFiltroUrgentes(false); }}
+              style={filtroSinTareas?{borderColor:"var(--text-dim)",color:"var(--text-muted)",background:"rgba(255,255,255,.06)"}:{}}>
+              🫥 Sin tareas
+              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
+                color:filtroSinTareas?"var(--text-muted)":"var(--text-dim)",
+                background:filtroSinTareas?"rgba(255,255,255,.08)":"transparent",
+                borderRadius:10,padding:"0 .3rem",marginLeft:".15rem",
+                minWidth:16,display:"inline-block",textAlign:"center"}}>{statsSinTareas}</span>
+            </button>
+          )}
+          {hayFiltros && (
+            <button className="filter-pill" onClick={limpiar}
+              style={{color:"var(--red)",borderColor:"rgba(248,113,113,0.3)"}}>✕ Limpiar</button>
+          )}
+        </div>
+
+        {/* Pills de área */}
+        <div style={{display:"flex",flexWrap:"wrap",gap:".3rem"}}>
+          <button onClick={()=>setFiltroArea("todas")} style={{
+            padding:".2rem .55rem",borderRadius:5,cursor:"pointer",
+            fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
+            border:"1px solid "+(filtroArea==="todas"?"var(--cyan)":"var(--border)"),
+            background:filtroArea==="todas"?"var(--cyan-dim)":"var(--surface)",
+            color:filtroArea==="todas"?"var(--cyan)":"var(--text-muted)",transition:"all .12s",
+          }}>
+            Todas
+            <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
+              color:filtroArea==="todas"?"var(--cyan)":"var(--text-dim)",
+              background:filtroArea==="todas"?"rgba(34,211,238,.15)":"transparent",
+              borderRadius:10,padding:"0 .25rem",marginLeft:".3rem"}}>{equipo.length}</span>
+          </button>
+          {AREAS.map(a => {
+            const cnt = statsArea[a.id]||0;
+            if (!cnt) return null;
+            const active = filtroArea===a.id;
+            return (
+              <button key={a.id} onClick={()=>setFiltroArea(active?"todas":a.id)} style={{
+                padding:".2rem .55rem",borderRadius:5,cursor:"pointer",
+                fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
+                border:"1px solid "+(active?a.color:a.color+"55"),
+                background:active?a.color+"18":"var(--surface)",
+                color:active?a.color:a.color+"cc",transition:"all .12s",
+              }}>
+                {a.icon} {a.label}
+                <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
+                  color:active?a.color:"var(--text-dim)",
+                  background:active?a.color+"25":"transparent",
+                  borderRadius:10,padding:"0 .25rem",marginLeft:".3rem"}}>{cnt}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
