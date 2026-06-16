@@ -32,29 +32,111 @@ function buildMaterialLabel(parada, asigs = [], material = []) {
 
 function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,voluntariosConCoche=[],material=[],asigs=[]}) {
   const [vistaKanban,setVistaKanban]=useState(false);
-  const [vehColapsado,setVehCol]=useState(true); // colapsado por defecto
-  const [rutasColapsadas,setRutasCol]=useState(true); // colapsado por defecto
-  const [poolColapsado,setPoolCol]=useState(true); // colapsado por defecto
+  const [vehColapsado,setVehCol]=useState(false);   // expandido por defecto
+  const [rutasColapsadas,setRutasCol]=useState(false); // expandido por defecto
+  const [poolColapsado,setPoolCol]=useState(false);   // expandido por defecto
   const [busqVeh,setBusqVeh]=useState("");
+  const [filtroDisp,setFiltroDisp]=useState("todos"); // todos|libre|asignado
+  const [filtroPool,setFiltroPool]=useState("todos"); // todos|matricula|plazas
   const moverVeh=(id,dir)=>{
     if(ordenAlfa) return;
     setVeh(prev=>{const arr=[...prev];const i=arr.findIndex(x=>x.id===id);const j=i+dir;if(j<0||j>=arr.length)return arr;[arr[i],arr[j]]=[arr[j],arr[i]];return arr;});
   };
-  const vehOrdenado=useMemo(()=>{let list=ordenAlfa?[...veh].sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es")):veh;if(busqVeh.trim()){const q=busqVeh.toLowerCase();list=list.filter(v=>(v.nombre||"").toLowerCase().includes(q)||(v.matricula||"").toLowerCase().includes(q)||(v.conductor||"").toLowerCase().includes(q));}return list;},[veh,ordenAlfa,busqVeh]);
+  // IDs de vehículos con al menos una ruta asignada
+  const vehConRuta = useMemo(() => new Set(rutas.map(r=>r.vehiculoId).filter(Boolean)), [rutas]);
+
+  const statsDisp = useMemo(() => ({
+    libre:    veh.filter(v => !vehConRuta.has(v.id)).length,
+    asignado: veh.filter(v =>  vehConRuta.has(v.id)).length,
+  }), [veh, vehConRuta]);
+
+  const statsPool = useMemo(() => ({
+    conMatricula: voluntariosConCoche.filter(v => v.cocheMatricula).length,
+    conPlazas:    voluntariosConCoche.filter(v => v.cochePlazas).length,
+  }), [voluntariosConCoche]);
+
+  const vehOrdenado=useMemo(()=>{
+    let list=ordenAlfa?[...veh].sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es")):veh;
+    if(busqVeh.trim()){const q=busqVeh.toLowerCase();list=list.filter(v=>(v.nombre||"").toLowerCase().includes(q)||(v.matricula||"").toLowerCase().includes(q)||(v.conductor||"").toLowerCase().includes(q));}
+    if(filtroDisp==="libre")    list=list.filter(v=>!vehConRuta.has(v.id));
+    if(filtroDisp==="asignado") list=list.filter(v=> vehConRuta.has(v.id));
+    return list;
+  },[veh,ordenAlfa,busqVeh,filtroDisp,vehConRuta]);
+
+  const poolFiltrado=useMemo(()=>{
+    let list=[...voluntariosConCoche];
+    if(filtroPool==="matricula") list=list.filter(v=>v.cocheMatricula);
+    if(filtroPool==="plazas")    list=list.filter(v=>v.cochePlazas);
+    return list;
+  },[voluntariosConCoche,filtroPool]);
+
+  const hayFiltros = filtroDisp!=="todos" || filtroPool!=="todos" || busqVeh.trim();
+  const limpiar = () => { setFiltroDisp("todos"); setFiltroPool("todos"); setBusqVeh(""); };
   return(
     <>
       <div className="ph">
-        <div><div className="pt">🚗 Vehículos y Rutas</div><div className="pd">{veh.length} vehículos · {rutas.length} rutas</div></div>
+        <div>
+          <div className="pt">🚗 Vehículos y Rutas</div>
+          <div className="pd">{vehOrdenado.length}/{veh.length} vehículos · {rutas.length} rutas · {voluntariosConCoche.length} en pool</div>
+        </div>
         <div className="fr g1">
           <ListaKanbanToggle vistaKanban={vistaKanban} setVistaKanban={setVistaKanban} />
           <button className={cls("btn btn-sm",ordenAlfa?"btn-cyan":"btn-ghost")} onClick={()=>setOrdenAlfa(v=>!v)}>{ordenAlfa?"A-Z ✓":"A-Z"}</button>
-          <input type="search" className="inp inp-sm"
-            placeholder="Buscar vehículo…"
-            value={busqVeh} onChange={e=>setBusqVeh(e.target.value)}
-            style={{maxWidth:150,fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)"}}
-          />
           <button className="btn btn-primary" onClick={()=>abrirModal({tipo:"veh"})}>+ Vehículo</button>
           <button className="btn btn-amber" onClick={()=>abrirModal({tipo:"ruta"})}>+ Ruta</button>
+        </div>
+      </div>
+
+      {/* ── Filtros ───────────────────────────────────────────────────────── */}
+      <div style={{marginBottom:".85rem",display:"flex",flexDirection:"column",gap:".5rem"}}>
+
+        {/* Búsqueda */}
+        <input className="inp" placeholder="🔍 Buscar vehículo…" value={busqVeh}
+          onChange={e=>setBusqVeh(e.target.value)}
+          style={{maxWidth:280,fontSize:"var(--fs-base)"}} />
+
+        {/* Pills flota: disponibilidad */}
+        <div style={{display:"flex",flexWrap:"wrap",gap:".35rem",alignItems:"center"}}>
+          {[
+            {id:"todos",    label:"🚐 Toda la flota", count:veh.length,          color:"var(--text-muted)", bg:"rgba(255,255,255,.08)"},
+            {id:"libre",    label:"🟢 Libres",        count:statsDisp.libre,     color:"var(--green)",      bg:"rgba(52,211,153,.15)" },
+            {id:"asignado", label:"🟡 Con ruta",      count:statsDisp.asignado,  color:"var(--amber)",      bg:"rgba(251,191,36,.15)" },
+          ].map(({id,label,count,color,bg})=>(
+            <button key={id} className={"filter-pill"+(filtroDisp===id?" active":"")}
+              onClick={()=>setFiltroDisp(id)}>
+              {label}
+              <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
+                color:filtroDisp===id?color:"var(--text-dim)",
+                background:filtroDisp===id?bg:"transparent",
+                borderRadius:10,padding:"0 .3rem",marginLeft:".15rem",
+                minWidth:16,display:"inline-block",textAlign:"center",transition:"all .15s"}}>{count}</span>
+            </button>
+          ))}
+
+          {voluntariosConCoche.length > 0 && (<>
+            <div style={{width:1,height:16,background:"var(--border)",margin:"0 .15rem"}} />
+            {/* Pills pool voluntarios */}
+            {[
+              {id:"todos",     label:"🙋 Pool completo",  count:voluntariosConCoche.length, color:"var(--violet)",  bg:"rgba(167,139,250,.15)"},
+              {id:"matricula", label:"🪪 Con matrícula",  count:statsPool.conMatricula,     color:"var(--violet)",  bg:"rgba(167,139,250,.15)"},
+              {id:"plazas",    label:"💺 Con plazas",     count:statsPool.conPlazas,        color:"var(--violet)",  bg:"rgba(167,139,250,.15)"},
+            ].map(({id,label,count,color,bg})=>(
+              <button key={"pool-"+id} className={"filter-pill"+(filtroPool===id?" active":"")}
+                onClick={()=>setFiltroPool(id)}>
+                {label}
+                <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",fontWeight:700,
+                  color:filtroPool===id?color:"var(--text-dim)",
+                  background:filtroPool===id?bg:"transparent",
+                  borderRadius:10,padding:"0 .3rem",marginLeft:".15rem",
+                  minWidth:16,display:"inline-block",textAlign:"center",transition:"all .15s"}}>{count}</span>
+              </button>
+            ))}
+          </>)}
+
+          {hayFiltros && (
+            <button className="filter-pill" onClick={limpiar}
+              style={{color:"var(--red)",borderColor:"rgba(248,113,113,0.3)"}}>✕ Limpiar</button>
+          )}
         </div>
       </div>
       {vistaKanban?(
@@ -78,7 +160,7 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
                   <span style={{fontSize:"var(--fs-sm)",fontWeight:700,color:"var(--violet)"}}>🙋‍♂️ Pool Voluntarios</span>
                   <span className="k-col-cnt" style={{background:"var(--violet-dim)",color:"var(--violet)",border:"1px solid rgba(167,139,250,.3)"}}>{voluntariosConCoche.length}</span>
                 </div>
-                {voluntariosConCoche.map(vol => (
+                {poolFiltrado.map(vol => (
                   <div key={vol.id} className="k-card" style={{borderLeftColor:"var(--violet)",background:"var(--violet-dim)"}}>
                     <div style={{fontWeight:700,fontSize:"var(--fs-base)",marginBottom:".2rem"}}>{vol.nombre}</div>
                     <div className="mono xs muted">{vol.cocheMatricula ? `🚙 ${vol.cocheMatricula}` : "🚙 Vehículo propio"}{vol.cochePlazas ? ` · ${vol.cochePlazas} plazas` : ""}</div>
@@ -135,12 +217,12 @@ function TabVeh({veh,setVeh,rutas,setRutas,setModal,setDel,abrirFicha,ordenAlfa,
                     border:"1px solid rgba(167,139,250,.25)",borderRadius:"var(--r-sm)",cursor:"pointer",textAlign:"left"}}>
                   <span style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:"var(--fs-sm)",color:"var(--violet)",flex:1}}>🙋‍♂️ Pool de Voluntarios</span>
                   <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--violet)",
-                    padding:".06rem .35rem",borderRadius:20,background:"rgba(167,139,250,.15)"}}>{voluntariosConCoche.length}</span>
+                    padding:".06rem .35rem",borderRadius:20,background:"rgba(167,139,250,.15)"}}>{poolFiltrado.length}/{voluntariosConCoche.length}</span>
                   <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"rgba(167,139,250,.5)",
                     transform:poolColapsado?"rotate(-90deg)":"rotate(0deg)",transition:"transform .18s"}}>▼</span>
                 </button>
                 {!poolColapsado && <>
-                {voluntariosConCoche.map(vol => (
+                {poolFiltrado.map(vol => (
                   <div key={vol.id} className="card vcard" style={{borderLeft:"2px solid var(--violet)",background:"var(--violet-dim)"}}>
                     <div className="vh" style={{marginBottom:"0.5rem"}}>
                       <div className="vi" style={{color:"var(--violet)"}}>🚙</div>
