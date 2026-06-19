@@ -97,6 +97,28 @@ function TabVoluntarios({
     return [...TIPOS_PUESTO, ...new Set(tiposCustom)];
   }, [puestos]);
 
+  // Conteo de voluntarios por puesto + asignados/sin asignar, para el select de filtro por puesto
+  const conteoPorPuesto = useMemo(() => {
+    const map = new Map();
+    let asignados = 0;
+    let sinAsignar = 0;
+    todosVols.forEach(v => {
+      if (v.puestoId) {
+        asignados++;
+        map.set(String(v.puestoId), (map.get(String(v.puestoId)) || 0) + 1);
+      } else {
+        sinAsignar++;
+      }
+    });
+    return { porPuesto: map, asignados, sinAsignar };
+  }, [todosVols]);
+
+  // Puestos ordenados por nombre para el select de filtro
+  const puestosOrdenados = useMemo(
+    () => [...puestos].sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es")),
+    [puestos]
+  );
+
   // Paginación por grupo: cuántos items mostrar por cada grupo de estado
   const ITEMS_INICIALES = 20;
   const ITEMS_INCREMENTO = 20;
@@ -261,11 +283,23 @@ function TabVoluntarios({
             </button>
           ))}
           <div className="filter-pill-sep" />
-          {/* Pills de puesto */}
-          <button className={`filter-pill${filtroPuesto === "todos" ? " active" : ""}`}
-            onClick={() => setFiltroPuesto("todos")}>Todos los puestos</button>
-          <button className={`filter-pill${filtroPuesto === "sin-asignar" ? " active" : ""}`}
-            onClick={() => setFiltroPuesto("sin-asignar")}>Sin asignar</button>
+          {/* Filtro por puesto — select con todos/asignados/sin asignar/puesto individual */}
+          <select className="inp inp-sm" value={filtroPuesto}
+            onChange={e => setFiltroPuesto(e.target.value)}
+            style={{ width:"auto", fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700 }}
+            title="Filtrar por puesto">
+            <option value="todos">Todos los puestos ({todosVols.length})</option>
+            <option value="asignado">Asignados ({conteoPorPuesto.asignados})</option>
+            <option value="sin-asignar">Sin asignar ({conteoPorPuesto.sinAsignar})</option>
+            {puestosOrdenados.length > 0 && (
+              <option disabled>──────────</option>
+            )}
+            {puestosOrdenados.map(p => (
+              <option key={p.id} value={String(p.id)}>
+                {p.nombre} ({conteoPorPuesto.porPuesto.get(String(p.id)) || 0})
+              </option>
+            ))}
+          </select>
           <div className="filter-pill-sep" />
           {/* Ordenación */}
           <button className={`filter-pill${orden === "nombre" ? " active" : ""}`}

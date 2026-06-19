@@ -312,7 +312,9 @@ export function useVoluntarios() {
         if (!match) return false;
       }
       const matchEstado   = filtroEstado === "todos" ? true : filtroEstado === "en-puesto" ? Boolean(v.enPuesto) : v.estado === filtroEstado;
-      const matchPuesto   = filtroPuesto === "todos" || String(v.puestoId) === filtroPuesto || (filtroPuesto === "sin-asignar" && !v.puestoId);
+      const matchPuesto   = filtroPuesto === "todos" || String(v.puestoId) === filtroPuesto
+        || (filtroPuesto === "sin-asignar" && !v.puestoId)
+        || (filtroPuesto === "asignado" && Boolean(v.puestoId));
       const matchTalla    = filtroTallas.length === 0 || filtroTallas.includes(v.talla || "");
       const matchCoche    = filtroCoche === "todos" || (filtroCoche === "si" ? Boolean(v.coche) : !v.coche);
       const matchDist     = filtroDistancias.length === 0 || (() => { const p = puestos.find(p => String(p.id) === String(v.puestoId)); return p ? (p.distancias || []).some(d => filtroDistancias.includes(d)) : false; })();

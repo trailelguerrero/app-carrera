@@ -1164,6 +1164,57 @@ describe('VOL-20 — Filtros avanzados: combinación de filtros', () => {
   });
 });
 
+// ── VOL-29: filtroPuesto — todos / asignado / sin-asignar / puesto específico ─
+describe('VOL-29 — filtroPuesto: asignados, sin asignar y puesto individual', () => {
+  const puestos = [
+    { id: 1, nombre: "Avituallamiento km5" },
+    { id: 2, nombre: "Control km12" },
+  ];
+  const vols = [
+    { id: 1, puestoId: 1, nombre: "Ana" },
+    { id: 2, puestoId: 1, nombre: "Bea" },
+    { id: 3, puestoId: 2, nombre: "Caro" },
+    { id: 4, puestoId: null, nombre: "Dani" },
+  ];
+
+  function matchPuesto(v, filtroPuesto) {
+    return filtroPuesto === "todos" || String(v.puestoId) === filtroPuesto
+      || (filtroPuesto === "sin-asignar" && !v.puestoId)
+      || (filtroPuesto === "asignado" && Boolean(v.puestoId));
+  }
+
+  it('"todos" → devuelve los 4 voluntarios', () => {
+    const result = vols.filter(v => matchPuesto(v, "todos"));
+    expect(result).toHaveLength(4);
+  });
+
+  it('"asignado" → solo voluntarios con puestoId (ids 1,2,3)', () => {
+    const result = vols.filter(v => matchPuesto(v, "asignado"));
+    expect(result.map(v => v.id)).toEqual([1, 2, 3]);
+  });
+
+  it('"sin-asignar" → solo voluntarios sin puestoId (id 4)', () => {
+    const result = vols.filter(v => matchPuesto(v, "sin-asignar"));
+    expect(result.map(v => v.id)).toEqual([4]);
+  });
+
+  it('puesto específico (id "1") → solo voluntarios de ese puesto (ids 1,2)', () => {
+    const result = vols.filter(v => matchPuesto(v, "1"));
+    expect(result.map(v => v.id)).toEqual([1, 2]);
+  });
+
+  it('puesto específico (id "2") → solo voluntarios de ese puesto (id 3)', () => {
+    const result = vols.filter(v => matchPuesto(v, "2"));
+    expect(result.map(v => v.id)).toEqual([3]);
+  });
+
+  it('"asignado" + "sin-asignar" cubren conjuntamente el total sin solapar', () => {
+    const asignados = vols.filter(v => matchPuesto(v, "asignado"));
+    const sinAsignar = vols.filter(v => matchPuesto(v, "sin-asignar"));
+    expect(asignados.length + sinAsignar.length).toBe(vols.length);
+  });
+});
+
 // ── VOL-21: Día D — lógica de volsBase ───────────────────────────────────────
 describe('VOL-21 — Día D: volsBase incluye confirmado/pendiente/ausente', () => {
   function calcVolsBase(voluntarios) {
