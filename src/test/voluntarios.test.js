@@ -1848,3 +1848,77 @@ describe('Reasignación de voluntarios', () => {
     expect(result.find(v => v.id === 4).puestoId).toBeNull();
   });
 });
+
+// ── VOL-30: vista agrupada "Por puesto" — alfabético, Sin asignar al final ───
+describe('VOL-30 — vista "Por puesto": secciones alfabéticas + sub-grupos por estado', () => {
+  const puestos = [
+    { id: 2, nombre: "Control km12" },
+    { id: 1, nombre: "Avituallamiento km5" },
+    { id: 3, nombre: "Meta" },
+  ];
+  const voluntarios = [
+    { id: 1, puestoId: 1, estado: "confirmado" },
+    { id: 2, puestoId: 1, estado: "pendiente" },
+    { id: 3, puestoId: 2, estado: "confirmado" },
+    { id: 4, puestoId: null, estado: "pendiente" },
+    { id: 5, puestoId: 3, estado: "cancelado" },
+  ];
+  const GRUPOS_ESTADO_IDS = ["confirmado", "pendiente", "cancelado"];
+
+  // Replica la construcción de secciones de gruposARenderizar para orden === "puesto"
+  function construirSecciones(vols, puestosList) {
+    const porPuestoId = new Map();
+    vols.forEach(v => {
+      const clave = v.puestoId ? String(v.puestoId) : "sin-asignar";
+      if (!porPuestoId.has(clave)) porPuestoId.set(clave, []);
+      porPuestoId.get(clave).push(v);
+    });
+    const puestosOrdenados = [...puestosList].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+    const secciones = puestosOrdenados
+      .filter(p => porPuestoId.has(String(p.id)))
+      .map(p => ({ id: String(p.id), nombre: p.nombre }));
+    if (porPuestoId.has("sin-asignar")) secciones.push({ id: "sin-asignar", nombre: "Sin asignar" });
+    return { secciones, porPuestoId };
+  }
+
+  it('secciones de puesto en orden alfabético', () => {
+    const { secciones } = construirSecciones(voluntarios, puestos);
+    const nombresConPuesto = secciones.filter(s => s.id !== "sin-asignar").map(s => s.nombre);
+    expect(nombresConPuesto).toEqual(["Avituallamiento km5", "Control km12", "Meta"]);
+  });
+
+  it('"Sin asignar" siempre es la última sección', () => {
+    const { secciones } = construirSecciones(voluntarios, puestos);
+    expect(secciones[secciones.length - 1]).toEqual({ id: "sin-asignar", nombre: "Sin asignar" });
+  });
+
+  it('puesto sin voluntarios asignados no genera sección', () => {
+    const { secciones } = construirSecciones(voluntarios, puestos);
+    // Los 3 puestos tienen al menos un voluntario en este fixture; probamos quitando uno
+    const volsSinMeta = voluntarios.filter(v => v.puestoId !== 3);
+    const { secciones: seccionesSinMeta } = construirSecciones(volsSinMeta, puestos);
+    expect(seccionesSinMeta.map(s => s.nombre)).not.toContain("Meta");
+  });
+
+  it('cada sección de puesto se sub-agrupa correctamente por estado', () => {
+    const { porPuestoId } = construirSecciones(voluntarios, puestos);
+    const volsPuesto1 = porPuestoId.get("1");
+    const porEstado = GRUPOS_ESTADO_IDS.map(estado => ({
+      estado, items: volsPuesto1.filter(v => v.estado === estado),
+    }));
+    expect(porEstado.find(g => g.estado === "confirmado").items.map(v => v.id)).toEqual([1]);
+    expect(porEstado.find(g => g.estado === "pendiente").items.map(v => v.id)).toEqual([2]);
+    expect(porEstado.find(g => g.estado === "cancelado").items).toHaveLength(0);
+  });
+
+  it('sección "Sin asignar" contiene únicamente voluntarios sin puestoId', () => {
+    const { porPuestoId } = construirSecciones(voluntarios, puestos);
+    expect(porPuestoId.get("sin-asignar").map(v => v.id)).toEqual([4]);
+  });
+
+  it('todas las secciones cubren el total de voluntarios sin solapar ni perder ninguno', () => {
+    const { porPuestoId } = construirSecciones(voluntarios, puestos);
+    const total = [...porPuestoId.values()].reduce((acc, arr) => acc + arr.length, 0);
+    expect(total).toBe(voluntarios.length);
+  });
+});

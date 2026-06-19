@@ -37,16 +37,9 @@ function TabVoluntarios({
   const deseleccionarTodos = () => setSeleccionados([]);
   const salirModo = () => { setModoSeleccion(false); setSeleccionados([]); };
   const [orden, setOrden]           = useState("nombre");
-  const [colapsados, setColapsados] = useState({
-    confirmado: false,
-    pendiente:  false,
-    cancelado:  false,
-  });
+  const [colapsados, setColapsados] = useState({});
 
   const toggleGrupo = (id) => setColapsados(prev => ({ ...prev, [id]: !prev[id] }));
-
-  const colapsarTodos   = () => setColapsados({ confirmado: true,  pendiente: true,  cancelado: true  });
-  const descolapsarTodos = () => setColapsados({ confirmado: false, pendiente: false, cancelado: false });
 
   // js-index-maps: Map para el sort por puesto (evita n² .find() al ordenar)
   const puestosMapSort = useMemo(
@@ -71,10 +64,10 @@ function TabVoluntarios({
   // T1.5: resetear página a 1 al cambiar cualquier filtro (evita página vacía)
   useEffect(() => { resetPage(); }, [busqueda, filtroEstado, filtroPuesto, filtroTallas, filtroCoche, filtroDistancias, filtroTipoPuesto]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Expandir grupos automáticamente al cambiar filtros — muestra resultados sin colapsar manualmente
+  // Expandir grupos automáticamente al cambiar filtros u orden — muestra resultados sin colapsar manualmente
   useEffect(() => {
-    setColapsados({ confirmado: false, pendiente: false, cancelado: false });
-  }, [busqueda, filtroEstado, filtroPuesto, filtroTallas, filtroCoche, filtroDistancias, filtroTipoPuesto]); // eslint-disable-line react-hooks/exhaustive-deps
+    setColapsados({});
+  }, [busqueda, filtroEstado, filtroPuesto, filtroTallas, filtroCoche, filtroDistancias, filtroTipoPuesto, orden]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Grupos para la vista agrupada por estado
   const GRUPOS_ESTADO = [
@@ -97,41 +90,21 @@ function TabVoluntarios({
     return [...TIPOS_PUESTO, ...new Set(tiposCustom)];
   }, [puestos]);
 
-  // Conteo de voluntarios por puesto + asignados/sin asignar, para el select de filtro por puesto
-  const conteoPorPuesto = useMemo(() => {
-    const map = new Map();
-    let asignados = 0;
-    let sinAsignar = 0;
-    todosVols.forEach(v => {
-      if (v.puestoId) {
-        asignados++;
-        map.set(String(v.puestoId), (map.get(String(v.puestoId)) || 0) + 1);
-      } else {
-        sinAsignar++;
-      }
-    });
-    return { porPuesto: map, asignados, sinAsignar };
-  }, [todosVols]);
-
-  // Puestos ordenados por nombre para el select de filtro
+  // Puestos ordenados por nombre — usados en la vista agrupada "Por puesto"
   const puestosOrdenados = useMemo(
     () => [...puestos].sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es")),
     [puestos]
   );
 
-  // Paginación por grupo: cuántos items mostrar por cada grupo de estado
+  // Paginación por grupo: cuántos items mostrar por cada grupo (estado o puesto+estado)
   const ITEMS_INICIALES = 20;
   const ITEMS_INCREMENTO = 20;
-  const [visiblePorGrupo, setVisiblePorGrupo] = useState({
-    confirmado: ITEMS_INICIALES,
-    pendiente:  ITEMS_INICIALES,
-    cancelado:  ITEMS_INICIALES,
-  });
+  const [visiblePorGrupo, setVisiblePorGrupo] = useState({});
 
-  // Resetear visibilidad cuando cambian los filtros
+  // Resetear visibilidad cuando cambian los filtros u orden
   useEffect(() => {
-    setVisiblePorGrupo({ confirmado: ITEMS_INICIALES, pendiente: ITEMS_INICIALES, cancelado: ITEMS_INICIALES });
-  }, [busqueda, filtroEstado, filtroPuesto, filtroTallas, filtroCoche, filtroDistancias, filtroTipoPuesto]); // eslint-disable-line react-hooks/exhaustive-deps
+    setVisiblePorGrupo({});
+  }, [busqueda, filtroEstado, filtroPuesto, filtroTallas, filtroCoche, filtroDistancias, filtroTipoPuesto, orden]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cargarMasGrupo = useCallback((grupoId, total) => {
     setVisiblePorGrupo(prev => ({
@@ -140,7 +113,58 @@ function TabVoluntarios({
     }));
   }, []);
 
+  // Grupos a renderizar: por defecto, agrupados por estado.
+  // Si orden === "puesto", se agrupa primero por puesto (alfabético, "Sin asignar" al final)
+  // y dentro de cada puesto se sub-agrupa por estado (mismo render que el resto).
+  const gruposARenderizar = useMemo(() => {
+    if (orden !== "puesto") {
+      return GRUPOS_ESTADO.map(grupo => ({
+        clave: grupo.id,
+        titulo: grupo.label,
+        color: grupo.color,
+        bg: grupo.bg,
+        items: volsOrdenados.filter(v => v.estado === grupo.id),
+        totalSinFiltrar: todosVols.filter(v => v.estado === grupo.id).length,
+      }));
+    }
+    // Vista "Por puesto": una sección por puesto (alfabético) + "Sin asignar" al final.
+    // Cada sección contiene sub-grupos por estado (confirmado/pendiente/cancelado).
+    const porPuestoId = new Map();
+    volsOrdenados.forEach(v => {
+      const clave = v.puestoId ? String(v.puestoId) : "sin-asignar";
+      if (!porPuestoId.has(clave)) porPuestoId.set(clave, []);
+      porPuestoId.get(clave).push(v);
+    });
+    const secciones = puestosOrdenados
+      .filter(p => porPuestoId.has(String(p.id)))
+      .map(p => ({ id: String(p.id), nombre: p.nombre }));
+    if (porPuestoId.has("sin-asignar")) {
+      secciones.push({ id: "sin-asignar", nombre: "Sin asignar" });
+    }
+    return secciones.flatMap(seccion => {
+      const volsSeccion = porPuestoId.get(seccion.id) || [];
+      return GRUPOS_ESTADO.map(grupo => ({
+        clave: `${seccion.id}::${grupo.id}`,
+        titulo: `📍 ${seccion.nombre} — ${grupo.label}`,
+        color: grupo.color,
+        bg: grupo.bg,
+        items: volsSeccion.filter(v => v.estado === grupo.id),
+        totalSinFiltrar: todosVols.filter(v => {
+          const claveV = v.puestoId ? String(v.puestoId) : "sin-asignar";
+          return claveV === seccion.id && v.estado === grupo.id;
+        }).length,
+      }));
+    });
+  }, [orden, volsOrdenados, todosVols, puestosOrdenados]);
+
   const volsFiltradosIds = volsOrdenados.map(v => v.id);
+
+  const colapsarTodos = useCallback(() => {
+    setColapsados(Object.fromEntries(gruposARenderizar.map(g => [g.clave, true])));
+  }, [gruposARenderizar]);
+  const descolapsarTodos = useCallback(() => {
+    setColapsados(Object.fromEntries(gruposARenderizar.map(g => [g.clave, false])));
+  }, [gruposARenderizar]);
 
   return (
     <>
@@ -283,25 +307,15 @@ function TabVoluntarios({
             </button>
           ))}
           <div className="filter-pill-sep" />
-          {/* Filtro por puesto — select con todos/asignados/sin asignar/puesto individual */}
-          <select className="inp inp-sm" value={filtroPuesto}
-            onChange={e => setFiltroPuesto(e.target.value)}
-            style={{ width:"auto", fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700 }}
-            title="Filtrar por puesto">
-            <option value="todos">Todos los puestos ({todosVols.length})</option>
-            <option value="asignado">Asignados ({conteoPorPuesto.asignados})</option>
-            <option value="sin-asignar">Sin asignar ({conteoPorPuesto.sinAsignar})</option>
-            {puestosOrdenados.length > 0 && (
-              <option disabled>──────────</option>
-            )}
-            {puestosOrdenados.map(p => (
-              <option key={p.id} value={String(p.id)}>
-                {p.nombre} ({conteoPorPuesto.porPuesto.get(String(p.id)) || 0})
-              </option>
-            ))}
-          </select>
+          {/* Pills de puesto */}
+          <button className={`filter-pill${filtroPuesto === "todos" ? " active" : ""}`}
+            onClick={() => setFiltroPuesto("todos")}>Todos los puestos</button>
+          <button className={`filter-pill${filtroPuesto === "asignado" ? " active" : ""}`}
+            onClick={() => setFiltroPuesto("asignado")}>Asignados</button>
+          <button className={`filter-pill${filtroPuesto === "sin-asignar" ? " active" : ""}`}
+            onClick={() => setFiltroPuesto("sin-asignar")}>Sin asignar</button>
           <div className="filter-pill-sep" />
-          {/* Ordenación */}
+          {/* Ordenación / Vista agrupada */}
           <button className={`filter-pill${orden === "nombre" ? " active" : ""}`}
             onClick={() => setOrden("nombre")}>A–Z</button>
           <button className={`filter-pill${orden === "puesto" ? " active" : ""}`}
@@ -528,18 +542,18 @@ function TabVoluntarios({
         />
       ) : (
         <div style={{ display:"flex", flexDirection:"column", gap:".6rem" }}>
-          {GRUPOS_ESTADO.map(grupo => {
-            const items = volsOrdenados.filter(v => v.estado === grupo.id);
+          {gruposARenderizar.map(grupo => {
+            const items = grupo.items;
             if (items.length === 0) return null;
-            const collapsed = colapsados[grupo.id];
+            const collapsed = colapsados[grupo.clave];
             return (
-              <div key={grupo.id} style={{
+              <div key={grupo.clave} style={{
                 borderRadius:10, overflow:"hidden",
                 border:`1px solid ${grupo.color}2a`,
               }}>
                 {/* Cabecera del grupo */}
                 <button
-                  onClick={() => toggleGrupo(grupo.id)}
+                  onClick={() => toggleGrupo(grupo.clave)}
                   style={{
                     width:"100%", display:"flex", alignItems:"center",
                     gap:".65rem", padding:".55rem .85rem",
@@ -555,7 +569,7 @@ function TabVoluntarios({
                     fontFamily:"var(--font-mono)", fontWeight:700, fontSize:"var(--fs-base)",
                     color: grupo.color, flex:1,
                   }}>
-                    {grupo.label}
+                    {grupo.titulo}
                   </span>
                   <span style={{
                     fontFamily:"var(--font-mono)", fontSize:"var(--fs-sm)",
@@ -564,8 +578,8 @@ function TabVoluntarios({
                     background:`${grupo.color}18`,
                     border:`1px solid ${grupo.color}30`,
                   }}>
-                    {items.length !== todosVols.filter(v => v.estado === grupo.id).length
-                      ? `${items.length} / ${todosVols.filter(v => v.estado === grupo.id).length}`
+                    {items.length !== grupo.totalSinFiltrar
+                      ? `${items.length} / ${grupo.totalSinFiltrar}`
                       : items.length}
                   </span>
                   <span style={{
@@ -576,9 +590,9 @@ function TabVoluntarios({
                   }}>▼</span>
                 </button>
 
-                {/* Cards del grupo — paginadas: máximo visiblePorGrupo[grupo.id] en DOM */}
+                {/* Cards del grupo — paginadas: máximo visiblePorGrupo[grupo.clave] en DOM */}
                 {!collapsed && (() => {
-                  const visible = visiblePorGrupo[grupo.id] ?? ITEMS_INICIALES;
+                  const visible = visiblePorGrupo[grupo.clave] ?? ITEMS_INICIALES;
                   const itemsVisibles = items.slice(0, visible);
                   const quedan = items.length - itemsVisibles.length;
                   return (
@@ -694,7 +708,7 @@ function TabVoluntarios({
                     {/* Botón "Ver más" si quedan items fuera del DOM */}
                     {quedan > 0 && (
                       <button
-                        onClick={() => cargarMasGrupo(grupo.id, items.length)}
+                        onClick={() => cargarMasGrupo(grupo.clave, items.length)}
                         style={{
                           width: "100%", padding: ".55rem",
                           background: "transparent",
