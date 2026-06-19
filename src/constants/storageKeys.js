@@ -89,6 +89,15 @@ export const SK_CAM_FUENTES            = "teg_camisetas_v1_fuentes";
  */
 export const SK_CAM_VENTA_PUBLICO     = "teg_camisetas_v1_venta_publico";
 
+/**
+ * Camisetas modelo corredor vendidas a NO corredores desde la plataforma de
+ * inscripción (p.ej. familiares que compran camiseta sin inscribirse a la carrera).
+ * Se introduce manualmente por talla, igual que SK_CAM_CORREDORES.
+ */
+export const SK_CAM_NO_CORREDOR           = "teg_camisetas_v1_no_corredor";
+/** Precio de venta propio para la fuente "no corredores (plataforma)" */
+export const SK_CAM_PRECIO_NO_CORREDOR    = "teg_camisetas_v1_precio_no_corredor";
+
 // ── Documentos ────────────────────────────────────────────────────────────────
 export const SK_DOC_DOCS         = "teg_documentos_v1";
 export const SK_DOC_GESTIONES    = "teg_documentos_v1_gestiones";
@@ -207,6 +216,8 @@ export const SK = {
   CAM_INCLUIR_PENDIENTES: SK_CAM_INCLUIR_PENDIENTES,
   CAM_MARGEN_SEGURIDAD:   SK_CAM_MARGEN_SEGURIDAD,
   CAM_FUENTES:            SK_CAM_FUENTES,
+  CAM_NO_CORREDOR:        SK_CAM_NO_CORREDOR,
+  CAM_PRECIO_NO_CORREDOR: SK_CAM_PRECIO_NO_CORREDOR,
 
   // Documentos
   DOC_DOCS:         SK_DOC_DOCS,

@@ -8,12 +8,14 @@ import { blockCls as cls } from "@/lib/blockStyles";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { TALLAS, TALLAS_NINO, TC, EP, EE, FUENTES_DEFAULT } from "./camisetasConstants";
 
-export function TabDashboard({ stats, pedidos, coste, setCoste, setTab, goToTab, abrirFicha, precioCorrExt, setPrecioCorrExt, ventaPublico, setVentaPublico, fuentesActivas, setFuentesActivas, ninoExt = {}, corredoresExt = {} }) {
+export function TabDashboard({ stats, pedidos, coste, setCoste, setTab, goToTab, abrirFicha, precioCorrExt, setPrecioCorrExt, ventaPublico, setVentaPublico, precioNoCorrExt, setPrecioNoCorrExt, fuentesActivas, setFuentesActivas, ninoExt = {}, corredoresExt = {} }) {
   const [editCoste,setEditCoste] = useState(false);
   const [wizardAbierto2, setWizardAbierto2] = useState(true);
   const [tmpCoste, setTmpCoste]  = useState({...coste});
   const [editPrecioPlat, setEditPrecioPlat] = useState(false);
   const [tmpPrecioPlat, setTmpPrecioPlat] = useState(precioCorrExt ?? 15);
+  const [editPrecioNoCorr, setEditPrecioNoCorr] = useState(false);
+  const [tmpPrecioNoCorr, setTmpPrecioNoCorr] = useState(precioNoCorrExt ?? 18);
   const [editVentaPublico, setEditVentaPublico] = useState(false);
   const [tmpVentaPublico, setTmpVentaPublico] = useState({ precio: ventaPublico.precio, cantidad: ventaPublico.cantidad });
 
@@ -118,6 +120,7 @@ export function TabDashboard({ stats, pedidos, coste, setCoste, setTab, goToTab,
             {[
               { id: "corredoresPlat",  label: "Inscritos Plataforma", icon: "🏃", sub: `${stats.uCorExt} ud`, color: "var(--cyan)" },
               { id: "extrasCorredor",  label: "Extras Corredor",     icon: "👕", sub: `${stats.uExtrasCor} ud`, color: "var(--cyan)" },
+              { id: "noCorredoresPlat", label: "No corredores (plat.)", icon: "🎫", sub: `${stats.uNoCorrPlat} ud`, color: "var(--orange)" },
               { id: "voluntariosAuto", label: "Voluntarios (Gasto)", icon: "👥", sub: `${stats.uVolAuto} ud`, color: "var(--violet)", tab: "tallas" },
               { id: "extrasVoluntario", label: "Extras Voluntario",   icon: "🛍️", tab: "pedidos", sub: `${stats.uExtrasVol} ud`, color: "var(--violet)" },
             ].map(f => (
@@ -204,6 +207,27 @@ export function TabDashboard({ stats, pedidos, coste, setCoste, setTab, goToTab,
               <div style={{ display: "flex", gap: ".6rem", alignItems: "center" }}>
                 <span className="mono">{fmtNum2(precioCorrExt)}€</span>
                 <button className="btn btn-ghost btn-sm" onClick={() => setEditPrecioPlat(true)} aria-label="Editar">✏️</button>
+              </div>
+            )}
+          </div>
+        </div>
+        {/* Tarjeta: Precio no corredores (plataforma) */}
+        <div className="card" style={{ borderLeft: "3px solid var(--orange)", cursor:"pointer", transition:"box-shadow .12s" }} onClick={() => !editPrecioNoCorr && setEditPrecioNoCorr(true)} onMouseEnter={e=>e.currentTarget.style.boxShadow="0 2px 12px rgba(251,146,60,.12)"} onMouseLeave={e=>e.currentTarget.style.boxShadow=""}>
+          <div className="flex-between">
+            <div>
+              <div style={{ fontWeight: 700, fontSize: "var(--fs-base)", marginBottom: ".15rem" }}>
+                <Tooltip text="Precio de venta de la camiseta modelo corredor para personas que NO se inscriben a la carrera, compradas desde la plataforma de inscripción."><span style={{ color: "var(--orange)" }}>🎫 Precio no corredores</span><TooltipIcon /></Tooltip>
+              </div>
+            </div>
+            {editPrecioNoCorr ? (
+              <div style={{ display: "flex", gap: ".5rem" }}>
+                <input type="number" min="0" step="0.5" value={tmpPrecioNoCorr} onChange={e => setTmpPrecioNoCorr(parseFloat(e.target.value))} style={{ width: 60, background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--orange)", borderRadius: 4, padding: ".2rem", fontSize: "var(--fs-sm)" }} />
+                <button className="btn btn-primary btn-sm" onClick={() => { setPrecioNoCorrExt(tmpPrecioNoCorr); setEditPrecioNoCorr(false); }}>OK</button>
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: ".6rem", alignItems: "center" }}>
+                <span className="mono">{fmtNum2(precioNoCorrExt)}€</span>
+                <button className="btn btn-ghost btn-sm" onClick={() => setEditPrecioNoCorr(true)} aria-label="Editar">✏️</button>
               </div>
             )}
           </div>

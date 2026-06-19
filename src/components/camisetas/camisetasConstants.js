@@ -81,6 +81,8 @@ export const badgeEnt = (p) =>
 
 export const CORREDORES_DEFAULT = Object.fromEntries(TALLAS.map(t => [t, 0]));
 export const NINO_DEFAULT       = Object.fromEntries(TALLAS_NINO.map(t => [t, 0]));
+/** Default por talla para la fuente "no corredores" (modelo corredor vendido a no corredores) */
+export const NOCORREDOR_DEFAULT = Object.fromEntries(TALLAS.map(t => [t, 0]));
 
 export const FUENTES_DEFAULT = {
   corredoresPlat: true,
@@ -89,6 +91,7 @@ export const FUENTES_DEFAULT = {
   extrasVoluntario: true,
   ninoManual: true,
   extrasNino: true,
+  noCorredoresPlat: true,
 };
 
 /** Exporta consolidación de tallas como CSV para el proveedor */

@@ -7,12 +7,14 @@ import { fmtEur2 } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
-import { TALLAS, TALLAS_NINO, TC, TIPOS, FUENTES_DEFAULT, CORREDORES_DEFAULT, NINO_DEFAULT, exportarPedidoProveedor } from "./camisetasConstants";
+import { TALLAS, TALLAS_NINO, TC, TIPOS, FUENTES_DEFAULT, CORREDORES_DEFAULT, NINO_DEFAULT, NOCORREDOR_DEFAULT, exportarPedidoProveedor } from "./camisetasConstants";
 
-export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, vistaSimple=true, setVistaSimple, fuentesActivas, voluntariosConfirmados, voluntariosPendientes, ninoExt = {}, setNino, rawInscritos = { tramos: {} } }) {
+export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, vistaSimple=true, setVistaSimple, fuentesActivas, voluntariosConfirmados, voluntariosPendientes, ninoExt = {}, setNino, rawInscritos = { tramos: {} }, noCorredorExt = {}, setNoCorredor }) {
   const [margenSeguridad, setMargenSeguridad] = useState(5); // % de buffer sobre el total
   const [editCorredores, setEditCorredores] = useState(false);
   const [tmpCor, setTmpCor] = useState({ ...corredoresExt });
+  const [editNoCorr, setEditNoCorr] = useState(false);
+  const [tmpNoCorr, setTmpNoCorr] = useState({ ...NOCORREDOR_DEFAULT, ...noCorredorExt });
   const [editNino, setEditNino] = useState(false);
   const [secColapsadas, setSecCol] = useState({ corredor:true, voluntario:true, nino:true, tabla:false, fuentes:false }); // MEJ-15: tabla abierta por defecto (dato principal del tab) // fuentes abierta por defecto para que Editar sea visible
   const toggleSec = (k) => setSecCol(p => ({...p,[k]:!p[k]}));
@@ -63,6 +65,8 @@ export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosAc
   // Al abrir edición, sincronizar el estado temporal
   const abrirEdicion     = () => { setTmpCor({ ...corredoresExt }); setEditCorredores(true); };
   const guardarCorredores = () => { setCorredores({ ...tmpCor }); setEditCorredores(false); toast.success("Tallas de corredores guardadas"); };
+  const abrirEdicionNoCorr = () => { setTmpNoCorr({ ...NOCORREDOR_DEFAULT, ...noCorredorExt }); setEditNoCorr(true); };
+  const guardarNoCorr      = () => { setNoCorredor && setNoCorredor({ ...tmpNoCorr }); setEditNoCorr(false); toast.success("Tallas de no corredores guardadas"); };
   const abrirEdicionNino  = () => { setTmpNino({ ...ninoExt }); setEditNino(true); };
   const guardarNino       = () => { setNino && setNino({ ...tmpNino }); setEditNino(false); toast.success("Tallas de niños guardadas"); };
 
@@ -98,10 +102,10 @@ export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosAc
   const totalCorredor = useMemo(() => {
     const tot = {};
     TALLAS.forEach(t => {
-      tot[t] = (corredoresExt[t] || 0) + (tallasExtras[t]?.corredor || 0);
+      tot[t] = (corredoresExt[t] || 0) + (tallasExtras[t]?.corredor || 0) + (noCorredorExt[t] || 0);
     });
     return tot;
-  }, [corredoresExt, tallasExtras]);
+  }, [corredoresExt, tallasExtras, noCorredorExt]);
 
   const totalVoluntario = useMemo(() => {
     const tot = {};
@@ -114,7 +118,7 @@ export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosAc
   const grandTotalCor  = TALLAS.reduce((s, t)      => s + (totalCorredor[t]  || 0), 0);
   const grandTotalVol  = TALLAS.reduce((s, t)      => s + (totalVoluntario[t] || 0), 0);
   const grandTotalNino = TALLAS_NINO.reduce((s, t) => s + (ninoExt[t] || 0) + (tallasExtrasNino[t] || 0), 0);
-  const grandTallasCor  = useMemo(() => Object.fromEntries(TALLAS.map(t => [t, (corredoresExt[t]||0) + tallasExtras[t]?.corredor||0])), [corredoresExt, tallasExtras]);
+  const grandTallasCor  = useMemo(() => Object.fromEntries(TALLAS.map(t => [t, (corredoresExt[t]||0) + (tallasExtras[t]?.corredor||0) + (noCorredorExt[t]||0)])), [corredoresExt, tallasExtras, noCorredorExt]);
   const grandTallasVol  = useMemo(() => Object.fromEntries(TALLAS.map(t => [t, voluntariosActivos.filter(v=>v.talla===t).length + (tallasExtras[t]?.voluntario||0)])), [voluntariosActivos, tallasExtras]);
   const grandTotal     = grandTotalCor + grandTotalVol + grandTotalNino;
 
@@ -277,6 +281,9 @@ export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosAc
             total: fuentesActivas.extrasCorredor
               ? pedidos.filter(p=>p.lineas?.some(l=>l.tipo==="corredor")).reduce((s,p)=>s+p.lineas.filter(l=>l.tipo==="corredor").reduce((ss,l)=>ss+l.cantidad,0),0)
               : 0 },
+          { key:"noCorredoresPlat", icon:"🎫", label:"No corredores", sub:"Modelo corredor vendido a no corredores vía plataforma de inscripción",
+            color:"var(--orange)", dim:"var(--orange-dim)",
+            total: fuentesActivas.noCorredoresPlat ? TALLAS.reduce((s,t)=>s+(noCorredorExt[t]||0),0) : 0 },
           { key:"voluntariosAuto", icon:"👥", label:"Voluntarios", sub:"Voluntarios con talla asignada en el módulo de Voluntarios",
             color:TC.voluntario.color, dim:TC.voluntario.dim,
             total: fuentesActivas.voluntariosAuto ? voluntariosActivos.length : 0 },
@@ -325,6 +332,8 @@ export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosAc
           { key:"extrasCorredor",  icon:"👕", label:"Extras cor.",     color:TC.corredor.color,   dim:TC.corredor.dim,
             total: fuentesActivas.extrasCorredor
               ? pedidos.filter(p=>p.lineas?.some(l=>l.tipo==="corredor")).reduce((s,p)=>s+p.lineas.filter(l=>l.tipo==="corredor").reduce((ss,l)=>ss+l.cantidad,0),0) : 0 },
+          { key:"noCorredoresPlat",icon:"🎫", label:"No corredores",  color:"var(--orange)",     dim:"var(--orange-dim)",
+            total: fuentesActivas.noCorredoresPlat ? TALLAS.reduce((s,t)=>s+(noCorredorExt[t]||0),0) : 0 },
           { key:"voluntariosAuto", icon:"👥", label:"Voluntarios",     color:TC.voluntario.color, dim:TC.voluntario.dim,
             total: fuentesActivas.voluntariosAuto ? voluntariosActivos.length : 0 },
           { key:"extrasVoluntario",icon:"👥+",label:"Extras vol.",     color:TC.voluntario.color, dim:TC.voluntario.dim,
@@ -536,10 +545,10 @@ export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosAc
             display:"flex",alignItems:"center",gap:".5rem"}}>
             📋 Desglose por fuente
             <span style={{fontSize:"var(--fs-xs)",fontWeight:500,
-              color:Object.values(fuentesActivas).filter(Boolean).length===6?"var(--green)":"var(--amber)",
+              color:Object.values(fuentesActivas).filter(Boolean).length===7?"var(--green)":"var(--amber)",
               padding:".06rem .35rem",borderRadius:10,
-              background:Object.values(fuentesActivas).filter(Boolean).length===6?"var(--green-dim)":"var(--amber-dim)"}}>
-              {Object.values(fuentesActivas).filter(Boolean).length}/6 activas
+              background:Object.values(fuentesActivas).filter(Boolean).length===7?"var(--green-dim)":"var(--amber-dim)"}}>
+              {Object.values(fuentesActivas).filter(Boolean).length}/7 activas
             </span>
           </span>
           <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-sm)",color:"var(--text-dim)",
@@ -597,6 +606,43 @@ export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosAc
                 </div>
               )}
             </>
+          )}
+        </div>
+
+        {/* ── FUENTE: No corredores (modelo corredor, plataforma de inscripción) ── */}
+        <div className="card" style={{ borderLeft: `3px solid var(--orange)` }}>
+          <SectionTitle
+            icon="🎫" title="No corredores — plataforma"
+            subtitle="Camisetas modelo corredor vendidas a personas que NO corren, desde la plataforma de inscripción"
+            color="var(--orange)"
+            action={
+              !editNoCorr
+                ? <button className="btn btn-ghost btn-sm" onClick={abrirEdicionNoCorr}>✏️ Editar</button>
+                : <div style={{ display: 'flex', gap: '.35rem' }}>
+                    <button className="btn btn-primary btn-sm" onClick={guardarNoCorr}>✓ Guardar</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => setEditNoCorr(false)} aria-label="Cerrar">✕</button>
+                  </div>
+            }
+          />
+          {editNoCorr ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '.4rem' }}>
+              {TALLAS.map(t => (
+                <label key={t} style={{ display: 'flex', flexDirection: 'column', gap: '.2rem' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--orange)' }}>{t}</span>
+                  <input
+                    type="number" min="0" value={tmpNoCorr[t] || 0}
+                    onChange={e => setTmpNoCorr(p => ({ ...p, [t]: Math.max(0, parseInt(e.target.value) || 0) }))}
+                    style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 'var(--r-sm)', padding: '.3rem .4rem', fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-base)', textAlign: 'right', outline: 'none', width: '100%' }}
+                  />
+                </label>
+              ))}
+            </div>
+          ) : (
+            TALLAS.filter(t => (noCorredorExt[t] || 0) > 0).length === 0
+              ? <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--text-dim)', textAlign: 'center', padding: '1rem 0' }}>Sin datos — haz clic en ✏️ Editar para introducir tallas</div>
+              : TALLAS.filter(t => (noCorredorExt[t] || 0) > 0).map(t => (
+                <TallaBar key={t} talla={t} valor={noCorredorExt[t]} total={TALLAS.reduce((s, tt) => s + (noCorredorExt[tt] || 0), 0)} color="var(--orange)" />
+              ))
           )}
         </div>
 

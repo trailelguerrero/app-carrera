@@ -14,10 +14,10 @@ import { genIdNum, fmtEur2, scrollMainToTop } from "@/lib/utils";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys"; // FIX-DEP: migrado desde alias deprecated
 import { blockCls as cls } from "@/lib/blockStyles";
-import { SK_VOL_VOLUNTARIOS, SK_CAM_VENTA_PUBLICO, SK_CAM_FECHA_PEDIDO, SK_CAM_ESTADO_PEDIDO, SK_CAM_INCLUIR_PENDIENTES, SK_CAM_MARGEN_SEGURIDAD, SK_CAM_FUENTES, SK_PPTO_INSCRITOS } from "@/constants/storageKeys";
+import { SK_VOL_VOLUNTARIOS, SK_CAM_VENTA_PUBLICO, SK_CAM_FECHA_PEDIDO, SK_CAM_ESTADO_PEDIDO, SK_CAM_INCLUIR_PENDIENTES, SK_CAM_MARGEN_SEGURIDAD, SK_CAM_FUENTES, SK_PPTO_INSCRITOS, SK_CAM_NO_CORREDOR, SK_CAM_PRECIO_NO_CORREDOR } from "@/constants/storageKeys";
 
 import {
-  LS, TALLAS, TALLAS_NINO, CORREDORES_DEFAULT, NINO_DEFAULT,
+  LS, TALLAS, TALLAS_NINO, CORREDORES_DEFAULT, NINO_DEFAULT, NOCORREDOR_DEFAULT,
   PEDIDOS_DEFAULT, COSTE_DEFAULT, FUENTES_DEFAULT, CAM_CSS,
 } from "@/components/camisetas/camisetasConstants";
 
@@ -424,6 +424,14 @@ export default function App() {
     ? { precio: rawVentaPublico.precio ?? 20, cantidad: rawVentaPublico.cantidad ?? 0 }
     : { precio: 20, cantidad: 0 };
 
+  // Fuente: camisetas modelo corredor vendidas a NO corredores vía plataforma de inscripción
+  const [rawNoCorredor, setNoCorredor, loadNoCorredor] = useData(SK_CAM_NO_CORREDOR, NOCORREDOR_DEFAULT);
+  const noCorredorExt = (rawNoCorredor && typeof rawNoCorredor === "object" && !Array.isArray(rawNoCorredor))
+    ? { ...NOCORREDOR_DEFAULT, ...rawNoCorredor } : NOCORREDOR_DEFAULT;
+
+  const [precioNoCorrPlat, setPrecioNoCorrPlat, loadPrecioNoCorr] = useData(SK_CAM_PRECIO_NO_CORREDOR, { precio: 18 });
+  const precioNoCorrExt = (precioNoCorrPlat?.precio ?? 18);
+
   const [rawVols, , loadVols] = useData(SK_VOL_VOLUNTARIOS, []);
   const [inclPendientes, setInclPendientes, loadInclP] = useData(SK_CAM_INCLUIR_PENDIENTES, false);
   const [margenSeguridad, setMargenSeguridad, loadMargen] = useData(SK_CAM_MARGEN_SEGURIDAD, 5);
@@ -432,7 +440,7 @@ export default function App() {
   const fuentesActivas = (rawFuentes && typeof rawFuentes === "object" && !Array.isArray(rawFuentes))
     ? { ...FUENTES_DEFAULT, ...rawFuentes } : FUENTES_DEFAULT;
 
-  const isLoading = loadCfg || loadP || loadCoste || loadCorredores || loadNino || loadVols || loadInclP || loadMargen || loadFuentes || loadVentaPublico;
+  const isLoading = loadCfg || loadP || loadCoste || loadCorredores || loadNino || loadVols || loadInclP || loadMargen || loadFuentes || loadVentaPublico || loadNoCorredor || loadPrecioNoCorr;
 
   // ─── Derivados ──────────────────────────────────────────────────────────────
   const generarPedidosVoluntarios = () => {
@@ -473,13 +481,15 @@ export default function App() {
     const uCorExt  = fuentesActivas.corredoresPlat   ? TALLAS.reduce((s, t)      => s + (corredoresExt[t] || 0), 0) : 0;
     const uNinoExt = fuentesActivas.ninoManual        ? TALLAS_NINO.reduce((s, t) => s + (ninoExt[t] || 0),      0) : 0;
     const uVolAuto = fuentesActivas.voluntariosAuto  ? voluntariosActivos.length : 0;
+    const uNoCorrPlat = fuentesActivas.noCorredoresPlat ? TALLAS.reduce((s, t) => s + (noCorredorExt[t] || 0), 0) : 0;
     const extrasLineas = pedidos.flatMap(p => p.lineas);
     const uExtrasCor  = fuentesActivas.extrasCorredor   ? extrasLineas.filter(l => l.tipo === "corredor").reduce((s, l)   => s + l.cantidad, 0) : 0;
     const uExtrasVol  = fuentesActivas.extrasVoluntario ? extrasLineas.filter(l => l.tipo === "voluntario").reduce((s, l) => s + l.cantidad, 0) : 0;
     const uExtrasNino = fuentesActivas.extrasNino       ? extrasLineas.filter(l => l.tipo === "nino").reduce((s, l)       => s + l.cantidad, 0) : 0;
-    const totalUnidades = uCorExt + uVolAuto + uExtrasCor + uExtrasVol + uNinoExt + uExtrasNino;
+    const totalUnidades = uCorExt + uVolAuto + uExtrasCor + uExtrasVol + uNinoExt + uExtrasNino + uNoCorrPlat;
 
     const iCorExt = uCorExt * precioCorrExt;
+    const iNoCorrPlat = uNoCorrPlat * precioNoCorrExt;
     const extrasPagados = extrasLineas.filter(l => l.estadoPago === "pagado" && (
       (l.tipo === "corredor" && fuentesActivas.extrasCorredor) ||
       (l.tipo === "voluntario" && fuentesActivas.extrasVoluntario) ||
@@ -494,16 +504,17 @@ export default function App() {
     const iExtrasProyectado = extrasProyectados.reduce((s, l) => s + l.cantidad * (l.precioVenta || 0), 0);
     const iVentaPublico  = ventaPublico.cantidad * ventaPublico.precio;
     const gVentaPublico  = ventaPublico.cantidad * (coste.corredor || 0);
-    const totalIngresosReal        = (fuentesActivas.corredoresPlat ? iCorExt : 0) + iExtrasReal        + iVentaPublico;
-    const totalIngresosProyectado  = (fuentesActivas.corredoresPlat ? iCorExt : 0) + iExtrasProyectado  + iVentaPublico;
+    const totalIngresosReal        = (fuentesActivas.corredoresPlat ? iCorExt : 0) + iExtrasReal        + iVentaPublico + iNoCorrPlat;
+    const totalIngresosProyectado  = (fuentesActivas.corredoresPlat ? iCorExt : 0) + iExtrasProyectado  + iVentaPublico + iNoCorrPlat;
 
     const gCorExt  = uCorExt  * (coste.corredor   || 0);
     const gNinoExt = uNinoExt * (coste.nino        || 0);
     const gVolAuto = uVolAuto * (coste.voluntario  || 0);
+    const gNoCorrPlat = uNoCorrPlat * (coste.corredor || 0);
     const gExtrasCor  = uExtrasCor  * (coste.corredor   || 0);
     const gExtrasVol  = uExtrasVol  * (coste.voluntario  || 0);
     const gExtrasNino = uExtrasNino * (coste.nino         || 0);
-    const totalGastos = gCorExt + gVolAuto + gExtrasCor + gExtrasVol + gNinoExt + gExtrasNino + gVentaPublico;
+    const totalGastos = gCorExt + gVolAuto + gExtrasCor + gExtrasVol + gNinoExt + gExtrasNino + gVentaPublico + gNoCorrPlat;
 
     const beneficioNetoReal        = totalIngresosReal       - totalGastos;
     const beneficioNetoProyectado  = totalIngresosProyectado - totalGastos;
@@ -523,13 +534,13 @@ export default function App() {
     return {
       totalUnidades, totalIngresosReal, totalIngresosProyectado,
       totalGastos, beneficioNetoReal, beneficioNetoProyectado,
-      uCorExt, uVolAuto, uExtrasCor, uExtrasVol, uNinoExt, uExtrasNino,
-      iCorExt, iExtrasReal, iExtrasProyectado, iVentaPublico,
+      uCorExt, uVolAuto, uExtrasCor, uExtrasVol, uNinoExt, uExtrasNino, uNoCorrPlat,
+      iCorExt, iExtrasReal, iExtrasProyectado, iVentaPublico, iNoCorrPlat,
       gRegalos, cPendCobro,
       totalPedidosExtras: pedidos.length,
       pendEnt: extrasLineas.filter(l => l.estadoEntrega === "pendiente").reduce((s, l) => s + l.cantidad, 0),
     };
-  }, [pedidos, coste, corredoresExt, ninoExt, voluntariosActivos, precioCorrExt, fuentesActivas, ventaPublico]);
+  }, [pedidos, coste, corredoresExt, ninoExt, voluntariosActivos, precioCorrExt, fuentesActivas, ventaPublico, noCorredorExt, precioNoCorrExt]);
 
   const totalCorredoresConf = TALLAS.reduce((s, t) => s + (corredoresExt[t] || 0), 0);
   const esEstadoInicial = pedidos.length === 0 && totalCorredoresConf === 0;
@@ -720,12 +731,14 @@ export default function App() {
             estadoPedido={estadoPedido} setEstadoPedido={setEstadoPedido}
             precioCorrExt={precioCorrExt} setPrecioCorrExt={(v) => { setPrecioPlatExt({ precio: v }); dataService.notify("presupuesto"); }}
             ventaPublico={ventaPublico} setVentaPublico={(v) => { setVentaPublico(v); dataService.notify("presupuesto"); }}
+            precioNoCorrExt={precioNoCorrExt} setPrecioNoCorrExt={(v) => { setPrecioNoCorrPlat({ precio: v }); dataService.notify("presupuesto"); }}
             fuentesActivas={fuentesActivas} setFuentesActivas={setFuentesActivas}
             corredoresExt={corredoresExt} voluntariosActivos={voluntariosActivos}
             voluntariosConfirmados={voluntariosConfirmados} voluntariosPendientes={voluntariosPendientes}
             ninoExt={ninoExt} />}
           {tab === "pedidos"   && <TabPedidos   pedidos={pedidos} coste={coste} abrirFicha={abrirFicha} abrirModal={abrirModal} filtroExterno={filtroP} onClearFiltro={() => setFiltroP({ pago: "todos", ent: "todos" })} />}
           {tab === "tallas"    && <TabTallas    pedidos={pedidos} corredoresExt={corredoresExt} setCorredores={setCorredores} voluntariosActivos={voluntariosActivos} fuentesActivas={fuentesActivas}
+            noCorredorExt={noCorredorExt} setNoCorredor={setNoCorredor}
             voluntariosConfirmados={voluntariosConfirmados} voluntariosPendientes={voluntariosPendientes}
             inclPendientes={inclPendientes} setInclPendientes={setInclPendientes}
             ninoExt={ninoExt} setNino={setNino}
