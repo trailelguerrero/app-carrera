@@ -102,7 +102,7 @@ function TabVoluntarios({
   const cargarMasGrupo = useCallback((grupoId, total) => {
     setVisiblePorGrupo(prev => ({
       ...prev,
-      [grupoId]: Math.min(prev[grupoId] + ITEMS_INCREMENTO, total),
+      [grupoId]: Math.min((prev[grupoId] ?? ITEMS_INICIALES) + ITEMS_INCREMENTO, total),
     }));
   }, []);
 

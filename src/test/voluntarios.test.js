@@ -1922,3 +1922,51 @@ describe('VOL-30 — vista "Por puesto": secciones alfabéticas + sub-grupos por
     expect(total).toBe(voluntarios.length);
   });
 });
+
+// ── VOL-31: cargarMasGrupo — "Ver X más" no debe colapsar la lista (bug real) ─
+describe('VOL-31 — "Ver X más" sobre un grupo sin entrada previa en visiblePorGrupo', () => {
+  const ITEMS_INICIALES = 20;
+  const ITEMS_INCREMENTO = 20;
+
+  // Replica exacta de cargarMasGrupo tal y como está en TabVoluntariosList.jsx
+  function cargarMasGrupo(prev, grupoId, total) {
+    return {
+      ...prev,
+      [grupoId]: Math.min((prev[grupoId] ?? ITEMS_INICIALES) + ITEMS_INCREMENTO, total),
+    };
+  }
+
+  it('primer clic en "Ver X más" sin entrada previa → pasa de 20 a 40 visibles, no a NaN/0', () => {
+    // visiblePorGrupo arranca vacío tras un reset de filtro (bug real: antes
+    // del fix, prev[grupoId] era undefined y undefined + 20 = NaN, lo que
+    // hacía items.slice(0, NaN) devolver [] — la lista parecía "colapsarse")
+    const visiblePorGrupoVacio = {};
+    const resultado = cargarMasGrupo(visiblePorGrupoVacio, "confirmado", 40);
+    expect(resultado.confirmado).toBe(40);
+    expect(Number.isNaN(resultado.confirmado)).toBe(false);
+  });
+
+  it('items.slice(0, NaN) reproduce el síntoma exacto del bug (lista vacía)', () => {
+    const items = Array.from({ length: 40 }, (_, i) => ({ id: i }));
+    // Comportamiento ANTES del fix: prev[grupoId] undefined → suma da NaN
+    const visibleConBugAntiguo = undefined + ITEMS_INCREMENTO; // NaN
+    expect(items.slice(0, visibleConBugAntiguo)).toHaveLength(0);
+  });
+
+  it('clics sucesivos incrementan correctamente sin reintroducir NaN', () => {
+    let visiblePorGrupo = {};
+    visiblePorGrupo = cargarMasGrupo(visiblePorGrupo, "pendiente", 65);
+    expect(visiblePorGrupo.pendiente).toBe(40);
+    visiblePorGrupo = cargarMasGrupo(visiblePorGrupo, "pendiente", 65);
+    expect(visiblePorGrupo.pendiente).toBe(60);
+    visiblePorGrupo = cargarMasGrupo(visiblePorGrupo, "pendiente", 65);
+    expect(visiblePorGrupo.pendiente).toBe(65); // tope en el total real
+  });
+
+  it('grupos con clave compuesta (vista "Por puesto") también se inicializan bien', () => {
+    const visiblePorGrupoVacio = {};
+    const resultado = cargarMasGrupo(visiblePorGrupoVacio, "3::confirmado", 35);
+    expect(resultado["3::confirmado"]).toBe(35);
+    expect(Number.isNaN(resultado["3::confirmado"])).toBe(false);
+  });
+});
