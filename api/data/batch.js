@@ -2,6 +2,7 @@
 import { sql } from '../../lib/db.js';
 import { checkRateLimit } from '../../lib/rateLimiter.js';
 import { logError, logWarn, requestContext } from '../../lib/logger.js';
+import { isVoluntariosCollection, protegerCamposAuth } from '../../lib/voluntarioAuthGuard.js';
 
 // fix(SEC-CRIT-01): allowlist de colecciones — misma regex que [collection].js
 const ALLOWED_COLLECTIONS = /^teg_(voluntarios|logistica|presupuesto|camisetas|patrocinadores|pat_log|localizaciones|documentos|proyecto|event_config|scenarios|codigos_promo|panel_pin_hash|panel_pin_length|escenarios|dia_carrera|scenario_active_name|auto_backup)_?v?\d*(_[a-zA-Z0-9]+)*$/;
@@ -67,6 +68,17 @@ export default async function handler(req, res) {
 
       // MEJORA-03: Promise.allSettled — errores parciales no abortan el batch completo
       const keys = Object.keys(entries);
+
+      // FIX-PIN-RACE: misma protección que [collection].js — si el batch incluye
+      // la colección de voluntarios, preservar sus campos de auth ya en BD.
+      if (keys.some(isVoluntariosCollection)) {
+        for (const key of keys) {
+          if (!isVoluntariosCollection(key)) continue;
+          const currentRow = await sql`SELECT value FROM collections WHERE key = ${key}`;
+          entries[key] = protegerCamposAuth(entries[key], currentRow[0]?.value);
+        }
+      }
+
       const results = await Promise.allSettled(
         Object.entries(entries).map(([key, value]) => {
           const jsonValue = JSON.stringify(value);

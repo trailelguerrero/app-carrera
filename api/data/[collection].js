@@ -2,6 +2,7 @@
 import { sql } from '../../lib/db.js';
 import { checkRateLimit } from '../../lib/rateLimiter.js';
 import { logError, requestContext } from '../../lib/logger.js';
+import { isVoluntariosCollection, protegerCamposAuth } from '../../lib/voluntarioAuthGuard.js';
 
 // fix(SEC-CRIT-01): allowlist de colecciones — previene acceso no autorizado entre módulos
 const ALLOWED_COLLECTIONS = /^teg_(voluntarios|logistica|presupuesto|camisetas|patrocinadores|pat_log|localizaciones|documentos|proyecto|event_config|scenarios|codigos_promo|panel_pin_hash|panel_pin_length|escenarios|dia_carrera|scenario_active_name|auto_backup)_?v?\d*(_[a-zA-Z0-9]+)*$/;
@@ -40,10 +41,9 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'PUT') {
-      const body = req.body;
+      let body = req.body;
       // MISSING-02: soporte opcional de version para detección de conflictos
       const clientVersion = body?.__version;
-      const jsonValue = JSON.stringify(body);
 
       if (clientVersion !== undefined) {
         const current = await sql`SELECT version FROM collections WHERE key = ${collection}`;
@@ -57,6 +57,20 @@ export default async function handler(req, res) {
           });
         }
       }
+
+      // FIX-PIN-RACE: el panel de organizador guarda el array de voluntarios
+      // entero desde estado en memoria. Si esa copia es anterior a un
+      // reset-pin/cambio de PIN/login, este PUT revertiría silenciosamente
+      // el pinHash/sessionToken al valor viejo. Los campos de autenticación
+      // SOLO pueden cambiar vía api/voluntarios/index.js — aquí se preservan
+      // siempre los que ya están en BD, ignorando lo que traiga el cliente.
+      if (isVoluntariosCollection(collection)) {
+        const currentRow = await sql`SELECT value FROM collections WHERE key = ${collection}`;
+        const currentValue = currentRow[0]?.value;
+        body = protegerCamposAuth(body, currentValue);
+      }
+
+      const jsonValue = JSON.stringify(body);
 
       await sql`
         INSERT INTO collections (key, value, version)
