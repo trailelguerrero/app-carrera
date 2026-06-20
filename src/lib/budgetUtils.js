@@ -122,18 +122,19 @@ export const getEspecieValue = (pat) => {
 };
 
 /**
- * detectarDobleComputoNino — AUD-CAM-01/02 (validación recomendación nº5 de la auditoría
- * de camisetas): detecta si las tallas de "Niño/a — manual" (ninoExt, fuente de gasto
- * independiente, sin trazabilidad de a quién corresponde) podrían estar duplicando el
- * mismo coste que ya tiene una línea de pedido tipo "nino" con estadoPago='regalo'
- * (la vía CON trazabilidad: fecha, nombre, visible en el checklist de entregas).
+ * detectarDobleComputoNino — AUD-CAM-01/02 (recomendación nº5 de la auditoría de camisetas).
  *
- * El audit advierte: si alguna vez se introducen las mismas unidades dos veces — una como
- * "Niño/a Manual" y otra como pedido tipo "niño" con estadoPago='regalo' para tener
- * trazabilidad de a quién se entregó — el coste se cuenta dos veces (categoría "nino" en
- * calculateCamisetasPresupuesto, y "regalos"). Hoy no hay ninguna validación que avise de
- * este solape, a diferencia de otros casos de doble cómputo (patrocinios/subvención) que
- * sí están protegidos explícitamente (ver detectarIncoherencias arriba).
+ * IMPORTANTE — vigente para ediciones anteriores a AUD-CAM-01: cuando esta función se creó,
+ * "Niño/a — manual" (ninoExt) SÍ generaba gasto real en calculateCamisetasPresupuesto, así que
+ * un solape con un pedido tipo "nino" regalo significaba un doble cómputo económico real.
+ *
+ * Desde AUD-CAM-01 (decisión de producto confirmada con Ivan), "Niño/a — manual" YA NO genera
+ * gasto — es puramente informativa. Por tanto esta función ya NO detecta un riesgo económico
+ * (el balance del evento es correcto independientemente de lo que haya en ninoExt), sino una
+ * REDUNDANCIA DE REGISTRO: las mismas unidades probablemente están anotadas dos veces (aquí,
+ * sin trazabilidad; y en Pedidos, con trazabilidad real), lo cual puede generar confusión al
+ * mirar el panel aunque no afecte al dinero. Se mantiene el nombre y la firma de la función
+ * para no romper los llamantes existentes (TabTallas.jsx, tests), solo cambia su interpretación.
  *
  * Heurística (best-effort, no puede saber con certeza si son las "mismas" unidades, ya que
  * ninoExt no tiene ningún campo que lo vincule a una línea de pedido concreta):
@@ -594,6 +595,14 @@ export const calculateCosteCamisetasDesglosado = ({
 };
 
 /**
+ * TIPOS_CAMISETA — AUD-CAM-03: tipos de camiseta usados para desglosar "otros"/"regalos"
+ * por tipo. Constante local (no importada de camisetasConstants.js) para no introducir
+ * una dependencia de budgetUtils.js hacia el módulo Camisetas — el valor debe coincidir
+ * con TIPOS en camisetasConstants.js (["corredor","voluntario","nino"]).
+ */
+const TIPOS_CAMISETA = ["corredor", "voluntario", "nino"];
+
+/**
  * calculateCamisetasPresupuesto — ECO-08: desglose de camisetas en 6 categorías
  * independientes con ingreso/gasto propio y toggle propio, para sustituir el
  * antiguo modelo de un único "beneficio neto" agregado (calculateCosteCamisetasDesglosado).
@@ -607,6 +616,18 @@ export const calculateCosteCamisetasDesglosado = ({
  *   5. voluntarios       — SOLO cálculo automático (voluntariosActivos × coste.voluntario). Solo gasto.
  *   6. regalos          — líneas de Pedidos con estadoPago='regalo', tipo activo según
  *                          fuentesExtras (corredor/voluntario/niño). Solo gasto.
+ *   7. nino             — AUD-CAM-01 (decisión de producto confirmada con Ivan): SK_CAM_NINO
+ *                          (tallas manuales de "Niño/a — manual") ya NO genera gasto. Esta
+ *                          fuente es ahora EXCLUSIVAMENTE una vista de consolidación de tallas
+ *                          para el pedido al proveedor — solo informa `unidades`, nunca `gasto`.
+ *                          El gasto real de camisetas de niño (que SÍ existe y SÍ es configurable
+ *                          vía camCoste.nino) vive en "otros" (niño vendido a familiar, con su
+ *                          propio precioVenta) y "regalos" (niño regalado), exactamente igual
+ *                          que corredor y voluntario — la única vía para registrar una camiseta
+ *                          de niño con coste real es un pedido (camPedidos, tipo:"nino"), nunca
+ *                          la pestaña manual. Esto elimina el riesgo de doble cómputo que existía
+ *                          antes entre "Niño/a manual" y un pedido tipo "nino" con estadoPago=
+ *                          'regalo' (ver detectarDobleComputoNino, que documenta ese riesgo).
  *
  * Invariante de diseño: ninguna unidad real puede contarse en dos categorías a la vez.
  * - "corredores"/"noCorredores" son EXCLUSIVAMENTE plataforma (no incluyen extras de Pedidos).
@@ -614,6 +635,8 @@ export const calculateCosteCamisetasDesglosado = ({
  *   (AUD-CAM-04: antes solo se separaban por estadoPago; ver parámetro fuentesExtras).
  * - "voluntarios" es EXCLUSIVAMENTE el cálculo automático; los extras de Pedidos tipo
  *   "voluntario" caen en "otros" o "regalos" según su estadoPago, nunca aquí.
+ * - "nino" es EXCLUSIVAMENTE informativo (unidades de la pestaña manual); el gasto real de
+ *   niño cae siempre en "otros" o "regalos" según estadoPago, nunca aquí.
  *
  * @param {object} p
  * @param {object} p.camCoste        - { corredor, voluntario, nino } coste unitario de fabricación
@@ -624,7 +647,9 @@ export const calculateCosteCamisetasDesglosado = ({
  * @param {number} p.precioNoCorrExt - Precio de venta por no-corredor (plataforma)
  * @param {object} p.ventaPublico    - { precio, cantidad } venta al público general
  * @param {Array}  p.voluntariosActivos - Voluntarios confirmados/pendientes con talla asignada
- * @param {object} p.toggles        - { corredores, noCorredores, ventaPublico, otros, voluntarios, regalos } activo/inactivo por categoría
+ * @param {object} p.toggles        - { corredores, noCorredores, ventaPublico, otros, voluntarios, regalos } activo/inactivo por categoría.
+ *   `toggles.nino` se acepta por retrocompatibilidad de la firma pero ya no tiene ningún efecto:
+ *   desde AUD-CAM-01 la categoría "nino" nunca genera gasto, así que no hay nada que activar/desactivar.
  * @param {object} p.fuentesExtras  - AUD-CAM-04: { extrasCorredor, extrasVoluntario, extrasNino } activo/inactivo
  *   por TIPO dentro de "otros" y "regalos". Antes estas dos categorías solo tenían el toggle agregado
  *   `toggles.otros`/`toggles.regalos` (todo o nada) y no respetaban los 3 toggles por tipo que el propio
@@ -636,9 +661,9 @@ export const calculateCosteCamisetasDesglosado = ({
  *   corredores:    {ingreso:number, gasto:number, unidades:number},
  *   noCorredores:  {ingreso:number, gasto:number, unidades:number},
  *   ventaPublico:  {ingreso:number, gasto:number, unidades:number},
- *   otros:         {ingreso:number, gasto:number, unidades:number},
+ *   otros:         {ingreso:number, gasto:number, unidades:number, porTipo: {corredor,voluntario,nino}},
  *   voluntarios:   {ingreso:number, gasto:number, unidades:number},
- *   regalos:       {ingreso:number, gasto:number, unidades:number},
+ *   regalos:       {ingreso:number, gasto:number, unidades:number, porTipo: {corredor,voluntario,nino}},
  *   totalIngresos: number,
  *   totalGastos:   number,
  *   beneficioNeto: number,
@@ -705,12 +730,34 @@ export const calculateCamisetasPresupuesto = ({
   const lineasVendidas = lineas.filter(l => (l.estadoPago === "pagado" || l.estadoPago === "pendiente") && tipoActivo(l.tipo));
   const lineasRegalo   = lineas.filter(l => l.estadoPago === "regalo" && tipoActivo(l.tipo));
 
+  // AUD-CAM-03 (recomendación nº3 del audit original): desglose por tipo (corredor/
+  // voluntario/nino) dentro de un set de líneas, para responder "¿cuánto ingresamos/
+  // gastamos solo por camisetas de niño (o corredor, o voluntario) vendidas/regaladas?"
+  // sin tener que sumar a mano filtrando pedidos. incluyeIngreso=false para "regalos"
+  // (nunca generan ingreso, igual que el total agregado de esa categoría).
+  const desglosarPorTipo = (lns, incluyeIngreso) => {
+    const porTipo = {};
+    TIPOS_CAMISETA.forEach(tipo => {
+      const deTipo = lns.filter(l => l.tipo === tipo);
+      porTipo[tipo] = {
+        unidades: deTipo.reduce((s, l) => s + (l.cantidad || 0), 0),
+        ingreso: incluyeIngreso ? deTipo.reduce((s, l) => s + (l.cantidad || 0) * (l.precioVenta || 0), 0) : 0,
+        gasto: deTipo.reduce((s, l) => s + (l.cantidad || 0) * (costeCU[tipo] || costeCU.corredor), 0),
+      };
+    });
+    return porTipo;
+  };
+
   // ── 4. Camisetas otros (extras vendidos: pagado + pendiente, cualquier tipo) ──
   const unidOtros = lineasVendidas.reduce((s, l) => s + (l.cantidad || 0), 0);
   const otros = {
     unidades: unidOtros,
     ingreso: toggles.otros ? lineasVendidas.reduce((s, l) => s + (l.cantidad || 0) * (l.precioVenta || 0), 0) : 0,
     gasto:   toggles.otros ? lineasVendidas.reduce((s, l) => s + (l.cantidad || 0) * (costeCU[l.tipo] || costeCU.corredor), 0) : 0,
+    // AUD-CAM-03: desglose informativo por tipo. Si toggles.otros está desactivado, se
+    // devuelve igualmente (no se pone a 0) porque el toggle ya pone unidades/ingreso/gasto
+    // del total a 0 — el desglose es solo para inspección, nunca se usa en totalIngresos/Gastos.
+    porTipo: desglosarPorTipo(lineasVendidas, true),
   };
 
   // ── 5. Camisetas voluntarios (SOLO automático, sin extras de Pedidos) ──
@@ -727,16 +774,23 @@ export const calculateCamisetasPresupuesto = ({
     unidades: unidRegalos,
     ingreso: 0,
     gasto: toggles.regalos ? lineasRegalo.reduce((s, l) => s + (l.cantidad || 0) * (costeCU[l.tipo] || costeCU.corredor), 0) : 0,
+    // AUD-CAM-03: desglose informativo por tipo, sin ingreso (los regalos nunca lo tienen).
+    porTipo: desglosarPorTipo(lineasRegalo, false),
   };
 
-  // ── 7. Camisetas niño/a (manual, plataforma) — ECO-11: solo gasto, sin ingreso,
-  // igual tratamiento que "voluntarios" porque no hay precio de venta asociado a
-  // esta fuente (son tallas consolidadas para el pedido al proveedor, no ventas).
+  // ── 7. Camisetas niño/a (manual) — AUD-CAM-01: SOLO informativo (unidades), sin gasto.
+  // El coste de fabricación de niño SÍ existe y SÍ es configurable (costeCU.nino se sigue
+  // usando arriba, en "otros" y "regalos", para cualquier línea de pedido tipo "nino") —
+  // lo que cambia es que esta fuente concreta (la pestaña manual de tallas) ya no es una
+  // vía de gasto independiente. Antes "gasto: unidNino * costeCU.nino" sumaba un coste real
+  // garantizado aunque esas mismas unidades pudieran estar también registradas como pedido
+  // tipo "nino" con estadoPago='regalo' — doble cómputo silencioso. Ahora la única vía con
+  // coste real es el pedido (categorías "otros"/"regalos"), igual que corredor y voluntario.
   const unidNino = Object.values(ninoExt).reduce((s, n) => s + (n || 0), 0);
   const nino = {
     unidades: unidNino,
     ingreso: 0,
-    gasto: toggles.nino ? unidNino * costeCU.nino : 0,
+    gasto: 0,
   };
 
   const totalIngresos = corredores.ingreso + noCorredores.ingreso + ventaPublicoCat.ingreso + otros.ingreso;

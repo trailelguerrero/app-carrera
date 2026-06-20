@@ -136,6 +136,65 @@ describe('AUD-CAM — detectarDobleComputoNino', () => {
   });
 });
 
+// AUD-CAM-01 — decisión de producto confirmada con Ivan: el coste de camisetas de niño
+// SÍ existe y SIGUE siendo configurable (camCoste.nino), pero la categoría "nino" de
+// calculateCamisetasPresupuesto (alimentada por ninoExt, la pestaña "Niño/a manual") ya
+// NUNCA genera ese gasto. La única vía con coste real para una camiseta de niño es un
+// pedido (camPedidos, tipo:"nino"), igual que corredor y voluntario — vendido con su propio
+// precioVenta (categoría "otros") o regalado (categoría "regalos"). "nino" pasa a ser
+// puramente informativa: solo reporta `unidades`, nunca `gasto` ni `ingreso`.
+describe('AUD-CAM-01 — "nino" (ninoExt) ya no genera gasto, solo es informativa', () => {
+  it('unidNino > 0 pero gasto siempre 0, independientemente del coste configurado', async () => {
+    const { calculateCamisetasPresupuesto } = await import('../lib/budgetUtils.js');
+    const r = calculateCamisetasPresupuesto({
+      camCoste: { corredor: 8, voluntario: 7, nino: 6 },
+      ninoExt: { '4-6': 5, '6-8': 3 },
+    });
+    expect(r.nino.unidades).toBe(8);
+    expect(r.nino.gasto).toBe(0);
+    expect(r.nino.ingreso).toBe(0);
+  });
+
+  it('toggles.nino ya no tiene ningún efecto (retrocompatible pero sin uso real)', async () => {
+    const { calculateCamisetasPresupuesto } = await import('../lib/budgetUtils.js');
+    const base = { camCoste: { corredor: 8, voluntario: 7, nino: 6 }, ninoExt: { '4-6': 10 } };
+    const conNinoOn  = calculateCamisetasPresupuesto({ ...base, toggles: { nino: true } });
+    const conNinoOff = calculateCamisetasPresupuesto({ ...base, toggles: { nino: false } });
+    expect(conNinoOn.nino.gasto).toBe(0);
+    expect(conNinoOff.nino.gasto).toBe(0);
+    expect(conNinoOn.nino.unidades).toBe(conNinoOff.nino.unidades); // toggle no afecta ni a unidades
+  });
+
+  it('el coste real de niño se genera vía pedidos (otros/regalos), no vía ninoExt', async () => {
+    const { calculateCamisetasPresupuesto } = await import('../lib/budgetUtils.js');
+    const camPedidos = [{ lineas: [
+      { tipo: "nino", cantidad: 4, precioVenta: 10, estadoPago: "pagado" }, // venta a familiar
+      { tipo: "nino", cantidad: 2, precioVenta: 0,  estadoPago: "regalo" }, // regalo con trazabilidad
+    ]}];
+    const r = calculateCamisetasPresupuesto({
+      camCoste: { corredor: 8, voluntario: 7, nino: 6 },
+      ninoExt: { '4-6': 99 }, // tallas manuales presentes, pero sin efecto económico
+      camPedidos,
+    });
+    expect(r.nino.gasto).toBe(0); // ninoExt nunca genera gasto
+    expect(r.otros.gasto).toBe(4 * 6);   // venta a familiar: coste real vía "otros"
+    expect(r.otros.ingreso).toBe(4 * 10); // con su propio precioVenta
+    expect(r.regalos.gasto).toBe(2 * 6); // regalo: coste real vía "regalos"
+    expect(r.totalGastos).toBe(4 * 6 + 2 * 6); // el gasto total NO incluye las 99 unidades manuales
+  });
+
+  it('totalGastos no incluye nino.gasto bajo ningún escenario de toggles/fuentesExtras', async () => {
+    const { calculateCamisetasPresupuesto } = await import('../lib/budgetUtils.js');
+    const r = calculateCamisetasPresupuesto({
+      camCoste: { corredor: 8, voluntario: 7, nino: 6 },
+      ninoExt: { '4-6': 50, '6-8': 50 }, // 100 unidades manuales, coste potencial de 600€ si contara
+      toggles: { corredores: true, noCorredores: true, ventaPublico: true, otros: true, voluntarios: true, regalos: true, nino: true },
+      fuentesExtras: { extrasCorredor: true, extrasVoluntario: true, extrasNino: true },
+    });
+    expect(r.totalGastos).toBe(0); // sin pedidos ni voluntarios activos, el total debe ser 0 — no 600
+  });
+});
+
 // PRE-05 — ECO-08: categoría "otros" (extras de Pedidos vendidos: pagado+pendiente)
 describe('PRE-05 — Camisetas "otros" (extras de Pedidos vendidos)', () => {
   it('ingreso solo cuenta pagado+pendiente, no regalo', async () => {
@@ -848,3 +907,63 @@ describe('PRE-17 — Seed de Merchandising sin duplicidad de camisetas', () => {
     expect(nombres).toContain('Gorra trail');
   });
 });
+
+// AUD-CAM-03 — recomendación nº3 del audit original: desglose por tipo (corredor/
+// voluntario/nino) dentro de "otros" y "regalos", para ver cuánto corresponde a cada
+// tipo sin sumar manualmente filtrando pedidos por tipo.
+describe('AUD-CAM-03 — desglose porTipo en "otros" y "regalos"', () => {
+  it('"otros" desglosa ingreso/gasto/unidades por tipo, con su propio precioVenta', async () => {
+    const { calculateCamisetasPresupuesto } = await import('../lib/budgetUtils.js');
+    const camPedidos = [{ lineas: [
+      { tipo:"corredor",   cantidad:4, precioVenta:15, estadoPago:"pagado" },
+      { tipo:"voluntario", cantidad:2, precioVenta:12, estadoPago:"pendiente" },
+      { tipo:"nino",       cantidad:6, precioVenta:10, estadoPago:"pagado" },
+    ]}];
+    const r = calculateCamisetasPresupuesto({ camCoste:{corredor:8,voluntario:7,nino:6}, camPedidos });
+    expect(r.otros.porTipo.corredor).toEqual({ unidades:4, ingreso:4*15, gasto:4*8 });
+    expect(r.otros.porTipo.voluntario).toEqual({ unidades:2, ingreso:2*12, gasto:2*7 });
+    expect(r.otros.porTipo.nino).toEqual({ unidades:6, ingreso:6*10, gasto:6*6 });
+    // la suma del desglose debe coincidir con el total de la categoría
+    const sumaUnidades = r.otros.porTipo.corredor.unidades + r.otros.porTipo.voluntario.unidades + r.otros.porTipo.nino.unidades;
+    expect(sumaUnidades).toBe(r.otros.unidades);
+  });
+
+  it('"regalos" desglosa por tipo sin ingreso (los regalos nunca lo tienen)', async () => {
+    const { calculateCamisetasPresupuesto } = await import('../lib/budgetUtils.js');
+    const camPedidos = [{ lineas: [
+      { tipo:"corredor", cantidad:3, precioVenta:0, estadoPago:"regalo" },
+      { tipo:"nino",     cantidad:5, precioVenta:0, estadoPago:"regalo" },
+    ]}];
+    const r = calculateCamisetasPresupuesto({ camCoste:{corredor:8,voluntario:7,nino:6}, camPedidos });
+    expect(r.regalos.porTipo.corredor).toEqual({ unidades:3, ingreso:0, gasto:3*8 });
+    expect(r.regalos.porTipo.nino).toEqual({ unidades:5, ingreso:0, gasto:5*6 });
+    expect(r.regalos.porTipo.voluntario).toEqual({ unidades:0, ingreso:0, gasto:0 });
+  });
+
+  it('porTipo respeta fuentesExtras igual que el total de la categoría', async () => {
+    const { calculateCamisetasPresupuesto } = await import('../lib/budgetUtils.js');
+    const camPedidos = [{ lineas: [
+      { tipo:"corredor", cantidad:4, precioVenta:15, estadoPago:"pagado" },
+      { tipo:"nino",     cantidad:6, precioVenta:10, estadoPago:"pagado" },
+    ]}];
+    const r = calculateCamisetasPresupuesto({
+      camCoste:{corredor:8,voluntario:7,nino:6}, camPedidos,
+      fuentesExtras:{ extrasCorredor:true, extrasVoluntario:true, extrasNino:false },
+    });
+    expect(r.otros.porTipo.nino.unidades).toBe(0); // excluido por fuentesExtras, ya filtrado en lineasVendidas
+    expect(r.otros.porTipo.corredor.unidades).toBe(4); // intacto
+  });
+
+  it('responde "cuánto ingresamos solo por camisetas de niño" sin sumar a mano', async () => {
+    const { calculateCamisetasPresupuesto } = await import('../lib/budgetUtils.js');
+    const camPedidos = [{ lineas: [
+      { tipo:"corredor", cantidad:10, precioVenta:15, estadoPago:"pagado" },
+      { tipo:"nino",     cantidad:7,  precioVenta:9,  estadoPago:"pagado" },
+      { tipo:"nino",     cantidad:2,  precioVenta:9,  estadoPago:"pendiente" },
+    ]}];
+    const r = calculateCamisetasPresupuesto({ camCoste:{corredor:8,voluntario:7,nino:6}, camPedidos });
+    // exactamente la pregunta que el audit señalaba como imposible de responder sin sumar a mano
+    expect(r.otros.porTipo.nino.ingreso).toBe(9 * 9); // (7+2) unidades × 9€
+  });
+});
+

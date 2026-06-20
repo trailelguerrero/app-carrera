@@ -21,10 +21,11 @@ export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosAc
   const toggleSec = (k) => setSecCol(p => ({...p,[k]:!p[k]}));
   const [tmpNino, setTmpNino] = useState({ ...ninoExt });
 
-  // AUD-CAM (recomendación nº5 de la auditoría): aviso de posible doble cómputo si hay
+  // AUD-CAM-01 (recomendación nº5 de la auditoría): aviso de redundancia de registro si hay
   // tallas en "Niño/a manual" Y al menos un pedido tipo "nino" con estadoPago='regalo'.
-  // Ambas fuentes son gasto sin ingreso para el mismo tipo de camiseta — si representan
-  // las mismas unidades, el coste se está contando dos veces en el balance económico.
+  // Desde AUD-CAM-01, "Niño/a manual" no genera gasto (solo informativo) — el aviso ya no
+  // señala un riesgo económico, sino que las mismas unidades probablemente están anotadas
+  // dos veces y conviene limpiar la pestaña manual para evitar confusión.
   const dobleComputoNino = useMemo(() => detectarDobleComputoNino(ninoExt, pedidos), [ninoExt, pedidos]);
 
   // ── Asistente de importación desde Presupuesto (M7-02) ──
@@ -299,7 +300,7 @@ export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosAc
             total: fuentesActivas.extrasVoluntario
               ? pedidos.filter(p=>p.lineas?.some(l=>l.tipo==="voluntario")).reduce((s,p)=>s+p.lineas.filter(l=>l.tipo==="voluntario").reduce((ss,l)=>ss+l.cantidad,0),0)
               : 0 },
-          { key:"ninoManual", tab:"tallas", icon:"👶", label:"Niño/a", sub:"Manual — entra en Presupuesto como gasto (sin ingreso asociado).",
+          { key:"ninoManual", tab:"tallas", icon:"👶", label:"Niño/a", sub:"Manual — solo consolidación de tallas, sin coste (usa Pedidos para registrar gasto real).",
             color:TC.nino.color, dim:TC.nino.dim,
             total: fuentesActivas.ninoManual ? TALLAS_NINO.reduce((s,t)=>s+(ninoExt[t]||0),0) : 0 },
           { key:"extrasNino", tab:"pedidos", icon:"👶+", label:"Extras niño/a", sub:"Pedidos manuales",
@@ -678,8 +679,8 @@ export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosAc
         {/* ── FUENTE 3: Niño/a (manual por talla) ── */}
         <div className="card" style={{ borderLeft: `3px solid ${TC.nino.color}` }}>
           <SectionTitle
-            icon="👶" title="Niño/a — manual"
-            subtitle="Tallas 4-6, 6-8, 8-10, 10-12 — introduce los totales manualmente"
+            icon="👶" title="Niño/a — manual (solo consolidación de tallas)"
+            subtitle="Tallas 4-6, 6-8, 8-10, 10-12 — sin coste asociado. Para registrar gasto real (regalo o venta a familiar), usa la pestaña Pedidos."
             color={TC.nino.color}
             action={
               !editNino
@@ -697,12 +698,13 @@ export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosAc
               borderRadius: 'var(--r-sm)', padding: '.5rem .65rem', marginBottom: '.6rem',
               fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--text)',
             }}>
-              <span style={{ flexShrink: 0 }}>⚠️</span>
+              <span style={{ flexShrink: 0 }}>ℹ️</span>
               <span>
-                Posible doble cómputo: hay <strong>{dobleComputoNino.unidadesManual}</strong> unidades en
-                "Niño/a manual" y <strong>{dobleComputoNino.unidadesRegaloPedidos}</strong> unidades en
-                pedidos de niño marcados como regalo. Si son las mismas camisetas, su coste se está
-                contando dos veces en el balance económico del evento. Revisa que no se solapen.
+                Hay <strong>{dobleComputoNino.unidadesManual}</strong> unidades registradas aquí (sin coste)
+                y <strong>{dobleComputoNino.unidadesRegaloPedidos}</strong> unidades en pedidos de niño
+                marcados como regalo (con coste real). Si son las mismas camisetas, puedes vaciar esta
+                pestaña — el gasto ya queda correctamente registrado en Pedidos, y mantener ambas es
+                redundante.
               </span>
             </div>
           )}

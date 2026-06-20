@@ -101,11 +101,12 @@ export const FUENTES_DEFAULT = {
   extrasCorredor: true,
   voluntariosAuto: true,
   extrasVoluntario: true,
-  // ECO-11: las tallas de niño manuales AHORA SÍ llegan al cálculo de Presupuesto/
-  // Ingresos vía calculateCamisetasPresupuesto (categoría "nino", solo gasto, igual
-  // tratamiento que "voluntarios"). Activado por defecto para coherencia con el resto
-  // de fuentes — si ya tenías tallas de niño manuales cargadas, su coste empezará a
-  // aparecer en el balance económico del evento (antes desaparecía silenciosamente).
+  // AUD-CAM-01: ninoManual controla la visibilidad de la pestaña "Niño/a — manual" como
+  // consolidación de tallas (para el pedido al proveedor) — ya NO controla gasto alguno.
+  // Desde AUD-CAM-01, el coste de camisetas de niño solo se genera vía pedidos (tipo:"nino"
+  // en camPedidos, categorías "otros"/"regalos" de calculateCamisetasPresupuesto), igual que
+  // corredor y voluntario. Antes (ECO-11) esta fuente sí generaba gasto real garantizado,
+  // duplicando potencialmente el coste de un mismo regalo ya registrado también como pedido.
   ninoManual: true,
   extrasNino: true,
   noCorredoresPlat: true,

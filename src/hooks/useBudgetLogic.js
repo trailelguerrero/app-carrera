@@ -179,8 +179,9 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     precioNoCorrExt: rawCamPrecioNoCorrObj?.precio ?? PRECIO_NO_CORREDOR_DEFAULT,
     ventaPublico: rawCamVentaPublico || { precio: 0, cantidad: 0 },
     voluntariosActivos: _camVoluntariosActivos,
-    // ECO-11: ninoExt ahora SÍ llega al cálculo de presupuesto (antes faltaba este
-    // parámetro y el gasto de tallas de niño manuales nunca aparecía en el balance).
+    // AUD-CAM-01: ninoExt ya NO genera gasto (ver calculateCamisetasPresupuesto) — solo
+    // alimenta la categoría "nino" informativa (unidades de tallas, sin coste). El gasto
+    // real de camisetas de niño vive en "otros"/"regalos" vía camPedidos (tipo:"nino").
     ninoExt: rawCamNino || {},
     toggles: {
       corredores:   camSyncConfig.camCorredores,

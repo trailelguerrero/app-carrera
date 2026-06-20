@@ -151,7 +151,8 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
       precioNoCorrExt: rawCamPrecioNoCorr?.precio ?? PRECIO_NO_CORREDOR_DEFAULT,
       ventaPublico: rawCamVentaPub || { precio: 0, cantidad: 0 },
       voluntariosActivos: _camVolActivos,
-      // ECO-11: ninoExt ahora SÍ llega al cálculo — antes faltaba este parámetro.
+      // AUD-CAM-01: ninoExt ya NO genera gasto — solo unidades informativas. El gasto real
+      // de niño vive en "otros"/"regalos" vía camPedidos (tipo:"nino"), igual que useBudgetLogic.
       ninoExt: rawCamNino || {},
       toggles: {
         corredores:   camSyncConfig.camCorredores,
