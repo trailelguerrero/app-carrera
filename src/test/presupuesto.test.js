@@ -163,6 +163,92 @@ describe('PRE-06 — Camisetas "regalo" (extras de Pedidos con estadoPago=regalo
   });
 });
 
+// AUD-CAM-04 — fix Hallazgo 4 (auditoría camisetas): "otros"/"regalos" deben respetar
+// los 3 toggles por tipo (extrasCorredor/extrasVoluntario/extrasNino) que el módulo
+// Camisetas ya aplica internamente. Antes, calculateCamisetasPresupuesto solo filtraba
+// por estadoPago y sumaba las 3 fuentes siempre, sin importar si el panel de Camisetas
+// las tenía desactivadas — Presupuesto/Dashboard mostraban un beneficio neto distinto
+// al del panel de Camisetas para los mismos datos.
+describe('AUD-CAM-04 — sincronización de toggles por tipo en "otros"/"regalos"', () => {
+  it('por defecto (sin fuentesExtras) se comporta igual que antes: todas las líneas cuentan', async () => {
+    const { calculateCamisetasPresupuesto } = await import('../lib/budgetUtils.js');
+    const camPedidos = [{ lineas: [
+      { tipo:"corredor",   cantidad:10, precioVenta:15, estadoPago:"pagado" },
+      { tipo:"voluntario", cantidad:5,  precioVenta:12, estadoPago:"pendiente" },
+      { tipo:"nino",       cantidad:3,  precioVenta:10, estadoPago:"pagado" },
+    ]}];
+    const r = calculateCamisetasPresupuesto({ camCoste:{corredor:8,voluntario:7,nino:6}, camPedidos });
+    expect(r.otros.unidades).toBe(18); // 10+5+3, retrocompatible sin fuentesExtras
+  });
+
+  it('desactivar extrasNino excluye solo las líneas tipo "nino" de "otros"', async () => {
+    const { calculateCamisetasPresupuesto } = await import('../lib/budgetUtils.js');
+    const camPedidos = [{ lineas: [
+      { tipo:"corredor",   cantidad:10, precioVenta:15, estadoPago:"pagado" },
+      { tipo:"voluntario", cantidad:5,  precioVenta:12, estadoPago:"pendiente" },
+      { tipo:"nino",       cantidad:3,  precioVenta:10, estadoPago:"pagado" },
+    ]}];
+    const r = calculateCamisetasPresupuesto({
+      camCoste:{corredor:8,voluntario:7,nino:6}, camPedidos,
+      fuentesExtras:{ extrasCorredor:true, extrasVoluntario:true, extrasNino:false },
+    });
+    expect(r.otros.unidades).toBe(15); // 10+5, niño excluido
+    expect(r.otros.ingreso).toBe(10*15 + 5*12); // sin los 3*10 de niño
+    expect(r.otros.gasto).toBe(10*8 + 5*7); // sin el 3*6 de niño
+  });
+
+  it('desactivar extrasNino excluye también las líneas "nino" con estadoPago=regalo', async () => {
+    const { calculateCamisetasPresupuesto } = await import('../lib/budgetUtils.js');
+    const camPedidos = [{ lineas: [
+      { tipo:"voluntario", cantidad:5, precioVenta:0, estadoPago:"regalo" },
+      { tipo:"nino",       cantidad:3, precioVenta:0, estadoPago:"regalo" },
+    ]}];
+    const r = calculateCamisetasPresupuesto({
+      camCoste:{corredor:8,voluntario:7,nino:6}, camPedidos,
+      fuentesExtras:{ extrasCorredor:true, extrasVoluntario:true, extrasNino:false },
+    });
+    expect(r.regalos.unidades).toBe(5); // solo voluntario, niño excluido
+    expect(r.regalos.gasto).toBe(5*7);
+  });
+
+  it('escenario completo del audit: igual que el panel interno de Camisetas, no todo-o-nada', async () => {
+    const { calculateCamisetasPresupuesto } = await import('../lib/budgetUtils.js');
+    const camPedidos = [{ lineas: [
+      { tipo:"corredor",   cantidad:4, precioVenta:15, estadoPago:"pagado" },
+      { tipo:"voluntario", cantidad:2, precioVenta:12, estadoPago:"pagado" },
+      { tipo:"nino",       cantidad:6, precioVenta:10, estadoPago:"pagado" },
+    ]}];
+    // Con las 3 fuentes activas (estado por defecto del panel de Camisetas)
+    const todasActivas = calculateCamisetasPresupuesto({
+      camCoste:{corredor:8,voluntario:7,nino:6}, camPedidos,
+      fuentesExtras:{ extrasCorredor:true, extrasVoluntario:true, extrasNino:true },
+    });
+    expect(todasActivas.otros.unidades).toBe(12);
+    // El usuario desactiva SOLO "extras niño" en el panel de Camisetas
+    const sinNino = calculateCamisetasPresupuesto({
+      camCoste:{corredor:8,voluntario:7,nino:6}, camPedidos,
+      fuentesExtras:{ extrasCorredor:true, extrasVoluntario:true, extrasNino:false },
+    });
+    expect(sinNino.otros.unidades).toBe(6); // 4+2, igual que bajaría el panel interno
+    expect(sinNino.otros.ingreso).toBe(4*15 + 2*12); // sin los 6*10 de niño
+    // El toggle "corredor" y "voluntario" siguen intactos: no es todo-o-nada
+    expect(sinNino.otros.unidades).not.toBe(0);
+    expect(sinNino.otros.unidades).not.toBe(todasActivas.otros.unidades);
+  });
+
+  it('fuentesExtras no afecta a las demás categorías (corredores/noCorredores/ventaPublico/voluntarios)', async () => {
+    const { calculateCamisetasPresupuesto } = await import('../lib/budgetUtils.js');
+    const r = calculateCamisetasPresupuesto({
+      camCoste:{corredor:8,voluntario:7,nino:6},
+      corredoresExt:{ M:10 }, precioCorrExt:15,
+      voluntariosActivos:[{ id:1, talla:'M' }],
+      fuentesExtras:{ extrasCorredor:false, extrasVoluntario:false, extrasNino:false },
+    });
+    expect(r.corredores.ingreso).toBe(10*15); // intacto, fuentesExtras solo afecta a otros/regalos
+    expect(r.voluntarios.gasto).toBe(7); // intacto
+  });
+});
+
 // PRE-14 — ECO-08: las 6 categorías de calculateCamisetasPresupuesto
 describe('PRE-14 — calculateCamisetasPresupuesto: 6 categorías independientes', () => {
   it('corredores: uds×precio plataforma, ingreso y gasto', async () => {

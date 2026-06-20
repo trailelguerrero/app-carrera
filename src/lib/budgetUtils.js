@@ -564,13 +564,16 @@ export const calculateCosteCamisetasDesglosado = ({
  *   1. corredores      — SK_CAM_CORREDORES (uds/talla) × precio plataforma. Ingreso + gasto.
  *   2. noCorredores     — SK_CAM_NO_CORREDOR (uds/talla) × precio no-corredor. Ingreso + gasto.
  *   3. ventaPublico     — SK_CAM_VENTA_PUBLICO (precio×cantidad libre). Ingreso + gasto.
- *   4. otros            — líneas de Pedidos con estadoPago pagado/pendiente (cualquier tipo). Ingreso + gasto.
+ *   4. otros            — líneas de Pedidos con estadoPago pagado/pendiente, tipo activo según
+ *                          fuentesExtras (corredor/voluntario/niño). Ingreso + gasto.
  *   5. voluntarios       — SOLO cálculo automático (voluntariosActivos × coste.voluntario). Solo gasto.
- *   6. regalos          — líneas de Pedidos con estadoPago='regalo' (cualquier tipo). Solo gasto.
+ *   6. regalos          — líneas de Pedidos con estadoPago='regalo', tipo activo según
+ *                          fuentesExtras (corredor/voluntario/niño). Solo gasto.
  *
  * Invariante de diseño: ninguna unidad real puede contarse en dos categorías a la vez.
  * - "corredores"/"noCorredores" son EXCLUSIVAMENTE plataforma (no incluyen extras de Pedidos).
- * - "otros"/"regalos" son EXCLUSIVAMENTE extras de Pedidos, separados por estadoPago.
+ * - "otros"/"regalos" son EXCLUSIVAMENTE extras de Pedidos, separados por estadoPago Y por tipo
+ *   (AUD-CAM-04: antes solo se separaban por estadoPago; ver parámetro fuentesExtras).
  * - "voluntarios" es EXCLUSIVAMENTE el cálculo automático; los extras de Pedidos tipo
  *   "voluntario" caen en "otros" o "regalos" según su estadoPago, nunca aquí.
  *
@@ -584,6 +587,13 @@ export const calculateCosteCamisetasDesglosado = ({
  * @param {object} p.ventaPublico    - { precio, cantidad } venta al público general
  * @param {Array}  p.voluntariosActivos - Voluntarios confirmados/pendientes con talla asignada
  * @param {object} p.toggles        - { corredores, noCorredores, ventaPublico, otros, voluntarios, regalos } activo/inactivo por categoría
+ * @param {object} p.fuentesExtras  - AUD-CAM-04: { extrasCorredor, extrasVoluntario, extrasNino } activo/inactivo
+ *   por TIPO dentro de "otros" y "regalos". Antes estas dos categorías solo tenían el toggle agregado
+ *   `toggles.otros`/`toggles.regalos` (todo o nada) y no respetaban los 3 toggles por tipo que el propio
+ *   módulo Camisetas ya expone en `fuentesActivas.extrasCorredor/extrasVoluntario/extrasNino` — desactivar
+ *   uno de esos 3 en el panel de Camisetas cambiaba sus KPIs internos pero Presupuesto/Dashboard seguían
+ *   sumando esas mismas líneas igual. Default `{ extrasCorredor: true, extrasVoluntario: true, extrasNino: true }`
+ *   para no alterar el comportamiento de llamantes que no pasen este parámetro.
  * @returns {{
  *   corredores:    {ingreso:number, gasto:number, unidades:number},
  *   noCorredores:  {ingreso:number, gasto:number, unidades:number},
@@ -612,6 +622,8 @@ export const calculateCamisetasPresupuesto = ({
   // aparecía en ningún lado del balance económico del evento.
   ninoExt = {},
   toggles = { corredores: true, noCorredores: true, ventaPublico: true, otros: true, voluntarios: true, regalos: true, nino: true },
+  // AUD-CAM-04: ver doc del parámetro arriba.
+  fuentesExtras = { extrasCorredor: true, extrasVoluntario: true, extrasNino: true },
 } = {}) => {
   const costeCU = { corredor: camCoste.corredor || 8, voluntario: camCoste.voluntario || 7, nino: camCoste.nino || 6 };
 
@@ -640,9 +652,20 @@ export const calculateCamisetasPresupuesto = ({
   };
 
   // ── Líneas de Pedidos (extras), separadas por estadoPago ──
+  // AUD-CAM-04 (fix Hallazgo 4): además del filtro por estadoPago, se respeta el toggle
+  // por tipo (extrasCorredor/extrasVoluntario/extrasNino) que el módulo Camisetas ya
+  // aplica internamente. Antes, una línea de tipo "nino" con extrasNino desactivado
+  // seguía sumando en "otros"/"regalos" aquí, aunque el panel de Camisetas ya no la contara —
+  // los dos módulos mostraban beneficio neto distinto para los mismos datos.
+  const tipoActivo = (tipo) => {
+    if (tipo === "corredor")   return fuentesExtras.extrasCorredor   !== false;
+    if (tipo === "voluntario") return fuentesExtras.extrasVoluntario !== false;
+    if (tipo === "nino")       return fuentesExtras.extrasNino       !== false;
+    return true; // tipo desconocido: no se filtra, igual que antes
+  };
   const lineas = camPedidos.flatMap(p => Array.isArray(p.lineas) ? p.lineas : []);
-  const lineasVendidas = lineas.filter(l => l.estadoPago === "pagado" || l.estadoPago === "pendiente");
-  const lineasRegalo   = lineas.filter(l => l.estadoPago === "regalo");
+  const lineasVendidas = lineas.filter(l => (l.estadoPago === "pagado" || l.estadoPago === "pendiente") && tipoActivo(l.tipo));
+  const lineasRegalo   = lineas.filter(l => l.estadoPago === "regalo" && tipoActivo(l.tipo));
 
   // ── 4. Camisetas otros (extras vendidos: pagado + pendiente, cualquier tipo) ──
   const unidOtros = lineasVendidas.reduce((s, l) => s + (l.cantidad || 0), 0);

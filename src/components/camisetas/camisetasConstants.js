@@ -189,9 +189,14 @@ export const CAM_CSS = `
  * ECO-11: ninoManual se añade aquí porque ahora calculateCamisetasPresupuesto SÍ
  * recibe ninoExt (antes no llegaba al presupuesto en absoluto — ver budgetUtils.js).
  *
- * No incluye extrasCorredor/extrasVoluntario/extrasNino porque Presupuesto los
- * agrupa todos juntos bajo "camOtros"/"camRegalos" según estadoPago — no hay
- * equivalente 1:1 para esas 3 claves sin cambiar el modelo de datos de Presupuesto.
+ * No incluye extrasCorredor/extrasVoluntario/extrasNino: estas 3 claves siguen sin tener
+ * un toggle 1:1 propio en camSyncConfig (Presupuesto sigue agrupando bajo "camOtros"/
+ * "camRegalos" según estadoPago), PERO desde AUD-CAM-04 (fix Hallazgo 4) ya no hace falta
+ * ese mapeo 1:1: calculateCamisetasPresupuesto recibe fuentesActivas.extrasCorredor/
+ * .extrasVoluntario/.extrasNino directamente como `fuentesExtras` y filtra "otros"/"regalos"
+ * por tipo internamente. Antes, desactivar uno de estos 3 toggles en el panel de Camisetas
+ * cambiaba sus KPIs internos pero Presupuesto/Dashboard seguían sumando esas líneas igual —
+ * ese bug de sincronización ya está corregido.
  */
 export const CLAVES_FUENTES_COMPARTIDAS = {
   corredoresPlat:   "camCorredores",

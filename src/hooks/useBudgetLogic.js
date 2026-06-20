@@ -32,7 +32,7 @@ import {
   calculatePrecioMedioPago,
 } from "../lib/budgetUtils";
 import { SK_CAM_PEDIDOS, SK_CAM_COSTE, SK_CAM_CORREDORES, SK_CAM_PRECIO_PLATAFORMA, SK_CAM_NINO, SK_CAM_VENTA_PUBLICO,
-  SK_CAM_NO_CORREDOR, SK_CAM_PRECIO_NO_CORREDOR, SK_CAM_INCLUIR_PENDIENTES,
+  SK_CAM_NO_CORREDOR, SK_CAM_PRECIO_NO_CORREDOR, SK_CAM_INCLUIR_PENDIENTES, SK_CAM_FUENTES,
   SK_PAT_PATS,
   SK_PPTO_SYNC_CONFIG, SK_PPTO_CAM_SYNC_CONFIG, SK_PPTO_MARGEN_CONFIG,
   SK_PPTO_TRAMOS, SK_PPTO_CONCEPTOS, SK_PPTO_INSCRITOS,
@@ -42,7 +42,9 @@ import { SK_CAM_PEDIDOS, SK_CAM_COSTE, SK_CAM_CORREDORES, SK_CAM_PRECIO_PLATAFOR
 // ECO-03: COSTE_DEFAULT importado desde su propietario canónico (módulo Camisetas).
 // No usar fallbacks hardcoded { corredor:7.5, voluntario:7.5 } — eran incorrectos.
 // budgetConstants re-exporta este mismo objeto para compatibilidad con otros imports.
-import { COSTE_DEFAULT as CAM_COSTE_DEFAULT, PRECIO_NO_CORREDOR_DEFAULT } from "../components/camisetas/camisetasConstants";
+// AUD-CAM-04: FUENTES_DEFAULT importado para tener el default correcto de los 3 toggles
+// extrasCorredor/extrasVoluntario/extrasNino cuando SK_CAM_FUENTES aún no existe en storage.
+import { COSTE_DEFAULT as CAM_COSTE_DEFAULT, PRECIO_NO_CORREDOR_DEFAULT, FUENTES_DEFAULT as CAM_FUENTES_DEFAULT } from "../components/camisetas/camisetasConstants";
 
 // Claves de persistencia propias del módulo de presupuesto
 const LS_PATS = SK_PAT_PATS;
@@ -112,6 +114,9 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   const [rawCamCorredores] = useData(SK_CAM_CORREDORES, {});
   const [rawCamPrecioPlatObj] = useData(SK_CAM_PRECIO_PLATAFORMA, { precio: 0 });
   const [rawCamNino] = useData(SK_CAM_NINO, {});
+  // AUD-CAM-04: fuentesActivas del módulo Camisetas (extrasCorredor/extrasVoluntario/extrasNino)
+  // para que calculateCamisetasPresupuesto filtre "otros"/"regalos" por tipo igual que el panel.
+  const [rawCamFuentes] = useData(SK_CAM_FUENTES, CAM_FUENTES_DEFAULT);
   // ECO-04: venta al público general del módulo Camisetas
   const [rawCamVentaPublico] = useData(SK_CAM_VENTA_PUBLICO, { precio: 0, cantidad: 0 });
   // ECO-08: no-corredores (plataforma) — fuente real ya existente en Camisetas, antes no usada en Presupuesto
@@ -186,8 +191,15 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       regalos:      camSyncConfig.camRegalos,
       nino:         camSyncConfig.camNino,
     },
+    // AUD-CAM-04 (fix Hallazgo 4): respeta los 3 toggles por tipo del módulo Camisetas
+    // al filtrar "otros"/"regalos", igual que ya hace el panel interno de Camisetas.
+    fuentesExtras: {
+      extrasCorredor:   rawCamFuentes?.extrasCorredor   ?? CAM_FUENTES_DEFAULT.extrasCorredor,
+      extrasVoluntario: rawCamFuentes?.extrasVoluntario ?? CAM_FUENTES_DEFAULT.extrasVoluntario,
+      extrasNino:       rawCamFuentes?.extrasNino       ?? CAM_FUENTES_DEFAULT.extrasNino,
+    },
   }), [rawCamPedidos, rawCamCoste, rawCamCorredores, rawCamPrecioPlatObj, rawCamNoCorredor,
-      rawCamPrecioNoCorrObj, rawCamVentaPublico, _camVoluntariosActivos, rawCamNino, camSyncConfig]);
+      rawCamPrecioNoCorrObj, rawCamVentaPublico, _camVoluntariosActivos, rawCamNino, rawCamFuentes, camSyncConfig]);
 
   // Beneficio neto del merchandising local (Venta de Productos en TabIngresos) —
   // independiente de las 6 categorías de camisetas, se suma aparte en totalIngresosConMerch.

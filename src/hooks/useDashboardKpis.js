@@ -31,7 +31,7 @@ import {
 } from "@/lib/budgetUtils";
 import { fmtEur } from "@/lib/utils";
 import { EVENT_DATE, CAMISETAS_SYNC_CONFIG_DEFAULT } from "@/constants/budgetConstants";
-import { COSTE_DEFAULT as CAM_COSTE_DEFAULT, PRECIO_NO_CORREDOR_DEFAULT } from "@/components/camisetas/camisetasConstants";
+import { COSTE_DEFAULT as CAM_COSTE_DEFAULT, PRECIO_NO_CORREDOR_DEFAULT, FUENTES_DEFAULT as CAM_FUENTES_DEFAULT } from "@/components/camisetas/camisetasConstants";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys"; // FIX-DEP: migrado desde alias deprecated
 import {
@@ -44,6 +44,7 @@ import {
   SK_DOC_DOCS, SK_DOC_GESTIONES,
   SK_CAM_PEDIDOS, SK_CAM_COSTE, SK_CAM_CORREDORES, SK_CAM_PRECIO_PLATAFORMA,
   SK_CAM_NINO, SK_CAM_VENTA_PUBLICO, SK_CAM_NO_CORREDOR, SK_CAM_PRECIO_NO_CORREDOR, SK_CAM_INCLUIR_PENDIENTES,
+  SK_CAM_FUENTES,
 } from "@/constants/storageKeys";
 
 // Helper estable (no cambia entre renders) para leer rawData con fallback
@@ -98,6 +99,9 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
   // hook siempre contaba confirmado+pendiente sin consultarlo, desincronizado del
   // panel informativo de Camisetas (y de useBudgetLogic, ya corregido igual).
   const rawCamInclPendientes = d[SK_CAM_INCLUIR_PENDIENTES];
+  // AUD-CAM-04: fuentesActivas del módulo Camisetas, misma fuente que useBudgetLogic,
+  // para que el desglose de "otros"/"regalos" respete extrasCorredor/extrasVoluntario/extrasNino.
+  const rawCamFuentes = d[SK_CAM_FUENTES];
   const rawCamSyncConfig    = d[SK_PPTO_CAM_SYNC_CONFIG];
 
   // ── SUBMEMO: config del evento ──────────────────────────────────────────
@@ -157,6 +161,13 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
         voluntarios:  camSyncConfig.camVoluntarios,
         regalos:      camSyncConfig.camRegalos,
         nino:         camSyncConfig.camNino,
+      },
+      // AUD-CAM-04 (fix Hallazgo 4): mismo fix que useBudgetLogic — filtra "otros"/"regalos"
+      // por tipo respetando los 3 toggles del módulo Camisetas.
+      fuentesExtras: {
+        extrasCorredor:   rawCamFuentes?.extrasCorredor   ?? CAM_FUENTES_DEFAULT.extrasCorredor,
+        extrasVoluntario: rawCamFuentes?.extrasVoluntario ?? CAM_FUENTES_DEFAULT.extrasVoluntario,
+        extrasNino:       rawCamFuentes?.extrasNino       ?? CAM_FUENTES_DEFAULT.extrasNino,
       },
     });
 
@@ -225,7 +236,7 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
   }, [rawConceptos, rawTramos, rawInscritos, rawSyncConfig, rawCamSyncConfig, rawIngresosExtra,
       rawMerchandising, rawMaximos, rawScenario, rawPats,
       rawCamPedidos, rawCamCoste, rawCamCorredores, rawCamPrecioPlat,
-      rawCamNino, rawCamVentaPub, rawCamNoCorredor, rawCamPrecioNoCorr, rawVoluntarios, rawCamInclPendientes]);
+      rawCamNino, rawCamVentaPub, rawCamNoCorredor, rawCamPrecioNoCorr, rawVoluntarios, rawCamInclPendientes, rawCamFuentes]);
 
   // ── SUBMEMO: voluntarios ────────────────────────────────────────────────
   const voluntariosKpis = useMemo(() => {
