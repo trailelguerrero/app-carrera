@@ -7,13 +7,16 @@ const fmt = (n) => Number(n ?? 0).toLocaleString("es-ES", { maximumFractionDigit
 export const KpiGlobal = ({
   totalInscritos, ingresosPorDistancia, costesFijos, costesVariables,
   totalIngresosExtra, merchTotales, totalIngresosConMerch, resultado, maximos,
-  margenConfig,
+  margenConfig, totalIngresosCamisetas, totalGastosCamisetas,
 }) => {
   const costesCarrera   = (costesFijos?.total ?? 0) + (costesVariables?.total ?? 0);
   const costesMerch     = merchTotales?.costes ?? 0;
   const ingresosCarrera = (ingresosPorDistancia?.total ?? 0) + (totalIngresosExtra ?? 0);
-  // A4 fix: usar beneficio neto (no ingresos brutos) para alinear con resultado.total
-  const ingresosTotal   = ingresosCarrera + (merchTotales?.beneficio ?? 0);
+  // Fix auditoría Hallazgo 1: antes se reconstruía a mano con solo merchTotales.beneficio,
+  // omitiendo el ingreso bruto de camisetas. Ahora se suman explícitamente todas las piezas
+  // (inscripciones + patrocinios/extras + camisetas + merch local), igual que en
+  // useBudgetLogic.totalIngresosConMerch, para que esta cifra cuadre con el Resultado Neto.
+  const ingresosTotal   = ingresosCarrera + (totalIngresosCamisetas ?? 0) + (merchTotales?.beneficio ?? 0);
   const res             = resultado?.total ?? 0;
   const resPositivo     = res >= 0;
   const resColor        = resPositivo ? "var(--green)" : "var(--red)";
@@ -115,6 +118,20 @@ export const KpiGlobal = ({
         <div className="kpi-sub">Subvenciones · Colaboradores · Otros</div>
       </div>
 
+      {/* ── Camisetas (ingreso/gasto) — Fix auditoría Hallazgo 1: antes no existía
+          ningún KPI específico de camisetas en este panel, pese a que el dato ya
+          se calculaba en el hook. ── */}
+      <div className="kpi violet">
+        <div className="kpi-label" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          🎽 Camisetas evento
+          <Tooltip text={"Ingreso bruto por venta de camisetas del evento (corredores, no corredores, público, voluntarios, niño/a, otros) y su gasto asociado (producción/compra).\nAmbos ya están incluidos en el Resultado Neto y en Costes carrera respectivamente."}><TooltipIcon size={11}/></Tooltip>
+        </div>
+        <div className="kpi-value" style={{ color: "var(--violet)" }}>
+          +{fmt(totalIngresosCamisetas)}
+        </div>
+        <div className="kpi-sub">Gasto {fmt(totalGastosCamisetas)}</div>
+      </div>
+
       {/* ── Merchandising ── */}
       <div className="kpi green">
         <div className="kpi-label" style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -134,7 +151,7 @@ export const KpiGlobal = ({
           <Tooltip text={"Costes fijos + costes variables de la carrera.\nNo incluye el coste del merchandising (gestionado como cuenta satélite)."}><TooltipIcon size={11}/></Tooltip>
         </div>
         <div className="kpi-value" style={{ color: "var(--amber)" }}>{fmt(costesCarrera)}</div>
-        <div className="kpi-sub">Fijos {fmt(costesFijos?.total)} · Var {fmt(costesVariables?.total)}</div>
+        <div className="kpi-sub">Fijos {fmt(costesFijos?.total)} (camisetas {fmt(totalGastosCamisetas)}) · Var {fmt(costesVariables?.total)}</div>
       </div>
     </div>
   );

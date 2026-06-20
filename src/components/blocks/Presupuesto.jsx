@@ -339,6 +339,8 @@ const Presupuesto = () => {
               totalIngresosExtra={totalIngresosExtra}
               merchTotales={merchTotales}
               totalIngresosConMerch={totalIngresosConMerch}
+              totalIngresosCamisetas={totalIngresosCamisetas}
+              totalGastosCamisetas={totalGastosCamisetas}
               resultado={resultado}
               maximos={maximos}
               margenConfig={margenConfig}
@@ -545,6 +547,8 @@ const Presupuesto = () => {
               totalIngresosConMerch={totalIngresosConMerch}
               totalIngresosExtra={totalIngresosExtra}
               merchTotales={merchTotales}
+              totalIngresosCamisetas={totalIngresosCamisetas}
+              totalGastosCamisetas={totalGastosCamisetas}
               resultado={resultado}
               conceptos={isScenarioMode ? (scenarioConceptos ?? conceptos) : conceptos}
               precioMedioDistancia={precioMedioDistancia}

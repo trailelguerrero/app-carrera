@@ -10,6 +10,8 @@ export const TabResumen = ({
   totalIngresosConMerch,
   totalIngresosExtra,
   merchTotales,
+  totalIngresosCamisetas,
+  totalGastosCamisetas,
   resultado, 
   conceptos, 
   precioMedioDistancia, 
@@ -123,6 +125,25 @@ export const TabResumen = ({
                 <td className="mono" style={{ color: "var(--orange)" }}>{(totalIngresosExtra ?? 0).toFixed(2)} €</td>
                 {DISTANCIAS.map(d => <td key={d} className="mono text-muted">—</td>)}
               </tr>
+              <tr>
+                <td style={{ color: "var(--violet)" }}>
+  <Tooltip position="top" text={"Ingreso bruto por venta de camisetas del evento (corredores, no corredores, público, voluntarios, niño/a, otros).\nEl gasto de producción/compra de camisetas ya está incluido dentro de '↓ Costes fijos' (se prorratea por inscritos igual que cronometraje o ambulancias), por eso no se resta aquí otra vez."}>
+    <span>↑ Camisetas (ingreso)</span><TooltipIcon />
+  </Tooltip>
+</td>
+                <td className="mono" style={{ color: "var(--violet)" }}>{(totalIngresosCamisetas ?? 0).toFixed(2)} €</td>
+                {DISTANCIAS.map(d => <td key={d} className="mono text-muted">—</td>)}
+              </tr>
+              <tr>
+                <td style={{ color: "var(--text-muted)", fontSize: "var(--fs-xs)" }}>&nbsp;&nbsp;└ de los cuales, gasto camisetas (ya en ↓ Costes fijos)</td>
+                <td className="mono text-xs text-muted">{(totalGastosCamisetas ?? 0).toFixed(2)} €</td>
+                {DISTANCIAS.map(d => <td key={d} className="mono text-muted">—</td>)}
+              </tr>
+              <tr>
+                <td style={{ color: "var(--green)" }}>↑ Merchandising local (beneficio neto)</td>
+                <td className="mono" style={{ color: "var(--green)" }}>{(merchTotales?.beneficio ?? 0).toFixed(2)} €</td>
+                {DISTANCIAS.map(d => <td key={d} className="mono text-muted">—</td>)}
+              </tr>
               <tr style={{ borderTop: "2px solid var(--border)", background: "var(--surface2)" }}>
                 <td style={{ fontWeight: 800, fontSize: "var(--fs-md)" }}>🏁 RESULTADO NETO</td>
                 <td className="mono" style={{ fontWeight: 800, fontSize: "var(--fs-md)", color: resultado.total >= 0 ? "var(--green)" : "var(--red)" }}>
@@ -189,12 +210,22 @@ export const TabResumen = ({
                 </tr>
               </thead>
               <tbody>
-                {[...conceptos.filter(c => c.activo)].map(c => {
-                  let coste = 0;
-                  if (c.tipo === "fijo") coste = c.costeTotal;
-                  else coste = DISTANCIAS.reduce((s, d) => s + (c.costePorDistancia[d] || 0) * totalInscritos[d], 0);
-                  return { ...c, _coste: coste };
-                }).sort((a, b) => b._coste - a._coste).slice(0, 10).map(c => {
+                {[
+                  ...conceptos.filter(c => c.activo).map(c => {
+                    let coste = 0;
+                    if (c.tipo === "fijo") coste = c.costeTotal;
+                    else coste = DISTANCIAS.reduce((s, d) => s + (c.costePorDistancia[d] || 0) * totalInscritos[d], 0);
+                    return { ...c, _coste: coste };
+                  }),
+                  // Fix auditoría Hallazgo 2: el gasto de camisetas ya no vive en el array
+                  // `conceptos` desde ECO-08 (se eliminó para evitar doble cómputo), por lo
+                  // que sin esta fila sintética nunca aparecería en este ranking, aunque sea
+                  // uno de los gastos más grandes del presupuesto. Se prorratea como "fijo"
+                  // porque así se suma dentro de costesFijos.total (igual que cronometraje).
+                  ...((totalGastosCamisetas ?? 0) > 0
+                    ? [{ id: "_camisetas_sintetico", nombre: "Camisetas (evento)", tipo: "fijo", _coste: totalGastosCamisetas }]
+                    : []),
+                ].sort((a, b) => b._coste - a._coste).slice(0, 10).map(c => {
                   const pct = (costesFijos.total + costesVariables.total) > 0 ? (c._coste / (costesFijos.total + costesVariables.total)) * 100 : 0;
                   return (
                     <tr key={c.id}>

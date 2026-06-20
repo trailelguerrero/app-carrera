@@ -253,7 +253,7 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
     const objetivo = rawPatObj ?? 8000;
     const pats = Array.isArray(rawPats) ? rawPats : [];
     const patComprometido = pats.filter(p => !p.especie && (p.estado === "confirmado" || p.estado === "cobrado")).reduce((s, p) => s + (p.importe || 0), 0);
-    const patCobrado  = pats.filter(p => p.estado === "cobrado").reduce((s, p) => s + getImporteCobrado(p), 0);
+    const patCobrado  = pats.filter(p => !p.especie && p.estado === "cobrado").reduce((s, p) => s + getImporteCobrado(p), 0);
     const patPipeline = pats.filter(p => p.estado === "negociando" || p.estado === "prospecto").reduce((s, p) => s + (p.importe || 0), 0);
     const contPendientes = pats.reduce((s, p) => s + (p.contraprestaciones || []).filter(c => c.estado === "pendiente").length, 0);
     const patsSinSeguimiento = pats.filter(p =>
