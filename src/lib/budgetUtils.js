@@ -121,6 +121,44 @@ export const getEspecieValue = (pat) => {
   return tieneItemsConValor ? totalItems : (pat.especie || 0);
 };
 
+/**
+ * detectarDobleComputoNino — AUD-CAM-01/02 (validación recomendación nº5 de la auditoría
+ * de camisetas): detecta si las tallas de "Niño/a — manual" (ninoExt, fuente de gasto
+ * independiente, sin trazabilidad de a quién corresponde) podrían estar duplicando el
+ * mismo coste que ya tiene una línea de pedido tipo "nino" con estadoPago='regalo'
+ * (la vía CON trazabilidad: fecha, nombre, visible en el checklist de entregas).
+ *
+ * El audit advierte: si alguna vez se introducen las mismas unidades dos veces — una como
+ * "Niño/a Manual" y otra como pedido tipo "niño" con estadoPago='regalo' para tener
+ * trazabilidad de a quién se entregó — el coste se cuenta dos veces (categoría "nino" en
+ * calculateCamisetasPresupuesto, y "regalos"). Hoy no hay ninguna validación que avise de
+ * este solape, a diferencia de otros casos de doble cómputo (patrocinios/subvención) que
+ * sí están protegidos explícitamente (ver detectarIncoherencias arriba).
+ *
+ * Heurística (best-effort, no puede saber con certeza si son las "mismas" unidades, ya que
+ * ninoExt no tiene ningún campo que lo vincule a una línea de pedido concreta):
+ *   - Si hay unidades en ninoExt (cualquier talla > 0) Y existe al menos una línea de pedido
+ *     tipo "nino" con estadoPago='regalo' → aviso. No intenta adivinar cantidades exactas,
+ *     porque comparar números (ej. "si coinciden las unidades") daría falsos negativos
+ *     en cuanto cualquiera de las dos fuentes tenga cantidades distintas por coincidencia,
+ *     y el objetivo es avisar de la posibilidad de solape, no demostrarlo.
+ *
+ * @param {object} ninoExt    - { '4-6':n, '6-8':n, ... } tallas de niño manuales
+ * @param {Array}  camPedidos - Pedidos del módulo Camisetas (líneas con tipo/estadoPago)
+ * @returns {{ hayRiesgo: boolean, unidadesManual: number, unidadesRegaloPedidos: number }}
+ */
+export const detectarDobleComputoNino = (ninoExt = {}, camPedidos = []) => {
+  const unidadesManual = Object.values(ninoExt).reduce((s, n) => s + (n || 0), 0);
+  const lineas = (Array.isArray(camPedidos) ? camPedidos : []).flatMap(p => Array.isArray(p.lineas) ? p.lineas : []);
+  const lineasRegaloNino = lineas.filter(l => l.tipo === "nino" && l.estadoPago === "regalo");
+  const unidadesRegaloPedidos = lineasRegaloNino.reduce((s, l) => s + (l.cantidad || 0), 0);
+  return {
+    hayRiesgo: unidadesManual > 0 && unidadesRegaloPedidos > 0,
+    unidadesManual,
+    unidadesRegaloPedidos,
+  };
+};
+
 export const fmt = (n) => 
   n === 0 ? "0,00 €" : `${n.toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".")} €`;
 

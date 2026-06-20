@@ -99,6 +99,43 @@ describe('PRE-04 — Subvención desde sector Administración pública', () => {
   it('al eliminar id=1 baja a 1000', () => expect(calcSubv(pats.filter(p=>p.id!==1))).toBe(1000));
 });
 
+// AUD-CAM — recomendación nº5 de la auditoría de camisetas: validación de doble cómputo
+// entre "Niño/a manual" (ninoExt) y pedidos tipo "nino" con estadoPago='regalo'.
+describe('AUD-CAM — detectarDobleComputoNino', () => {
+  it('sin riesgo cuando no hay unidades manuales', async () => {
+    const { detectarDobleComputoNino } = await import('../lib/budgetUtils.js');
+    const camPedidos = [{ lineas: [{ tipo:"nino", cantidad:5, estadoPago:"regalo" }] }];
+    const r = detectarDobleComputoNino({}, camPedidos);
+    expect(r.hayRiesgo).toBe(false);
+    expect(r.unidadesManual).toBe(0);
+  });
+  it('sin riesgo cuando no hay pedidos regalo tipo niño', async () => {
+    const { detectarDobleComputoNino } = await import('../lib/budgetUtils.js');
+    const ninoExt = { '4-6': 5 };
+    const camPedidos = [{ lineas: [{ tipo:"nino", cantidad:5, estadoPago:"pagado" }] }];
+    const r = detectarDobleComputoNino(ninoExt, camPedidos);
+    expect(r.hayRiesgo).toBe(false);
+  });
+  it('detecta riesgo cuando ambas fuentes tienen unidades > 0', async () => {
+    const { detectarDobleComputoNino } = await import('../lib/budgetUtils.js');
+    const ninoExt = { '4-6': 5, '6-8': 3 };
+    const camPedidos = [{ lineas: [
+      { tipo:"nino",       cantidad:4, estadoPago:"regalo" },
+      { tipo:"corredor",   cantidad:9, estadoPago:"regalo" }, // no debe contar, tipo distinto
+      { tipo:"nino",       cantidad:2, estadoPago:"pagado" }, // no debe contar, no es regalo
+    ]}];
+    const r = detectarDobleComputoNino(ninoExt, camPedidos);
+    expect(r.hayRiesgo).toBe(true);
+    expect(r.unidadesManual).toBe(8);
+    expect(r.unidadesRegaloPedidos).toBe(4); // solo la línea tipo nino + regalo
+  });
+  it('tolera camPedidos/ninoExt vacíos o ausentes sin lanzar error', async () => {
+    const { detectarDobleComputoNino } = await import('../lib/budgetUtils.js');
+    expect(() => detectarDobleComputoNino()).not.toThrow();
+    expect(detectarDobleComputoNino().hayRiesgo).toBe(false);
+  });
+});
+
 // PRE-05 — ECO-08: categoría "otros" (extras de Pedidos vendidos: pagado+pendiente)
 describe('PRE-05 — Camisetas "otros" (extras de Pedidos vendidos)', () => {
   it('ingreso solo cuenta pagado+pendiente, no regalo', async () => {

@@ -8,6 +8,7 @@ import { toast } from "@/lib/toast";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { TALLAS, TALLAS_NINO, TC, TIPOS, FUENTES_DEFAULT, CORREDORES_DEFAULT, NINO_DEFAULT, NOCORREDOR_DEFAULT, exportarPedidoProveedor } from "./camisetasConstants";
+import { detectarDobleComputoNino } from "@/lib/budgetUtils";
 
 export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosActivos, vistaSimple=true, setVistaSimple, fuentesActivas, voluntariosConfirmados, voluntariosPendientes, ninoExt = {}, setNino, rawInscritos = { tramos: {} }, noCorredorExt = {}, setNoCorredor }) {
   const [margenSeguridad, setMargenSeguridad] = useState(5); // % de buffer sobre el total
@@ -19,6 +20,12 @@ export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosAc
   const [secColapsadas, setSecCol] = useState({ corredor:true, voluntario:true, nino:true, tabla:false, fuentes:false }); // MEJ-15: tabla abierta por defecto (dato principal del tab) // fuentes abierta por defecto para que Editar sea visible
   const toggleSec = (k) => setSecCol(p => ({...p,[k]:!p[k]}));
   const [tmpNino, setTmpNino] = useState({ ...ninoExt });
+
+  // AUD-CAM (recomendación nº5 de la auditoría): aviso de posible doble cómputo si hay
+  // tallas en "Niño/a manual" Y al menos un pedido tipo "nino" con estadoPago='regalo'.
+  // Ambas fuentes son gasto sin ingreso para el mismo tipo de camiseta — si representan
+  // las mismas unidades, el coste se está contando dos veces en el balance económico.
+  const dobleComputoNino = useMemo(() => detectarDobleComputoNino(ninoExt, pedidos), [ninoExt, pedidos]);
 
   // ── Asistente de importación desde Presupuesto (M7-02) ──
   const [showImportModal, setShowImportModal] = useState(false);
@@ -683,6 +690,22 @@ export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosAc
                   </div>
             }
           />
+          {dobleComputoNino.hayRiesgo && (
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', gap: '.5rem',
+              background: 'var(--amber-dim)', border: '1px solid var(--amber)',
+              borderRadius: 'var(--r-sm)', padding: '.5rem .65rem', marginBottom: '.6rem',
+              fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--text)',
+            }}>
+              <span style={{ flexShrink: 0 }}>⚠️</span>
+              <span>
+                Posible doble cómputo: hay <strong>{dobleComputoNino.unidadesManual}</strong> unidades en
+                "Niño/a manual" y <strong>{dobleComputoNino.unidadesRegaloPedidos}</strong> unidades en
+                pedidos de niño marcados como regalo. Si son las mismas camisetas, su coste se está
+                contando dos veces en el balance económico del evento. Revisa que no se solapen.
+              </span>
+            </div>
+          )}
           {editNino ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: '.4rem' }}>
               {TALLAS_NINO.map(t => (
