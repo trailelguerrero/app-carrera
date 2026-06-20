@@ -163,7 +163,7 @@ export function TabDashboard({ stats, pedidos, coste, setCoste, setTab, goToTab,
         <div className="kpi cyan" style={{cursor:"pointer"}} onClick={() => goToTab ? goToTab("tallas") : setTab("tallas")}>
           <div className="kpi-label" style={{display:"flex",alignItems:"center",gap:4}}>🔢 Total unidades<Tooltip text={"Suma total de unidades calculadas de todas las fuentes activas."}><TooltipIcon size={11}/></Tooltip></div>
           <div className="kpi-value">{stats.totalUnidades}</div>
-          <div className="kpi-sub">🏃 {stats.uCorExt + stats.uExtrasCor} cor · 👥 {stats.uVolAuto + stats.uExtrasVol} vol</div>
+          <div className="kpi-sub">🏃 {stats.uCorExt + stats.uExtrasCor} cor · 👥 {stats.uVolAuto + stats.uExtrasVol} vol · 👶 {stats.uNinoExt + stats.uExtrasNino} niño</div>
         </div>
       </div>
 
