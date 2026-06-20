@@ -709,3 +709,19 @@ describe('PRE-16 — Gasto de camisetas en Costes Fijos (sin doble cómputo en r
     expect(r.total).toBe(968 + cam.totalGastos);
   });
 });
+
+// PRE-17 — ECO-10: MERCHANDISING_DEFAULT no duplica el bloque "Camisetas — Ingresos/Gastos"
+describe('PRE-17 — Seed de Merchandising sin duplicidad de camisetas', () => {
+  it('MERCHANDISING_DEFAULT no contiene ninguna fila con "camiseta" en el nombre', async () => {
+    const { MERCHANDISING_DEFAULT } = await import('../constants/budgetConstants.ts');
+    const filasCamiseta = MERCHANDISING_DEFAULT.filter(m => /camiset/i.test(m.nombre));
+    expect(filasCamiseta).toEqual([]);
+  });
+
+  it('MERCHANDISING_DEFAULT mantiene los productos no-camiseta (buff, gorra) sin cambios', async () => {
+    const { MERCHANDISING_DEFAULT } = await import('../constants/budgetConstants.ts');
+    const nombres = MERCHANDISING_DEFAULT.map(m => m.nombre);
+    expect(nombres).toContain('Buff / Braga cuello');
+    expect(nombres).toContain('Gorra trail');
+  });
+});

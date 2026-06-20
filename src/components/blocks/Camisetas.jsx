@@ -14,11 +14,15 @@ import { genIdNum, fmtEur2, scrollMainToTop } from "@/lib/utils";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys"; // FIX-DEP: migrado desde alias deprecated
 import { blockCls as cls } from "@/lib/blockStyles";
-import { SK_VOL_VOLUNTARIOS, SK_CAM_VENTA_PUBLICO, SK_CAM_FECHA_PEDIDO, SK_CAM_ESTADO_PEDIDO, SK_CAM_INCLUIR_PENDIENTES, SK_CAM_MARGEN_SEGURIDAD, SK_CAM_FUENTES, SK_PPTO_INSCRITOS, SK_CAM_NO_CORREDOR, SK_CAM_PRECIO_NO_CORREDOR } from "@/constants/storageKeys";
+import { SK_VOL_VOLUNTARIOS, SK_CAM_VENTA_PUBLICO, SK_CAM_FECHA_PEDIDO, SK_CAM_ESTADO_PEDIDO, SK_CAM_INCLUIR_PENDIENTES, SK_CAM_MARGEN_SEGURIDAD, SK_CAM_FUENTES, SK_PPTO_INSCRITOS, SK_CAM_NO_CORREDOR, SK_CAM_PRECIO_NO_CORREDOR, SK_PPTO_CAM_SYNC_CONFIG } from "@/constants/storageKeys";
+// ECO-10: CAMISETAS_SYNC_CONFIG_DEFAULT es la fuente única de los 3 toggles compartidos
+// con Presupuesto (corredoresPlat, noCorredoresPlat, voluntariosAuto) — ver fuentesActivas abajo.
+import { CAMISETAS_SYNC_CONFIG_DEFAULT } from "@/constants/budgetConstants";
 
 import {
   LS, TALLAS, TALLAS_NINO, CORREDORES_DEFAULT, NINO_DEFAULT, NOCORREDOR_DEFAULT,
   PEDIDOS_DEFAULT, COSTE_DEFAULT, FUENTES_DEFAULT, CAM_CSS,
+  CLAVES_FUENTES_COMPARTIDAS, combinarFuentesActivas,
 } from "@/components/camisetas/camisetasConstants";
 
 // ── CAM-01: helper — genera preview de tallas de voluntarios ─────────────────
@@ -435,12 +439,34 @@ export default function App() {
   const [rawVols, , loadVols] = useData(SK_VOL_VOLUNTARIOS, []);
   const [inclPendientes, setInclPendientes, loadInclP] = useData(SK_CAM_INCLUIR_PENDIENTES, false);
   const [margenSeguridad, setMargenSeguridad, loadMargen] = useData(SK_CAM_MARGEN_SEGURIDAD, 5);
-  const [rawFuentes, setFuentesActivas, loadFuentes] = useData(SK_CAM_FUENTES, FUENTES_DEFAULT);
+  const [rawFuentes, setRawFuentesActivas, loadFuentes] = useData(SK_CAM_FUENTES, FUENTES_DEFAULT);
   const [rawInscritos] = useData(SK_PPTO_INSCRITOS, { tramos: {} });
-  const fuentesActivas = (rawFuentes && typeof rawFuentes === "object" && !Array.isArray(rawFuentes))
-    ? { ...FUENTES_DEFAULT, ...rawFuentes } : FUENTES_DEFAULT;
 
-  const isLoading = loadCfg || loadP || loadCoste || loadCorredores || loadNino || loadVols || loadInclP || loadMargen || loadFuentes || loadVentaPublico || loadNoCorredor || loadPrecioNoCorr;
+  // ECO-10: corredoresPlat / noCorredoresPlat / voluntariosAuto son AHORA el mismo estado
+  // que camCorredores / camNoCorredores / camVoluntarios en Presupuesto — antes eran dos
+  // toggles independientes que podían quedar desincronizados (p.ej. desactivar "Corredores"
+  // aquí no movía nada en Presupuesto/Ingresos, y viceversa). Las 4 fuentes de "extras"
+  // (extrasCorredor, extrasVoluntario, ninoManual, extrasNino) siguen siendo solo locales
+  // a este panel informativo — no tienen un equivalente 1:1 en Presupuesto (que las agrupa
+  // todas juntas bajo "camOtros"/"camRegalos" según estadoPago).
+  const [rawCamSyncConfig, setRawCamSyncConfig, loadCamSyncConfig] = useData(SK_PPTO_CAM_SYNC_CONFIG, CAMISETAS_SYNC_CONFIG_DEFAULT);
+  const fuentesActivas = combinarFuentesActivas(rawFuentes, rawCamSyncConfig, FUENTES_DEFAULT, CAMISETAS_SYNC_CONFIG_DEFAULT);
+
+  const setFuentesActivas = (updater) => {
+    const prevCombinado = fuentesActivas;
+    const next = updater instanceof Function ? updater(prevCombinado) : updater;
+    const cambios = Object.keys(next).filter(k => next[k] !== prevCombinado[k]);
+    cambios.forEach(k => {
+      if (CLAVES_FUENTES_COMPARTIDAS[k]) {
+        setRawCamSyncConfig(prev => ({ ...CAMISETAS_SYNC_CONFIG_DEFAULT, ...(prev || {}), [CLAVES_FUENTES_COMPARTIDAS[k]]: next[k] }));
+      } else {
+        setRawFuentesActivas(prev => ({ ...FUENTES_DEFAULT, ...(prev || {}), [k]: next[k] }));
+      }
+    });
+    dataService.notify("presupuesto");
+  };
+
+  const isLoading = loadCfg || loadP || loadCoste || loadCorredores || loadNino || loadVols || loadInclP || loadMargen || loadFuentes || loadVentaPublico || loadNoCorredor || loadPrecioNoCorr || loadCamSyncConfig;
 
   // ─── Derivados ──────────────────────────────────────────────────────────────
   const generarPedidosVoluntarios = () => {

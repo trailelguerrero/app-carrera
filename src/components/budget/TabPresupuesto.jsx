@@ -434,6 +434,29 @@ export const TabPresupuesto = ({
                 </span>
               </div>
             ))}
+            {/* ECO-10: fila informativa — el gasto de camisetas se calcula automáticamente
+                desde el módulo Camisetas (uds × coste de las 6 categorías) y se suma al
+                total de fijos, pero no es un concepto editable de la lista de arriba.
+                Se muestra aquí para que no quede "escondido" dentro del total. */}
+            {totalGastosCamisetas > 0 && (
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+                padding:".4rem .5rem", borderBottom:"1px solid var(--border-light)",
+                background:"rgba(251,146,60,.05)" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:".4rem", flex:1, minWidth:0 }}>
+                  <span style={{ width:8, height:8, borderRadius:"50%", flexShrink:0, background:"var(--orange)" }} />
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)" }}>
+                    👕 Camisetas
+                  </span>
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", color:"var(--text-muted)" }}>
+                    (automático — ver detalle abajo)
+                  </span>
+                </div>
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+                  color:"var(--orange)", flexShrink:0, marginLeft:".5rem" }}>
+                  {fmtN(totalGastosCamisetas)} €
+                </span>
+              </div>
+            )}
             <div style={{ display:"flex", justifyContent:"space-between",
               padding:".45rem .5rem", borderTop:"2px solid var(--border)",
               background:"var(--surface2)" }}>
@@ -470,6 +493,16 @@ export const TabPresupuesto = ({
             </thead>
             <tbody>
               {conceptosFijos.map((c, i, arr) => renderFilaFija(c, i, arr))}
+              {totalGastosCamisetas > 0 && (
+                <tr style={{ background: "rgba(251,146,60,.05)" }}>
+                  <td></td>
+                  <td><span style={{ width:8, height:8, borderRadius:"50%", display:"inline-block", background:"var(--orange)" }} /></td>
+                  <td>👕 Camisetas <span className="mono" style={{ fontSize:"var(--fs-2xs)", color:"var(--text-muted)" }}>(automático)</span></td>
+                  <td className="text-right mono" style={{ color:"var(--orange)", fontWeight:700 }}>{totalGastosCamisetas.toFixed(2)} €</td>
+                  {DISTANCIAS.map(d => <td key={d}></td>)}
+                  <td></td>
+                </tr>
+              )}
               <tr className="total-row">
                 <td colSpan={3}>Subtotal Fijos</td>
                 <td className="text-right mono">{costesFijos.total.toFixed(2)} €</td>

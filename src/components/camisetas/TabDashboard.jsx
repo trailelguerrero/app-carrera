@@ -177,9 +177,18 @@ export function TabDashboard({ stats, pedidos, coste, setCoste, setTab, goToTab,
               </div>
             </div>
             {editCoste ? (
-              <div style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
+              <div
+                style={{ display: "flex", gap: ".5rem", alignItems: "center" }}
+                onBlur={e => {
+                  // Solo guardar si el foco sale del GRUPO completo (no al tabular entre los 3 inputs)
+                  if (!e.currentTarget.contains(e.relatedTarget)) { setCoste(tmpCoste); setEditCoste(false); }
+                }}
+              >
                 {["corredor","voluntario","nino"].map(tipo => (
-                  <input key={tipo} type="number" min="0" step="0.5" value={tmpCoste[tipo]} onChange={e => setTmpCoste(p => ({ ...p, [tipo]: parseFloat(e.target.value) || 0 }))} style={{ width: 50, background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text)", borderRadius: 4, padding: ".2rem", fontSize: "var(--fs-sm)" }} />
+                  <input key={tipo} type="number" min="0" step="0.5" value={tmpCoste[tipo]}
+                    onChange={e => setTmpCoste(p => ({ ...p, [tipo]: parseFloat(e.target.value) || 0 }))}
+                    onKeyDown={e => { if (e.key === "Enter") { setCoste(tmpCoste); setEditCoste(false); } }}
+                    style={{ width: 50, background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text)", borderRadius: 4, padding: ".2rem", fontSize: "var(--fs-sm)" }} />
                 ))}
                 <button className="btn btn-primary btn-sm" onClick={() => { setCoste(tmpCoste); setEditCoste(false); }}>OK</button>
               </div>
@@ -200,7 +209,12 @@ export function TabDashboard({ stats, pedidos, coste, setCoste, setTab, goToTab,
             </div>
             {editPrecioPlat ? (
               <div style={{ display: "flex", gap: ".5rem" }}>
-                <input type="number" min="0" step="0.5" value={tmpPrecioPlat} onChange={e => setTmpPrecioPlat(parseFloat(e.target.value))} style={{ width: 60, background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--cyan)", borderRadius: 4, padding: ".2rem", fontSize: "var(--fs-sm)" }} />
+                <input
+                  type="number" min="0" step="0.5" value={tmpPrecioPlat} autoFocus
+                  onChange={e => setTmpPrecioPlat(parseFloat(e.target.value))}
+                  onKeyDown={e => { if (e.key === "Enter") { setPrecioCorrExt(tmpPrecioPlat); setEditPrecioPlat(false); } }}
+                  onBlur={() => { setPrecioCorrExt(tmpPrecioPlat); setEditPrecioPlat(false); }}
+                  style={{ width: 60, background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--cyan)", borderRadius: 4, padding: ".2rem", fontSize: "var(--fs-sm)" }} />
                 <button className="btn btn-primary btn-sm" onClick={() => { setPrecioCorrExt(tmpPrecioPlat); setEditPrecioPlat(false); }}>OK</button>
               </div>
             ) : (
@@ -221,7 +235,12 @@ export function TabDashboard({ stats, pedidos, coste, setCoste, setTab, goToTab,
             </div>
             {editPrecioNoCorr ? (
               <div style={{ display: "flex", gap: ".5rem" }}>
-                <input type="number" min="0" step="0.5" value={tmpPrecioNoCorr} onChange={e => setTmpPrecioNoCorr(parseFloat(e.target.value))} style={{ width: 60, background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--orange)", borderRadius: 4, padding: ".2rem", fontSize: "var(--fs-sm)" }} />
+                <input
+                  type="number" min="0" step="0.5" value={tmpPrecioNoCorr} autoFocus
+                  onChange={e => setTmpPrecioNoCorr(parseFloat(e.target.value))}
+                  onKeyDown={e => { if (e.key === "Enter") { setPrecioNoCorrExt(tmpPrecioNoCorr); setEditPrecioNoCorr(false); } }}
+                  onBlur={() => { setPrecioNoCorrExt(tmpPrecioNoCorr); setEditPrecioNoCorr(false); }}
+                  style={{ width: 60, background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--orange)", borderRadius: 4, padding: ".2rem", fontSize: "var(--fs-sm)" }} />
                 <button className="btn btn-primary btn-sm" onClick={() => { setPrecioNoCorrExt(tmpPrecioNoCorr); setEditPrecioNoCorr(false); }}>OK</button>
               </div>
             ) : (

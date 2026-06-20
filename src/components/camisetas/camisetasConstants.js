@@ -89,7 +89,12 @@ export const FUENTES_DEFAULT = {
   extrasCorredor: true,
   voluntariosAuto: true,
   extrasVoluntario: true,
-  ninoManual: true,
+  // ECO-10: las tallas de niño manuales NO llegan al cálculo de Presupuesto/Ingresos
+  // (calculateCamisetasPresupuesto no las recibe — solo procesa pedidos a proveedores).
+  // Se desactiva por defecto para que el panel informativo del módulo Camisetas no
+  // muestre unidades/coste que luego no aparecen en el balance económico del evento.
+  // La fuente real y única para niño en el balance es "extrasNino" (pedidos a proveedores).
+  ninoManual: false,
   extrasNino: true,
   noCorredoresPlat: true,
 };
@@ -161,3 +166,43 @@ export const CAM_CSS = `
   .cam-row:hover{border-color:var(--border-light);box-shadow:0 2px 8px rgba(0,0,0,.2)}
   @media(max-width:640px){.ph{flex-direction:column;gap:.75rem}}
 `;
+
+/**
+ * ECO-10 — CLAVES_FUENTES_COMPARTIDAS: mapa de las claves de fuentesActivas (módulo
+ * Camisetas) que tienen un equivalente exacto 1:1 en camSyncConfig (módulo Presupuesto).
+ * Antes eran dos toggles independientes con su propio storage, que podían quedar
+ * desincronizados: desactivar "Corredores" en el módulo Camisetas no movía nada en
+ * Presupuesto/Ingresos, y viceversa. A partir de ahora son el mismo estado.
+ *
+ * No incluye extrasCorredor/extrasVoluntario/extrasNino/ninoManual porque Presupuesto
+ * los agrupa todos juntos bajo "camOtros"/"camRegalos" según estadoPago — no hay
+ * equivalente 1:1 para esas 4 claves sin cambiar el modelo de datos de Presupuesto.
+ */
+export const CLAVES_FUENTES_COMPARTIDAS = {
+  corredoresPlat:   "camCorredores",
+  noCorredoresPlat: "camNoCorredores",
+  voluntariosAuto:  "camVoluntarios",
+};
+
+/**
+ * combinarFuentesActivas — función pura (ECO-10): construye el objeto fuentesActivas
+ * "visible" combinando los datos locales del módulo Camisetas (fuentesLocal, claves de
+ * extras) con los 3 toggles compartidos que ahora viven en camSyncConfig (Presupuesto).
+ *
+ * @param {object} fuentesLocal     - valor crudo de SK_CAM_FUENTES (puede tener forma antigua)
+ * @param {object} camSyncConfig    - valor crudo de SK_PPTO_CAM_SYNC_CONFIG
+ * @param {object} fuentesDefault   - FUENTES_DEFAULT
+ * @param {object} camSyncDefault   - CAMISETAS_SYNC_CONFIG_DEFAULT
+ * @returns {object} fuentesActivas combinado, listo para usar en la UI
+ */
+export function combinarFuentesActivas(fuentesLocal, camSyncConfig, fuentesDefault, camSyncDefault) {
+  const local = (fuentesLocal && typeof fuentesLocal === "object" && !Array.isArray(fuentesLocal))
+    ? { ...fuentesDefault, ...fuentesLocal } : fuentesDefault;
+  const sync = (camSyncConfig && typeof camSyncConfig === "object" && !Array.isArray(camSyncConfig))
+    ? { ...camSyncDefault, ...camSyncConfig } : camSyncDefault;
+  const combinado = { ...local };
+  Object.entries(CLAVES_FUENTES_COMPARTIDAS).forEach(([claveLocal, claveSync]) => {
+    combinado[claveLocal] = sync[claveSync];
+  });
+  return combinado;
+}

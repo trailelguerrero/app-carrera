@@ -150,8 +150,11 @@ export interface Merchandising {
   activo: boolean;
 }
 
+// ECO-10: "Camiseta técnica" eliminada del seed — duplicaba el bloque "Camisetas — Ingresos/
+// Gastos" de Presupuesto (que calcula el negocio real de camisetas desde el módulo Camisetas).
+// Cualquier evento creado antes de este cambio puede seguir teniendo esa fila guardada en la
+// base de datos; revísala y bórrala manualmente en Ingresos → Merchandising si aparece activa.
 export const MERCHANDISING_DEFAULT: Merchandising[] = [
-  { id:1, nombre:'Camiseta técnica',   unidades:50, costeUnitario:8,   precioVenta:18, activo:true },
   { id:2, nombre:'Buff / Braga cuello',unidades:80, costeUnitario:3.5, precioVenta:8,  activo:true },
   { id:3, nombre:'Gorra trail',        unidades:30, costeUnitario:5,   precioVenta:12, activo:true },
 ];

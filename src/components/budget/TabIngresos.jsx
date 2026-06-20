@@ -258,6 +258,19 @@ export const TabIngresos = ({
           <div className="card-title" style={{ color: "var(--orange)" }}>🛍️ Merchandising — Venta de Productos</div>
           <button className="btn" style={{ background: "rgba(251,146,60,0.15)", color: "var(--orange)", border: "1px solid rgba(251,146,60,0.3)" }} onClick={addMerch}>+ Añadir producto</button>
         </div>
+        {/* ECO-10: aviso de posible duplicidad — si hay una fila de Merchandising que
+            parece ser una camiseta, su beneficio se sumaría aparte y por duplicado del
+            bloque "Camisetas — Ingresos/Gastos" de arriba. Esto NO se borra automáticamente
+            (puede ser legítimo, p.ej. una sudadera): el usuario decide si la elimina. */}
+        {merchandising.some(m => m.activo && /camiset/i.test(m.nombre || "")) && (
+          <div style={{ marginBottom: "0.6rem", padding: "0.5rem 0.7rem", borderRadius: 8,
+            background: "rgba(226,75,74,.08)", border: "1px solid rgba(226,75,74,.3)",
+            fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--red)" }}>
+            ⚠️ Hay un producto con "camiseta" en el nombre. Si ya cuentas esas camisetas en el
+            bloque "Camisetas — Ingresos/Gastos" de arriba, esta fila duplica ese beneficio —
+            revísala y bórrala si corresponde.
+          </div>
+        )}
         <div className="overflow-x">
           <table className="tbl">
             <thead>

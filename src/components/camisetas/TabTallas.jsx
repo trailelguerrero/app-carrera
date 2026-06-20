@@ -292,7 +292,7 @@ export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosAc
             total: fuentesActivas.extrasVoluntario
               ? pedidos.filter(p=>p.lineas?.some(l=>l.tipo==="voluntario")).reduce((s,p)=>s+p.lineas.filter(l=>l.tipo==="voluntario").reduce((ss,l)=>ss+l.cantidad,0),0)
               : 0 },
-          { key:"ninoManual", tab:"tallas", icon:"👶", label:"Niño/a", sub:"Tallas introducidas manualmente por categoría",
+          { key:"ninoManual", tab:"tallas", icon:"👶", label:"Niño/a", sub:"⚠️ Manual — NO entra en Presupuesto/Ingresos. Usa pedidos a proveedores.",
             color:TC.nino.color, dim:TC.nino.dim,
             total: fuentesActivas.ninoManual ? TALLAS_NINO.reduce((s,t)=>s+(ninoExt[t]||0),0) : 0 },
           { key:"extrasNino", tab:"pedidos", icon:"👶+", label:"Extras niño/a", sub:"Pedidos manuales",
