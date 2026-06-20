@@ -71,7 +71,8 @@ export const CONCEPTOS_DEFAULT: Concepto[] = [
   { id:9,  nombre:'Punto control 1',         tipo:'fijo',     activo:true, costeTotal:121,  activoDistancias:{TG7:true, TG13:true, TG25:true},  costePorDistancia:{TG7:null,TG13:null,TG25:null} },
   { id:10, nombre:'Punto control 2',         tipo:'fijo',     activo:true, costeTotal:121,  activoDistancias:{TG7:false,TG13:true, TG25:true},  costePorDistancia:{TG7:null,TG13:null,TG25:null} },
   { id:11, nombre:'Estructura arco',         tipo:'fijo',     activo:true, costeTotal:242,  activoDistancias:{TG7:true, TG13:true, TG25:true},  costePorDistancia:{TG7:null,TG13:null,TG25:null} },
-  { id:12, nombre:'Camisetas voluntarios',   tipo:'fijo',     activo:true, costeTotal:970,  activoDistancias:{TG7:true, TG13:true, TG25:true},  costePorDistancia:{TG7:null,TG13:null,TG25:null} },
+  // ECO-08: id:12 "Camisetas voluntarios" eliminado — el gasto se calcula ahora en
+  // el bloque Camisetas (categoría "voluntarios", automático desde datos reales).
   { id:13, nombre:'Medalla finisher',        tipo:'variable', modoUniforme:true,  activo:true, activoDistancias:{TG7:true, TG13:true, TG25:true},  costePorDistancia:{TG7:2,   TG13:2,   TG25:2  } },
   { id:14, nombre:'Regalo bolsa',            tipo:'variable', modoUniforme:false, activo:true, activoDistancias:{TG7:false,TG13:true, TG25:true},  costePorDistancia:{TG7:0,   TG13:1.8, TG25:1.8} },
   { id:15, nombre:'Dorsal',                  tipo:'variable', modoUniforme:true,  activo:true, activoDistancias:{TG7:true, TG13:true, TG25:true},  costePorDistancia:{TG7:0.3, TG13:0.3, TG25:0.3} },
@@ -106,21 +107,38 @@ export interface IngresoExtra {
 export const INGRESOS_EXTRA_DEFAULT: IngresoExtra[] = [
   { id:1,  nombre:'Patrocinios captados (confirmado+cobrado)',   valor:0, activo:false, synced:true,  syncKey:'patrocinios' },
   { id:3,  nombre:'Patrocinios cobrados (tesorería real)',       valor:0, activo:true,  synced:true,  syncKey:'patrociniosCobrado' },
-  { id:2,  nombre:'Merchandising total (camisetas + productos)', valor:0, activo:true,  synced:true,  syncKey:'camisetas' },
-  { id:13, nombre:'Balance camisetas técnicas',                  valor:0, activo:false, synced:true,  syncKey:'balanceCamisetasTecnicas' },
+  // ECO-08: id:2 "Merchandising total" e id:13 "Balance camisetas técnicas" eliminados —
+  // sustituidos por las 6 categorías independientes del bloque Camisetas (ver CAMISETAS_SYNC_CONFIG_DEFAULT).
   { id:10, nombre:'Subvención entidad pública',                  valor:0, activo:true,  synced:true,  syncKey:'subvencionPublica' },
   { id:11, nombre:'Colaboradores en especie (valor estimado)',   valor:0, activo:false, synced:false },
   { id:12, nombre:'Otros ingresos',                              valor:0, activo:false, synced:false },
 ];
 
-export type SyncConfigKey = 'patrocinios' | 'patrociniosCobrado' | 'camisetas' | 'subvencionPublica' | 'balanceCamisetasTecnicas';
+export type SyncConfigKey = 'patrocinios' | 'patrociniosCobrado' | 'subvencionPublica';
 
 export const SYNC_CONFIG_DEFAULT: Record<SyncConfigKey, boolean> = {
   patrocinios:              false,
   patrociniosCobrado:       true,
-  camisetas:                true,
   subvencionPublica:        true,
-  balanceCamisetasTecnicas: false,
+};
+
+/**
+ * CAMISETAS_SYNC_CONFIG_DEFAULT — ECO-08: toggle independiente por cada una de las
+ * 6 categorías económicas del bloque Camisetas dentro de Presupuesto.
+ * Sustituye al antiguo SYNC_CONFIG_DEFAULT.camisetas / .balanceCamisetasTecnicas
+ * (un único toggle para un beneficio neto agregado).
+ */
+export type CamisetasSyncConfigKey =
+  | 'camCorredores' | 'camNoCorredores' | 'camVentaPublico'
+  | 'camOtros' | 'camVoluntarios' | 'camRegalos';
+
+export const CAMISETAS_SYNC_CONFIG_DEFAULT: Record<CamisetasSyncConfigKey, boolean> = {
+  camCorredores:    true,
+  camNoCorredores:  true,
+  camVentaPublico:  true,
+  camOtros:         true,
+  camVoluntarios:   true,
+  camRegalos:       true,
 };
 
 export interface Merchandising {

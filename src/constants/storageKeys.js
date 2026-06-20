@@ -55,6 +55,8 @@ export const SK_PPTO_INSCRITOS        = "teg_presupuesto_v1_inscritos";
 export const SK_PPTO_INGRESOS_EXTRA   = "teg_presupuesto_v1_ingresosExtra";
 export const SK_PPTO_MERCHANDISING    = "teg_presupuesto_v1_merchandising";
 export const SK_PPTO_SYNC_CONFIG      = "teg_presupuesto_v1_syncConfig";
+/** ECO-08: toggles independientes de las 6 categorías de camisetas en Presupuesto */
+export const SK_PPTO_CAM_SYNC_CONFIG  = "teg_presupuesto_v1_camSyncConfig";
 export const SK_PPTO_MAXIMOS          = "teg_presupuesto_v1_maximos";
 export const SK_PPTO_MARGEN_CONFIG    = "teg_presupuesto_v1_margenConfig";
 export const SK_PPTO_SCENARIO_ACTIVE  = "teg_scenario_active_name";
@@ -197,6 +199,7 @@ export const SK = {
   PPTO_INGRESOS_EXTRA:  SK_PPTO_INGRESOS_EXTRA,
   PPTO_MERCHANDISING:   SK_PPTO_MERCHANDISING,
   PPTO_SYNC_CONFIG:     SK_PPTO_SYNC_CONFIG,
+  PPTO_CAM_SYNC_CONFIG: SK_PPTO_CAM_SYNC_CONFIG,
   PPTO_MAXIMOS:         SK_PPTO_MAXIMOS,
   PPTO_MARGEN_CONFIG:   SK_PPTO_MARGEN_CONFIG,
   PPTO_SCENARIO_ACTIVE: SK_PPTO_SCENARIO_ACTIVE,

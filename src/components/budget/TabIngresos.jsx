@@ -2,14 +2,15 @@ import React, { useMemo } from "react";
 import { Tooltip, TooltipIcon } from "../common/Tooltip";
 import { NumInput } from "./common/NumInput";
 import { Toggle } from "./common/Toggle";
+import { SeccionCamisetasBudget } from "./SeccionCamisetasBudget";
 
 // Configuración visual por syncKey
+// ECO-08: 'camisetas' y 'balanceCamisetasTecnicas' eliminados — ese dominio económico
+// ahora vive en SeccionCamisetasBudget (6 categorías independientes).
 const SYNC_CFG = {
   patrocinios:              { icon:"🤝", label:"Patrocinios captados",          sublabel:"confirmado + cobrado",   color:"var(--green)",  dim:"var(--green-dim)",  border:"var(--green-border)",  desc:"Acuerdos firmados con importe comprometido, aunque no cobrados aún" },
   patrociniosCobrado:       { icon:"💰", label:"Patrocinios cobrados",          sublabel:"tesorería real",         color:"var(--cyan)",   dim:"var(--cyan-dim)",   border:"var(--cyan-border)",   desc:"Dinero efectivamente cobrado — refleja el estado real de la caja" },
-  camisetas:                { icon:"🛍️", label:"Merchandising total",           sublabel:"camisetas + productos",  color:"var(--orange)", dim:"var(--orange-dim)", border:"var(--orange-border)", desc:"Beneficio neto combinado: bloque Camisetas + Venta de Productos" },
   subvencionPublica:        { icon:"🏛️", label:"Subvenciones entidad pública",  sublabel:"Administración pública", color:"var(--violet)", dim:"var(--violet-dim)", border:"var(--violet-border)", desc:"Suma de patrocinadores con sector \"Administración pública\"" },
-  balanceCamisetasTecnicas: { icon:"👕", label:"Balance camisetas técnicas",    sublabel:"corredor + técnica",     color:"var(--amber)",  dim:"var(--amber-dim)",  border:"var(--amber-border)",  desc:"Beneficio neto de camisetas técnicas del bloque Camisetas + ítems \"camiseta\" del merchandising local" },
 };
 
 export const TabIngresos = ({
@@ -23,15 +24,15 @@ export const TabIngresos = ({
   ingresosPorDistancia,
   totalPatConfirmado = 0,
   totalPatCobrado = 0,
-  totalMerchBeneficio = 0,
   totalSubvencionPublica = 0,
-  totalBalanceCamisetasTecnicas = 0,
   syncConfig = SYNC_CFG,
   setSyncConfig,
-  // ECO-07: props para detección y resolución del doble cómputo
-  avisoDobleComputo,
-  onDesactivarSyncCamisetas,
-  onIrACostes,
+  // ECO-08: props del bloque Camisetas — Ingresos
+  camisetasPresupuesto,
+  camSyncConfig,
+  setCamSyncConfig,
+  totalIngresosCamisetas,
+  totalGastosCamisetas,
 }) => {
   // Separar líneas sincronizadas y manuales
   const lineasSync   = ingresosExtra.filter(ie => !!ie.syncKey);
@@ -120,69 +121,6 @@ export const TabIngresos = ({
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-          {/* ECO-07: Aviso reactivo de doble cómputo en camisetas de voluntarios.
-              Se muestra en TabIngresos cuando el toggle de "Merchandising total" está activo
-              Y el concepto fijo "Camisetas voluntarios" también lo está.
-              Desde aquí el usuario puede desactivar la sincronización de camisetas. */}
-          {avisoDobleComputo?.activo && (
-            <div style={{
-              display: "flex", flexDirection: "column", gap: ".5rem",
-              padding: ".7rem .9rem", borderRadius: 10,
-              background: "rgba(251,191,36,.08)",
-              border: "1px solid rgba(251,191,36,.35)",
-              animation: "fadeIn .25s ease",
-            }}>
-              <div style={{ display:"flex", alignItems:"flex-start", gap:".6rem" }}>
-                <span style={{ fontSize:"var(--fs-lg)", flexShrink:0, marginTop:1 }}>⚠️</span>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{
-                    fontFamily:"var(--font-display)", fontWeight:700,
-                    fontSize:"var(--fs-sm)", color:"var(--amber)", marginBottom:".25rem"
-                  }}>
-                    Colchón de reserva — Camisetas de voluntarios
-                  </div>
-                  <div style={{
-                    fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                    color:"var(--text-muted)", lineHeight:1.6
-                  }}>
-                    La línea <strong style={{ color:"var(--text)" }}>Merchandising total</strong> está
-                    activa junto al concepto fijo{" "}
-                    <strong style={{ color:"var(--text)" }}>"Camisetas voluntarios"</strong>{" "}
-                    ({avisoDobleComputo.costeConcepto > 0
-                      ? `${avisoDobleComputo.costeConcepto.toLocaleString("es-ES")} €`
-                      : "activado"}).
-                    El coste de las camisetas de voluntarios podría estar{" "}
-                    <strong style={{ color:"var(--amber)" }}>contabilizándose dos veces</strong>.
-                  </div>
-                </div>
-              </div>
-              <div style={{ display:"flex", gap:".45rem", flexWrap:"wrap", paddingLeft:"2rem" }}>
-                <button
-                  onClick={onDesactivarSyncCamisetas}
-                  style={{
-                    fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                    padding:".3rem .65rem", borderRadius:6, cursor:"pointer",
-                    background:"rgba(251,191,36,.15)", color:"var(--amber)",
-                    border:"1px solid rgba(251,191,36,.4)", fontWeight:600,
-                  }}
-                >
-                  Desactivar Merchandising total
-                </button>
-                <button
-                  onClick={onIrACostes}
-                  style={{
-                    fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                    padding:".3rem .65rem", borderRadius:6, cursor:"pointer",
-                    background:"var(--surface3)", color:"var(--text-muted)",
-                    border:"1px solid var(--border)",
-                  }}
-                >
-                  Ver concepto fijo →
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* ── Líneas sincronizadas (toggle grande + valor en tiempo real) ── */}
           {lineasSync.map(ie => {
             const cfg = SYNC_CFG[ie.syncKey] || {};
@@ -236,22 +174,10 @@ export const TabIngresos = ({
                 </div>
 
                 {/* Navegación rápida */}
-                {ie.syncKey === "camisetas" && (
-                  <button onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "camisetas" } }))}
-                    style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", padding: ".2rem .45rem", borderRadius: 5, border: `1px solid ${cfg.border}`, background: cfg.dim, color: cfg.color, cursor: "pointer", flexShrink: 0 }}>
-                    👕 →
-                  </button>
-                )}
                 {(ie.syncKey === "patrocinios" || ie.syncKey === "patrociniosCobrado" || ie.syncKey === "subvencionPublica") && (
                   <button onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "patrocinadores" } }))}
                     style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", padding: ".2rem .45rem", borderRadius: 5, border: `1px solid ${cfg.border}`, background: cfg.dim, color: cfg.color, cursor: "pointer", flexShrink: 0 }}>
                     🤝 →
-                  </button>
-                )}
-                {ie.syncKey === "balanceCamisetasTecnicas" && (
-                  <button onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", { detail: { block: "camisetas" } }))}
-                    style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", padding: ".2rem .45rem", borderRadius: 5, border: `1px solid ${cfg.border}`, background: cfg.dim, color: cfg.color, cursor: "pointer", flexShrink: 0 }}>
-                    👕 →
                   </button>
                 )}
               </div>
@@ -313,6 +239,18 @@ export const TabIngresos = ({
           </span>
         </div>
       </div>
+
+      {/* ECO-08: bloque Camisetas — Ingresos. Categorías con ingreso real
+          (corredores, no corredores, venta público, otros), sustituye a las
+          antiguas líneas sincronizadas "Merchandising total" / "Balance camisetas técnicas". */}
+      <SeccionCamisetasBudget
+        modo="ingresos"
+        camisetasPresupuesto={camisetasPresupuesto}
+        camSyncConfig={camSyncConfig}
+        setCamSyncConfig={setCamSyncConfig}
+        totalIngresosCamisetas={totalIngresosCamisetas}
+        totalGastosCamisetas={totalGastosCamisetas}
+      />
 
       {/* ── MERCHANDISING ── */}
       <div className="card">

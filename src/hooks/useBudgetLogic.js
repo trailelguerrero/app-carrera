@@ -9,6 +9,7 @@ import {
   MERCHANDISING_DEFAULT,
   MAXIMOS_DEFAULT,
   SYNC_CONFIG_DEFAULT,
+  CAMISETAS_SYNC_CONFIG_DEFAULT,
   MARGEN_CONFIG_DEFAULT
 } from "../constants/budgetConstants";
 import {
@@ -26,13 +27,14 @@ import {
   calculateResultado,
   calculatePuntoEquilibrio,
   calculatePEGlobal,
-  calculateCosteCamisetasDesglosado,
+  calculateCamisetasPresupuesto,
   calculateInscritosConPago,
   calculatePrecioMedioPago,
 } from "../lib/budgetUtils";
 import { SK_CAM_PEDIDOS, SK_CAM_COSTE, SK_CAM_CORREDORES, SK_CAM_PRECIO_PLATAFORMA, SK_CAM_NINO, SK_CAM_VENTA_PUBLICO,
+  SK_CAM_NO_CORREDOR, SK_CAM_PRECIO_NO_CORREDOR,
   SK_PAT_PATS,
-  SK_PPTO_SYNC_CONFIG, SK_PPTO_MARGEN_CONFIG,
+  SK_PPTO_SYNC_CONFIG, SK_PPTO_CAM_SYNC_CONFIG, SK_PPTO_MARGEN_CONFIG,
   SK_PPTO_TRAMOS, SK_PPTO_CONCEPTOS, SK_PPTO_INSCRITOS,
   SK_PPTO_INGRESOS_EXTRA, SK_PPTO_MERCHANDISING, SK_PPTO_MAXIMOS,
   SK_VOL_VOLUNTARIOS,
@@ -48,7 +50,13 @@ const LS_PATS = SK_PAT_PATS;
 // Mapa canónico id → syncKey para migrar datos legados sin syncKey.
 // Constante de módulo (estática) — no debe declararse dentro del hook
 // para evitar advertencias de react-hooks/exhaustive-deps.
-const ID_TO_SYNCKEY = { 1: "patrocinios", 2: "camisetas", 3: "patrociniosCobrado", 10: "subvencionPublica", 13: "balanceCamisetasTecnicas" };
+// ECO-08: 'camisetas' (id:2) y 'balanceCamisetasTecnicas' (id:13) eliminados del mapa —
+// esos ids ya no se migran a syncKey, se filtran en la carga (ver loadData).
+const ID_TO_SYNCKEY = { 1: "patrocinios", 3: "patrociniosCobrado", 10: "subvencionPublica" };
+// Ids legados de líneas sincronizadas eliminadas — se filtran al cargar datos guardados.
+const LEGACY_REMOVED_INGRESO_IDS = new Set([2, 13]);
+// Id legado del concepto fijo "Camisetas voluntarios" — se filtra al cargar conceptos guardados.
+const LEGACY_REMOVED_CONCEPTO_ID = 12;
 
 export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioIngresosExtra, scenarioMerchandising } = {}) => {
   const [tab, setTab] = useState("inscripciones");
@@ -82,6 +90,19 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       return next;
     });
   }, [setSyncConfigRaw]);
+  // ECO-08: syncConfig de las 6 categorías de camisetas, independiente del syncConfig general
+  const [camSyncConfigRaw, setCamSyncConfigRaw] = useData(SK_PPTO_CAM_SYNC_CONFIG, CAMISETAS_SYNC_CONFIG_DEFAULT);
+  const camSyncConfig = useMemo(
+    () => ({ ...CAMISETAS_SYNC_CONFIG_DEFAULT, ...(camSyncConfigRaw || {}) }),
+    [camSyncConfigRaw]
+  );
+  const setCamSyncConfig = useCallback((updater) => {
+    setCamSyncConfigRaw(prev => {
+      const prevMerged = { ...CAMISETAS_SYNC_CONFIG_DEFAULT, ...(prev || {}) };
+      const next = updater instanceof Function ? updater(prevMerged) : updater;
+      return next;
+    });
+  }, [setCamSyncConfigRaw]);
   const [margenConfig, setMargenConfig] = useData(SK_PPTO_MARGEN_CONFIG, MARGEN_CONFIG_DEFAULT);
   const [saveStatus, setSaveStatus] = useState("idle");
 
@@ -93,6 +114,9 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   const [rawCamNino] = useData(SK_CAM_NINO, {});
   // ECO-04: venta al público general del módulo Camisetas
   const [rawCamVentaPublico] = useData(SK_CAM_VENTA_PUBLICO, { precio: 0, cantidad: 0 });
+  // ECO-08: no-corredores (plataforma) — fuente real ya existente en Camisetas, antes no usada en Presupuesto
+  const [rawCamNoCorredor] = useData(SK_CAM_NO_CORREDOR, {});
+  const [rawCamPrecioNoCorrObj] = useData(SK_CAM_PRECIO_NO_CORREDOR, { precio: 0 });
   const [rawVoluntarios] = useData(SK_VOL_VOLUNTARIOS, []);
 
   // ── Valores calculados en tiempo real desde otros bloques ────────────────
@@ -127,72 +151,63 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       .reduce((s, p) => s + getImporteComprometido(p), 0);
   }, [rawPats]);
 
-  // FIX BUG-ECO-01: unificar cálculo de camisetas con la misma función que usa el Dashboard.
-  // Antes: lógica manual que omitía corredor externo, voluntario y niño → divergencia con Dashboard.
-  // Ahora: calculateCosteCamisetasDesglosado es la única fuente de verdad para ambos bloques.
+  // ECO-08: unificar cálculo de camisetas con la misma función que usa el Dashboard.
   const _camVoluntariosActivos = useMemo(() =>
     (Array.isArray(rawVoluntarios) ? rawVoluntarios : [])
       .filter(v => (v.estado === "confirmado" || v.estado === "pendiente") && v.talla),
     [rawVoluntarios]
   );
 
-  const totalMerchBeneficio = useMemo(() => {
-    const desglose = calculateCosteCamisetasDesglosado({
-      camCoste: rawCamCoste || CAM_COSTE_DEFAULT,
-      camPedidos: Array.isArray(rawCamPedidos) ? rawCamPedidos : [],
-      corredoresExt: rawCamCorredores || {},
-      precioCorrExt: rawCamPrecioPlatObj?.precio ?? 0,
-      ninoExt: rawCamNino || {},
-      voluntariosActivos: _camVoluntariosActivos,
-      // ECO-04: incluir venta al público en el cálculo de beneficio de camisetas
-      ventaPublico: rawCamVentaPublico || { precio: 0, cantidad: 0 },
-    });
-    // Añadir beneficio de merchandising local (Venta de Productos de TabIngresos)
+  // ECO-08: desglose de camisetas en 6 categorías independientes con toggle propio
+  // (sustituye a totalMerchBeneficio / totalBalanceCamisetasTecnicas, que mezclaban
+  // todas las fuentes en un único "beneficio neto" sin poder activar/desactivar por separado).
+  const camisetasPresupuesto = useMemo(() => calculateCamisetasPresupuesto({
+    camCoste: rawCamCoste || CAM_COSTE_DEFAULT,
+    camPedidos: Array.isArray(rawCamPedidos) ? rawCamPedidos : [],
+    corredoresExt: rawCamCorredores || {},
+    precioCorrExt: rawCamPrecioPlatObj?.precio ?? 0,
+    noCorredorExt: rawCamNoCorredor || {},
+    precioNoCorrExt: rawCamPrecioNoCorrObj?.precio ?? 0,
+    ventaPublico: rawCamVentaPublico || { precio: 0, cantidad: 0 },
+    voluntariosActivos: _camVoluntariosActivos,
+    toggles: {
+      corredores:   camSyncConfig.camCorredores,
+      noCorredores: camSyncConfig.camNoCorredores,
+      ventaPublico: camSyncConfig.camVentaPublico,
+      otros:        camSyncConfig.camOtros,
+      voluntarios:  camSyncConfig.camVoluntarios,
+      regalos:      camSyncConfig.camRegalos,
+    },
+  }), [rawCamPedidos, rawCamCoste, rawCamCorredores, rawCamPrecioPlatObj, rawCamNoCorredor,
+      rawCamPrecioNoCorrObj, rawCamVentaPublico, _camVoluntariosActivos, camSyncConfig]);
+
+  // Beneficio neto del merchandising local (Venta de Productos en TabIngresos) —
+  // independiente de las 6 categorías de camisetas, se suma aparte en totalIngresosConMerch.
+  const merchLocalBeneficio = useMemo(() => {
     const merch = Array.isArray(merchandising) ? merchandising.filter(m => m.activo) : [];
-    const ingMerch  = merch.reduce((s, m) => s + m.unidades * (m.precioVenta   || 0), 0);
-    const costeMerch = merch.reduce((s, m) => s + m.unidades * (m.costeUnitario || 0), 0);
-    return desglose.beneficioNeto + (ingMerch - costeMerch);
-  }, [rawCamPedidos, rawCamCoste, rawCamCorredores, rawCamPrecioPlatObj, rawCamNino,
-      _camVoluntariosActivos, merchandising, rawCamVentaPublico]);
+    const ing   = merch.reduce((s, m) => s + m.unidades * (m.precioVenta   || 0), 0);
+    const coste = merch.reduce((s, m) => s + m.unidades * (m.costeUnitario || 0), 0);
+    return ing - coste;
+  }, [merchandising]);
 
-  // Balance de camisetas técnicas: unidades corredor del bloque Camisetas
-  // + unidades de items "Camiseta técnica" del merchandising local
-  const totalBalanceCamisetasTecnicas = useMemo(() => {
-    // FIX-BAL-01: usar calculateCosteCamisetasDesglosado como fuente única de verdad,
-    // igual que totalMerchBeneficio. La implementación manual anterior ignoraba
-    // corredoresExt (plataforma externa), voluntarios, niños y venta al público,
-    // provocando divergencia respecto a "Merchandising total" sin otros productos.
-    const desglose = calculateCosteCamisetasDesglosado({
-      camCoste: rawCamCoste || CAM_COSTE_DEFAULT,
-      camPedidos: Array.isArray(rawCamPedidos) ? rawCamPedidos : [],
-      corredoresExt: rawCamCorredores || {},
-      precioCorrExt: rawCamPrecioPlatObj?.precio ?? 0,
-      ninoExt: rawCamNino || {},
-      voluntariosActivos: _camVoluntariosActivos,
-      ventaPublico: rawCamVentaPublico || { precio: 0, cantidad: 0 },
-    });
-
-    // Solo ítems de merchandising con nombre "camiseta" (no todos los productos)
-    const merch = Array.isArray(merchandising) ? merchandising.filter(m => m.activo) : [];
-    const camisetasMerch = merch.filter(m => m.nombre?.toLowerCase().includes("camiseta"));
-    const ingCamisetasMerch  = camisetasMerch.reduce((s, m) => s + m.unidades * (m.precioVenta   || 0), 0);
-    const costeCamisetasMerch = camisetasMerch.reduce((s, m) => s + m.unidades * (m.costeUnitario || 0), 0);
-
-    return desglose.beneficioNeto + (ingCamisetasMerch - costeCamisetasMerch);
-  }, [rawCamPedidos, rawCamCoste, rawCamCorredores, rawCamPrecioPlatObj, rawCamNino,
-      _camVoluntariosActivos, merchandising, rawCamVentaPublico]);
+  // Totales agregados que pide Ivan: "Ingresos venta camisetas" y "Gastos totales camisetas"
+  const totalIngresosCamisetas = camisetasPresupuesto.totalIngresos;
+  const totalGastosCamisetas   = camisetasPresupuesto.totalGastos;
+  // Mantener el nombre histórico totalMerchBeneficio (beneficio neto camisetas + merch local)
+  // como suma agregada para el P&L general — ya no es una línea sincronizada en Ingresos Extra,
+  // sino la suma directa de las 6 categorías (con sus toggles ya aplicados) + merch local.
+  const totalMerchBeneficio = camisetasPresupuesto.beneficioNeto + merchLocalBeneficio;
 
   // ── Función que devuelve el valor actualizado de una línea sincronizada ──
   // Esta función es la ÚNICA fuente de verdad para los valores de las líneas
   const getValorSincronizado = useCallback((ie) => {
-    const key = ie.syncKey || (ie.id === 1 ? "patrocinios" : ie.id === 2 ? "camisetas" : null);
+    const key = ie.syncKey || (ie.id === 1 ? "patrocinios" : null);
     if (!key) return ie.valor; // manual: valor del estado
     if (key === "patrocinios") return totalPatConfirmado;
     if (key === "patrociniosCobrado") return totalPatCobrado;
-    if (key === "camisetas") return totalMerchBeneficio;
     if (key === "subvencionPublica") return totalSubvencionPublica;
     return ie.valor;
-  }, [totalPatConfirmado, totalPatCobrado, totalMerchBeneficio, totalSubvencionPublica]);
+  }, [totalPatConfirmado, totalPatCobrado, totalSubvencionPublica]);
 
   // ── ingresosExtraConValores: array con valores en tiempo real ────────────
   // No es estado — se calcula en cada render. Esto GARANTIZA que los KPIs
@@ -206,10 +221,8 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   //   — Líneas SIN syncKey (manuales): `activo` proviene de ie.activo.
   //     No tienen entrada en syncConfig.
   //
-  // Para que primera instalación y migraciones sean correctas, SYNC_CONFIG_DEFAULT
-  // DEBE tener los mismos valores booleanos que los campos `activo` de
-  // INGRESOS_EXTRA_DEFAULT para cada syncKey. Si divergen, syncConfig gana
-  // silenciosamente (ver análisis ECO-02 en budgetConstants.js).
+  // ECO-08: 'camisetas' y 'balanceCamisetasTecnicas' ya no son syncKeys válidos aquí —
+  // ese dominio económico ahora vive en camisetasPresupuesto/camSyncConfig (ver arriba).
 
   const ingresosExtraConValores = useMemo(() => {
     const base = scenarioIngresosExtra ?? ingresosExtra;
@@ -225,17 +238,13 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       // Valor calculado en tiempo real desde otros bloques
       const valor = key === "patrocinios" ? totalPatConfirmado
         : key === "patrociniosCobrado" ? totalPatCobrado
-          : key === "camisetas" ? totalMerchBeneficio
-            : key === "subvencionPublica" ? totalSubvencionPublica
-              : key === "balanceCamisetasTecnicas" ? totalBalanceCamisetasTecnicas
-                : ie.valor;
+          : key === "subvencionPublica" ? totalSubvencionPublica
+            : ie.valor;
 
       return { ...ie, syncKey: key, valor, activo, synced: true };
     });
-  // BUG-P1 fix: eliminada la dependencia duplicada totalBalanceCamisetasTecnicas
   }, [ingresosExtra, scenarioIngresosExtra, syncConfig,
-    totalPatConfirmado, totalPatCobrado, totalMerchBeneficio,
-    totalBalanceCamisetasTecnicas, totalSubvencionPublica]);
+    totalPatConfirmado, totalPatCobrado, totalSubvencionPublica]);
 
   // ── Carga inicial ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -254,28 +263,36 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
         ]);
         if (Array.isArray(savedTramos) && savedTramos.length > 0) setTramos(savedTramos);
         if (savedConceptos) {
-          setConceptos(savedConceptos.map(c => ({
-            ...c,
-            activo: c.activo !== false,
-            activoDistancias: c.activoDistancias ?? { TG7: true, TG13: true, TG25: true },
-            costePorDistancia: c.costePorDistancia ?? { TG7: 0, TG13: 0, TG25: 0 },
-          })));
+          // ECO-08: filtrar el concepto fijo legado id:12 "Camisetas voluntarios" —
+          // ese gasto ahora se calcula en el bloque Camisetas (categoría "voluntarios").
+          setConceptos(
+            savedConceptos
+              .filter(c => c.id !== LEGACY_REMOVED_CONCEPTO_ID)
+              .map(c => ({
+                ...c,
+                activo: c.activo !== false,
+                activoDistancias: c.activoDistancias ?? { TG7: true, TG13: true, TG25: true },
+                costePorDistancia: c.costePorDistancia ?? { TG7: 0, TG13: 0, TG25: 0 },
+              }))
+          );
         }
         if (savedInscritos) setInscritos(savedInscritos);
         if (savedIngresos) {
-          const ID_TO_SYNCKEY_LOAD = { 1: "patrocinios", 2: "camisetas", 3: "patrociniosCobrado", 10: "subvencionPublica", 13: "balanceCamisetasTecnicas" };
+          // ECO-08: filtrar líneas legadas id:2 ("camisetas") e id:13 ("balanceCamisetasTecnicas") —
+          // ese dominio económico ahora vive en las 6 categorías de camisetasPresupuesto/camSyncConfig.
+          const sinLegado = savedIngresos.filter(ie => !LEGACY_REMOVED_INGRESO_IDS.has(ie.id));
 
           // 1. Migrar datos legados: añadir syncKey si falta
-          const migrated = savedIngresos.map(ie => {
+          const migrated = sinLegado.map(ie => {
             if (ie.syncKey) return ie;
-            const syncKey = ID_TO_SYNCKEY_LOAD[ie.id];
+            const syncKey = ID_TO_SYNCKEY[ie.id];
             if (!syncKey) return ie;
             return { ...ie, syncKey, synced: true };
           });
 
           // 2. Garantizar que todos los ítems del DEFAULT existan en los datos guardados
-          //    Si el usuario nunca ha tenido id=10 (subvencionPublica) o id=13 (balanceCamisetasTecnicas),
-          //    se añaden desde INGRESOS_EXTRA_DEFAULT para que siempre aparezcan en la UI
+          //    Si el usuario nunca ha tenido id=10 (subvencionPublica), se añade desde
+          //    INGRESOS_EXTRA_DEFAULT para que siempre aparezca en la UI
           const savedIds = new Set(migrated.map(ie => ie.id));
           const missingDefaults = INGRESOS_EXTRA_DEFAULT.filter(ie => !savedIds.has(ie.id));
           const merged = [...migrated, ...missingDefaults];
@@ -359,8 +376,11 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     setMerchandising(MERCHANDISING_DEFAULT);
     setMaximos(MAXIMOS_DEFAULT);
     setSyncConfigRaw(SYNC_CONFIG_DEFAULT);
+    // ECO-08: camSyncConfigRaw también debe resetearse — antes faltaba, dejando
+    // los 6 toggles de camisetas en su último valor guardado tras un reset.
+    setCamSyncConfigRaw(CAMISETAS_SYNC_CONFIG_DEFAULT);
     setMargenConfig(MARGEN_CONFIG_DEFAULT);
-  }, [setSyncConfigRaw, setMargenConfig]);
+  }, [setSyncConfigRaw, setCamSyncConfigRaw, setMargenConfig]);
 
   const autoSaveTimer = useRef(null);
   const isFirstRender = useRef(true);
@@ -550,6 +570,9 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
 
   // BUG-P3 fix: calcular ingresos extra "reales" independientemente del escenario activo
   // Así realResultado no se contamina con los valores del escenario hipotético
+  // ECO-08: 'camisetas'/'balanceCamisetasTecnicas' eliminados de ID_TO_SYNCKEY — ese dominio
+  // económico ya no pasa por aquí, vive en camisetasPresupuesto (no afecta a realResultado
+  // porque las 6 categorías de camisetas no tienen una noción de "real" vs "escenario" separada).
   const realIngresosExtraConValores = useMemo(() =>
     ingresosExtra.map(ie => {
       const key = ie.syncKey || ID_TO_SYNCKEY[ie.id] || null;
@@ -557,14 +580,11 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       const activo = syncConfig[key] !== undefined ? syncConfig[key] : ie.activo;
       const valor = key === "patrocinios" ? totalPatConfirmado
         : key === "patrociniosCobrado" ? totalPatCobrado
-        : key === "camisetas" ? totalMerchBeneficio
         : key === "subvencionPublica" ? totalSubvencionPublica
-        : key === "balanceCamisetasTecnicas" ? totalBalanceCamisetasTecnicas
         : ie.valor;
       return { ...ie, syncKey: key, valor, activo, synced: true };
     }),
-    [ingresosExtra, syncConfig, totalPatConfirmado, totalPatCobrado,
-     totalMerchBeneficio, totalSubvencionPublica, totalBalanceCamisetasTecnicas]
+    [ingresosExtra, syncConfig, totalPatConfirmado, totalPatCobrado, totalSubvencionPublica]
   );
 
   const realTotalIngresosExtra = useMemo(() =>
@@ -576,40 +596,16 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     calculateResultado(realTotalInscritos, realIngresosPorDistancia, realCostesFijos, realCostesVariables, realTotalIngresosExtra),
     [realTotalInscritos, realIngresosPorDistancia, realCostesFijos, realCostesVariables, realTotalIngresosExtra]);
 
-  // ── ECO-07: Detección reactiva de doble cómputo en camisetas de voluntarios ──────────
-  //
-  // El doble cómputo ocurre ÚNICAMENTE cuando se cumplen AMBAS condiciones a la vez:
-  //   1. El concepto fijo id:12 "Camisetas voluntarios" está activo en el presupuesto.
-  //      → Contabiliza el coste como coste fijo (ej: 970 €).
-  //   2. La línea "Merchandising total" (syncKey:"camisetas") está activa en Ingresos Extra.
-  //      → Su valor = beneficioNeto camisetas = ingresosCamisetas - costeVoluntario - ...
-  //      → Al sumarlo como ingreso, en realidad se está RESTANDO el costeVoluntario de ingresos,
-  //        equivalente a sumarlo como coste. Como ya está en costes fijos → doble descuento.
-  //
-  // El aviso es informativo, nunca modifica datos sin consentimiento del usuario.
-  // El usuario puede tener razones válidas para este estado (ej: contabilidades separadas).
-  const avisoDobleComputo = useMemo(() => {
-    // Condición 1: concepto fijo id:12 activo (usa _conceptos para reflejar escenarios)
-    const conceptoCamisetasVol = _conceptos.find(c => c.id === 12 && c.tipo === "fijo");
-    const conceptoActivo = conceptoCamisetasVol?.activo === true;
-
-    // Condición 2: línea de camisetas sincronizada activa en ingresosExtraConValores
-    const lineaCamisetasIe = ingresosExtraConValores.find(ie => ie.syncKey === "camisetas");
-    const syncCamisetasActiva = lineaCamisetasIe?.activo === true;
-
-    const hayDobleComputo = conceptoActivo && syncCamisetasActiva;
-
-    return {
-      activo: hayDobleComputo,
-      // Importes para contextualizar el aviso al usuario
-      costeConcepto: conceptoCamisetasVol?.costeTotal ?? 0,
-    };
-  }, [_conceptos, ingresosExtraConValores]);
+  // ECO-08: el bloque ECO-07 de detección de doble cómputo se elimina — ya no puede
+  // existir estructuralmente. El gasto de "Camisetas voluntarios" pertenece ahora a una
+  // única categoría (camisetasPresupuesto.voluntarios), no a un concepto fijo manual
+  // que pudiera solaparse con una línea sincronizada distinta.
 
   return {
     tab, setTab, tramos, setTramos,
     totalPatConfirmado, totalPatCobrado, totalMerchBeneficio,
-    totalBalanceCamisetasTecnicas,
+    camisetasPresupuesto, camSyncConfig, setCamSyncConfig,
+    totalIngresosCamisetas, totalGastosCamisetas,
     syncConfig, setSyncConfig,
     totalSubvencionPublica,
     margenConfig, setMargenConfig,
@@ -631,6 +627,5 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     ingresosDesglosados,
     realTotalInscritos, realResultado,
     getValorSincronizado,
-    avisoDobleComputo,
   };
 };

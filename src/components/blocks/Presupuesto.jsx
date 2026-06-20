@@ -94,15 +94,16 @@ const Presupuesto = () => {
     peGlobal,
     totalPatConfirmado,
     totalPatCobrado,
-    totalMerchBeneficio,
     totalSubvencionPublica,
-    totalBalanceCamisetasTecnicas,
+    camisetasPresupuesto,
+    camSyncConfig, setCamSyncConfig,
+    totalIngresosCamisetas,
+    totalGastosCamisetas,
     syncConfig, setSyncConfig,
     margenConfig, setMargenConfig,
     ingresosDesglosados,
     realTotalInscritos,
     realResultado,
-    avisoDobleComputo,
   } = useBudgetLogic(scenarioOverrides);
 
   const {
@@ -475,9 +476,11 @@ const Presupuesto = () => {
               removeConcepto={(id) => setDelConceptoId(id)}
               isScenarioMode={isScenarioMode}
               reorderConceptos={isScenarioMode ? () => {} : reorderConceptos}
-              avisoDobleComputo={avisoDobleComputo}
-              onDesactivarConceptoCamisetas={() => handleUpdateConcepto(12, "activo", false)}
-              onIrAIngresos={() => setTab("ingresos")}
+              camisetasPresupuesto={camisetasPresupuesto}
+              camSyncConfig={camSyncConfig}
+              setCamSyncConfig={setCamSyncConfig}
+              totalIngresosCamisetas={totalIngresosCamisetas}
+              totalGastosCamisetas={totalGastosCamisetas}
             />
           )}
           {tab === "ingresos" && (
@@ -492,19 +495,14 @@ const Presupuesto = () => {
               ingresosPorDistancia={ingresosPorDistancia}
               totalPatConfirmado={totalPatConfirmado}
               totalPatCobrado={totalPatCobrado}
-              totalMerchBeneficio={totalMerchBeneficio}
               totalSubvencionPublica={totalSubvencionPublica}
-              totalBalanceCamisetasTecnicas={totalBalanceCamisetasTecnicas}
               syncConfig={syncConfig}
               setSyncConfig={setSyncConfig}
-              avisoDobleComputo={avisoDobleComputo}
-              onDesactivarSyncCamisetas={() => {
-                const ieActual = isScenarioMode ? (scenarioIngresosExtra ?? ingresosExtra) : ingresosExtra;
-                const setter = isScenarioMode ? setScenarioIngresosExtra : setIngresosExtra;
-                setSyncConfig(prev => ({ ...prev, camisetas: false }));
-                setter(prev => prev.map(ie => ie.syncKey === "camisetas" ? { ...ie, activo: false } : ie));
-              }}
-              onIrACostes={() => setTab("presupuesto")}
+              camisetasPresupuesto={camisetasPresupuesto}
+              camSyncConfig={camSyncConfig}
+              setCamSyncConfig={setCamSyncConfig}
+              totalIngresosCamisetas={totalIngresosCamisetas}
+              totalGastosCamisetas={totalGastosCamisetas}
             />
           )}
           {isScenarioMode && (tab === "inscripciones" || tab === "presupuesto" || tab === "ingresos") && (

@@ -16,8 +16,12 @@ beforeAll(() => {
 const getImporteComprometido = p => p.estado === "cobrado" ? (p.importeCobrado > 0 ? p.importeCobrado : p.importe) : p.estado === "confirmado" ? p.importe : 0;
 const getImporteCobrado = p => p.importeCobrado > 0 ? p.importeCobrado : p.importe;
 
-const ID_TO_SYNCKEY = { 1:"patrocinios", 2:"camisetas", 3:"patrociniosCobrado", 10:"subvencionPublica", 13:"balanceCamisetasTecnicas" };
-const SYNC_CONFIG_DEFAULT = { patrocinios:true, patrociniosCobrado:true, camisetas:true, subvencionPublica:true, balanceCamisetasTecnicas:false };
+// ECO-08: 'camisetas' (id:2) y 'balanceCamisetasTecnicas' (id:13) ya no se migran a syncKey —
+// ese dominio económico vive en calculateCamisetasPresupuesto (6 categorías independientes, ver PRE-14).
+const ID_TO_SYNCKEY = { 1:"patrocinios", 3:"patrociniosCobrado", 10:"subvencionPublica" };
+const SYNC_CONFIG_DEFAULT = { patrocinios:true, patrociniosCobrado:true, subvencionPublica:true };
+// Ids legados eliminados — datos guardados con estos ids deben filtrarse al cargar, no migrarse.
+const LEGACY_REMOVED_IDS = new Set([2, 13]);
 
 const buildConValores = ({ ie, syncConfig, totales }) => {
   const sc = { ...SYNC_CONFIG_DEFAULT, ...syncConfig };
@@ -27,15 +31,15 @@ const buildConValores = ({ ie, syncConfig, totales }) => {
     const activo = sc[key] !== undefined ? sc[key] : item.activo;
     const valor = key==="patrocinios" ? totales.patConfirmado
                 : key==="patrociniosCobrado" ? totales.patCobrado
-                : key==="camisetas" ? totales.merch
                 : key==="subvencionPublica" ? totales.subvencion
-                : key==="balanceCamisetasTecnicas" ? totales.camisetasTecnicas
                 : item.valor;
     return { ...item, syncKey:key, valor, activo, synced:true };
   });
 };
 const total = items => items.filter(i => i.activo).reduce((s, i) => s + i.valor, 0);
-const migrate = ie => ie.map(item => item.syncKey ? item : ID_TO_SYNCKEY[item.id] ? { ...item, syncKey: ID_TO_SYNCKEY[item.id], synced:true } : item);
+const migrate = ie => ie
+  .filter(item => !LEGACY_REMOVED_IDS.has(item.id))
+  .map(item => item.syncKey ? item : ID_TO_SYNCKEY[item.id] ? { ...item, syncKey: ID_TO_SYNCKEY[item.id], synced:true } : item);
 
 // PRE-01 — Toggle patrocinios captados
 describe('PRE-01 — Toggle patrocinios captados', () => {
@@ -95,137 +99,185 @@ describe('PRE-04 — Subvención desde sector Administración pública', () => {
   it('al eliminar id=1 baja a 1000', () => expect(calcSubv(pats.filter(p=>p.id!==1))).toBe(1000));
 });
 
-// PRE-05 — Merchandising total = pedidos Camisetas + merchandising local
-describe('PRE-05 — Merchandising total combina Camisetas + Venta de Productos', () => {
-  const calcMerchTotal = ({ pedidos, coste, merchandising }) => {
-    // Parte 1: pedidos bloque Camisetas
-    const lineas = pedidos.flatMap(p => p.lineas || []);
-    const ingPed = lineas.filter(l => l.estadoPago==="pagado").reduce((s,l) => s + l.cantidad*(l.precioVenta||0), 0);
-    const costePed = lineas.filter(l => l.estadoPago==="pagado"||l.estadoPago==="pendiente").reduce((s,l) => s + l.cantidad*(coste[l.tipo]||7.5), 0);
-    // Parte 2: merchandising local
-    const merch = merchandising.filter(m => m.activo);
-    const ingMerch = merch.reduce((s,m) => s + m.unidades*(m.precioVenta||0), 0);
-    const costeMerch = merch.reduce((s,m) => s + m.unidades*(m.costeUnitario||0), 0);
-    return (ingPed - costePed) + (ingMerch - costeMerch);
-  };
-
-  const pedidos = [{ lineas: [
-    { tipo:"corredor", cantidad:10, precioVenta:15, estadoPago:"pagado" },
-    { tipo:"voluntario", cantidad:5, precioVenta:0, estadoPago:"pendiente" },
-  ]}];
-  const coste = { corredor:8, voluntario:7 };
-  const merchandising = [
-    { id:1, nombre:"Buff", unidades:20, precioVenta:8, costeUnitario:3, activo:true },
-    { id:2, nombre:"Gorra", unidades:10, precioVenta:12, costeUnitario:5, activo:false },
-  ];
-
-  it('beneficio pedidos: (10*15-10*8) - (5*7) = 70-35 = 35', () => {
-    const ingPed = 10*15; // 150
-    const costePed = 10*8 + 5*7; // 80+35=115
-    expect(ingPed - costePed).toBe(35);
+// PRE-05 — ECO-08: categoría "otros" (extras de Pedidos vendidos: pagado+pendiente)
+describe('PRE-05 — Camisetas "otros" (extras de Pedidos vendidos)', () => {
+  it('ingreso solo cuenta pagado+pendiente, no regalo', async () => {
+    const { calculateCamisetasPresupuesto } = await import('../lib/budgetUtils.js');
+    const camPedidos = [{ lineas: [
+      { tipo:"corredor",   cantidad:10, precioVenta:15, estadoPago:"pagado" },
+      { tipo:"voluntario", cantidad:5,  precioVenta:12, estadoPago:"pendiente" },
+      { tipo:"nino",       cantidad:3,  precioVenta:10, estadoPago:"regalo" },
+    ]}];
+    const r = calculateCamisetasPresupuesto({ camCoste:{corredor:8,voluntario:7,nino:6}, camPedidos });
+    expect(r.otros.ingreso).toBe(10*15 + 5*12); // 150+60=210, regalo no suma ingreso
+    expect(r.otros.unidades).toBe(15); // 10+5, regalo no cuenta en "otros"
   });
-
-  it('beneficio merch activo: 20*(8-3) = 100', () => {
-    const m = merchandising.filter(x=>x.activo);
-    expect(m.reduce((s,x) => s + x.unidades*(x.precioVenta-x.costeUnitario), 0)).toBe(100);
+  it('gasto de "otros" usa el coste según tipo de línea', async () => {
+    const { calculateCamisetasPresupuesto } = await import('../lib/budgetUtils.js');
+    const camPedidos = [{ lineas: [
+      { tipo:"corredor",   cantidad:10, precioVenta:15, estadoPago:"pagado" },
+      { tipo:"voluntario", cantidad:5,  precioVenta:12, estadoPago:"pendiente" },
+    ]}];
+    const r = calculateCamisetasPresupuesto({ camCoste:{corredor:8,voluntario:7,nino:6}, camPedidos });
+    expect(r.otros.gasto).toBe(10*8 + 5*7); // 80+35=115
   });
-
-  it('total combinado = 35 + 100 = 135', () => {
-    expect(calcMerchTotal({ pedidos, coste, merchandising })).toBe(135);
-  });
-
-  it('merch inactivo no cuenta', () => {
-    const merchTodos = merchandising.map(m => ({ ...m, activo:true }));
-    const conTodos = calcMerchTotal({ pedidos, coste, merchandising:merchTodos });
-    const sinGorra = calcMerchTotal({ pedidos, coste, merchandising });
-    expect(conTodos).toBeGreaterThan(sinGorra);
-  });
-
-  it('si no hay pedidos, solo cuenta merchandising local', () => {
-    const r = calcMerchTotal({ pedidos:[], coste, merchandising });
-    expect(r).toBe(100); // solo buff activo
+  it('toggle "otros" desactivado → ingreso y gasto a 0', async () => {
+    const { calculateCamisetasPresupuesto } = await import('../lib/budgetUtils.js');
+    const camPedidos = [{ lineas: [{ tipo:"corredor", cantidad:10, precioVenta:15, estadoPago:"pagado" }] }];
+    const r = calculateCamisetasPresupuesto({ camCoste:{corredor:8,voluntario:7,nino:6}, camPedidos, toggles:{ otros:false } });
+    expect(r.otros.ingreso).toBe(0);
+    expect(r.otros.gasto).toBe(0);
   });
 });
 
-// PRE-06 — Balance camisetas técnicas
-describe('PRE-06 — Balance camisetas técnicas (corredor + camiseta local)', () => {
-  const calcBalance = ({ pedidos, coste, merchandising }) => {
-    const lineas = pedidos.flatMap(p => p.lineas || []).filter(l => l.tipo==="corredor");
-    const ingCor = lineas.filter(l => l.estadoPago==="pagado").reduce((s,l) => s + l.cantidad*(l.precioVenta||0), 0);
-    const costeCor = lineas.filter(l => l.estadoPago==="pagado"||l.estadoPago==="pendiente").reduce((s,l) => s + l.cantidad*(coste.corredor||7.5), 0);
-    const camisetasMerch = (merchandising||[]).filter(m => m.activo && m.nombre?.toLowerCase().includes("camiseta"));
-    const ingCam = camisetasMerch.reduce((s,m) => s + m.unidades*(m.precioVenta||0), 0);
-    const costeCam = camisetasMerch.reduce((s,m) => s + m.unidades*(m.costeUnitario||0), 0);
-    return (ingCor - costeCor) + (ingCam - costeCam);
-  };
-
-  const pedidos = [{ lineas: [
-    { tipo:"corredor",   cantidad:10, precioVenta:15, estadoPago:"pagado" },
-    { tipo:"voluntario", cantidad:5,  precioVenta:0,  estadoPago:"pendiente" },
-  ]}];
-  const coste = { corredor:8, voluntario:7 };
-  const merch = [
-    { id:1, nombre:"Camiseta técnica trail", unidades:20, precioVenta:18, costeUnitario:8, activo:true },
-    { id:2, nombre:"Buff", unidades:30, precioVenta:8, costeUnitario:3, activo:true },
-  ];
-
-  it('solo cuenta tipo corredor de pedidos (no voluntarios)', () => {
-    const lineasVol = pedidos[0].lineas.filter(l => l.tipo==="voluntario");
-    expect(lineasVol.length).toBe(1);
-    // voluntarios no deben entrar en el balance
-    const r = calcBalance({ pedidos, coste, merchandising:[] });
-    const costesVol = lineasVol.reduce((s,l) => s + l.cantidad*coste.voluntario, 0); // 35
-    expect(r).toBe(10*15 - 10*8 - 0); // ingreso corredor - coste corredor (solo pagados)
+// PRE-06 — ECO-08: categoría "regalos" (extras de Pedidos con estadoPago='regalo')
+describe('PRE-06 — Camisetas "regalo" (extras de Pedidos con estadoPago=regalo)', () => {
+  it('solo cuenta líneas con estadoPago=regalo, cualquier tipo', async () => {
+    const { calculateCamisetasPresupuesto } = await import('../lib/budgetUtils.js');
+    const camPedidos = [{ lineas: [
+      { tipo:"corredor",   cantidad:10, precioVenta:15, estadoPago:"pagado" },
+      { tipo:"voluntario", cantidad:5,  precioVenta:0,  estadoPago:"regalo" },
+      { tipo:"nino",       cantidad:3,  precioVenta:0,  estadoPago:"regalo" },
+    ]}];
+    const r = calculateCamisetasPresupuesto({ camCoste:{corredor:8,voluntario:7,nino:6}, camPedidos });
+    expect(r.regalos.unidades).toBe(8); // 5+3, corredor pagado no cuenta
+    expect(r.regalos.gasto).toBe(5*7 + 3*6); // 35+18=53
+    expect(r.regalos.ingreso).toBe(0); // los regalos nunca generan ingreso
   });
-
-  it('merchandising: solo items con "camiseta" en el nombre', () => {
-    const r = calcBalance({ pedidos:[], coste, merchandising:merch });
-    expect(r).toBe(20*(18-8)); // solo la camiseta técnica, buff no cuenta
+  it('toggle "regalos" desactivado → gasto a 0', async () => {
+    const { calculateCamisetasPresupuesto } = await import('../lib/budgetUtils.js');
+    const camPedidos = [{ lineas: [{ tipo:"voluntario", cantidad:5, precioVenta:0, estadoPago:"regalo" }] }];
+    const r = calculateCamisetasPresupuesto({ camCoste:{corredor:8,voluntario:7,nino:6}, camPedidos, toggles:{ regalos:false } });
+    expect(r.regalos.gasto).toBe(0);
   });
-
-  it('total = corredor pedidos + camiseta merch', () => {
-    const corPed = 10*15 - 10*8; // 70
-    const camMerch = 20*(18-8);  // 200
-    expect(calcBalance({ pedidos, coste, merchandising:merch })).toBe(corPed + camMerch);
-  });
-
-  it('id=13 mapea a syncKey balanceCamisetasTecnicas', () => {
-    const ie = [{ id:13, nombre:"Balance camisetas técnicas", valor:0, activo:false }];
-    const t = { patConfirmado:0, patCobrado:0, merch:0, subvencion:0, camisetasTecnicas:270 };
-    const r = buildConValores({ ie, syncConfig:{balanceCamisetasTecnicas:true}, totales:t });
-    expect(r[0].syncKey).toBe("balanceCamisetasTecnicas");
-    expect(r[0].activo).toBe(true);
-    expect(r[0].valor).toBe(270);
+  it('no se solapa con "otros": una línea es regalo O vendida, nunca ambas', async () => {
+    const { calculateCamisetasPresupuesto } = await import('../lib/budgetUtils.js');
+    const camPedidos = [{ lineas: [
+      { tipo:"corredor", cantidad:4, precioVenta:15, estadoPago:"pagado" },
+      { tipo:"corredor", cantidad:6, precioVenta:0,  estadoPago:"regalo" },
+    ]}];
+    const r = calculateCamisetasPresupuesto({ camCoste:{corredor:8,voluntario:7,nino:6}, camPedidos });
+    expect(r.otros.unidades).toBe(4);
+    expect(r.regalos.unidades).toBe(6);
+    expect(r.otros.unidades + r.regalos.unidades).toBe(10); // sin solape ni pérdida
   });
 });
 
-// PRE-07 — INGRESOS_EXTRA_DEFAULT tiene los 5 syncKeys
-describe('PRE-07 — INGRESOS_EXTRA_DEFAULT incluye todos los syncKeys', () => {
-  it('tiene los 5 ids sincronizados con sus syncKeys', async () => {
+// PRE-14 — ECO-08: las 6 categorías de calculateCamisetasPresupuesto
+describe('PRE-14 — calculateCamisetasPresupuesto: 6 categorías independientes', () => {
+  it('corredores: uds×precio plataforma, ingreso y gasto', async () => {
+    const { calculateCamisetasPresupuesto } = await import('../lib/budgetUtils.js');
+    const r = calculateCamisetasPresupuesto({
+      camCoste:{corredor:8,voluntario:7,nino:6},
+      corredoresExt:{ M:10, L:5 }, precioCorrExt:15,
+    });
+    expect(r.corredores.unidades).toBe(15);
+    expect(r.corredores.ingreso).toBe(15*15);
+    expect(r.corredores.gasto).toBe(15*8);
+  });
+
+  it('noCorredores: fuente y precio totalmente independientes de corredores', async () => {
+    const { calculateCamisetasPresupuesto } = await import('../lib/budgetUtils.js');
+    const r = calculateCamisetasPresupuesto({
+      camCoste:{corredor:8,voluntario:7,nino:6},
+      corredoresExt:{ M:10 }, precioCorrExt:15,
+      noCorredorExt:{ S:4 }, precioNoCorrExt:18,
+    });
+    expect(r.noCorredores.unidades).toBe(4);
+    expect(r.noCorredores.ingreso).toBe(4*18);
+    expect(r.noCorredores.gasto).toBe(4*8); // coste de fabricación = mismo que corredor
+    // No contamina la categoría corredores
+    expect(r.corredores.unidades).toBe(10);
+  });
+
+  it('ventaPublico: precio×cantidad libre, coste a precio de corredor', async () => {
+    const { calculateCamisetasPresupuesto } = await import('../lib/budgetUtils.js');
+    const r = calculateCamisetasPresupuesto({
+      camCoste:{corredor:8,voluntario:7,nino:6},
+      ventaPublico:{ precio:20, cantidad:7 },
+    });
+    expect(r.ventaPublico.unidades).toBe(7);
+    expect(r.ventaPublico.ingreso).toBe(7*20);
+    expect(r.ventaPublico.gasto).toBe(7*8);
+  });
+
+  it('voluntarios: SOLO automático, sin ingreso, no cuenta extras de Pedidos tipo voluntario', async () => {
+    const { calculateCamisetasPresupuesto } = await import('../lib/budgetUtils.js');
+    const voluntariosActivos = [{ id:1, talla:'M' }, { id:2, talla:'L' }, { id:3, talla:'S' }];
+    const camPedidos = [{ lineas: [{ tipo:"voluntario", cantidad:99, precioVenta:0, estadoPago:"regalo" }] }];
+    const r = calculateCamisetasPresupuesto({ camCoste:{corredor:8,voluntario:7,nino:6}, voluntariosActivos, camPedidos });
+    expect(r.voluntarios.unidades).toBe(3); // solo los 3 automáticos, NO las 99 del pedido
+    expect(r.voluntarios.gasto).toBe(3*7);
+    expect(r.voluntarios.ingreso).toBe(0);
+  });
+
+  it('toggles independientes: desactivar una categoría no afecta a las demás', async () => {
+    const { calculateCamisetasPresupuesto } = await import('../lib/budgetUtils.js');
+    const r = calculateCamisetasPresupuesto({
+      camCoste:{corredor:8,voluntario:7,nino:6},
+      corredoresExt:{ M:10 }, precioCorrExt:15,
+      noCorredorExt:{ S:4 }, precioNoCorrExt:18,
+      toggles:{ corredores:false, noCorredores:true, ventaPublico:true, otros:true, voluntarios:true, regalos:true },
+    });
+    expect(r.corredores.ingreso).toBe(0);
+    expect(r.corredores.gasto).toBe(0);
+    expect(r.noCorredores.ingreso).toBe(4*18); // intacto
+  });
+
+  it('totales agregados: totalIngresos solo suma categorías con ingreso, totalGastos suma todas', async () => {
+    const { calculateCamisetasPresupuesto } = await import('../lib/budgetUtils.js');
+    const voluntariosActivos = [{ id:1, talla:'M' }];
+    const r = calculateCamisetasPresupuesto({
+      camCoste:{corredor:8,voluntario:7,nino:6},
+      corredoresExt:{ M:10 }, precioCorrExt:15, // ingreso 150, gasto 80
+      voluntariosActivos, // gasto 7, sin ingreso
+    });
+    expect(r.totalIngresos).toBe(150);
+    expect(r.totalGastos).toBe(80 + 7);
+    expect(r.beneficioNeto).toBe(150 - 87);
+  });
+});
+
+// PRE-07 — INGRESOS_EXTRA_DEFAULT ya NO incluye los syncKeys legados de camisetas
+describe('PRE-07 — INGRESOS_EXTRA_DEFAULT (ECO-08: camisetas eliminadas)', () => {
+  it('tiene los 3 syncKeys vigentes (patrocinios/patrociniosCobrado/subvencionPublica)', async () => {
     const { INGRESOS_EXTRA_DEFAULT } = await import('../constants/budgetConstants.js');
     const keys = INGRESOS_EXTRA_DEFAULT.filter(ie=>ie.syncKey).map(ie=>ie.syncKey);
     expect(keys).toContain('patrocinios');
     expect(keys).toContain('patrociniosCobrado');
-    expect(keys).toContain('camisetas');
     expect(keys).toContain('subvencionPublica');
-    expect(keys).toContain('balanceCamisetasTecnicas');
   });
-  it('id=13 tiene syncKey balanceCamisetasTecnicas', async () => {
+  it('ya NO contiene los syncKeys legados camisetas/balanceCamisetasTecnicas', async () => {
     const { INGRESOS_EXTRA_DEFAULT } = await import('../constants/budgetConstants.js');
-    expect(INGRESOS_EXTRA_DEFAULT.find(ie=>ie.id===13)?.syncKey).toBe('balanceCamisetasTecnicas');
+    const keys = INGRESOS_EXTRA_DEFAULT.filter(ie=>ie.syncKey).map(ie=>ie.syncKey);
+    expect(keys).not.toContain('camisetas');
+    expect(keys).not.toContain('balanceCamisetasTecnicas');
+  });
+  it('ya NO contiene los ids legados 2 y 13', async () => {
+    const { INGRESOS_EXTRA_DEFAULT } = await import('../constants/budgetConstants.js');
+    expect(INGRESOS_EXTRA_DEFAULT.find(ie=>ie.id===2)).toBeUndefined();
+    expect(INGRESOS_EXTRA_DEFAULT.find(ie=>ie.id===13)).toBeUndefined();
   });
 });
 
-// PRE-08 — SYNC_CONFIG_DEFAULT tiene las 5 claves
-describe('PRE-08 — SYNC_CONFIG_DEFAULT tiene las 5 claves', () => {
-  it('tiene balanceCamisetasTecnicas', async () => {
+// PRE-08 — SYNC_CONFIG_DEFAULT y CAMISETAS_SYNC_CONFIG_DEFAULT
+describe('PRE-08 — SYNC_CONFIG_DEFAULT (ECO-08: solo 3 claves, camisetas separado)', () => {
+  it('tiene las 3 claves vigentes', async () => {
     const { SYNC_CONFIG_DEFAULT } = await import('../constants/budgetConstants.js');
-    expect(SYNC_CONFIG_DEFAULT).toHaveProperty('balanceCamisetasTecnicas');
-  });
-  it('tiene todas las claves', async () => {
-    const { SYNC_CONFIG_DEFAULT } = await import('../constants/budgetConstants.js');
-    ['patrocinios','patrociniosCobrado','camisetas','subvencionPublica','balanceCamisetasTecnicas'].forEach(k => {
+    ['patrocinios','patrociniosCobrado','subvencionPublica'].forEach(k => {
       expect(SYNC_CONFIG_DEFAULT).toHaveProperty(k);
+    });
+  });
+  it('ya NO tiene camisetas ni balanceCamisetasTecnicas', async () => {
+    const { SYNC_CONFIG_DEFAULT } = await import('../constants/budgetConstants.js');
+    expect(SYNC_CONFIG_DEFAULT).not.toHaveProperty('camisetas');
+    expect(SYNC_CONFIG_DEFAULT).not.toHaveProperty('balanceCamisetasTecnicas');
+  });
+  it('CAMISETAS_SYNC_CONFIG_DEFAULT tiene las 6 categorías, todas activas por defecto', async () => {
+    const { CAMISETAS_SYNC_CONFIG_DEFAULT } = await import('../constants/budgetConstants.js');
+    ['camCorredores','camNoCorredores','camVentaPublico','camOtros','camVoluntarios','camRegalos'].forEach(k => {
+      expect(CAMISETAS_SYNC_CONFIG_DEFAULT).toHaveProperty(k);
+      expect(CAMISETAS_SYNC_CONFIG_DEFAULT[k]).toBe(true);
     });
   });
 });
@@ -236,19 +288,24 @@ describe('PRE-09 — Migración datos legados (sin syncKey)', () => {
     { id:1,  valor:500, activo:true  },
     { id:3,  valor:200, activo:false },
     { id:10, valor:0,   activo:true  },
-    { id:13, valor:0,   activo:false },
+    { id:2,  valor:0,   activo:true  }, // ECO-08: legado eliminado, debe filtrarse
+    { id:13, valor:0,   activo:false }, // ECO-08: legado eliminado, debe filtrarse
     { id:12, nombre:"Otros", valor:50, activo:true },
   ];
-  it('id=1→patrocinios, id=3→patrociniosCobrado, id=10→subvencionPublica, id=13→balanceCamisetasTecnicas', () => {
+  it('id=1→patrocinios, id=3→patrociniosCobrado, id=10→subvencionPublica', () => {
     const r = migrate(legacy);
     expect(r.find(ie=>ie.id===1)?.syncKey).toBe("patrocinios");
     expect(r.find(ie=>ie.id===3)?.syncKey).toBe("patrociniosCobrado");
     expect(r.find(ie=>ie.id===10)?.syncKey).toBe("subvencionPublica");
-    expect(r.find(ie=>ie.id===13)?.syncKey).toBe("balanceCamisetasTecnicas");
   });
   it('no toca líneas manuales (id=12)', () => {
     const r = migrate(legacy);
     expect(r.find(ie=>ie.id===12)?.syncKey).toBeUndefined();
+  });
+  it('ECO-08: filtra ids legados 2 y 13 en vez de migrarlos', () => {
+    const r = migrate(legacy);
+    expect(r.find(ie=>ie.id===2)).toBeUndefined();
+    expect(r.find(ie=>ie.id===13)).toBeUndefined();
   });
 });
 
@@ -258,37 +315,36 @@ describe('PRE-10 — Cadena completa: toggle → totalIngresosExtra → resultad
     { id:1,  activo:true,  valor:0 },
     { id:3,  activo:false, valor:0 },
     { id:10, activo:true,  valor:0 },
-    { id:13, activo:false, valor:0 },
     { id:12, nombre:"Otros", activo:true, valor:300 },
   ];
-  const t = { patConfirmado:800, patCobrado:200, merch:150, subvencion:3000, camisetasTecnicas:270 };
+  const t = { patConfirmado:800, patCobrado:200, subvencion:3000 };
 
-  it('todos activos: 800+200+3000+270+300 = 4570', () => {
-    const sc = { patrocinios:true, patrociniosCobrado:true, subvencionPublica:true, balanceCamisetasTecnicas:true, camisetas:true };
-    expect(total(buildConValores({ ie, syncConfig:sc, totales:t }))).toBe(4570);
+  it('todos activos: 800+200+3000+300 = 4300', () => {
+    const sc = { patrocinios:true, patrociniosCobrado:true, subvencionPublica:true };
+    expect(total(buildConValores({ ie, syncConfig:sc, totales:t }))).toBe(4300);
   });
 
   it('solo manual activo: 300', () => {
-    const sc = { patrocinios:false, patrociniosCobrado:false, camisetas:false, subvencionPublica:false, balanceCamisetasTecnicas:false };
+    const sc = { patrocinios:false, patrociniosCobrado:false, subvencionPublica:false };
     expect(total(buildConValores({ ie, syncConfig:sc, totales:t }))).toBe(300);
   });
 
   it('activar subvención aumenta exactamente 3000', () => {
-    const sc_off = { patrocinios:false, patrociniosCobrado:false, camisetas:false, subvencionPublica:false, balanceCamisetasTecnicas:false };
+    const sc_off = { patrocinios:false, patrociniosCobrado:false, subvencionPublica:false };
     const sc_on  = { ...sc_off, subvencionPublica:true };
     const off = total(buildConValores({ ie, syncConfig:sc_off, totales:t }));
     const on  = total(buildConValores({ ie, syncConfig:sc_on,  totales:t }));
     expect(on - off).toBe(3000);
   });
 });
-// PRE-11 — Merge defaults garantiza que id=10 y id=13 siempre aparecen
+// PRE-11 — Merge defaults garantiza que id=10 siempre aparece
 describe('PRE-11 — Merge defaults garantiza líneas nuevas en datos guardados', () => {
+  // ECO-08: DEFAULTS refleja INGRESOS_EXTRA_DEFAULT real — id:2 (camisetas) e id:13
+  // (balanceCamisetasTecnicas) ya no existen, sustituidos por calculateCamisetasPresupuesto.
   const DEFAULTS = [
     { id:1,  syncKey:"patrocinios",             activo:true,  valor:0 },
     { id:3,  syncKey:"patrociniosCobrado",       activo:false, valor:0 },
-    { id:2,  syncKey:"camisetas",               activo:true,  valor:0 },
     { id:10, syncKey:"subvencionPublica",        activo:true,  valor:0 },
-    { id:13, syncKey:"balanceCamisetasTecnicas", activo:false, valor:0 },
     { id:11, nombre:"Colaboradores especie",     activo:false, valor:0 },
     { id:12, nombre:"Otros ingresos",            activo:false, valor:0 },
   ];
@@ -302,7 +358,6 @@ describe('PRE-11 — Merge defaults garantiza líneas nuevas en datos guardados'
   it('datos sin id=10 → merge añade id=10 (subvencionPublica)', () => {
     const saved = [
       { id:1, nombre:"Patrocinios captados", activo:true, valor:800 },
-      { id:2, nombre:"Merchandising", activo:true, valor:0 },
       { id:3, nombre:"Patrocinios cobrados", activo:false, valor:0 },
     ];
     const merged = mergeWithDefaults(saved, DEFAULTS);
@@ -310,11 +365,19 @@ describe('PRE-11 — Merge defaults garantiza líneas nuevas en datos guardados'
     expect(merged.find(ie => ie.id === 10)?.syncKey).toBe("subvencionPublica");
   });
 
-  it('datos sin id=13 → merge añade id=13 (balanceCamisetasTecnicas)', () => {
-    const saved = [{ id:1, activo:true, valor:800 }];
+  it('datos guardados con ids legados 2/13 no se reintroducen vía defaults', () => {
+    const saved = [
+      { id:1, activo:true, valor:800 },
+      { id:2, nombre:"Merchandising (legado)", activo:true, valor:0 },
+      { id:13, nombre:"Balance camisetas técnicas (legado)", activo:false, valor:0 },
+    ];
     const merged = mergeWithDefaults(saved, DEFAULTS);
-    expect(merged.find(ie => ie.id === 13)).toBeTruthy();
-    expect(merged.find(ie => ie.id === 13)?.syncKey).toBe("balanceCamisetasTecnicas");
+    // El merge no los quita (eso lo hace el filtro de carga en useBudgetLogic, ver PRE-09),
+    // pero tampoco los duplica ni los reintroduce como missing default.
+    expect(merged.filter(ie => ie.id === 2)).toHaveLength(1);
+    expect(merged.filter(ie => ie.id === 13)).toHaveLength(1);
+    expect(DEFAULTS.find(ie => ie.id === 2)).toBeUndefined();
+    expect(DEFAULTS.find(ie => ie.id === 13)).toBeUndefined();
   });
 
   it('datos que ya tienen id=10 no se duplican', () => {
@@ -558,5 +621,24 @@ describe('MEJ-03 calcCostesRealesDesdePedidos — costes reales vs estimados', (
     const concOrig  = [...conceptos];
     calcCostesRealesDesdePedidos(pedidos, conceptos);
     expect(conceptos).toEqual(concOrig);
+  });
+});
+
+// PRE-15 — BUG-RESET-CAM: resetAllData debe incluir camSyncConfig
+describe('PRE-15 — Reset de datos incluye los 6 toggles de camisetas (ECO-08)', () => {
+  it('CAMISETAS_SYNC_CONFIG_DEFAULT existe y tiene las 6 claves activas', async () => {
+    const { CAMISETAS_SYNC_CONFIG_DEFAULT } = await import('../constants/budgetConstants.js');
+    const claves = ['camCorredores','camNoCorredores','camVentaPublico','camOtros','camVoluntarios','camRegalos'];
+    expect(Object.keys(CAMISETAS_SYNC_CONFIG_DEFAULT).sort()).toEqual(claves.sort());
+  });
+  it('reset simulado: un toggle desactivado vuelve a true tras aplicar el default', async () => {
+    const { CAMISETAS_SYNC_CONFIG_DEFAULT } = await import('../constants/budgetConstants.js');
+    // Simula el estado tras desactivar manualmente "voluntarios" antes del reset
+    const estadoSucio = { ...CAMISETAS_SYNC_CONFIG_DEFAULT, camVoluntarios: false };
+    expect(estadoSucio.camVoluntarios).toBe(false);
+    // Tras un reset, el estado debe volver exactamente al default (no preservar lo sucio)
+    const estadoTrasReset = { ...CAMISETAS_SYNC_CONFIG_DEFAULT };
+    expect(estadoTrasReset.camVoluntarios).toBe(true);
+    expect(estadoTrasReset).toEqual(CAMISETAS_SYNC_CONFIG_DEFAULT);
   });
 });

@@ -534,6 +534,123 @@ export const calculateCosteCamisetasDesglosado = ({
 };
 
 /**
+ * calculateCamisetasPresupuesto — ECO-08: desglose de camisetas en 6 categorías
+ * independientes con ingreso/gasto propio y toggle propio, para sustituir el
+ * antiguo modelo de un único "beneficio neto" agregado (calculateCosteCamisetasDesglosado).
+ *
+ * Categorías (cada una con su propia fuente de datos real del módulo Camisetas):
+ *   1. corredores      — SK_CAM_CORREDORES (uds/talla) × precio plataforma. Ingreso + gasto.
+ *   2. noCorredores     — SK_CAM_NO_CORREDOR (uds/talla) × precio no-corredor. Ingreso + gasto.
+ *   3. ventaPublico     — SK_CAM_VENTA_PUBLICO (precio×cantidad libre). Ingreso + gasto.
+ *   4. otros            — líneas de Pedidos con estadoPago pagado/pendiente (cualquier tipo). Ingreso + gasto.
+ *   5. voluntarios       — SOLO cálculo automático (voluntariosActivos × coste.voluntario). Solo gasto.
+ *   6. regalos          — líneas de Pedidos con estadoPago='regalo' (cualquier tipo). Solo gasto.
+ *
+ * Invariante de diseño: ninguna unidad real puede contarse en dos categorías a la vez.
+ * - "corredores"/"noCorredores" son EXCLUSIVAMENTE plataforma (no incluyen extras de Pedidos).
+ * - "otros"/"regalos" son EXCLUSIVAMENTE extras de Pedidos, separados por estadoPago.
+ * - "voluntarios" es EXCLUSIVAMENTE el cálculo automático; los extras de Pedidos tipo
+ *   "voluntario" caen en "otros" o "regalos" según su estadoPago, nunca aquí.
+ *
+ * @param {object} p
+ * @param {object} p.camCoste        - { corredor, voluntario, nino } coste unitario de fabricación
+ * @param {Array}  p.camPedidos      - Pedidos del módulo Camisetas (líneas con tipo/estadoPago)
+ * @param {object} p.corredoresExt   - { XXS:n, ... } tallas de corredores vía plataforma
+ * @param {number} p.precioCorrExt   - Precio de venta por corredor (plataforma)
+ * @param {object} p.noCorredorExt   - { XXS:n, ... } tallas de no-corredores vía plataforma
+ * @param {number} p.precioNoCorrExt - Precio de venta por no-corredor (plataforma)
+ * @param {object} p.ventaPublico    - { precio, cantidad } venta al público general
+ * @param {Array}  p.voluntariosActivos - Voluntarios confirmados/pendientes con talla asignada
+ * @param {object} p.toggles        - { corredores, noCorredores, ventaPublico, otros, voluntarios, regalos } activo/inactivo por categoría
+ * @returns {{
+ *   corredores:    {ingreso:number, gasto:number, unidades:number},
+ *   noCorredores:  {ingreso:number, gasto:number, unidades:number},
+ *   ventaPublico:  {ingreso:number, gasto:number, unidades:number},
+ *   otros:         {ingreso:number, gasto:number, unidades:number},
+ *   voluntarios:   {ingreso:number, gasto:number, unidades:number},
+ *   regalos:       {ingreso:number, gasto:number, unidades:number},
+ *   totalIngresos: number,
+ *   totalGastos:   number,
+ *   beneficioNeto: number,
+ * }}
+ */
+export const calculateCamisetasPresupuesto = ({
+  camCoste = { corredor: 8, voluntario: 7, nino: 6 },
+  camPedidos = [],
+  corredoresExt = {},
+  precioCorrExt = 0,
+  noCorredorExt = {},
+  precioNoCorrExt = 0,
+  ventaPublico = { precio: 0, cantidad: 0 },
+  voluntariosActivos = [],
+  toggles = { corredores: true, noCorredores: true, ventaPublico: true, otros: true, voluntarios: true, regalos: true },
+} = {}) => {
+  const costeCU = { corredor: camCoste.corredor || 8, voluntario: camCoste.voluntario || 7, nino: camCoste.nino || 6 };
+
+  // ── 1. Camisetas a corredores (plataforma) ──
+  const unidCorredores = Object.values(corredoresExt).reduce((s, n) => s + (n || 0), 0);
+  const corredores = {
+    unidades: unidCorredores,
+    ingreso: toggles.corredores ? unidCorredores * (precioCorrExt || 0) : 0,
+    gasto:   toggles.corredores ? unidCorredores * costeCU.corredor : 0,
+  };
+
+  // ── 2. Camisetas a no corredores (plataforma) ──
+  const unidNoCorredores = Object.values(noCorredorExt).reduce((s, n) => s + (n || 0), 0);
+  const noCorredores = {
+    unidades: unidNoCorredores,
+    ingreso: toggles.noCorredores ? unidNoCorredores * (precioNoCorrExt || 0) : 0,
+    gasto:   toggles.noCorredores ? unidNoCorredores * costeCU.corredor : 0,
+  };
+
+  // ── 3. Venta al público general ──
+  const unidVentaPublico = ventaPublico.cantidad || 0;
+  const ventaPublicoCat = {
+    unidades: unidVentaPublico,
+    ingreso: toggles.ventaPublico ? unidVentaPublico * (ventaPublico.precio || 0) : 0,
+    gasto:   toggles.ventaPublico ? unidVentaPublico * costeCU.corredor : 0,
+  };
+
+  // ── Líneas de Pedidos (extras), separadas por estadoPago ──
+  const lineas = camPedidos.flatMap(p => Array.isArray(p.lineas) ? p.lineas : []);
+  const lineasVendidas = lineas.filter(l => l.estadoPago === "pagado" || l.estadoPago === "pendiente");
+  const lineasRegalo   = lineas.filter(l => l.estadoPago === "regalo");
+
+  // ── 4. Camisetas otros (extras vendidos: pagado + pendiente, cualquier tipo) ──
+  const unidOtros = lineasVendidas.reduce((s, l) => s + (l.cantidad || 0), 0);
+  const otros = {
+    unidades: unidOtros,
+    ingreso: toggles.otros ? lineasVendidas.reduce((s, l) => s + (l.cantidad || 0) * (l.precioVenta || 0), 0) : 0,
+    gasto:   toggles.otros ? lineasVendidas.reduce((s, l) => s + (l.cantidad || 0) * (costeCU[l.tipo] || costeCU.corredor), 0) : 0,
+  };
+
+  // ── 5. Camisetas voluntarios (SOLO automático, sin extras de Pedidos) ──
+  const unidVoluntarios = voluntariosActivos.length;
+  const voluntarios = {
+    unidades: unidVoluntarios,
+    ingreso: 0,
+    gasto: toggles.voluntarios ? unidVoluntarios * costeCU.voluntario : 0,
+  };
+
+  // ── 6. Camisetas regalo (extras con estadoPago='regalo', cualquier tipo) ──
+  const unidRegalos = lineasRegalo.reduce((s, l) => s + (l.cantidad || 0), 0);
+  const regalos = {
+    unidades: unidRegalos,
+    ingreso: 0,
+    gasto: toggles.regalos ? lineasRegalo.reduce((s, l) => s + (l.cantidad || 0) * (costeCU[l.tipo] || costeCU.corredor), 0) : 0,
+  };
+
+  const totalIngresos = corredores.ingreso + noCorredores.ingreso + ventaPublicoCat.ingreso + otros.ingreso;
+  const totalGastos   = corredores.gasto + noCorredores.gasto + ventaPublicoCat.gasto + otros.gasto + voluntarios.gasto + regalos.gasto;
+  const beneficioNeto = totalIngresos - totalGastos;
+
+  return {
+    corredores, noCorredores, ventaPublico: ventaPublicoCat, otros, voluntarios, regalos,
+    totalIngresos, totalGastos, beneficioNeto,
+  };
+};
+
+/**
  * calculateROI — fuente única de verdad para el KPI de ROI (ECO-05).
  *
  * Definición adoptada:

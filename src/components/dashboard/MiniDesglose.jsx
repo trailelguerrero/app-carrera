@@ -11,14 +11,20 @@ import { fmtEur } from "@/lib/utils";
 
 export const MiniDesglose = memo(function MiniDesglose({ totalIngresos, totalIngresosExtra, camisetasDesglose, totalCostesFijos, totalCostesVars, resultado, roiGlobal, navigate }) {
   const [open, setOpen] = useState(false);
+  // ECO-08: camisetasDesglose ahora tiene shape de calculateCamisetasPresupuesto —
+  // 6 categorías independientes { corredores, noCorredores, ventaPublico, otros, voluntarios, regalos },
+  // cada una con { ingreso, gasto, unidades }. Sustituye al shape legado plano (costeTotal, unidCorredor...).
   const cam = camisetasDesglose || {};
+  const camIngPlataforma = (cam.corredores?.ingreso || 0) + (cam.noCorredores?.ingreso || 0) + (cam.ventaPublico?.ingreso || 0);
+  const camUdsPlataforma = (cam.corredores?.unidades || 0) + (cam.noCorredores?.unidades || 0) + (cam.ventaPublico?.unidades || 0);
+  const camIngOtros = cam.otros?.ingreso || 0;
   // BUG-DASH-04 fix: el resumen del header debe coincidir con el resultado.
   // resultado = totalIngresos + totalIngresosExtra + beneficioNeto(cam) - costesFijos - costesVar
   // Por tanto, los totales del header NO deben separar costes de camisetas del beneficio:
   // totalIng = inscripciones + extras (ya incluye beneficioNeto camisetas via totalIngresosExtra+merch)
   // totalCostes = fijos + var (costes de camisetas ya están descontados en beneficioNeto)
   // Calculamos como resultado + costes para garantizar que totalIng - totalCostes === resultado.
-  const camCoste = cam.costeTotal || 0;
+  const camCoste = cam.totalGastos || 0;
   const totalCostes = totalCostesFijos + totalCostesVars;
   const totalIng = resultado + totalCostes;
   const resColor = resultado >= 0 ? "var(--green)" : "var(--red)";
@@ -55,14 +61,14 @@ export const MiniDesglose = memo(function MiniDesglose({ totalIngresos, totalIng
           {[
             { label: "Inscripciones", val: totalIngresos, color: "#22d3ee", tipo: "+" },
             { label: "Patrocinios", val: totalIngresosExtra, color: "#34d399", tipo: "+" },
-            cam.ingresosExterno > 0 && { label: `👕 Cam. corredor (${cam.unidCorredor || 0}u)`, val: cam.ingresosExterno, color: "#c084fc", tipo: "+" },
-            cam.ingresosPedidos > 0 && { label: "📦 Cam. extra pedidos", val: cam.ingresosPedidos, color: "#a78bfa", tipo: "+" },
+            camIngPlataforma > 0 && { label: `👕 Cam. corredor/no corredor (${camUdsPlataforma}u)`, val: camIngPlataforma, color: "#c084fc", tipo: "+" },
+            camIngOtros > 0 && { label: "📦 Cam. extra pedidos", val: camIngOtros, color: "#a78bfa", tipo: "+" },
             camCoste > 0 && {
-              label: `👕 Coste total cam. (${(cam.unidCorredor || 0) + (cam.unidVoluntario || 0) + (cam.unidNino || 0) + (cam.unidExtras || 0)}u)`,
+              label: `👕 Coste total cam. (${(cam.corredores?.unidades||0)+(cam.noCorredores?.unidades||0)+(cam.ventaPublico?.unidades||0)+(cam.otros?.unidades||0)+(cam.voluntarios?.unidades||0)+(cam.regalos?.unidades||0)}u)`,
               val: camCoste, color: "#f472b6", tipo: "-",
             },
-            camCoste > 0 && cam.costeVoluntario > 0 && { label: `  ↳ Voluntarios (${cam.unidVoluntario || 0}u)`, val: cam.costeVoluntario, color: "#fb7185", tipo: "-" },
-            camCoste > 0 && cam.costeNino > 0 && { label: `  ↳ Niños (${cam.unidNino || 0}u)`, val: cam.costeNino, color: "#fda4af", tipo: "-" },
+            camCoste > 0 && cam.voluntarios?.gasto > 0 && { label: `  ↳ Voluntarios (${cam.voluntarios.unidades || 0}u)`, val: cam.voluntarios.gasto, color: "#fb7185", tipo: "-" },
+            camCoste > 0 && cam.regalos?.gasto > 0 && { label: `  ↳ Regalos (${cam.regalos.unidades || 0}u)`, val: cam.regalos.gasto, color: "#fda4af", tipo: "-" },
             { label: "Costes fijos", val: totalCostesFijos, color: "#f87171", tipo: "-" },
             { label: "Costes var.", val: totalCostesVars, color: "#fb923c", tipo: "-" },
           ].filter(Boolean).map(item => {

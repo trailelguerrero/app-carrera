@@ -24,26 +24,26 @@ import {
   calculateCostesVariables,
   calculateResultado,
   calculateROI,
-  calculateCosteCamisetasDesglosado,
+  calculateCamisetasPresupuesto,
   calculateMerchTotales,
   getImporteCobrado,
   getImporteComprometido,
 } from "@/lib/budgetUtils";
 import { fmtEur } from "@/lib/utils";
-import { EVENT_DATE } from "@/constants/budgetConstants";
+import { EVENT_DATE, CAMISETAS_SYNC_CONFIG_DEFAULT } from "@/constants/budgetConstants";
 import { COSTE_DEFAULT as CAM_COSTE_DEFAULT } from "@/components/camisetas/camisetasConstants";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys"; // FIX-DEP: migrado desde alias deprecated
 import {
   SK_PPTO_CONCEPTOS, SK_PPTO_TRAMOS, SK_PPTO_INSCRITOS, SK_PPTO_INGRESOS_EXTRA,
-  SK_PPTO_MERCHANDISING, SK_PPTO_SYNC_CONFIG, SK_PPTO_MAXIMOS, SK_PPTO_SCENARIO_ACTIVE,
+  SK_PPTO_MERCHANDISING, SK_PPTO_SYNC_CONFIG, SK_PPTO_CAM_SYNC_CONFIG, SK_PPTO_MAXIMOS, SK_PPTO_SCENARIO_ACTIVE,
   SK_VOL_VOLUNTARIOS, SK_VOL_PUESTOS,
   SK_PAT_PATS, SK_PAT_OBJ,
   SK_LOG_MAT, SK_LOG_ASIG, SK_LOG_TL, SK_LOG_CK, SK_LOG_INC,
   SK_PROY_TAREAS, SK_PROY_HITOS,
   SK_DOC_DOCS, SK_DOC_GESTIONES,
   SK_CAM_PEDIDOS, SK_CAM_COSTE, SK_CAM_CORREDORES, SK_CAM_PRECIO_PLATAFORMA,
-  SK_CAM_NINO, SK_CAM_VENTA_PUBLICO,
+  SK_CAM_NINO, SK_CAM_VENTA_PUBLICO, SK_CAM_NO_CORREDOR, SK_CAM_PRECIO_NO_CORREDOR,
 } from "@/constants/storageKeys";
 
 // Helper estable (no cambia entre renders) para leer rawData con fallback
@@ -91,6 +91,10 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
   const rawCamPrecioPlat= d[SK_CAM_PRECIO_PLATAFORMA];
   const rawCamNino      = d[SK_CAM_NINO];
   const rawCamVentaPub  = d[SK_CAM_VENTA_PUBLICO];
+  // ECO-08: no-corredores (plataforma) + sync config de las 6 categorías de camisetas
+  const rawCamNoCorredor    = d[SK_CAM_NO_CORREDOR];
+  const rawCamPrecioNoCorr  = d[SK_CAM_PRECIO_NO_CORREDOR];
+  const rawCamSyncConfig    = d[SK_PPTO_CAM_SYNC_CONFIG];
 
   // ── SUBMEMO: config del evento ──────────────────────────────────────────
   const configKpis = useMemo(() => {
@@ -113,7 +117,8 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
     const conceptos   = Array.isArray(rawConceptos)    ? rawConceptos    : [];
     const tramos      = Array.isArray(rawTramos)       ? rawTramos       : [];
     const inscritos   = rawInscritos || { tramos: {} };
-    const syncConfig  = { patrocinios: true, camisetas: true, ...(rawSyncConfig || {}) };
+    const syncConfig  = { patrocinios: true, ...(rawSyncConfig || {}) };
+    const camSyncConfig = { ...CAMISETAS_SYNC_CONFIG_DEFAULT, ...(rawCamSyncConfig || {}) };
     const ingresosExtra = Array.isArray(rawIngresosExtra) ? rawIngresosExtra : [];
     const maximos     = rawMaximos || {};
     const scenarioActivo = rawScenario ?? null;
@@ -152,63 +157,44 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
       .filter(p => p.sector === "Administración pública" && !p.especie)
       .reduce((s, p) => s + getImporteComprometido(p), 0);
 
-    // FIX-BAL-02: usar calculateCosteCamisetasDesglosado como fuente única de verdad,
-    // igual que useBudgetLogic tras FIX-BAL-01. La implementación manual anterior
-    // ignoraba corredoresExt, voluntarios, niños y venta al público → divergencia
-    // de resultado entre Dashboard y Presupuesto cuando balanceCamisetasTecnicas activo.
-    const _merch          = Array.isArray(rawMerchandising) ? rawMerchandising : [];
-    const _desgloseBalance = calculateCosteCamisetasDesglosado({
-      camCoste:    rawCamCoste || CAM_COSTE_DEFAULT,
-      camPedidos:  Array.isArray(rawCamPedidos) ? rawCamPedidos : [],
+    // ECO-08: desglose de camisetas en 6 categorías independientes con toggle propio,
+    // misma fuente única de verdad que useBudgetLogic (calculateCamisetasPresupuesto).
+    // Sustituye al antiguo _desgloseBalance/totalBalanceCamisetasTecnicas/camisetasActiva
+    // (un único "beneficio neto" agregado sin poder activar/desactivar por categoría).
+    const _merch = Array.isArray(rawMerchandising) ? rawMerchandising : [];
+    const _camVolActivos = (Array.isArray(rawVoluntarios) ? rawVoluntarios : [])
+      .filter(v => (v.estado === "confirmado" || v.estado === "pendiente") && v.talla);
+
+    const camisetasDesglose = calculateCamisetasPresupuesto({
+      camCoste: rawCamCoste || CAM_COSTE_DEFAULT,
+      camPedidos: Array.isArray(rawCamPedidos) ? rawCamPedidos : [],
       corredoresExt: rawCamCorredores || {},
       precioCorrExt: rawCamPrecioPlat?.precio ?? 0,
-      ninoExt:     rawCamNino || {},
-      voluntariosActivos: (Array.isArray(rawVoluntarios) ? rawVoluntarios : [])
-        .filter(v => (v.estado === "confirmado" || v.estado === "pendiente") && v.talla),
+      noCorredorExt: rawCamNoCorredor || {},
+      precioNoCorrExt: rawCamPrecioNoCorr?.precio ?? 0,
       ventaPublico: rawCamVentaPub || { precio: 0, cantidad: 0 },
+      voluntariosActivos: _camVolActivos,
+      toggles: {
+        corredores:   camSyncConfig.camCorredores,
+        noCorredores: camSyncConfig.camNoCorredores,
+        ventaPublico: camSyncConfig.camVentaPublico,
+        otros:        camSyncConfig.camOtros,
+        voluntarios:  camSyncConfig.camVoluntarios,
+        regalos:      camSyncConfig.camRegalos,
+      },
     });
-    const _camisetasMerch = _merch.filter(m => m.activo && m.nombre?.toLowerCase().includes("camiseta"));
-    const _ingCamMerch    = _camisetasMerch.reduce((s, m) => s + m.unidades * (m.precioVenta || 0), 0);
-    const _costeCamMerch  = _camisetasMerch.reduce((s, m) => s + m.unidades * (m.costeUnitario || 0), 0);
-    const _totalBalanceCamisetasTecnicasLive = _desgloseBalance.beneficioNeto + (_ingCamMerch - _costeCamMerch);
+
+    const merchTotalesSnap = calculateMerchTotales(merchandising);
+    const totalMerchBeneficio = camisetasDesglose.beneficioNeto + merchTotalesSnap.beneficio;
 
     const totalIngresosExtra = ingresosExtra
-      .filter(ie => ie.activo && ie.syncKey !== "camisetas")
+      .filter(ie => ie.activo)
       .reduce((s, ie) => {
-        if (ie.syncKey === "patrocinios")               return s + _totalPatLive;
-        if (ie.syncKey === "patrociniosCobrado")        return s + _totalPatCobradoLive;
-        if (ie.syncKey === "subvencionPublica")         return s + _totalSubvLive;
-        if (ie.syncKey === "balanceCamisetasTecnicas")  return s + _totalBalanceCamisetasTecnicasLive;
+        if (ie.syncKey === "patrocinios")        return s + _totalPatLive;
+        if (ie.syncKey === "patrociniosCobrado") return s + _totalPatCobradoLive;
+        if (ie.syncKey === "subvencionPublica")  return s + _totalSubvLive;
         return s + (ie.valor || 0);
       }, 0);
-
-    // Camisetas
-    // FIX-DASH-02: syncConfig.camisetas es la fuente canónica (igual que useBudgetLogic).
-    // Antes se leía ie.activo del raw de BD, que puede no estar sincronizado con syncConfig
-    // cuando el usuario activa/desactiva el toggle → divergencia de resultado con Presupuesto.
-    const camisetasActiva = syncConfig?.camisetas ?? true;
-    const camPedidos    = Array.isArray(rawCamPedidos) ? rawCamPedidos : [];
-    const camCoste      = rawCamCoste || CAM_COSTE_DEFAULT;
-    const camCorredores = rawCamCorredores || {};
-    const camPrecioPlat = rawCamPrecioPlat || { precio: 0 };
-    const camNino       = rawCamNino || {};
-    const camVentaPublico = rawCamVentaPub || { precio: 0, cantidad: 0 };
-    const camVolActivos = (Array.isArray(rawVoluntarios) ? rawVoluntarios : [])
-      .filter(v => (v.estado === "confirmado" || v.estado === "pendiente") && v.talla);
-    const merchTotalesSnap = calculateMerchTotales(merchandising);
-
-    let totalMerchBeneficio = 0;
-    let camisetasDesglose = null;
-    if (camisetasActiva) {
-      camisetasDesglose = calculateCosteCamisetasDesglosado({
-        camCoste, camPedidos, corredoresExt: camCorredores,
-        precioCorrExt: camPrecioPlat?.precio ?? 0, ninoExt: camNino,
-        voluntariosActivos: camVolActivos, ventaPublico: camVentaPublico,
-      });
-      totalMerchBeneficio = camisetasDesglose.beneficioNeto + merchTotalesSnap.beneficio;
-    } else {
-      totalMerchBeneficio = merchTotalesSnap.beneficio;
-    }
 
     const totalIngresosConMerch = totalIngresosExtra + totalMerchBeneficio;
     const resultadoObj = calculateResultado(inscritosBU, ingresosBU, costesFijosBU, costesVarsBU, totalIngresosConMerch);
@@ -219,17 +205,17 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
     const totalOtrosIngresos = totalIngresosExtra + totalMerchBeneficio;
 
     return {
-      conceptos, tramos, inscritos, syncConfig, scenarioActivo, maximos,
+      conceptos, tramos, inscritos, syncConfig, camSyncConfig, scenarioActivo, maximos,
       totalInscritos, inscritosPorDist, totalIngresos, totalCostesFijos, totalCostesVars,
       maximosPorDist, ocupacionPorDist, ocupacionGlobal, totalMaximos,
       totalIngresosExtra, totalMerchBeneficio, totalOtrosIngresos,
       totalIngresosConMerch, resultado, roiGlobal, camisetasDesglose,
       merchBeneficio: totalMerchBeneficio,
     };
-  }, [rawConceptos, rawTramos, rawInscritos, rawSyncConfig, rawIngresosExtra,
+  }, [rawConceptos, rawTramos, rawInscritos, rawSyncConfig, rawCamSyncConfig, rawIngresosExtra,
       rawMerchandising, rawMaximos, rawScenario, rawPats,
       rawCamPedidos, rawCamCoste, rawCamCorredores, rawCamPrecioPlat,
-      rawCamNino, rawCamVentaPub, rawVoluntarios]);
+      rawCamNino, rawCamVentaPub, rawCamNoCorredor, rawCamPrecioNoCorr, rawVoluntarios]);
 
   // ── SUBMEMO: voluntarios ────────────────────────────────────────────────
   const voluntariosKpis = useMemo(() => {
