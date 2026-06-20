@@ -2078,39 +2078,94 @@ describe('SYNC-01 toggle CK sincroniza estado correcto con Proyecto', () => {
   });
 });
 
-// ── SYNC-06: syncHitoPedido — lógica de upsert/remove de hitos ───────────
-describe('SYNC-06 syncHitoPedido crea, actualiza y elimina hitos correctamente', () => {
+// ── SYNC-06: syncHitoPedido — lógica de upsert/remove de hitos (N:1) ─────
+describe('SYNC-06 syncHitoPedido crea, actualiza, vincula (N:1) y elimina hitos correctamente', () => {
 
-  // Simulación pura de la lógica de syncHitoPedido sin I/O
-  function simulateSync(hitos, pedido, action = 'upsert') {
+  // Réplica fiel de getPedidoIdsHito (sin I/O)
+  function getPedidoIdsHito(hito) {
+    if (Array.isArray(hito?._pedidoIds)) return hito._pedidoIds;
+    if (hito?._pedidoId != null) return [hito._pedidoId];
+    return [];
+  }
+
+  // Réplica fiel de calcCompletadoHitoPedido (sin I/O)
+  function calcCompletadoHitoPedido(pedidoIds, pedidosActuales) {
+    if (!pedidoIds.length) return false;
+    const pedidos = Array.isArray(pedidosActuales) ? pedidosActuales : [];
+    return pedidoIds.every(id => {
+      const p = pedidos.find(x => x.id === id);
+      return p && (p.estado === 'recibido' || p.estado === 'facturado');
+    });
+  }
+
+  // Simulación pura de la lógica de syncHitoPedido sin I/O (espejo de logisticaHelpers.js)
+  function simulateSync(hitos, pedido, action = 'upsert', hitoDestinoId = null, pedidosActuales = null) {
     const lista = Array.isArray(hitos) ? [...hitos] : [];
+    const pedidos = Array.isArray(pedidosActuales) ? pedidosActuales : [pedido];
+    const idxActual = lista.findIndex(h => getPedidoIdsHito(h).includes(pedido.id));
 
-    if (action === 'remove' || !pedido.fechaLimitePedido) {
-      return lista.filter(h => h._pedidoId !== pedido.id);
+    if (action === 'remove') {
+      if (idxActual === -1) return lista;
+      const idsRestantes = getPedidoIdsHito(lista[idxActual]).filter(id => id !== pedido.id);
+      if (idsRestantes.length === 0) return lista.filter((_, i) => i !== idxActual);
+      return lista.map((h, i) => i === idxActual
+        ? { ...h, _pedidoIds: idsRestantes, completado: calcCompletadoHitoPedido(idsRestantes, pedidos) }
+        : h);
     }
 
+    if (hitoDestinoId != null) {
+      let working = lista;
+      if (idxActual !== -1 && lista[idxActual].id !== hitoDestinoId) {
+        const idsRestantes = getPedidoIdsHito(lista[idxActual]).filter(id => id !== pedido.id);
+        working = idsRestantes.length === 0
+          ? lista.filter((_, i) => i !== idxActual)
+          : lista.map((h, i) => i === idxActual
+              ? { ...h, _pedidoIds: idsRestantes, completado: calcCompletadoHitoPedido(idsRestantes, pedidos) }
+              : h);
+      }
+      const idxDestino = working.findIndex(h => h.id === hitoDestinoId);
+      if (idxDestino === -1) return working;
+      const idsDestino = Array.from(new Set([...getPedidoIdsHito(working[idxDestino]), pedido.id]));
+      return working.map((h, i) => i === idxDestino
+        ? { ...h, _pedidoIds: idsDestino, completado: calcCompletadoHitoPedido(idsDestino, pedidos) }
+        : h);
+    }
+
+    if (!pedido.fechaLimitePedido) {
+      if (idxActual === -1) return lista;
+      return lista.filter((_, i) => i !== idxActual);
+    }
+
+    const compartidoConOtros = idxActual !== -1 && getPedidoIdsHito(lista[idxActual]).length > 1;
+    let base = lista;
+    if (compartidoConOtros) {
+      const idsRestantes = getPedidoIdsHito(lista[idxActual]).filter(id => id !== pedido.id);
+      base = lista.map((h, i) => i === idxActual
+        ? { ...h, _pedidoIds: idsRestantes, completado: calcCompletadoHitoPedido(idsRestantes, pedidos) }
+        : h);
+    }
+    const idxPropio = compartidoConOtros ? -1 : idxActual;
+    const idsPropio = [pedido.id];
     const hitoData = {
       nombre:    `🛒 Pedido: ${pedido.nombre}`,
       fecha:     pedido.fechaLimitePedido,
       critico:   false,
-      completado: pedido.estado === 'recibido' || pedido.estado === 'facturado',
-      _pedidoId: pedido.id,
+      completado: calcCompletadoHitoPedido(idsPropio, pedidos),
+      _pedidoIds: idsPropio,
     };
-
-    const idx = lista.findIndex(h => h._pedidoId === pedido.id);
-    if (idx === -1) {
-      const maxId = lista.reduce((m, h) => Math.max(m, typeof h.id === 'number' ? h.id : 0), 0);
-      return [...lista, { ...hitoData, id: maxId + 1 }];
+    if (idxPropio === -1) {
+      const maxId = base.reduce((m, h) => Math.max(m, typeof h.id === 'number' ? h.id : 0), 0);
+      return [...base, { ...hitoData, id: maxId + 1 }];
     }
-    return lista.map((h, i) => i === idx ? { ...h, ...hitoData } : h);
+    return base.map((h, i) => i === idxPropio ? { ...h, ...hitoData } : h);
   }
 
   const pedido1 = { id: 101, nombre: 'Pedido medallas', fechaLimitePedido: '2026-07-01', estado: 'borrador' };
 
-  it('crea un hito nuevo cuando no existe ninguno con ese _pedidoId', () => {
+  it('crea un hito nuevo cuando no existe ninguno con ese pedido vinculado', () => {
     const result = simulateSync([], pedido1);
     expect(result).toHaveLength(1);
-    expect(result[0]._pedidoId).toBe(101);
+    expect(result[0]._pedidoIds).toEqual([101]);
     expect(result[0].fecha).toBe('2026-07-01');
     expect(result[0].nombre).toBe('🛒 Pedido: Pedido medallas');
   });
@@ -2122,18 +2177,18 @@ describe('SYNC-06 syncHitoPedido crea, actualiza y elimina hitos correctamente',
 
   it('el hito se marca completado cuando el pedido pasa a "recibido"', () => {
     const pedidoRecibido = { ...pedido1, estado: 'recibido' };
-    const result = simulateSync([], pedidoRecibido);
+    const result = simulateSync([], pedidoRecibido, 'upsert', null, [pedidoRecibido]);
     expect(result[0].completado).toBe(true);
   });
 
   it('el hito se marca completado cuando el pedido pasa a "facturado"', () => {
     const pedidoFacturado = { ...pedido1, estado: 'facturado' };
-    const result = simulateSync([], pedidoFacturado);
+    const result = simulateSync([], pedidoFacturado, 'upsert', null, [pedidoFacturado]);
     expect(result[0].completado).toBe(true);
   });
 
   it('actualiza el hito existente sin crear duplicados', () => {
-    const hitosIniciales = [{ id: 5, nombre: '🛒 Pedido: Pedido medallas', fecha: '2026-07-01', _pedidoId: 101, completado: false, critico: false }];
+    const hitosIniciales = [{ id: 5, nombre: '🛒 Pedido: Pedido medallas', fecha: '2026-07-01', _pedidoIds: [101], completado: false, critico: false }];
     const pedidoActualizado = { ...pedido1, fechaLimitePedido: '2026-07-15', nombre: 'Pedido medallas v2' };
     const result = simulateSync(hitosIniciales, pedidoActualizado);
     expect(result).toHaveLength(1);
@@ -2142,21 +2197,21 @@ describe('SYNC-06 syncHitoPedido crea, actualiza y elimina hitos correctamente',
     expect(result[0].id).toBe(5); // preserva el id original
   });
 
-  it('elimina el hito con action="remove"', () => {
-    const hitosIniciales = [{ id: 5, _pedidoId: 101 }];
+  it('elimina el hito con action="remove" cuando era su único pedido', () => {
+    const hitosIniciales = [{ id: 5, _pedidoIds: [101] }];
     const result = simulateSync(hitosIniciales, pedido1, 'remove');
     expect(result).toHaveLength(0);
   });
 
   it('no elimina hitos de otros pedidos con remove', () => {
-    const hitosIniciales = [{ id: 5, _pedidoId: 101 }, { id: 6, _pedidoId: 202 }];
+    const hitosIniciales = [{ id: 5, _pedidoIds: [101] }, { id: 6, _pedidoIds: [202] }];
     const result = simulateSync(hitosIniciales, pedido1, 'remove');
     expect(result).toHaveLength(1);
-    expect(result[0]._pedidoId).toBe(202);
+    expect(result[0]._pedidoIds).toEqual([202]);
   });
 
   it('sin fechaLimitePedido actúa como remove (limpia el hito si existía)', () => {
-    const hitosIniciales = [{ id: 5, _pedidoId: 101 }];
+    const hitosIniciales = [{ id: 5, _pedidoIds: [101] }];
     const pedidoSinFecha = { ...pedido1, fechaLimitePedido: '' };
     const result = simulateSync(hitosIniciales, pedidoSinFecha);
     expect(result).toHaveLength(0);
@@ -2168,9 +2223,59 @@ describe('SYNC-06 syncHitoPedido crea, actualiza y elimina hitos correctamente',
   });
 
   it('genera id superior al máximo existente', () => {
-    const hitosIniciales = [{ id: 10, _pedidoId: 999 }];
+    const hitosIniciales = [{ id: 10, _pedidoIds: [999] }];
     const result = simulateSync(hitosIniciales, pedido1);
-    expect(result.find(h => h._pedidoId === 101).id).toBe(11);
+    expect(result.find(h => h._pedidoIds.includes(101)).id).toBe(11);
+  });
+
+  // ── Retrocompatibilidad con hitos antiguos (_pedidoId singular) ──────────
+  it('retrocompatibilidad: lee correctamente un hito antiguo con _pedidoId singular', () => {
+    const hitosIniciales = [{ id: 5, _pedidoId: 101, completado: false }];
+    const result = simulateSync(hitosIniciales, { ...pedido1, fechaLimitePedido: '2026-07-20' });
+    expect(result).toHaveLength(1);
+    expect(result[0].fecha).toBe('2026-07-20'); // se reconoce y actualiza el mismo hito
+  });
+
+  // ── Vínculo N:1 — varios pedidos al mismo hito ───────────────────────────
+  it('vincula un pedido a un hito existente (hitoDestinoId) sin crear uno nuevo', () => {
+    const hitoExistente = { id: 8, nombre: 'Pedido material avituallamiento', fecha: '2026-07-15', completado: false, _pedidoIds: [] };
+    const result = simulateSync([hitoExistente], pedido1, 'upsert', 8, [pedido1]);
+    expect(result).toHaveLength(1);
+    expect(result[0]._pedidoIds).toEqual([101]);
+  });
+
+  it('dos pedidos distintos vinculados al mismo hito → ambos en _pedidoIds', () => {
+    const hitoExistente = { id: 8, nombre: 'Pedido material avituallamiento', fecha: '2026-07-15', completado: false, _pedidoIds: [101] };
+    const pedido2 = { id: 202, nombre: 'Pedido trofeos', estado: 'borrador' };
+    const result = simulateSync([hitoExistente], pedido2, 'upsert', 8, [pedido1, pedido2]);
+    expect(result).toHaveLength(1);
+    expect(result[0]._pedidoIds).toEqual([101, 202]);
+  });
+
+  it('hito compartido NO se completa si solo uno de los dos pedidos está recibido', () => {
+    const hitoExistente = { id: 8, _pedidoIds: [101, 202] };
+    const pedidos = [{ id: 101, estado: 'recibido' }, { id: 202, estado: 'borrador' }];
+    expect(calcCompletadoHitoPedido([101, 202], pedidos)).toBe(false);
+  });
+
+  it('hito compartido SE completa cuando TODOS los pedidos vinculados están recibido/facturado', () => {
+    const pedidos = [{ id: 101, estado: 'recibido' }, { id: 202, estado: 'facturado' }];
+    expect(calcCompletadoHitoPedido([101, 202], pedidos)).toBe(true);
+  });
+
+  it('al vincular un pedido a un hito existente se retira de su hito propio anterior (no queda duplicado)', () => {
+    const hitoPropio = { id: 5, _pedidoIds: [101] };
+    const hitoDestino = { id: 8, _pedidoIds: [] };
+    const result = simulateSync([hitoPropio, hitoDestino], pedido1, 'upsert', 8, [pedido1]);
+    expect(result).toHaveLength(1); // el hito propio (ahora vacío) se elimina
+    expect(result.find(h => h.id === 8)._pedidoIds).toEqual([101]);
+  });
+
+  it('al eliminar un pedido compartido, el hito persiste con el resto de pedidos vinculados', () => {
+    const hitoCompartido = { id: 8, _pedidoIds: [101, 202] };
+    const result = simulateSync([hitoCompartido], pedido1, 'remove', null, [{ id: 202, estado: 'borrador' }]);
+    expect(result).toHaveLength(1);
+    expect(result[0]._pedidoIds).toEqual([202]);
   });
 });
 

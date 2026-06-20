@@ -231,27 +231,36 @@ function FichaProyecto({ ficha, equipo, documentos, tareas, onClose, onEditar, o
                   </div>
                 );
               })()}
-              {data._pedidoId && (
-                <div style={{ marginTop:".8rem", padding:".65rem .75rem", borderRadius:8,
-                  background:"rgba(167,139,250,.07)", border:"1px solid rgba(167,139,250,.25)" }}>
-                  <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                    color:"var(--violet)", textTransform:"uppercase", fontWeight:700, marginBottom:".35rem" }}>
-                    🛒 Generado desde pedido a proveedor
-                  </div>
-                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:".6rem" }}>
-                    <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>
-                      Pedido #{data._pedidoId} · Logística → Pedidos
+              {(() => {
+                const pedidoIds = Array.isArray(data._pedidoIds) ? data._pedidoIds : (data._pedidoId != null ? [data._pedidoId] : []);
+                if (!pedidoIds.length) return null;
+                return (
+                  <div style={{ marginTop:".8rem", padding:".65rem .75rem", borderRadius:8,
+                    background:"rgba(167,139,250,.07)", border:"1px solid rgba(167,139,250,.25)" }}>
+                    <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                      color:"var(--violet)", textTransform:"uppercase", fontWeight:700, marginBottom:".35rem" }}>
+                      🛒 Generado desde pedido{pedidoIds.length > 1 ? "s" : ""} a proveedor
                     </div>
-                    <button className="btn btn-ghost btn-sm"
-                      style={{ fontSize:"var(--fs-xs)", padding:".15rem .45rem", flexShrink:0 }}
-                      onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", {
-                        detail: { block:"logistica", subtab:"pedidosprov" }
-                      }))}>
-                      Ver pedido →
-                    </button>
+                    <div style={{ display:"flex", flexDirection:"column", gap:".35rem" }}>
+                      {pedidoIds.map(pid => (
+                        <div key={pid} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:".6rem" }}>
+                          <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>
+                            Pedido #{pid} · Logística → Pedidos
+                          </div>
+                          <button className="btn btn-ghost btn-sm"
+                            style={{ fontSize:"var(--fs-xs)", padding:".15rem .45rem", flexShrink:0 }}
+                            onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate", {
+                              detail: { block:"logistica", subtab:"pedidosprov" }
+                            }))}>
+                            Ver pedido →
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    {pedidoIds.length > 1 && <div style={{ marginTop:".4rem", fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", color:"var(--text-dim)" }}>Este hito se completa cuando todos los pedidos vinculados están recibidos o facturados.</div>}
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </>)}
 
             {tipo === "persona" && (<>

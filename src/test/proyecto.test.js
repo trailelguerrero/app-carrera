@@ -722,51 +722,77 @@ describe('MEJORA-02c coherencia TAREAS0 — auto-promoción de datos semilla', (
 
 // ── SYNC INTERCONEXIÓN: GAP-B, GAP-C, GAP-E ─────────────────────────────────
 
-describe('SYNC-INTER-01: updHito reverse-sync pedido (GAP-C lógica pura)', () => {
-  // Verifica la lógica pura de decisión de sync pedido→hito→pedido sin side-effects
-  it('hito completado con _pedidoId → estado pedido elegible cambia a recibido', () => {
+describe('SYNC-INTER-01: updHito reverse-sync pedido (GAP-C lógica pura, N:1)', () => {
+  // Réplica fiel de getPedidoIdsHito (sin I/O)
+  function getPedidoIdsHito(hito) {
+    if (Array.isArray(hito?._pedidoIds)) return hito._pedidoIds;
+    if (hito?._pedidoId != null) return [hito._pedidoId];
+    return [];
+  }
+
+  // Réplica fiel de la decisión tomada en el handler GAP-C de Proyecto.jsx
+  function aplicarSyncReverso(pedidos, pedidoIdsHito, val) {
+    let cambio = false;
+    const next = pedidos.map(p => {
+      if (!pedidoIdsHito.includes(p.id)) return p;
+      if (val && (p.estado === "borrador" || p.estado === "confirmado")) { cambio = true; return { ...p, estado: "recibido" }; }
+      if (!val && p.estado === "recibido") { cambio = true; return { ...p, estado: "confirmado" }; }
+      return p;
+    });
+    return { next, cambio };
+  }
+
+  it('hito completado con _pedidoIds → estado de pedidos elegibles cambia a recibido', () => {
     const pedidos = [
-      { id: 10, nombre: "Medallas finisher", estado: "en curso" },
-      { id: 11, nombre: "Dorsales",          estado: "pendiente" },
+      { id: 10, nombre: "Medallas finisher", estado: "confirmado" },
+      { id: 11, nombre: "Dorsales",          estado: "borrador" },
     ];
-    // Simular la decisión que toma el handler
-    const hitoActual = { id: 99, nombre: "🛒 Pedido: Medallas finisher", _pedidoId: 10, completado: false };
-    const val = true; // marcando completado
-    const idx = pedidos.findIndex(p => p.id === hitoActual._pedidoId);
-    expect(idx).toBe(0);
-    const estadoActual = pedidos[idx].estado;
-    const debeActualizar = val && (estadoActual === "pendiente" || estadoActual === "en curso" || estadoActual === "retrasado");
-    expect(debeActualizar).toBe(true);
-    const estadoNuevo = "recibido";
-    const next = pedidos.map((p, i) => i === idx ? { ...p, estado: estadoNuevo } : p);
+    const hitoActual = { id: 99, nombre: "🛒 Pedido: Medallas finisher", _pedidoIds: [10], completado: false };
+    const pedidoIdsHito = getPedidoIdsHito(hitoActual);
+    const { next, cambio } = aplicarSyncReverso(pedidos, pedidoIdsHito, true);
+    expect(cambio).toBe(true);
     expect(next[0].estado).toBe("recibido");
-    expect(next[1].estado).toBe("pendiente"); // no tocado
+    expect(next[1].estado).toBe("borrador"); // no tocado (no vinculado a este hito)
   });
 
-  it('hito desmarcado con _pedidoId → pedido en "recibido" vuelve a "en curso"', () => {
+  it('hito desmarcado con _pedidoIds → pedido en "recibido" vuelve a "confirmado"', () => {
     const pedidos = [{ id: 10, nombre: "Medallas finisher", estado: "recibido" }];
-    const hitoActual = { id: 99, _pedidoId: 10, completado: true };
-    const val = false; // desmarcando
-    const idx = pedidos.findIndex(p => p.id === hitoActual._pedidoId);
-    const estadoActual = pedidos[idx].estado;
-    const debeRevertir = !val && estadoActual === "recibido";
-    expect(debeRevertir).toBe(true);
-    const next = pedidos.map((p, i) => i === idx ? { ...p, estado: "en curso" } : p);
-    expect(next[0].estado).toBe("en curso");
+    const hitoActual = { id: 99, _pedidoIds: [10], completado: true };
+    const { next, cambio } = aplicarSyncReverso(pedidos, getPedidoIdsHito(hitoActual), false);
+    expect(cambio).toBe(true);
+    expect(next[0].estado).toBe("confirmado");
   });
 
-  it('hito con _pedidoId en estado "facturado" NO se modifica al desmarcar hito', () => {
+  it('hito con pedido en estado "facturado" NO se modifica al desmarcar hito', () => {
     const pedidos = [{ id: 10, estado: "facturado" }];
-    const val = false;
-    const estadoActual = pedidos[0].estado;
-    const debeRevertir = !val && estadoActual === "recibido";
-    expect(debeRevertir).toBe(false); // facturado no revertible
+    const { next, cambio } = aplicarSyncReverso(pedidos, [10], false);
+    expect(cambio).toBe(false); // facturado no es revertible
+    expect(next[0].estado).toBe("facturado");
   });
 
-  it('hito sin _pedidoId no dispara sync de pedido', () => {
+  it('hito sin _pedidoIds ni _pedidoId no dispara sync de pedido', () => {
     const hito = { id: 5, nombre: "Hito manual", completado: false };
-    expect(hito._pedidoId).toBeUndefined();
-    // Sin _pedidoId no hay lookup → no hay sync
+    expect(getPedidoIdsHito(hito)).toEqual([]);
+    // Lista vacía → ningún pedido coincide con includes() → no hay sync
+  });
+
+  it('hito compartido por 2 pedidos: marcar completado lleva a "recibido" a AMBOS pedidos elegibles', () => {
+    const pedidos = [
+      { id: 10, estado: "confirmado" },
+      { id: 20, estado: "borrador" },
+      { id: 30, estado: "confirmado" }, // no vinculado a este hito
+    ];
+    const hitoActual = { id: 99, _pedidoIds: [10, 20] };
+    const { next, cambio } = aplicarSyncReverso(pedidos, getPedidoIdsHito(hitoActual), true);
+    expect(cambio).toBe(true);
+    expect(next.find(p => p.id === 10).estado).toBe("recibido");
+    expect(next.find(p => p.id === 20).estado).toBe("recibido");
+    expect(next.find(p => p.id === 30).estado).toBe("confirmado"); // intacto, no vinculado
+  });
+
+  it('retrocompatibilidad: hito antiguo con _pedidoId singular se lee como array de 1', () => {
+    const hitoAntiguo = { id: 99, _pedidoId: 10 };
+    expect(getPedidoIdsHito(hitoAntiguo)).toEqual([10]);
   });
 });
 

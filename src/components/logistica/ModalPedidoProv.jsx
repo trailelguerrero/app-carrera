@@ -6,12 +6,12 @@ import { SK_DOC_DOCS } from "@/constants/storageKeys";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { ESTADOS_FACTURA, calcPrecioUnitario } from "./logisticaHelpers";
 
-export function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, material = [], conceptosPres = [], pedidosActivos = [], totalInscritos = 0, inscritos = {} }) {
+export function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, material = [], conceptosPres = [], pedidosActivos = [], hitosVinculables = [], totalInscritos = 0, inscritos = {} }) {
   const esEdit = !!data?.id;
   const [form, setForm] = useState(() => {
-    if (data)     return { ...data, articulos: (data.articulos || []).map(a => ({ ...a })) };
-    if (sugerido) return { nombre: sugerido.nombre || "", proveedor: sugerido.proveedor || "", articulos: (sugerido.articulos || []).map(a => ({ ...a })), importeEstimado: sugerido.importeEstimado || 0, importeTotal: sugerido.importeTotal || 0, estado: "borrador", fechaLimitePedido: sugerido.fechaLimitePedido || "", fechaEntrega: sugerido.fechaEntrega || "", notas: sugerido.notas || "", factura: null };
-    return { nombre: "", proveedor: "", articulos: [{ nombre: "", cantidad: 1, precioUnit: 0 }], importeEstimado: 0, importeTotal: 0, estado: "borrador", fechaLimitePedido: "", fechaEntrega: "", notas: "", factura: null };
+    if (data)     return { ...data, articulos: (data.articulos || []).map(a => ({ ...a })), _hitoDestinoId: data._hitoDestinoIdInicial ?? null };
+    if (sugerido) return { nombre: sugerido.nombre || "", proveedor: sugerido.proveedor || "", articulos: (sugerido.articulos || []).map(a => ({ ...a })), importeEstimado: sugerido.importeEstimado || 0, importeTotal: sugerido.importeTotal || 0, estado: "borrador", fechaLimitePedido: sugerido.fechaLimitePedido || "", fechaEntrega: sugerido.fechaEntrega || "", notas: sugerido.notas || "", factura: null, _hitoDestinoId: null };
+    return { nombre: "", proveedor: "", articulos: [{ nombre: "", cantidad: 1, precioUnit: 0 }], importeEstimado: 0, importeTotal: 0, estado: "borrador", fechaLimitePedido: "", fechaEntrega: "", notas: "", factura: null, _hitoDestinoId: null };
   });
 
   const upd    = (k, v) => setForm(p => ({ ...p, [k]: v }));
@@ -100,13 +100,25 @@ export function ModalPedidoProv({ data, sugerido, proveedores, onSave, onClose, 
                 <input className="inp" style={{ marginTop: ".4rem" }} placeholder="Nombre del proveedor" value={form.proveedor} onChange={e => upd("proveedor", e.target.value)} />
               )}
             </div>
+            <div style={{ gridColumn: "1/-1" }}>
+              <label className="fl" style={{ display: "flex", alignItems: "center", gap: ".35rem" }}>
+                🏁 Vincular a hito existente (opcional)
+                <Tooltip text="Varios pedidos pueden compartir el mismo hito. El hito se completa solo cuando TODOS los pedidos vinculados están recibidos o facturados."><TooltipIcon size={11} /></Tooltip>
+              </label>
+              <select className="inp" value={form._hitoDestinoId ?? ""} onChange={e => upd("_hitoDestinoId", e.target.value === "" ? null : Number(e.target.value))}>
+                <option value="">— Crear hito propio para este pedido —</option>
+                {hitosVinculables.map(h => <option key={h.id} value={h.id}>{h.nombre}</option>)}
+              </select>
+            </div>
             <div>
               <label className="fl" style={{ display: "flex", alignItems: "center", gap: ".35rem" }}>
                 📅 Fecha límite para realizar el pedido
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-2xs)", padding: ".05rem .3rem", borderRadius: 10, background: "rgba(167,139,250,.15)", color: "var(--violet)", border: "1px solid rgba(167,139,250,.25)" }}>→ hito automático</span>
+                {!form._hitoDestinoId && <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-2xs)", padding: ".05rem .3rem", borderRadius: 10, background: "rgba(167,139,250,.15)", color: "var(--violet)", border: "1px solid rgba(167,139,250,.25)" }}>→ hito automático</span>}
               </label>
               <input className="inp" type="date" value={form.fechaLimitePedido || ""} onChange={e => upd("fechaLimitePedido", e.target.value)} />
-              {form.fechaLimitePedido && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--violet)", marginTop: ".25rem" }}>✓ Se creará un hito «🛒 Pedido: {form.nombre || "este pedido"}» en Proyecto → Hitos</div>}
+              {form._hitoDestinoId
+                ? <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--violet)", marginTop: ".25rem" }}>✓ Vinculado al hito «{hitosVinculables.find(h => h.id === form._hitoDestinoId)?.nombre}»</div>
+                : form.fechaLimitePedido && <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--violet)", marginTop: ".25rem" }}>✓ Se creará un hito «🛒 Pedido: {form.nombre || "este pedido"}» en Proyecto → Hitos</div>}
             </div>
             <div>
               <label className="fl">Fecha entrega esperada</label>

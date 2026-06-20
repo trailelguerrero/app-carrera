@@ -11,34 +11,116 @@ export function resolverProveedor(pedido, contactos = []) {
   return null;
 }
 
+// Lee los _pedidoIds de un hito con retrocompatibilidad: hitos antiguos
+// pueden tener _pedidoId (singular) en vez de _pedidoIds (array).
+export function getPedidoIdsHito(hito) {
+  if (Array.isArray(hito?._pedidoIds)) return hito._pedidoIds;
+  if (hito?._pedidoId != null) return [hito._pedidoId];
+  return [];
+}
+
+// Calcula si un hito vinculado a pedidos debe estar completado:
+// todos los pedidos vinculados deben estar "recibido" o "facturado".
+export function calcCompletadoHitoPedido(pedidoIds, pedidosActuales) {
+  if (!pedidoIds.length) return false;
+  const pedidos = Array.isArray(pedidosActuales) ? pedidosActuales : [];
+  return pedidoIds.every(id => {
+    const p = pedidos.find(x => x.id === id);
+    return p && (p.estado === "recibido" || p.estado === "facturado");
+  });
+}
+
 // Sincroniza un hito de "fecha límite de pedido" con SK_PROY_HITOS.
-export async function syncHitoPedido(pedido, action = "upsert") {
+// - hitoDestinoId == null  → comportamiento histórico: el pedido tiene/crea su propio hito (_pedidoIds: [pedido.id]).
+// - hitoDestinoId != null  → el pedido se vincula (N:1) a un hito ya existente; no crea uno nuevo.
+// pedidosActuales: lista completa de pedidos (incluyendo el que se está guardando), para calcular `completado`
+// cuando el hito agrupa varios pedidos.
+export async function syncHitoPedido(pedido, action = "upsert", hitoDestinoId = null, pedidosActuales = null) {
   try {
     const hitos = await dataService.get(SK_PROY_HITOS, HITOS0);
     const lista  = Array.isArray(hitos) ? hitos : [];
-    const idx    = lista.findIndex(h => h._pedidoId === pedido.id);
+    const pedidos = Array.isArray(pedidosActuales) ? pedidosActuales : [pedido];
 
-    if (action === "remove" || !pedido.fechaLimitePedido) {
-      if (idx === -1) return;
-      await dataService.set(SK_PROY_HITOS, lista.filter((_, i) => i !== idx));
+    // Hito que actualmente contiene a este pedido (propio o compartido)
+    const idxActual = lista.findIndex(h => getPedidoIdsHito(h).includes(pedido.id));
+
+    if (action === "remove") {
+      if (idxActual === -1) return;
+      const idsRestantes = getPedidoIdsHito(lista[idxActual]).filter(id => id !== pedido.id);
+      let next;
+      if (idsRestantes.length === 0) {
+        // Sin pedidos restantes: si era un hito auto-generado (solo tenía este pedido), se elimina.
+        next = lista.filter((_, i) => i !== idxActual);
+      } else {
+        next = lista.map((h, i) => i === idxActual
+          ? { ...h, _pedidoIds: idsRestantes, completado: calcCompletadoHitoPedido(idsRestantes, pedidos) }
+          : h);
+      }
+      await dataService.set(SK_PROY_HITOS, next);
       dataService.notify("logistica");
       return;
     }
 
+    // Vínculo a hito EXISTENTE (N:1): añadir pedido.id a ese hito, sin crear uno nuevo.
+    if (hitoDestinoId != null) {
+      // Si el pedido estaba antes en otro hito (propio o distinto), lo retiramos de ahí primero.
+      let working = lista;
+      if (idxActual !== -1 && lista[idxActual].id !== hitoDestinoId) {
+        const idsRestantes = getPedidoIdsHito(lista[idxActual]).filter(id => id !== pedido.id);
+        working = idsRestantes.length === 0
+          ? lista.filter((_, i) => i !== idxActual)
+          : lista.map((h, i) => i === idxActual
+              ? { ...h, _pedidoIds: idsRestantes, completado: calcCompletadoHitoPedido(idsRestantes, pedidos) }
+              : h);
+      }
+
+      const idxDestino = working.findIndex(h => h.id === hitoDestinoId);
+      if (idxDestino === -1) return; // hito destino no existe — no-op defensivo
+
+      const idsDestino = Array.from(new Set([...getPedidoIdsHito(working[idxDestino]), pedido.id]));
+      const next = working.map((h, i) => i === idxDestino
+        ? { ...h, _pedidoIds: idsDestino, completado: calcCompletadoHitoPedido(idsDestino, pedidos) }
+        : h);
+      await dataService.set(SK_PROY_HITOS, next);
+      dataService.notify("logistica");
+      return;
+    }
+
+    // Sin hito destino explícito: el pedido gestiona su propio hito 1:1 (comportamiento histórico).
+    if (!pedido.fechaLimitePedido) {
+      if (idxActual === -1) return;
+      await dataService.set(SK_PROY_HITOS, lista.filter((_, i) => i !== idxActual));
+      dataService.notify("logistica");
+      return;
+    }
+
+    // Si el pedido estaba vinculado a un hito compartido con OTROS pedidos, no lo "secuestramos":
+    // lo sacamos de ahí y le creamos/actualizamos su propio hito 1:1.
+    const compartidoConOtros = idxActual !== -1 && getPedidoIdsHito(lista[idxActual]).length > 1;
+    let base = lista;
+    if (compartidoConOtros) {
+      const idsRestantes = getPedidoIdsHito(lista[idxActual]).filter(id => id !== pedido.id);
+      base = lista.map((h, i) => i === idxActual
+        ? { ...h, _pedidoIds: idsRestantes, completado: calcCompletadoHitoPedido(idsRestantes, pedidos) }
+        : h);
+    }
+
+    const idxPropio = compartidoConOtros ? -1 : idxActual;
+    const idsPropio = [pedido.id];
     const hitoData = {
       nombre:    `🛒 Pedido: ${pedido.nombre}`,
       fecha:     pedido.fechaLimitePedido,
       critico:   false,
-      completado: pedido.estado === "recibido" || pedido.estado === "facturado",
-      _pedidoId: pedido.id,
+      completado: calcCompletadoHitoPedido(idsPropio, pedidos),
+      _pedidoIds: idsPropio,
     };
 
     let next;
-    if (idx === -1) {
-      const maxId = lista.reduce((m, h) => Math.max(m, typeof h.id === "number" ? h.id : 0), 0);
-      next = [...lista, { ...hitoData, id: maxId + 1 }];
+    if (idxPropio === -1) {
+      const maxId = base.reduce((m, h) => Math.max(m, typeof h.id === "number" ? h.id : 0), 0);
+      next = [...base, { ...hitoData, id: maxId + 1 }];
     } else {
-      next = lista.map((h, i) => i === idx ? { ...h, ...hitoData } : h);
+      next = base.map((h, i) => i === idxPropio ? { ...h, ...hitoData } : h);
     }
     await dataService.set(SK_PROY_HITOS, next);
     dataService.notify("logistica");

@@ -2,10 +2,13 @@ import { useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { fmtEur2 as fmtEur } from "@/lib/utils";
 import { toast } from "@/lib/toast";
+import { useData } from "@/hooks/useData";
+import { SK_PROY_HITOS } from "@/constants/storageKeys";
+import { HITOS0 } from "@/components/proyecto/proyectoConstants";
 import { PedidoCard }     from "@/components/logistica/PedidoCard";
 import { ModalPedidoProv } from "@/components/logistica/ModalPedidoProv";
 import {
-  resolverProveedor, syncHitoPedido, syncStockMaterial,
+  resolverProveedor, syncHitoPedido, syncStockMaterial, getPedidoIdsHito,
   calcPrecioUnitario, genPedidoId, ESTADOS_PEDIDO,
 } from "@/components/logistica/logisticaHelpers";
 
@@ -16,8 +19,20 @@ export function TabPedidosProv({ pedidos, setPedidos, cont, material = [], setMa
   const [modal,    setModal]    = useState(null);
   const [delId,    setDelId]    = useState(null);
   const [expanded, setExpanded] = useState(null);
+  const [hitos]    = useData(SK_PROY_HITOS, HITOS0);
 
   const proveedores = (Array.isArray(cont) ? cont : []).filter(c => c.tipo === "proveedor");
+
+  // Hitos disponibles para vincular: no completados, sin ser auto-tareas (_tareaId).
+  // Si el pedido en edición ya está vinculado a un hito completado, se incluye igualmente
+  // para no "perderlo" de la lista mientras se edita.
+  const hitosVinculables = useMemo(() => {
+    const lista = Array.isArray(hitos) ? hitos : [];
+    const enEdicionId = modal && modal !== "nuevo" && !modal._sugerido ? modal.id : null;
+    return lista.filter(h =>
+      !h._tareaId && (!h.completado || (enEdicionId != null && getPedidoIdsHito(h).includes(enEdicionId)))
+    );
+  }, [hitos, modal]);
 
   const totalComprometido = pedidos.filter(p => p.estado !== "borrador").reduce((s, p) => s + (p.importeTotal || 0), 0);
   const pendFactura       = pedidos.filter(p => p.estado === "recibido" && !p.factura?.numero).length;
@@ -46,28 +61,38 @@ export function TabPedidosProv({ pedidos, setPedidos, cont, material = [], setMa
   };
 
   const guardar = (p) => {
-    if (p.id) {
-      const anterior = pedidos.find(x => x.id === p.id);
-      const estadoAnt = anterior?.estado ?? p.estado;
-      if (estadoAnt !== p.estado && setMaterial) {
-        const { pedidoActualizado, materialActualizado } = syncStockMaterial({ ...p, estado: estadoAnt }, p.estado, material);
-        setPedidos(prev => prev.map(x => x.id === p.id ? pedidoActualizado : x));
+    const hitoDestinoId = p._hitoDestinoId ?? null;
+    const pSinFlag = { ...p };
+    delete pSinFlag._hitoDestinoId;
+    delete pSinFlag._hitoDestinoIdInicial;
+
+    if (pSinFlag.id) {
+      const anterior = pedidos.find(x => x.id === pSinFlag.id);
+      const estadoAnt = anterior?.estado ?? pSinFlag.estado;
+      if (estadoAnt !== pSinFlag.estado && setMaterial) {
+        const { pedidoActualizado, materialActualizado } = syncStockMaterial({ ...pSinFlag, estado: estadoAnt }, pSinFlag.estado, material);
+        const pedidosNext = pedidos.map(x => x.id === pSinFlag.id ? pedidoActualizado : x);
+        setPedidos(pedidosNext);
         setMaterial(materialActualizado);
-        syncHitoPedido(pedidoActualizado);
+        syncHitoPedido(pedidoActualizado, "upsert", hitoDestinoId, pedidosNext);
       } else {
-        setPedidos(prev => prev.map(x => x.id === p.id ? p : x));
-        syncHitoPedido(p);
+        const pedidosNext = pedidos.map(x => x.id === pSinFlag.id ? pSinFlag : x);
+        setPedidos(pedidosNext);
+        syncHitoPedido(pSinFlag, "upsert", hitoDestinoId, pedidosNext);
       }
     } else {
       setPedidos(prev => {
-        const nuevo = { ...p, id: genPedidoId(prev) };
-        syncHitoPedido(nuevo);
+        const nuevo = { ...pSinFlag, id: genPedidoId(prev) };
         if (nuevo.estado === "recibido" && setMaterial) {
           const { pedidoActualizado, materialActualizado } = syncStockMaterial({ ...nuevo, estado: "borrador" }, "recibido", material);
+          const pedidosNext = [...prev, pedidoActualizado];
           setMaterial(materialActualizado);
-          return [...prev, pedidoActualizado];
+          syncHitoPedido(pedidoActualizado, "upsert", hitoDestinoId, pedidosNext);
+          return pedidosNext;
         }
-        return [...prev, nuevo];
+        const pedidosNext = [...prev, nuevo];
+        syncHitoPedido(nuevo, "upsert", hitoDestinoId, pedidosNext);
+        return pedidosNext;
       });
     }
     setModal(null);
@@ -75,8 +100,9 @@ export function TabPedidosProv({ pedidos, setPedidos, cont, material = [], setMa
 
   const eliminar = () => {
     const pedido = pedidos.find(x => x.id === delId);
-    if (pedido) syncHitoPedido(pedido, "remove");
-    setPedidos(prev => prev.filter(x => x.id !== delId));
+    const pedidosNext = pedidos.filter(x => x.id !== delId);
+    if (pedido) syncHitoPedido(pedido, "remove", null, pedidosNext);
+    setPedidos(pedidosNext);
     setDelId(null);
   };
 
@@ -133,12 +159,16 @@ export function TabPedidosProv({ pedidos, setPedidos, cont, material = [], setMa
       {/* Modal nuevo/editar */}
       {modal && (
         <ModalPedidoProv
-          data={modal === "nuevo" ? null : (modal._sugerido ? null : modal)}
+          data={modal === "nuevo" ? null : (modal._sugerido ? null : {
+            ...modal,
+            _hitoDestinoIdInicial: hitos.find(h => getPedidoIdsHito(h).includes(modal.id))?.id ?? null,
+          })}
           sugerido={modal._sugerido ? modal : null}
           proveedores={proveedores}
           material={material}
           conceptosPres={conceptosPres}
           pedidosActivos={pedidos}
+          hitosVinculables={hitosVinculables}
           totalInscritos={totalInscritos}
           inscritos={inscritos}
           onSave={guardar}

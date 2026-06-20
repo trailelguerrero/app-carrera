@@ -329,22 +329,33 @@ export default function App() {
           }
         }).catch(() => {/* CK no disponible — ignorar */});
       }
-      // GAP-C: si el hito está vinculado a un pedido (_pedidoId), reflejar estado en LogisticaPedidos
+      // GAP-C: si el hito está vinculado a uno o varios pedidos (_pedidoIds, con retrocompat. _pedidoId),
+      // reflejar el estado en LogisticaPedidos. Al marcar manualmente, todos los pedidos vinculados pasan
+      // a "recibido" (si no lo estaban). Al desmarcar, los que estén "recibido" vuelven a "confirmado"
+      // (los "facturado" no se tocan: facturar es un paso posterior que no se revierte aquí).
       const hitoActual = hitos.find(h => h.id === id);
-      if (hitoActual?._pedidoId) {
+      const pedidoIdsHito = Array.isArray(hitoActual?._pedidoIds)
+        ? hitoActual._pedidoIds
+        : (hitoActual?._pedidoId != null ? [hitoActual._pedidoId] : []);
+      if (pedidoIdsHito.length > 0) {
         import("@/lib/dataService").then(async m => {
           const { SK_LOG_PEDIDOS_PROV } = await import("@/constants/storageKeys");
           const pedidos = await m.default.get(SK_LOG_PEDIDOS_PROV, []);
           if (!Array.isArray(pedidos)) return;
-          const idx = pedidos.findIndex(p => p.id === hitoActual._pedidoId);
-          if (idx === -1) return;
-          const estadoActual = pedidos[idx].estado;
-          if (val && (estadoActual === "pendiente" || estadoActual === "en curso" || estadoActual === "retrasado")) {
-            const next = pedidos.map((p, i) => i === idx ? { ...p, estado: "recibido" } : p);
-            await m.default.set(SK_LOG_PEDIDOS_PROV, next);
-            m.default.notify('logistica');
-          } else if (!val && estadoActual === "recibido") {
-            const next = pedidos.map((p, i) => i === idx ? { ...p, estado: "en curso" } : p);
+          let cambio = false;
+          const next = pedidos.map(p => {
+            if (!pedidoIdsHito.includes(p.id)) return p;
+            if (val && (p.estado === "borrador" || p.estado === "confirmado")) {
+              cambio = true;
+              return { ...p, estado: "recibido" };
+            }
+            if (!val && p.estado === "recibido") {
+              cambio = true;
+              return { ...p, estado: "confirmado" };
+            }
+            return p;
+          });
+          if (cambio) {
             await m.default.set(SK_LOG_PEDIDOS_PROV, next);
             m.default.notify('logistica');
           }
