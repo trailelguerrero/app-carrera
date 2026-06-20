@@ -164,17 +164,29 @@ describe('T1.4 — telefonoEmergencia campo canónico unificado', () => {
   });
 });
 
-// ── T1.5 — usePaginacion expone resetPage ──────────────────────────────────
-describe('T1.5 — usePaginacion expone resetPage y Voluntarios lo usa', () => {
+// ── T1.5 — usePaginacion expone resetPage (uso en otros módulos) ───────────
+describe('T1.5 — usePaginacion expone resetPage', () => {
   it('usePaginacion retorna resetPage (implementación en hooks/)', () => {
     const hook = read('src/hooks/usePaginacion.jsx');
     expect(hook).toContain('resetPage');
   });
-  it('TabVoluntariosList.jsx usa resetPage al cambiar filtros (Sprint 2: extraído)', () => {
-    // Post Sprint 2: resetPage está en el componente extraído TabVoluntariosList
+});
+
+// ── FIX — TabVoluntariosList NO debe usar el paginador global de usePaginacion
+// (causaba bug real: paginador global desconectado del recorte real de la
+// lista, que se hace vía "Ver X más" por grupo. Página 2/3 no mostraba nada
+// y "Ver X más" entraba en conflicto visual con el paginador) ──────────────
+describe('FIX — TabVoluntariosList no usa paginador global duplicado', () => {
+  it('no importa usePaginacion (la paginación es por grupo, vía "Ver X más")', () => {
     const tabVols = read('src/components/voluntarios/TabVoluntariosList.jsx');
-    expect(tabVols).toContain('resetPage');
+    expect(tabVols).not.toContain('usePaginacion');
+    expect(tabVols).not.toContain('PaginadorUI');
+  });
+  it('sigue reseteando colapsados/visibilidad por grupo al cambiar filtros u orden', () => {
+    const tabVols = read('src/components/voluntarios/TabVoluntariosList.jsx');
     expect(tabVols).toContain('busqueda, filtroEstado, filtroPuesto');
+    expect(tabVols).toContain('setColapsados({})');
+    expect(tabVols).toContain('setVisiblePorGrupo({})');
   });
 });
 

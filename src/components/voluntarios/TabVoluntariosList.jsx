@@ -6,7 +6,6 @@ import { toast } from "@/lib/toast";
 import { genIdNum } from "@/lib/utils";
 import { useModalClose } from "@/hooks/useModalClose";
 import EmptyState from "@/components/EmptyState";
-import { usePaginacion } from "@/hooks/usePaginacion.jsx";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { blockCls as cls } from "@/lib/blockStyles";
@@ -57,12 +56,6 @@ function TabVoluntarios({
     if (orden === "fecha") return (b.fechaRegistro || "").localeCompare(a.fechaRegistro || "");
     return 0;
   }), [voluntarios, orden, puestosMapSort]);
-
-  // Paginación — se aplica al listado por nombre (no agrupado), mantenida para compatibilidad
-  const { items: volsPaginados, total: totalVols, PaginadorUI, resetPage } = usePaginacion(volsOrdenados, 20);
-
-  // T1.5: resetear página a 1 al cambiar cualquier filtro (evita página vacía)
-  useEffect(() => { resetPage(); }, [busqueda, filtroEstado, filtroPuesto, filtroTallas, filtroCoche, filtroDistancias, filtroTipoPuesto]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Expandir grupos automáticamente al cambiar filtros u orden — muestra resultados sin colapsar manualmente
   useEffect(() => {
@@ -156,8 +149,6 @@ function TabVoluntarios({
       }));
     });
   }, [orden, volsOrdenados, todosVols, puestosOrdenados]);
-
-  const volsFiltradosIds = volsOrdenados.map(v => v.id);
 
   const colapsarTodos = useCallback(() => {
     setColapsados(Object.fromEntries(gruposARenderizar.map(g => [g.clave, true])));
@@ -730,7 +721,6 @@ function TabVoluntarios({
               </div>
             );
           })}
-            <PaginadorUI />
       </div>
       ))}
 
