@@ -21,6 +21,7 @@ const CATEGORIAS = [
   { key: "ventaPublico", toggleKey: "camVentaPublico", icon: "🏪", label: "Venta al público",           sub: "Precio y cantidad libres",                tieneIngreso: true },
   { key: "otros",        toggleKey: "camOtros",        icon: "📦", label: "Camisetas otros",            sub: "Pedidos extra — pagado + pendiente",      tieneIngreso: true },
   { key: "voluntarios",  toggleKey: "camVoluntarios",  icon: "👥", label: "Camisetas voluntarios",      sub: "Automático — voluntarios con talla",      tieneIngreso: false },
+  { key: "nino",         toggleKey: "camNino",         icon: "👶", label: "Camisetas niño/a",           sub: "Manual — tallas pedido al proveedor",     tieneIngreso: false },
   { key: "regalos",      toggleKey: "camRegalos",      icon: "🎁", label: "Camisetas regalo",           sub: "Pedidos extra — estado regalo",           tieneIngreso: false },
 ];
 

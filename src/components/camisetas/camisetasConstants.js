@@ -56,6 +56,18 @@ export const PEDIDOS_DEFAULT = [];
  */
 export const COSTE_DEFAULT   = { corredor:8, voluntario:7, nino:6 };
 
+/**
+ * PRECIO_NO_CORREDOR_DEFAULT — ECO-11: fuente única del precio por defecto de
+ * "camiseta modelo corredor vendida a no corredores vía plataforma".
+ *
+ * Antes este default estaba hardcodeado en 3 sitios con valores DIFERENTES
+ * (Camisetas.jsx: 18, useBudgetLogic.js: 0, useDashboardKpis.js: 0). Si la clave
+ * de storage SK_CAM_PRECIO_NO_CORREDOR llegaba vacía/null en cualquiera de los 3
+ * puntos de lectura, el panel Camisetas mostraba 18€ mientras que Presupuesto y
+ * Dashboard calculaban con 0€ — mismo dato, dos resultados. Importar SOLO desde aquí.
+ */
+export const PRECIO_NO_CORREDOR_DEFAULT = 18;
+
 export const calcPedido = (p, coste) => {
   const totalVenta    = p.lineas.reduce((s,l) => s + (l.estadoPago==="regalo" ? 0 : l.cantidad*(l.precioVenta||0)), 0);
   const totalCoste    = p.lineas.reduce((s,l) => s + l.cantidad*(coste[l.tipo]||0), 0);
@@ -89,12 +101,12 @@ export const FUENTES_DEFAULT = {
   extrasCorredor: true,
   voluntariosAuto: true,
   extrasVoluntario: true,
-  // ECO-10: las tallas de niño manuales NO llegan al cálculo de Presupuesto/Ingresos
-  // (calculateCamisetasPresupuesto no las recibe — solo procesa pedidos a proveedores).
-  // Se desactiva por defecto para que el panel informativo del módulo Camisetas no
-  // muestre unidades/coste que luego no aparecen en el balance económico del evento.
-  // La fuente real y única para niño en el balance es "extrasNino" (pedidos a proveedores).
-  ninoManual: false,
+  // ECO-11: las tallas de niño manuales AHORA SÍ llegan al cálculo de Presupuesto/
+  // Ingresos vía calculateCamisetasPresupuesto (categoría "nino", solo gasto, igual
+  // tratamiento que "voluntarios"). Activado por defecto para coherencia con el resto
+  // de fuentes — si ya tenías tallas de niño manuales cargadas, su coste empezará a
+  // aparecer en el balance económico del evento (antes desaparecía silenciosamente).
+  ninoManual: true,
   extrasNino: true,
   noCorredoresPlat: true,
 };
@@ -168,20 +180,24 @@ export const CAM_CSS = `
 `;
 
 /**
- * ECO-10 — CLAVES_FUENTES_COMPARTIDAS: mapa de las claves de fuentesActivas (módulo
- * Camisetas) que tienen un equivalente exacto 1:1 en camSyncConfig (módulo Presupuesto).
- * Antes eran dos toggles independientes con su propio storage, que podían quedar
- * desincronizados: desactivar "Corredores" en el módulo Camisetas no movía nada en
- * Presupuesto/Ingresos, y viceversa. A partir de ahora son el mismo estado.
+ * ECO-10/ECO-11 — CLAVES_FUENTES_COMPARTIDAS: mapa de las claves de fuentesActivas
+ * (módulo Camisetas) que tienen un equivalente exacto 1:1 en camSyncConfig (módulo
+ * Presupuesto). Antes eran toggles independientes con su propio storage, que podían
+ * quedar desincronizados: desactivar "Corredores" en el módulo Camisetas no movía
+ * nada en Presupuesto/Ingresos, y viceversa. A partir de ahora son el mismo estado.
  *
- * No incluye extrasCorredor/extrasVoluntario/extrasNino/ninoManual porque Presupuesto
- * los agrupa todos juntos bajo "camOtros"/"camRegalos" según estadoPago — no hay
- * equivalente 1:1 para esas 4 claves sin cambiar el modelo de datos de Presupuesto.
+ * ECO-11: ninoManual se añade aquí porque ahora calculateCamisetasPresupuesto SÍ
+ * recibe ninoExt (antes no llegaba al presupuesto en absoluto — ver budgetUtils.js).
+ *
+ * No incluye extrasCorredor/extrasVoluntario/extrasNino porque Presupuesto los
+ * agrupa todos juntos bajo "camOtros"/"camRegalos" según estadoPago — no hay
+ * equivalente 1:1 para esas 3 claves sin cambiar el modelo de datos de Presupuesto.
  */
 export const CLAVES_FUENTES_COMPARTIDAS = {
   corredoresPlat:   "camCorredores",
   noCorredoresPlat: "camNoCorredores",
   voluntariosAuto:  "camVoluntarios",
+  ninoManual:       "camNino",
 };
 
 /**

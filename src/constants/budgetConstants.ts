@@ -130,7 +130,7 @@ export const SYNC_CONFIG_DEFAULT: Record<SyncConfigKey, boolean> = {
  */
 export type CamisetasSyncConfigKey =
   | 'camCorredores' | 'camNoCorredores' | 'camVentaPublico'
-  | 'camOtros' | 'camVoluntarios' | 'camRegalos';
+  | 'camOtros' | 'camVoluntarios' | 'camRegalos' | 'camNino';
 
 export const CAMISETAS_SYNC_CONFIG_DEFAULT: Record<CamisetasSyncConfigKey, boolean> = {
   camCorredores:    true,
@@ -139,6 +139,10 @@ export const CAMISETAS_SYNC_CONFIG_DEFAULT: Record<CamisetasSyncConfigKey, boole
   camOtros:         true,
   camVoluntarios:   true,
   camRegalos:       true,
+  // ECO-11: nueva categoría — tallas de niño manuales (módulo Camisetas, pestaña
+  // "Pedido al proveedor"). Antes no existía toggle porque la categoría no llegaba
+  // al presupuesto en absoluto (ver calculateCamisetasPresupuesto).
+  camNino:          true,
 };
 
 export interface Merchandising {

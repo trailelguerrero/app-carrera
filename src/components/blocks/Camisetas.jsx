@@ -22,7 +22,7 @@ import { CAMISETAS_SYNC_CONFIG_DEFAULT } from "@/constants/budgetConstants";
 import {
   LS, TALLAS, TALLAS_NINO, CORREDORES_DEFAULT, NINO_DEFAULT, NOCORREDOR_DEFAULT,
   PEDIDOS_DEFAULT, COSTE_DEFAULT, FUENTES_DEFAULT, CAM_CSS,
-  CLAVES_FUENTES_COMPARTIDAS, combinarFuentesActivas,
+  CLAVES_FUENTES_COMPARTIDAS, combinarFuentesActivas, PRECIO_NO_CORREDOR_DEFAULT,
 } from "@/components/camisetas/camisetasConstants";
 
 // ── CAM-01: helper — genera preview de tallas de voluntarios ─────────────────
@@ -433,8 +433,8 @@ export default function App() {
   const noCorredorExt = (rawNoCorredor && typeof rawNoCorredor === "object" && !Array.isArray(rawNoCorredor))
     ? { ...NOCORREDOR_DEFAULT, ...rawNoCorredor } : NOCORREDOR_DEFAULT;
 
-  const [precioNoCorrPlat, setPrecioNoCorrPlat, loadPrecioNoCorr] = useData(SK_CAM_PRECIO_NO_CORREDOR, { precio: 18 });
-  const precioNoCorrExt = (precioNoCorrPlat?.precio ?? 18);
+  const [precioNoCorrPlat, setPrecioNoCorrPlat, loadPrecioNoCorr] = useData(SK_CAM_PRECIO_NO_CORREDOR, { precio: PRECIO_NO_CORREDOR_DEFAULT });
+  const precioNoCorrExt = (precioNoCorrPlat?.precio ?? PRECIO_NO_CORREDOR_DEFAULT);
 
   const [rawVols, , loadVols] = useData(SK_VOL_VOLUNTARIOS, []);
   const [inclPendientes, setInclPendientes, loadInclP] = useData(SK_CAM_INCLUIR_PENDIENTES, false);
@@ -766,7 +766,7 @@ export default function App() {
           {tab === "tallas"    && <TabTallas    pedidos={pedidos} corredoresExt={corredoresExt} setCorredores={setCorredores} voluntariosActivos={voluntariosActivos} fuentesActivas={fuentesActivas}
             noCorredorExt={noCorredorExt} setNoCorredor={setNoCorredor}
             voluntariosConfirmados={voluntariosConfirmados} voluntariosPendientes={voluntariosPendientes}
-            inclPendientes={inclPendientes} setInclPendientes={setInclPendientes}
+            inclPendientes={inclPendientes} setInclPendientes={(v) => { setInclPendientes(v); dataService.notify("presupuesto"); }}
             ninoExt={ninoExt} setNino={setNino}
             rawInscritos={rawInscritos}
             vistaSimple={vistaSimpleTallas} setVistaSimple={setVistaSimpleTallas} />}

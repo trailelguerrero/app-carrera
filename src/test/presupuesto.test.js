@@ -625,10 +625,10 @@ describe('MEJ-03 calcCostesRealesDesdePedidos — costes reales vs estimados', (
 });
 
 // PRE-15 — BUG-RESET-CAM: resetAllData debe incluir camSyncConfig
-describe('PRE-15 — Reset de datos incluye los 6 toggles de camisetas (ECO-08)', () => {
-  it('CAMISETAS_SYNC_CONFIG_DEFAULT existe y tiene las 6 claves activas', async () => {
+describe('PRE-15 — Reset de datos incluye los 7 toggles de camisetas (ECO-08 + ECO-11)', () => {
+  it('CAMISETAS_SYNC_CONFIG_DEFAULT existe y tiene las 7 claves activas', async () => {
     const { CAMISETAS_SYNC_CONFIG_DEFAULT } = await import('../constants/budgetConstants.js');
-    const claves = ['camCorredores','camNoCorredores','camVentaPublico','camOtros','camVoluntarios','camRegalos'];
+    const claves = ['camCorredores','camNoCorredores','camVentaPublico','camOtros','camVoluntarios','camRegalos','camNino'];
     expect(Object.keys(CAMISETAS_SYNC_CONFIG_DEFAULT).sort()).toEqual(claves.sort());
   });
   it('reset simulado: un toggle desactivado vuelve a true tras aplicar el default', async () => {

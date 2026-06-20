@@ -31,7 +31,7 @@ import {
 } from "@/lib/budgetUtils";
 import { fmtEur } from "@/lib/utils";
 import { EVENT_DATE, CAMISETAS_SYNC_CONFIG_DEFAULT } from "@/constants/budgetConstants";
-import { COSTE_DEFAULT as CAM_COSTE_DEFAULT } from "@/components/camisetas/camisetasConstants";
+import { COSTE_DEFAULT as CAM_COSTE_DEFAULT, PRECIO_NO_CORREDOR_DEFAULT } from "@/components/camisetas/camisetasConstants";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys"; // FIX-DEP: migrado desde alias deprecated
 import {
@@ -43,7 +43,7 @@ import {
   SK_PROY_TAREAS, SK_PROY_HITOS,
   SK_DOC_DOCS, SK_DOC_GESTIONES,
   SK_CAM_PEDIDOS, SK_CAM_COSTE, SK_CAM_CORREDORES, SK_CAM_PRECIO_PLATAFORMA,
-  SK_CAM_NINO, SK_CAM_VENTA_PUBLICO, SK_CAM_NO_CORREDOR, SK_CAM_PRECIO_NO_CORREDOR,
+  SK_CAM_NINO, SK_CAM_VENTA_PUBLICO, SK_CAM_NO_CORREDOR, SK_CAM_PRECIO_NO_CORREDOR, SK_CAM_INCLUIR_PENDIENTES,
 } from "@/constants/storageKeys";
 
 // Helper estable (no cambia entre renders) para leer rawData con fallback
@@ -94,6 +94,10 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
   // ECO-08: no-corredores (plataforma) + sync config de las 6 categorías de camisetas
   const rawCamNoCorredor    = d[SK_CAM_NO_CORREDOR];
   const rawCamPrecioNoCorr  = d[SK_CAM_PRECIO_NO_CORREDOR];
+  // ECO-11: respeta el toggle "incluir pendientes" del módulo Camisetas — antes este
+  // hook siempre contaba confirmado+pendiente sin consultarlo, desincronizado del
+  // panel informativo de Camisetas (y de useBudgetLogic, ya corregido igual).
+  const rawCamInclPendientes = d[SK_CAM_INCLUIR_PENDIENTES];
   const rawCamSyncConfig    = d[SK_PPTO_CAM_SYNC_CONFIG];
 
   // ── SUBMEMO: config del evento ──────────────────────────────────────────
@@ -132,7 +136,7 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
     // Se calcula ANTES de costesFijosBU porque el gasto total de camisetas ahora se prorratea
     // como un coste fijo adicional (ver calculateCostesFijos, parámetro extraFijo).
     const _camVolActivos = (Array.isArray(rawVoluntarios) ? rawVoluntarios : [])
-      .filter(v => (v.estado === "confirmado" || v.estado === "pendiente") && v.talla);
+      .filter(v => (v.estado === "confirmado" || (rawCamInclPendientes && v.estado === "pendiente")) && v.talla);
 
     const camisetasDesglose = calculateCamisetasPresupuesto({
       camCoste: rawCamCoste || CAM_COSTE_DEFAULT,
@@ -140,9 +144,11 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
       corredoresExt: rawCamCorredores || {},
       precioCorrExt: rawCamPrecioPlat?.precio ?? 0,
       noCorredorExt: rawCamNoCorredor || {},
-      precioNoCorrExt: rawCamPrecioNoCorr?.precio ?? 0,
+      precioNoCorrExt: rawCamPrecioNoCorr?.precio ?? PRECIO_NO_CORREDOR_DEFAULT,
       ventaPublico: rawCamVentaPub || { precio: 0, cantidad: 0 },
       voluntariosActivos: _camVolActivos,
+      // ECO-11: ninoExt ahora SÍ llega al cálculo — antes faltaba este parámetro.
+      ninoExt: rawCamNino || {},
       toggles: {
         corredores:   camSyncConfig.camCorredores,
         noCorredores: camSyncConfig.camNoCorredores,
@@ -150,6 +156,7 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
         otros:        camSyncConfig.camOtros,
         voluntarios:  camSyncConfig.camVoluntarios,
         regalos:      camSyncConfig.camRegalos,
+        nino:         camSyncConfig.camNino,
       },
     });
 
@@ -218,7 +225,7 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
   }, [rawConceptos, rawTramos, rawInscritos, rawSyncConfig, rawCamSyncConfig, rawIngresosExtra,
       rawMerchandising, rawMaximos, rawScenario, rawPats,
       rawCamPedidos, rawCamCoste, rawCamCorredores, rawCamPrecioPlat,
-      rawCamNino, rawCamVentaPub, rawCamNoCorredor, rawCamPrecioNoCorr, rawVoluntarios]);
+      rawCamNino, rawCamVentaPub, rawCamNoCorredor, rawCamPrecioNoCorr, rawVoluntarios, rawCamInclPendientes]);
 
   // ── SUBMEMO: voluntarios ────────────────────────────────────────────────
   const voluntariosKpis = useMemo(() => {

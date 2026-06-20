@@ -605,7 +605,13 @@ export const calculateCamisetasPresupuesto = ({
   precioNoCorrExt = 0,
   ventaPublico = { precio: 0, cantidad: 0 },
   voluntariosActivos = [],
-  toggles = { corredores: true, noCorredores: true, ventaPublico: true, otros: true, voluntarios: true, regalos: true },
+  // ECO-11: ninoExt — tallas de niño introducidas manualmente en el módulo Camisetas
+  // (pestaña "Pedido al proveedor"). Antes esta fuente NUNCA llegaba al presupuesto:
+  // calculateCamisetasPresupuesto no recibía este parámetro, así que cualquier pedido
+  // de camisetas de niño hecho por esta vía generaba coste real al proveedor que no
+  // aparecía en ningún lado del balance económico del evento.
+  ninoExt = {},
+  toggles = { corredores: true, noCorredores: true, ventaPublico: true, otros: true, voluntarios: true, regalos: true, nino: true },
 } = {}) => {
   const costeCU = { corredor: camCoste.corredor || 8, voluntario: camCoste.voluntario || 7, nino: camCoste.nino || 6 };
 
@@ -662,12 +668,22 @@ export const calculateCamisetasPresupuesto = ({
     gasto: toggles.regalos ? lineasRegalo.reduce((s, l) => s + (l.cantidad || 0) * (costeCU[l.tipo] || costeCU.corredor), 0) : 0,
   };
 
+  // ── 7. Camisetas niño/a (manual, plataforma) — ECO-11: solo gasto, sin ingreso,
+  // igual tratamiento que "voluntarios" porque no hay precio de venta asociado a
+  // esta fuente (son tallas consolidadas para el pedido al proveedor, no ventas).
+  const unidNino = Object.values(ninoExt).reduce((s, n) => s + (n || 0), 0);
+  const nino = {
+    unidades: unidNino,
+    ingreso: 0,
+    gasto: toggles.nino ? unidNino * costeCU.nino : 0,
+  };
+
   const totalIngresos = corredores.ingreso + noCorredores.ingreso + ventaPublicoCat.ingreso + otros.ingreso;
-  const totalGastos   = corredores.gasto + noCorredores.gasto + ventaPublicoCat.gasto + otros.gasto + voluntarios.gasto + regalos.gasto;
+  const totalGastos   = corredores.gasto + noCorredores.gasto + ventaPublicoCat.gasto + otros.gasto + voluntarios.gasto + regalos.gasto + nino.gasto;
   const beneficioNeto = totalIngresos - totalGastos;
 
   return {
-    corredores, noCorredores, ventaPublico: ventaPublicoCat, otros, voluntarios, regalos,
+    corredores, noCorredores, ventaPublico: ventaPublicoCat, otros, voluntarios, regalos, nino,
     totalIngresos, totalGastos, beneficioNeto,
   };
 };

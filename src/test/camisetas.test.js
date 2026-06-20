@@ -380,14 +380,14 @@ import { combinarFuentesActivas, CLAVES_FUENTES_COMPARTIDAS } from "../component
 describe('CAM-11 — combinarFuentesActivas sincroniza toggles con Presupuesto', () => {
   const FUENTES_DEFAULT = {
     corredoresPlat: true, extrasCorredor: true, voluntariosAuto: true,
-    extrasVoluntario: true, ninoManual: false, extrasNino: true, noCorredoresPlat: true,
+    extrasVoluntario: true, ninoManual: true, extrasNino: true, noCorredoresPlat: true,
   };
   const CAM_SYNC_DEFAULT = {
     camCorredores: true, camNoCorredores: true, camVentaPublico: true,
-    camOtros: true, camVoluntarios: true, camRegalos: true,
+    camOtros: true, camVoluntarios: true, camRegalos: true, camNino: true,
   };
 
-  it('usa el valor de camSyncConfig para las 3 claves compartidas, no el de fuentesLocal', () => {
+  it('usa el valor de camSyncConfig para las 4 claves compartidas, no el de fuentesLocal', () => {
     // fuentesLocal dice "activado" pero camSyncConfig (Presupuesto) dice "desactivado":
     // debe ganar Presupuesto, porque es la fuente de verdad para el dinero.
     const fuentesLocal = { ...FUENTES_DEFAULT, corredoresPlat: true };
@@ -396,12 +396,13 @@ describe('CAM-11 — combinarFuentesActivas sincroniza toggles con Presupuesto',
     expect(r.corredoresPlat).toBe(false);
   });
 
-  it('las 3 claves compartidas siguen exactamente a camSyncConfig', () => {
-    const camSync = { ...CAM_SYNC_DEFAULT, camCorredores: false, camNoCorredores: false, camVoluntarios: false };
+  it('las 4 claves compartidas siguen exactamente a camSyncConfig', () => {
+    const camSync = { ...CAM_SYNC_DEFAULT, camCorredores: false, camNoCorredores: false, camVoluntarios: false, camNino: false };
     const r = combinarFuentesActivas(FUENTES_DEFAULT, camSync, FUENTES_DEFAULT, CAM_SYNC_DEFAULT);
     expect(r.corredoresPlat).toBe(false);
     expect(r.noCorredoresPlat).toBe(false);
     expect(r.voluntariosAuto).toBe(false);
+    expect(r.ninoManual).toBe(false);
   });
 
   it('las claves de "extras" (no compartidas) respetan fuentesLocal sin verse afectadas por camSyncConfig', () => {
@@ -417,16 +418,17 @@ describe('CAM-11 — combinarFuentesActivas sincroniza toggles con Presupuesto',
     expect(r).toEqual(FUENTES_DEFAULT);
   });
 
-  it('CLAVES_FUENTES_COMPARTIDAS solo mapea las 3 claves que cuadran 1:1 con Presupuesto', () => {
+  it('CLAVES_FUENTES_COMPARTIDAS mapea las 4 claves que cuadran 1:1 con Presupuesto (ECO-11: incluye niño)', () => {
     expect(Object.keys(CLAVES_FUENTES_COMPARTIDAS).sort()).toEqual(
-      ["corredoresPlat", "noCorredoresPlat", "voluntariosAuto"].sort()
+      ["corredoresPlat", "noCorredoresPlat", "voluntariosAuto", "ninoManual"].sort()
     );
     expect(CLAVES_FUENTES_COMPARTIDAS.corredoresPlat).toBe("camCorredores");
     expect(CLAVES_FUENTES_COMPARTIDAS.noCorredoresPlat).toBe("camNoCorredores");
     expect(CLAVES_FUENTES_COMPARTIDAS.voluntariosAuto).toBe("camVoluntarios");
+    expect(CLAVES_FUENTES_COMPARTIDAS.ninoManual).toBe("camNino");
   });
 
-  it('ninoManual NO está en las claves compartidas (no tiene equivalente 1:1 en Presupuesto)', () => {
-    expect(CLAVES_FUENTES_COMPARTIDAS.ninoManual).toBeUndefined();
+  it('ninoManual SÍ está en las claves compartidas (ECO-11: ahora tiene equivalente 1:1 en Presupuesto)', () => {
+    expect(CLAVES_FUENTES_COMPARTIDAS.ninoManual).toBe("camNino");
   });
 });

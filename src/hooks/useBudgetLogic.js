@@ -32,7 +32,7 @@ import {
   calculatePrecioMedioPago,
 } from "../lib/budgetUtils";
 import { SK_CAM_PEDIDOS, SK_CAM_COSTE, SK_CAM_CORREDORES, SK_CAM_PRECIO_PLATAFORMA, SK_CAM_NINO, SK_CAM_VENTA_PUBLICO,
-  SK_CAM_NO_CORREDOR, SK_CAM_PRECIO_NO_CORREDOR,
+  SK_CAM_NO_CORREDOR, SK_CAM_PRECIO_NO_CORREDOR, SK_CAM_INCLUIR_PENDIENTES,
   SK_PAT_PATS,
   SK_PPTO_SYNC_CONFIG, SK_PPTO_CAM_SYNC_CONFIG, SK_PPTO_MARGEN_CONFIG,
   SK_PPTO_TRAMOS, SK_PPTO_CONCEPTOS, SK_PPTO_INSCRITOS,
@@ -42,7 +42,7 @@ import { SK_CAM_PEDIDOS, SK_CAM_COSTE, SK_CAM_CORREDORES, SK_CAM_PRECIO_PLATAFOR
 // ECO-03: COSTE_DEFAULT importado desde su propietario canónico (módulo Camisetas).
 // No usar fallbacks hardcoded { corredor:7.5, voluntario:7.5 } — eran incorrectos.
 // budgetConstants re-exporta este mismo objeto para compatibilidad con otros imports.
-import { COSTE_DEFAULT as CAM_COSTE_DEFAULT } from "../components/camisetas/camisetasConstants";
+import { COSTE_DEFAULT as CAM_COSTE_DEFAULT, PRECIO_NO_CORREDOR_DEFAULT } from "../components/camisetas/camisetasConstants";
 
 // Claves de persistencia propias del módulo de presupuesto
 const LS_PATS = SK_PAT_PATS;
@@ -116,8 +116,12 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   const [rawCamVentaPublico] = useData(SK_CAM_VENTA_PUBLICO, { precio: 0, cantidad: 0 });
   // ECO-08: no-corredores (plataforma) — fuente real ya existente en Camisetas, antes no usada en Presupuesto
   const [rawCamNoCorredor] = useData(SK_CAM_NO_CORREDOR, {});
-  const [rawCamPrecioNoCorrObj] = useData(SK_CAM_PRECIO_NO_CORREDOR, { precio: 0 });
+  const [rawCamPrecioNoCorrObj] = useData(SK_CAM_PRECIO_NO_CORREDOR, { precio: PRECIO_NO_CORREDOR_DEFAULT });
   const [rawVoluntarios] = useData(SK_VOL_VOLUNTARIOS, []);
+  // ECO-11: respeta el toggle "incluir pendientes" del módulo Camisetas — antes este
+  // hook siempre contaba confirmado+pendiente sin consultar SK_CAM_INCLUIR_PENDIENTES,
+  // desincronizado del panel informativo de Camisetas que sí lo respeta.
+  const [rawCamInclPendientes] = useData(SK_CAM_INCLUIR_PENDIENTES, false);
 
   // ── Valores calculados en tiempo real desde otros bloques ────────────────
   //
@@ -154,8 +158,8 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   // ECO-08: unificar cálculo de camisetas con la misma función que usa el Dashboard.
   const _camVoluntariosActivos = useMemo(() =>
     (Array.isArray(rawVoluntarios) ? rawVoluntarios : [])
-      .filter(v => (v.estado === "confirmado" || v.estado === "pendiente") && v.talla),
-    [rawVoluntarios]
+      .filter(v => (v.estado === "confirmado" || (rawCamInclPendientes && v.estado === "pendiente")) && v.talla),
+    [rawVoluntarios, rawCamInclPendientes]
   );
 
   // ECO-08: desglose de camisetas en 6 categorías independientes con toggle propio
@@ -167,9 +171,12 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     corredoresExt: rawCamCorredores || {},
     precioCorrExt: rawCamPrecioPlatObj?.precio ?? 0,
     noCorredorExt: rawCamNoCorredor || {},
-    precioNoCorrExt: rawCamPrecioNoCorrObj?.precio ?? 0,
+    precioNoCorrExt: rawCamPrecioNoCorrObj?.precio ?? PRECIO_NO_CORREDOR_DEFAULT,
     ventaPublico: rawCamVentaPublico || { precio: 0, cantidad: 0 },
     voluntariosActivos: _camVoluntariosActivos,
+    // ECO-11: ninoExt ahora SÍ llega al cálculo de presupuesto (antes faltaba este
+    // parámetro y el gasto de tallas de niño manuales nunca aparecía en el balance).
+    ninoExt: rawCamNino || {},
     toggles: {
       corredores:   camSyncConfig.camCorredores,
       noCorredores: camSyncConfig.camNoCorredores,
@@ -177,9 +184,10 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       otros:        camSyncConfig.camOtros,
       voluntarios:  camSyncConfig.camVoluntarios,
       regalos:      camSyncConfig.camRegalos,
+      nino:         camSyncConfig.camNino,
     },
   }), [rawCamPedidos, rawCamCoste, rawCamCorredores, rawCamPrecioPlatObj, rawCamNoCorredor,
-      rawCamPrecioNoCorrObj, rawCamVentaPublico, _camVoluntariosActivos, camSyncConfig]);
+      rawCamPrecioNoCorrObj, rawCamVentaPublico, _camVoluntariosActivos, rawCamNino, camSyncConfig]);
 
   // Beneficio neto del merchandising local (Venta de Productos en TabIngresos) —
   // independiente de las 6 categorías de camisetas, se suma aparte en totalIngresosConMerch.
