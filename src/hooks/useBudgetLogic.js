@@ -535,7 +535,11 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   // MEJ-03: inscritos y precio medio solo para los que pagan (excluye tramos con precio 0)
   const inscritosConPago  = useMemo(() => calculateInscritosConPago(tramos, _inscritos),               [tramos, _inscritos]);
   const precioMedioPago   = useMemo(() => calculatePrecioMedioPago(inscritosConPago, ingresosPorDistancia), [inscritosConPago, ingresosPorDistancia]);
-  const costesFijos = useMemo(() => calculateCostesFijos(_conceptos, totalInscritos), [_conceptos, totalInscritos]);
+  // ECO-09: costesFijos incluye el gasto total de camisetas como coste fijo adicional,
+  // prorrateado dinámicamente por inscritos igual que cualquier concepto fijo (no tiene
+  // activoDistancias propio porque no depende de la distancia, pero su prorrata sí se
+  // reparte por inscritos para que TG7+TG13+TG25 siga sumando exactamente el total).
+  const costesFijos = useMemo(() => calculateCostesFijos(_conceptos, totalInscritos, totalGastosCamisetas), [_conceptos, totalInscritos, totalGastosCamisetas]);
   const costesVariables = useMemo(() => calculateCostesVariables(_conceptos, totalInscritos), [_conceptos, totalInscritos]);
   const costesVarPorCorredor = useMemo(() => calculateCostesVarPorCorredor(_conceptos), [_conceptos]);
   const costesFijoPorCorredor = useMemo(() => calculateCostesFijoPorCorredor(costesFijos, totalInscritos), [costesFijos, totalInscritos]);
@@ -548,7 +552,12 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
     ingresosExtraConValores.filter(i => i.activo).reduce((s, i) => s + i.valor, 0),
     [ingresosExtraConValores]);
 
-  const totalIngresosConMerch = totalIngresosExtra;
+  // ECO-09: totalIngresosConMerch suma el INGRESO BRUTO de camisetas (no el beneficio neto) —
+  // el gasto ya no se resta aquí porque ahora vive dentro de costesFijos.total. Sumarlo aquí
+  // neto Y en costesFijos sería doble cómputo del gasto; sumarlo bruto aquí y el gasto en
+  // costesFijos es la cuenta correcta una sola vez. merchLocalBeneficio (buffs/gorras) es un
+  // dominio aparte y se mantiene como beneficio neto, sin cambios.
+  const totalIngresosConMerch = totalIngresosExtra + totalIngresosCamisetas + merchLocalBeneficio;
 
   const resultado = useMemo(() =>
     calculateResultado(totalInscritos, ingresosPorDistancia, costesFijos, costesVariables, totalIngresosConMerch),
@@ -565,14 +574,19 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
 
   const realTotalInscritos = useMemo(() => calculateTotalInscritos(tramos, inscritos), [tramos, inscritos]);
   const realIngresosPorDistancia = useMemo(() => calculateIngresosPorDistancia(tramos, inscritos), [tramos, inscritos]);
-  const realCostesFijos = useMemo(() => calculateCostesFijos(conceptos, realTotalInscritos), [conceptos, realTotalInscritos]);
+  // ECO-09: realCostesFijos también incluye el gasto de camisetas — camisetasPresupuesto
+  // no tiene una variante "real" vs "escenario" separada (no usa datos de escenarios),
+  // así que el mismo totalGastosCamisetas aplica aquí.
+  const realCostesFijos = useMemo(() => calculateCostesFijos(conceptos, realTotalInscritos, totalGastosCamisetas), [conceptos, realTotalInscritos, totalGastosCamisetas]);
   const realCostesVariables = useMemo(() => calculateCostesVariables(conceptos, realTotalInscritos), [conceptos, realTotalInscritos]);
 
   // BUG-P3 fix: calcular ingresos extra "reales" independientemente del escenario activo
   // Así realResultado no se contamina con los valores del escenario hipotético
   // ECO-08: 'camisetas'/'balanceCamisetasTecnicas' eliminados de ID_TO_SYNCKEY — ese dominio
-  // económico ya no pasa por aquí, vive en camisetasPresupuesto (no afecta a realResultado
-  // porque las 6 categorías de camisetas no tienen una noción de "real" vs "escenario" separada).
+  // económico ya no pasa por aquí, vive en camisetasPresupuesto.
+  // ECO-09: el gasto de camisetas SÍ entra en realCostesFijos (arriba), así que el ingreso
+  // bruto debe sumarse aquí también para no descompensar realResultado — camisetasPresupuesto
+  // no tiene variante "real" separada, se usa el mismo totalIngresosCamisetas/merchLocalBeneficio.
   const realIngresosExtraConValores = useMemo(() =>
     ingresosExtra.map(ie => {
       const key = ie.syncKey || ID_TO_SYNCKEY[ie.id] || null;
@@ -588,8 +602,8 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   );
 
   const realTotalIngresosExtra = useMemo(() =>
-    realIngresosExtraConValores.filter(i => i.activo).reduce((s, i) => s + i.valor, 0),
-    [realIngresosExtraConValores]
+    realIngresosExtraConValores.filter(i => i.activo).reduce((s, i) => s + i.valor, 0) + totalIngresosCamisetas + merchLocalBeneficio,
+    [realIngresosExtraConValores, totalIngresosCamisetas, merchLocalBeneficio]
   );
 
   const realResultado = useMemo(() =>

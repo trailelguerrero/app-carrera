@@ -101,6 +101,14 @@ export const SeccionCamisetasBudget = ({
           {fmtN(modo === "costes" ? totalGastosCamisetas : totalIngresosCamisetas)} €
         </span>
       </div>
+      {/* ECO-09: el gasto total de camisetas se prorratea como un coste fijo más
+          (proporcional a inscritos por distancia) e incluye en "Costes Fijos" — no es
+          un total aparte, solo se desglosa aquí para ver su composición por categoría. */}
+      {modo === "costes" && (
+        <div style={{ marginTop: "0.5rem", fontFamily: "var(--font-mono)", fontSize: "var(--fs-2xs)", color: "var(--text-muted)" }}>
+          ℹ️ Ya incluido en el total de Costes Fijos, prorrateado por inscritos.
+        </div>
+      )}
     </div>
   );
 };

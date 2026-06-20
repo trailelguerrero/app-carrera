@@ -126,7 +126,34 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
 
     const inscritosBU   = calculateTotalInscritos(tramos, inscritos);
     const ingresosBU    = calculateIngresosPorDistancia(tramos, inscritos);
-    const costesFijosBU = calculateCostesFijos(conceptos, inscritosBU);
+
+    // ECO-08/ECO-09: desglose de camisetas en 6 categorías independientes con toggle propio,
+    // misma fuente única de verdad que useBudgetLogic (calculateCamisetasPresupuesto).
+    // Se calcula ANTES de costesFijosBU porque el gasto total de camisetas ahora se prorratea
+    // como un coste fijo adicional (ver calculateCostesFijos, parámetro extraFijo).
+    const _camVolActivos = (Array.isArray(rawVoluntarios) ? rawVoluntarios : [])
+      .filter(v => (v.estado === "confirmado" || v.estado === "pendiente") && v.talla);
+
+    const camisetasDesglose = calculateCamisetasPresupuesto({
+      camCoste: rawCamCoste || CAM_COSTE_DEFAULT,
+      camPedidos: Array.isArray(rawCamPedidos) ? rawCamPedidos : [],
+      corredoresExt: rawCamCorredores || {},
+      precioCorrExt: rawCamPrecioPlat?.precio ?? 0,
+      noCorredorExt: rawCamNoCorredor || {},
+      precioNoCorrExt: rawCamPrecioNoCorr?.precio ?? 0,
+      ventaPublico: rawCamVentaPub || { precio: 0, cantidad: 0 },
+      voluntariosActivos: _camVolActivos,
+      toggles: {
+        corredores:   camSyncConfig.camCorredores,
+        noCorredores: camSyncConfig.camNoCorredores,
+        ventaPublico: camSyncConfig.camVentaPublico,
+        otros:        camSyncConfig.camOtros,
+        voluntarios:  camSyncConfig.camVoluntarios,
+        regalos:      camSyncConfig.camRegalos,
+      },
+    });
+
+    const costesFijosBU = calculateCostesFijos(conceptos, inscritosBU, camisetasDesglose.totalGastos);
     const costesVarsBU  = calculateCostesVariables(conceptos, inscritosBU);
 
     const totalInscritos     = inscritosBU.total;
@@ -157,35 +184,11 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
       .filter(p => p.sector === "Administración pública" && !p.especie)
       .reduce((s, p) => s + getImporteComprometido(p), 0);
 
-    // ECO-08: desglose de camisetas en 6 categorías independientes con toggle propio,
-    // misma fuente única de verdad que useBudgetLogic (calculateCamisetasPresupuesto).
-    // Sustituye al antiguo _desgloseBalance/totalBalanceCamisetasTecnicas/camisetasActiva
-    // (un único "beneficio neto" agregado sin poder activar/desactivar por categoría).
-    const _merch = Array.isArray(rawMerchandising) ? rawMerchandising : [];
-    const _camVolActivos = (Array.isArray(rawVoluntarios) ? rawVoluntarios : [])
-      .filter(v => (v.estado === "confirmado" || v.estado === "pendiente") && v.talla);
-
-    const camisetasDesglose = calculateCamisetasPresupuesto({
-      camCoste: rawCamCoste || CAM_COSTE_DEFAULT,
-      camPedidos: Array.isArray(rawCamPedidos) ? rawCamPedidos : [],
-      corredoresExt: rawCamCorredores || {},
-      precioCorrExt: rawCamPrecioPlat?.precio ?? 0,
-      noCorredorExt: rawCamNoCorredor || {},
-      precioNoCorrExt: rawCamPrecioNoCorr?.precio ?? 0,
-      ventaPublico: rawCamVentaPub || { precio: 0, cantidad: 0 },
-      voluntariosActivos: _camVolActivos,
-      toggles: {
-        corredores:   camSyncConfig.camCorredores,
-        noCorredores: camSyncConfig.camNoCorredores,
-        ventaPublico: camSyncConfig.camVentaPublico,
-        otros:        camSyncConfig.camOtros,
-        voluntarios:  camSyncConfig.camVoluntarios,
-        regalos:      camSyncConfig.camRegalos,
-      },
-    });
-
     const merchTotalesSnap = calculateMerchTotales(merchandising);
-    const totalMerchBeneficio = camisetasDesglose.beneficioNeto + merchTotalesSnap.beneficio;
+    // ECO-09: totalMerchBeneficio se mantiene como nombre histórico, pero ahora suma el
+    // INGRESO BRUTO de camisetas (no el beneficio neto) + beneficio neto del merch local.
+    // El gasto de camisetas ya no se resta aquí — vive en costesFijosBU (línea de arriba).
+    const totalMerchBeneficio = camisetasDesglose.totalIngresos + merchTotalesSnap.beneficio;
 
     const totalIngresosExtra = ingresosExtra
       .filter(ie => ie.activo)

@@ -18,13 +18,9 @@ export const MiniDesglose = memo(function MiniDesglose({ totalIngresos, totalIng
   const camIngPlataforma = (cam.corredores?.ingreso || 0) + (cam.noCorredores?.ingreso || 0) + (cam.ventaPublico?.ingreso || 0);
   const camUdsPlataforma = (cam.corredores?.unidades || 0) + (cam.noCorredores?.unidades || 0) + (cam.ventaPublico?.unidades || 0);
   const camIngOtros = cam.otros?.ingreso || 0;
-  // BUG-DASH-04 fix: el resumen del header debe coincidir con el resultado.
-  // resultado = totalIngresos + totalIngresosExtra + beneficioNeto(cam) - costesFijos - costesVar
-  // Por tanto, los totales del header NO deben separar costes de camisetas del beneficio:
-  // totalIng = inscripciones + extras (ya incluye beneficioNeto camisetas via totalIngresosExtra+merch)
-  // totalCostes = fijos + var (costes de camisetas ya están descontados en beneficioNeto)
-  // Calculamos como resultado + costes para garantizar que totalIng - totalCostes === resultado.
-  const camCoste = cam.totalGastos || 0;
+  // ECO-09: el gasto de camisetas (cam.totalGastos) ya NO se muestra como línea aparte aquí —
+  // ahora vive dentro de totalCostesFijos (prorrateado por inscritos, ver calculateCostesFijos).
+  // Mostrarlo también aquí lo duplicaría visualmente sin cambiar el total real.
   const totalCostes = totalCostesFijos + totalCostesVars;
   const totalIng = resultado + totalCostes;
   const resColor = resultado >= 0 ? "var(--green)" : "var(--red)";
@@ -63,12 +59,7 @@ export const MiniDesglose = memo(function MiniDesglose({ totalIngresos, totalIng
             { label: "Patrocinios", val: totalIngresosExtra, color: "#34d399", tipo: "+" },
             camIngPlataforma > 0 && { label: `👕 Cam. corredor/no corredor (${camUdsPlataforma}u)`, val: camIngPlataforma, color: "#c084fc", tipo: "+" },
             camIngOtros > 0 && { label: "📦 Cam. extra pedidos", val: camIngOtros, color: "#a78bfa", tipo: "+" },
-            camCoste > 0 && {
-              label: `👕 Coste total cam. (${(cam.corredores?.unidades||0)+(cam.noCorredores?.unidades||0)+(cam.ventaPublico?.unidades||0)+(cam.otros?.unidades||0)+(cam.voluntarios?.unidades||0)+(cam.regalos?.unidades||0)}u)`,
-              val: camCoste, color: "#f472b6", tipo: "-",
-            },
-            camCoste > 0 && cam.voluntarios?.gasto > 0 && { label: `  ↳ Voluntarios (${cam.voluntarios.unidades || 0}u)`, val: cam.voluntarios.gasto, color: "#fb7185", tipo: "-" },
-            camCoste > 0 && cam.regalos?.gasto > 0 && { label: `  ↳ Regalos (${cam.regalos.unidades || 0}u)`, val: cam.regalos.gasto, color: "#fda4af", tipo: "-" },
+            // ECO-09: gasto de camisetas ya incluido en "Costes fijos" — sin línea aparte para evitar duplicar visualmente
             { label: "Costes fijos", val: totalCostesFijos, color: "#f87171", tipo: "-" },
             { label: "Costes var.", val: totalCostesVars, color: "#fb923c", tipo: "-" },
           ].filter(Boolean).map(item => {

@@ -642,3 +642,70 @@ describe('PRE-15 — Reset de datos incluye los 6 toggles de camisetas (ECO-08)'
     expect(estadoTrasReset).toEqual(CAMISETAS_SYNC_CONFIG_DEFAULT);
   });
 });
+
+// PRE-16 — ECO-09: gasto de camisetas integrado en Costes Fijos, sin doble cómputo
+describe('PRE-16 — Gasto de camisetas en Costes Fijos (sin doble cómputo en resultado)', () => {
+  it('calculateCamisetasPresupuesto.totalGastos es el valor que debe pasarse como extraFijo', async () => {
+    const { calculateCamisetasPresupuesto, calculateCostesFijos } = await import('../lib/budgetUtils.js');
+    const cam = calculateCamisetasPresupuesto({
+      camCoste: { corredor: 8, voluntario: 7, nino: 6 },
+      corredoresExt: { M: 10 }, precioCorrExt: 15, // ingreso 150, gasto 80
+    });
+    const totalInscritos = { TG7: 50, TG13: 30, TG25: 20, total: 100 };
+    const costesFijos = calculateCostesFijos([], totalInscritos, cam.totalGastos);
+    expect(costesFijos.total).toBe(80);
+  });
+
+  it('el resultado neto es el mismo que con el modelo anterior (ingreso bruto - gasto en costes = beneficio neto en costes)', async () => {
+    const { calculateCamisetasPresupuesto, calculateCostesFijos, calculateResultado } = await import('../lib/budgetUtils.js');
+    const cam = calculateCamisetasPresupuesto({
+      camCoste: { corredor: 8, voluntario: 7, nino: 6 },
+      corredoresExt: { M: 10 }, precioCorrExt: 15, // ingreso 150, gasto 80, beneficioNeto 70
+    });
+    const totalInscritos = { TG7: 50, TG13: 30, TG25: 20, total: 100 };
+    const ingresosPorDistancia = { TG7: 1000, TG13: 600, TG25: 400, total: 2000 };
+    const costesFijos = calculateCostesFijos([], totalInscritos, cam.totalGastos);
+    const costesVariables = { TG7: 0, TG13: 0, TG25: 0, total: 0 };
+    // Modelo nuevo: ingreso BRUTO de camisetas como "otros ingresos", gasto ya en costesFijos
+    const totalIngresosConMerchNuevo = cam.totalIngresos; // 150
+    const resultadoNuevo = calculateResultado(totalInscritos, ingresosPorDistancia, costesFijos, costesVariables, totalIngresosConMerchNuevo);
+    // Equivalente matemático al modelo viejo: beneficio NETO sumado directamente sin pasar por costesFijos
+    const resultadoViejoEquivalente = ingresosPorDistancia.total + cam.beneficioNeto - 0 /* sin costesFijos de camisetas */ - costesVariables.total;
+    expect(resultadoNuevo.total).toBeCloseTo(resultadoViejoEquivalente, 5);
+  });
+
+  it('desactivar el toggle de una categoría reduce el gasto en Costes Fijos dinámicamente', async () => {
+    const { calculateCamisetasPresupuesto, calculateCostesFijos } = await import('../lib/budgetUtils.js');
+    const totalInscritos = { TG7: 50, TG13: 30, TG25: 20, total: 100 };
+    const camOn = calculateCamisetasPresupuesto({
+      camCoste: { corredor: 8, voluntario: 7, nino: 6 },
+      corredoresExt: { M: 10 }, precioCorrExt: 15,
+      voluntariosActivos: [{ id: 1, talla: 'M' }],
+    });
+    const camOff = calculateCamisetasPresupuesto({
+      camCoste: { corredor: 8, voluntario: 7, nino: 6 },
+      corredoresExt: { M: 10 }, precioCorrExt: 15,
+      voluntariosActivos: [{ id: 1, talla: 'M' }],
+      toggles: { corredores: true, noCorredores: true, ventaPublico: true, otros: true, voluntarios: false, regalos: true },
+    });
+    const costesOn  = calculateCostesFijos([], totalInscritos, camOn.totalGastos);
+    const costesOff = calculateCostesFijos([], totalInscritos, camOff.totalGastos);
+    expect(costesOn.total).toBeGreaterThan(costesOff.total);
+    expect(costesOn.total - costesOff.total).toBe(7); // coste.voluntario
+  });
+
+  it('el desglose por distancia de costesFijos sigue sumando el total con el gasto de camisetas incluido', async () => {
+    const { calculateCamisetasPresupuesto, calculateCostesFijos } = await import('../lib/budgetUtils.js');
+    const cam = calculateCamisetasPresupuesto({
+      camCoste: { corredor: 8, voluntario: 7, nino: 6 },
+      corredoresExt: { M: 20 }, precioCorrExt: 15,
+    });
+    const conceptosFijos = [
+      { id: 1, tipo: 'fijo', activo: true, costeTotal: 968, activoDistancias: { TG7: true, TG13: true, TG25: true } },
+    ];
+    const totalInscritos = { TG7: 50, TG13: 30, TG25: 20, total: 100 };
+    const r = calculateCostesFijos(conceptosFijos, totalInscritos, cam.totalGastos);
+    expect(r.TG7 + r.TG13 + r.TG25).toBeCloseTo(r.total, 5);
+    expect(r.total).toBe(968 + cam.totalGastos);
+  });
+});

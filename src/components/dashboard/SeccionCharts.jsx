@@ -91,19 +91,19 @@ export const SeccionCharts = memo(function SeccionCharts({ d, fmtEur, TOOLTIP_ST
         {d.totalIngresos === 0 && d.totalCostesFijos === 0
           ? <EmptyChart mensaje="Sin datos económicos" sub="Configura costes e inscritos en Presupuesto" />
           : (() => {
-            // ECO-08: camisetasDesglose ahora tiene shape de calculateCamisetasPresupuesto —
+            // ECO-08/ECO-09: camisetasDesglose tiene shape de calculateCamisetasPresupuesto —
             // 6 categorías independientes, cada una con { ingreso, gasto, unidades }.
+            // El gasto total (cam.totalGastos) ya está incluido en d.totalCostesFijos
+            // (prorrateado por inscritos) — no se muestra aparte para no duplicarlo visualmente.
             const cam = d.camisetasDesglose || {};
             const camIngPlataforma = (cam.corredores?.ingreso || 0) + (cam.noCorredores?.ingreso || 0) + (cam.ventaPublico?.ingreso || 0);
             const camUdsPlataforma = (cam.corredores?.unidades || 0) + (cam.noCorredores?.unidades || 0) + (cam.ventaPublico?.unidades || 0);
             const camIngOtros = cam.otros?.ingreso || 0;
-            const camCosteTotal = cam.totalGastos || 0;
             const items = [
               { label: "Inscripciones", val: d.totalIngresos, color: "#22d3ee", tipo: "+" },
               { label: "Patrocinios", val: d.totalIngresosExtra, color: "#34d399", tipo: "+" },
               camIngPlataforma > 0 && { label: `👕 Cam. corredor/no corredor (${camUdsPlataforma}u)`, val: camIngPlataforma, color: "#c084fc", tipo: "+" },
               camIngOtros > 0 && { label: `📦 Cam. pedidos extra`, val: camIngOtros, color: "#a78bfa", tipo: "+" },
-              camCosteTotal > 0 && { label: `👕 Coste camisetas`, val: camCosteTotal, color: "#f472b6", tipo: "-" },
               { label: "C. Fijos", val: d.totalCostesFijos, color: "#f87171", tipo: "-" },
               { label: "C. Variables", val: d.totalCostesVars, color: "#fb923c", tipo: "-" },
             ].filter(Boolean);

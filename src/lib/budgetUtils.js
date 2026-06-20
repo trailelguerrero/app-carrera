@@ -235,7 +235,17 @@ export const calculatePrecioMedioPago = (inscritosConPago, ingresosPorDistancia)
  * @param {object} totalInscritos - { TG7, TG13, TG25, total } inscritos actuales
  * @returns {{ TG7, TG13, TG25, total }} costes fijos prorrateados
  */
-export const calculateCostesFijos = (conceptos, totalInscritos) => {
+/**
+ * calculateCostesFijos — prorrata dinámica de costes fijos entre distancias.
+ *
+ * @param {Array}  conceptos
+ * @param {object} totalInscritos
+ * @param {number} extraFijo - ECO-09: coste fijo adicional no asociado a un concepto editable
+ *   (p.ej. gasto total de camisetas calculado por calculateCamisetasPresupuesto). Se trata como
+ *   un concepto fijo virtual activo en las 3 distancias: se prorratea dinámicamente por
+ *   inscritos igual que cualquier otro concepto fijo. Default 0 — sin efecto si se omite.
+ */
+export const calculateCostesFijos = (conceptos, totalInscritos, extraFijo = 0) => {
   const costes = { TG7: 0, TG13: 0, TG25: 0, total: 0 };
   conceptos.filter(c => c.tipo === "fijo" && c.activo).forEach(c => {
     const distActivas  = DISTANCIAS.filter(d => c.activoDistancias[d]);
@@ -249,6 +259,18 @@ export const calculateCostesFijos = (conceptos, totalInscritos) => {
     });
     costes.total += c.costeTotal;
   });
+  // ECO-09: el extra (camisetas) se prorratea igual que un concepto fijo activo en TG7/TG13/TG25,
+  // así el desglose por distancia sigue sumando exactamente el total.
+  if (extraFijo > 0) {
+    const totalActivos = DISTANCIAS.reduce((s, d) => s + totalInscritos[d], 0);
+    DISTANCIAS.forEach(d => {
+      const prorrata = totalActivos > 0
+        ? extraFijo * (totalInscritos[d] / totalActivos)
+        : extraFijo / DISTANCIAS.length;
+      costes[d] += prorrata;
+    });
+    costes.total += extraFijo;
+  }
   return costes;
 };
 

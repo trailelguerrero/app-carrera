@@ -151,6 +151,57 @@ describe("calculateCostesFijos", () => {
     expect(r.TG13).toBe(0);
     expect(r.total).toBe(300);
   });
+
+  // ECO-09: extraFijo (gasto de camisetas) se prorratea como un concepto fijo
+  // virtual activo en las 3 distancias, igual que cualquier concepto fijo normal.
+  describe("parámetro extraFijo (ECO-09)", () => {
+    it("sin extraFijo (omitido) no afecta al resultado — retrocompatible", () => {
+      const r = calculateCostesFijos(conceptosFijos, totalInscritos);
+      expect(r.total).toBe(1800);
+    });
+
+    it("extraFijo=0 no afecta al resultado", () => {
+      const r = calculateCostesFijos(conceptosFijos, totalInscritos, 0);
+      expect(r.total).toBe(1800);
+    });
+
+    it("extraFijo se suma al total", () => {
+      const r = calculateCostesFijos(conceptosFijos, totalInscritos, 200);
+      expect(r.total).toBe(1800 + 200);
+    });
+
+    it("extraFijo se prorratea por inscritos en las 3 distancias (no condicionado a activoDistancias)", () => {
+      // Sin conceptos, solo extraFijo=180€ → TG7:80, TG13:60, TG25:40 de 180 total
+      // TG7: 180 * 80/180 = 80 ; TG13: 180 * 60/180 = 60 ; TG25: 180 * 40/180 = 40
+      const r = calculateCostesFijos([], totalInscritos, 180);
+      expect(r.total).toBe(180);
+      expect(r.TG7).toBeCloseTo(80, 1);
+      expect(r.TG13).toBeCloseTo(60, 1);
+      expect(r.TG25).toBeCloseTo(40, 1);
+    });
+
+    it("el desglose por distancia sigue sumando exactamente el total con extraFijo activo", () => {
+      const r = calculateCostesFijos(conceptosFijos, totalInscritos, 270);
+      expect(r.TG7 + r.TG13 + r.TG25).toBeCloseTo(r.total, 5);
+    });
+
+    it("sin inscritos, extraFijo se reparte a partes iguales entre las 3 distancias", () => {
+      const sinInscritos = { TG7: 0, TG13: 0, TG25: 0, total: 0 };
+      const r = calculateCostesFijos([], sinInscritos, 300);
+      expect(r.TG7).toBeCloseTo(100, 1);
+      expect(r.TG13).toBeCloseTo(100, 1);
+      expect(r.TG25).toBeCloseTo(100, 1);
+      expect(r.total).toBe(300);
+    });
+
+    it("es dinámico: cambiar inscritos cambia la prorrata sin tocar el total", () => {
+      const masInscritosTG25 = { TG7: 80, TG13: 60, TG25: 140, total: 280 };
+      const r1 = calculateCostesFijos([], totalInscritos, 180);
+      const r2 = calculateCostesFijos([], masInscritosTG25, 180);
+      expect(r1.total).toBe(r2.total); // el total no cambia
+      expect(r2.TG25).toBeGreaterThan(r1.TG25); // pero TG25 absorbe más al tener más inscritos
+    });
+  });
 });
 
 // ─── calculateCostesVariables ─────────────────────────────────────────────────
