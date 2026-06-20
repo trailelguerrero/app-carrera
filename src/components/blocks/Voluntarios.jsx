@@ -224,7 +224,7 @@ export default function Voluntarios() {
           puestos={puestosConStats}
           onSave={(data) => { if (modalVol === "nuevo" || modalVol?._nuevo) addVoluntario(data); else updateVoluntario(modalVol.id, data); setModalVol(null); }}
           onClose={() => setModalVol(null)}
-          onEliminar={modalVol !== "nuevo" && !modalVol?._nuevo ? () => { const id = modalVol?.id; if (!id) return; pendingDeleteRef.current = id; setModalVol(null); setConfirmDelete(id); } : undefined}
+          onEliminar={modalVol !== "nuevo" && !modalVol?._nuevo ? () => { const id = modalVol?.id; if (id === null || id === undefined) return; pendingDeleteRef.current = id; setModalVol(null); setConfirmDelete(id); } : undefined}
         />, document.body
       )}
       {modalPuesto && createPortal(
@@ -235,8 +235,8 @@ export default function Voluntarios() {
           onClose={() => setModalPuesto(null)}
         />, document.body
       )}
-      {confirmDelete && createPortal(<ModalConfirm zIndex={400} mensaje="¿Eliminar este voluntario? Esta acción no se puede deshacer." onConfirm={() => ejecutarEliminacion(pendingDeleteRef.current ?? confirmDelete)} onCancel={() => { setConfirmDelete(null); pendingDeleteRef.current = null; }} />, document.body)}
-      {confirmDeletePuesto && createPortal(<ModalConfirm zIndex={400} mensaje="¿Eliminar este puesto? Los voluntarios asignados quedarán sin puesto." onConfirm={() => { deletePuesto(confirmDeletePuesto); setConfirmDeletePuesto(null); }} onCancel={() => setConfirmDeletePuesto(null)} />, document.body)}
+      {(confirmDelete !== null && confirmDelete !== undefined) && createPortal(<ModalConfirm zIndex={400} mensaje="¿Eliminar este voluntario? Esta acción no se puede deshacer." onConfirm={() => ejecutarEliminacion(pendingDeleteRef.current ?? confirmDelete)} onCancel={() => { setConfirmDelete(null); pendingDeleteRef.current = null; }} />, document.body)}
+      {(confirmDeletePuesto !== null && confirmDeletePuesto !== undefined) && createPortal(<ModalConfirm zIndex={400} mensaje="¿Eliminar este puesto? Los voluntarios asignados quedarán sin puesto." onConfirm={() => { deletePuesto(confirmDeletePuesto); setConfirmDeletePuesto(null); }} onCancel={() => setConfirmDeletePuesto(null)} />, document.body)}
       {modalMensaje && <ModalMensaje config={config} onClose={() => setModalMensaje(false)} />}
       {/* Modal reasignación rápida desde vista de puestos */}
       {modalReasignarVol && createPortal(

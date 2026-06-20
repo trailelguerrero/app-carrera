@@ -169,51 +169,83 @@ export default async function handler(req, res) {
     try {
       const sql = neon(process.env.DATABASE_URL);
 
-      // Leer array actual y hacer APPEND — nunca sobreescribir
-      const result = await sql`SELECT value FROM collections WHERE key = ${collection}`;
-      const current = result.length > 0 && Array.isArray(result[0].value)
-        ? result[0].value
-        : [];
-
-      // C3: Validar capacidad del puesto si se seleccionó uno [F4-02]
+      // C3: capacidad del puesto — lectura informativa, fuera de la query atómica.
+      // No es la causa del bug de duplicados (eso es teléfono/email), así que no
+      // necesita el mismo tratamiento de lock; basta con leerlo antes de intentar el
+      // insert y rechazar pronto si ya no hay sitio, evitando una escritura innecesaria.
       if (sanitized.puestoId) {
         const puestosResult = await sql`SELECT value FROM collections WHERE key = 'teg_voluntarios_v1_puestos'`;
         const puestos = puestosResult.length > 0 && Array.isArray(puestosResult[0].value) ? puestosResult[0].value : [];
         const puesto = puestos.find(p => p.id === sanitized.puestoId);
         if (puesto && typeof puesto.necesarios === 'number') {
-          const ocupados = current.filter(v => v.puestoId === sanitized.puestoId && v.estado !== 'cancelado').length;
+          const actualResult = await sql`SELECT value FROM collections WHERE key = ${collection}`;
+          const actual = actualResult.length > 0 && Array.isArray(actualResult[0].value) ? actualResult[0].value : [];
+          const ocupados = actual.filter(v => v.puestoId === sanitized.puestoId && v.estado !== 'cancelado').length;
           if (ocupados >= puesto.necesarios) {
             return res.status(409).json({ error: 'Puesto completo. No quedan plazas disponibles.' });
           }
         }
       }
 
-      // MEJ-22: operación atómica — elimina race condition en check de duplicados
-      // Usamos FOR UPDATE para bloquear la fila durante la verificación + escritura
-      const lockResult = await sql`
-        SELECT value FROM collections WHERE key = ${collection} FOR UPDATE
+      // FIX-DUP-01: alta atómica en una sola query — sustituye al patrón anterior
+      // (SELECT ... FOR UPDATE seguido de un INSERT en una llamada sql`...` separada).
+      //
+      // Antes (MEJ-22), el SELECT ... FOR UPDATE y el INSERT posterior eran dos
+      // llamadas sql`...` independientes: con el driver HTTP de @neondatabase/serverless,
+      // cada sql`...` suelta abre y confirma su propia transacción, así que el lock se
+      // liberaba antes de que el INSERT llegara a ejecutarse — la "atomicidad" no se
+      // producía de verdad. Resultado observado: registros duplicados del mismo
+      // voluntario (mismo teléfono) cuando el formulario se envía dos veces casi a la
+      // vez (doble toque en el botón, reintento tras un timeout aparente de red).
+      //
+      // La query de abajo hace lock + check de duplicado + append en una sola
+      // sentencia SQL (un único viaje de ida y vuelta, una sola transacción implícita
+      // de Postgres): el UPDATE solo añade el nuevo voluntario al array si el
+      // WHERE NOT EXISTS no encuentra ya un elemento con el mismo teléfono o email.
+      // Postgres bloquea la fila (UPDATE siempre toma lock de fila) durante toda la
+      // operación, así que una segunda petición concurrente con los mismos datos queda
+      // esperando hasta que esta termine, y entonces su propio NOT EXISTS sí encuentra
+      // el registro recién insertado — ya no hay hueco entre comprobar y escribir.
+      const upsertResult = await sql`
+        INSERT INTO collections (key, value, version)
+        VALUES (${collection}, ${JSON.stringify([sanitized])}::jsonb, 1)
+        ON CONFLICT (key) DO UPDATE SET
+          value = CASE
+            WHEN NOT EXISTS (
+              SELECT 1 FROM jsonb_array_elements(collections.value) AS elem
+              WHERE (${sanitized.email}::text <> '' AND elem->>'email' = ${sanitized.email}::text)
+                 OR (${sanitized.telefono}::text <> '' AND elem->>'telefono' = ${sanitized.telefono}::text)
+            )
+            THEN collections.value || ${JSON.stringify([sanitized])}::jsonb
+            ELSE collections.value
+          END,
+          version = CASE
+            WHEN NOT EXISTS (
+              SELECT 1 FROM jsonb_array_elements(collections.value) AS elem
+              WHERE (${sanitized.email}::text <> '' AND elem->>'email' = ${sanitized.email}::text)
+                 OR (${sanitized.telefono}::text <> '' AND elem->>'telefono' = ${sanitized.telefono}::text)
+            )
+            THEN collections.version + 1
+            ELSE collections.version
+          END,
+          updated_at = CASE
+            WHEN NOT EXISTS (
+              SELECT 1 FROM jsonb_array_elements(collections.value) AS elem
+              WHERE (${sanitized.email}::text <> '' AND elem->>'email' = ${sanitized.email}::text)
+                 OR (${sanitized.telefono}::text <> '' AND elem->>'telefono' = ${sanitized.telefono}::text)
+            )
+            THEN CURRENT_TIMESTAMP
+            ELSE collections.updated_at
+          END
+        RETURNING value
       `;
-      const lockedCurrent = lockResult.length > 0 && Array.isArray(lockResult[0].value)
-        ? lockResult[0].value
-        : current; // fallback al valor leído antes si no hay fila aún
 
-      // Comprobar duplicado por email o teléfono (sobre datos bloqueados)
-      const isDuplicate = lockedCurrent.some(v =>
-        (sanitized.email    && v.email    === sanitized.email)    ||
-        (sanitized.telefono && v.telefono === sanitized.telefono)
-      );
-      if (isDuplicate) {
+      const finalArr = Array.isArray(upsertResult?.[0]?.value) ? upsertResult[0].value : [];
+      const wasInserted = finalArr.some(v => v.id === sanitized.id);
+
+      if (!wasInserted) {
         return res.status(409).json({ error: 'Ya existe un registro con ese email o teléfono' });
       }
-
-      const updated = [...lockedCurrent, sanitized];
-      const jsonValue = JSON.stringify(updated);
-
-      await sql`
-        INSERT INTO collections (key, value)
-        VALUES (${collection}, ${jsonValue}::jsonb)
-        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
-      `;
 
       return res.status(201).json({ success: true, id: sanitized.id });
     } catch (error) {
