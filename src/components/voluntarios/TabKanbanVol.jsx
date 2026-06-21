@@ -71,6 +71,7 @@ const KanbanCard = memo(function KanbanCard({
           </span>
         )}
         {v.coche && <span title="Tiene vehículo" style={{ fontSize: ".75rem", flexShrink: 0 }}>🚗</span>}
+        {v.grupoId && <span title={`Grupo: ${v.grupoNombre || "sin nombre"}`} style={{ fontSize: ".75rem", flexShrink: 0 }}>👥</span>}
         {v.telefono && (
           <a
             href={`tel:${v.telefono}`}
@@ -423,17 +424,28 @@ export function TabKanbanVol({ voluntarios, puestos, onUpdate, onFicha }) {
     } else {
       // En modo puesto: drop sobre columna de puesto → asignar puestoId
       const volId = dragId.current;
-      if (colId === "__sin_puesto__") {
-        onUpdate(volId, { puestoId: null });
-      } else {
-        const puestoIdNum = isNaN(colId) ? colId : Number(colId);
-        onUpdate(volId, { puestoId: puestoIdNum });
+      const nuevoPuestoId = colId === "__sin_puesto__" ? null : (isNaN(colId) ? colId : Number(colId));
+      onUpdate(volId, { puestoId: nuevoPuestoId });
+
+      // [GRUPOS] Si pertenece a un grupo, ofrecer mover también a sus compañeros.
+      const vol = voluntarios.find(v => v.id === volId);
+      if (vol?.grupoId) {
+        const companeros = voluntarios.filter(v => v.grupoId === vol.grupoId && v.id !== volId);
+        if (companeros.length > 0) {
+          const nombrePuesto = nuevoPuestoId != null ? (puestos.find(p => p.id === nuevoPuestoId)?.nombre || "este puesto") : null;
+          const mensaje = nombrePuesto
+            ? `${vol.nombre} forma parte del grupo "${vol.grupoNombre || "sin nombre"}" (${companeros.length} más). ¿Mover también a todo el grupo a «${nombrePuesto}»?`
+            : `${vol.nombre} forma parte del grupo "${vol.grupoNombre || "sin nombre"}" (${companeros.length} más). ¿Desasignar también a todo el grupo?`;
+          if (window.confirm(mensaje)) {
+            companeros.forEach(c => onUpdate(c.id, { puestoId: nuevoPuestoId }));
+          }
+        }
       }
     }
 
     dragId.current = null;
     setDropTarget(null);
-  }, [modo, moverA, onUpdate]);
+  }, [modo, moverA, onUpdate, voluntarios, puestos]);
 
   const handleDragEnd = useCallback(() => {
     dragId.current = null;

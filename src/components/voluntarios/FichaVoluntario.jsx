@@ -376,6 +376,35 @@ function FichaVoluntario({ voluntario: v, puestos, voluntarios=[], locs=[], matP
             </div>
           )}
 
+          {/* [GRUPOS] Grupo (familia/amigos) — compañeros y opción de salir del grupo */}
+          {v.grupoId && (() => {
+            const companeros = voluntarios.filter(c => c.grupoId === v.grupoId && String(c.id) !== String(v.id));
+            return (
+              <div style={{ background:"var(--violet-dim)", borderRadius:8, padding:"0.6rem 0.75rem",
+                borderLeft:"2px solid var(--violet)", marginTop:"0.25rem" }}>
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:".35rem" }}>
+                  <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--violet)",
+                    textTransform:"uppercase", fontWeight:700 }}>
+                    👥 Grupo: {v.grupoNombre || "sin nombre"}
+                  </div>
+                  {onUpdate && (
+                    <button className="btn btn-ghost" style={{ fontSize:"var(--fs-2xs)", padding:".15rem .4rem" }}
+                      onClick={() => onUpdate({ grupoId: null, grupoNombre: null })}>
+                      Salir del grupo
+                    </button>
+                  )}
+                </div>
+                {companeros.length > 0 ? (
+                  <div style={{ fontSize:"var(--fs-sm)", lineHeight:1.5 }}>
+                    {companeros.map(c => [c.nombre, c.apellidos].filter(Boolean).join(" ")).join(" · ")}
+                  </div>
+                ) : (
+                  <div style={{ fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>Sin más compañeros en este grupo.</div>
+                )}
+              </div>
+            );
+          })()}
+
           {/* ── MEJ-06: localización del puesto con coordenadas y enlace mapa ── */}
           {puesto && loc && (
             <div style={{ background:"var(--surface2)", borderRadius:8, padding:"0.6rem 0.75rem",

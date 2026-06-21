@@ -3,7 +3,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { TALLAS, SHIRT_PLACEHOLDER_FRONT, SHIRT_PLACEHOLDER_BACK, GUIA_TALLAS } from "@/constants/camisetasConstants";
 import { createPortal } from "react-dom";
 import { toast } from "@/lib/toast";
-import { genIdNum } from "@/lib/utils";
+import { genIdNum, genIdStr } from "@/lib/utils";
 import { useModalClose } from "@/hooks/useModalClose";
 import EmptyState from "@/components/EmptyState";
 import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
@@ -28,6 +28,10 @@ function TabVoluntarios({
   const [filtrosAvanzadosAbiertos, setFiltrosAvanzadosAbiertos] = useState(true);
   const [seleccionados, setSeleccionados] = useState([]);
   const [modoSeleccion, setModoSeleccion] = useState(false);
+  // [GRUPOS] Crear grupo (familia/amigos) a partir de la selección, y asignar la selección a un puesto en bloque.
+  const [modalAgrupar, setModalAgrupar] = useState(false);
+  const [nombreGrupoInput, setNombreGrupoInput] = useState("");
+  const [modalAsignarPuesto, setModalAsignarPuesto] = useState(false);
 
   const toggleSeleccion = (id) => setSeleccionados(prev =>
     prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
@@ -35,6 +39,27 @@ function TabVoluntarios({
   const seleccionarTodos = () => setSeleccionados(voluntarios.map(v => v.id));
   const deseleccionarTodos = () => setSeleccionados([]);
   const salirModo = () => { setModoSeleccion(false); setSeleccionados([]); };
+
+  // [GRUPOS] Crear un grupo nuevo (familia/amigos) con los seleccionados.
+  const confirmarAgrupar = () => {
+    const nombre = nombreGrupoInput.trim();
+    if (!nombre) { toast.error("Ponle un nombre al grupo"); return; }
+    const grupoId = genIdStr();
+    onBulkUpdate(seleccionados, { grupoId, grupoNombre: nombre });
+    toast.success(`Grupo "${nombre}" creado con ${seleccionados.length} voluntario${seleccionados.length > 1 ? "s" : ""}`);
+    setModalAgrupar(false);
+    setNombreGrupoInput("");
+    salirModo();
+  };
+
+  // [GRUPOS] Asignar toda la selección a un puesto de una vez (sin comprobar plazas libres).
+  const confirmarAsignarPuesto = (puestoId) => {
+    onBulkUpdate(seleccionados, { puestoId });
+    const p = puestos.find(pp => pp.id === puestoId);
+    toast.success(`${seleccionados.length} voluntario${seleccionados.length > 1 ? "s" : ""} asignado${seleccionados.length > 1 ? "s" : ""} a ${p?.nombre || "el puesto"}`);
+    setModalAsignarPuesto(false);
+    salirModo();
+  };
   const [orden, setOrden]           = useState("nombre");
   const [colapsados, setColapsados] = useState({});
 
@@ -247,6 +272,16 @@ function TabVoluntarios({
             <button className="btn btn-red btn-sm"
               onClick={() => { onBulkUpdate(seleccionados, { estado:"cancelado" }); salirModo(); }}>
               ✕ Cancelar
+            </button>
+            <div style={{ width:1, height:16, background:"var(--border)" }}/>
+            {/* [GRUPOS] Crear grupo y asignar a puesto en bloque */}
+            <button className="btn btn-violet btn-sm"
+              onClick={() => setModalAgrupar(true)}>
+              👥 Agrupar
+            </button>
+            <button className="btn btn-cyan btn-sm"
+              onClick={() => setModalAsignarPuesto(true)}>
+              📍 Asignar a puesto
             </button>
             <div style={{ width:1, height:16, background:"var(--border)" }}/>
             <button className="btn btn-ghost btn-sm"
@@ -655,6 +690,12 @@ function TabVoluntarios({
                                   {v.rol||"apoyo"}
                                 </span>
                                 {v.coche && <span style={{ fontSize:"var(--fs-sm)" }} title="Tiene vehículo">🚗</span>}
+                                {/* [GRUPOS] */}
+                                {v.grupoId && (
+                                  <span className="badge badge-violet" style={{ fontSize:"var(--fs-2xs)" }} title={`Grupo: ${v.grupoNombre || "sin nombre"}`}>
+                                    👥 {v.grupoNombre || "Grupo"}
+                                  </span>
+                                )}
                                 {v.enPuesto && <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", fontWeight:700, color:"var(--green)", background:"rgba(52,211,153,.12)", border:"1px solid rgba(52,211,153,.25)", borderRadius:3, padding:"0 .3rem" }} title={`En puesto${v.horaLlegada ? " desde las "+v.horaLlegada : ""}`}>📍 EN PUESTO</span>}
                                 {v.notaVoluntario && <span style={{ fontSize:"var(--fs-sm)" }} title={"Nota: "+v.notaVoluntario}>📝</span>}
                                 {v.mensajeParaOrganizador && <span style={{ fontSize:"var(--fs-sm)" }} title={"Mensaje: "+v.mensajeParaOrganizador}>💬</span>}
@@ -727,6 +768,61 @@ function TabVoluntarios({
       </div>
       ))}
 
+      {/* [GRUPOS] Modal: nombrar y crear el grupo a partir de la selección */}
+      {modalAgrupar && createPortal(
+        <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && setModalAgrupar(false)}>
+          <div className="modal" role="dialog" aria-modal="true" style={{ maxWidth: 380 }}>
+            <div className="modal-body" style={{ paddingTop: "1.3rem" }}>
+              <div style={{ fontSize: "1.4rem", marginBottom: ".4rem" }}>👥</div>
+              <div style={{ fontWeight: 700, marginBottom: ".25rem" }}>
+                Agrupar {seleccionados.length} voluntario{seleccionados.length > 1 ? "s" : ""}
+              </div>
+              <div className="mono xs muted" style={{ marginBottom: ".75rem" }}>
+                Quedarán enlazados con este nombre — al mover a uno de ellos a otro puesto, se ofrecerá mover a todo el grupo.
+              </div>
+              <input className="inp" autoFocus placeholder="Nombre del grupo (ej. Familia Castañar)"
+                value={nombreGrupoInput} onChange={e => setNombreGrupoInput(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") confirmarAgrupar(); }}
+                style={{ width: "100%" }} />
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => { setModalAgrupar(false); setNombreGrupoInput(""); }}>Cancelar</button>
+              <button className="btn btn-violet" onClick={confirmarAgrupar}>Crear grupo</button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* [GRUPOS] Modal: asignar la selección a un puesto en bloque */}
+      {modalAsignarPuesto && createPortal(
+        <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && setModalAsignarPuesto(false)}>
+          <div className="modal" role="dialog" aria-modal="true" style={{ maxWidth: 420 }}>
+            <div className="modal-body" style={{ paddingTop: "1.3rem" }}>
+              <div style={{ fontSize: "1.4rem", marginBottom: ".4rem" }}>📍</div>
+              <div style={{ fontWeight: 700, marginBottom: ".75rem" }}>
+                Asignar {seleccionados.length} voluntario{seleccionados.length > 1 ? "s" : ""} a un puesto
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: ".4rem", maxHeight: "45vh", overflowY: "auto" }}>
+                {puestos.map(p => (
+                  <button key={p.id} className="btn btn-ghost btn-sm" style={{ justifyContent: "space-between", display: "flex", textAlign: "left" }}
+                    onClick={() => confirmarAsignarPuesto(p.id)}>
+                    <span>{p.nombre}</span>
+                    <span className="mono xs muted">{p.necesarios} plazas</span>
+                  </button>
+                ))}
+                {puestos.length === 0 && (
+                  <div className="mono xs muted" style={{ textAlign: "center", padding: ".75rem 0" }}>No hay puestos creados todavía.</div>
+                )}
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setModalAsignarPuesto(false)}>Cancelar</button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </>
   );
 }

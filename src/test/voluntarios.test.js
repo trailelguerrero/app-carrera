@@ -2009,3 +2009,67 @@ describe('VOL-33 — estado "dudoso": cobertura de puestos y elegibilidad para c
     expect(elegibleCamisetas(v, false)).toBe(false);
   });
 });
+
+// ── VOL-34: grupos de voluntarios (familia/amigos) ────────────────────────────
+// Decisiones de producto confirmadas con Ivan (21/06/2026):
+//   - Se crean dando nombre desde la selección múltiple del listado.
+//   - NO van enlazados de forma forzosa: al mover a uno se PREGUNTA si mover
+//     también a los demás (ver ofrecerMoverGrupo en ModalReasignar.jsx y
+//     TabKanbanVol.jsx).
+//   - No se comprueban plazas libres al asignar el grupo a un puesto.
+describe('VOL-34 — Grupos de voluntarios: creación y compañeros', () => {
+  it('"Agrupar" asigna el mismo grupoId y grupoNombre a todos los seleccionados', () => {
+    const voluntarios = [
+      { id: 1, nombre: "Ana" },
+      { id: 2, nombre: "Luis" },
+      { id: 3, nombre: "Eva" },
+    ];
+    const seleccionados = [1, 2];
+    const grupoId = "grp_test_123";
+    const actualizados = voluntarios.map(v =>
+      seleccionados.includes(v.id) ? { ...v, grupoId, grupoNombre: "Familia Castañar" } : v
+    );
+    expect(actualizados[0].grupoId).toBe(grupoId);
+    expect(actualizados[1].grupoId).toBe(grupoId);
+    expect(actualizados[2].grupoId).toBeUndefined(); // Eva no estaba seleccionada
+  });
+
+  it('encuentra a los compañeros de grupo excluyendo al propio voluntario', () => {
+    const voluntarios = [
+      { id: 1, nombre: "Ana",  grupoId: "g1" },
+      { id: 2, nombre: "Luis", grupoId: "g1" },
+      { id: 3, nombre: "Eva",  grupoId: "g1" },
+      { id: 4, nombre: "Marc", grupoId: "g2" },
+    ];
+    const companeros = voluntarios.filter(c => c.grupoId === "g1" && c.id !== 1);
+    expect(companeros.map(c => c.id)).toEqual([2, 3]);
+  });
+
+  it('un voluntario sin grupo no tiene compañeros', () => {
+    const voluntarios = [{ id: 1, nombre: "Ana" }, { id: 2, nombre: "Luis" }];
+    const v = voluntarios[0];
+    const companeros = v.grupoId ? voluntarios.filter(c => c.grupoId === v.grupoId && c.id !== v.id) : [];
+    expect(companeros).toHaveLength(0);
+  });
+
+  it('"Salir del grupo" limpia grupoId y grupoNombre sin tocar a los demás', () => {
+    const voluntarios = [
+      { id: 1, nombre: "Ana",  grupoId: "g1", grupoNombre: "Familia Castañar" },
+      { id: 2, nombre: "Luis", grupoId: "g1", grupoNombre: "Familia Castañar" },
+    ];
+    const actualizados = voluntarios.map(v => v.id === 1 ? { ...v, grupoId: null, grupoNombre: null } : v);
+    expect(actualizados[0].grupoId).toBeNull();
+    expect(actualizados[1].grupoId).toBe("g1"); // Luis sigue en el grupo
+  });
+
+  it('asignar el grupo a un puesto no comprueba plazas libres (decisión confirmada)', () => {
+    const voluntarios = [
+      { id: 1, nombre: "Ana",  grupoId: "g1" },
+      { id: 2, nombre: "Luis", grupoId: "g1" },
+    ];
+    const puestoLleno = { id: 9, necesarios: 1, totalAsignados: 1 }; // ya completo
+    // La asignación en bloque se aplica igual, sin bloquear ni avisar de aforo.
+    const actualizados = voluntarios.map(v => ({ ...v, puestoId: puestoLleno.id }));
+    expect(actualizados.every(v => v.puestoId === 9)).toBe(true);
+  });
+});

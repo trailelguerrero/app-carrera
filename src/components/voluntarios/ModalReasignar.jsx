@@ -53,6 +53,21 @@ export function ModalReasignar({ voluntario, puestos, voluntarios, onReasignar, 
 
   const nombreVol = [voluntario.nombre, voluntario.apellidos].filter(Boolean).join(" ") || "Este voluntario";
 
+  // [GRUPOS] Si el voluntario pertenece a un grupo, ofrecer mover/desasignar también
+  // a sus compañeros — decisión confirmada con Ivan: preguntar, no mover automático.
+  function ofrecerMoverGrupo(nuevoPuestoId) {
+    if (!voluntario.grupoId) return;
+    const companeros = voluntarios.filter(c => c.grupoId === voluntario.grupoId && String(c.id) !== String(voluntario.id));
+    if (companeros.length === 0) return;
+    const nombrePuesto = nuevoPuestoId != null ? (puestos.find(p => p.id === nuevoPuestoId)?.nombre || "este puesto") : null;
+    const mensaje = nombrePuesto
+      ? `${nombreVol} forma parte del grupo "${voluntario.grupoNombre || "sin nombre"}" (${companeros.length} más). ¿Mover también a todo el grupo a «${nombrePuesto}»?`
+      : `${nombreVol} forma parte del grupo "${voluntario.grupoNombre || "sin nombre"}" (${companeros.length} más). ¿Desasignar también a todo el grupo?`;
+    if (window.confirm(mensaje)) {
+      companeros.forEach(c => onReasignar(c.id, nuevoPuestoId));
+    }
+  }
+
   function pctColor(p) {
     const pct = p.necesarios > 0 ? Math.round((p.totalAsignados / p.necesarios) * 100) : 0;
     return pct >= 100 ? "var(--green)" : pct >= 50 ? "var(--amber)" : "var(--red)";
@@ -60,6 +75,7 @@ export function ModalReasignar({ voluntario, puestos, voluntarios, onReasignar, 
 
   function handleDesasignar() {
     onReasignar(voluntario.id, null);
+    ofrecerMoverGrupo(null);
     onClose();
   }
 
@@ -74,6 +90,7 @@ export function ModalReasignar({ voluntario, puestos, voluntarios, onReasignar, 
       return;
     }
     onReasignar(voluntario.id, puesto.id);
+    ofrecerMoverGrupo(puesto.id);
     onClose();
   }
 
@@ -121,7 +138,14 @@ export function ModalReasignar({ voluntario, puestos, voluntarios, onReasignar, 
               {([voluntario.nombre, voluntario.apellidos].filter(Boolean).map(n => n[0]).slice(0, 2).join("").toUpperCase() || "V")}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 700, fontSize: "var(--fs-base)" }}>{nombreVol}</div>
+              <div style={{ fontWeight: 700, fontSize: "var(--fs-base)" }}>
+                {nombreVol}
+                {voluntario.grupoId && (
+                  <span className="badge badge-violet" style={{ fontSize: "var(--fs-2xs)", marginLeft: ".4rem" }}>
+                    👥 {voluntario.grupoNombre || "Grupo"}
+                  </span>
+                )}
+              </div>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: ".1rem" }}>
                 Puesto actual: {puestoActual
                   ? <strong style={{ color: "var(--cyan)" }}>{puestoActual.nombre}</strong>
