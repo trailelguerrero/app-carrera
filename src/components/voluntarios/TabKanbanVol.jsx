@@ -7,10 +7,13 @@ import { ESTADOS, estadoColor, estadoBg } from "@/constants/voluntariosConstants
 
 // ── Columnas modo estado ───────────────────────────────────────────────────────
 const COLUMNAS_ESTADO = [
-  { id: "pendiente",  label: "Pendiente",  icon: "⏳", color: "var(--amber)", bg: "rgba(251,191,36,.07)",  border: "rgba(251,191,36,.25)"  },
-  { id: "confirmado", label: "Confirmado", icon: "✅", color: "var(--green)", bg: "rgba(52,211,153,.07)",  border: "rgba(52,211,153,.25)"  },
-  { id: "cancelado",  label: "Cancelado",  icon: "✕",  color: "var(--red)",   bg: "rgba(248,113,113,.06)", border: "rgba(248,113,113,.25)" },
-  { id: "en-puesto",  label: "En Puesto",  icon: "📍", color: "var(--cyan)",  bg: "rgba(34,211,238,.07)",  border: "rgba(34,211,238,.25)"  },
+  { id: "pendiente",  label: "Pendiente",  icon: "⏳", color: "var(--amber)",  bg: "rgba(251,191,36,.07)",  border: "rgba(251,191,36,.25)"  },
+  { id: "confirmado", label: "Confirmado", icon: "✅", color: "var(--green)",  bg: "rgba(52,211,153,.07)",  border: "rgba(52,211,153,.25)"  },
+  // [VOL-AUDIT-2] "Ausente" tenía su propia columna lógica (ver columnaDeVol) pero no
+  // existía como columna real -> esos voluntarios desaparecían sin dejar rastro en el Kanban.
+  { id: "ausente",    label: "Ausente",    icon: "⚠️", color: "var(--orange)", bg: "rgba(251,146,60,.07)",  border: "rgba(251,146,60,.25)"  },
+  { id: "cancelado",  label: "Cancelado",  icon: "✕",  color: "var(--red)",    bg: "rgba(248,113,113,.06)", border: "rgba(248,113,113,.25)" },
+  { id: "en-puesto",  label: "En Puesto",  icon: "📍", color: "var(--cyan)",   bg: "rgba(34,211,238,.07)",  border: "rgba(34,211,238,.25)"  },
 ];
 
 // Devuelve la columna lógica de un voluntario (modo estado)

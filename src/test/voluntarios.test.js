@@ -13,6 +13,7 @@
  * VOL-10  coberturaGlobal — cálculo global vs por puesto
  */
 import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { calcularSugerenciasReubicacion } from '@/hooks/useVoluntarios';
 
 beforeAll(() => {
   const s = {};
@@ -227,35 +228,9 @@ describe('VOL-05 — puestosConStats cálculo de cobertura', () => {
 
 // ── VOL-06: sugerenciasReubicacion ────────────────────────────────────────
 describe('VOL-06 — sugerenciasReubicacion detecta exceso y déficit', () => {
-  const genSugerencias = (puestos, voluntarios) => {
-    const stats = puestos.map(p => {
-      const asig = voluntarios.filter(v => v.puestoId === p.id && v.estado !== "cancelado");
-      const conf = asig.filter(v => v.estado === "confirmado");
-      return { ...p, exceso: Math.max(0, conf.length - p.necesarios), deficit: Math.max(0, p.necesarios - conf.length), confirmados: conf };
-    });
-    const conExceso  = stats.filter(s => s.exceso > 0).sort((a,b) => b.exceso - a.exceso);
-    const conDeficit = stats.filter(s => s.deficit > 0).sort((a,b) => b.deficit - a.deficit);
-    const sug = [];
-    for (const destino of conDeficit) {
-      for (const origen of conExceso) {
-        if (sug.length >= 5) break;
-        const movibles = Math.min(origen.exceso, destino.deficit);
-        if (movibles > 0) {
-          const candidatos = origen.confirmados
-            .filter(v => origen.responsableId !== v.id)
-            .slice(0, movibles);
-          if (candidatos.length > 0) {
-            sug.push({ desde: origen.nombre, hasta: destino.nombre, candidatos, n: candidatos.length });
-          }
-        }
-      }
-    }
-    return sug;
-  };
-
   const puestos = [
-    { id:1, nombre:"Meta",     necesarios:2, responsableId: null },
-    { id:2, nombre:"Avit KM4", necesarios:4, responsableId: null },
+    { id:1, nombre:"Meta",     necesarios:2 },
+    { id:2, nombre:"Avit KM4", necesarios:4 },
   ];
   const vols = [
     { id:1, puestoId:1, estado:"confirmado" },
@@ -265,13 +240,13 @@ describe('VOL-06 — sugerenciasReubicacion detecta exceso y déficit', () => {
   ];
 
   it('detecta el exceso en el puesto Meta', () => {
-    const s = genSugerencias(puestos, vols);
+    const s = calcularSugerenciasReubicacion(puestos, vols);
     expect(s.length).toBeGreaterThan(0);
     expect(s[0].desde).toBe("Meta");
   });
 
   it('sugiere mover hacia el puesto con déficit', () => {
-    const s = genSugerencias(puestos, vols);
+    const s = calcularSugerenciasReubicacion(puestos, vols);
     expect(s[0].hasta).toBe("Avit KM4");
   });
 
@@ -281,37 +256,45 @@ describe('VOL-06 — sugerenciasReubicacion detecta exceso y déficit', () => {
       { id:3, puestoId:2, estado:"confirmado" }, { id:4, puestoId:2, estado:"confirmado" },
       { id:5, puestoId:2, estado:"confirmado" }, { id:6, puestoId:2, estado:"confirmado" },
     ];
-    expect(genSugerencias(puestos, volsOk)).toHaveLength(0);
+    expect(calcularSugerenciasReubicacion(puestos, volsOk)).toHaveLength(0);
   });
 });
 
 // ── VOL-07: no mueve al responsable ───────────────────────────────────────
+// [VOL-AUDIT-3] Antes este test definía su propia copia del algoritmo usando
+// puesto.responsableId (campo vestigial, siempre null en producción — no tiene
+// UI para asignarlo). Pasaba siempre, sin proteger nada. Ahora llama a la función
+// real del hook y usa el campo que sí se usa en producción: voluntario.rol.
 describe('VOL-07 — sugerenciasReubicacion no mueve al responsable', () => {
-  const genSugerencias = (puestos, voluntarios) => {
-    const stats = puestos.map(p => {
-      const conf = voluntarios.filter(v => v.puestoId === p.id && v.estado === "confirmado");
-      return { ...p, exceso: Math.max(0, conf.length - p.necesarios), deficit: Math.max(0, p.necesarios - conf.length), confirmados: conf };
-    });
-    const [origen] = stats.filter(s => s.exceso > 0);
-    const [destino] = stats.filter(s => s.deficit > 0);
-    if (!origen || !destino) return [];
-    const candidatos = origen.confirmados.filter(v => origen.responsableId !== v.id);
-    return candidatos.length > 0 ? [{ candidatos, n: candidatos.length }] : [];
-  };
-
-  it('excluye al responsable de los candidatos a reubicar', () => {
+  it('excluye al responsable (rol del voluntario) de los candidatos a reubicar', () => {
     const puestos = [
-      { id:1, nombre:"Meta",     necesarios:1, responsableId:99 },
-      { id:2, nombre:"Avit KM4", necesarios:2, responsableId:null },
+      { id:1, nombre:"Meta",     necesarios:1 },
+      { id:2, nombre:"Avit KM4", necesarios:2 },
     ];
     const vols = [
-      { id:99, puestoId:1, estado:"confirmado" }, // responsable
-      { id:1,  puestoId:1, estado:"confirmado" }, // reasignable
-      { id:2,  puestoId:2, estado:"confirmado" }, // ya asignado
+      { id:99, puestoId:1, estado:"confirmado", rol:"responsable" }, // no debe moverse
+      { id:1,  puestoId:1, estado:"confirmado", rol:"apoyo" },       // reasignable
+      { id:2,  puestoId:2, estado:"confirmado", rol:"apoyo" },       // ya asignado, deficit de 1
     ];
-    const s = genSugerencias(puestos, vols);
+    const s = calcularSugerenciasReubicacion(puestos, vols);
+    expect(s).toHaveLength(1);
     expect(s[0].candidatos.every(c => c.id !== 99)).toBe(true);
     expect(s[0].candidatos).toHaveLength(1);
+    expect(s[0].candidatos[0].id).toBe(1);
+  });
+
+  it('test de regresión: si el único candidato con exceso es el responsable, no hay sugerencia', () => {
+    // Esto es justo lo que la versión anterior del test NO podía detectar si alguien
+    // rompía la exclusión de responsables en el hook real (línea 150 de useVoluntarios.js),
+    // porque llamaba a una función desconectada de ese código.
+    const puestos = [
+      { id:1, nombre:"Meta",     necesarios:0 },
+      { id:2, nombre:"Avit KM4", necesarios:1 },
+    ];
+    const vols = [
+      { id:99, puestoId:1, estado:"confirmado", rol:"responsable" },
+    ];
+    expect(calcularSugerenciasReubicacion(puestos, vols)).toHaveLength(0);
   });
 });
 

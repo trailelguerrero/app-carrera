@@ -24,6 +24,30 @@ export function resolverLocalizacionDeVoluntario(voluntario, puestos = [], locs 
   return { puesto, localizacion: lsArr.find(l => l.nombre === puesto.nombre) ?? null };
 }
 
+// [VOL-AUDIT-3] Extraída del hook para poder testearse directamente (VOL-07 llamaba antes
+// a una copia local en el test, con un campo distinto, en vez de a esta lógica real).
+export function calcularSugerenciasReubicacion(puestos, voluntarios) {
+  const statsP = (puestos || []).map(p => {
+    const asig = (voluntarios || []).filter(v => v.puestoId === p.id && v.estado !== "cancelado");
+    const conf = asig.filter(v => v.estado === "confirmado");
+    return { ...p, exceso: Math.max(0, conf.length - p.necesarios), deficit: Math.max(0, p.necesarios - conf.length), confirmados: conf };
+  });
+  const conExceso  = statsP.filter(s => s.exceso  > 0).sort((a, b) => b.exceso  - a.exceso);
+  const conDeficit = statsP.filter(s => s.deficit > 0).sort((a, b) => b.deficit - a.deficit);
+  const sug = [];
+  for (const destino of conDeficit) {
+    for (const origen of conExceso) {
+      if (sug.length >= 5) break;
+      const movibles   = Math.min(origen.exceso, destino.deficit);
+      const candidatos = origen.confirmados.filter(v => v.rol !== "responsable").slice(0, movibles);
+      if (movibles > 0 && candidatos.length > 0) {
+        sug.push({ desde: origen.nombre, desdeId: origen.id, hasta: destino.nombre, hastaId: destino.id, candidatos: candidatos.map(v => ({ id: v.id, nombre: v.nombre })), n: candidatos.length });
+      }
+    }
+  }
+  return sug;
+}
+
 const VOLUNTARIOS_DEFAULT = [
   { id: 1, nombre: "Voluntario Ejemplo 1", telefono: "600 000 001", email: "voluntario1@ejemplo.es", talla: "S", puestoId: 1, rol: "responsable", estado: "confirmado", coche: true,  notas: "", fechaRegistro: "2026-02-15" },
   { id: 2, nombre: "Voluntario Ejemplo 2", telefono: "600 000 002", email: "voluntario2@ejemplo.es", talla: "L", puestoId: 2, rol: "apoyo",       estado: "confirmado", coche: false, notas: "", fechaRegistro: "2026-02-20" },
@@ -134,27 +158,10 @@ export function useVoluntarios() {
     return { total, confirmados, pendientes, cancelados, totalNecesarios, asignados, conCoche, tallasCount, coberturaGlobal, enPuesto };
   }, [voluntarios, puestos]);
 
-  const sugerenciasReubicacion = useMemo(() => {
-    const statsP = (puestos || []).map(p => {
-      const asig = (voluntarios || []).filter(v => v.puestoId === p.id && v.estado !== "cancelado");
-      const conf = asig.filter(v => v.estado === "confirmado");
-      return { ...p, exceso: Math.max(0, conf.length - p.necesarios), deficit: Math.max(0, p.necesarios - conf.length), confirmados: conf };
-    });
-    const conExceso  = statsP.filter(s => s.exceso  > 0).sort((a, b) => b.exceso  - a.exceso);
-    const conDeficit = statsP.filter(s => s.deficit > 0).sort((a, b) => b.deficit - a.deficit);
-    const sug = [];
-    for (const destino of conDeficit) {
-      for (const origen of conExceso) {
-        if (sug.length >= 5) break;
-        const movibles   = Math.min(origen.exceso, destino.deficit);
-        const candidatos = origen.confirmados.filter(v => v.rol !== "responsable").slice(0, movibles);
-        if (movibles > 0 && candidatos.length > 0) {
-          sug.push({ desde: origen.nombre, desdeId: origen.id, hasta: destino.nombre, hastaId: destino.id, candidatos: candidatos.map(v => ({ id: v.id, nombre: v.nombre })), n: candidatos.length });
-        }
-      }
-    }
-    return sug;
-  }, [puestos, voluntarios]);
+  const sugerenciasReubicacion = useMemo(
+    () => calcularSugerenciasReubicacion(puestos, voluntarios),
+    [puestos, voluntarios]
+  );
 
   const puestosConStats = useMemo(() => (puestos || []).map(p => {
     const vols        = (voluntarios || []).filter(v => v?.puestoId === p?.id && v?.estado !== "cancelado" && v?.estado !== "ausente");

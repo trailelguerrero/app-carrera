@@ -40,8 +40,8 @@ export function CancelarAsistencia({ token, nombreVoluntario, onCancelado }) {
         <button className="vp-btn vp-btn-ghost vp-btn-sm" onClick={() => setOpen(false)}>✕</button>
       </div>
       <div className="vp-mono" style={{ fontSize:".78rem", color:"var(--text-muted)", lineHeight:1.65, marginBottom:".75rem" }}>
-        Hola {nombreVoluntario}, lamentamos que no puedas asistir. El organizador recibirá un aviso
-        para reorganizar el puesto.
+        Hola {nombreVoluntario}, lamentamos que no puedas asistir. Tu cancelación quedará
+        registrada para que el equipo organizador pueda reorganizar el puesto.
       </div>
       <div className="vp-label">Motivo (opcional)</div>
       <textarea className="vp-textarea"

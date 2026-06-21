@@ -354,6 +354,19 @@ function FichaVoluntario({ voluntario: v, puestos, voluntarios=[], locs=[], matP
               <span style={{ fontSize:"var(--fs-base)", fontWeight:600, color: isMedical ? "var(--amber)" : undefined, textAlign:"right", marginLeft:".5rem" }}>{val}</span>
             </div>
           )})}
+          {/* [VOL-AUDIT-4] El voluntario escribe un motivo al cancelar desde el Portal,
+              pero hasta ahora ese dato se guardaba y nadie lo veía en ningún panel. */}
+          {v.estado === "cancelado" && v.motivoCancelacion && (
+            <div style={{ background:"var(--red-dim)", borderRadius:8, padding:"0.6rem 0.75rem",
+              borderLeft:"2px solid var(--red)", marginTop:"0.25rem" }}>
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--red)",
+                marginBottom:"0.25rem", textTransform:"uppercase" }}>
+                Motivo de cancelación
+                {v.fechaCancelacion && ` · ${new Date(v.fechaCancelacion).toLocaleDateString("es-ES", {day:"2-digit", month:"short", year:"numeric"})}`}
+              </div>
+              <div style={{ fontSize:"var(--fs-base)", lineHeight:1.5 }}>{v.motivoCancelacion}</div>
+            </div>
+          )}
           {v.notas && (
             <div style={{ background:"var(--surface2)", borderRadius:8, padding:"0.6rem 0.75rem",
               borderLeft:"2px solid var(--border)", marginTop:"0.25rem" }}>

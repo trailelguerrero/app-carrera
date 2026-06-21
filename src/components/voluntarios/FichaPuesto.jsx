@@ -16,7 +16,10 @@ import { ModalReasignar } from "@/components/voluntarios/ModalReasignar";
 function FichaPuesto({ puesto: p, voluntarios, puestosConStats=[], locs=[], matPorLoc={}, rutas=[], onClose, onEditar, onEliminar, onFichaVol, onDesasignarVol, onReasignarVol, onIntercambiarVol }) {
   const { closing: fpuClosing, handleClose: fpuHandleClose } = useModalClose(onClose);
   const [modalReasignarVol, setModalReasignarVol] = useState(null); // voluntario a reasignar desde esta ficha
-  const asignados = voluntarios.filter(v => v.puestoId === p.id && v.estado !== "cancelado");
+  // [VOL-AUDIT-2] Mismo criterio que puestosConStats (useVoluntarios.js): excluir
+  // cancelados Y ausentes de "asignados al puesto". Antes solo excluía cancelados,
+  // por lo que esta ficha mostraba una cifra distinta al listado principal de Puestos.
+  const asignados = voluntarios.filter(v => v.puestoId === p.id && v.estado !== "cancelado" && v.estado !== "ausente");
   const confirmados = asignados.filter(v => v.estado === "confirmado").length;
   const cobertura = p.necesarios > 0 ? Math.round(asignados.length / p.necesarios * 100) : 0;
   const color = cobertura >= 100 ? "var(--green)" : cobertura >= 50 ? "var(--amber)" : "var(--red)";
