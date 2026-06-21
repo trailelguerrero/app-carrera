@@ -135,8 +135,9 @@ export function useDashboardKpis(rawData, volDiasCritico, volDiasAviso) {
     // misma fuente única de verdad que useBudgetLogic (calculateCamisetasPresupuesto).
     // Se calcula ANTES de costesFijosBU porque el gasto total de camisetas ahora se prorratea
     // como un coste fijo adicional (ver calculateCostesFijos, parámetro extraFijo).
+    // [DUDOSO] cuenta siempre (como confirmado), independientemente del toggle de pendientes.
     const _camVolActivos = (Array.isArray(rawVoluntarios) ? rawVoluntarios : [])
-      .filter(v => (v.estado === "confirmado" || (rawCamInclPendientes && v.estado === "pendiente")) && v.talla);
+      .filter(v => (v.estado === "confirmado" || v.estado === "dudoso" || (rawCamInclPendientes && v.estado === "pendiente")) && v.talla);
 
     const camisetasDesglose = calculateCamisetasPresupuesto({
       camCoste: rawCamCoste || CAM_COSTE_DEFAULT,

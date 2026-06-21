@@ -195,7 +195,8 @@ export function useVoluntarios() {
   );
 
   const puestosConStats = useMemo(() => (puestos || []).map(p => {
-    const vols        = (voluntarios || []).filter(v => v?.puestoId === p?.id && v?.estado !== "cancelado" && v?.estado !== "ausente");
+    // [DUDOSO] No cuenta para cobertura hasta confirmarse — mismo trato que "ausente".
+    const vols        = (voluntarios || []).filter(v => v?.puestoId === p?.id && v?.estado !== "cancelado" && v?.estado !== "ausente" && v?.estado !== "dudoso");
     const confirmados = vols.filter(v => v?.estado === "confirmado").length;
     const cobertura     = p?.necesarios > 0 ? Math.round((vols.length / p.necesarios) * 100) : 0;
     const coberturaConf = p?.necesarios > 0 ? Math.round((confirmados / p.necesarios) * 100) : 0;

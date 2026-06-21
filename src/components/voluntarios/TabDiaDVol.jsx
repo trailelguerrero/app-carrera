@@ -55,7 +55,7 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol, diasHastaEvento = 
   }, [voluntarios, puestosConStats]);
 
   const volsBase = useMemo(
-    () => voluntarios.filter(v => v.estado === "confirmado" || v.estado === "pendiente" || v.estado === "ausente"),
+    () => voluntarios.filter(v => v.estado === "confirmado" || v.estado === "pendiente" || v.estado === "dudoso" || v.estado === "ausente"),
     [voluntarios]
   );
 
@@ -125,7 +125,7 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol, diasHastaEvento = 
     const puesto = puestosConStats.find(p => p.id === v.puestoId);
     return (
       <div className={cls("checklist-row", v.enPuesto ? "presente" : "")}
-        style={{ borderLeft: v.estado === "pendiente" ? "3px solid var(--amber)" : undefined }}>
+        style={{ borderLeft: v.estado === "pendiente" ? "3px solid var(--amber)" : v.estado === "dudoso" ? "3px solid var(--violet)" : undefined }}>
         <button onClick={() => marcarPresencia(v.id, !v.enPuesto)}
           style={{ width: 24, height: 24, borderRadius: 5, flexShrink: 0,
             border: `2px solid ${v.enPuesto ? "var(--green)" : ultimoGuardado===v.id ? "var(--cyan)" : "var(--border)"}`,
@@ -137,11 +137,15 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol, diasHastaEvento = 
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 600, fontSize: "var(--fs-base)",
-            color: v.enPuesto ? "var(--green)" : v.estado === "pendiente" ? "var(--amber)" : "var(--text)" }}>
+            color: v.enPuesto ? "var(--green)" : v.estado === "pendiente" ? "var(--amber)" : v.estado === "dudoso" ? "var(--violet)" : "var(--text)" }}>
             {v.nombre}{v.apellidos ? (" " + v.apellidos) : ""}
             {v.estado === "pendiente" && (
               <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                 color:"var(--amber)", marginLeft:".4rem" }}>PENDIENTE</span>
+            )}
+            {v.estado === "dudoso" && (
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                color:"var(--violet)", marginLeft:".4rem" }}>DUDOSO</span>
             )}
           </div>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>
@@ -161,6 +165,14 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol, diasHastaEvento = 
             border:"1px solid var(--orange-border)", borderRadius:4,
             padding:"0 .35rem", flexShrink:0 }}>
             ⚠ Ausente
+          </span>
+        )}
+        {v.estado === "dudoso" && (
+          <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", fontWeight:700,
+            color:"var(--violet)", background:"var(--violet-dim)",
+            border:"1px solid var(--violet-border)", borderRadius:4,
+            padding:"0 .35rem", flexShrink:0 }}>
+            ❓ Dudoso
           </span>
         )}
         {v.enPuesto && (
@@ -242,6 +254,7 @@ function TabDiaD({ puestosConStats, voluntarios, onUpdateVol, diasHastaEvento = 
             {puesto && <span>📍 {puesto.nombre}{puesto.horaInicio ? ` · ${puesto.horaInicio}` : ""}</span>}
             {v.enPuesto && v.horaLlegada && <span style={{ color: "var(--green)", fontWeight: 700 }}>✓ {v.horaLlegada}</span>}
             {v.estado === "ausente" && <span style={{ color: "var(--orange)" }}>Ausente</span>}
+            {v.estado === "dudoso" && <span style={{ color: "var(--violet)" }}>Dudoso</span>}
           </div>
         </div>
 

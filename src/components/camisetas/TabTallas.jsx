@@ -650,7 +650,7 @@ export function TabTallas({ pedidos, corredoresExt, setCorredores, voluntariosAc
         <div className="card">
           <SectionTitle
             icon="👥" title="Voluntario — automático"
-            subtitle={`${voluntariosConfirmados?.length || 0} confirmados · ${voluntariosPendientes?.length || 0} pendientes · sincronizado en tiempo real`}
+            subtitle={`${voluntariosConfirmados?.length || 0} confirmados/dudosos · ${voluntariosPendientes?.length || 0} pendientes · sincronizado en tiempo real`}
             color={TC.voluntario.color}
           />
           {TALLAS.filter(t => (tallasVol[t] || 0) > 0).length === 0

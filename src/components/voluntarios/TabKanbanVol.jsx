@@ -8,6 +8,7 @@ import { ESTADOS, estadoColor, estadoBg } from "@/constants/voluntariosConstants
 // ── Columnas modo estado ───────────────────────────────────────────────────────
 const COLUMNAS_ESTADO = [
   { id: "pendiente",  label: "Pendiente",  icon: "⏳", color: "var(--amber)",  bg: "rgba(251,191,36,.07)",  border: "rgba(251,191,36,.25)"  },
+  { id: "dudoso",     label: "Dudoso",     icon: "❓", color: "var(--violet)", bg: "rgba(167,139,250,.07)", border: "rgba(167,139,250,.25)" },
   { id: "confirmado", label: "Confirmado", icon: "✅", color: "var(--green)",  bg: "rgba(52,211,153,.07)",  border: "rgba(52,211,153,.25)"  },
   // [VOL-AUDIT-2] "Ausente" tenía su propia columna lógica (ver columnaDeVol) pero no
   // existía como columna real -> esos voluntarios desaparecían sin dejar rastro en el Kanban.
@@ -241,7 +242,7 @@ const KanbanColumnaPuesto = memo(function KanbanColumnaPuesto({
   const columnasEstadoPuesto = COLUMNAS_ESTADO;
 
   // Items ordenados: confirmados arriba, luego pendientes, cancelados al fondo
-  const ordenEstado = { "confirmado": 0, "en-puesto": 0, "pendiente": 1, "ausente": 2, "cancelado": 3 };
+  const ordenEstado = { "confirmado": 0, "en-puesto": 0, "pendiente": 1, "dudoso": 1, "ausente": 2, "cancelado": 3 };
   const itemsOrdenados = [...items].sort((a, b) =>
     (ordenEstado[a.estado] ?? 1) - (ordenEstado[b.estado] ?? 1)
   );

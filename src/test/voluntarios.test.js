@@ -1199,10 +1199,10 @@ describe('VOL-29 — filtroPuesto: asignados, sin asignar y puesto individual', 
 });
 
 // ── VOL-21: Día D — lógica de volsBase ───────────────────────────────────────
-describe('VOL-21 — Día D: volsBase incluye confirmado/pendiente/ausente', () => {
+describe('VOL-21 — Día D: volsBase incluye confirmado/pendiente/dudoso/ausente', () => {
   function calcVolsBase(voluntarios) {
     return voluntarios.filter(v =>
-      v.estado === "confirmado" || v.estado === "pendiente" || v.estado === "ausente"
+      v.estado === "confirmado" || v.estado === "pendiente" || v.estado === "dudoso" || v.estado === "ausente"
     );
   }
 
@@ -1218,6 +1218,14 @@ describe('VOL-21 — Día D: volsBase incluye confirmado/pendiente/ausente', () 
   it('incluye ausentes', () => {
     const vols = [
       { id: 1, estado: "ausente"   },
+      { id: 2, estado: "cancelado" },
+    ];
+    expect(calcVolsBase(vols).map(v => v.id)).toEqual([1]);
+  });
+
+  it('incluye dudosos', () => {
+    const vols = [
+      { id: 1, estado: "dudoso"    },
       { id: 2, estado: "cancelado" },
     ];
     expect(calcVolsBase(vols).map(v => v.id)).toEqual([1]);
@@ -1951,5 +1959,53 @@ describe('VOL-31 — "Ver X más" sobre un grupo sin entrada previa en visiblePo
     const resultado = cargarMasGrupo(visiblePorGrupoVacio, "3::confirmado", 35);
     expect(resultado["3::confirmado"]).toBe(35);
     expect(Number.isNaN(resultado["3::confirmado"])).toBe(false);
+  });
+});
+
+// ── VOL-33: estado "dudoso" ────────────────────────────────────────────────────
+// Decisiones de producto confirmadas con Ivan (21/06/2026):
+//   - No cuenta para cobertura de puestos hasta que se confirme (igual que "ausente").
+//   - SÍ cuenta siempre para camisetas (igual que "confirmado", sin depender del
+//     interruptor "incluir pendientes").
+describe('VOL-33 — estado "dudoso": cobertura de puestos y elegibilidad para camisetas', () => {
+  // Mismo criterio que puestosConStats en useVoluntarios.js
+  const calcCobertura = (puestos, voluntarios) => puestos.map(p => {
+    const vols = voluntarios.filter(v => v.puestoId === p.id && v.estado !== "cancelado" && v.estado !== "ausente" && v.estado !== "dudoso");
+    return { ...p, totalAsignados: vols.length };
+  });
+
+  it('un voluntario dudoso no cuenta para la cobertura del puesto', () => {
+    const puestos = [{ id: 1, nombre: "Meta", necesarios: 2 }];
+    const vols = [
+      { id: 1, puestoId: 1, estado: "confirmado" },
+      { id: 2, puestoId: 1, estado: "dudoso" },
+    ];
+    const r = calcCobertura(puestos, vols);
+    expect(r[0].totalAsignados).toBe(1); // solo el confirmado
+  });
+
+  // Mismo criterio que las 3 fuentes de cálculo de camisetas
+  // (Camisetas.jsx, useDashboardKpis.js, useBudgetLogic.js)
+  const elegibleCamisetas = (v, inclPendientes) =>
+    (v.estado === "confirmado" || v.estado === "dudoso" || (inclPendientes && v.estado === "pendiente")) && Boolean(v.talla);
+
+  it('dudoso cuenta para camisetas aunque "incluir pendientes" esté desactivado', () => {
+    const v = { estado: "dudoso", talla: "M" };
+    expect(elegibleCamisetas(v, false)).toBe(true);
+  });
+
+  it('pendiente NO cuenta para camisetas si "incluir pendientes" está desactivado', () => {
+    const v = { estado: "pendiente", talla: "M" };
+    expect(elegibleCamisetas(v, false)).toBe(false);
+  });
+
+  it('pendiente sí cuenta si "incluir pendientes" está activado', () => {
+    const v = { estado: "pendiente", talla: "M" };
+    expect(elegibleCamisetas(v, true)).toBe(true);
+  });
+
+  it('dudoso sin talla asignada no cuenta (como cualquier otro estado)', () => {
+    const v = { estado: "dudoso", talla: null };
+    expect(elegibleCamisetas(v, false)).toBe(false);
   });
 });

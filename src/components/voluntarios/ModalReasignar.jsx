@@ -39,14 +39,15 @@ export function ModalReasignar({ voluntario, puestos, voluntarios, onReasignar, 
   }, [puestos, voluntario.puestoId, busqueda]);
 
   // Voluntarios del puesto destino seleccionado (para intercambio)
-  // [VOL-AUDIT-2] Mismo criterio que puestosConStats: excluir cancelados y ausentes.
+  // [VOL-AUDIT-2][DUDOSO] Mismo criterio que puestosConStats: excluir cancelados, ausentes y dudosos.
   const volsEnPuestoDestino = useMemo(() => {
     if (!puestoSeleccionado) return [];
     return voluntarios.filter(
       v => String(v.puestoId) === String(puestoSeleccionado.id) &&
            String(v.id) !== String(voluntario.id) &&
            v.estado !== "cancelado" &&
-           v.estado !== "ausente"
+           v.estado !== "ausente" &&
+           v.estado !== "dudoso"
     );
   }, [puestoSeleccionado, voluntarios, voluntario.id]);
 

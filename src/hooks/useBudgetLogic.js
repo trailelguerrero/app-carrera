@@ -156,9 +156,10 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
   }, [rawPats]);
 
   // ECO-08: unificar cálculo de camisetas con la misma función que usa el Dashboard.
+  // [DUDOSO] cuenta siempre (como confirmado), independientemente del toggle de pendientes.
   const _camVoluntariosActivos = useMemo(() =>
     (Array.isArray(rawVoluntarios) ? rawVoluntarios : [])
-      .filter(v => (v.estado === "confirmado" || (rawCamInclPendientes && v.estado === "pendiente")) && v.talla),
+      .filter(v => (v.estado === "confirmado" || v.estado === "dudoso" || (rawCamInclPendientes && v.estado === "pendiente")) && v.talla),
     [rawVoluntarios, rawCamInclPendientes]
   );
 

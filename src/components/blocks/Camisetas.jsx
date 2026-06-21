@@ -278,7 +278,7 @@ function ModalImportarTallasVol({ voluntariosConfirmados, setPedidos, pedidos, o
         nombre: NOMBRE_BLOQUE,
         telefono: "",
         email: "",
-        notas: `Importado el ${new Date().toLocaleDateString("es-ES")} · ${totalVols} voluntarios confirmados`,
+        notas: `Importado el ${new Date().toLocaleDateString("es-ES")} · ${totalVols} voluntarios confirmados/dudosos`,
         _esImportacionVol: true,
         lineas,
       };
@@ -308,7 +308,7 @@ function ModalImportarTallasVol({ voluntariosConfirmados, setPedidos, pedidos, o
             🔄 Importar tallas de voluntarios
           </div>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "#5a6a8a" }}>
-            {totalVols} voluntarios confirmados · {sinTalla > 0 ? `${sinTalla} sin talla asignada` : "todos con talla"}
+            {totalVols} voluntarios confirmados/dudosos · {sinTalla > 0 ? `${sinTalla} sin talla asignada` : "todos con talla"}
           </div>
         </div>
 
@@ -320,8 +320,8 @@ function ModalImportarTallasVol({ voluntariosConfirmados, setPedidos, pedidos, o
               fontFamily: "var(--font-mono)", fontSize: "var(--fs-sm)", color: "#5a6a8a",
             }}>
               {totalVols === 0
-                ? "No hay voluntarios confirmados todavía."
-                : "Ningún voluntario confirmado tiene talla asignada."}
+                ? "No hay voluntarios confirmados o dudosos todavía."
+                : "Ningún voluntario confirmado/dudoso tiene talla asignada."}
             </div>
           ) : (
             <>
@@ -496,7 +496,9 @@ export default function App() {
     dataService.notify("presupuesto"); // FIX-DASH-03
   };
 
-  const voluntariosConfirmados = Array.isArray(rawVols) ? rawVols.filter(v => v?.estado === "confirmado" && v?.talla) : [];
+  // [DUDOSO] Un voluntario "dudoso" cuenta siempre para camisetas (como confirmado),
+  // a diferencia de "pendiente" que solo cuenta si se activa inclPendientes.
+  const voluntariosConfirmados = Array.isArray(rawVols) ? rawVols.filter(v => (v?.estado === "confirmado" || v?.estado === "dudoso") && v?.talla) : [];
   const voluntariosPendientes  = Array.isArray(rawVols) ? rawVols.filter(v => v?.estado === "pendiente"  && v?.talla) : [];
   const voluntariosActivos = inclPendientes
     ? [...voluntariosConfirmados, ...voluntariosPendientes]

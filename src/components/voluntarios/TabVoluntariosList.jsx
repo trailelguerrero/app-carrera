@@ -69,6 +69,7 @@ function TabVoluntarios({
   const GRUPOS_ESTADO = [
     { id:"confirmado", label:"Confirmados", color:"var(--green)",  bg:"rgba(52,211,153,.08)"  },
     { id:"pendiente",  label:"Pendientes",  color:"var(--amber)",  bg:"rgba(251,191,36,.08)"  },
+    { id:"dudoso",     label:"Dudosos",     color:"var(--violet)", bg:"rgba(167,139,250,.08)" },
     { id:"ausente",    label:"Ausentes",    color:"var(--orange)", bg:"rgba(251,146,60,.08)"  },
     { id:"cancelado",  label:"Cancelados",  color:"var(--red)",    bg:"rgba(248,113,113,.06)" },
   ];
@@ -282,10 +283,11 @@ function TabVoluntarios({
             { id:"todos",      label:"Todos",       count: todosVols.length,                                            color:"var(--text-muted)",  bg:"rgba(255,255,255,.08)" },
             { id:"confirmado", label:"Confirmados", count: todosVols.filter(v=>v.estado==="confirmado").length, color:"var(--green)",         bg:"rgba(52,211,153,.15)"  },
             { id:"pendiente",  label:"Pendientes",  count: todosVols.filter(v=>v.estado==="pendiente").length,  color:"var(--amber)",         bg:"rgba(251,191,36,.15)"  },
+            { id:"dudoso",     label:"Dudosos",     count: todosVols.filter(v=>v.estado==="dudoso").length,     color:"var(--violet)",        bg:"rgba(167,139,250,.15)" },
             { id:"ausente",    label:"Ausentes",    count: todosVols.filter(v=>v.estado==="ausente").length,    color:"var(--orange)",        bg:"rgba(251,146,60,.15)"  },
             { id:"cancelado",  label:"Cancelados",  count: todosVols.filter(v=>v.estado==="cancelado").length,  color:"var(--red)",           bg:"rgba(248,113,113,.15)" },
             { id:"en-puesto",  label:"En puesto",   count: todosVols.filter(v=>v.enPuesto).length,               color:"var(--green)",         bg:"rgba(52,211,153,.15)"  },
-          ].filter(pill => (pill.id !== "en-puesto" && pill.id !== "ausente") || pill.count > 0).map(({ id, label, count, color, bg }) => (
+          ].filter(pill => (pill.id !== "en-puesto" && pill.id !== "ausente" && pill.id !== "dudoso") || pill.count > 0).map(({ id, label, count, color, bg }) => (
             <button key={id}
               className={`filter-pill${filtroEstado === id ? " active" : ""}`}
               onClick={() => setFiltroEstado(id)}>
@@ -631,15 +633,11 @@ function TabVoluntarios({
                             <div style={{ position:"relative", flexShrink:0 }}>
                               <div style={{
                                 width:34, height:34, borderRadius:10,
-                                background: v.estado==="confirmado"
-                                  ? "rgba(52,211,153,0.1)"
-                                  : v.estado==="cancelado"
-                                  ? "rgba(248,113,113,0.1)"
-                                  : "rgba(251,191,36,0.1)",
-                                border: `1px solid ${v.estado==="confirmado" ? "rgba(52,211,153,0.3)" : v.estado==="cancelado" ? "rgba(248,113,113,0.3)" : "rgba(251,191,36,0.3)"}`,
+                                background: estadoBg(v.estado),
+                                border: `1px solid ${estadoColor(v.estado)}`,
                                 display:"flex", alignItems:"center", justifyContent:"center",
                                 fontSize:"var(--fs-xs)", fontWeight:800,
-                                color: v.estado==="confirmado" ? "var(--green)" : v.estado==="cancelado" ? "var(--red)" : "var(--amber)",
+                                color: estadoColor(v.estado),
                                 fontFamily:"var(--font-mono)",
                               }}>
                                 {([v.nombre, v.apellidos].filter(Boolean).map(n=>n[0]).slice(0,2).join("").toUpperCase() || "V")}

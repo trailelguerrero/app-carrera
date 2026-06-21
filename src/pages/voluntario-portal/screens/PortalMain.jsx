@@ -300,8 +300,8 @@ export function PortalMain({ token, onLogout }) {
         </div>
         <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:".25rem" }}>
           <div style={{ display:"flex", alignItems:"center", gap:".4rem" }}>
-            <span className={`vp-badge ${v.estado==="confirmado"?"vp-badge-green":v.estado==="cancelado"?"vp-badge-red":"vp-badge-amber"}`}>
-              {v.estado==="confirmado" ? "✓ Confirmado" : v.estado==="cancelado" ? "✕ Cancelado" : "⏳ Pendiente"}
+            <span className={`vp-badge ${v.estado==="confirmado"?"vp-badge-green":v.estado==="cancelado"?"vp-badge-red":v.estado==="dudoso"?"vp-badge-violet":"vp-badge-amber"}`}>
+              {v.estado==="confirmado" ? "✓ Confirmado" : v.estado==="cancelado" ? "✕ Cancelado" : v.estado==="dudoso" ? "❓ Dudoso" : "⏳ Pendiente"}
             </span>
             <button onClick={() => fetchData(true)}
               title="Actualizar mi ficha"
@@ -416,7 +416,7 @@ export function PortalMain({ token, onLogout }) {
         )}
 
         {/* CTA prominente de llegada */}
-        {(v.estado === "confirmado" || (v.estado === "pendiente" && puesto)) && !v.enPuesto && (
+        {(v.estado === "confirmado" || ((v.estado === "pendiente" || v.estado === "dudoso") && puesto)) && !v.enPuesto && (
           <div style={{ background:"linear-gradient(135deg, rgba(52,211,153,.12) 0%, rgba(34,211,238,.08) 100%)",
             border:"2px solid var(--green-border)", borderRadius:12, padding:"1rem",
             marginBottom:".85rem", textAlign:"center" }}

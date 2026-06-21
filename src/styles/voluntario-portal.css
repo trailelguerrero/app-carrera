@@ -100,6 +100,7 @@
     font-family: var(--font-mono); font-size: var(--fs-2xs); font-weight: 700; }
   .vp-badge-green  { background: var(--green-dim);  color: var(--green);  border: 1px solid var(--green-border); }
   .vp-badge-amber  { background: var(--amber-dim);  color: var(--amber);  border: 1px solid var(--amber-border); }
+  .vp-badge-violet { background: var(--violet-dim); color: var(--violet); border: 1px solid var(--violet-border); }
   .vp-badge-cyan   { background: var(--cyan-dim);   color: var(--cyan);   border: 1px solid var(--cyan-border); }
   .vp-badge-red    { background: var(--red-dim);    color: var(--red);    border: 1px solid var(--red-border); }
 
