@@ -62,10 +62,14 @@ function TabVoluntarios({
     setColapsados({});
   }, [busqueda, filtroEstado, filtroPuesto, filtroTallas, filtroCoche, filtroDistancias, filtroTipoPuesto, orden]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Grupos para la vista agrupada por estado
+  // [VOL-AUDIT-DUP] GRUPOS_ESTADO no incluía "ausente" — igual que pasaba en el
+  // Kanban (ver TabKanbanVol.jsx), cualquier voluntario marcado como ausente
+  // quedaba fuera de las dos vistas agrupadas (por estado y por puesto) y solo
+  // se podía encontrar buscando su nombre directamente.
   const GRUPOS_ESTADO = [
     { id:"confirmado", label:"Confirmados", color:"var(--green)",  bg:"rgba(52,211,153,.08)"  },
     { id:"pendiente",  label:"Pendientes",  color:"var(--amber)",  bg:"rgba(251,191,36,.08)"  },
+    { id:"ausente",    label:"Ausentes",    color:"var(--orange)", bg:"rgba(251,146,60,.08)"  },
     { id:"cancelado",  label:"Cancelados",  color:"var(--red)",    bg:"rgba(248,113,113,.06)" },
   ];
 
@@ -278,9 +282,10 @@ function TabVoluntarios({
             { id:"todos",      label:"Todos",       count: todosVols.length,                                            color:"var(--text-muted)",  bg:"rgba(255,255,255,.08)" },
             { id:"confirmado", label:"Confirmados", count: todosVols.filter(v=>v.estado==="confirmado").length, color:"var(--green)",         bg:"rgba(52,211,153,.15)"  },
             { id:"pendiente",  label:"Pendientes",  count: todosVols.filter(v=>v.estado==="pendiente").length,  color:"var(--amber)",         bg:"rgba(251,191,36,.15)"  },
+            { id:"ausente",    label:"Ausentes",    count: todosVols.filter(v=>v.estado==="ausente").length,    color:"var(--orange)",        bg:"rgba(251,146,60,.15)"  },
             { id:"cancelado",  label:"Cancelados",  count: todosVols.filter(v=>v.estado==="cancelado").length,  color:"var(--red)",           bg:"rgba(248,113,113,.15)" },
             { id:"en-puesto",  label:"En puesto",   count: todosVols.filter(v=>v.enPuesto).length,               color:"var(--green)",         bg:"rgba(52,211,153,.15)"  },
-          ].filter(pill => pill.id !== "en-puesto" || pill.count > 0).map(({ id, label, count, color, bg }) => (
+          ].filter(pill => (pill.id !== "en-puesto" && pill.id !== "ausente") || pill.count > 0).map(({ id, label, count, color, bg }) => (
             <button key={id}
               className={`filter-pill${filtroEstado === id ? " active" : ""}`}
               onClick={() => setFiltroEstado(id)}>

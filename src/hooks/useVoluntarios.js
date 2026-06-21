@@ -5,7 +5,7 @@ import {
 } from "@/constants/storageKeys";
 import { TALLAS } from "@/constants/camisetasConstants";
 import { toast } from "@/lib/toast";
-import { genIdNum } from "@/lib/utils";
+import { genIdNum, genIdStr } from "@/lib/utils";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys";
 import { LOCS_DEFAULT, LOCS_KEY } from "@/constants/localizaciones";
@@ -111,11 +111,42 @@ export function useVoluntarios() {
   useEffect(() => {
     if (tab !== "dashboard" && tab !== "diaD") return;
     const interval = setInterval(async () => {
+      // [VOL-AUDIT-DUP] No pisar el estado local si hay una escritura en curso
+      // (debounce de guardado activo) — si no, un dato más nuevo en memoria
+      // (p.ej. una eliminación recién hecha) podía sobreescribirse con la
+      // copia todavía-no-actualizada de Neon, haciendo "revivir" un registro
+      // que el usuario acababa de borrar.
+      if (dataService.hasPendingWrite(SK_VOL_VOLUNTARIOS)) return;
       const fresco = await dataService.get(SK_VOL_VOLUNTARIOS, []);
       if (JSON.stringify(fresco) !== JSON.stringify(rawVoluntarios)) setVoluntarios(fresco);
     }, 30 * 1000);
     return () => clearInterval(interval);
   }, [tab, rawVoluntarios]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // [VOL-AUDIT-DUP] Reparación de voluntarios con id nulo/indefinido en datos ya existentes.
+  // Caso reportado: Judith Castañar — varias entradas duplicadas, y al pulsar "Eliminar"
+  // ni siquiera aparecía el aviso de confirmación.
+  // Causa: el código que abre ese aviso y el que ejecuta el borrado comprueban
+  // explícitamente `id === null || id === undefined` y NO HACEN NADA si no hay
+  // un id válido (es una protección para no operar "a ciegas" sobre un registro
+  // sin identificador — pero como protección, también bloquea por completo
+  // cualquier acción sobre un registro que ya tenía ese problema de origen).
+  // Esta reparación, una sola vez al cargar, asigna un id nuevo y único a
+  // cualquier voluntario sin id válido, para que vuelva a poder eliminarse,
+  // editarse y comportarse con normalidad en el resto de la app.
+  const idsReparadosRef = useRef(false);
+  useEffect(() => {
+    if (isLoading || idsReparadosRef.current) return;
+    if (!Array.isArray(rawVoluntarios) || rawVoluntarios.length === 0) return;
+    const sinId = rawVoluntarios.filter(v => v?.id === null || v?.id === undefined);
+    idsReparadosRef.current = true;
+    if (sinId.length === 0) return;
+    const reparados = rawVoluntarios.map(v =>
+      (v?.id === null || v?.id === undefined) ? { ...v, id: genIdStr() } : v
+    );
+    setVoluntarios(reparados, { force: true });
+    toast.success(`Reparados ${sinId.length} voluntario(s) sin identificador válido — ya se pueden eliminar y editar con normalidad.`);
+  }, [isLoading, rawVoluntarios, setVoluntarios]);
 
   const [saveStatus,       setSaveStatus]       = useState("idle");
   const [isExportingExcel, setIsExportingExcel] = useState(false);
