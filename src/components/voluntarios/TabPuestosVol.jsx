@@ -13,7 +13,7 @@ import { blockCls as cls } from "@/lib/blockStyles";
 import { DIST_COLORS } from "@/constants/voluntariosConstants";
 
 // ─── TAB PUESTOS ──────────────────────────────────────────────────────────────
-function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpdatePuesto, onDeletePuesto, onNuevoPuesto, onEditPuesto, onFichaPuesto, onFichaVol, onAddVoluntario, onDesasignarVol, onReasignarVol }) {
+function TabPuestos({ puestosConStats, voluntarios, locs, matPorPuesto = {}, onUpdatePuesto, onDeletePuesto, onNuevoPuesto, onEditPuesto, onFichaPuesto, onFichaVol, onAddVoluntario, onDesasignarVol, onReasignarVol }) {
   const [ordenAlfa, setOrdenAlfa]     = useState(false);
   const [busqPuesto, setBusqPuesto]   = useState("");
   const [vistaAgrupada, setVistaAgrupada] = useState(false);
@@ -299,7 +299,7 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
                 </button>
                 {!collapsed && (
                   <div className="item-grid" style={{ padding: ".65rem", background: "var(--surface)" }}>
-                    {items.map(p => <PuestoCard key={p.id} p={p} locs={locs} matPorLoc={matPorLoc}
+                    {items.map(p => <PuestoCard key={p.id} p={p} locs={locs} matPorPuesto={matPorPuesto}
                       onFichaPuesto={onFichaPuesto} onFichaVol={onFichaVol}
                       onEditPuesto={onEditPuesto} onDeletePuesto={onDeletePuesto} onAddVoluntario={onAddVoluntario}
                       onDesasignarVol={onDesasignarVol} onReasignarVol={onReasignarVol} />)}
@@ -312,7 +312,7 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
       ) : (
         <div className="item-grid">
           {puestosOrdenados.map(p => (
-            <PuestoCard key={p.id} p={p} locs={locs} matPorLoc={matPorLoc}
+            <PuestoCard key={p.id} p={p} locs={locs} matPorPuesto={matPorPuesto}
               onFichaPuesto={onFichaPuesto} onFichaVol={onFichaVol}
               onEditPuesto={onEditPuesto} onDeletePuesto={onDeletePuesto} onAddVoluntario={onAddVoluntario}
               onDesasignarVol={onDesasignarVol} onReasignarVol={onReasignarVol} />
@@ -323,12 +323,12 @@ function TabPuestos({ puestosConStats, voluntarios, locs, matPorLoc = {}, onUpda
   );
 }
 
-function PuestoCard({ p, locs, matPorLoc, onFichaPuesto, onFichaVol, onEditPuesto, onDeletePuesto, onAddVoluntario, onDesasignarVol, onReasignarVol }) {
+function PuestoCard({ p, locs, matPorPuesto, onFichaPuesto, onFichaVol, onEditPuesto, onDeletePuesto, onAddVoluntario, onDesasignarVol, onReasignarVol }) {
   const pct   = Math.min(p.coberturaConf, 100);
   const color = pct >= 80 ? "var(--green)" : pct >= 50 ? "var(--amber)" : "var(--red)";
   const deficit = Math.max(0, p.necesarios - p.confirmados);
   const loc  = locs.find(l => l.id === p.localizacionId);
-  const matItems = loc ? (matPorLoc[loc.nombre] || []) : [];
+  const matItems = matPorPuesto[p.id] || [];
   const conf = p.confirmados;
   const pend = p.totalAsignados - p.confirmados;
 
@@ -348,6 +348,14 @@ function PuestoCard({ p, locs, matPorLoc, onFichaPuesto, onFichaVol, onEditPuest
           </div>
         </div>
         <div style={{ display: "flex", gap: ".35rem", alignItems: "center", flexShrink: 0 }}>
+          {/* MEJ-LOG-PUESTO: aviso cuando esta ubicación tiene más de un puesto */}
+          {p.otrosPuestosEnMismaUbicacion > 0 && (
+            <span title="Esta ubicación del mapa tiene más de un puesto"
+              style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-2xs)", padding: ".1rem .4rem", borderRadius: 20,
+                background: "rgba(167,139,250,.12)", color: "var(--violet)", border: "1px solid rgba(167,139,250,.3)", whiteSpace: "nowrap" }}>
+              🔗 +{p.otrosPuestosEnMismaUbicacion}
+            </span>
+          )}
           {/* Badge cobertura */}
           {(() => {
             if (!p.totalAsignados && !matItems.length) return null;

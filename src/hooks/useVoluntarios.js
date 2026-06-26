@@ -12,6 +12,7 @@ import { LOCS_DEFAULT, LOCS_KEY } from "@/constants/localizaciones";
 import { useData } from "@/hooks/useData";
 import dataService from "@/lib/dataService";
 import { PUESTOS_DEFAULT } from "@/constants/puestosConstants";
+import { contarPuestosPorLocalizacion } from "@/components/logistica/logisticaHelpers";
 
 // Re-export para retrocompatibilidad (otros módulos importan esto desde Voluntarios.jsx)
 export function resolverLocalizacionDeVoluntario(voluntario, puestos = [], locs = []) {
@@ -46,6 +47,25 @@ export function calcularSugerenciasReubicacion(puestos, voluntarios) {
     }
   }
   return sug;
+}
+
+// [BUG-LOC-01] Extraída para que addPuesto y updatePuesto compartan EXACTAMENTE
+// la misma lógica al resolver el flag "_crearLoc" (➕ Crear nueva ubicación) — antes
+// solo addPuesto sabía hacerlo, y al editar un puesto la ubicación nunca se creaba.
+// Pura: no toca estado, solo decide qué localizacionId usar y si hay que crear una
+// ubicación nueva (en cuyo caso la devuelve para que el caller la añada a locs).
+export function resolverNuevaLocParaPuesto(data, locsActuales) {
+  if (data.localizacionId || !data._crearLoc || !data.nombre) {
+    return { localizacionId: data.localizacionId ?? null, nuevaLoc: null };
+  }
+  const nuevaLoc = {
+    id: genIdNum(Array.isArray(locsActuales) ? locsActuales : []),
+    nombre: data.nombre,
+    tipo: data.tipo || "otro",
+    descripcion: "",
+    ...(data.lat != null && data.lng != null ? { lat: data.lat, lng: data.lng } : {}),
+  };
+  return { localizacionId: nuevaLoc.id, nuevaLoc };
 }
 
 const VOLUNTARIOS_DEFAULT = [
@@ -105,6 +125,40 @@ export function useVoluntarios() {
     });
     return map;
   }, [rawMat, rawAsig, locs]);
+
+  // MEJ-LOG-PUESTO: material agrupado por PUESTO real (no por nombre de ubicación).
+  // Esto es lo que corrige la mezcla de material cuando dos puestos comparten la
+  // misma ubicación maestra (ej. avituallamiento + control de paso en el mismo punto):
+  // cada uno tiene su propia lista, en vez de compartir la de la ubicación.
+  const matPorPuesto = useMemo(() => {
+    const mat   = Array.isArray(rawMat)  ? rawMat  : [];
+    const asigs = Array.isArray(rawAsig) ? rawAsig : [];
+    const map = {};
+    asigs.forEach(a => {
+      if (a.tipoDestino === "voluntario" || a.puestoId == null) return;
+      const item = mat.find(m => m.id === a.materialId);
+      if (!item) return;
+      if (!map[a.puestoId]) map[a.puestoId] = [];
+      map[a.puestoId].push({ nombre: item.nombre, cantidad: a.cantidad, unidad: item.unidad || "ud", estado: a.estado });
+    });
+    return map;
+  }, [rawMat, rawAsig]);
+
+  // Material asignado directamente a una persona (ej. su walkie-talkie individual),
+  // independiente del material de su puesto.
+  const matPorVoluntario = useMemo(() => {
+    const mat   = Array.isArray(rawMat)  ? rawMat  : [];
+    const asigs = Array.isArray(rawAsig) ? rawAsig : [];
+    const map = {};
+    asigs.forEach(a => {
+      if (a.tipoDestino !== "voluntario" || a.voluntarioId == null) return;
+      const item = mat.find(m => m.id === a.materialId);
+      if (!item) return;
+      if (!map[a.voluntarioId]) map[a.voluntarioId] = [];
+      map[a.voluntarioId].push({ nombre: item.nombre, cantidad: a.cantidad, unidad: item.unidad || "ud", estado: a.estado });
+    });
+    return map;
+  }, [rawMat, rawAsig]);
 
   // F4-01: Polling 30s en tabs dashboard/diaD
   const [tab, setTab] = useState("dashboard");
@@ -194,14 +248,22 @@ export function useVoluntarios() {
     [puestos, voluntarios]
   );
 
-  const puestosConStats = useMemo(() => (puestos || []).map(p => {
-    // [DUDOSO] No cuenta para cobertura hasta confirmarse — mismo trato que "ausente".
-    const vols        = (voluntarios || []).filter(v => v?.puestoId === p?.id && v?.estado !== "cancelado" && v?.estado !== "ausente" && v?.estado !== "dudoso");
-    const confirmados = vols.filter(v => v?.estado === "confirmado").length;
-    const cobertura     = p?.necesarios > 0 ? Math.round((vols.length / p.necesarios) * 100) : 0;
-    const coberturaConf = p?.necesarios > 0 ? Math.round((confirmados / p.necesarios) * 100) : 0;
-    return { ...p, voluntariosAsignados: vols, totalAsignados: vols.length, confirmados, cobertura, coberturaConf };
-  }), [puestos, voluntarios]);
+  const puestosConStats = useMemo(() => {
+    const conteoPorLoc = contarPuestosPorLocalizacion(puestos);
+    return (puestos || []).map(p => {
+      // [DUDOSO] No cuenta para cobertura hasta confirmarse — mismo trato que "ausente".
+      const vols        = (voluntarios || []).filter(v => v?.puestoId === p?.id && v?.estado !== "cancelado" && v?.estado !== "ausente" && v?.estado !== "dudoso");
+      const confirmados = vols.filter(v => v?.estado === "confirmado").length;
+      const cobertura     = p?.necesarios > 0 ? Math.round((vols.length / p.necesarios) * 100) : 0;
+      const coberturaConf = p?.necesarios > 0 ? Math.round((confirmados / p.necesarios) * 100) : 0;
+      // MEJ-LOG-PUESTO: cuántos OTROS puestos comparten su misma ubicación maestra
+      // (ej. avituallamiento + control de paso en el mismo punto del recorrido).
+      const otrosPuestosEnMismaUbicacion = p?.localizacionId != null
+        ? Math.max(0, (conteoPorLoc.get(p.localizacionId) || 1) - 1)
+        : 0;
+      return { ...p, voluntariosAsignados: vols, totalAsignados: vols.length, confirmados, cobertura, coberturaConf, otrosPuestosEnMismaUbicacion };
+    });
+  }, [puestos, voluntarios]);
 
   // ── Helpers PIN ──────────────────────────────────────────────────────────
   const hashPinLocal  = (pin) => { let h = 0; for (let i = 0; i < pin.length; i++) h = (Math.imul(31, h) + pin.charCodeAt(i)) | 0; return String(h); };
@@ -302,24 +364,34 @@ export function useVoluntarios() {
   };
 
   const updatePuesto = (id, data) => {
-    setPuestos(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
-    if (data.localizacionId && data.lat != null && data.lng != null) {
-      setLocs(prev => prev.map(l => l.id === data.localizacionId ? { ...l, lat: data.lat, lng: data.lng } : l));
-      setPuestos(prev => prev.map(p => p.id !== id && p.localizacionId === data.localizacionId ? { ...p, lat: data.lat, lng: data.lng } : p));
+    // BUG-LOC-01: al editar un puesto, "_crearLoc" (➕ Crear nueva ubicación) se
+    // ignoraba por completo — solo addPuesto lo gestionaba. Resultado: no se creaba
+    // la ubicación Y además el puesto se quedaba sin localizacionId. Ahora ambas
+    // funciones llaman al mismo helper puro (resolverNuevaLocParaPuesto) para que
+    // no puedan volver a divergir.
+    const { localizacionId: locId, nuevaLoc } = resolverNuevaLocParaPuesto(data, locs);
+    if (nuevaLoc) {
+      setLocs(prev => [...(Array.isArray(prev) ? prev : []), nuevaLoc]);
+      dataService.notify("logistica");
+    }
+    const payload = { ...data, localizacionId: locId };
+    delete payload._crearLoc;
+    setPuestos(prev => prev.map(p => p.id === id ? { ...p, ...payload } : p));
+    if (payload.localizacionId && payload.lat != null && payload.lng != null) {
+      setLocs(prev => prev.map(l => l.id === payload.localizacionId ? { ...l, lat: payload.lat, lng: payload.lng } : l));
+      setPuestos(prev => prev.map(p => p.id !== id && p.localizacionId === payload.localizacionId ? { ...p, lat: payload.lat, lng: payload.lng } : p));
     }
     toast.success("Puesto actualizado");
     dataService.notify("voluntarios");
   };
 
   const addPuesto = (data) => {
-    let locId = data.localizacionId;
-    if (!locId && data._crearLoc && data.nombre) {
-      const nuevaLoc = { id: genIdNum(Array.isArray(locs) ? locs : []), nombre: data.nombre, tipo: data.tipo || "otro", descripcion: "", ...(data.lat != null && data.lng != null ? { lat: data.lat, lng: data.lng } : {}) };
+    const { localizacionId: locId, nuevaLoc } = resolverNuevaLocParaPuesto(data, locs);
+    if (nuevaLoc) {
       setLocs(prev => [...(Array.isArray(prev) ? prev : []), nuevaLoc]);
-      locId = nuevaLoc.id;
       dataService.notify("logistica");
     }
-    const puestoFinal = { id: genIdNum(puestos), ...data, localizacionId: locId ?? null };
+    const puestoFinal = { id: genIdNum(puestos), ...data, localizacionId: locId };
     delete puestoFinal._crearLoc;
     setPuestos(prev => [...prev, puestoFinal]);
     if (locId && data.lat != null && data.lng != null) {
@@ -364,7 +436,7 @@ export function useVoluntarios() {
 
   return {
     config, puestos, voluntarios, isLoading,
-    locs, rutas, matPorLoc,
+    locs, rutas, matPorLoc, matPorPuesto, matPorVoluntario,
     tab, setTab,
     saveStatus, isExportingExcel, setIsExportingExcel,
     busqueda, setBusqueda,

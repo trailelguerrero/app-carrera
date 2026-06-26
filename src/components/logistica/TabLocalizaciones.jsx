@@ -586,6 +586,17 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {}, rec
                 </div>
                 <div style={{ display: "flex", gap: ".35rem", alignItems: "center", flexShrink: 0 }}>
                   {(() => {
+                    const nPuestosAqui = puestos.filter(p => p.localizacionId === l.id).length;
+                    if (nPuestosAqui <= 1) return null;
+                    return (
+                      <span title="Esta ubicación tiene más de un puesto, cada uno con su propio material"
+                        style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-2xs)", padding: ".1rem .4rem", borderRadius: 20,
+                          background: "rgba(167,139,250,.12)", color: "var(--violet)", border: "1px solid rgba(167,139,250,.3)", whiteSpace: "nowrap" }}>
+                        🔗 {nPuestosAqui} puestos
+                      </span>
+                    );
+                  })()}
+                  {(() => {
                     const tieneMat = (matPorLoc[l.id] || []).length > 0;
                     const tieneVol = (volsPorLoc[l.id] || []).length > 0;
                     const cob = calcularCobertura(tieneMat, tieneVol);

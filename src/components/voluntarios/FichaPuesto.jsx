@@ -13,7 +13,7 @@ import { blockCls as cls } from "@/lib/blockStyles";
 import { ModalReasignar } from "@/components/voluntarios/ModalReasignar";
 
 // ─── FICHA PUESTO ─────────────────────────────────────────────────────────────
-function FichaPuesto({ puesto: p, voluntarios, puestosConStats=[], locs=[], matPorLoc={}, rutas=[], onClose, onEditar, onEliminar, onFichaVol, onDesasignarVol, onReasignarVol, onIntercambiarVol }) {
+function FichaPuesto({ puesto: p, voluntarios, puestosConStats=[], locs=[], matPorPuesto={}, rutas=[], onClose, onEditar, onEliminar, onFichaVol, onDesasignarVol, onReasignarVol, onIntercambiarVol }) {
   const { closing: fpuClosing, handleClose: fpuHandleClose } = useModalClose(onClose);
   const [modalReasignarVol, setModalReasignarVol] = useState(null); // voluntario a reasignar desde esta ficha
   // [VOL-AUDIT-2][DUDOSO] Mismo criterio que puestosConStats (useVoluntarios.js): excluir
@@ -24,9 +24,12 @@ function FichaPuesto({ puesto: p, voluntarios, puestosConStats=[], locs=[], matP
   const cobertura = p.necesarios > 0 ? Math.round(asignados.length / p.necesarios * 100) : 0;
   const color = cobertura >= 100 ? "var(--green)" : cobertura >= 50 ? "var(--amber)" : "var(--red)";
 
-  // Material asignado en Logística para la localización vinculada
+  // MEJ-LOG-PUESTO: material asignado a ESTE puesto en concreto (ya no a la
+  // ubicación entera) — así no se mezcla con el de otro puesto que comparta sitio.
   const loc = locs.find(l => l.id === p.localizacionId);
-  const materialEnLoc = loc ? (matPorLoc[loc.nombre] || []) : [];
+  const materialEnLoc = matPorPuesto[p.id] || [];
+  // Puestos hermanos (mismo punto del mapa) — info útil para no confundirse.
+  const otrosPuestosAqui = (puestosConStats || []).filter(o => o.id !== p.id && o.localizacionId === p.localizacionId);
 
   // Rutas que pasan por esta localización (buscar nombre del puesto o de la loc en las paradas)
   const rutasPorAqui = rutas.filter(r =>
@@ -196,6 +199,15 @@ function FichaPuesto({ puesto: p, voluntarios, puestosConStats=[], locs=[], matP
             </div>
           )}
 
+          {/* Aviso: esta ubicación tiene más de un puesto */}
+          {otrosPuestosAqui.length > 0 && (
+            <div style={{ display:"flex", alignItems:"center", gap:".4rem", fontFamily:"var(--font-mono)",
+              fontSize:"var(--fs-xs)", color:"var(--violet)", background:"rgba(167,139,250,.08)",
+              border:"1px solid rgba(167,139,250,.25)", borderRadius:8, padding:"0.45rem 0.65rem" }}>
+              🔗 {loc?.nombre || "Esta ubicación"} también tiene: {otrosPuestosAqui.map(o => o.nombre).join(", ")}
+            </div>
+          )}
+
           {/* Material asignado en Logística */}
           {loc && (
             <div style={{ background:"var(--surface2)", borderRadius:8, padding:"0.6rem 0.75rem",
@@ -204,7 +216,7 @@ function FichaPuesto({ puesto: p, voluntarios, puestosConStats=[], locs=[], matP
                 marginBottom:"0.35rem" }}>
                 <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                   color:"var(--cyan)", textTransform:"uppercase", fontWeight:700 }}>
-                  📦 Material en {loc.nombre}
+                  📦 Material de este puesto
                 </div>
                 <button
                   onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate",

@@ -13,7 +13,7 @@ import { blockCls as cls } from "@/lib/blockStyles";
 import { TIPOS_PUESTO, DISTANCIAS_PUESTO, DIST_COLORS } from "@/constants/voluntariosConstants";
 
 // ─── MODAL PUESTO ─────────────────────────────────────────────────────────────
-function ModalPuesto({ puesto, locs, onSave, onClose }) {
+function ModalPuesto({ puesto, locs, puestosExistentes = [], onSave, onClose }) {
   const firstInputRef = useRef(null);
   useEffect(() => { const t = setTimeout(() => firstInputRef.current?.focus(), 60); return () => clearTimeout(t); }, []);
   const { closing: mpuClosing, handleClose: mpuHandleClose } = useModalClose(onClose);
@@ -115,10 +115,20 @@ function ModalPuesto({ puesto, locs, onSave, onClose }) {
                     setForm(p => ({ ...p, ...newData }));
                   }}>
                   <option value="">-- Selecciona ubicación --</option>
-                  {locs.map(l => <option key={l.id} value={l.id}>{l.nombre} ({l.tipo})</option>)}
+                  {locs.map(l => {
+                    // P1+MEJ-LOG-PUESTO: aviso si la ubicación ya tiene otro(s) puesto(s) —
+                    // una misma ubicación puede tener varios puestos (ej. avituallamiento +
+                    // control de paso en el mismo punto), cada uno con su propio material.
+                    const otrosAqui = (puestosExistentes || []).filter(p0 => p0.localizacionId === l.id && p0.id !== puesto?.id).length;
+                    return (
+                      <option key={l.id} value={l.id}>
+                        {l.nombre} ({l.tipo}){otrosAqui > 0 ? ` · ya tiene ${otrosAqui} puesto${otrosAqui !== 1 ? "s" : ""}` : ""}
+                      </option>
+                    );
+                  })}
                 </select>
-                <div style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: "0.25rem", fontFamily: "var(--font-mono)" }}>
-                  Vincular a una ubicación maestra sincroniza el tipo y las coordenadas.
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginTop: "0.25rem" }}>
+                  Vincular a una ubicación maestra sincroniza el tipo y las coordenadas. Varios puestos pueden compartir la misma ubicación.
                 </div>
               </>
             )}
