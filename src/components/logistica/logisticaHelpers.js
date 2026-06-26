@@ -204,3 +204,97 @@ export const ESTADOS_FACTURA = [
 ];
 
 export const genPedidoId = (arr) => arr.length ? Math.max(...arr.map(x => x.id || 0)) + 1 : 1;
+
+// ─── MEJ-LOG-PUESTO: vínculo real Material ↔ Puesto / Voluntario ────────────
+// Antes, una "asignación" de material solo apuntaba a una Localización (por
+// nombre de texto), nunca al Puesto real de Voluntarios ni a un voluntario
+// concreto. Esto impedía (a) asignar material a una persona y (b) distinguir
+// el material de dos puestos que comparten la misma ubicación maestra.
+
+/**
+ * Resuelve el "destino" real de una asignación de material: un puesto
+ * concreto o un voluntario concreto. Devuelve también la localización
+ * derivada (para los cálculos de cobertura por ubicación) y si el registro
+ * necesita revisión manual (no se pudo resolver sin ambigüedad, o el puesto/
+ * voluntario al que apuntaba ya no existe).
+ */
+export function resolverDestinoAsignacion(a, { puestos = [], voluntarios = [], locs = [] } = {}) {
+  if (!a) return { tipo: null, nombre: "—", icono: "📌", puesto: null, voluntario: null, localizacionId: null, necesitaRevision: false };
+
+  if (a.tipoDestino === "voluntario" && a.voluntarioId != null) {
+    const vol = voluntarios.find(v => v.id === a.voluntarioId);
+    return {
+      tipo: "voluntario",
+      nombre: vol ? [vol.nombre, vol.apellidos].filter(Boolean).join(" ") : "Voluntario eliminado",
+      icono: "🙋",
+      puesto: null,
+      voluntario: vol || null,
+      localizacionId: null,
+      necesitaRevision: !vol,
+    };
+  }
+
+  if (a.puestoId != null) {
+    const puesto = puestos.find(p => p.id === a.puestoId);
+    return {
+      tipo: "puesto",
+      nombre: puesto ? puesto.nombre : "Puesto eliminado",
+      icono: "🧑‍🤝‍🧑",
+      puesto: puesto || null,
+      voluntario: null,
+      localizacionId: puesto ? (puesto.localizacionId ?? null) : (a.localizacionId ?? null),
+      necesitaRevision: !puesto,
+    };
+  }
+
+  // Registro legado: todavía sin puestoId ni voluntarioId (pendiente de migrar
+  // automáticamente, o ubicación con varios puestos donde no se pudo decidir
+  // sola — requiere que alguien elija manualmente a qué puesto pertenece).
+  const loc = locs.find(l => l.id === a.localizacionId);
+  return {
+    tipo: "legacy",
+    nombre: a.puesto || loc?.nombre || "Sin destino",
+    icono: "⚠️",
+    puesto: null,
+    voluntario: null,
+    localizacionId: a.localizacionId ?? null,
+    necesitaRevision: true,
+  };
+}
+
+/**
+ * Migra asignaciones antiguas (solo con localizacionId + texto "puesto") a la
+ * nueva referencia real puestoId, SOLO cuando no hay ambigüedad: si la
+ * ubicación tiene exactamente un puesto vinculado, se asigna directamente.
+ * Si tiene 0 o 2+ puestos, se deja para revisión manual.
+ * Pura e idempotente: volver a ejecutarla sobre datos ya migrados no cambia nada.
+ */
+export function migrarAsignacionesAPuesto(asigs = [], puestos = []) {
+  let cambios = 0;
+  const siguiente = asigs.map(a => {
+    // Ya migrada (tiene puestoId) o ya es de tipo voluntario → no se toca.
+    if (a.puestoId != null || a.tipoDestino === "voluntario") return a;
+    if (!a.localizacionId) return a;
+
+    const puestosDeLaLoc = puestos.filter(p => p.localizacionId === a.localizacionId);
+    if (puestosDeLaLoc.length !== 1) return a; // ambiguo (0 o 2+ puestos) — revisión manual
+
+    cambios++;
+    return { ...a, puestoId: puestosDeLaLoc[0].id, tipoDestino: "puesto" };
+  });
+  return { asigs: cambios > 0 ? siguiente : asigs, cambios };
+}
+
+/**
+ * Cuenta cuántos puestos comparten cada ubicación maestra. Útil para mostrar
+ * un aviso ("🔗 2 puestos aquí") cuando una localización no es 1:1 con un puesto.
+ * Devuelve un Map<localizacionId, count>.
+ */
+export function contarPuestosPorLocalizacion(puestos = []) {
+  const map = new Map();
+  (puestos || []).forEach(p => {
+    if (p?.localizacionId == null) return;
+    map.set(p.localizacionId, (map.get(p.localizacionId) || 0) + 1);
+  });
+  return map;
+}

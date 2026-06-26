@@ -11,9 +11,13 @@
  * Funciones exportadas:
  *   exportarVoluntarios(voluntarios, puestos)              → async
  *   exportarPatrocinadores(pats)                           → async
- *   exportarMaterial(material, asigs, locs, modo)          → async
+ *   exportarMaterial(material, asigs, locs, modo, puestos, voluntarios) → async
  *     modo: "completo" (default) | "alertas" | "pendiente"
+ *     puestos/voluntarios (opcionales): permiten resolver el destino real
+ *     de cada asignación (puesto concreto o voluntario concreto) en la
+ *     hoja de detalle, en vez de solo la ubicación maestra.
  */
+import { resolverDestinoAsignacion } from '@/components/logistica/logisticaHelpers';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -203,7 +207,7 @@ export function tieneAlertaMaterial(m, asigTotal) {
  *   · "alertas":   solo materiales con déficit (disponible < 0) o bajo mínimo
  *   · "pendiente": solo materiales con alguna asignación en estado "pendiente" o "en tránsito"
  */
-export async function exportarMaterial(material = [], asigs = [], locs = [], modo = 'completo') {
+export async function exportarMaterial(material = [], asigs = [], locs = [], modo = 'completo', puestos = [], voluntarios = []) {
   const { default: ExcelJS } = await import('exceljs');
 
   // ── Construir filas enriquecidas ──────────────────────────────────────────
@@ -273,13 +277,15 @@ export async function exportarMaterial(material = [], asigs = [], locs = [], mod
 
   const asigData = asigsFiltradas.map((a) => {
     const mat = material.find((m) => String(m.id) === String(a.materialId));
-    const loc = locs.find((l) => l.id === a.locId || l.id === a.localizacionId);
+    const destino = resolverDestinoAsignacion(a, { puestos, voluntarios, locs });
     return {
       Material:        mat?.nombre || a.materialId,
       Cantidad:        a.cantidad || 0,
       Unidad:          mat?.unidad || '',
-      Localización:    loc?.nombre || a.locId || a.localizacionId || '',
+      'Tipo destino':  destino.tipo === 'voluntario' ? 'Voluntario' : destino.tipo === 'puesto' ? 'Puesto' : 'Sin resolver',
+      Destino:         destino.nombre,
       'Estado entrega': a.estado || 'pendiente',
+      'Necesita revisión': destino.necesitaRevision ? 'Sí' : '',
       Notas:           a.notas || '',
     };
   });

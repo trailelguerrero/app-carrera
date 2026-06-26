@@ -28,7 +28,7 @@ export { resolverLocalizacionDeVoluntario } from "@/hooks/useVoluntarios";
 export default function Voluntarios() {
   const {
     config, puestos, voluntarios, isLoading,
-    locs, rutas, matPorLoc,
+    locs, rutas, matPorLoc, matPorPuesto, matPorVoluntario,
     tab, setTab,
     saveStatus, isExportingExcel, setIsExportingExcel,
     busqueda, setBusqueda,
@@ -175,7 +175,7 @@ export default function Voluntarios() {
           )}
           {tab === "puestos" && (
             <TabPuestos
-              puestosConStats={puestosConStats} voluntarios={voluntarios} locs={locs}
+              puestosConStats={puestosConStats} voluntarios={voluntarios} locs={locs} matPorPuesto={matPorPuesto}
               onUpdatePuesto={updatePuesto} onDeletePuesto={(id) => setConfirmDeletePuesto(id)}
               onNuevoPuesto={() => setModalPuesto("nuevo")} onEditPuesto={(p) => setModalPuesto(p)}
               onEditarVol={(v) => setModalVol(v)}
@@ -193,7 +193,7 @@ export default function Voluntarios() {
       {/* Fichas */}
       {ficha?.tipo === "vol" && createPortal(
         <FichaVoluntario
-          voluntario={ficha.data} puestos={puestos} voluntarios={voluntarios} locs={locs} matPorLoc={matPorLoc} config={config}
+          voluntario={ficha.data} puestos={puestos} voluntarios={voluntarios} locs={locs} matPorPuesto={matPorPuesto} matPorVoluntario={matPorVoluntario} config={config}
           onClose={() => setFicha(null)}
           onEditar={() => { document.querySelector("main")?.scrollTo({ top: 0, behavior: "instant" }); setFicha(null); setModalVol(ficha.data); }}
           onEliminar={() => { const id = ficha.data?.id; if (id === null || id === undefined) return; pendingDeleteRef.current = id; setConfirmDelete(id); setFicha(null); }}
@@ -205,7 +205,7 @@ export default function Voluntarios() {
       )}
       {ficha?.tipo === "puesto" && createPortal(
         <FichaPuesto
-          puesto={ficha.data} voluntarios={voluntarios} puestosConStats={puestosConStats} locs={locs} matPorLoc={matPorLoc} rutas={rutas}
+          puesto={ficha.data} voluntarios={voluntarios} puestosConStats={puestosConStats} locs={locs} matPorPuesto={matPorPuesto} rutas={rutas}
           onClose={() => setFicha(null)}
           onFichaVol={(v) => { setFicha(null); setTimeout(() => abrirFicha("vol", v), 50); }}
           onEditar={() => { document.querySelector("main")?.scrollTo({ top: 0, behavior: "instant" }); setFicha(null); setModalPuesto(ficha.data); }}
@@ -230,7 +230,7 @@ export default function Voluntarios() {
       {modalPuesto && createPortal(
         <ModalPuesto
           key={modalPuesto === "nuevo" ? "nuevo" : modalPuesto.id}
-          puesto={modalPuesto === "nuevo" ? null : modalPuesto} locs={locs}
+          puesto={modalPuesto === "nuevo" ? null : modalPuesto} locs={locs} puestosExistentes={puestos}
           onSave={(data) => { if (modalPuesto === "nuevo") addPuesto(data); else updatePuesto(modalPuesto.id, data); setModalPuesto(null); }}
           onClose={() => setModalPuesto(null)}
         />, document.body

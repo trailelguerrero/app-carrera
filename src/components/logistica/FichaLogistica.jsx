@@ -1,6 +1,6 @@
 // Auto-extracted from Logistica.jsx — Sprint 2 refactor
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { FASES_CHECKLIST, ESTADO_ENTREGA, ESTADO_TAREA, ESTADO_COLORES, PUESTOS_REF, TIPOS_LOC, LOC_ICONS, LOC_COLORS, TLI, CAT_ICONS, CATS_MATERIAL } from "./logisticaConstants.js";
+import { FASES_CHECKLIST, ESTADO_ENTREGA, ESTADO_TAREA, ESTADO_COLORES, PUESTOS_REF, TIPOS_LOC, LOC_COLORS, TLI, CAT_ICONS, CATS_MATERIAL } from "./logisticaConstants.js";
 import { createPortal } from "react-dom";
 import { toast } from "@/lib/toast";
 import { genIdNum } from "@/lib/utils";
@@ -10,6 +10,7 @@ import { Tooltip, TooltipIcon } from "@/components/common/Tooltip";
 import { blockCls as cls } from "@/lib/blockStyles";
 import { useData } from "@/hooks/useData";
 import { SK_DOC_DOCS } from "@/constants/storageKeys";
+import { resolverDestinoAsignacion } from "./logisticaHelpers";
 
 // ─── MEJ-06: Detección de solapamiento de horarios en Timeline ───────────────
 // Pure helper — exported for testing.
@@ -42,7 +43,7 @@ export function detectarSolapamiento(tareasExistentes, nuevaTarea) {
 }
 
 // ─── FICHA LOGÍSTICA ──────────────────────────────────────────────────────────
-function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar, asigs = [], setAsigs = null, locs = [], abrirModal = null }) {
+function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar, asigs = [], setAsigs = null, locs = [], puestos = [], voluntarios = [], abrirModal = null }) {
   const { tipo, data } = ficha;
   const accents = { tl:"var(--amber)", ck:"var(--green)", mat:"var(--cyan)", veh:"var(--violet)", ruta:"var(--amber)", cont:"var(--cyan)", asig:"var(--cyan)", inc:"var(--red)" };
   const icons   = { tl:"⏱️", ck:"✅", mat:"📦", veh:"🚐", ruta:"🗺️", cont:"📞", asig:"📍", inc:"⚠️" };
@@ -144,12 +145,12 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar, a
                   {totalEnt > 0 && <Row label="Entregado"  value={`${totalEnt} ${data.unidad}`} color="var(--green)" />}
                   {deficit > 0  && <Row label="⚠️ Déficit" value={`-${deficit} ${data.unidad}`} color="var(--red)" />}
 
-                  {/* ── Distribución por puestos ─────────────────────────── */}
+                  {/* ── Distribución por puestos / voluntarios ─────────────── */}
                   <div style={{ marginTop: ".75rem", borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: ".75rem" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ".5rem" }}>
                       <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase" }}>
-                        📍 Distribución por puestos
-                        <Tooltip text="Unidades de este material asignadas a cada puesto. Edita el estado de entrega directamente desde aquí.">
+                        📍 Distribución
+                        <Tooltip text="Unidades de este material asignadas a cada puesto o voluntario. Edita el estado de entrega directamente desde aquí.">
                           <TooltipIcon size={10} style={{ marginLeft: 4 }} />
                         </Tooltip>
                       </div>
@@ -162,20 +163,19 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar, a
                             abrirModal({ tipo: "asig", data: { materialId: data.id }, conceptosPres: [] });
                           }}
                         >
-                          + Asignar a puesto
+                          + Asignar
                         </button>
                       )}
                     </div>
 
                     {asigsMat.length === 0 ? (
                       <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text-muted)", textAlign: "center", padding: ".5rem 0" }}>
-                        Sin asignaciones. Usa "+ Asignar a puesto" para distribuir este material.
+                        Sin asignaciones. Usa "+ Asignar" para repartir este material entre puestos o voluntarios.
                       </div>
                     ) : (
                       <div style={{ display: "flex", flexDirection: "column", gap: ".3rem" }}>
                         {asigsMat.map(a => {
-                          const loc = locs.find(l => l.id === a.localizacionId);
-                          const locIcon = loc ? (LOC_ICONS[loc.tipo] || "📌") : "📌";
+                          const destino = resolverDestinoAsignacion(a, { puestos, voluntarios, locs });
                           const estadoColor = ESTADO_COLORES[a.estado] || "var(--text-muted)";
                           return (
                             <div key={a.id} style={{
@@ -184,10 +184,14 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar, a
                               background: "var(--surface2)", border: "1px solid var(--border)",
                               flexWrap: "wrap",
                             }}>
-                              <span style={{ fontSize: "var(--fs-sm)", flexShrink: 0 }}>{locIcon}</span>
+                              <span style={{ fontSize: "var(--fs-sm)", flexShrink: 0 }}>{destino.icono}</span>
                               <span style={{ flex: 1, fontSize: "var(--fs-sm)", fontWeight: 600, minWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                {a.puesto}
+                                {destino.nombre}
                               </span>
+                              {destino.necesitaRevision && (
+                                <span title="No se pudo resolver automáticamente — revísalo al editar esta asignación"
+                                  style={{ fontSize: "var(--fs-2xs)", color: "var(--amber)", flexShrink: 0 }}>⚠️</span>
+                              )}
                               <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700, color: "var(--cyan)", flexShrink: 0 }}>
                                 {a.cantidad} {data.unidad}
                               </span>
@@ -242,12 +246,21 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar, a
                 </>
               );
             })()}
-            {tipo==="asig" && (<>
-              <Row label="Material"    value={matNombre} />
-              <Row label="Puesto"      value={data.puesto} />
-              <Row label="Cantidad"    value={`${data.cantidad} ${data.unidad||""}`} />
-              <Row label="Estado"      value={data.estado} color={ESTADO_COLORES[data.estado]} />
-            </>)}
+            {tipo==="asig" && (() => {
+              const destino = resolverDestinoAsignacion(data, { puestos, voluntarios, locs });
+              return (<>
+                <Row label="Material"    value={matNombre} />
+                <Row label="Tipo destino" value={destino.tipo === "voluntario" ? "🙋 Voluntario" : destino.tipo === "puesto" ? "🧑‍🤝‍🧑 Puesto" : "⚠️ Sin resolver"} />
+                <Row label="Destino"     value={destino.nombre} color={destino.necesitaRevision ? "var(--amber)" : undefined} />
+                <Row label="Cantidad"    value={`${data.cantidad} ${data.unidad||""}`} />
+                <Row label="Estado"      value={data.estado} color={ESTADO_COLORES[data.estado]} />
+                {destino.necesitaRevision && (
+                  <div style={{ marginTop: ".4rem", padding: ".5rem .65rem", borderRadius: 8, background: "rgba(251,191,36,.08)", border: "1px solid rgba(251,191,36,.25)", fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--amber)" }}>
+                    ⚠️ Esta asignación necesita revisión: edítala y elige a qué puesto o voluntario pertenece.
+                  </div>
+                )}
+              </>);
+            })()}
             {tipo==="veh" && (<>
               <Row label="Matrícula"   value={data.matricula} />
               <Row label="Conductor"   value={data.conductor} />
@@ -372,7 +385,7 @@ function FichaLogistica({ ficha, material, veh, onClose, onEditar, onEliminar, a
 }
 
 
-function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setVeh,rutas,setRutas,tl,setTl,cont,setCont,inc,setInc,ck,setCk,locs,tiposContacto=[],conceptosPres=[]}) {
+function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setVeh,rutas,setRutas,tl,setTl,cont,setCont,inc,setInc,ck,setCk,locs,puestos=[],voluntarios=[],tiposContacto=[],conceptosPres=[]}) {
   useEffect(() => {
     const t = setTimeout(() => {
       const firstField = document.querySelector(".modal-backdrop .modal-body input, .modal-backdrop .modal-body select, .modal-backdrop .modal-body textarea");
@@ -407,13 +420,8 @@ function ModalRouter({modal,onClose,material,setMaterial,asigs,setAsigs,veh,setV
       onSave={v=>sv(setMaterial,material,{...v,presupuestoConceptoId:v.presupuestoConceptoId?parseInt(v.presupuestoConceptoId):null},"material")} />;
   }
 
-  if(tipo==="asig") return <MF title={data?"✏️ Editar asignación":"📍 Nueva asignación"} onClose={onClose}
-    fields={[{k:"materialId",l:"Material",t:"sel",o:material.map(m=>m.id),lb:material.map(m=>m.nombre),num:true},{k:"puesto",l:"Puesto destino",t:"sel",o:locNames},{k:"cantidad",l:"Cantidad",t:"num"},{k:"estado",l:"Estado entrega",t:"sel",o:ESTADO_ENTREGA}]}
-    init={data||{materialId:material[0]?.id||1,puesto:locNames[0],cantidad:1,estado:"pendiente"}}
-    onSave={v=>{
-      const locObj = locs && locs.find(l => l.nombre === v.puesto);
-      sv(setAsigs,asigs,{...v,materialId:parseInt(v.materialId),localizacionId:locObj?.id||null},"asig");
-    }} />;
+  if(tipo==="asig") return <ModalAsignacion data={data} material={material} asigs={asigs} puestos={puestos} voluntarios={voluntarios} locs={locs} onClose={onClose}
+    onSave={v=>sv(setAsigs,asigs,v,"asig")} />;
 
   if(tipo==="veh") return <MF title={data?"✏️ Editar vehículo":"🚗 Nuevo vehículo"} onClose={onClose}
     fields={[{k:"nombre",l:"Nombre *",t:"text"},{k:"matricula",l:"Matrícula",t:"text"},{k:"conductor",l:"Conductor",t:"text"},{k:"capacidad",l:"Capacidad",t:"text"},{k:"telefono",l:"Teléfono",t:"text"},{k:"notas",l:"Notas",t:"text"}]}
@@ -657,8 +665,168 @@ function ModalRuta({data,veh,rutas,setRutas,onClose,locs}) {
 }
 
 
+// ─── MEJ-LOG-PUESTO: Modal dedicado de Asignación de material ───────────────
+// Sustituye al antiguo formulario genérico (MF) que solo dejaba elegir la
+// ubicación del mapa por nombre. Ahora el destino real es un Puesto concreto
+// de Voluntarios o un Voluntario concreto (ej. su walkie-talkie personal).
+function ModalAsignacion({ data, material, asigs, puestos = [], voluntarios = [], locs = [], onClose, onSave }) {
+  const { closing: maClosing, handleClose: maHandleClose } = useModalClose(onClose);
+  const [tipoDestino, setTipoDestino] = useState(data?.tipoDestino === "voluntario" ? "voluntario" : "puesto");
+  const [materialId, setMaterialId] = useState(data?.materialId ?? material[0]?.id ?? null);
+  const [puestoId, setPuestoId]     = useState(data?.puestoId ?? null);
+  const [voluntarioId, setVolId]    = useState(data?.voluntarioId ?? null);
+  const [cantidad, setCantidad]     = useState(data?.cantidad ?? 1);
+  const [estado, setEstado]         = useState(data?.estado ?? "pendiente");
+  const [busqDestino, setBusqDestino] = useState("");
+  const [errs, setErrs] = useState({});
+
+  const conteoPorLoc = useMemo(() => {
+    const map = new Map();
+    puestos.forEach(p => { if (p?.localizacionId != null) map.set(p.localizacionId, (map.get(p.localizacionId) || 0) + 1); });
+    return map;
+  }, [puestos]);
+
+  const puestosFiltrados = useMemo(() => {
+    const q = busqDestino.trim().toLowerCase();
+    const lista = !q ? puestos : puestos.filter(p => (p.nombre || "").toLowerCase().includes(q) || (p.tipo || "").toLowerCase().includes(q));
+    return [...lista].sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es"));
+  }, [puestos, busqDestino]);
+
+  const voluntariosFiltrados = useMemo(() => {
+    const q = busqDestino.trim().toLowerCase();
+    const lista = !q ? voluntarios : voluntarios.filter(v => {
+      const nombreComp = [v.nombre, v.apellidos].filter(Boolean).join(" ").toLowerCase();
+      return nombreComp.includes(q);
+    });
+    return [...lista].sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es"));
+  }, [voluntarios, busqDestino]);
+
+  const validar = () => {
+    const e = {};
+    if (!materialId) e.materialId = "Selecciona un material";
+    if (tipoDestino === "puesto" && !puestoId) e.destino = "Selecciona un puesto";
+    if (tipoDestino === "voluntario" && !voluntarioId) e.destino = "Selecciona un voluntario";
+    if (!cantidad || cantidad < 1) e.cantidad = "La cantidad mínima es 1";
+    setErrs(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const save = () => {
+    if (!validar()) return;
+    const puestoElegido = tipoDestino === "puesto" ? puestos.find(p => p.id === puestoId) : null;
+    onSave({
+      ...(data?.id ? { id: data.id } : {}),
+      materialId: parseInt(materialId),
+      cantidad: parseInt(cantidad) || 1,
+      estado,
+      tipoDestino,
+      puestoId: tipoDestino === "puesto" ? puestoId : null,
+      voluntarioId: tipoDestino === "voluntario" ? voluntarioId : null,
+      localizacionId: tipoDestino === "puesto" ? (puestoElegido?.localizacionId ?? null) : null,
+    });
+  };
+
+  return createPortal(
+    <div className={`modal-backdrop${maClosing ? " modal-backdrop-closing" : ""}`} onClick={e => e.target === e.currentTarget && maHandleClose()}>
+      <div className={`modal modal-ficha${maClosing ? " modal-closing" : ""}`}>
+        <div className="modal-header">
+          <span className="mtit">{data?.id ? "✏️ Editar asignación" : "📍 Nueva asignación"}</span>
+          <button className="btn btn-sm btn-ghost" aria-label="Cerrar" onClick={maHandleClose}><span aria-hidden="true">✕</span></button>
+        </div>
+        <div className="modal-body">
+          <div>
+            <label className="fl" style={errs.materialId ? { color: "var(--red)" } : {}}>Material</label>
+            <select className="inp" value={materialId ?? ""} onChange={e => setMaterialId(parseInt(e.target.value))}
+              style={errs.materialId ? { borderColor: "var(--red)" } : {}}>
+              {material.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+            </select>
+          </div>
+
+          {/* ── Tipo de destino: puesto o voluntario ── */}
+          <div>
+            <label className="fl">¿A quién se asigna?</label>
+            <div style={{ display: "flex", gap: ".4rem", marginBottom: ".45rem", flexWrap: "wrap" }}>
+              {[
+                { k: "puesto",     label: "🧑‍🤝‍🧑 A un puesto" },
+                { k: "voluntario", label: "🙋 A un voluntario" },
+              ].map(({ k, label }) => (
+                <button key={k} onClick={() => { setTipoDestino(k); setBusqDestino(""); setErrs(p => ({ ...p, destino: undefined })); }}
+                  style={{
+                    padding: "0.25rem 0.65rem", borderRadius: 6, cursor: "pointer",
+                    fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", fontWeight: 700,
+                    border: `1px solid ${tipoDestino === k ? "var(--cyan)" : "var(--border)"}`,
+                    background: tipoDestino === k ? "rgba(34,211,238,0.12)" : "var(--surface2)",
+                    color: tipoDestino === k ? "var(--cyan)" : "var(--text-muted)",
+                  }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <input className="inp" type="search" placeholder={tipoDestino === "puesto" ? "🔍 Buscar puesto…" : "🔍 Buscar voluntario…"}
+              value={busqDestino} onChange={e => setBusqDestino(e.target.value)}
+              style={{ marginBottom: ".4rem" }} />
+
+            {tipoDestino === "puesto" ? (
+              <select className="inp" value={puestoId ?? ""} size={Math.min(6, Math.max(3, puestosFiltrados.length))}
+                onChange={e => { setPuestoId(parseInt(e.target.value)); setErrs(p => ({ ...p, destino: undefined })); }}
+                style={errs.destino ? { borderColor: "var(--red)" } : {}}>
+                {puestosFiltrados.map(p => {
+                  const loc = locs.find(l => l.id === p.localizacionId);
+                  const compartido = p.localizacionId != null && (conteoPorLoc.get(p.localizacionId) || 0) > 1;
+                  return (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre}{loc ? ` — 📍 ${loc.nombre}` : ""}{compartido ? " (ubicación compartida)" : ""}
+                    </option>
+                  );
+                })}
+                {puestosFiltrados.length === 0 && <option disabled value="">Sin puestos que coincidan</option>}
+              </select>
+            ) : (
+              <select className="inp" value={voluntarioId ?? ""} size={Math.min(6, Math.max(3, voluntariosFiltrados.length))}
+                onChange={e => { setVolId(parseInt(e.target.value)); setErrs(p => ({ ...p, destino: undefined })); }}
+                style={errs.destino ? { borderColor: "var(--red)" } : {}}>
+                {voluntariosFiltrados.map(v => {
+                  const puestoVol = puestos.find(p => p.id === v.puestoId);
+                  return (
+                    <option key={v.id} value={v.id}>
+                      {[v.nombre, v.apellidos].filter(Boolean).join(" ")}{puestoVol ? ` — ${puestoVol.nombre}` : " — sin puesto"}
+                    </option>
+                  );
+                })}
+                {voluntariosFiltrados.length === 0 && <option disabled value="">Sin voluntarios que coincidan</option>}
+              </select>
+            )}
+            {errs.destino && <div className="xs mono" style={{ color: "var(--red)", marginTop: ".2rem" }}>⚠ {errs.destino}</div>}
+          </div>
+
+          <div className="field-row">
+            <div>
+              <label className="fl" style={errs.cantidad ? { color: "var(--red)" } : {}}>Cantidad</label>
+              <input className="inp" type="number" min={1} value={cantidad} onChange={e => setCantidad(parseInt(e.target.value) || 0)}
+                style={errs.cantidad ? { borderColor: "var(--red)" } : {}} />
+            </div>
+            <div>
+              <label className="fl">Estado entrega</label>
+              <select className="inp" value={estado} onChange={e => setEstado(e.target.value)}>
+                {ESTADO_ENTREGA.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-ghost" onClick={maHandleClose}>Cancelar</button>
+          <button className="btn btn-cyan" onClick={save}>{data?.id ? "💾 Guardar" : "➕ Añadir"}</button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 // Exports
 export { FichaLogistica };
 export { ModalRouter };
 export { MF };
 export { ModalRuta };
+export { ModalAsignacion };

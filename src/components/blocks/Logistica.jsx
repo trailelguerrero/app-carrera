@@ -23,6 +23,7 @@ import { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys"; // F
 import { eventDateStr } from "@/lib/eventUtils";
 import { LOCS_DEFAULT as LOCS_DEFAULT_SHARED, LOCS_KEY } from "@/constants/localizaciones";
 import { useData } from "@/hooks/useData";
+import dataService from "@/lib/dataService";
 import { TabPedidosProv } from "./LogisticaPedidos";
 
 import { blockCls as cls } from "@/lib/blockStyles";
@@ -48,6 +49,7 @@ import {
   MAT0, ASIG0, VEH0, RUTAS0, TL0, CONT0, INC0, CK0,
   syncCkTl,
 } from "@/components/logistica/logisticaConstants.js";
+import { migrarAsignacionesAPuesto } from "@/components/logistica/logisticaHelpers";
 
 // ─── APP ──────────────────────────────────────────────────────────────────────
 export default function App({ initialSubtab, onSubtabConsumed, initialFilter, onFilterConsumed } = {}) {
@@ -149,6 +151,8 @@ export default function App({ initialSubtab, onSubtabConsumed, initialFilter, on
   const [rawVols] = useData(SK_VOL_VOLUNTARIOS, []);
   // LOC-SYNC-01: rawPuestos necesita escritura para propagar coords desde TabLocalizaciones
   const [rawPuestos, setRawPuestos] = useData(SK_VOL_PUESTOS, []);
+  const puestos = Array.isArray(rawPuestos) ? rawPuestos : [];
+  const voluntarios = Array.isArray(rawVols) ? rawVols : [];
   const voluntariosConCoche = useMemo(() => {
     const v = Array.isArray(rawVols) ? rawVols : [];
     return v.filter(vol => vol && vol.coche && vol.estado === "confirmado");
@@ -169,22 +173,46 @@ export default function App({ initialSubtab, onSubtabConsumed, initialFilter, on
     return map;
   }, [rawVols, rawPuestos]);
 
+  // MEJ-LOG-PUESTO: migración automática (idempotente) de asignaciones legadas que
+  // solo tenían localizacionId/texto de puesto, hacia el vínculo real puestoId —
+  // solo cuando la ubicación tiene exactamente un puesto (sin ambigüedad). Las
+  // asignaciones en ubicaciones con 0 o 2+ puestos quedan marcadas para revisión
+  // manual (ver resolverDestinoAsignacion). Confirmado con el usuario: sí, migrar
+  // automáticamente los casos sin ambigüedad.
+  useEffect(() => {
+    if (!Array.isArray(rawAsigs) || rawAsigs.length === 0) return;
+    if (!Array.isArray(rawPuestos) || rawPuestos.length === 0) return;
+    const { asigs: migradas, cambios } = migrarAsignacionesAPuesto(rawAsigs, rawPuestos);
+    if (cambios > 0) {
+      setAsigs(migradas);
+      dataService.notify("logistica");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawAsigs, rawPuestos]);
+
   // TRACK-01: Recorridos GPX simplificados
   const [rawRecorridos, setRecorridos] = useData(SK_LOG_RECORRIDOS, []);
   const recorridos = Array.isArray(rawRecorridos) ? rawRecorridos : [];
 
   // Material agrupado por localización: localizacionId → [{nombre, cantidad, unidad}]
+  // MEJ-LOG-PUESTO: la localización efectiva de una asignación de tipo "puesto" se
+  // calcula a partir del puesto real (puesto.localizacionId), no del campo legado
+  // localizacionId almacenado en la propia asignación — así sigue siendo correcta
+  // aunque el puesto se vuelva a vincular a otra ubicación más adelante.
   const matPorLoc = useMemo(() => {
     const map = {};
     asigs.forEach(a => {
-      if (!a.localizacionId) return;
+      if (a.tipoDestino === "voluntario") return; // material personal no cuenta para la ubicación
+      const puestoAsig = a.puestoId != null ? puestos.find(p => p.id === a.puestoId) : null;
+      const locId = puestoAsig ? puestoAsig.localizacionId : a.localizacionId;
+      if (!locId) return;
       const mat = material.find(m0 => m0.id === a.materialId);
       if (!mat) return;
-      if (!map[a.localizacionId]) map[a.localizacionId] = [];
-      map[a.localizacionId].push({ nombre: mat.nombre, cantidad: a.cantidad, unidad: mat.unidad || "ud" });
+      if (!map[locId]) map[locId] = [];
+      map[locId].push({ nombre: mat.nombre, cantidad: a.cantidad, unidad: mat.unidad || "ud" });
     });
     return map;
-  }, [asigs, material]);
+  }, [asigs, material, puestos]);
 
   const [saved, setSaved] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(null); // C6: null | 'completo' | 'alertas'
@@ -292,7 +320,7 @@ export default function App({ initialSubtab, onSubtabConsumed, initialFilter, on
               onClick={async () => {
                 if (isExportingExcel) return;
                 setIsExportingExcel('completo');
-                try { await exportarMaterial(material, asigs, locs, 'completo'); }
+                try { await exportarMaterial(material, asigs, locs, 'completo', puestos, voluntarios); }
                 finally { setIsExportingExcel(null); }
               }}
               disabled={!!isExportingExcel}
@@ -303,7 +331,7 @@ export default function App({ initialSubtab, onSubtabConsumed, initialFilter, on
               onClick={async () => {
                 if (isExportingExcel) return;
                 setIsExportingExcel('alertas');
-                try { await exportarMaterial(material, asigs, locs, 'alertas'); }
+                try { await exportarMaterial(material, asigs, locs, 'alertas', puestos, voluntarios); }
                 finally { setIsExportingExcel(null); }
               }}
               disabled={!!isExportingExcel}
@@ -372,7 +400,7 @@ export default function App({ initialSubtab, onSubtabConsumed, initialFilter, on
         {/* CONTENIDO */}
         <div key={tab}>
           {tab==="dashboard" && <TabDash stats={stats} tl={tl} ck={ck} setTab={setTab} config={config} patsConEspecie={patsConEspecie} material={material} asigs={asigs} totalInscritos={totalInscritos} locs={locs} matPorLoc={matPorLoc} volsPorLoc={volsPorLoc} />}
-          {tab==="material" && <TabMat material={material} setMaterial={setMaterial} asigs={asigs} setAsigs={setAsigs} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenMat} setOrdenAlfa={setOrdenMat} locs={locs} patsConEspecie={patsConEspecie} totalInscritos={totalInscritos} totalMaximos={totalMaximos} rawInscritos={rawInscritos} rawTramos={rawTramos} conceptosPres={conceptosPres} />}
+          {tab==="material" && <TabMat material={material} setMaterial={setMaterial} asigs={asigs} setAsigs={setAsigs} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenMat} setOrdenAlfa={setOrdenMat} locs={locs} puestos={puestos} voluntarios={voluntarios} patsConEspecie={patsConEspecie} totalInscritos={totalInscritos} totalMaximos={totalMaximos} rawInscritos={rawInscritos} rawTramos={rawTramos} conceptosPres={conceptosPres} />}
           {tab==="vehiculos" && <TabVeh veh={veh} setVeh={setVeh} rutas={rutas} setRutas={setRutas} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenVeh} setOrdenAlfa={setOrdenVeh} voluntariosConCoche={voluntariosConCoche} material={material} asigs={asigs} />}
           {tab==="timeline" && <TabTL tl={tl} setTl={setTl} setModal={setModal} abrirModal={abrirModal} setDel={setDel} abrirFicha={abrirFicha} ordenAlfa={ordenTL} setOrdenAlfa={setOrdenTL} config={config}
             onUpdSync={(id, estado, hora) => {
@@ -407,7 +435,7 @@ export default function App({ initialSubtab, onSubtabConsumed, initialFilter, on
               const { tlNext, tlCambio } = syncCkTl("ck", id, estadoNuevo, ck, tl, hora);
               if (tlCambio) setTl(tlNext);
             }} />}
-          {tab==="localizaciones" && <TabLocalizaciones locs={locs} setLocs={setLocs} volsPorLoc={volsPorLoc} matPorLoc={matPorLoc} recorridos={recorridos} puestos={Array.isArray(rawPuestos) ? rawPuestos : []} setPuestos={setRawPuestos} />}
+          {tab==="localizaciones" && <TabLocalizaciones locs={locs} setLocs={setLocs} volsPorLoc={volsPorLoc} matPorLoc={matPorLoc} recorridos={recorridos} puestos={puestos} setPuestos={setRawPuestos} />}
           {tab==="proveedores" && (
             <div style={{ display:"flex", flexDirection:"column", gap:"1.5rem" }}>
               {/* ── Directorio de contactos ── */}
@@ -447,9 +475,10 @@ export default function App({ initialSubtab, onSubtabConsumed, initialFilter, on
         </div>
       </div>
 
-      {ficha && createPortal(<FichaLogistica ficha={ficha} material={material} veh={veh} asigs={asigs} setAsigs={setAsigs} locs={locs} abrirModal={abrirModal} onClose={()=>setFicha(null)} onEditar={(tipo,data)=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo,data,...(tipo==="ck"?{tareasProyecto}:{}),...(tipo==="mat"?{conceptosPres}:{})});}} onEliminar={(tipo,id)=>{setFicha(null);setDel({tipo,id});}} />, document.body)}
+      {ficha && createPortal(<FichaLogistica ficha={ficha} material={material} veh={veh} asigs={asigs} setAsigs={setAsigs} locs={locs} puestos={puestos} voluntarios={voluntarios} abrirModal={abrirModal} onClose={()=>setFicha(null)} onEditar={(tipo,data)=>{const m=document.querySelector("main");if(m)m.scrollTo({top:0,behavior:"instant"});setFicha(null);setModal({tipo,data,...(tipo==="ck"?{tareasProyecto}:{}),...(tipo==="mat"?{conceptosPres}:{})});}} onEliminar={(tipo,id)=>{setFicha(null);setDel({tipo,id});}} />, document.body)}
       {modal && createPortal(<ModalRouter key={modal.tipo+(modal.data?.id||"n")} modal={modal} onClose={() => setModal(null)}
           material={material} setMaterial={setMaterial} asigs={asigs} setAsigs={setAsigs}
+          puestos={puestos} voluntarios={voluntarios}
           veh={veh} setVeh={setVeh} rutas={rutas} setRutas={setRutas}
           tl={tl} setTl={setTl} cont={cont} setCont={setCont}
           inc={inc} setInc={setInc} ck={ck} setCk={setCk}

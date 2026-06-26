@@ -2,6 +2,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { ListaKanbanToggle } from "@/components/common/ListaKanbanToggle";
 import { FASES_CHECKLIST, ESTADO_ENTREGA, ESTADO_TAREA, ESTADO_COLORES, PUESTOS_REF, TIPOS_LOC, LOC_ICONS, LOC_COLORS, CATS_MATERIAL, CAT_COLORS, CAT_ICONS, ESCALA_CON_INSCRITOS } from "./logisticaConstants.js";
+import { resolverDestinoAsignacion } from "./logisticaHelpers.js";
 import { createPortal } from "react-dom";
 import { toast } from "@/lib/toast";
 import { genIdNum } from "@/lib/utils";
@@ -13,7 +14,7 @@ import { blockCls as cls } from "@/lib/blockStyles";
 import { useData } from "@/hooks/useData";
 
 // ─── MATERIAL ─────────────────────────────────────────────────────────────────
-function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,locs,patsConEspecie,totalInscritos=0,totalMaximos=0,rawInscritos={},rawTramos=[],conceptosPres=[]}) {
+function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,ordenAlfa,setOrdenAlfa,abrirModal,locs,puestos=[],voluntarios=[],patsConEspecie,totalInscritos=0,totalMaximos=0,rawInscritos={},rawTramos=[],conceptosPres=[]}) {
   const [vistaAsig,setVistaAsig]=useState(false);
   const [vistaKanban,setVistaKanban]=useState(false);
   const [cat,setCat]=useState("todas");
@@ -258,11 +259,14 @@ function TabMat({material,setMaterial,asigs,setAsigs,setModal,setDel,abrirFicha,
           )}
         </div>
         <div className="card p0"><div className="ox"><table className="tbl">
-          <thead><tr><th>Material</th><th>Puesto destino</th><th className="tr">Cantidad</th><th>Estado</th></tr></thead>
-          <tbody>{asigsFiltradas.map(a=>{const m=materialMap.get(a.materialId);return(
+          <thead><tr><th>Material</th><th>Destino</th><th className="tr">Cantidad</th><th>Estado</th></tr></thead>
+          <tbody>{asigsFiltradas.map(a=>{const m=materialMap.get(a.materialId);const destino=resolverDestinoAsignacion(a,{puestos,voluntarios,locs});return(
             <tr key={a.id} style={{cursor:"pointer"}} onClick={()=>abrirFicha("asig",{...a,materialNombre:m?.nombre,unidad:m?.unidad})}>
               <td className="f6">{m?.nombre||"—"}</td>
-              <td><span className="pbadge">{a.puesto}</span></td>
+              <td>
+                <span className="pbadge">{destino.icono} {destino.nombre}</span>
+                {destino.necesitaRevision && <span title="Necesita revisión" style={{marginLeft:".3rem",color:"var(--amber)"}}>⚠️</span>}
+              </td>
               <td className="tr mono">{a.cantidad} {m?.unidad}</td>
               <td onClick={e=>e.stopPropagation()}><select className="isml" value={a.estado} onChange={e=>setAsigs(p=>p.map(x=>x.id===a.id?{...x,estado:e.target.value}:x))} style={{color:ESTADO_COLORES[a.estado]}}>{ESTADO_ENTREGA.map(s=><option key={s} value={s}>{s}</option>)}</select></td>
             </tr>

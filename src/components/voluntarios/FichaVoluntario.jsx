@@ -116,7 +116,7 @@ function MensajeOrganizadorEdit({ valor, onChange }) {
   );
 }
 
-function FichaVoluntario({ voluntario: v, puestos, voluntarios=[], locs=[], matPorLoc={}, onClose, onEditar, onEliminar, onEliminarConfirmado, onUpdate, onReasignar, onIntercambiar, config }) {
+function FichaVoluntario({ voluntario: v, puestos, voluntarios=[], locs=[], matPorPuesto={}, matPorVoluntario={}, onClose, onEditar, onEliminar, onEliminarConfirmado, onUpdate, onReasignar, onIntercambiar, config }) {
   const { closing: fvClosing, handleClose: fvHandleClose } = useModalClose(onClose);
   const [confirmando, setConfirmando] = useState(false);
   const [modalReasignar, setModalReasignar] = useState(false);
@@ -203,9 +203,11 @@ function FichaVoluntario({ voluntario: v, puestos, voluntarios=[], locs=[], matP
     win.document.close();
   }
   const iniciales = (n) => (n||"V").split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
-  // Material asignado en Logística para la localización del puesto del voluntario
+  // MEJ-LOG-PUESTO: material del PUESTO real del voluntario (no de toda la ubicación,
+  // que podría tener otro puesto con su propio material) + material personal suyo.
   const loc = puesto ? locs.find(l => l.id === puesto.localizacionId) : null;
-  const materialEnLoc = loc ? (matPorLoc[loc.nombre] || []) : [];
+  const materialEnLoc = puesto ? (matPorPuesto[puesto.id] || []) : [];
+  const materialPersonal = matPorVoluntario[v.id] || [];
 
   return (
     <>
@@ -508,14 +510,14 @@ function FichaVoluntario({ voluntario: v, puestos, voluntarios=[], locs=[], matP
           )}
 
           {/* Material del puesto asignado (desde Logística) */}
-          {puesto && loc && (
+          {puesto && (
             <div style={{ background:"var(--surface2)", borderRadius:8, padding:"0.6rem 0.75rem",
               borderLeft:"2px solid var(--cyan)", marginTop:"0.25rem" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
                 marginBottom:"0.3rem" }}>
                 <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
                   color:"var(--cyan)", textTransform:"uppercase", fontWeight:700 }}>
-                  📦 Material en tu puesto
+                  📦 Material de tu puesto
                 </div>
                 <button
                   onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate",
@@ -528,7 +530,7 @@ function FichaVoluntario({ voluntario: v, puestos, voluntarios=[], locs=[], matP
               </div>
               {materialEnLoc.length === 0 ? (
                 <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
-                  color:"var(--text-dim)" }}>Sin material asignado a {loc.nombre}</div>
+                  color:"var(--text-dim)" }}>Sin material asignado a {puesto.nombre}</div>
               ) : materialEnLoc.slice(0, 5).map((item, i) => (
                 <div key={i} style={{ display:"flex", justifyContent:"space-between",
                   fontSize:"var(--fs-sm)", padding:"0.18rem 0",
@@ -544,6 +546,38 @@ function FichaVoluntario({ voluntario: v, puestos, voluntarios=[], locs=[], matP
                   +{materialEnLoc.length - 5} ítems más
                 </div>
               )}
+            </div>
+          )}
+
+          {/* MEJ-LOG-PUESTO: material personal asignado directamente a este voluntario
+              (ej. su walkie-talkie individual) — independiente del material del puesto. */}
+          {materialPersonal.length > 0 && (
+            <div style={{ background:"var(--surface2)", borderRadius:8, padding:"0.6rem 0.75rem",
+              borderLeft:"2px solid var(--violet)", marginTop:"0.25rem" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
+                marginBottom:"0.3rem" }}>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                  color:"var(--violet)", textTransform:"uppercase", fontWeight:700 }}>
+                  🙋 Material personal
+                </div>
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent("teg-navigate",
+                    {detail:{block:"logistica",subtab:"material"}}))}
+                  style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-2xs)", padding:".08rem .3rem",
+                    borderRadius:3, border:"1px solid rgba(167,139,250,.3)",
+                    background:"rgba(167,139,250,.1)", color:"var(--violet)", cursor:"pointer" }}>
+                  Gestionar →
+                </button>
+              </div>
+              {materialPersonal.map((item, i) => (
+                <div key={i} style={{ display:"flex", justifyContent:"space-between",
+                  fontSize:"var(--fs-sm)", padding:"0.18rem 0",
+                  borderBottom: i < materialPersonal.length-1 ? "1px solid var(--border)" : "none" }}>
+                  <span className="fw-600">{item.nombre}</span>
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)",
+                    color:"var(--violet)" }}>{item.cantidad} {item.unidad}</span>
+                </div>
+              ))}
             </div>
           )}
         </div>
