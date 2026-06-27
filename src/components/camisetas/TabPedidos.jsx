@@ -7,6 +7,7 @@ import { fmtEur2 } from "@/lib/utils";
 import { blockCls as cls } from "@/lib/blockStyles";
 import EmptyState from "@/components/EmptyState";
 import { Tooltip } from "@/components/common/Tooltip";
+import { toast } from "@/lib/toast";
 import { TC, EP, EE, ESTADOS_PAGO, ESTADOS_ENTREGA, estadoCombinado, calcPedido, badgePago, badgeEnt } from "./camisetasConstants";
 
 export function TabPedidos({ pedidos, coste, abrirFicha, abrirModal, filtroExterno, onClearFiltro }) {
@@ -56,6 +57,34 @@ export function TabPedidos({ pedidos, coste, abrirFicha, abrirModal, filtroExter
     if (alfa) list=[...list].sort((sa,sb)=>sa.nombre.localeCompare(sb.nombre,"es"));
     return list;
   },[pedidos,bus,fPago,fEnt,alfa]);
+
+  const exportCSV = () => {
+    if (!pedidos.length) { toast.error("No hay pedidos para exportar"); return; }
+    const rows = [["Nombre","Teléfono","Email","Detalle","Unidades","Total venta (€)","Estado pago","Estado entrega","Notas"]];
+    pedidos.forEach(p => {
+      const { totalVenta, totalUnid } = calcPedido(p, coste);
+      const detalle = p.lineas.map(l => `${TC[l.tipo]?.label || l.tipo} ${l.talla}×${l.cantidad}`).join(" + ");
+      rows.push([
+        p.nombre || "",
+        p.telefono || "",
+        p.email || "",
+        detalle,
+        totalUnid,
+        totalVenta.toFixed(2),
+        badgePago(p).label,
+        badgeEnt(p).label,
+        (p.notas || "").replace(/\n/g, " "),
+      ]);
+    });
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `pedidos_camisetas_extra_${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+    URL.revokeObjectURL(url);
+    toast.success("CSV de pedidos exportado");
+  };
+
   return (
     <>
       <div className="ph">
@@ -67,6 +96,7 @@ export function TabPedidos({ pedidos, coste, abrirFicha, abrirModal, filtroExter
             ))}
           </div>
           <button className={cls("btn btn-sm",alfa?"btn-primary":"btn-ghost")} onClick={()=>setAlfa(v=>!v)}>{alfa?"A-Z ✓":"A-Z"}</button>
+          <button className="btn btn-ghost" onClick={exportCSV} title="Exportar listado de pedidos (CSV)">📥 Exportar CSV</button>
           <button className="btn btn-primary" onClick={()=>abrirModal(null)}>+ Nuevo pedido</button>
         </div>
       </div>
