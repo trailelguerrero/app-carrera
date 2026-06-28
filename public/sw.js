@@ -47,6 +47,13 @@ const CACHE_VERSION = Array.isArray(WB_MANIFEST) && WB_MANIFEST.length > 0
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 const CACHE_DATA    = `${CACHE_VERSION}-data`;
 
+// BUGFIX (jun-2026): "pending-writes" guarda escrituras offline pendientes de
+// sincronizar (ver dataService.js / syncFromSW). No lleva CACHE_VERSION en el
+// nombre porque debe sobrevivir a un deploy — si un voluntario guarda algo sin
+// conexión justo cuando se publica una versión nueva, el activate de abajo no
+// debe borrarla antes de que dataService.js o syncFromSW() la procesen.
+const CACHE_PENDING = "pending-writes";
+
 // ── Patrones de caché (inlineados) ─────────────────────────────────────────
 // IMPORTANTE: mantener sincronizados con src/constants/swPatterns.ts,
 // que es la fuente de verdad para los tests de Vitest.
@@ -69,7 +76,9 @@ const PRECACHE_URLS = [
 const NETWORK_FIRST_PATTERNS = [
   /\/api\/proxy\/data\/teg_voluntarios_/,
   /\/api\/proxy\/data\/teg_logistica_/,
-  /\/api\/proxy\/data\/teg_dia_/,
+  /\/api\/proxy\/data\/teg_camisetas_/,
+  /\/api\/proxy\/data\/teg_proyecto_/,
+  /\/api\/proxy\/data\/teg_documentos_/,
 ];
 
 /** @deprecated Alias de NETWORK_FIRST_PATTERNS (Mejora 10). */
@@ -79,7 +88,8 @@ const STALE_WHILE_REVALIDATE_PATTERNS = NETWORK_FIRST_PATTERNS;
 const NETWORK_ONLY_PATTERNS = [
   /\/api\/voluntarios/,
   /\/api\/proxy\/data\/teg_presupuesto/,
-  /\/api\/proxy\/data\/teg_pat_/,
+  /\/api\/proxy\/data\/teg_scenario/,
+  /\/api\/proxy\/data\/teg_pat/,
   /\/api\/proxy\/budget/,
   /\/api\/panel\/auth/,
   /\/api\/proxy\/documents/,
@@ -105,7 +115,7 @@ self.addEventListener("activate", (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((k) => k !== CACHE_STATIC && k !== CACHE_DATA)
+          .filter((k) => k !== CACHE_STATIC && k !== CACHE_DATA && k !== CACHE_PENDING)
           .map((k) => caches.delete(k))
       )
     ).then(() => self.clients.claim())
@@ -281,7 +291,7 @@ async function networkFirst(request, cacheName) {
 async function syncFromSW() {
   // No tenemos acceso a localStorage desde el SW; usamos Cache Storage como puente.
   // El cliente escribe los datos pendientes en un cache especial antes de cerrar.
-  const pendingCache = await caches.open("pending-writes");
+  const pendingCache = await caches.open(CACHE_PENDING);
   const keys = await pendingCache.keys();
 
   if (keys.length === 0) return;
