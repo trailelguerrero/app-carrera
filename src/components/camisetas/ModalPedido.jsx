@@ -87,10 +87,10 @@ export function ModalPedido({
                       </div>
                       <button className="btn btn-red btn-sm" onClick={()=>delL(i)} disabled={form.lineas.length<=1} style={{marginBottom:1}} aria-label="Cerrar">✕</button>
                     </div>
-                    {verAvanzado && <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem",marginBottom:".35rem"}}>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".4rem",marginBottom:".35rem"}}>
                       <div><label className="fl">Estado de pago</label><select className="inp inp-sm" value={ep} onChange={e=>updL(i,"estadoPago",e.target.value)}>{ESTADOS_PAGO.map(s=><option key={s} value={s}>{EP[s].icon} {EP[s].label}</option>)}</select></div>
                       <div><label className="fl">Estado de entrega</label><select className="inp inp-sm" value={l.estadoEntrega||"pendiente"} onChange={e=>updL(i,"estadoEntrega",e.target.value)}>{ESTADOS_ENTREGA.map(s=><option key={s} value={s}>{EE[s].icon} {EE[s].label}</option>)}</select></div>
-                    </div>}
+                    </div>
                     <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--fs-xs)",color:"var(--text-muted)",display:"flex",gap:".75rem",flexWrap:"wrap"}}>
                       <span>Coste fabricación: {fmtEur2(subC)}</span><span>Venta: {esR?"🎁 Regalo":fmtEur2(subV)}</span>
                       <span style={{color:margen>=0?"var(--green)":"var(--red)"}}>Margen: {fmtEur2(margen)}</span>
@@ -110,7 +110,7 @@ export function ModalPedido({
             style={{ background:"none", border:"none", cursor:"pointer", width:"100%",
               fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--cyan)",
               padding:".3rem 0", textAlign:"left", display:"flex", alignItems:"center", gap:".3rem" }}>
-            {verAvanzado ? "▲ Ocultar opciones avanzadas" : "▼ Precio, pago, entrega y contacto"}
+            {verAvanzado ? "▲ Ocultar contacto" : "▼ Teléfono y email (opcional)"}
           </button>
 
           <div style={{background:"var(--surface2)",borderRadius:8,padding:".65rem .85rem",display:"flex",justifyContent:"space-around",gap:".75rem",flexWrap:"wrap"}}>
