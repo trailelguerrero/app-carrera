@@ -89,6 +89,9 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       const next = updater instanceof Function ? updater(prevMerged) : updater;
       return next;
     });
+    // FIX-DASH-SYNC: los toggles de syncConfig persisten vía useData (sin notify
+    // propio) y no siempre disparan el autosave de abajo — notificar explícito.
+    dataService.notify("presupuesto");
   }, [setSyncConfigRaw]);
   // ECO-08: syncConfig de las 6 categorías de camisetas, independiente del syncConfig general
   const [camSyncConfigRaw, setCamSyncConfigRaw] = useData(SK_PPTO_CAM_SYNC_CONFIG, CAMISETAS_SYNC_CONFIG_DEFAULT);
@@ -102,6 +105,10 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
       const next = updater instanceof Function ? updater(prevMerged) : updater;
       return next;
     });
+    // FIX-DASH-SYNC: camSyncConfig no forma parte de las deps del autosave
+    // (solo tramos/conceptos/inscritos/ingresosExtra/merchandising/maximos),
+    // así que sin esto el Dashboard nunca se enteraba de estos toggles.
+    dataService.notify("presupuesto");
   }, [setCamSyncConfigRaw]);
   const [margenConfig, setMargenConfig] = useData(SK_PPTO_MARGEN_CONFIG, MARGEN_CONFIG_DEFAULT);
   const [saveStatus, setSaveStatus] = useState("idle");
@@ -343,6 +350,10 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
         dataService.set(SK_PPTO_MERCHANDISING, merchandising),
         dataService.set(SK_PPTO_MAXIMOS, maximos),
       ]);
+      // FIX-DASH-SYNC: notificar al Dashboard tras guardado manual — sin esto,
+      // su caché de React Query (staleTime 60s) no se invalida y sigue mostrando
+      // el resultado/KPIs anteriores hasta que expire por tiempo o haya remount.
+      dataService.notify("presupuesto");
       setSaveStatus("saved");
       emitSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2000);
@@ -421,6 +432,8 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
           dataService.set(SK_PPTO_MERCHANDISING, merchandising),
           dataService.set(SK_PPTO_MAXIMOS, maximos)
         ]);
+        // FIX-DASH-SYNC: notificar al Dashboard tras autosave — ver nota en saveData().
+        dataService.notify("presupuesto");
         emitSaveStatus("saved");
       } catch { emitSaveStatus("error"); }
     }, 800);
@@ -438,7 +451,8 @@ export const useBudgetLogic = ({ scenarioInscritos, scenarioConceptos, scenarioI
           dataService.set(SK_PPTO_INGRESOS_EXTRA, ingresosExtraSnapshot),
           dataService.set(SK_PPTO_MERCHANDISING, merchandising),
           dataService.set(SK_PPTO_MAXIMOS, maximos),
-        ]).catch(() => { /* ignorar errores al desmontar */ });
+        ]).then(() => dataService.notify("presupuesto"))
+          .catch(() => { /* ignorar errores al desmontar */ });
       }
     };
   }, [tramos, conceptos, inscritos, ingresosExtraConValores, merchandising, maximos]);

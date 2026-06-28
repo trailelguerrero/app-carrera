@@ -3,7 +3,7 @@
  * PRE-01..PRE-10: toggles KPIs, syncKey routing, migración datos legados
  * PRE-11..PRE-13: nuevas funciones merchandising y balance camisetas
  */
-import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 
 beforeAll(() => {
   const s = {};
@@ -723,5 +723,77 @@ describe('PRE-17 — Seed de Merchandising sin duplicidad de camisetas', () => {
     const nombres = MERCHANDISING_DEFAULT.map(m => m.nombre);
     expect(nombres).toContain('Buff / Braga cuello');
     expect(nombres).toContain('Gorra trail');
+  });
+});
+
+// PRE-18 — FIX-DASH-SYNC: useBudgetLogic debe notificar al Dashboard tras persistir.
+// Causa raíz del bug reportado "Dashboard no muestra el mismo resultado que Presupuesto":
+// el Dashboard (React Query, staleTime 60s) solo invalida su caché cuando recibe el
+// evento emitido por dataService.notify("presupuesto"). Presupuesto nunca lo llamaba —
+// ni en el guardado manual, ni en el autosave debounced, ni en los toggles de sync.
+describe('PRE-18 — FIX-DASH-SYNC: notificar al Dashboard tras guardar en Presupuesto', () => {
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
+
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
+  async function renderBudgetLogic() {
+    const { renderHook, act } = await import('@testing-library/react');
+    const dataService = (await import('../lib/dataService.js')).default;
+    const { useBudgetLogic } = await import('../hooks/useBudgetLogic.js');
+
+    vi.spyOn(dataService, 'get').mockImplementation((key, defaultValue) => Promise.resolve(defaultValue));
+    vi.spyOn(dataService, 'set').mockResolvedValue(undefined);
+    const notifySpy = vi.spyOn(dataService, 'notify').mockImplementation(() => {});
+
+    let hook;
+    await act(async () => {
+      hook = renderHook(() => useBudgetLogic({}));
+      // Drenar el loadData() inicial (microtasks de dataService.get mockeado)
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    notifySpy.mockClear(); // ignorar cualquier notify espurio de la carga inicial
+    return { hook, notifySpy, act };
+  }
+
+  it('el guardado manual (saveData) notifica "presupuesto" tras persistir', async () => {
+    const { hook, notifySpy, act } = await renderBudgetLogic();
+    await act(async () => {
+      await hook.result.current.saveData();
+    });
+    expect(notifySpy).toHaveBeenCalledWith('presupuesto');
+  });
+
+  it('el autosave debounced (800ms) notifica "presupuesto" tras editar un concepto', async () => {
+    const { hook, notifySpy, act } = await renderBudgetLogic();
+    act(() => {
+      hook.result.current.setConceptos(prev => [...prev, {
+        id: 999, tipo: 'fijo', activo: true, costeTotal: 100,
+        activoDistancias: { TG7: true, TG13: true, TG25: true },
+      }]);
+    });
+    expect(notifySpy).not.toHaveBeenCalled(); // no debe disparar antes de los 800ms
+    await act(async () => { vi.advanceTimersByTime(800); });
+    expect(notifySpy).toHaveBeenCalledWith('presupuesto');
+  });
+
+  it('cambiar un toggle de syncConfig notifica "presupuesto" de inmediato', async () => {
+    const { hook, notifySpy, act } = await renderBudgetLogic();
+    act(() => {
+      hook.result.current.setSyncConfig(prev => ({ ...prev, patrocinios: !prev.patrocinios }));
+    });
+    expect(notifySpy).toHaveBeenCalledWith('presupuesto');
+  });
+
+  it('cambiar un toggle de camSyncConfig (categorías camisetas) notifica "presupuesto" de inmediato', async () => {
+    const { hook, notifySpy, act } = await renderBudgetLogic();
+    act(() => {
+      hook.result.current.setCamSyncConfig(prev => ({ ...prev, camVoluntarios: !prev.camVoluntarios }));
+    });
+    expect(notifySpy).toHaveBeenCalledWith('presupuesto');
   });
 });
