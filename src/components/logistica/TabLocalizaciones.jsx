@@ -15,6 +15,7 @@ import { useLeafletReady } from "@/hooks/useLeafletReady";
 import { useMapFullscreen } from "@/hooks/useMapFullscreen";
 import { useMapTiles } from "@/hooks/useMapTiles";
 import { MapControles } from "@/components/common/MapControles";
+import { nombreCompleto } from "@/hooks/useVoluntarios";
 
 // ─── MAPA LEAFLET ─────────────────────────────────────────────────────────────
 // LOC-SYNC-01 + TRACK-01: mapa con tracks GPX + marcadores de localizaciones.
@@ -655,7 +656,7 @@ function TabLocalizaciones({ locs, setLocs, volsPorLoc = {}, matPorLoc = {}, rec
                           <span style={{ width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
                             background: a.vol.estado === "confirmado" ? "var(--green)" :
                               a.vol.estado === "pendiente" ? "var(--amber)" : "var(--text-dim)" }} />
-                          <span style={{ color: "var(--text)", fontWeight: 600 }}>{a.vol.nombre}</span>
+                          <span style={{ color: "var(--text)", fontWeight: 600 }}>{nombreCompleto(a.vol, "Sin nombre")}</span>
                           <span style={{ color: "var(--text-dim)", fontSize: "var(--fs-xs)" }}>— {a.puesto.nombre}</span>
                         </div>
                       ))}

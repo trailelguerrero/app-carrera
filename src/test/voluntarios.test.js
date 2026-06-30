@@ -2073,3 +2073,72 @@ describe('VOL-34 — Grupos de voluntarios: creación y compañeros', () => {
     expect(actualizados.every(v => v.puestoId === 9)).toBe(true);
   });
 });
+
+// ── VOL-35/VOL-36: apellidos faltaba en exports CSV/Excel ─────────────────────
+// Diagnóstico (30/06/2026): exportarVoluntarios() y el CSV de FichaPuesto solo
+// volcaban v.nombre, ignorando v.apellidos pese a ser campo separado (CORE-10).
+// Como useVoluntarios() auto-divide "nombre" en nombre+apellidos cuando hay
+// espacio (migración legacy), el efecto era perder el apellido en casi todos
+// los voluntarios con nombre compuesto. Se añade un helper único
+// (nombreCompleto) y se corrigen ambos puntos de exportación.
+describe('VOL-35 — helper nombreCompleto (único punto de verdad)', () => {
+  it('combina nombre y apellidos', async () => {
+    const { nombreCompleto } = await import('@/hooks/useVoluntarios');
+    expect(nombreCompleto({ nombre: "Judith", apellidos: "Castañar" })).toBe("Judith Castañar");
+  });
+
+  it('sin apellidos, devuelve solo el nombre', async () => {
+    const { nombreCompleto } = await import('@/hooks/useVoluntarios');
+    expect(nombreCompleto({ nombre: "Juan" })).toBe("Juan");
+  });
+
+  it('voluntario null/undefined usa el fallback', async () => {
+    const { nombreCompleto } = await import('@/hooks/useVoluntarios');
+    expect(nombreCompleto(null, "Sin nombre")).toBe("Sin nombre");
+    expect(nombreCompleto(undefined)).toBe("");
+  });
+
+  it('nombre y apellidos vacíos usa el fallback', async () => {
+    const { nombreCompleto } = await import('@/hooks/useVoluntarios');
+    expect(nombreCompleto({ nombre: "", apellidos: "" }, "Sin nombre")).toBe("Sin nombre");
+  });
+});
+
+describe('VOL-35 — exportarVoluntarios incluye Apellidos como columna propia', () => {
+  it('filaVoluntarioExport incluye Apellidos separado de Nombre', async () => {
+    const { filaVoluntarioExport } = await import('@/lib/exportUtils.js');
+    const fila = filaVoluntarioExport({ nombre: "Judith", apellidos: "Castañar", telefono: "600111222" }, []);
+    expect(fila.Nombre).toBe("Judith");
+    expect(fila.Apellidos).toBe("Castañar");
+  });
+
+  it('filaVoluntarioExport no rompe si apellidos no existe', async () => {
+    const { filaVoluntarioExport } = await import('@/lib/exportUtils.js');
+    const fila = filaVoluntarioExport({ nombre: "Juan" }, []);
+    expect(fila.Nombre).toBe("Juan");
+    expect(fila.Apellidos).toBe("");
+  });
+
+  it('filaVoluntarioExport resuelve el nombre del puesto', async () => {
+    const { filaVoluntarioExport } = await import('@/lib/exportUtils.js');
+    const puestos = [{ id: 1, nombre: "Meta" }];
+    const fila = filaVoluntarioExport({ nombre: "Ana", apellidos: "Ruiz", puestoId: 1 }, puestos);
+    expect(fila.Puesto).toBe("Meta");
+  });
+});
+
+describe('VOL-36 — CSV de FichaPuesto incluye Apellidos como columna propia', () => {
+  it('filaVoluntarioPuestoCSV incluye apellidos en la posición correcta', async () => {
+    const { filaVoluntarioPuestoCSV } = await import('@/components/voluntarios/FichaPuesto.jsx');
+    const fila = filaVoluntarioPuestoCSV({ nombre: "Judith", apellidos: "Castañar", telefono: "600111222", estado: "confirmado", talla: "M" });
+    expect(fila[0]).toBe("Judith");
+    expect(fila[1]).toBe("Castañar");
+    expect(fila.length).toBe(8); // Nombre, Apellidos, Teléfono, Estado, Talla, Vehículo, En puesto, Hora llegada
+  });
+
+  it('filaVoluntarioPuestoCSV no rompe si apellidos no existe', async () => {
+    const { filaVoluntarioPuestoCSV } = await import('@/components/voluntarios/FichaPuesto.jsx');
+    const fila = filaVoluntarioPuestoCSV({ nombre: "Juan" });
+    expect(fila[1]).toBe("");
+  });
+});

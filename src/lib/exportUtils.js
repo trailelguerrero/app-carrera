@@ -9,6 +9,7 @@
  * Todas las funciones son async porque ExcelJS usa una API basada en Promises.
  *
  * Funciones exportadas:
+ *   filaVoluntarioExport(v, puestos)                       → objeto (pura, testeable)
  *   exportarVoluntarios(voluntarios, puestos)              → async
  *   exportarPatrocinadores(pats)                           → async
  *   exportarMaterial(material, asigs, locs, modo, puestos, voluntarios) → async
@@ -63,12 +64,15 @@ async function downloadWorkbook(workbook, filename) {
 
 // ─── Voluntarios ──────────────────────────────────────────────────────────────
 
-export async function exportarVoluntarios(voluntarios = [], puestos = []) {
-  const { default: ExcelJS } = await import('exceljs');
-
-  const activos = voluntarios.filter((v) => v.estado !== 'cancelado');
-  const data = activos.map((v) => ({
+/**
+ * filaVoluntarioExport — Fila de export Excel para un voluntario.
+ * VOL-35: Apellidos faltaba en el export aunque es un campo separado del
+ * modelo (CORE-10); el resto de la app sí lo mostraba correctamente.
+ */
+export function filaVoluntarioExport(v, puestos = []) {
+  return {
     Nombre:             v.nombre || '',
+    Apellidos:          v.apellidos || '',
     Teléfono:           v.telefono || '',
     Email:              v.email || '',
     Puesto:             puestos.find((p) => p.id === v.puestoId)?.nombre || '—',
@@ -80,7 +84,14 @@ export async function exportarVoluntarios(voluntarios = [], puestos = []) {
     'Fecha nacimiento': v.fechaNacimiento || '',
     'Fecha registro':   v.fechaRegistro || '',
     Notas:              v.notas || '',
-  }));
+  };
+}
+
+export async function exportarVoluntarios(voluntarios = [], puestos = []) {
+  const { default: ExcelJS } = await import('exceljs');
+
+  const activos = voluntarios.filter((v) => v.estado !== 'cancelado');
+  const data = activos.map((v) => filaVoluntarioExport(v, puestos));
 
   const wb = new ExcelJS.Workbook();
   addSheet(wb, 'Voluntarios', data);

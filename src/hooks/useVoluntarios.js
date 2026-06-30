@@ -68,6 +68,18 @@ export function resolverNuevaLocParaPuesto(data, locsActuales) {
   return { localizacionId: nuevaLoc.id, nuevaLoc };
 }
 
+/**
+ * nombreCompleto — Único punto de verdad para combinar nombre + apellidos.
+ * VOL-35: extraído como helper compartido porque la lógica de unión estaba
+ * duplicada (a mano) en 12+ componentes, y dos puntos de exportación a
+ * CSV/Excel se quedaron fuera de esa duplicación, exportando solo el nombre.
+ */
+export function nombreCompleto(v, fallback = "") {
+  if (!v) return fallback;
+  const full = [v.nombre, v.apellidos].filter(Boolean).join(" ").trim();
+  return full || fallback;
+}
+
 const VOLUNTARIOS_DEFAULT = [
   { id: 1, nombre: "Voluntario Ejemplo 1", telefono: "600 000 001", email: "voluntario1@ejemplo.es", talla: "S", puestoId: 1, rol: "responsable", estado: "confirmado", coche: true,  notas: "", fechaRegistro: "2026-02-15" },
   { id: 2, nombre: "Voluntario Ejemplo 2", telefono: "600 000 002", email: "voluntario2@ejemplo.es", talla: "L", puestoId: 2, rol: "apoyo",       estado: "confirmado", coche: false, notas: "", fechaRegistro: "2026-02-20" },

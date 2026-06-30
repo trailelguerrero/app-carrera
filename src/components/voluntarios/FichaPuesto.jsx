@@ -13,6 +13,25 @@ import { blockCls as cls } from "@/lib/blockStyles";
 import { ModalReasignar } from "@/components/voluntarios/ModalReasignar";
 
 // ─── FICHA PUESTO ─────────────────────────────────────────────────────────────
+
+/**
+ * filaVoluntarioPuestoCSV — Fila de export CSV (lista de un puesto).
+ * VOL-36: Apellidos faltaba aquí igual que en exportarVoluntarios (VOL-35);
+ * además la cabecera ni siquiera tenía columna "Apellidos".
+ */
+function filaVoluntarioPuestoCSV(v) {
+  return [
+    v.nombre || "",
+    v.apellidos || "",
+    v.telefono || "",
+    v.estado || "",
+    v.talla || "",
+    v.coche ? "Sí" : "No",
+    v.enPuesto ? "Sí" : "No",
+    v.horaLlegada || "",
+  ];
+}
+
 function FichaPuesto({ puesto: p, voluntarios, puestosConStats=[], locs=[], matPorPuesto={}, rutas=[], onClose, onEditar, onEliminar, onFichaVol, onDesasignarVol, onReasignarVol, onIntercambiarVol }) {
   const { closing: fpuClosing, handleClose: fpuHandleClose } = useModalClose(onClose);
   const [modalReasignarVol, setModalReasignarVol] = useState(null); // voluntario a reasignar desde esta ficha
@@ -293,16 +312,8 @@ function FichaPuesto({ puesto: p, voluntarios, puestosConStats=[], locs=[], matP
               <button className="btn btn-ghost btn-sm"
                 title="Exportar lista del puesto a CSV"
                 onClick={() => {
-                  const header = ["Nombre","Teléfono","Estado","Talla","Vehículo","En puesto","Hora llegada"];
-                  const rows = asignados.map(v => [
-                    v.nombre || "",
-                    v.telefono || "",
-                    v.estado || "",
-                    v.talla || "",
-                    v.coche ? "Sí" : "No",
-                    v.enPuesto ? "Sí" : "No",
-                    v.horaLlegada || "",
-                  ]);
+                  const header = ["Nombre","Apellidos","Teléfono","Estado","Talla","Vehículo","En puesto","Hora llegada"];
+                  const rows = asignados.map(filaVoluntarioPuestoCSV);
                   const csv = [header, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
                   const blob = new Blob([csv], { type:"text/csv;charset=utf-8;" });
                   const url = URL.createObjectURL(blob);
@@ -340,4 +351,4 @@ function FichaPuesto({ puesto: p, voluntarios, puestosConStats=[], locs=[], matP
 
 
 // Exports
-export { FichaPuesto };
+export { FichaPuesto, filaVoluntarioPuestoCSV };
