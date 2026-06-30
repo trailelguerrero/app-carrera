@@ -12,6 +12,7 @@ import {
 // PERF-F4: Leaflet ya no se carga en boot — useLeafletReady lo importa bajo demanda
 import App from "./App.tsx";
 import "./index.css";
+import { registerServiceWorker } from "./lib/registerServiceWorker";
 
 // ── Sentry — solo en producción ────────────────────────────────────────────
 // La release se construye como "version+commitSHA" para vincular errores a
@@ -139,52 +140,20 @@ createRoot(document.getElementById("root")!).render(
 // ── Service Worker — solo en producción ────────────────────────────────────
 // En desarrollo el SW está desactivado (devOptions.enabled: false en vite.config)
 // para no interferir con el HMR ni cachear assets en caliente.
-if (import.meta.env.PROD && "serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/sw.js", { scope: "/" })
-      .then((registration) => {
-        // Detectar cuando hay una nueva versión disponible
-        registration.addEventListener("updatefound", () => {
-          const newWorker = registration.installing;
-          if (!newWorker) return;
-
-          newWorker.addEventListener("statechange", () => {
-            // Solo actuar si hay un SW previo activo (no en la primera instalación)
-            if (
-              newWorker.state === "installed" &&
-              navigator.serviceWorker.controller
-            ) {
-              // Toast con botón: el usuario decide cuándo recargar
-              window.dispatchEvent(
-                new CustomEvent("teg-toast", {
-                  detail: {
-                    type: "info",
-                    message: "🔄 Nueva versión disponible",
-                    duration: 0, // no auto-dismiss
-                    id: Date.now(),
-                    action: {
-                      label: "Actualizar",
-                      onClick: () => {
-                        // Pedir al nuevo SW que tome el control inmediatamente
-                        newWorker.postMessage({ type: "SKIP_WAITING" });
-                      },
-                    },
-                  },
-                })
-              );
-            }
-          });
-        });
-
-        // Cuando el SW nuevo toma el control, recargar la página
-        navigator.serviceWorker.addEventListener("controllerchange", () => {
-          window.location.reload();
-        });
-      })
-      .catch((err) => {
-        // Error de registro no es crítico — la app funciona sin SW
-        console.warn("[SW] Error al registrar el service worker:", err);
-      });
-  });
+//
+// PWA-12 (jun-2026): antes, el SW nuevo se instalaba pero esperaba a que el
+// usuario pulsase "Actualizar" en un toast — y encima sw.js ya llama a
+// self.skipWaiting() automáticamente en el install, así que ese botón no
+// tenía ningún efecto real y solo generaba confusión. Además, sin forzar
+// `registration.update()`, el navegador solo revisaba si había una versión
+// nueva en navegaciones de nivel superior y como mucho una vez cada ~24h —
+// una PWA instalada o una pestaña abierta varios días podía quedarse
+// atascada en una versión vieja indefinidamente.
+//
+// Ahora registerServiceWorker() fuerza la comprobación al registrar, al
+// volver a primer plano y cada hora mientras la app sigue abierta, y
+// recarga sola en cuanto el SW nuevo toma el control. Ningún usuario tiene
+// que hacer nada manualmente. Ver src/lib/registerServiceWorker.ts.
+if (import.meta.env.PROD) {
+  registerServiceWorker();
 }

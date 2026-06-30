@@ -44,8 +44,10 @@ export default defineConfig(({ mode }) => ({
       strategies: "injectManifest",
       srcDir: "public",
       filename: "sw.js",
-      // No registramos automáticamente — lo hacemos manualmente en main.tsx
-      // para poder mostrar el toast de "nueva versión disponible"
+      // No registramos automáticamente — lo hacemos manualmente en
+      // src/lib/registerServiceWorker.ts (PWA-12), que fuerza la
+      // comprobación de actualizaciones y recarga sola, sin que el
+      // usuario tenga que hacer nada.
       injectRegister: false,
       manifest: false, // usamos nuestro public/manifest.json directamente
       injectManifest: {
