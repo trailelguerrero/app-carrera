@@ -11,8 +11,10 @@
  * DC-08  Tab Ahora: estado OK cuando no hay alertas
  * DC-09  Checklist filtrado por fases del día de carrera
  * DC-10  Voluntarios ordenados: sin llegar primero
+ * DC-11  Listas de presencia/puesto muestran nombre completo (no solo nombre)
  */
 import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { nombreCompleto } from '@/hooks/useVoluntarios';
 
 beforeAll(() => {
   const s = {};
@@ -354,5 +356,23 @@ describe('DC-10 — Voluntarios ordenados: sin llegar antes que llegados', () =>
     const r = ordenarVols(vols);
     const noLlegados = r.filter(v => !v.enPuesto);
     expect(noLlegados.map(v => v.nombre)).toEqual(["Juan","Pedro"]);
+  });
+});
+
+// ── DC-11: listas de presencia/puesto mostraban solo v.nombre ──────────────
+// Diagnóstico (30/06/2026): mismo root cause que VOL-35/36/37 (CORE-10) pero
+// en pantalla, no en export. El tab "voluntarios" (lista de presencia) y el
+// tab "puestos" (roster por puesto) de Día de Carrera mostraban {v.nombre}
+// directamente en vez de combinar nombre+apellidos — crítico porque es la
+// pantalla que se usa en vivo el día de la carrera para pasar lista.
+// Corregido usando el helper nombreCompleto() ya existente (VOL-35), evitando
+// duplicar la lógica de unión por tercera vez.
+describe('DC-11 — nombreCompleto cubre el caso de uso de Día de Carrera', () => {
+  it('combina nombre y apellidos para la lista de presencia', () => {
+    expect(nombreCompleto({ nombre: "Judith", apellidos: "Castañar", enPuesto: false })).toBe("Judith Castañar");
+  });
+
+  it('usa el fallback si el voluntario no tiene nombre', () => {
+    expect(nombreCompleto({ apellidos: "" }, "Sin nombre")).toBe("Sin nombre");
   });
 });

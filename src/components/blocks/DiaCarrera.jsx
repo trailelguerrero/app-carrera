@@ -12,6 +12,7 @@ import { getEventDate } from "@/lib/eventUtils";
 import { LOCS_KEY, LOCS_DEFAULT } from "@/constants/localizaciones"; // CONN-01: mapa de puestos
 // Mejora 4: usar contratos públicos en lugar de SK_LOG_ROOT / SK_VOL_ROOT directos
 import { useLogisticaPublic, useVoluntariosPublic } from "@/hooks/public";
+import { nombreCompleto } from "@/hooks/useVoluntarios";
 import {
   SK_LOG_TL,
   SK_LOG_CK,
@@ -503,7 +504,7 @@ export default function DiaCarrera({ onClose }) {
                   </button>
                   <div className="flex-1">
                     <div style={{fontWeight:700,fontSize:"var(--fs-base)",color:v.enPuesto?"var(--green)":"var(--text)"}}>
-                      {v.nombre}
+                      {nombreCompleto(v, "Sin nombre")}
                     </div>
                     <div className="mono-xs text-muted">
                       {puesto?.nombre || "Sin puesto"} · {v.telefono || "—"}
@@ -556,7 +557,7 @@ export default function DiaCarrera({ onClose }) {
                       <span style={{width:7,height:7,borderRadius:"50%",flexShrink:0,
                         background:v.enPuesto?"var(--green)":"var(--border)"}} />
                       <span style={{fontSize:"var(--fs-base)",flex:1,color:v.enPuesto?"var(--text)":"var(--text-muted)"}}>
-                        {v.nombre}
+                        {nombreCompleto(v, "Sin nombre")}
                       </span>
                       {v.telefono && (
                         <a href={`tel:${v.telefono}`} style={{color:"var(--cyan)",fontSize:"var(--fs-base)",textDecoration:"none"}}>

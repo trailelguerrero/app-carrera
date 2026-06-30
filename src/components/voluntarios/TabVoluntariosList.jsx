@@ -12,6 +12,37 @@ import { blockCls as cls } from "@/lib/blockStyles";
 import { ESTADOS, TIPOS_PUESTO, DISTANCIAS_PUESTO, estadoColor, estadoBg } from "@/constants/voluntariosConstants";
 import { TabKanbanVol } from "@/components/voluntarios/TabKanbanVol";
 
+// ─── EXPORT CSV: filas puras y testeables ──────────────────────────────────────
+// VOL-37: exportarCSV (listado completo) y exportSeleccionCSV (selección masiva)
+// solo volcaban v.nombre, igual que el bug de VOL-35/36 (exportarVoluntarios/
+// FichaPuesto), pero estos dos puntos quedaron fuera de aquella corrección.
+// Como useVoluntarios() auto-divide "nombre" en nombre+apellidos cuando el
+// nombre original tiene espacio (CORE-10), el apellido se perdía al exportar
+// en casi todos los voluntarios con nombre compuesto, aunque sí se veía bien
+// en pantalla (la propia tabla de esta lista ya usa [v.nombre, v.apellidos]).
+const CABECERA_LISTA_CSV = ["Nombre", "Apellidos", "Teléfono", "Email", "Puesto", "Talla", "Rol", "Estado", "Tel.Emergencia", "Vehículo", "Notas", "Alergias", "Medicación", "Mensaje voluntario"];
+
+function filaVoluntarioListaCSV(v, puestos = []) {
+  const puesto = puestos.find(p => p.id === v.puestoId);
+  return [
+    v.nombre || "", v.apellidos || "", v.telefono || "", v.email || "",
+    puesto?.nombre || "Sin asignar", v.talla || "",
+    v.rol || "apoyo", v.estado || "pendiente",
+    v.telefonoEmergencia || v.contactoEmergencia || "",
+    v.coche ? "Sí" : "No", (v.notas || "").replace(/\n/g, " "),
+    (v.alergias || "").replace(/\n/g, " "),
+    (v.medicacion || "").replace(/\n/g, " "),
+    (v.mensajeParaOrganizador || "").replace(/\n/g, " ")
+  ];
+}
+
+const CABECERA_SELECCION_CSV = ["Nombre", "Apellidos", "Teléfono", "Estado", "Puesto", "Talla"];
+
+function filaVoluntarioSeleccionCSV(v, puestos = []) {
+  const puesto = puestos.find(p => p.id === v.puestoId);
+  return [v.nombre || "", v.apellidos || "", v.telefono || "", v.estado || "", puesto?.nombre || "Sin asignar", v.talla || ""];
+}
+
 // ─── TAB VOLUNTARIOS ──────────────────────────────────────────────────────────
 function TabVoluntarios({
   voluntarios, todosVols, puestos,
@@ -216,20 +247,7 @@ function TabVoluntarios({
           <button className="btn btn-ghost" aria-label="Exportar lista de voluntarios"
             onClick={() => {
               const activos = todosVols.filter(v => v.estado !== "cancelado");
-              const rows = [["Nombre","Teléfono","Email","Puesto","Talla","Rol","Estado","Tel.Emergencia","Vehículo","Notas","Alergias","Medicación","Mensaje voluntario"]];
-              activos.forEach(v => {
-                const puesto = puestos.find(p => p.id === v.puestoId);
-                rows.push([
-                  v.nombre||"", v.telefono||"", v.email||"",
-                  puesto?.nombre||"Sin asignar", v.talla||"",
-                  v.rol||"apoyo", v.estado||"pendiente",
-                  v.telefonoEmergencia||v.contactoEmergencia||"",
-                  v.coche?"Sí":"No", (v.notas||"").replace(/\n/g," "),
-                  (v.alergias||"").replace(/\n/g," "),
-                  (v.medicacion||"").replace(/\n/g," "),
-                  (v.mensajeParaOrganizador||"").replace(/\n/g," ")
-                ]);
-              });
+              const rows = [CABECERA_LISTA_CSV, ...activos.map(v => filaVoluntarioListaCSV(v, puestos))];
               const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
               const blob = new Blob(["\uFEFF"+csv], { type:"text/csv;charset=utf-8;" });
               const url = URL.createObjectURL(blob);
@@ -288,11 +306,7 @@ function TabVoluntarios({
               onClick={() => {
                 // Exportar solo seleccionados
                 const sels = todosVols.filter(v => seleccionados.includes(v.id));
-                const rows = [["Nombre","Teléfono","Estado","Puesto","Talla"]];
-                sels.forEach(v => {
-                  const puesto = puestos.find(p => p.id === v.puestoId);
-                  rows.push([v.nombre||"", v.telefono||"", v.estado||"", puesto?.nombre||"Sin asignar", v.talla||""]);
-                });
+                const rows = [CABECERA_SELECCION_CSV, ...sels.map(v => filaVoluntarioSeleccionCSV(v, puestos))];
                 const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
                 const blob = new Blob(["\uFEFF"+csv], { type:"text/csv;charset=utf-8;" });
                 const a = document.createElement("a");
@@ -828,4 +842,4 @@ function TabVoluntarios({
 }
 
 // Exports
-export { TabVoluntarios };
+export { TabVoluntarios, filaVoluntarioListaCSV, filaVoluntarioSeleccionCSV, CABECERA_LISTA_CSV, CABECERA_SELECCION_CSV };

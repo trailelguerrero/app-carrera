@@ -2142,3 +2142,53 @@ describe('VOL-36 — CSV de FichaPuesto incluye Apellidos como columna propia', 
     expect(fila[1]).toBe("");
   });
 });
+
+// ── VOL-37: apellidos faltaba en los DOS exports CSV del listado principal ────
+// Diagnóstico (30/06/2026): TabVoluntariosList.jsx tiene dos botones de export
+// CSV propios ("📥 Exportar CSV" del listado completo y "📊 Exportar CSV" de la
+// selección masiva) que NO pasaron por la corrección VOL-35/36 — ambos volcaban
+// solo v.nombre. Es el mismo root cause (CORE-10: useVoluntarios() auto-divide
+// "nombre" en nombre+apellidos cuando el original tenía espacio), por eso el
+// apellido se perdía "en muchos voluntarios" justo como reportó el usuario.
+describe('VOL-37 — export CSV del listado principal incluye Apellidos', () => {
+  it('filaVoluntarioListaCSV incluye apellidos en columna propia', async () => {
+    const { filaVoluntarioListaCSV } = await import('@/components/voluntarios/TabVoluntariosList.jsx');
+    const fila = filaVoluntarioListaCSV({ nombre: "Judith", apellidos: "Castañar", telefono: "600111222" }, []);
+    expect(fila[0]).toBe("Judith");
+    expect(fila[1]).toBe("Castañar");
+  });
+
+  it('filaVoluntarioListaCSV no rompe si apellidos no existe', async () => {
+    const { filaVoluntarioListaCSV } = await import('@/components/voluntarios/TabVoluntariosList.jsx');
+    const fila = filaVoluntarioListaCSV({ nombre: "Juan" }, []);
+    expect(fila[1]).toBe("");
+  });
+
+  it('filaVoluntarioListaCSV resuelve el nombre del puesto', async () => {
+    const { filaVoluntarioListaCSV } = await import('@/components/voluntarios/TabVoluntariosList.jsx');
+    const puestos = [{ id: 1, nombre: "Meta" }];
+    const fila = filaVoluntarioListaCSV({ nombre: "Ana", apellidos: "Ruiz", puestoId: 1 }, puestos);
+    expect(fila[4]).toBe("Meta");
+  });
+
+  it('CABECERA_LISTA_CSV declara columna Apellidos separada de Nombre', async () => {
+    const { CABECERA_LISTA_CSV } = await import('@/components/voluntarios/TabVoluntariosList.jsx');
+    expect(CABECERA_LISTA_CSV[0]).toBe("Nombre");
+    expect(CABECERA_LISTA_CSV[1]).toBe("Apellidos");
+  });
+});
+
+describe('VOL-37 — export CSV de selección masiva incluye Apellidos', () => {
+  it('filaVoluntarioSeleccionCSV incluye apellidos en columna propia', async () => {
+    const { filaVoluntarioSeleccionCSV } = await import('@/components/voluntarios/TabVoluntariosList.jsx');
+    const fila = filaVoluntarioSeleccionCSV({ nombre: "Judith", apellidos: "Castañar", telefono: "600111222", estado: "confirmado" }, []);
+    expect(fila[0]).toBe("Judith");
+    expect(fila[1]).toBe("Castañar");
+  });
+
+  it('CABECERA_SELECCION_CSV declara columna Apellidos separada de Nombre', async () => {
+    const { CABECERA_SELECCION_CSV } = await import('@/components/voluntarios/TabVoluntariosList.jsx');
+    expect(CABECERA_SELECCION_CSV[0]).toBe("Nombre");
+    expect(CABECERA_SELECCION_CSV[1]).toBe("Apellidos");
+  });
+});
