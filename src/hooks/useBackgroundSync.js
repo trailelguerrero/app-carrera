@@ -72,6 +72,11 @@ export function useBackgroundSync() {
       if (event.data?.type === 'SW_SYNC_COMPLETE') {
         // Sincronización completada desde SW (app estaba cerrada) — Mejora 5: via store
         emitEvent(EVENT_TYPES.DATA_SYNC, 'sw-background-sync');
+        // SYNC-01 (F3): el SW limpia CacheStorage pero no puede tocar localStorage,
+        // dejando marcas __pending_sync_* huérfanas (badge falso positivo aunque el
+        // dato ya esté en Neon). Relanzar la cola: el PUT es idempotente — si ya está
+        // sincronizado, el re-PUT es inofensivo y limpia la marca.
+        dataService.triggerSync();
       }
       if (event.data?.type === 'SW_NAVIGATE') {
         // Notificación push: navegar a la URL indicada

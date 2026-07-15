@@ -223,9 +223,13 @@ const apiAdapter = {
           resolve({ success: true });
         } catch (e) {
           console.error(`[dataService] Error guardando "${collection}" en Neon:`, e.message);
-          window.dispatchEvent(new CustomEvent('teg-save-status', { detail: { status: 'error' } }));
           // Marcar como pendiente para reintento cuando vuelva la conexión
           await localAdapter.set(`__pending_sync_${collection}`, Date.now());
+          // SYNC-01 (F2): emitir count real de pendientes. Sin count, useBackgroundSync
+          // nunca registraba la tarea de Background Sync (exigía count > 0) — dependencia
+          // circular que dejaba la cola sin ningún disparador cuando el fallo ocurría online.
+          const pendingCount = Object.keys(localStorage).filter(k => k.startsWith('__pending_sync_')).length;
+          window.dispatchEvent(new CustomEvent('teg-save-status', { detail: { status: 'error', count: pendingCount } }));
           // PWA-11: escribir también en CacheStorage para que syncFromSW funcione
           // cuando la app está cerrada (el SW no tiene acceso a localStorage).
           writePendingToCache(collection, data);
@@ -468,10 +472,24 @@ if (typeof window !== 'undefined' && ADAPTER === 'api') {
     return false;
   };
 
+  // SYNC-01: guard de reentrada — con múltiples disparadores (online, arranque,
+  // visibilitychange, SW) evita ejecuciones concurrentes que duplicarían PUTs.
+  let syncInFlight = false;
+
   const syncPendingQueue = async () => {
+    if (syncInFlight) return;
     const pendingKeys = Object.keys(localStorage)
       .filter(k => k.startsWith('__pending_sync_'));
     if (pendingKeys.length === 0) return;
+    syncInFlight = true;
+    try {
+      await runPendingQueue(pendingKeys);
+    } finally {
+      syncInFlight = false;
+    }
+  };
+
+  const runPendingQueue = async (pendingKeys) => {
 
     console.debug(`[dataService] Conexión recuperada — ${pendingKeys.length} colección(es) pendiente(s)`);
 
@@ -546,6 +564,15 @@ if (typeof window !== 'undefined' && ADAPTER === 'api') {
   // PWA-11: trigger explícito desde useBackgroundSync (vía dataService.triggerSync).
   // Evita el fake dispatchEvent('online') que activaba otros listeners no deseados.
   window.addEventListener('teg-force-sync', syncPendingQueue);
+
+  // SYNC-01 (F4): al volver la app a primer plano con pendientes, reintentar.
+  // Antes la cola SOLO se disparaba en la transición offline→online o desde el SW;
+  // un PUT fallido estando online (500, timeout, 401) quedaba atascado para siempre.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    const hasPending = Object.keys(localStorage).some(k => k.startsWith('__pending_sync_'));
+    if (hasPending) setTimeout(syncPendingQueue, 1000);
+  });
 }
 export { dataService };
 

@@ -201,3 +201,62 @@ describe('DS-08/09/10 — pinAuth: TTL, sesión y verificación', () => {
     expect(stored).not.toBe(attempt);
   });
 });
+
+// ── SYNC-01: la cola de pendientes tiene disparadores más allá de 'online' ────
+// Bug: __pending_sync_* solo se reintentaba en la transición offline→online o vía
+// SW. Un PUT fallido estando online (500, timeout, 401) quedaba en localStorage
+// para siempre y los cambios nunca llegaban a Neon (invisibles en otros dispositivos).
+describe('SYNC-01 — disparadores de syncPendingQueue', () => {
+  const readDS = async () => {
+    const { readFileSync } = await import('fs');
+    const { resolve } = await import('path');
+    return readFileSync(resolve(process.cwd(), 'src/lib/dataService.js'), 'utf-8');
+  };
+
+  it('F2: el evento error de save() incluye count de pendientes', async () => {
+    const ds = await readDS();
+    expect(ds).toMatch(/status:\s*'error',\s*count:\s*pendingCount/);
+  });
+
+  it('F2: la marca __pending_sync_ se escribe ANTES de emitir el evento error', async () => {
+    const ds = await readDS();
+    const markIdx = ds.indexOf("localAdapter.set(`__pending_sync_${collection}`");
+    const emitIdx = ds.indexOf("status: 'error', count: pendingCount");
+    expect(markIdx).toBeGreaterThan(-1);
+    expect(emitIdx).toBeGreaterThan(markIdx);
+  });
+
+  it('F4: visibilitychange dispara la cola si hay pendientes', async () => {
+    const ds = await readDS();
+    expect(ds).toContain("addEventListener('visibilitychange'");
+    const idx = ds.indexOf("addEventListener('visibilitychange'");
+    const block = ds.slice(idx, idx + 400);
+    expect(block).toContain('__pending_sync_');
+    expect(block).toContain('syncPendingQueue');
+  });
+
+  it('guard de reentrada: syncInFlight evita ejecuciones concurrentes', async () => {
+    const ds = await readDS();
+    expect(ds).toContain('syncInFlight');
+    const idx = ds.indexOf('const syncPendingQueue');
+    const block = ds.slice(idx, idx + 300);
+    expect(block).toContain('if (syncInFlight) return');
+  });
+
+  it('F1: Index.jsx dispara triggerSync cuando authed pasa a true', async () => {
+    const { readFileSync } = await import('fs');
+    const { resolve } = await import('path');
+    const idx = readFileSync(resolve(process.cwd(), 'src/pages/Index.jsx'), 'utf-8');
+    expect(idx).toContain('dataService.triggerSync()');
+    expect(idx).toMatch(/if\s*\(authed\)\s*dataService\.triggerSync\(\)/);
+  });
+
+  it('F3: useBackgroundSync reconcilia marcas tras SW_SYNC_COMPLETE', async () => {
+    const { readFileSync } = await import('fs');
+    const { resolve } = await import('path');
+    const hook = readFileSync(resolve(process.cwd(), 'src/hooks/useBackgroundSync.js'), 'utf-8');
+    const idx = hook.indexOf('SW_SYNC_COMPLETE');
+    const block = hook.slice(idx, idx + 600);
+    expect(block).toContain('dataService.triggerSync()');
+  });
+});

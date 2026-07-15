@@ -615,8 +615,10 @@ describe('LOG-14 — BUG-02: timezone countdown parseEventDate hora local', () =
 
   it('el evento futuro (2026-08-29) devuelve diasHasta positivo con la corrección', () => {
     const diasHasta = calcDiasHasta("2026-08-29");
-    // Desde mayo 2026, faltan más de 90 días hasta agosto 2026
-    expect(diasHasta).toBeGreaterThan(50);
+    // Comparar contra el cálculo real de días restantes en lugar de un umbral
+    // fijo (el umbral 50 rompía el test al acercarse la fecha del evento).
+    const esperado = Math.ceil((new Date(2026, 7, 29, 23, 59, 59) - new Date()) / 86400000);
+    expect(diasHasta).toBe(esperado);
   });
 
   it('una fecha pasada sí produce yaFue=true (la lógica de "ya fue" sigue funcionando)', () => {

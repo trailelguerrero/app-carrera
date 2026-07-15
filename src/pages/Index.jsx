@@ -11,6 +11,7 @@ import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
 import { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys"; // FIX-DEP: migrado desde alias deprecated
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useAppStore, EVENT_TYPES } from "@/store/useAppStore";
+import dataService from "@/lib/dataService";
 import QuickNav from "../components/common/QuickNav";
 import SkeletonBlock from "../components/common/SkeletonBlock";
 
@@ -258,6 +259,14 @@ export default function Index() {
     window.addEventListener('teg-session-expired', handler);
     return () => window.removeEventListener('teg-session-expired', handler);
   }, []);
+
+  // SYNC-01 (F1): al arrancar con sesión válida, tras el login y tras cada re-login
+  // (sesión caducada → PIN → authed vuelve a true), reintentar escrituras pendientes.
+  // Antes, pendientes de sesiones anteriores no tenían NINGÚN disparador al cargar la app
+  // y quedaban solo en localStorage del dispositivo, sin llegar nunca a Neon.
+  useEffect(() => {
+    if (authed) dataService.triggerSync();
+  }, [authed]);
 
   // Leer config completo para header Kinetik Ops
   const headerCfg = (() => {
