@@ -17,6 +17,8 @@ import dataService from "@/lib/dataService";
 import { useLastEvent } from "@/store/useAppStore";
 import { EVENT_TYPES } from "@/store/useAppStore";
 import { EVENT_CONFIG_DEFAULT } from "@/constants/eventConfig";
+import { CAMISETAS_SYNC_CONFIG_DEFAULT } from "@/constants/budgetConstants";
+import { PRECIO_NO_CORREDOR_DEFAULT } from "@/components/camisetas/camisetasConstants";
 import { SK_EVENT_CONFIG as LS_KEY_CONFIG } from "@/constants/storageKeys"; // FIX-DEP: migrado desde alias deprecated
 import {
   SK_PPTO_CONCEPTOS, SK_PPTO_TRAMOS, SK_PPTO_INSCRITOS, SK_PPTO_INGRESOS_EXTRA,
@@ -28,6 +30,11 @@ import {
   SK_DOC_DOCS, SK_DOC_GESTIONES,
   SK_CAM_PEDIDOS, SK_CAM_COSTE, SK_CAM_CORREDORES, SK_CAM_PRECIO_PLATAFORMA,
   SK_CAM_NINO, SK_CAM_VENTA_PUBLICO,
+  // FIX-DASH-CAM-01: faltaban en fetchCamisetas — el Dashboard calculaba el resultado
+  // de camisetas con datos incompletos (no-corredor a 0, toggles por defecto) mientras
+  // useBudgetLogic (Presupuesto) sí las leía. Ver informe de divergencia Dashboard/Presupuesto.
+  SK_CAM_NO_CORREDOR, SK_CAM_PRECIO_NO_CORREDOR, SK_CAM_INCLUIR_PENDIENTES,
+  SK_PPTO_CAM_SYNC_CONFIG,
 } from "@/constants/storageKeys";
 
 // ── Query Key Factory ──────────────────────────────────────────────────────────
@@ -134,6 +141,12 @@ const fetchCamisetas = () => dataService.getMultiple({
   [SK_CAM_PRECIO_PLATAFORMA]: { precio: 0 },
   [SK_CAM_NINO]:              {},
   [SK_CAM_VENTA_PUBLICO]:     { precio: 0, cantidad: 0 },
+  // FIX-DASH-CAM-01: mismas 4 claves que lee useBudgetLogic — sin ellas el Dashboard
+  // ignoraba ventas no-corredor y usaba los toggles por defecto en vez de los reales.
+  [SK_CAM_NO_CORREDOR]:        {},
+  [SK_CAM_PRECIO_NO_CORREDOR]: { precio: PRECIO_NO_CORREDOR_DEFAULT },
+  [SK_CAM_INCLUIR_PENDIENTES]: false,
+  [SK_PPTO_CAM_SYNC_CONFIG]:   CAMISETAS_SYNC_CONFIG_DEFAULT,
 });
 
 // ── Hook principal ─────────────────────────────────────────────────────────────
