@@ -765,8 +765,9 @@ export default function App() {
             voluntariosConfirmados={voluntariosConfirmados} voluntariosPendientes={voluntariosPendientes}
             ninoExt={ninoExt} />}
           {tab === "pedidos"   && <TabPedidos   pedidos={pedidos} coste={coste} abrirFicha={abrirFicha} abrirModal={abrirModal} filtroExterno={filtroP} onClearFiltro={() => setFiltroP({ pago: "todos", ent: "todos" })} />}
+          {/* FIX-DASH-CAM-02: setNoCorredor ahora notifica tras guardar — antes el Dashboard se quedaba con la caché vieja de tallas no-corredor */}
           {tab === "tallas"    && <TabTallas    pedidos={pedidos} corredoresExt={corredoresExt} setCorredores={setCorredores} voluntariosActivos={voluntariosActivos} fuentesActivas={fuentesActivas}
-            noCorredorExt={noCorredorExt} setNoCorredor={setNoCorredor}
+            noCorredorExt={noCorredorExt} setNoCorredor={(v) => { setNoCorredor(v); dataService.notify("presupuesto"); }}
             voluntariosConfirmados={voluntariosConfirmados} voluntariosPendientes={voluntariosPendientes}
             inclPendientes={inclPendientes} setInclPendientes={(v) => { setInclPendientes(v); dataService.notify("presupuesto"); }}
             ninoExt={ninoExt} setNino={setNino}

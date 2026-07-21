@@ -155,3 +155,21 @@ describe("FIX-DASH-CAM-01 — impacto real del bug sobre el caso reportado", () 
     expect(comoDashboard.totalGastos).toBe(comoPresupuesto.totalGastos);
   });
 });
+
+describe("FIX-DASH-CAM-02 — guardar tallas no-corredor notifica al Dashboard", () => {
+  it("setNoCorredor se pasa envuelto en dataService.notify('presupuesto') en Camisetas.jsx", async () => {
+    const fs = await import("fs");
+    const path = await import("path");
+    const filePath = path.resolve(__dirname, "../components/blocks/Camisetas.jsx");
+    const source = fs.readFileSync(filePath, "utf-8");
+
+    // Antes del fix, esta prop se pasaba como `setNoCorredor={setNoCorredor}` sin notificar,
+    // así que el Dashboard se quedaba con caché vieja tras guardar tallas no-corredor.
+    const propLine = source
+      .split("\n")
+      .find(line => line.includes("setNoCorredor={") && line.includes("noCorredorExt={noCorredorExt}"));
+
+    expect(propLine).toBeDefined();
+    expect(propLine).toContain('dataService.notify("presupuesto")');
+  });
+});
