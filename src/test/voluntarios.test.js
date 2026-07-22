@@ -2192,3 +2192,96 @@ describe('VOL-37 — export CSV de selección masiva incluye Apellidos', () => {
     expect(CABECERA_SELECCION_CSV[1]).toBe("Apellidos");
   });
 });
+
+// ── VOL-40 / MEJ-VOL-EXPORT: mejoras del export de voluntarios ────────────────
+describe('VOL-40 — resolverPuestoVol usa String() (evita mismatch de tipo)', () => {
+  it('resuelve aunque puestoId sea string y p.id sea número', async () => {
+    const { filaVoluntarioExport } = await import('@/lib/exportUtils.js');
+    const puestos = [{ id: 7, nombre: 'Control KM 5' }];
+    const fila = filaVoluntarioExport({ nombre: 'Eva', puestoId: '7' }, puestos);
+    expect(fila.Puesto).toBe('Control KM 5');
+  });
+
+  it('resuelve aunque puestoId sea número y p.id sea string', async () => {
+    const { resolverPuestoVol } = await import('@/lib/exportUtils.js');
+    const puestos = [{ id: '12', nombre: 'Meta' }];
+    expect(resolverPuestoVol({ puestoId: 12 }, puestos)?.nombre).toBe('Meta');
+  });
+
+  it('sin puesto asignado devuelve — y no rompe', async () => {
+    const { filaVoluntarioExport } = await import('@/lib/exportUtils.js');
+    expect(filaVoluntarioExport({ nombre: 'Sol' }, []).Puesto).toBe('—');
+  });
+});
+
+describe('MEJ-VOL-EXPORT — enriquecimiento de columnas', () => {
+  it('incluye grupo, matrícula, plazas, camiseta, horario y edad', async () => {
+    const { filaVoluntarioExport } = await import('@/lib/exportUtils.js');
+    const puestos = [{ id: 1, nombre: 'Salida', tipo: 'Salida/Meta', distancias: ['Todas'], horaInicio: '06:30', horaFin: '18:00' }];
+    const fila = filaVoluntarioExport({
+      nombre: 'Ana', apellidos: 'Ruiz', puestoId: 1, grupoNombre: 'Amigos Trail',
+      coche: true, cocheMatricula: '1234-ABC', cochePlazas: 3, camisetaEntregada: true,
+      fechaNacimiento: '1990-01-01', rol: 'responsable', estado: 'confirmado',
+    }, puestos);
+    expect(fila.Grupo).toBe('Amigos Trail');
+    expect(fila.Matrícula).toBe('1234-ABC');
+    expect(fila['Plazas coche']).toBe(3);
+    expect(fila['Camiseta entregada']).toBe('Sí');
+    expect(fila.Horario).toBe('06:30–18:00');
+    expect(fila['Tipo puesto']).toBe('Salida/Meta');
+    expect(fila.Distancias).toBe('Todas');
+    expect(fila.Rol).toBe('Responsable');
+    expect(fila.Estado).toBe('Confirmado');
+    expect(typeof fila.Edad).toBe('number');
+  });
+
+  it('NO expone datos médicos en la fila del listado general', async () => {
+    const { filaVoluntarioExport } = await import('@/lib/exportUtils.js');
+    const fila = filaVoluntarioExport({ nombre: 'Leo', alergias: 'Polen', medicacion: 'Ventolín' }, []);
+    expect('Alergias' in fila).toBe(false);
+    expect('Medicación' in fila).toBe(false);
+    expect(Object.values(fila).join('|')).not.toContain('Ventolín');
+  });
+});
+
+describe('MEJ-VOL-EXPORT — hoja Emergencias Día D (datos sensibles aislados)', () => {
+  it('la fila de emergencia sí contiene alergias y medicación', async () => {
+    const { filaEmergenciaExport } = await import('@/lib/exportUtils.js');
+    const fila = filaEmergenciaExport({ nombre: 'Leo', apellidos: 'Paz', alergias: 'Polen', medicacion: 'Ventolín' }, []);
+    expect(fila.Voluntario).toBe('Leo Paz');
+    expect(fila.Alergias).toBe('Polen');
+    expect(fila.Medicación).toBe('Ventolín');
+  });
+});
+
+describe('MEJ-VOL-EXPORT — resumenVoluntarios', () => {
+  it('cuenta por estado, por talla y por puesto, y excluye cancelados del total', async () => {
+    const { resumenVoluntarios } = await import('@/lib/exportUtils.js');
+    const vols = [
+      { id: 1, talla: 'M', estado: 'confirmado', puestoId: 1 },
+      { id: 2, talla: 'M', estado: 'confirmado', puestoId: 1 },
+      { id: 3, talla: 'L', estado: 'pendiente', puestoId: 2 },
+      { id: 4, talla: 'S', estado: 'cancelado' },
+    ];
+    const puestos = [{ id: 1, nombre: 'Meta', necesarios: 4 }, { id: 2, nombre: 'Control' }];
+    const filas = resumenVoluntarios(vols, puestos);
+    const total = filas.find(f => f.Categoría === 'Total' && f.Detalle.startsWith('Voluntarios'));
+    expect(total.Total).toBe(3);
+    const cancel = filas.find(f => f.Categoría === 'Total' && f.Detalle === 'Cancelados');
+    expect(cancel.Total).toBe(1);
+    const tallaM = filas.find(f => f.Categoría === 'Talla' && f.Detalle === 'M');
+    expect(tallaM.Total).toBe(2);
+    const meta = filas.find(f => f.Categoría === 'Puesto' && f.Detalle === 'Meta');
+    expect(meta.Total).toContain('2 asig.');
+  });
+});
+
+describe('MEJ-VOL-EXPORT — edadDesde', () => {
+  it('calcula la edad correctamente', async () => {
+    const { edadDesde } = await import('@/lib/exportUtils.js');
+    expect(edadDesde('2000-01-01', new Date('2026-06-01'))).toBe(26);
+    expect(edadDesde('2000-12-31', new Date('2026-06-01'))).toBe(25);
+    expect(edadDesde('')).toBe('');
+    expect(edadDesde('no-fecha')).toBe('');
+  });
+});

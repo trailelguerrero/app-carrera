@@ -19,6 +19,7 @@
  *     hoja de detalle, en vez de solo la ubicación maestra.
  */
 import { resolverDestinoAsignacion } from '@/components/logistica/logisticaHelpers';
+import { ESTADOS } from '@/constants/voluntariosConstants';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -64,27 +65,147 @@ async function downloadWorkbook(workbook, filename) {
 
 // ─── Voluntarios ──────────────────────────────────────────────────────────────
 
+const ROLES_LABEL = { apoyo: 'Apoyo', responsable: 'Responsable' };
+
+/** Etiqueta legible del estado; cae al valor crudo si no está en el mapa. */
+function estadoLabel(e) {
+  return ESTADOS[e] || (e ? e.charAt(0).toUpperCase() + e.slice(1) : '');
+}
+
 /**
- * filaVoluntarioExport — Fila de export Excel para un voluntario.
- * VOL-35: Apellidos faltaba en el export aunque es un campo separado del
- * modelo (CORE-10); el resto de la app sí lo mostraba correctamente.
+ * resolverPuestoVol — Único criterio de resolución puesto↔voluntario.
+ * VOL-40: el export usaba `p.id === v.puestoId` (===  estricto) mientras el
+ * resto de la app compara con String() coercion. Como puestoId es
+ * union(string|number) y los puestos importados/creados pueden tener id de
+ * distinto tipo, algunos voluntarios mostraban '—' en el Excel pese a tener
+ * puesto asignado en la UI. Se unifica con String() como en Día D / Reasignar.
+ */
+export function resolverPuestoVol(v, puestos = []) {
+  if (v == null || v.puestoId == null) return null;
+  return puestos.find((p) => String(p.id) === String(v.puestoId)) || null;
+}
+
+/** Edad en años a partir de una fecha ISO (YYYY-MM-DD). '' si no válida. */
+export function edadDesde(fechaNacimiento, hoy = new Date()) {
+  if (!fechaNacimiento) return '';
+  const nac = new Date(fechaNacimiento);
+  if (Number.isNaN(nac.getTime())) return '';
+  let edad = hoy.getFullYear() - nac.getFullYear();
+  const m = hoy.getMonth() - nac.getMonth();
+  if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
+  return edad >= 0 && edad < 120 ? edad : '';
+}
+
+/** Horario legible del puesto ("06:30–18:00") o '' si falta. */
+function horarioPuesto(p) {
+  if (!p) return '';
+  if (p.horaInicio && p.horaFin) return `${p.horaInicio}–${p.horaFin}`;
+  return p.horaInicio || p.horaFin || '';
+}
+
+/**
+ * filaVoluntarioExport — Fila de export Excel para un voluntario (listado general).
+ * VOL-35: Apellidos como columna propia (antes se perdía).
+ * VOL-40: puesto resuelto con resolverPuestoVol (String coercion).
+ * Sin datos médicos: alergias/medicación van solo a la hoja "Emergencias Día D".
  */
 export function filaVoluntarioExport(v, puestos = []) {
+  const p = resolverPuestoVol(v, puestos);
   return {
     Nombre:             v.nombre || '',
     Apellidos:          v.apellidos || '',
     Teléfono:           v.telefono || '',
     Email:              v.email || '',
-    Puesto:             puestos.find((p) => p.id === v.puestoId)?.nombre || '—',
-    Rol:                v.rol || '',
-    Estado:             v.estado || '',
+    Grupo:              v.grupoNombre || '',
+    Puesto:             p?.nombre || '—',
+    'Tipo puesto':      p?.tipo || '',
+    Distancias:         Array.isArray(p?.distancias) ? p.distancias.join(', ') : (p?.distancias || ''),
+    Horario:            horarioPuesto(p),
+    Rol:                ROLES_LABEL[v.rol] || v.rol || '',
+    Estado:             estadoLabel(v.estado),
     Talla:              v.talla || '',
+    'Camiseta entregada': v.camisetaEntregada ? 'Sí' : 'No',
     Coche:              v.coche ? 'Sí' : 'No',
+    Matrícula:          v.cocheMatricula || '',
+    'Plazas coche':     v.coche ? (v.cochePlazas || '') : '',
     'Tel. emergencia':  v.telefonoEmergencia || v.contactoEmergencia || '',
     'Fecha nacimiento': v.fechaNacimiento || '',
+    Edad:               edadDesde(v.fechaNacimiento),
     'Fecha registro':   v.fechaRegistro || '',
+    'En puesto (Día D)': v.enPuesto ? 'Sí' : 'No',
+    'Hora llegada':     v.horaLlegada || '',
     Notas:              v.notas || '',
   };
+}
+
+/**
+ * resumenVoluntarios — Filas de la hoja "Resumen": conteos por estado, por
+ * talla (alimenta el pedido de Camisetas) y por puesto. Tabla plana y uniforme
+ * para poder filtrar/pivotar en Excel.
+ */
+export function resumenVoluntarios(voluntarios = [], puestos = []) {
+  const filas = [];
+  const activos = voluntarios.filter((v) => v.estado !== 'cancelado');
+
+  filas.push({ Categoría: 'Total', Detalle: 'Voluntarios (sin cancelados)', Total: activos.length });
+  filas.push({ Categoría: 'Total', Detalle: 'Cancelados', Total: voluntarios.length - activos.length });
+
+  // Por estado (sobre el total, para no ocultar cancelados en el resumen)
+  const porEstado = {};
+  voluntarios.forEach((v) => { const e = v.estado || 'pendiente'; porEstado[e] = (porEstado[e] || 0) + 1; });
+  Object.keys(ESTADOS).forEach((e) => {
+    if (porEstado[e]) filas.push({ Categoría: 'Estado', Detalle: estadoLabel(e), Total: porEstado[e] });
+  });
+
+  // Por talla (solo activos → refleja el pedido real de camisetas)
+  const porTalla = {};
+  activos.forEach((v) => { const t = v.talla || 'sin talla'; porTalla[t] = (porTalla[t] || 0) + 1; });
+  Object.entries(porTalla)
+    .sort((a, b) => b[1] - a[1])
+    .forEach(([t, n]) => filas.push({ Categoría: 'Talla', Detalle: t, Total: n }));
+
+  // Por puesto (asignados / confirmados / necesarios)
+  puestos.forEach((p) => {
+    const asignados = activos.filter((v) => String(v.puestoId) === String(p.id));
+    if (asignados.length === 0 && !p.necesarios) return;
+    const conf = asignados.filter((v) => v.estado === 'confirmado').length;
+    const nec = p.necesarios != null ? ` / ${p.necesarios} nec.` : '';
+    filas.push({ Categoría: 'Puesto', Detalle: p.nombre || `#${p.id}`, Total: `${asignados.length} asig. (${conf} conf.)${nec}` });
+  });
+
+  const sinPuesto = activos.filter((v) => !resolverPuestoVol(v, puestos)).length;
+  if (sinPuesto) filas.push({ Categoría: 'Puesto', Detalle: 'Sin asignar', Total: sinPuesto });
+
+  return filas;
+}
+
+/**
+ * filaEmergenciaExport — Fila de la hoja restringida "Emergencias Día D".
+ * Contiene datos sensibles (alergias/medicación) — se aísla en su propia hoja
+ * y no se mezcla con el listado general para no filtrarla en cada export.
+ */
+export function filaEmergenciaExport(v, puestos = []) {
+  const p = resolverPuestoVol(v, puestos);
+  return {
+    Voluntario:        [v.nombre, v.apellidos].filter(Boolean).join(' ').trim(),
+    Teléfono:          v.telefono || '',
+    'Tel. emergencia': v.telefonoEmergencia || v.contactoEmergencia || '',
+    Alergias:          v.alergias || '',
+    Medicación:        v.medicacion || '',
+    Puesto:            p?.nombre || '—',
+    Horario:           horarioPuesto(p),
+    'En puesto':       v.enPuesto ? 'Sí' : 'No',
+    'Hora llegada':    v.horaLlegada || '',
+  };
+}
+
+/** Aplica cabecera fija + autofiltro a una hoja con datos. */
+function conFiltroYFijado(ws) {
+  if (!ws || ws.rowCount < 1 || ws.columnCount < 1) return;
+  ws.views = [{ state: 'frozen', ySplit: 1 }];
+  const lastCol = ws.getRow(1).cellCount;
+  const colLetter = ws.getColumn(lastCol).letter;
+  ws.autoFilter = `A1:${colLetter}1`;
 }
 
 export async function exportarVoluntarios(voluntarios = [], puestos = []) {
@@ -94,8 +215,36 @@ export async function exportarVoluntarios(voluntarios = [], puestos = []) {
   const data = activos.map((v) => filaVoluntarioExport(v, puestos));
 
   const wb = new ExcelJS.Workbook();
-  addSheet(wb, 'Voluntarios', data);
-  await downloadWorkbook(wb, 'voluntarios-trail-guerrero-2026.xlsx');
+
+  // Hoja 1 — Resumen (conteos por estado / talla / puesto)
+  addSheet(wb, 'Resumen', resumenVoluntarios(voluntarios, puestos));
+
+  // Hoja 2 — Listado general (sin datos médicos)
+  const wsVol = addSheet(wb, 'Voluntarios', data);
+  conFiltroYFijado(wsVol);
+
+  // Color de fila por estado, igual patrón que el export de Material (MEJ-05)
+  const FILL_ESTADO = {
+    confirmado: 'FFDCFCE7', // verde claro
+    pendiente:  'FFFEF9C3', // amarillo claro
+    dudoso:     'FFEDE9FE', // violeta claro
+    ausente:    'FFFFEDD5', // naranja claro
+  };
+  activos.forEach((v, idx) => {
+    const argb = FILL_ESTADO[v.estado];
+    if (!argb) return;
+    wsVol.getRow(idx + 2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb } };
+  });
+
+  // Hoja 3 — Emergencias Día D (datos sensibles aislados)
+  const emergData = activos.map((v) => filaEmergenciaExport(v, puestos));
+  if (emergData.length > 0) {
+    const wsEmerg = addSheet(wb, 'Emergencias Día D', emergData);
+    conFiltroYFijado(wsEmerg);
+  }
+
+  const hoy = new Date().toISOString().split('T')[0];
+  await downloadWorkbook(wb, `voluntarios-trail-guerrero-${hoy}.xlsx`);
 }
 
 // ─── Patrocinadores ───────────────────────────────────────────────────────────
