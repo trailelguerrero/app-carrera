@@ -63,6 +63,10 @@ function TabVoluntarios({
   const [modalAgrupar, setModalAgrupar] = useState(false);
   const [nombreGrupoInput, setNombreGrupoInput] = useState("");
   const [modalAsignarPuesto, setModalAsignarPuesto] = useState(false);
+  // [GRUPOS] Crear grupo nuevo o añadir a uno existente + filtro por grupo.
+  const [modoAgrupar, setModoAgrupar] = useState("nuevo"); // "nuevo" | "existente"
+  const [grupoExistenteSel, setGrupoExistenteSel] = useState("");
+  const [filtroGrupo, setFiltroGrupo] = useState("todos");
 
   const toggleSeleccion = (id) => setSeleccionados(prev =>
     prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
@@ -71,15 +75,42 @@ function TabVoluntarios({
   const deseleccionarTodos = () => setSeleccionados([]);
   const salirModo = () => { setModoSeleccion(false); setSeleccionados([]); };
 
-  // [GRUPOS] Crear un grupo nuevo (familia/amigos) con los seleccionados.
+  // [GRUPOS] Grupos ya existentes (a partir de todos los voluntarios), para el
+  // filtro por grupo y para "añadir a un grupo existente".
+  const gruposExistentes = useMemo(() => {
+    const map = new Map();
+    (todosVols || []).forEach(v => {
+      if (!v.grupoId) return;
+      const prev = map.get(v.grupoId);
+      map.set(v.grupoId, { id: v.grupoId, nombre: v.grupoNombre || "Grupo", n: (prev?.n || 0) + 1 });
+    });
+    return [...map.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  }, [todosVols]);
+
+  // Cuántos de los seleccionados ya pertenecen a algún grupo (para avisar).
+  const yaAgrupadosEnSeleccion = useMemo(() => {
+    const setSel = new Set(seleccionados.map(String));
+    return (todosVols || []).filter(v => setSel.has(String(v.id)) && v.grupoId).length;
+  }, [seleccionados, todosVols]);
+
+  // [GRUPOS] Crear un grupo nuevo (familia/amigos) o añadir la selección a uno existente.
   const confirmarAgrupar = () => {
-    const nombre = nombreGrupoInput.trim();
-    if (!nombre) { toast.error("Ponle un nombre al grupo"); return; }
-    const grupoId = genIdStr();
-    onBulkUpdate(seleccionados, { grupoId, grupoNombre: nombre });
-    toast.success(`Grupo "${nombre}" creado con ${seleccionados.length} voluntario${seleccionados.length > 1 ? "s" : ""}`);
+    if (modoAgrupar === "existente") {
+      const g = gruposExistentes.find(x => x.id === grupoExistenteSel);
+      if (!g) { toast.error("Elige un grupo"); return; }
+      onBulkUpdate(seleccionados, { grupoId: g.id, grupoNombre: g.nombre });
+      toast.success(`${seleccionados.length} voluntario${seleccionados.length > 1 ? "s" : ""} añadido${seleccionados.length > 1 ? "s" : ""} a "${g.nombre}"`);
+    } else {
+      const nombre = nombreGrupoInput.trim();
+      if (!nombre) { toast.error("Ponle un nombre al grupo"); return; }
+      const grupoId = genIdStr();
+      onBulkUpdate(seleccionados, { grupoId, grupoNombre: nombre });
+      toast.success(`Grupo "${nombre}" creado con ${seleccionados.length} voluntario${seleccionados.length > 1 ? "s" : ""}`);
+    }
     setModalAgrupar(false);
     setNombreGrupoInput("");
+    setGrupoExistenteSel("");
+    setModoAgrupar("nuevo");
     salirModo();
   };
 
@@ -102,7 +133,13 @@ function TabVoluntarios({
     [puestos]
   );
 
-  const volsOrdenados = useMemo(() => [...voluntarios].sort((a, b) => {
+  // [GRUPOS] Filtro por grupo — se compone encima del resto de filtros ya aplicados.
+  const volsBase = useMemo(
+    () => filtroGrupo === "todos" ? voluntarios : voluntarios.filter(v => v.grupoId === filtroGrupo),
+    [voluntarios, filtroGrupo]
+  );
+
+  const volsOrdenados = useMemo(() => [...volsBase].sort((a, b) => {
     if (orden === "nombre") return (a.nombre || "").localeCompare(b.nombre || "", "es");
     if (orden === "puesto") {
       const pa = puestosMapSort.get(a.puestoId)?.nombre || "zzz";
@@ -111,12 +148,12 @@ function TabVoluntarios({
     }
     if (orden === "fecha") return (b.fechaRegistro || "").localeCompare(a.fechaRegistro || "");
     return 0;
-  }), [voluntarios, orden, puestosMapSort]);
+  }), [volsBase, orden, puestosMapSort]);
 
   // Expandir grupos automáticamente al cambiar filtros u orden — muestra resultados sin colapsar manualmente
   useEffect(() => {
     setColapsados({});
-  }, [busqueda, filtroEstado, filtroPuesto, filtroTallas, filtroCoche, filtroDistancias, filtroTipoPuesto, orden]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [busqueda, filtroEstado, filtroPuesto, filtroTallas, filtroCoche, filtroDistancias, filtroTipoPuesto, orden, filtroGrupo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // [VOL-AUDIT-DUP] GRUPOS_ESTADO no incluía "ausente" — igual que pasaba en el
   // Kanban (ver TabKanbanVol.jsx), cualquier voluntario marcado como ausente
@@ -158,7 +195,7 @@ function TabVoluntarios({
   // Resetear visibilidad cuando cambian los filtros u orden
   useEffect(() => {
     setVisiblePorGrupo({});
-  }, [busqueda, filtroEstado, filtroPuesto, filtroTallas, filtroCoche, filtroDistancias, filtroTipoPuesto, orden]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [busqueda, filtroEstado, filtroPuesto, filtroTallas, filtroCoche, filtroDistancias, filtroTipoPuesto, orden, filtroGrupo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cargarMasGrupo = useCallback((grupoId, total) => {
     setVisiblePorGrupo(prev => ({
@@ -171,6 +208,43 @@ function TabVoluntarios({
   // Si orden === "puesto", se agrupa primero por puesto (alfabético, "Sin asignar" al final)
   // y dentro de cada puesto se sub-agrupa por estado (mismo render que el resto).
   const gruposARenderizar = useMemo(() => {
+    // Vista "Por grupo": una sección por cada grupo (familia/amigos), alfabética,
+    // y "Sin grupo" al final. Reutiliza el mismo render colapsable que el resto.
+    if (orden === "grupo") {
+      const porGrupo = new Map();
+      volsOrdenados.forEach(v => {
+        const clave = v.grupoId || "__sin_grupo__";
+        if (!porGrupo.has(clave)) {
+          porGrupo.set(clave, { nombre: v.grupoId ? (v.grupoNombre || "Grupo") : "Sin grupo", items: [] });
+        }
+        porGrupo.get(clave).items.push(v);
+      });
+      const conteoTotal = (clave) => clave === "__sin_grupo__"
+        ? todosVols.filter(v => !v.grupoId).length
+        : todosVols.filter(v => v.grupoId === clave).length;
+      const secciones = [...porGrupo.entries()]
+        .filter(([clave]) => clave !== "__sin_grupo__")
+        .sort((a, b) => a[1].nombre.localeCompare(b[1].nombre, "es"))
+        .map(([clave, data]) => ({
+          clave: `grp::${clave}`,
+          titulo: `👥 ${data.nombre}`,
+          color: "var(--violet)",
+          bg: "rgba(167,139,250,.08)",
+          items: data.items,
+          totalSinFiltrar: conteoTotal(clave),
+        }));
+      if (porGrupo.has("__sin_grupo__")) {
+        secciones.push({
+          clave: "grp::__sin_grupo__",
+          titulo: "Sin grupo",
+          color: "var(--text-muted)",
+          bg: "rgba(255,255,255,.04)",
+          items: porGrupo.get("__sin_grupo__").items,
+          totalSinFiltrar: conteoTotal("__sin_grupo__"),
+        });
+      }
+      return secciones;
+    }
     if (orden !== "puesto") {
       return GRUPOS_ESTADO.map(grupo => ({
         clave: grupo.id,
@@ -361,6 +435,22 @@ function TabVoluntarios({
             onClick={() => setFiltroPuesto("asignado")}>Asignados</button>
           <button className={`filter-pill${filtroPuesto === "sin-asignar" ? " active" : ""}`}
             onClick={() => setFiltroPuesto("sin-asignar")}>Sin asignar</button>
+          {/* [GRUPOS] Filtro por grupo — solo aparece si ya hay algún grupo creado */}
+          {gruposExistentes.length > 0 && (
+            <select
+              className="filter-pill"
+              value={filtroGrupo}
+              onChange={e => setFiltroGrupo(e.target.value)}
+              title="Ver solo un grupo (familia / amigos)"
+              style={filtroGrupo !== "todos"
+                ? { color:"var(--violet)", borderColor:"rgba(167,139,250,.4)", background:"rgba(167,139,250,.12)", cursor:"pointer" }
+                : { cursor:"pointer" }}>
+              <option value="todos">👥 Todos los grupos</option>
+              {gruposExistentes.map(g => (
+                <option key={g.id} value={g.id}>{g.nombre} ({g.n})</option>
+              ))}
+            </select>
+          )}
           <div className="filter-pill-sep" />
           {/* Ordenación / Vista agrupada */}
           <button className={`filter-pill${orden === "nombre" ? " active" : ""}`}
@@ -369,6 +459,12 @@ function TabVoluntarios({
             onClick={() => setOrden("puesto")}>Por puesto</button>
           <button className={`filter-pill${orden === "fecha" ? " active" : ""}`}
             onClick={() => setOrden("fecha")}>Más recientes</button>
+          {gruposExistentes.length > 0 && (
+            <button className={`filter-pill${orden === "grupo" ? " active" : ""}`}
+              onClick={() => setOrden("grupo")}
+              style={orden === "grupo" ? { color:"var(--violet)", borderColor:"rgba(167,139,250,.4)", background:"rgba(167,139,250,.12)" } : {}}
+              title="Ver a los voluntarios reunidos por su grupo (familia / amigos)">👥 Por grupo</button>
+          )}
           {/* Botón filtros avanzados */}
           {(() => {
             const avanzadosActivos = filtroTallas.length > 0 || filtroCoche !== "todos" || filtroDistancias.length > 0 || filtroTipoPuesto.length > 0;
@@ -382,11 +478,12 @@ function TabVoluntarios({
               </button>
             );
           })()}
-          {(busqueda || filtroEstado !== "todos" || filtroPuesto !== "todos" || filtroTallas.length > 0 || filtroCoche !== "todos" || filtroDistancias.length > 0 || filtroTipoPuesto.length > 0) && (
+          {(busqueda || filtroEstado !== "todos" || filtroPuesto !== "todos" || filtroTallas.length > 0 || filtroCoche !== "todos" || filtroDistancias.length > 0 || filtroTipoPuesto.length > 0 || filtroGrupo !== "todos") && (
             <button className="filter-pill"
               onClick={() => {
                 setBusqueda(""); setFiltroEstado("todos"); setFiltroPuesto("todos");
                 setFiltroTallas([]); setFiltroCoche("todos"); setFiltroDistancias([]); setFiltroTipoPuesto([]);
+                setFiltroGrupo("todos");
               }}
               style={{ color:"var(--red)", borderColor:"rgba(248,113,113,0.3)" }}>
               ✕ Limpiar todo
@@ -792,16 +889,48 @@ function TabVoluntarios({
                 Agrupar {seleccionados.length} voluntario{seleccionados.length > 1 ? "s" : ""}
               </div>
               <div className="mono xs muted" style={{ marginBottom: ".75rem" }}>
-                Quedarán enlazados con este nombre — al mover a uno de ellos a otro puesto, se ofrecerá mover a todo el grupo.
+                Quedarán enlazados: al mover a uno de ellos a otro puesto, se te ofrecerá mover a todo el grupo.
               </div>
-              <input className="inp" autoFocus placeholder="Nombre del grupo (ej. Familia Castañar)"
-                value={nombreGrupoInput} onChange={e => setNombreGrupoInput(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") confirmarAgrupar(); }}
-                style={{ width: "100%" }} />
+
+              {/* Aviso si algunos ya pertenecen a otro grupo */}
+              {yaAgrupadosEnSeleccion > 0 && (
+                <div className="mono xs" style={{ marginBottom: ".6rem", padding: ".4rem .55rem", borderRadius: 6,
+                  color: "var(--amber)", background: "rgba(251,191,36,.1)", border: "1px solid rgba(251,191,36,.25)" }}>
+                  ⚠️ {yaAgrupadosEnSeleccion} de ellos ya {yaAgrupadosEnSeleccion > 1 ? "están" : "está"} en un grupo.
+                  Se {yaAgrupadosEnSeleccion > 1 ? "moverán" : "moverá"} a este.
+                </div>
+              )}
+
+              {/* Elegir: crear grupo nuevo o añadir a uno existente (solo si ya hay grupos) */}
+              {gruposExistentes.length > 0 && (
+                <div style={{ display: "flex", gap: ".4rem", marginBottom: ".7rem" }}>
+                  <button className={`btn btn-sm ${modoAgrupar === "nuevo" ? "btn-violet" : "btn-ghost"}`} style={{ flex: 1 }}
+                    onClick={() => setModoAgrupar("nuevo")}>＋ Grupo nuevo</button>
+                  <button className={`btn btn-sm ${modoAgrupar === "existente" ? "btn-violet" : "btn-ghost"}`} style={{ flex: 1 }}
+                    onClick={() => setModoAgrupar("existente")}>Añadir a existente</button>
+                </div>
+              )}
+
+              {modoAgrupar === "existente" && gruposExistentes.length > 0 ? (
+                <select className="inp" autoFocus value={grupoExistenteSel}
+                  onChange={e => setGrupoExistenteSel(e.target.value)} style={{ width: "100%" }}>
+                  <option value="">— Elige un grupo —</option>
+                  {gruposExistentes.map(g => (
+                    <option key={g.id} value={g.id}>{g.nombre} ({g.n})</option>
+                  ))}
+                </select>
+              ) : (
+                <input className="inp" autoFocus placeholder="Nombre del grupo (ej. Familia Castañar)"
+                  value={nombreGrupoInput} onChange={e => setNombreGrupoInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") confirmarAgrupar(); }}
+                  style={{ width: "100%" }} />
+              )}
             </div>
             <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={() => { setModalAgrupar(false); setNombreGrupoInput(""); }}>Cancelar</button>
-              <button className="btn btn-violet" onClick={confirmarAgrupar}>Crear grupo</button>
+              <button className="btn btn-ghost" onClick={() => { setModalAgrupar(false); setNombreGrupoInput(""); setGrupoExistenteSel(""); setModoAgrupar("nuevo"); }}>Cancelar</button>
+              <button className="btn btn-violet" onClick={confirmarAgrupar}>
+                {modoAgrupar === "existente" ? "Añadir al grupo" : "Crear grupo"}
+              </button>
             </div>
           </div>
         </div>,
