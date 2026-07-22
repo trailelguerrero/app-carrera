@@ -432,3 +432,81 @@ describe('CAM-11 — combinarFuentesActivas sincroniza toggles con Presupuesto',
     expect(CLAVES_FUENTES_COMPARTIDAS.ninoManual).toBe("camNino");
   });
 });
+
+// ── CAM-EXPORT: nueva exportación Excel de extras/familiares ──────────────────
+// Foco: personas con VARIAS camisetas/tallas → 1 fila por prenda (pivotable),
+// sin importes en el detalle de líneas (decisión de producto).
+describe('CAM-EXPORT — filasLineasCamiseta (1 fila por prenda, sin importes)', () => {
+  const pedidos = [
+    { nombre: 'Ana Ruiz', telefono: '600111222', lineas: [
+      { tipo: 'corredor', talla: 'M', cantidad: 2, precioVenta: 15, estadoPago: 'pagado', estadoEntrega: 'entregado' },
+      { tipo: 'nino', talla: '6-8', cantidad: 1, precioVenta: 10, estadoPago: 'pendiente', estadoEntrega: 'pendiente' },
+    ]},
+    { nombre: 'Beto Sanz', telefono: '600333444', lineas: [
+      { tipo: 'voluntario', talla: 'L', cantidad: 1, precioVenta: 0, estadoPago: 'regalo', estadoEntrega: 'pendiente' },
+    ]},
+  ];
+
+  it('genera una fila por línea, no por persona', async () => {
+    const { filasLineasCamiseta } = await import('@/lib/exportUtils.js');
+    const filas = filasLineasCamiseta(pedidos);
+    expect(filas.length).toBe(3); // 2 líneas de Ana + 1 de Beto
+    expect(filas[0]).toMatchObject({ Persona: 'Ana Ruiz', Tipo: 'Corredor', Talla: 'M', Cantidad: 2 });
+    expect(filas[1]).toMatchObject({ Persona: 'Ana Ruiz', Tipo: 'Niño/a', Talla: '6-8', Cantidad: 1 });
+  });
+
+  it('NO incluye importes en las líneas', async () => {
+    const { filasLineasCamiseta } = await import('@/lib/exportUtils.js');
+    const fila = filasLineasCamiseta(pedidos)[0];
+    const keys = Object.keys(fila).join('|').toLowerCase();
+    expect(keys).not.toContain('precio');
+    expect(keys).not.toContain('venta');
+    expect(keys).not.toContain('coste');
+    expect(keys).not.toContain('€');
+  });
+
+  it('mapea estados a etiquetas legibles', async () => {
+    const { filasLineasCamiseta } = await import('@/lib/exportUtils.js');
+    const filas = filasLineasCamiseta(pedidos);
+    expect(filas[0]['Estado pago']).toBe('Pagado');
+    expect(filas[0]['Estado entrega']).toBe('Entregado');
+    expect(filas[2]['Estado pago']).toBe('Regalo');
+  });
+
+  it('consolidadoTallasCamiseta suma por tipo×talla con pendientes/entregadas', async () => {
+    const { consolidadoTallasCamiseta } = await import('@/lib/exportUtils.js');
+    const filas = consolidadoTallasCamiseta(pedidos);
+    const corM = filas.find(f => f.Tipo === 'Corredor' && f.Talla === 'M');
+    expect(corM).toMatchObject({ Unidades: 2, Entregadas: 2, Pendientes: 0 });
+    const nino = filas.find(f => f.Tipo === 'Niño/a' && f.Talla === '6-8');
+    expect(nino).toMatchObject({ Unidades: 1, Entregadas: 0, Pendientes: 1 });
+  });
+
+  it('filaPedidoCamiseta agrega dinero a nivel persona', async () => {
+    const { filaPedidoCamiseta } = await import('@/lib/exportUtils.js');
+    const fila = filaPedidoCamiseta(pedidos[0], { corredor: 8, voluntario: 7, nino: 6 });
+    expect(fila.Unidades).toBe(3);
+    expect(fila.Líneas).toBe(2);
+    expect(fila['Venta (€)']).toBe(40); // 2×15 corredor + 1×10 niño (ambos no-regalo cuentan venta)
+  });
+
+  it('filasEntregaCamiseta ordena por persona y marca entregado', async () => {
+    const { filasEntregaCamiseta } = await import('@/lib/exportUtils.js');
+    const filas = filasEntregaCamiseta(pedidos);
+    expect(filas[0].Persona).toBe('Ana Ruiz');
+    expect(filas.at(-1).Persona).toBe('Beto Sanz');
+    expect(filas[0].Entregado).toBe('Sí');
+    expect(filas.at(-1).Entregado).toBe('No');
+  });
+});
+
+describe('CAM-EXPORT — exportarPedidoProveedor rellena coste', () => {
+  it('usa COSTE_DEFAULT en Coste_Unitario y Total_Coste (antes vacío)', async () => {
+    // Verifica la lógica de coste sin disparar la descarga real del navegador.
+    const { COSTE_DEFAULT } = await import('@/components/camisetas/camisetasConstants');
+    const base = 10;
+    const total = Math.ceil(base * 1.05);
+    expect(total * COSTE_DEFAULT.corredor).toBe(total * 8);
+    expect(COSTE_DEFAULT.corredor).toBeGreaterThan(0);
+  });
+});

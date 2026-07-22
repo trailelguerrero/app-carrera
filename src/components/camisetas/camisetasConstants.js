@@ -112,14 +112,16 @@ export const FUENTES_DEFAULT = {
 };
 
 /** Exporta consolidación de tallas como CSV para el proveedor */
-export function exportarPedidoProveedor(grandTallasCor, grandTallasVol, ninoExt, margenPct = 5) {
+export function exportarPedidoProveedor(grandTallasCor, grandTallasVol, ninoExt, margenPct = 5, coste = COSTE_DEFAULT) {
   const filas = [["Tipo","Talla","Unidades_Base","Margen_%","Total_A_Pedir","Coste_Unitario","Total_Coste"]];
   const agregar = (tipo, tallas, mapa) => {
     tallas.forEach(t => {
       const base = mapa[t] || 0;
       if (base <= 0) return;
       const total = Math.ceil(base * (1 + margenPct / 100));
-      filas.push([tipo, t, base, margenPct + "%", total, "", ""]);
+      // Antes se dejaban vacías pese a existir COSTE_DEFAULT como fuente única.
+      const costeU = coste[tipo] || 0;
+      filas.push([tipo, t, base, margenPct + "%", total, costeU, total * costeU]);
     });
   };
   agregar("corredor",   TALLAS,      grandTallasCor);

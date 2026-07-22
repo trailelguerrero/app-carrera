@@ -20,6 +20,9 @@
  */
 import { resolverDestinoAsignacion } from '@/components/logistica/logisticaHelpers';
 import { ESTADOS } from '@/constants/voluntariosConstants';
+import {
+  calcPedido, estadoCombinado, TC, EP, EE, TALLAS, TALLAS_NINO, COSTE_DEFAULT,
+} from '@/components/camisetas/camisetasConstants';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -480,4 +483,179 @@ export async function exportarMaterial(material = [], asigs = [], locs = [], mod
 
   const sufijo = modo !== 'completo' ? `-${modo}` : '';
   await downloadWorkbook(wb, `material-logistica-trail-guerrero-2026${sufijo}.xlsx`);
+}
+// ─── Camisetas ────────────────────────────────────────────────────────────────
+
+const tipoLabelCam    = (t) => TC[t]?.label || t || '';
+const pagoLabelCam    = (e) => EP[e || 'pendiente']?.label || e || '';
+const entregaLabelCam = (e) => EE[e || 'pendiente']?.label || e || '';
+
+/** Tallas válidas para un tipo (niño usa su propia escala). */
+function tallasDeTipo(tipo) {
+  return tipo === 'nino' ? TALLAS_NINO : TALLAS;
+}
+
+/**
+ * resumenCamisetas — Filas de la hoja "Resumen": unidades por tipo, por estado
+ * de pago y de entrega, más el bloque económico (venta / coste / beneficio /
+ * coste de regalos). Tabla plana y uniforme para pivotar.
+ */
+export function resumenCamisetas(pedidos = [], coste = COSTE_DEFAULT) {
+  const lineas = pedidos.flatMap((p) => p.lineas || []);
+  const filas = [];
+  const uds = (arr) => arr.reduce((s, l) => s + (l.cantidad || 0), 0);
+
+  filas.push({ Categoría: 'Total', Detalle: 'Pedidos (personas)', Total: pedidos.length });
+  filas.push({ Categoría: 'Total', Detalle: 'Unidades', Total: uds(lineas) });
+
+  // Por tipo
+  ['corredor', 'voluntario', 'nino'].forEach((t) => {
+    const n = uds(lineas.filter((l) => l.tipo === t));
+    if (n) filas.push({ Categoría: 'Tipo', Detalle: tipoLabelCam(t), Total: n });
+  });
+
+  // Por estado de pago
+  ['pendiente', 'pagado', 'regalo'].forEach((e) => {
+    const n = uds(lineas.filter((l) => (l.estadoPago || 'pendiente') === e));
+    if (n) filas.push({ Categoría: 'Pago', Detalle: pagoLabelCam(e), Total: n });
+  });
+
+  // Por estado de entrega
+  ['pendiente', 'entregado'].forEach((e) => {
+    const n = uds(lineas.filter((l) => (l.estadoEntrega || 'pendiente') === e));
+    if (n) filas.push({ Categoría: 'Entrega', Detalle: entregaLabelCam(e), Total: n });
+  });
+
+  // Económico (agregado — el detalle por línea NO lleva importes por decisión de producto)
+  const agg = pedidos.reduce((acc, p) => {
+    const c = calcPedido(p, coste);
+    acc.venta += c.totalVenta; acc.coste += c.totalCoste;
+    acc.beneficio += c.beneficio; acc.regalos += c.costeRegalos;
+    return acc;
+  }, { venta: 0, coste: 0, beneficio: 0, regalos: 0 });
+  filas.push({ Categoría: 'Económico', Detalle: 'Venta (€)',           Total: Number(agg.venta.toFixed(2)) });
+  filas.push({ Categoría: 'Económico', Detalle: 'Coste (€)',           Total: Number(agg.coste.toFixed(2)) });
+  filas.push({ Categoría: 'Económico', Detalle: 'Beneficio (€)',       Total: Number(agg.beneficio.toFixed(2)) });
+  filas.push({ Categoría: 'Económico', Detalle: 'Coste regalos (€)',   Total: Number(agg.regalos.toFixed(2)) });
+
+  return filas;
+}
+
+/** Fila por persona (vista humana; dinero agregado a nivel pedido). */
+export function filaPedidoCamiseta(p, coste = COSTE_DEFAULT) {
+  const c = calcPedido(p, coste);
+  const todoEntregado = (p.lineas || []).length > 0 &&
+    (p.lineas || []).every((l) => (l.estadoEntrega || 'pendiente') === 'entregado');
+  return {
+    Nombre:            p.nombre || '',
+    Teléfono:          p.telefono || '',
+    Email:             p.email || '',
+    Líneas:            (p.lineas || []).length,
+    Unidades:          c.totalUnid,
+    'Venta (€)':       Number(c.totalVenta.toFixed(2)),
+    'Coste (€)':       Number(c.totalCoste.toFixed(2)),
+    'Beneficio (€)':   Number(c.beneficio.toFixed(2)),
+    'Estado pago':     estadoCombinado(p.lineas || []).label,
+    'Estado entrega':  todoEntregado ? 'Entregado' : 'Pendiente',
+    Notas:             (p.notas || '').replace(/\n/g, ' '),
+  };
+}
+
+/**
+ * filasLineasCamiseta — 1 fila por PRENDA (línea). Resuelve el caso de personas
+ * con varias camisetas/tallas: tabla pivotable por talla/tipo/estado.
+ * SIN importes por decisión de producto (operativa, no financiera).
+ */
+export function filasLineasCamiseta(pedidos = []) {
+  const filas = [];
+  pedidos.forEach((p) => {
+    (p.lineas || []).forEach((l) => {
+      filas.push({
+        Persona:          p.nombre || '',
+        Teléfono:         p.telefono || '',
+        Tipo:             tipoLabelCam(l.tipo),
+        Talla:            l.talla || '',
+        Cantidad:         l.cantidad || 0,
+        'Estado pago':    pagoLabelCam(l.estadoPago),
+        'Estado entrega': entregaLabelCam(l.estadoEntrega),
+      });
+    });
+  });
+  return filas;
+}
+
+/** Consolidado tipo×talla de los extras: unidades totales / pendientes / entregadas. */
+export function consolidadoTallasCamiseta(pedidos = []) {
+  const lineas = pedidos.flatMap((p) => p.lineas || []);
+  const filas = [];
+  ['corredor', 'voluntario', 'nino'].forEach((tipo) => {
+    tallasDeTipo(tipo).forEach((talla) => {
+      const props = lineas.filter((l) => l.tipo === tipo && l.talla === talla);
+      const total = props.reduce((s, l) => s + (l.cantidad || 0), 0);
+      if (total <= 0) return;
+      const entregadas = props
+        .filter((l) => (l.estadoEntrega || 'pendiente') === 'entregado')
+        .reduce((s, l) => s + (l.cantidad || 0), 0);
+      filas.push({
+        Tipo:        tipoLabelCam(tipo),
+        Talla:       talla,
+        Unidades:    total,
+        Entregadas:  entregadas,
+        Pendientes:  total - entregadas,
+      });
+    });
+  });
+  return filas;
+}
+
+/** Pick-list de entrega Día D: 1 fila por prenda, ordenado por persona. */
+export function filasEntregaCamiseta(pedidos = []) {
+  return [...pedidos]
+    .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es'))
+    .flatMap((p) =>
+      (p.lineas || []).map((l) => ({
+        Persona:    p.nombre || '',
+        Teléfono:   p.telefono || '',
+        Tipo:       tipoLabelCam(l.tipo),
+        Talla:      l.talla || '',
+        Cantidad:   l.cantidad || 0,
+        Entregado:  (l.estadoEntrega || 'pendiente') === 'entregado' ? 'Sí' : 'No',
+      }))
+    );
+}
+
+/**
+ * exportarCamisetas — Workbook completo de camisetas extra/familiares.
+ * Sustituye al CSV plano que colapsaba todas las tallas de una persona en una
+ * sola celda de texto (no pivotable).
+ */
+export async function exportarCamisetas(pedidos = [], coste = COSTE_DEFAULT) {
+  const { default: ExcelJS } = await import('exceljs');
+  const wb = new ExcelJS.Workbook();
+
+  addSheet(wb, 'Resumen', resumenCamisetas(pedidos, coste));
+
+  const wsPed = addSheet(wb, 'Pedidos', pedidos.map((p) => filaPedidoCamiseta(p, coste)));
+  conFiltroYFijado(wsPed);
+
+  const wsLin = addSheet(wb, 'Líneas', filasLineasCamiseta(pedidos));
+  conFiltroYFijado(wsLin);
+
+  const consol = consolidadoTallasCamiseta(pedidos);
+  if (consol.length > 0) conFiltroYFijado(addSheet(wb, 'Por talla', consol));
+
+  const entrega = filasEntregaCamiseta(pedidos);
+  if (entrega.length > 0) {
+    const wsEnt = addSheet(wb, 'Entrega Día D', entrega);
+    conFiltroYFijado(wsEnt);
+    // Verde para prendas ya entregadas
+    entrega.forEach((fila, idx) => {
+      if (fila.Entregado === 'Sí') {
+        wsEnt.getRow(idx + 2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDCFCE7' } };
+      }
+    });
+  }
+
+  const hoy = new Date().toISOString().split('T')[0];
+  await downloadWorkbook(wb, `camisetas-extra-trail-guerrero-${hoy}.xlsx`);
 }
