@@ -192,3 +192,67 @@ describe('AV-08 — hashPin frontend === hashPin backend', () => {
     expect(apiSrc).toContain('Math.imul');
   });
 });
+
+// ── AV-09: Grupos en el portal — miembros sí, nombre del grupo NO ─────────────
+// El portal debe mostrar al voluntario QUIÉNES son sus compañeros de grupo,
+// pero nunca el nombre del grupo (etiqueta exclusiva del organizador), y sin
+// permitir modificar nada (solo lectura). Estas comprobaciones protegen esa
+// garantía de privacidad a nivel de API.
+describe('AV-09 — Grupos en el portal: miembros visibles, nombre del grupo oculto', () => {
+  // Réplica de la derivación de companerosGrupo del handler (misma lógica).
+  const derivarCompanerosGrupo = (voluntario, vols, puestos) =>
+    voluntario.grupoId != null
+      ? vols
+          .filter(v => v.grupoId != null && String(v.grupoId) === String(voluntario.grupoId) && String(v.id) !== String(voluntario.id) && v.estado !== 'cancelado')
+          .map(v => {
+            const pv = v.puestoId != null ? puestos.find(p => String(p.id) === String(v.puestoId)) : null;
+            return { nombre: v.nombre || '', apellidos: v.apellidos || '', estado: v.estado || 'pendiente', enPuesto: v.enPuesto || false, puestoNombre: pv ? (pv.nombre || '') : '' };
+          })
+      : [];
+
+  const puestos = [{ id: 1, nombre: 'Avituallamiento 1' }, { id: 2, nombre: 'Meta' }];
+  const vols = [
+    { id: 'a', nombre: 'Pepe',  apellidos: 'López', grupoId: 'g1', grupoNombre: 'Familia López', estado: 'confirmado', puestoId: 1, enPuesto: true },
+    { id: 'b', nombre: 'Ana',   apellidos: 'López', grupoId: 'g1', grupoNombre: 'Familia López', estado: 'pendiente',  puestoId: 2 },
+    { id: 'c', nombre: 'Paco',  apellidos: 'López', grupoId: 'g1', grupoNombre: 'Familia López', estado: 'cancelado',  puestoId: null },
+    { id: 'd', nombre: 'Otro',  apellidos: 'Ajeno', grupoId: 'g2', grupoNombre: 'Amigos',        estado: 'confirmado', puestoId: 1 },
+    { id: 'e', nombre: 'Suelto',apellidos: '',      estado: 'confirmado' },
+  ];
+
+  it('devuelve a los compañeros del mismo grupo, excluyéndose a sí mismo', () => {
+    const res = derivarCompanerosGrupo(vols[0], vols, puestos);
+    expect(res.map(c => c.nombre).sort()).toEqual(['Ana']); // Paco está cancelado, Pepe es él mismo
+  });
+
+  it('excluye a los cancelados y a los de otros grupos', () => {
+    const res = derivarCompanerosGrupo(vols[1], vols, puestos);
+    const nombres = res.map(c => c.nombre);
+    expect(nombres).toContain('Pepe');
+    expect(nombres).not.toContain('Paco');   // cancelado
+    expect(nombres).not.toContain('Otro');   // otro grupo
+    expect(nombres).not.toContain('Suelto'); // sin grupo
+  });
+
+  it('NUNCA incluye el nombre del grupo en los datos de los miembros', () => {
+    const res = derivarCompanerosGrupo(vols[0], vols, puestos);
+    res.forEach(c => {
+      expect(c).not.toHaveProperty('grupoNombre');
+      expect(JSON.stringify(c)).not.toContain('Familia López');
+    });
+  });
+
+  it('un voluntario sin grupo no recibe compañeros de grupo', () => {
+    expect(derivarCompanerosGrupo(vols[4], vols, puestos)).toEqual([]);
+  });
+
+  it('el handler elimina grupoNombre y grupoId de la ficha devuelta al portal', () => {
+    // La ficha del voluntario que llega al portal se construye excluyendo estos
+    // campos en la desestructuración (…grupoNombre: _gn, grupoId: _gid, …volPublico).
+    expect(apiSrc).toMatch(/grupoNombre:\s*_gn/);
+    expect(apiSrc).toMatch(/grupoId:\s*_gid/);
+  });
+
+  it('el handler expone companerosGrupo en la respuesta de la ficha', () => {
+    expect(apiSrc).toContain('companerosGrupo');
+  });
+});

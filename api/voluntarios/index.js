@@ -333,6 +333,28 @@ export default async function handler(req, res) {
              })
         : [];
 
+      // [GRUPOS-PORTAL] Compañeros del mismo grupo (familia/amigos) del voluntario.
+      // IMPORTANTE (privacidad): se devuelven SOLO las personas, nunca el nombre
+      // del grupo — esa etiqueta ("Familia López") es exclusiva del organizador.
+      // El voluntario ve QUIÉNES son sus compañeros de grupo, no cómo se llama el
+      // grupo, y no puede modificar nada desde el portal (solo lectura).
+      const companerosGrupo = voluntario.grupoId != null
+        ? vols.filter(v => v.grupoId != null && String(v.grupoId) === String(voluntario.grupoId) && String(v.id) !== String(voluntario.id) && v.estado !== 'cancelado')
+             .map(v => {
+               const nombreRaw = (v.nombre || '').trim();
+               const apellidosRaw = (v.apellidos || '').trim();
+               let nombreFinal = nombreRaw;
+               let apellidosFinal = apellidosRaw;
+               if (!apellidosRaw && nombreRaw.includes(' ')) {
+                 const partes = nombreRaw.split(/\s+/);
+                 nombreFinal = partes[0];
+                 apellidosFinal = partes.slice(1).join(' ');
+               }
+               const pv = v.puestoId != null ? puestos.find(p => String(p.id) === String(v.puestoId)) : null;
+               return { nombre: nombreFinal, apellidos: apellidosFinal, estado: v.estado || 'pendiente', enPuesto: v.enPuesto || false, puestoNombre: pv ? (pv.nombre || '') : '' };
+             })
+        : [];
+
       // Enriquecer puesto con lat/lng: primero los coords explícitos del puesto,
       // luego fallback a los de la localización maestra vinculada (localizacionId)
       let puestoLat = null;
@@ -354,13 +376,16 @@ export default async function handler(req, res) {
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
       res.setHeader('Pragma', 'no-cache');
 
-      const { pinHash: _ph, sessionToken: _st, ...volPublico } = { ...voluntario, pinPersonalizado: voluntario.pinPersonalizado === true };
+      // [GRUPOS-PORTAL] Se excluyen grupoNombre y grupoId de la ficha que ve el
+      // voluntario: el nombre del grupo es solo para el organizador y el portal
+      // no necesita el id (los compañeros de grupo ya se calculan arriba).
+      const { pinHash: _ph, sessionToken: _st, grupoNombre: _gn, grupoId: _gid, ...volPublico } = { ...voluntario, pinPersonalizado: voluntario.pinPersonalizado === true };
       // Migración on-the-fly: si no tiene telefonoEmergencia, usar el propio teléfono
       const telEmergencia = voluntario.telefonoEmergencia || voluntario.contactoEmergencia || voluntario.telefono || '';
       return res.status(200).json({
         voluntario: { ...volPublico, telefonoEmergencia: telEmergencia, contactoEmergencia: telEmergencia, mensajeOrganizador: voluntario.mensajeOrganizador || '', mensajeParaOrganizador: voluntario.mensajeParaOrganizador || '' },
         puesto: puesto ? { nombre: puesto.nombre, tipo: puesto.tipo, horaInicio: puesto.horaInicio, horaFin: puesto.horaFin, distancias: puesto.distancias, notas: puesto.notas, necesarios: puesto.necesarios || null, tiempoLimite: puesto.tiempoLimite || null, lat: puestoLat, lng: puestoLng } : null,
-        companerosEnPuesto, materialPuesto,
+        companerosEnPuesto, companerosGrupo, materialPuesto,
         config: { nombre: orgConfig.nombre, fecha: orgConfig.fecha, lugar: orgConfig.lugar, organizador: orgConfig.organizador || '', telefonoContacto: orgConfig.telefonoContacto || '', emailContacto: orgConfig.emailContacto || '', organizadores },
       });
     }

@@ -189,7 +189,7 @@ export function PortalMain({ token, onLogout }) {
 
   // SEC-06: cambio de PIN opcional — el banner suave (línea ~404) ya avisa sin bloquear
 
-  const { voluntario:v={}, puesto, companerosEnPuesto=[], materialPuesto=[], config={} } = data || {};
+  const { voluntario:v={}, puesto, companerosEnPuesto=[], companerosGrupo=[], materialPuesto=[], config={} } = data || {};
 
   const organizadores = Array.isArray(config.organizadores) && config.organizadores.length > 0
     ? config.organizadores
@@ -351,6 +351,7 @@ export function PortalMain({ token, onLogout }) {
         {[
           { id:"sec-puesto",    icon:"📍", label:"Puesto" },
           ...(companerosEnPuesto.length > 0 ? [{ id:"sec-compan", icon:"👥", label:`Equipo (${companerosEnPuesto.length})` }] : []),
+          ...(companerosGrupo.length > 0 ? [{ id:"sec-grupo", icon:"👪", label:`Tu grupo (${companerosGrupo.length})` }] : []),
           // PORTAL-03: enlace a sección El día de la carrera (solo si diasHasta <= 7)
           ...(config.fecha && Math.ceil((new Date(config.fecha) - new Date()) / 86400000) <= 7 && Math.ceil((new Date(config.fecha) - new Date()) / 86400000) >= 0
             ? [{ id:"sec-diacarrera", icon:"🏁", label:"El día" }]
@@ -531,6 +532,39 @@ export function PortalMain({ token, onLogout }) {
                     {c.telefono && <a href={`tel:${c.telefono.replace(/\s/g,"")}`}
                       style={{ fontFamily:"var(--font-mono)", fontSize:".74rem", color:"var(--cyan)", textDecoration:"none" }}>
                       📞 {c.telefono}</a>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* [GRUPOS-PORTAL] Tu grupo — SOLO los miembros, nunca el nombre del grupo.
+            Solo lectura: el voluntario no puede modificar nada del grupo desde aquí. */}
+        {companerosGrupo.length > 0 && (
+          <div id="sec-grupo" className="vp-card">
+            <div className="vp-label">👪 Tu grupo ({companerosGrupo.length})</div>
+            <div className="vp-mono" style={{ fontSize:"var(--fs-xs)", color:"var(--text-muted)", marginBottom:".5rem" }}>
+              Personas con las que te agrupó la organización.
+            </div>
+            {companerosGrupo.map((c,i) => {
+              const ini = ((c.nombre||"")+" "+(c.apellidos||"")).trim().split(" ").map(n=>n[0]).slice(0,2).join("").toUpperCase();
+              return (
+                <div key={i} className="vp-companion">
+                  <div className="vp-avatar" style={{
+                    background:c.enPuesto?"rgba(52,211,153,.15)":undefined,
+                    borderColor:c.enPuesto?"var(--green-border)":undefined,
+                    color:c.enPuesto?"var(--green)":undefined }}>{ini}</div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:".4rem", flexWrap:"wrap" }}>
+                      <span style={{ fontWeight:600, fontSize:".92rem" }}>{c.nombre}{c.apellidos?" "+c.apellidos:""}</span>
+                      {c.enPuesto && <span style={{ fontFamily:"var(--font-mono)", fontSize:".6rem",
+                        background:"var(--green-dim)", color:"var(--green)",
+                        border:"1px solid var(--green-border)", borderRadius:4,
+                        padding:".05rem .35rem", fontWeight:700 }}>📍 En puesto</span>}
+                    </div>
+                    {c.puestoNombre && <span style={{ fontFamily:"var(--font-mono)", fontSize:".74rem", color:"var(--text-muted)" }}>
+                      📍 {c.puestoNombre}</span>}
                   </div>
                 </div>
               );
