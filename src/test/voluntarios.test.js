@@ -2285,3 +2285,74 @@ describe('MEJ-VOL-EXPORT — edadDesde', () => {
     expect(edadDesde('no-fecha')).toBe('');
   });
 });
+
+// ── VOL-35: Gestión del grupo desde la ficha ────────────────────────────────
+// Renombrar, quitar a un miembro concreto y deshacer el grupo. Ninguna de estas
+// acciones toca el puesto, el estado ni el resto de datos del voluntario: solo
+// el enlace de grupo.
+describe('VOL-35 — Gestión del grupo desde la ficha', () => {
+  const base = () => ([
+    { id: 1, nombre: "Ana",  grupoId: "g1", grupoNombre: "Familia López", puestoId: 5, estado: "confirmado" },
+    { id: 2, nombre: "Luis", grupoId: "g1", grupoNombre: "Familia López", puestoId: 5, estado: "pendiente" },
+    { id: 3, nombre: "Eva",  grupoId: "g1", grupoNombre: "Familia López", puestoId: 7, estado: "confirmado" },
+    { id: 4, nombre: "Marc", grupoId: "g2", grupoNombre: "Amigos",        puestoId: 5, estado: "confirmado" },
+  ]);
+
+  it('renombrar aplica el nuevo nombre a todos los miembros del grupo', () => {
+    const vols = base();
+    const idsGrupo = vols.filter(v => v.grupoId === "g1").map(v => v.id);
+    const actualizados = vols.map(v => idsGrupo.includes(v.id) ? { ...v, grupoNombre: "Familia López 2026" } : v);
+    expect(actualizados.filter(v => v.grupoId === "g1").every(v => v.grupoNombre === "Familia López 2026")).toBe(true);
+    expect(actualizados.find(v => v.id === 4).grupoNombre).toBe("Amigos"); // otro grupo intacto
+  });
+
+  it('renombrar no altera el grupoId ni el puesto de nadie', () => {
+    const vols = base();
+    const idsGrupo = vols.filter(v => v.grupoId === "g1").map(v => v.id);
+    const actualizados = vols.map(v => idsGrupo.includes(v.id) ? { ...v, grupoNombre: "Otro nombre" } : v);
+    actualizados.forEach((v, i) => {
+      expect(v.grupoId).toBe(vols[i].grupoId);
+      expect(v.puestoId).toBe(vols[i].puestoId);
+      expect(v.estado).toBe(vols[i].estado);
+    });
+  });
+
+  it('quitar a un miembro solo lo desenlaza a él', () => {
+    const vols = base();
+    const actualizados = vols.map(v => v.id === 2 ? { ...v, grupoId: null, grupoNombre: null } : v);
+    expect(actualizados.find(v => v.id === 2).grupoId).toBeNull();
+    expect(actualizados.filter(v => v.grupoId === "g1").map(v => v.id)).toEqual([1, 3]);
+  });
+
+  it('quitar a un miembro conserva su puesto y su estado', () => {
+    const vols = base();
+    const actualizados = vols.map(v => v.id === 2 ? { ...v, grupoId: null, grupoNombre: null } : v);
+    const luis = actualizados.find(v => v.id === 2);
+    expect(luis.puestoId).toBe(5);
+    expect(luis.estado).toBe("pendiente");
+  });
+
+  it('deshacer el grupo desenlaza a todos sus miembros y solo a ellos', () => {
+    const vols = base();
+    const idsGrupo = vols.filter(v => v.grupoId === "g1").map(v => v.id);
+    const actualizados = vols.map(v => idsGrupo.includes(v.id) ? { ...v, grupoId: null, grupoNombre: null } : v);
+    expect(actualizados.filter(v => v.grupoId === "g1")).toHaveLength(0);
+    expect(actualizados.find(v => v.id === 4).grupoId).toBe("g2"); // el otro grupo sigue
+  });
+
+  it('deshacer el grupo no elimina voluntarios ni les quita el puesto', () => {
+    const vols = base();
+    const idsGrupo = vols.filter(v => v.grupoId === "g1").map(v => v.id);
+    const actualizados = vols.map(v => idsGrupo.includes(v.id) ? { ...v, grupoId: null, grupoNombre: null } : v);
+    expect(actualizados).toHaveLength(4);
+    expect(actualizados.map(v => v.puestoId)).toEqual([5, 5, 7, 5]);
+  });
+
+  it('los ids del grupo incluyen al voluntario abierto en la ficha', () => {
+    const vols = base();
+    const v = vols[0];
+    const companeros = vols.filter(c => c.grupoId === v.grupoId && String(c.id) !== String(v.id));
+    const idsGrupo = [v.id, ...companeros.map(c => c.id)];
+    expect(idsGrupo.sort()).toEqual([1, 2, 3]);
+  });
+});

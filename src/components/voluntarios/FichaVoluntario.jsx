@@ -116,10 +116,14 @@ function MensajeOrganizadorEdit({ valor, onChange }) {
   );
 }
 
-function FichaVoluntario({ voluntario: v, puestos, voluntarios=[], locs=[], matPorPuesto={}, matPorVoluntario={}, onClose, onEditar, onEliminar, onEliminarConfirmado, onUpdate, onReasignar, onIntercambiar, config }) {
+function FichaVoluntario({ voluntario: v, puestos, voluntarios=[], locs=[], matPorPuesto={}, matPorVoluntario={}, onClose, onEditar, onEliminar, onEliminarConfirmado, onUpdate, onBulkUpdate, onReasignar, onIntercambiar, config }) {
   const { closing: fvClosing, handleClose: fvHandleClose } = useModalClose(onClose);
   const [confirmando, setConfirmando] = useState(false);
   const [modalReasignar, setModalReasignar] = useState(false);
+  // [GRUPOS] Gestión del grupo desde la ficha: renombrar, quitar miembros, deshacer.
+  const [editandoGrupo, setEditandoGrupo] = useState(false);
+  const [nombreGrupoEdit, setNombreGrupoEdit] = useState("");
+  const [confirmarDeshacer, setConfirmarDeshacer] = useState(false);
   const puesto = puestos.find(p => p.id === v.puestoId);
   const estadoColor = v.estado === "confirmado" ? "var(--green)" : v.estado === "cancelado" ? "var(--red)" : "var(--amber)";
 
@@ -378,31 +382,114 @@ function FichaVoluntario({ voluntario: v, puestos, voluntarios=[], locs=[], matP
             </div>
           )}
 
-          {/* [GRUPOS] Grupo (familia/amigos) — compañeros y opción de salir del grupo */}
+          {/* [GRUPOS] Grupo (familia/amigos) — gestión completa: renombrar,
+              quitar miembros, salir del grupo y deshacerlo.
+              El nombre del grupo es SOLO para el organizador: nunca se muestra
+              en el portal del voluntario. */}
           {v.grupoId && (() => {
             const companeros = voluntarios.filter(c => c.grupoId === v.grupoId && String(c.id) !== String(v.id));
+            const totalMiembros = companeros.length + 1;
+            const idsGrupo = [v.id, ...companeros.map(c => c.id)];
+            const guardarNombre = () => {
+              const nuevo = nombreGrupoEdit.trim();
+              if (!nuevo) { toast.error("El grupo necesita un nombre"); return; }
+              if (nuevo === (v.grupoNombre || "")) { setEditandoGrupo(false); return; }
+              onBulkUpdate(idsGrupo, { grupoNombre: nuevo });
+              toast.success(`Grupo renombrado a "${nuevo}"`);
+              setEditandoGrupo(false);
+            };
             return (
               <div style={{ background:"var(--violet-dim)", borderRadius:8, padding:"0.6rem 0.75rem",
                 borderLeft:"2px solid var(--violet)", marginTop:"0.25rem" }}>
-                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:".35rem" }}>
-                  <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--violet)",
-                    textTransform:"uppercase", fontWeight:700 }}>
-                    👥 Grupo: {v.grupoNombre || "sin nombre"}
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+                  gap:".4rem", marginBottom:".35rem" }}>
+                  {editandoGrupo && onBulkUpdate ? (
+                    <>
+                      <input className="inp" autoFocus value={nombreGrupoEdit}
+                        onChange={e => setNombreGrupoEdit(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") guardarNombre(); if (e.key === "Escape") setEditandoGrupo(false); }}
+                        placeholder="Nombre del grupo"
+                        style={{ flex:1, fontSize:"var(--fs-sm)", padding:".2rem .4rem" }} />
+                      <button className="btn btn-violet" style={{ fontSize:"var(--fs-2xs)", padding:".15rem .4rem" }}
+                        onClick={guardarNombre}>Guardar</button>
+                      <button className="btn btn-ghost" style={{ fontSize:"var(--fs-2xs)", padding:".15rem .4rem" }}
+                        onClick={() => setEditandoGrupo(false)}>Cancelar</button>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ fontFamily:"var(--font-mono)", fontSize:"var(--fs-xs)", color:"var(--violet)",
+                        textTransform:"uppercase", fontWeight:700 }}>
+                        👥 Grupo: {v.grupoNombre || "sin nombre"} ({totalMiembros})
+                      </div>
+                      {onBulkUpdate && (
+                        <button className="btn btn-ghost" style={{ fontSize:"var(--fs-2xs)", padding:".15rem .4rem" }}
+                          title="Cambiar el nombre del grupo"
+                          onClick={() => { setNombreGrupoEdit(v.grupoNombre || ""); setEditandoGrupo(true); }}>
+                          ✏️ Renombrar
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {companeros.length > 0 ? (
+                  <div style={{ display:"flex", flexDirection:"column", gap:".2rem" }}>
+                    {companeros.map(c => (
+                      <div key={c.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+                        gap:".4rem", fontSize:"var(--fs-sm)", lineHeight:1.5 }}>
+                        <span>{[c.nombre, c.apellidos].filter(Boolean).join(" ")}</span>
+                        {onBulkUpdate && (
+                          <button className="btn btn-ghost"
+                            style={{ fontSize:"var(--fs-2xs)", padding:".1rem .35rem", color:"var(--text-muted)" }}
+                            title="Quitar a esta persona del grupo"
+                            onClick={() => {
+                              onBulkUpdate([c.id], { grupoId: null, grupoNombre: null });
+                              toast.success(`${[c.nombre, c.apellidos].filter(Boolean).join(" ")} ya no está en el grupo`);
+                            }}>
+                            ✕ Quitar
+                          </button>
+                        )}
+                      </div>
+                    ))}
                   </div>
+                ) : (
+                  <div style={{ fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>
+                    Sin más compañeros en este grupo.
+                  </div>
+                )}
+
+                <div style={{ display:"flex", gap:".35rem", flexWrap:"wrap", marginTop:".5rem",
+                  paddingTop:".4rem", borderTop:"1px solid rgba(167,139,250,.2)" }}>
                   {onUpdate && (
                     <button className="btn btn-ghost" style={{ fontSize:"var(--fs-2xs)", padding:".15rem .4rem" }}
+                      title="Sacar solo a este voluntario del grupo"
                       onClick={() => onUpdate({ grupoId: null, grupoNombre: null })}>
                       Salir del grupo
                     </button>
                   )}
+                  {onBulkUpdate && (
+                    confirmarDeshacer ? (
+                      <>
+                        <button className="btn btn-ghost" style={{ fontSize:"var(--fs-2xs)", padding:".15rem .4rem", color:"var(--red)" }}
+                          onClick={() => {
+                            onBulkUpdate(idsGrupo, { grupoId: null, grupoNombre: null });
+                            toast.success("Grupo deshecho — nadie pierde su puesto ni sus datos");
+                            setConfirmarDeshacer(false);
+                          }}>
+                          Sí, deshacer ({totalMiembros})
+                        </button>
+                        <button className="btn btn-ghost" style={{ fontSize:"var(--fs-2xs)", padding:".15rem .4rem" }}
+                          onClick={() => setConfirmarDeshacer(false)}>No</button>
+                      </>
+                    ) : (
+                      <button className="btn btn-ghost" style={{ fontSize:"var(--fs-2xs)", padding:".15rem .4rem" }}
+                        title="Deshacer el grupo — los voluntarios se mantienen, solo dejan de estar enlazados"
+                        onClick={() => setConfirmarDeshacer(true)}>
+                        Deshacer grupo
+                      </button>
+                    )
+                  )}
                 </div>
-                {companeros.length > 0 ? (
-                  <div style={{ fontSize:"var(--fs-sm)", lineHeight:1.5 }}>
-                    {companeros.map(c => [c.nombre, c.apellidos].filter(Boolean).join(" ")).join(" · ")}
-                  </div>
-                ) : (
-                  <div style={{ fontSize:"var(--fs-xs)", color:"var(--text-muted)" }}>Sin más compañeros en este grupo.</div>
-                )}
               </div>
             );
           })()}

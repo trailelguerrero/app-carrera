@@ -199,6 +199,13 @@ export default function Voluntarios() {
           onEliminar={() => { const id = ficha.data?.id; if (id === null || id === undefined) return; pendingDeleteRef.current = id; setConfirmDelete(id); setFicha(null); }}
           onEliminarConfirmado={() => { const id = ficha.data?.id ?? pendingDeleteRef.current; if (id === null || id === undefined) return; pendingDeleteRef.current = id; setFicha(null); ejecutarEliminacion(id); }}
           onUpdate={(data) => { updateVoluntario(ficha.data.id, data); setFicha(f => ({ ...f, data: { ...f.data, ...data } })); }}
+          onBulkUpdate={(ids, data) => {
+            bulkUpdateVoluntarios(ids, data);
+            // Si el voluntario abierto está entre los afectados, refrescar su ficha.
+            if (ids.some(id => String(id) === String(ficha.data.id))) {
+              setFicha(f => ({ ...f, data: { ...f.data, ...data } }));
+            }
+          }}
           onReasignar={(volId, puestoId) => { handleReasignar(volId, puestoId); setFicha(f => ({ ...f, data: { ...f.data, puestoId: puestoId ?? null } })); }}
           onIntercambiar={(idA, idB) => { intercambiarVoluntarios(idA, idB); setFicha(null); }}
         />, document.body
